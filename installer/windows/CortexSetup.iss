@@ -50,8 +50,7 @@ LicenseFile=..\..\LICENSE.txt
 ; Custom installer icon — uncomment after dropping cortex.ico in this folder
 ; SetupIconFile=cortex.ico
 ; UninstallDisplayIcon={app}\installer\windows\cortex.ico
-WizardImageFile=compiler:WizModernImage-IS.bmp
-WizardSmallImageFile=compiler:WizModernSmallImage-IS.bmp
+; Wizard images — use Inno Setup defaults (file names changed in 6.5+)
 ShowLanguageDialog=auto
 DisableWelcomePage=no
 
