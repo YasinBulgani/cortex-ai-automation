@@ -57,6 +57,38 @@ function bindActions() {
   $('#run-btn').addEventListener('click', startRun);
   $('#stop-btn').addEventListener('click', stopRun);
   $('#ai-submit').addEventListener('click', submitAi);
+  const cleanupBtn = $('#cleanup-browsers-btn');
+  if (cleanupBtn) cleanupBtn.addEventListener('click', cleanupBrowsers);
+}
+
+// Kill orphan Playwright Chromium processes from previous interrupted runs.
+async function cleanupBrowsers() {
+  const btn = $('#cleanup-browsers-btn');
+  if (!btn) return;
+  const origText = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = 'Temizleniyor…';
+  try {
+    const r = await fetch('/api/cortex/recorder/cleanup', { method: 'POST' });
+    const j = await r.json();
+    if (j.ok) {
+      const n = j.killed || 0;
+      btn.textContent = n > 0 ? `✓ ${n} tarayici kapatildi` : '✓ Acik tarayici yoktu';
+      btn.classList.add('ok-flash');
+    } else {
+      btn.textContent = '✗ ' + (j.error || 'Hata');
+      btn.classList.add('err-flash');
+    }
+  } catch (e) {
+    btn.textContent = '✗ Baglanti hatasi';
+    btn.classList.add('err-flash');
+  } finally {
+    setTimeout(() => {
+      btn.disabled = false;
+      btn.textContent = origText;
+      btn.classList.remove('ok-flash', 'err-flash');
+    }, 4000);
+  }
 }
 
 // ---------- Health ----------

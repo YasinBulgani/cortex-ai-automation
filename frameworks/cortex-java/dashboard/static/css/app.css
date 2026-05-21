@@ -197,6 +197,34 @@ nav {
   filter: brightness(1.1);
 }
 
+.btn.warn {
+  background: rgba(251, 191, 36, 0.12);
+  border-color: rgba(251, 191, 36, 0.40);
+  color: #fbbf24;
+}
+
+.btn.warn:hover {
+  background: rgba(251, 191, 36, 0.20);
+  border-color: rgba(251, 191, 36, 0.70);
+}
+
+.btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.btn.ok-flash {
+  background: rgba(52, 211, 153, 0.18) !important;
+  border-color: rgba(52, 211, 153, 0.6) !important;
+  color: #6ee7b7 !important;
+}
+
+.btn.err-flash {
+  background: rgba(244, 63, 94, 0.18) !important;
+  border-color: rgba(244, 63, 94, 0.6) !important;
+  color: #fda4af !important;
+}
+
 .btn.danger {
   background: rgba(255, 79, 112, 0.15);
   border-color: rgba(255, 79, 112, 0.4);
