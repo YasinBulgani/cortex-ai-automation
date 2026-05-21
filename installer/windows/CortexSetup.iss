@@ -65,18 +65,18 @@ Name: "quicklaunchicon";Description: "Hizli baslat kisayolu";             GroupD
 Name: "autostart";      Description: "Windows acilirken otomatik baslat"; GroupDescription: "Ek gorevler:"; Flags: unchecked
 
 [Files]
-; --- Java framework under framework/ ---
-Source: "..\..\framework\pom.xml";       DestDir: "{app}\framework";          Flags: ignoreversion
-Source: "..\..\framework\mvnw";          DestDir: "{app}\framework";          Flags: ignoreversion
-Source: "..\..\framework\mvnw.cmd";      DestDir: "{app}\framework";          Flags: ignoreversion
-Source: "..\..\framework\.mvn\*";        DestDir: "{app}\framework\.mvn";     Flags: ignoreversion recursesubdirs createallsubdirs
-Source: "..\..\framework\src\*";         DestDir: "{app}\framework\src";      Flags: ignoreversion recursesubdirs createallsubdirs
-Source: "..\..\framework\python_server\*"; DestDir: "{app}\framework\python_server"; Flags: ignoreversion recursesubdirs createallsubdirs
-Source: "..\..\framework\dashboard\*";   DestDir: "{app}\framework\dashboard"; Flags: ignoreversion recursesubdirs createallsubdirs
-Source: "..\..\framework\docs\*";        DestDir: "{app}\framework\docs";     Flags: ignoreversion recursesubdirs createallsubdirs skipifsourcedoesntexist
-Source: "..\..\framework\scripts\*";     DestDir: "{app}\framework\scripts";  Flags: ignoreversion recursesubdirs createallsubdirs skipifsourcedoesntexist
-Source: "..\..\framework\recorder.properties"; DestDir: "{app}\framework";    Flags: ignoreversion
-Source: "..\..\framework\.env.example";  DestDir: "{app}\framework";          Flags: ignoreversion skipifsourcedoesntexist
+; --- Java framework under frameworks/cortex-java/ ---
+Source: "..\..\frameworks\cortex-java\pom.xml";       DestDir: "{app}\frameworks\cortex-java";          Flags: ignoreversion
+Source: "..\..\frameworks\cortex-java\mvnw";          DestDir: "{app}\frameworks\cortex-java";          Flags: ignoreversion
+Source: "..\..\frameworks\cortex-java\mvnw.cmd";      DestDir: "{app}\frameworks\cortex-java";          Flags: ignoreversion
+Source: "..\..\frameworks\cortex-java\.mvn\*";        DestDir: "{app}\frameworks\cortex-java\.mvn";     Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "..\..\frameworks\cortex-java\src\*";         DestDir: "{app}\frameworks\cortex-java\src";      Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "..\..\frameworks\cortex-java\python_server\*"; DestDir: "{app}\frameworks\cortex-java\python_server"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "..\..\frameworks\cortex-java\dashboard\*";   DestDir: "{app}\frameworks\cortex-java\dashboard"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "..\..\frameworks\cortex-java\docs\*";        DestDir: "{app}\frameworks\cortex-java\docs";     Flags: ignoreversion recursesubdirs createallsubdirs skipifsourcedoesntexist
+Source: "..\..\frameworks\cortex-java\scripts\*";     DestDir: "{app}\frameworks\cortex-java\scripts";  Flags: ignoreversion recursesubdirs createallsubdirs skipifsourcedoesntexist
+Source: "..\..\frameworks\cortex-java\recorder.properties"; DestDir: "{app}\frameworks\cortex-java";    Flags: ignoreversion
+Source: "..\..\frameworks\cortex-java\.env.example";  DestDir: "{app}\frameworks\cortex-java";          Flags: ignoreversion skipifsourcedoesntexist
 
 ; --- Next.js monorepo (apps/ + packages/ + workspace configs) ---
 Source: "..\..\apps\*";        DestDir: "{app}\apps";                Flags: ignoreversion recursesubdirs createallsubdirs skipifsourcedoesntexist; Excludes: "node_modules\*,*\node_modules\*,.next\*,*\.next\*,.turbo\*,*\.turbo\*,tsconfig.tsbuildinfo"
@@ -123,9 +123,9 @@ Filename: "{app}\{#MyAppExeName}"; \
     Flags: nowait postinstall skipifsilent shellexec
 
 [UninstallDelete]
-Type: filesandordirs; Name: "{app}\framework\.venv"
-Type: filesandordirs; Name: "{app}\framework\target"
-Type: filesandordirs; Name: "{app}\framework\logs"
+Type: filesandordirs; Name: "{app}\frameworks\cortex-java\.venv"
+Type: filesandordirs; Name: "{app}\frameworks\cortex-java\target"
+Type: filesandordirs; Name: "{app}\frameworks\cortex-java\logs"
 Type: filesandordirs; Name: "{app}\web\node_modules"
 Type: filesandordirs; Name: "{app}\web\.next"
 
