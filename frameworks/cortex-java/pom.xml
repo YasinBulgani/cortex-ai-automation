@@ -15,7 +15,7 @@
         <maven.compiler.target>17</maven.compiler.target>
 
         <!-- Core versions -->
-        <cucumber.version>7.11.0</cucumber.version>
+        <cucumber.version>7.34.3</cucumber.version>
         <junit.platform.version>1.9.3</junit.platform.version>
         <junit.jupiter.version>5.9.3</junit.jupiter.version>
         <playwright.version>1.45.0</playwright.version>
