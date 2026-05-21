@@ -1299,6 +1299,45 @@ def cortex_recorder_actions():
     return jsonify(body), status
 
 
+@app.route("/api/cortex/recorder/cleanup", methods=["POST"])
+def cortex_recorder_cleanup():
+    """
+    Kill any orphan Playwright Chromium processes. Tries the running JVM
+    first (via /cleanup endpoint), then falls back to direct shell command
+    if JVM isn't running.
+    """
+    body, status = _recorder_call("POST", "/cleanup")
+    if status == 200:
+        return jsonify(body), status
+    # JVM not running — do it ourselves from Python
+    import platform, subprocess
+    killed = 0
+    try:
+        if platform.system() == "Darwin" or platform.system() == "Linux":
+            for pattern in ["ms-playwright.*[Cc]hromium",
+                            "ms-playwright.*chrome-headless-shell"]:
+                r = subprocess.run(["pkill", "-f", pattern], timeout=3)
+                if r.returncode == 0:
+                    killed += 1
+        elif platform.system() == "Windows":
+            ps = (
+                "$procs = Get-CimInstance Win32_Process | Where-Object "
+                "{ $_.CommandLine -like '*ms-playwright*' }; "
+                "$procs | ForEach-Object { try { Stop-Process -Id $_.ProcessId -Force "
+                "-ErrorAction SilentlyContinue } catch {} }; "
+                "($procs | Measure-Object).Count"
+            )
+            r = subprocess.run(["powershell", "-NoProfile", "-Command", ps],
+                               capture_output=True, text=True, timeout=10)
+            try:
+                killed = int((r.stdout or "0").strip().splitlines()[-1])
+            except Exception:
+                killed = 0
+        return jsonify({"ok": True, "killed": killed, "via": "fallback"}), 200
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
 # ============================================================
 #  Playwright Codegen — alternative recorder backend
 # ============================================================

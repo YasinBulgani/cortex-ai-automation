@@ -39,6 +39,14 @@ public class RecorderMain {
         System.out.println(cfg);
         System.out.println("-".repeat(60));
 
+        // 0. Pre-launch cleanup: kill any orphan Playwright Chromium processes
+        //    from previous interrupted runs. Without this, each launch leaks
+        //    a Chrome window on the user's machine.
+        int killed = killOrphanedPlaywrightProcesses();
+        if (killed > 0) {
+            System.out.println("[Recorder] Cleaned up " + killed + " orphan Chromium process(es) from previous runs.");
+        }
+
         // 1. HTTP server (fall back to next free port if requested one is busy)
         RecorderServer server;
         try {
@@ -97,6 +105,18 @@ public class RecorderMain {
                     ));
 
             try (Browser browser = bt.launch(launchOpts)) {
+                // Extra shutdown hook for the browser specifically — try-with-resources
+                // handles normal exits, but SIGKILL / IntelliJ Stop bypass it.
+                final Browser finalBrowser = browser;
+                Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+                    try {
+                        if (finalBrowser != null) {
+                            System.out.println("[Recorder] Shutdown hook -> closing browser");
+                            finalBrowser.close();
+                        }
+                    } catch (Exception ignored) {}
+                }, "cortex-browser-cleanup"));
+
                 BrowserContext ctx = browser.newContext(new Browser.NewContextOptions()
                         .setViewportSize(cfg.viewportWidth, cfg.viewportHeight)
                         .setLocale("tr-TR"));
@@ -367,6 +387,59 @@ public class RecorderMain {
      * This makes re-inject (via framenavigated handler) effective even after
      * React hydration strips our DOM mutations.
      */
+    /**
+     * Kill any orphan Playwright Chromium processes left over from previous
+     * interrupted recorder runs. Playwright's bundled Chromium lives under
+     * ~/Library/Caches/ms-playwright/ (Mac) or %USERPROFILE%\.cache\ms-playwright\
+     * (Windows) or ~/.cache/ms-playwright/ (Linux). We match command-line
+     * substrings to be safe (won't kill user's regular Chrome).
+     *
+     * @return number of processes killed (best-effort, not authoritative)
+     */
+    public static int killOrphanedPlaywrightProcesses() {
+        String os = System.getProperty("os.name", "").toLowerCase();
+        int killed = 0;
+        try {
+            if (os.contains("mac") || os.contains("nix") || os.contains("nux")) {
+                // Match: any process whose command line contains "ms-playwright"
+                // pkill returns 0=killed, 1=none-matched, 2/3=error. We treat 0 as success.
+                String[] patterns = {
+                    "ms-playwright.*[Cc]hromium",
+                    "ms-playwright.*chrome-headless-shell",
+                    "ms-playwright.*[Ff]irefox",
+                    "ms-playwright.*[Ww]ebkit",
+                };
+                for (String p : patterns) {
+                    try {
+                        Process proc = new ProcessBuilder("pkill", "-f", p)
+                                .redirectErrorStream(true).start();
+                        if (proc.waitFor(3, java.util.concurrent.TimeUnit.SECONDS) && proc.exitValue() == 0) {
+                            killed++;
+                        }
+                    } catch (Exception ignored) {}
+                }
+            } else if (os.contains("win")) {
+                // PowerShell: find by CommandLine substring, then Stop-Process
+                String ps = "$procs = Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -like '*ms-playwright*' }; " +
+                            "$procs | ForEach-Object { try { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue } catch {} }; " +
+                            "($procs | Measure-Object).Count";
+                try {
+                    Process proc = new ProcessBuilder("powershell", "-NoProfile", "-Command", ps)
+                            .redirectErrorStream(true).start();
+                    if (proc.waitFor(10, java.util.concurrent.TimeUnit.SECONDS)) {
+                        byte[] out = proc.getInputStream().readAllBytes();
+                        String s = new String(out).trim();
+                        try { killed = Integer.parseInt(s.split("\\s+")[s.split("\\s+").length - 1]); }
+                        catch (NumberFormatException ignored) {}
+                    }
+                } catch (Exception ignored) {}
+            }
+        } catch (Exception e) {
+            System.err.println("[Recorder] killOrphanedPlaywrightProcesses warning: " + e.getMessage());
+        }
+        return killed;
+    }
+
     private static String buildInitScript(RecorderConfig cfg, int activePort) throws IOException {
         String js  = readResource("/recorder/recorder.js");
         String css = readResource("/recorder/recorder.css");

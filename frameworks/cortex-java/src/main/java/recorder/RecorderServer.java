@@ -143,6 +143,23 @@ public class RecorderServer {
         http.createContext("/last-element", this::handleLastElement);
         http.createContext("/elements", this::handleElements);
         http.createContext("/perform",  this::handlePerform);
+        http.createContext("/cleanup",  this::handleCleanup);
+    }
+
+    /**
+     * Kill orphan Playwright Chromium processes (best-effort).
+     * Useful when user reports stale browser windows from previous runs.
+     */
+    private void handleCleanup(HttpExchange ex) throws IOException {
+        if (preflight(ex)) return;
+        try {
+            int killed = RecorderMain.killOrphanedPlaywrightProcesses();
+            System.out.println("[Recorder] /cleanup -> killed " + killed + " orphan process(es)");
+            respond(ex, 200, "{\"ok\":true,\"killed\":" + killed + "}");
+        } catch (Exception e) {
+            String msg = e.getMessage() == null ? "unknown" : e.getMessage();
+            respond(ex, 500, "{\"ok\":false,\"error\":\"" + msg.replace("\"", "'") + "\"}");
+        }
     }
 
     private void handleElements(HttpExchange ex) throws IOException {

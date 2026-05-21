@@ -147,6 +147,13 @@ function RecorderTab({ onClose }: { onClose: () => void }) {
   /* ── Actions ─────────────────────────────────────────────── */
 
   const start = async () => {
+    // Pre-launch: kill any orphan Chromium processes from previous runs.
+    // This prevents "Chrome kalıyor" issues when the user starts a new
+    // recording without cleanly stopping the previous one.
+    try {
+      await fetch(`${DASHBOARD_URL}/api/cortex/recorder/cleanup`, { method: "POST" });
+    } catch { /* best-effort */ }
+
     setPhase("starting"); setErr(null); setStartInfo(null); setActions([]); setStatus(null);
     setStartedAt(Date.now());
     try {
@@ -300,6 +307,7 @@ function RecorderTab({ onClose }: { onClose: () => void }) {
             ↶ {busyUndo ? "…" : "Geri Al"}
           </button>
           <LogsButton />
+          <CleanupButton />
           <a
             href="https://cortex-test.bgtsai.com/" target="_blank" rel="noopener noreferrer"
             className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-white text-sm font-medium border border-slate-700"
@@ -415,6 +423,49 @@ function ActionRow({ a }: { a: RecordedAction }) {
     }
   })();
   return <div className="text-slate-300 px-2 py-1 hover:bg-slate-900/60 rounded">{label}</div>;
+}
+
+/* ───── Cleanup button: kills orphan Playwright Chromium processes ── */
+
+function CleanupButton() {
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
+
+  const cleanup = async () => {
+    setBusy(true); setMsg(null);
+    try {
+      const r = await fetch(`${DASHBOARD_URL}/api/cortex/recorder/cleanup`, { method: "POST" });
+      const j = await r.json();
+      if (j.ok) {
+        setMsg(j.killed > 0 ? `${j.killed} tarayıcı kapatıldı` : "Açık tarayıcı yoktu");
+      } else {
+        setMsg("Hata: " + (j.error || "Bilinmeyen"));
+      }
+    } catch (e) {
+      setMsg("Bağlantı hatası");
+    } finally {
+      setBusy(false);
+      setTimeout(() => setMsg(null), 4000);
+    }
+  };
+
+  return (
+    <div className="relative">
+      <button
+        onClick={cleanup}
+        disabled={busy}
+        title="Açık kalan Chromium pencerelerini öldür (orphan process cleanup)"
+        className="px-4 py-2 rounded-lg bg-amber-900/40 hover:bg-amber-900/60 text-amber-200 text-sm font-medium border border-amber-700/40 disabled:opacity-50"
+      >
+        {busy ? "Temizleniyor…" : "🧹 Tarayıcıları kapat"}
+      </button>
+      {msg && (
+        <div className="absolute top-full mt-1 left-0 z-10 px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-xs text-amber-200 whitespace-nowrap shadow-lg">
+          {msg}
+        </div>
+      )}
+    </div>
+  );
 }
 
 /* ───── Logs button + modal ─────────────────────────────────────── */
