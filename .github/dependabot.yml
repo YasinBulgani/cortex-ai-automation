@@ -1,0 +1,46 @@
+version: 2
+# Cortex AI Automation — Dependabot config
+# Auto-PRs for security updates only (avoid noise from version bumps).
+
+updates:
+  # Production npm dependencies (apps/web + packages/)
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    versioning-strategy: increase-if-necessary
+    labels: ["dependencies", "automated"]
+    commit-message:
+      prefix: "deps"
+      include: "scope"
+
+  # Java/Maven for the framework
+  - package-ecosystem: "maven"
+    directory: "/frameworks/cortex-java"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 3
+    labels: ["dependencies", "java"]
+    commit-message:
+      prefix: "deps(java)"
+
+  # Python for Flask dashboard
+  - package-ecosystem: "pip"
+    directory: "/frameworks/cortex-java/python_server"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 3
+    labels: ["dependencies", "python"]
+    commit-message:
+      prefix: "deps(py)"
+
+  # GitHub Actions workflows themselves
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+    labels: ["ci", "automated"]
+    commit-message:
+      prefix: "ci"

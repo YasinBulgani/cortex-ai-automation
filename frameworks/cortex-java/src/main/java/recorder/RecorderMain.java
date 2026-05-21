@@ -333,7 +333,22 @@ public class RecorderMain {
                     server.stopSignal().join();
                 } catch (Exception ignored) {}
 
-                // 6. Persist (unless the shutdown hook already did it)
+                // 6. Persist storage state (cookies + localStorage) for replay reuse
+                try {
+                    java.nio.file.Path stateDir = java.nio.file.Paths.get("src/test/resources/projects/cortex/storage-states");
+                    java.nio.file.Files.createDirectories(stateDir);
+                    String stateName = "recorder-" + System.currentTimeMillis() + ".json";
+                    java.nio.file.Path statePath = stateDir.resolve(stateName);
+                    ctx.storageState(new BrowserContext.StorageStateOptions().setPath(statePath));
+                    System.out.println("[Recorder] storage state saved: " + statePath);
+                    // Also save as 'latest.json' for convenient default use
+                    java.nio.file.Files.copy(statePath, stateDir.resolve("latest.json"),
+                            java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                } catch (Exception e) {
+                    System.err.println("[Recorder] storage state save failed: " + e.getMessage());
+                }
+
+                // 7. Persist (unless the shutdown hook already did it)
                 if (saved.getCount() > 0) {
                     persist(cfg, server.getActions());
                     saved.countDown();

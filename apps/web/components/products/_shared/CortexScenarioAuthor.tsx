@@ -93,6 +93,9 @@ function RecorderTab({ onClose }: { onClose: () => void }) {
   const [url, setUrl] = useState("https://cortex-test.bgtsai.com/");
   const [featureName, setFeatureName] = useState("");
   const [browser, setBrowser] = useState("chromium");
+  // Recorder backend: "custom" = our recorder.js, "codegen" = Playwright official
+  const [backend, setBackend] = useState<"custom" | "codegen">("custom");
+  const [codegenJobId, setCodegenJobId] = useState<string | null>(null);
 
   // Lifecycle: idle → starting → running → stopping → idle
   const [phase, setPhase] = useState<"idle" | "starting" | "running" | "stopping">("idle");
@@ -147,17 +150,34 @@ function RecorderTab({ onClose }: { onClose: () => void }) {
     setPhase("starting"); setErr(null); setStartInfo(null); setActions([]); setStatus(null);
     setStartedAt(Date.now());
     try {
-      const r = await fetch(`${DASHBOARD_URL}/api/cortex/recorder/start`, {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url, feature_name: featureName || undefined, browser }),
-      });
-      const j = await r.json();
-      if (!r.ok || !j.ok) {
-        setErr(j.error || "Recorder başlatılamadı");
-        setPhase("idle"); return;
+      if (backend === "codegen") {
+        // Playwright official codegen
+        const r = await fetch(`${DASHBOARD_URL}/api/cortex/codegen/start`, {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ url, target: "javascript", browser }),
+        });
+        const j = await r.json();
+        if (!r.ok || !j.ok) {
+          setErr(j.error || "Codegen başlatılamadı");
+          setPhase("idle"); return;
+        }
+        setCodegenJobId(j.job.id);
+        setStartInfo({ pid: j.job.pid, port: 0, warning: undefined });
+        setPhase("running");
+      } else {
+        // Custom recorder.js + Java RecorderMain
+        const r = await fetch(`${DASHBOARD_URL}/api/cortex/recorder/start`, {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ url, feature_name: featureName || undefined, browser }),
+        });
+        const j = await r.json();
+        if (!r.ok || !j.ok) {
+          setErr(j.error || "Recorder başlatılamadı");
+          setPhase("idle"); return;
+        }
+        setStartInfo({ pid: j.pid, port: j.port, warning: j.port_warning });
+        setPhase("running");
       }
-      setStartInfo({ pid: j.pid, port: j.port, warning: j.port_warning });
-      setPhase("running");
     } catch (e: unknown) {
       setErr(e instanceof Error ? e.message : "Failed");
       setPhase("idle");
@@ -167,12 +187,29 @@ function RecorderTab({ onClose }: { onClose: () => void }) {
   const stop = async () => {
     setBusyStop(true); setErr(null);
     try {
-      const r = await fetch(`${DASHBOARD_URL}/api/cortex/recorder/stop`, { method: "POST" });
-      const j = await r.json();
-      if (!r.ok) throw new Error(j.error || "Stop failed");
-      setPhase("stopping");
-      // Give the JVM ~3s to persist files and exit, then return to idle
-      setTimeout(() => setPhase("idle"), 3000);
+      if (backend === "codegen" && codegenJobId) {
+        // Stop codegen then convert JS → Gherkin + save
+        await fetch(`${DASHBOARD_URL}/api/cortex/codegen/stop/${codegenJobId}`, { method: "POST" });
+        const convertR = await fetch(`${DASHBOARD_URL}/api/cortex/codegen/convert/${codegenJobId}`, {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            feature_name: featureName || `codegen-${codegenJobId}`,
+            target_dir: "recordings",
+          }),
+        });
+        const cj = await convertR.json();
+        if (!convertR.ok || !cj.ok) {
+          setErr(cj.error || "Codegen convert failed");
+        }
+        setPhase("stopping");
+        setTimeout(() => { setPhase("idle"); setCodegenJobId(null); }, 1500);
+      } else {
+        const r = await fetch(`${DASHBOARD_URL}/api/cortex/recorder/stop`, { method: "POST" });
+        const j = await r.json();
+        if (!r.ok) throw new Error(j.error || "Stop failed");
+        setPhase("stopping");
+        setTimeout(() => setPhase("idle"), 3000);
+      }
     } catch (e: unknown) {
       setErr(e instanceof Error ? e.message : "Stop failed");
     } finally { setBusyStop(false); }
@@ -291,6 +328,29 @@ function RecorderTab({ onClose }: { onClose: () => void }) {
           Fareyle Cortex'i gez — aksiyonlar otomatik Gherkin'e çevrilir, locator JSON ile birlikte yazılır.
         </p>
       </div>
+
+      {/* Backend selector — Custom Recorder vs Playwright Codegen */}
+      <FormField label="Kayıt motoru">
+        <div className="grid grid-cols-2 gap-2 p-1 bg-slate-900 rounded-lg border border-slate-700">
+          {([
+            { id: "custom",  label: "🎯 Custom Recorder",     hint: "Zengin UI, PICK mode, live action panel" },
+            { id: "codegen", label: "🤖 Playwright Codegen",  hint: "Microsoft official, Shadow DOM + popup safe" },
+          ] as const).map((b) => (
+            <button
+              key={b.id}
+              onClick={() => setBackend(b.id as "custom" | "codegen")}
+              className={`px-3 py-2 rounded text-xs font-medium text-left transition-all ${
+                backend === b.id
+                  ? "bg-gradient-to-r from-fuchsia-500 to-purple-600 text-white shadow-md"
+                  : "text-slate-400 hover:text-white hover:bg-slate-800"
+              }`}
+            >
+              <div className="font-semibold">{b.label}</div>
+              <div className={`text-[10px] mt-0.5 ${backend === b.id ? "text-white/80" : "text-slate-500"}`}>{b.hint}</div>
+            </button>
+          ))}
+        </div>
+      </FormField>
 
       <FormField label="Hedef URL">
         <input type="url" value={url} onChange={(e) => setUrl(e.target.value)} className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-white text-sm focus:border-fuchsia-500 focus:outline-none" />

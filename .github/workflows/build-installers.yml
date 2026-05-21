@@ -22,7 +22,7 @@ jobs:
     name: Build macOS DMG
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Resolve version
         id: ver
@@ -41,7 +41,7 @@ jobs:
           bash installer/mac/build-dmg.sh "${{ steps.ver.outputs.version }}"
 
       - name: Upload DMG artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: cortex-mac-dmg
           path: installer/out/*.dmg
@@ -51,7 +51,7 @@ jobs:
     name: Build Windows EXE
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Resolve version
         id: ver
@@ -73,7 +73,7 @@ jobs:
         run: installer\windows\build.bat ${{ steps.ver.outputs.version }}
 
       - name: Upload EXE artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: cortex-windows-exe
           path: installer/out/*.exe
@@ -88,7 +88,7 @@ jobs:
       contents: write
     steps:
       - name: Download all artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           path: dist
 
