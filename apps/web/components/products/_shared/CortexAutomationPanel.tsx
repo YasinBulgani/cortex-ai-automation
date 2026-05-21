@@ -125,13 +125,14 @@ export function CortexAutomationPanel() {
           </div>
 
           {/* Actions */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             <button
               onClick={() => setAuthorOpen(true)}
               className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-fuchsia-500 to-purple-600 text-white text-sm font-semibold hover:opacity-90 transition-opacity shadow-lg shadow-fuchsia-500/25"
             >
               + Yeni Senaryo Yaz
             </button>
+            <CleanupBrowsersButton />
             <a
               href={DASHBOARD_URL}
               target="_blank"
@@ -169,6 +170,58 @@ export function CortexAutomationPanel() {
 }
 
 /* ───── Sub-components ───── */
+
+/**
+ * "🧹 Tarayıcıları Kapat" — kills orphan Playwright Chromium processes.
+ * Visible on main panel so user can always reach it without opening modal.
+ */
+function CleanupBrowsersButton() {
+  const [busy, setBusy] = useState(false);
+  const [result, setResult] = useState<{ killed: number; via?: string } | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+
+  const cleanup = async () => {
+    setBusy(true); setErr(null); setResult(null);
+    try {
+      const r = await fetch(`${DASHBOARD_URL}/api/cortex/recorder/cleanup`, { method: "POST" });
+      const j = await r.json();
+      if (j.ok) {
+        setResult({ killed: j.killed ?? 0, via: j.via });
+        setTimeout(() => setResult(null), 4000);
+      } else {
+        setErr(j.error || "Bilinmeyen hata");
+        setTimeout(() => setErr(null), 4000);
+      }
+    } catch (e) {
+      setErr("Flask backend kapalı (port 5001)");
+      setTimeout(() => setErr(null), 4000);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="relative">
+      <button
+        onClick={cleanup}
+        disabled={busy}
+        title="Açık kalan Playwright Chromium pencerelerini öldürür. Normal Chrome'una dokunmaz."
+        className={`w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium border transition-colors disabled:opacity-50 ${
+          result && result.killed > 0
+            ? "bg-emerald-500/15 text-emerald-200 border-emerald-500/40"
+            : err
+            ? "bg-rose-500/15 text-rose-200 border-rose-500/40"
+            : "bg-amber-500/10 text-amber-200 border-amber-500/30 hover:bg-amber-500/20"
+        }`}
+      >
+        {busy ? "Temizleniyor…" :
+         result ? `✓ ${result.killed > 0 ? result.killed + " tarayıcı kapatıldı" : "Açık tarayıcı yoktu"}` :
+         err ? "✗ " + err :
+         "🧹 Tarayıcıları Kapat"}
+      </button>
+    </div>
+  );
+}
 
 function CortexStatusPill({ loading, isOffline, activeRuns }: { loading: boolean; isOffline: boolean; activeRuns: number }) {
   if (loading) {
