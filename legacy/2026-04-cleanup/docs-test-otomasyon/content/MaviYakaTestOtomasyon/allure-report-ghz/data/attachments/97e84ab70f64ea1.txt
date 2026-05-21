@@ -1,0 +1,8 @@
+❌ HATA
+'izinTalepEtSayfasıİzinAçıklaması' adlı alana metin yazılıyor (Yazılan: wLxC8kYmYBSNAyi)
+Hata: 'izinTalepEtSayfasıİzinAçıklaması' adlı alana metin yazılamadı. Element bulunamadı veya yazılabilir durumda değil.
+Expected condition failed: waiting for visibility of element found by By.id: Description
+(tried for 10 seconds with 200 milliseconds interval)
+Build info: version: '4.41.0', revision: '9fc754f'
+System info: os.name: 'Mac OS X', os.arch: 'aarch64', os.version: '26.3', java.version: '25.0.2'
+Driver info: driver.version: unknown

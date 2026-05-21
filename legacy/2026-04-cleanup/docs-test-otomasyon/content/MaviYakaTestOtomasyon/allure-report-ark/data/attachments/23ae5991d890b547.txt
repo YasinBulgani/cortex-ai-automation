@@ -1,0 +1,3 @@
+✅ BAŞARILI
+'izinlerimSayfasıTalepEdilenIzınText' adlı elemanın değeri kontrol ediliyor (Beklenen: CNK4fxHgQh1qQR1)
+'izinlerimSayfasıTalepEdilenIzınText' adlı elemanın metni doğrulandı. Beklenen değer: 'CNK4fxHgQh1qQR1' bulundu.

@@ -1,0 +1,34 @@
+# Nexus QA — AI Gateway Mikroservisi
+# FastAPI + tüm ücretsiz AI sağlayıcıları
+
+# Web Framework
+fastapi>=0.111.0
+uvicorn[standard]>=0.29.0
+python-dotenv>=1.0.1
+pydantic>=2.7.0
+pydantic-settings>=2.3.0
+
+# HTTP Client (async)
+httpx>=0.27.0
+aiohttp>=3.9.0
+
+# AI Sağlayıcıları
+groq>=0.9.0                    # Groq (llama3-70b) — ÜCRETSIZ tier
+google-generativeai>=0.7.0     # Gemini 1.5 Flash — ÜCRETSIZ tier
+ollama>=0.2.0                  # Ollama (local) — SINIRSIZ
+
+# Rate limiting & caching
+redis>=5.0.0
+slowapi>=0.1.9
+
+# Retry & circuit breaker
+tenacity>=8.3.0
+
+# Logging
+structlog>=24.1.0
+prometheus-client
+
+# Testing
+pytest>=8.0.0
+pytest-asyncio>=0.23.0
+httpx>=0.27.0

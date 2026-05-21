@@ -1,0 +1,120 @@
+{
+  "id": "29c345e9-82a0-42ca-a08b-5f25ffa50f59",
+  "startDate": "2026-03-25T11:50:29.500820Z",
+  "endDate": null,
+  "progress": {
+    "value": 0,
+    "max": 6
+  },
+  "status": "FAILED",
+  "steps": [
+    {
+      "id": "eeb17416-663b-49a2-b1bf-36b87fd24ad5",
+      "modelLabel": "data:tabular",
+      "computeName": "SDK",
+      "restarts": 0,
+      "taskType": "TRAIN_TABULAR",
+      "stepCode": "PULL_TRAINING_DATA",
+      "startDate": "2026-03-25T11:50:29.500820Z",
+      "endDate": null,
+      "computeResources": null,
+      "messages": null,
+      "errorMessage": null,
+      "progress": {
+        "value": 0,
+        "max": 1
+      },
+      "status": "FAILED"
+    },
+    {
+      "id": "1e372a45-46bf-4f61-b547-4f4df5f51873",
+      "modelLabel": "data:tabular",
+      "computeName": "SDK",
+      "restarts": 0,
+      "taskType": "TRAIN_TABULAR",
+      "stepCode": "ANALYZE_TRAINING_DATA",
+      "startDate": null,
+      "endDate": null,
+      "computeResources": null,
+      "messages": null,
+      "errorMessage": null,
+      "progress": {
+        "value": 0,
+        "max": 1
+      },
+      "status": "FAILED"
+    },
+    {
+      "id": "c3eef7ef-c3d0-433b-8a51-c957edf6dc00",
+      "modelLabel": "data:tabular",
+      "computeName": "SDK",
+      "restarts": 0,
+      "taskType": "TRAIN_TABULAR",
+      "stepCode": "ENCODE_TRAINING_DATA",
+      "startDate": null,
+      "endDate": null,
+      "computeResources": null,
+      "messages": null,
+      "errorMessage": null,
+      "progress": {
+        "value": 0,
+        "max": 1
+      },
+      "status": "FAILED"
+    },
+    {
+      "id": "941502ff-bd18-4957-b6c7-3d5b871edca1",
+      "modelLabel": "data:tabular",
+      "computeName": "SDK",
+      "restarts": 0,
+      "taskType": "TRAIN_TABULAR",
+      "stepCode": "TRAIN_MODEL",
+      "startDate": null,
+      "endDate": null,
+      "computeResources": null,
+      "messages": null,
+      "errorMessage": null,
+      "progress": {
+        "value": 0,
+        "max": 1
+      },
+      "status": "FAILED"
+    },
+    {
+      "id": "660caece-0d8b-4614-83ec-42253ef11c73",
+      "modelLabel": "data:tabular",
+      "computeName": "SDK",
+      "restarts": 0,
+      "taskType": "TRAIN_TABULAR",
+      "stepCode": "GENERATE_MODEL_REPORT_DATA",
+      "startDate": null,
+      "endDate": null,
+      "computeResources": null,
+      "messages": null,
+      "errorMessage": null,
+      "progress": {
+        "value": 0,
+        "max": 1
+      },
+      "status": "FAILED"
+    },
+    {
+      "id": "a0d16379-0daf-4e72-a26a-2782645efa8e",
+      "modelLabel": "data:tabular",
+      "computeName": "SDK",
+      "restarts": 0,
+      "taskType": "TRAIN_TABULAR",
+      "stepCode": "CREATE_MODEL_REPORT",
+      "startDate": null,
+      "endDate": null,
+      "computeResources": null,
+      "messages": null,
+      "errorMessage": null,
+      "progress": {
+        "value": 0,
+        "max": 1
+      },
+      "status": "FAILED"
+    }
+  ]
+}

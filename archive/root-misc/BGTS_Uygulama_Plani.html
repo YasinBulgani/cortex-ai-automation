@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TestwrightAI — Uygulama Planı</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background: #0f172a; color: #e2e8f0; line-height: 1.6; }
+
+  /* Header */
+  .header { background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); border-bottom: 1px solid #334155; padding: 32px 48px; }
+  .header h1 { font-size: 28px; font-weight: 700; color: #f8fafc; margin-bottom: 4px; }
+  .header p { color: #94a3b8; font-size: 15px; }
+
+  /* Summary Cards */
+  .summary { display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px; padding: 24px 48px; }
+  .card { background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 20px; text-align: center; }
+  .card .number { font-size: 32px; font-weight: 700; }
+  .card .label { font-size: 13px; color: #94a3b8; margin-top: 4px; }
+  .card.green .number { color: #4ade80; }
+  .card.yellow .number { color: #facc15; }
+  .card.red .number { color: #f87171; }
+  .card.blue .number { color: #60a5fa; }
+  .card.purple .number { color: #c084fc; }
+
+  /* Progress Bar */
+  .overall-progress { padding: 0 48px; margin: 8px 0 24px; }
+  .progress-bar { background: #1e293b; border-radius: 8px; height: 12px; overflow: hidden; border: 1px solid #334155; }
+  .progress-fill { height: 100%; border-radius: 8px; background: linear-gradient(90deg, #4ade80, #60a5fa, #c084fc); transition: width 0.5s; }
+  .progress-label { display: flex; justify-content: space-between; font-size: 13px; color: #94a3b8; margin-top: 6px; }
+
+  /* Timeline */
+  .timeline { padding: 0 48px 40px; }
+  .timeline h2 { font-size: 20px; margin-bottom: 24px; color: #f8fafc; }
+
+  .phase { background: #1e293b; border: 1px solid #334155; border-radius: 12px; margin-bottom: 16px; overflow: hidden; cursor: pointer; transition: all 0.3s; }
+  .phase:hover { border-color: #475569; }
+  .phase.active { border-color: #60a5fa; }
+  .phase.done { border-color: #4ade80; opacity: 0.85; }
+
+  .phase-header { display: flex; align-items: center; padding: 20px 24px; gap: 16px; }
+  .phase-icon { width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0; }
+  .phase-icon.p1 { background: #1e3a5f; }
+  .phase-icon.p2 { background: #3b1f4b; }
+  .phase-icon.p3 { background: #1f3b2e; }
+  .phase-icon.p4 { background: #3b351f; }
+  .phase-icon.p5 { background: #1f2d3b; }
+  .phase-icon.p6 { background: #2d1f3b; }
+
+  .phase-info { flex: 1; }
+  .phase-info h3 { font-size: 16px; color: #f8fafc; margin-bottom: 2px; }
+  .phase-info .meta { font-size: 13px; color: #94a3b8; display: flex; gap: 16px; }
+
+  .phase-badge { padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+  .badge-pending { background: #334155; color: #94a3b8; }
+  .badge-critical { background: #7f1d1d; color: #fca5a5; }
+  .badge-high { background: #713f12; color: #fde047; }
+  .badge-medium { background: #1e3a5f; color: #93c5fd; }
+
+  .phase-detail { padding: 0 24px 20px; display: none; }
+  .phase.open .phase-detail { display: block; }
+
+  .task-list { list-style: none; }
+  .task-list li { padding: 10px 0; border-bottom: 1px solid #1e293b; display: flex; align-items: flex-start; gap: 10px; font-size: 14px; }
+  .task-list li:last-child { border: none; }
+  .task-check { color: #475569; font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+
+  .sub-section { margin-top: 16px; }
+  .sub-section h4 { font-size: 14px; color: #60a5fa; margin-bottom: 8px; font-weight: 600; }
+
+  .tech-tag { display: inline-block; padding: 2px 8px; background: #334155; border-radius: 4px; font-size: 11px; color: #94a3b8; margin: 2px; }
+
+  .file-path { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #7dd3fc; background: #0f172a; padding: 2px 6px; border-radius: 4px; }
+
+  /* Vision Flow */
+  .vision { padding: 0 48px 32px; }
+  .vision h2 { font-size: 20px; margin-bottom: 16px; color: #f8fafc; }
+  .flow { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 24px; background: #1e293b; border-radius: 12px; border: 1px solid #334155; }
+  .flow-step { padding: 12px 20px; border-radius: 8px; font-size: 13px; font-weight: 600; text-align: center; min-width: 160px; }
+  .flow-arrow { color: #475569; font-size: 20px; }
+  .step-red { background: #7f1d1d; color: #fca5a5; border: 1px solid #991b1b; }
+  .step-yellow { background: #713f12; color: #fde047; border: 1px solid #854d0e; }
+  .step-green { background: #14532d; color: #86efac; border: 1px solid #166534; }
+  .step-blue { background: #1e3a5f; color: #93c5fd; border: 1px solid #1e40af; }
+
+  /* Dependency Map */
+  .deps { padding: 0 48px 32px; }
+  .deps h2 { font-size: 20px; margin-bottom: 16px; color: #f8fafc; }
+  .dep-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .dep-card { background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 16px; }
+  .dep-card h4 { font-size: 14px; color: #f8fafc; margin-bottom: 8px; }
+  .dep-card p { font-size: 12px; color: #94a3b8; }
+  .dep-card .layer { font-size: 11px; color: #60a5fa; margin-bottom: 4px; font-weight: 600; }
+
+  /* AI Integration Map */
+  .ai-map { padding: 0 48px 40px; }
+  .ai-map h2 { font-size: 20px; margin-bottom: 16px; color: #f8fafc; }
+  .ai-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+  .ai-card { background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 16px; }
+  .ai-card h4 { font-size: 14px; color: #c084fc; margin-bottom: 6px; }
+  .ai-card p { font-size: 13px; color: #cbd5e1; }
+  .ai-card .model { font-size: 11px; color: #facc15; margin-top: 6px; }
+
+  /* Footer */
+  .footer { padding: 24px 48px; border-top: 1px solid #334155; text-align: center; color: #64748b; font-size: 13px; }
+
+  /* Responsive */
+  @media (max-width: 900px) {
+    .summary { grid-template-columns: repeat(2, 1fr); }
+    .dep-grid, .ai-grid { grid-template-columns: 1fr; }
+    .flow { flex-direction: column; }
+    .header, .summary, .timeline, .vision, .deps, .ai-map, .footer, .overall-progress { padding-left: 20px; padding-right: 20px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <h1>TestwrightAI — Uygulama Planı</h1>
+  <p>AI-Destekli Test Otomasyon Platformu | 6 Faz | Tahmini Süre: 20-25 İş Günü</p>
+</div>
+
+<!-- SUMMARY CARDS -->
+<div class="summary">
+  <div class="card blue">
+    <div class="number">6</div>
+    <div class="label">Toplam Faz</div>
+  </div>
+  <div class="card green">
+    <div class="number">~60%</div>
+    <div class="label">Mevcut Tamamlanma</div>
+  </div>
+  <div class="card red">
+    <div class="number">5</div>
+    <div class="label">Kritik Eksik</div>
+  </div>
+  <div class="card yellow">
+    <div class="number">20-25</div>
+    <div class="label">Tahmini İş Günü</div>
+  </div>
+  <div class="card purple">
+    <div class="number">7</div>
+    <div class="label">AI Entegrasyon Noktası</div>
+  </div>
+</div>
+
+<!-- OVERALL PROGRESS -->
+<div class="overall-progress">
+  <div class="progress-bar"><div class="progress-fill" style="width: 60%"></div></div>
+  <div class="progress-label">
+    <span>Mevcut İlerleme</span>
+    <span>%60 → Hedef: %100</span>
+  </div>
+</div>
+
+<!-- VISION FLOW -->
+<div class="vision">
+  <h2>Hedef Akış (End-to-End)</h2>
+  <div class="flow">
+    <div class="flow-step step-red">🏠 Landing Page<br><small>Yeni Proje / Diğer Projeler</small></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step step-red">🔗 DB Bağlantısı<br><small>PostgreSQL / MySQL / Oracle</small></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step step-red">📄 Analist Dokümanı<br><small>AI ile otomatik üretim</small></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step step-yellow">🧪 Manuel Testler<br><small>+ Regresyon Önerisi</small></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step step-yellow">☑️ Otomasyon Seçimi<br><small>Checkbox ile seç</small></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step step-green">🤖 Kod Üretimi<br><small>Playwright otomatik</small></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step step-blue">📊 Raporlama<br><small>Allure + AI Analiz</small></div>
+  </div>
+</div>
+
+<!-- PHASES -->
+<div class="timeline">
+  <h2>Uygulama Fazları</h2>
+
+  <!-- FAZ 1 -->
+  <div class="phase open" onclick="this.classList.toggle('open')">
+    <div class="phase-header">
+      <div class="phase-icon p1">🏠</div>
+      <div class="phase-info">
+        <h3>Faz 1 — Landing Page & Proje Akışı</h3>
+        <div class="meta">
+          <span>⏱ 2-3 gün</span>
+          <span>📁 Frontend (Next.js)</span>
+          <span>🎯 Kullanıcı giriş deneyimi</span>
+        </div>
+      </div>
+      <div class="phase-badge badge-critical">KRİTİK</div>
+    </div>
+    <div class="phase-detail">
+      <div class="sub-section">
+        <h4>Yapılacaklar</h4>
+        <ul class="task-list">
+          <li><span class="task-check">☐</span> Ana sayfa (<span class="file-path">app/(dashboard)/page.tsx</span>) → "Yeni Proje Oluştur" + "Projelere Göz At" kartları ile landing page tasarımı</li>
+          <li><span class="task-check">☐</span> "Yeni Proje" wizard'ı — 4 adımlı form: Proje adı → DB bağlantı bilgileri → AI ayarları → Özet & Başlat</li>
+          <li><span class="task-check">☐</span> "Projelere Göz At" sayfası — Mevcut projeleri kart/tablo görünümünde listele, filtreleme & arama</li>
+          <li><span class="task-check">☐</span> Backend: <span class="file-path">POST /api/v1/tspm/projects/create-with-db</span> — DB bağlantı bilgileriyle proje oluştur</li>
+          <li><span class="task-check">☐</span> Responsive tasarım ve dark mode uyumu</li>
+        </ul>
+      </div>
+      <div class="sub-section">
+        <h4>Dokunulacak Dosyalar</h4>
+        <p>
+          <span class="tech-tag">app/(dashboard)/page.tsx</span>
+          <span class="tech-tag">app/(dashboard)/projects/page.tsx</span>
+          <span class="tech-tag">app/(dashboard)/new-project/page.tsx</span>
+          <span class="tech-tag">components/landing/*</span>
+          <span class="tech-tag">backend/app/domains/tspm/router.py</span>
+        </p>
+      </div>
+      <div class="sub-section">
+        <h4>AI Kullanımı</h4>
+        <p style="color: #94a3b8; font-size: 13px;">Bu fazda AI kullanılmaz — tamamen UI/UX çalışması.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- FAZ 2 -->
+  <div class="phase" onclick="this.classList.toggle('open')">
+    <div class="phase-header">
+      <div class="phase-icon p2">🔗</div>
+      <div class="phase-info">
+        <h3>Faz 2 — DB Bağlantı & Analist Dokümanı Pipeline</h3>
+        <div class="meta">
+          <span>⏱ 4-5 gün</span>
+          <span>📁 Backend + AI Engine + Frontend</span>
+          <span>🎯 Projenin kalbi</span>
+        </div>
+      </div>
+      <div class="phase-badge badge-critical">KRİTİK</div>
+    </div>
+    <div class="phase-detail">
+      <div class="sub-section">
+        <h4>Yapılacaklar</h4>
+        <ul class="task-list">
+          <li><span class="task-check">☐</span> <strong>DB Connector Service:</strong> PostgreSQL, MySQL, Oracle, MSSQL bağlantı desteği. Kullanıcı connection string girer → tablolar, kolonlar, ilişkiler, indexler keşfedilir</li>
+          <li><span class="task-check">☐</span> <strong>Schema Analyzer:</strong> DB yapısını JSON'a çevir — tablo sayısı, kolon tipleri, FK ilişkileri, veri örnekleri (ilk 5 satır)</li>
+          <li><span class="task-check">☐</span> <strong>AI Analist Doküman Üretici:</strong> Schema JSON → LLM'e gönder → Yapılandırılmış analist dokümanı:
+            <br>— İş alanı tanımı (domain analysis)
+            <br>— Kritik tablolar ve ilişkileri
+            <br>— Olası iş kuralları (business rules inference)
+            <br>— Önerilen test alanları (suggested test areas)
+            <br>— Risk analizi (hangi tablolar en çok değişir, en çok ilişkisi olan)</li>
+          <li><span class="task-check">☐</span> <strong>Backend Endpoints:</strong>
+            <br>— <span class="file-path">POST /api/v1/datasets/connect</span> → DB bağlantı testi
+            <br>— <span class="file-path">POST /api/v1/datasets/analyze-schema</span> → Schema analiz
+            <br>— <span class="file-path">POST /api/v1/analyst-documents/generate</span> → AI doküman üretimi
+            <br>— <span class="file-path">GET /api/v1/analyst-documents/{id}</span> → Doküman görüntüleme</li>
+          <li><span class="task-check">☐</span> <strong>DB Modelleri:</strong> AnalystDocument, DatabaseConnection, SchemaSnapshot tabloları</li>
+          <li><span class="task-check">☐</span> <strong>Frontend:</strong> DB bağlantı formu, schema tree görselleştirme, analist dokümanı önizleme/düzenleme sayfası</li>
+        </ul>
+      </div>
+      <div class="sub-section">
+        <h4>AI Entegrasyon Detayı</h4>
+        <p style="color: #c084fc; font-size: 13px;">
+          <strong>Model:</strong> Claude Sonnet 4 / GPT-4o (kullanıcı seçimi)<br>
+          <strong>Prompt Stratejisi:</strong> Schema JSON + domain context → structured output (JSON mode)<br>
+          <strong>Token Yönetimi:</strong> Büyük şemalar için chunking (tablo grupları halinde)<br>
+          <strong>Output:</strong> Markdown analist dokümanı + JSON metadata
+        </p>
+      </div>
+      <div class="sub-section">
+        <h4>Dokunulacak Dosyalar</h4>
+        <p>
+          <span class="tech-tag">backend/app/domains/datasets/ (YENİ)</span>
+          <span class="tech-tag">backend/app/domains/analyst/ (YENİ)</span>
+          <span class="tech-tag">backend/app/domains/ai/service.py</span>
+          <span class="tech-tag">backend/app/infra/models.py</span>
+          <span class="tech-tag">app/(dashboard)/p/[projectId]/analysis/page.tsx</span>
+          <span class="tech-tag">app/(dashboard)/p/[projectId]/veri-kaynagi/page.tsx</span>
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- FAZ 3 -->
+  <div class="phase" onclick="this.classList.toggle('open')">
+    <div class="phase-header">
+      <div class="phase-icon p3">🧪</div>
+      <div class="phase-info">
+        <h3>Faz 3 — AI ile Test Case & Regresyon Seti Önerisi</h3>
+        <div class="meta">
+          <span>⏱ 4-5 gün</span>
+          <span>📁 Backend + Engine + Frontend</span>
+          <span>🎯 Test tasarım otomasyonu</span>
+        </div>
+      </div>
+      <div class="phase-badge badge-critical">KRİTİK</div>
+    </div>
+    <div class="phase-detail">
+      <div class="sub-section">
+        <h4>Yapılacaklar</h4>
+        <ul class="task-list">
+          <li><span class="task-check">☐</span> <strong>Test Case Generator:</strong> Analist dokümanını al → AI ile manuel test case'leri üret:
+            <br>— Pozitif senaryolar (happy path)
+            <br>— Negatif senaryolar (boundary, invalid)
+            <br>— Veri bütünlüğü testleri (FK, unique constraint)
+            <br>— Performans risk alanları
+            <br>— Güvenlik kontrolleri (SQL injection, auth)</li>
+          <li><span class="task-check">☐</span> <strong>Regresyon Seti Önerici:</strong> AI risk bazlı önceliklendirme:
+            <br>— "Bu tabloda değişiklik olursa şu testler koşmalı"
+            <br>— Bağımlılık haritası (dependency graph)
+            <br>— Öncelik skorlaması (P0-kritik, P1-yüksek, P2-orta, P3-düşük)</li>
+          <li><span class="task-check">☐</span> <strong>Backend Endpoints:</strong>
+            <br>— <span class="file-path">POST /api/v1/test-cases/generate-from-analysis</span>
+            <br>— <span class="file-path">POST /api/v1/regression-sets/suggest</span>
+            <br>— <span class="file-path">PUT /api/v1/test-cases/{id}/approve</span> (kullanıcı onayı)
+            <br>— <span class="file-path">GET /api/v1/regression-sets/{projectId}</span></li>
+          <li><span class="task-check">☐</span> <strong>DB Modelleri:</strong> GeneratedTestCase, RegressionSet, RegressionSetItem tabloları</li>
+          <li><span class="task-check">☐</span> <strong>Frontend:</strong> Test case listesi (düzenlenebilir), regresyon seti görselleştirme (dependency graph), onay/red butonları</li>
+        </ul>
+      </div>
+      <div class="sub-section">
+        <h4>AI Entegrasyon Detayı</h4>
+        <p style="color: #c084fc; font-size: 13px;">
+          <strong>Model:</strong> Claude Sonnet 4 / GPT-4o<br>
+          <strong>Input:</strong> Analist dokümanı + Schema bilgisi + (opsiyonel) önceki test sonuçları<br>
+          <strong>Output:</strong> Yapılandırılmış test case JSON listesi (Gherkin-ready format)<br>
+          <strong>Regresyon:</strong> Tablo bağımlılık grafiği + risk skoru hesaplama<br>
+          <strong>Feedback:</strong> Kullanıcı onay/red → model fine-tuning sinyali
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- FAZ 4 -->
+  <div class="phase" onclick="this.classList.toggle('open')">
+    <div class="phase-header">
+      <div class="phase-icon p4">🤖</div>
+      <div class="phase-info">
+        <h3>Faz 4 — Otomasyon Seçimi & Toplu Kod Üretimi</h3>
+        <div class="meta">
+          <span>⏱ 3-4 gün</span>
+          <span>📁 Engine + Frontend</span>
+          <span>🎯 Manuel → Otomasyon köprüsü</span>
+        </div>
+      </div>
+      <div class="phase-badge badge-high">YÜKSEK</div>
+    </div>
+    <div class="phase-detail">
+      <div class="sub-section">
+        <h4>Yapılacaklar</h4>
+        <ul class="task-list">
+          <li><span class="task-check">☐</span> <strong>Seçim UI:</strong> Test case listesinde checkbox'lar → "Seçilenleri Otomasyona Çevir" butonu
+            <br>— AI önerisi: "Bu test otomasyona uygun (%92 güven)" badge'leri
+            <br>— Toplu seçim (Tümünü seç / AI önerilerini seç)</li>
+          <li><span class="task-check">☐</span> <strong>Batch Code Generator:</strong> Seçilen test case'leri sırayla:
+            <br>1. Manuel test → Gherkin feature dosyası (AI)
+            <br>2. Gherkin → Step definitions (AI)
+            <br>3. Step definitions → Playwright test kodu (AI)
+            <br>4. Page Object Model otomatik üretimi (AI)
+            <br>— Progress bar ile takip</li>
+          <li><span class="task-check">☐</span> <strong>Engine Endpoint:</strong>
+            <br>— <span class="file-path">POST /api/pipeline/batch-generate</span> → Job ID döner
+            <br>— <span class="file-path">GET /api/pipeline/batch-status/{jobId}</span> → İlerleme takibi
+            <br>— <span class="file-path">GET /api/pipeline/batch-result/{jobId}</span> → Üretilen dosyalar</li>
+          <li><span class="task-check">☐</span> <strong>Mevcut pipeline_routes.py Genişletme:</strong> Tek test → toplu test desteği</li>
+          <li><span class="task-check">☐</span> <strong>Üretilen Kod Kalitesi:</strong> AI self-review (üretilen kodu tekrar AI'a gönder → hata tespiti → düzeltme)</li>
+        </ul>
+      </div>
+      <div class="sub-section">
+        <h4>AI Entegrasyon Detayı</h4>
+        <p style="color: #c084fc; font-size: 13px;">
+          <strong>Zincir:</strong> Manuel Test → [AI] → Gherkin → [AI] → Step Def → [AI] → Playwright → [AI] → Self-Review<br>
+          <strong>4 aşamalı AI pipeline</strong> — her aşamada farklı system prompt<br>
+          <strong>Self-Healing:</strong> Üretilen locator'lar çalışmazsa AI ile otomatik düzeltme<br>
+          <strong>POM:</strong> Sayfa bazlı Page Object class'ları otomatik üretim
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- FAZ 5 -->
+  <div class="phase" onclick="this.classList.toggle('open')">
+    <div class="phase-header">
+      <div class="phase-icon p5">🧠</div>
+      <div class="phase-info">
+        <h3>Faz 5 — Uçtan Uca AI Entegrasyonu & Feedback Loop</h3>
+        <div class="meta">
+          <span>⏱ 3-4 gün</span>
+          <span>📁 Tüm Katmanlar</span>
+          <span>🎯 Akıllı platform</span>
+        </div>
+      </div>
+      <div class="phase-badge badge-high">YÜKSEK</div>
+    </div>
+    <div class="phase-detail">
+      <div class="sub-section">
+        <h4>Yapılacaklar</h4>
+        <ul class="task-list">
+          <li><span class="task-check">☐</span> <strong>AI Chat Asistan Backend:</strong> Kullanıcı soru sorar → proje context'i ile AI yanıt verir
+            <br>— "Bu tabloya yeni kolon eklendi, hangi testler etkilenir?"
+            <br>— "Geçen hafta fail olan testlerin ortak noktası ne?"</li>
+          <li><span class="task-check">☐</span> <strong>Test Sonucu Feedback Loop:</strong> Koşulan testlerin sonuçları → AI analiz → öğrenme
+            <br>— Fail pattern tespiti
+            <br>— Flaky test detection otomasyonu
+            <br>— Regresyon seti otomatik güncelleme</li>
+          <li><span class="task-check">☐</span> <strong>AI Model Seçim Paneli:</strong> Kullanıcı OpenAI / Claude / yerel model seçebilsin
+            <br>— Token kullanım takibi ve maliyet dashboard'u
+            <br>— Model performans karşılaştırma</li>
+          <li><span class="task-check">☐</span> <strong>Akıllı Bildirimler:</strong> "Yeni deployment geldi → şu regresyon setini koş" önerisi</li>
+          <li><span class="task-check">☐</span> <strong>Context Window Yönetimi:</strong> Büyük projeler için chunking + embedding desteği</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- FAZ 6 -->
+  <div class="phase" onclick="this.classList.toggle('open')">
+    <div class="phase-header">
+      <div class="phase-icon p6">✅</div>
+      <div class="phase-info">
+        <h3>Faz 6 — Test, Doğrulama & Polish</h3>
+        <div class="meta">
+          <span>⏱ 3-4 gün</span>
+          <span>📁 Tüm Katmanlar</span>
+          <span>🎯 Production-ready</span>
+        </div>
+      </div>
+      <div class="phase-badge badge-medium">ORTA</div>
+    </div>
+    <div class="phase-detail">
+      <div class="sub-section">
+        <h4>Yapılacaklar</h4>
+        <ul class="task-list">
+          <li><span class="task-check">☐</span> End-to-end akış testi: Landing → DB → Analist → Test → Otomasyon → Rapor</li>
+          <li><span class="task-check">☐</span> Hata senaryoları: Yanlış DB bilgisi, boş şema, AI timeout, büyük projeler</li>
+          <li><span class="task-check">☐</span> Performans optimizasyonu: Lazy loading, caching, background job'lar</li>
+          <li><span class="task-check">☐</span> UI/UX iyileştirme: Loading state'ler, error handling, toast bildirimler</li>
+          <li><span class="task-check">☐</span> Dökümantasyon: API docs (Swagger), kullanıcı kılavuzu, README güncelleme</li>
+          <li><span class="task-check">☐</span> CI/CD pipeline güncelleme: Yeni endpoint'ler için test coverage</li>
+          <li><span class="task-check">☐</span> Proje temizliği: Deprecated dosyaları kaldır (~1.2 GB yer açılır)</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- AI INTEGRATION MAP -->
+<div class="ai-map">
+  <h2>AI/LLM Kullanım Haritası — Her Adımda AI</h2>
+  <div class="ai-grid">
+    <div class="ai-card">
+      <h4>1. Schema Analizi</h4>
+      <p>DB tablolarını, ilişkilerini, iş kurallarını AI ile analiz et. Domain keşfi otomatik.</p>
+      <div class="model">Claude Sonnet 4 / GPT-4o | Structured Output</div>
+    </div>
+    <div class="ai-card">
+      <h4>2. Analist Dokümanı Üretimi</h4>
+      <p>Schema analizinden kapsamlı test analiz dokümanı oluştur. İş kuralları, risk alanları, test stratejisi.</p>
+      <div class="model">Claude Opus 4 / GPT-4o | Long Context</div>
+    </div>
+    <div class="ai-card">
+      <h4>3. Test Case Üretimi</h4>
+      <p>Analist dokümanından pozitif/negatif/boundary test case'leri otomatik üret.</p>
+      <div class="model">Claude Sonnet 4 / GPT-4o | JSON Mode</div>
+    </div>
+    <div class="ai-card">
+      <h4>4. Regresyon Seti Önerisi</h4>
+      <p>Değişiklik etkisi analizi, bağımlılık grafiği, risk bazlı önceliklendirme.</p>
+      <div class="model">Claude Sonnet 4 | Reasoning</div>
+    </div>
+    <div class="ai-card">
+      <h4>5. Otomasyon Kodu Üretimi</h4>
+      <p>Manuel test → Gherkin → Step Definition → Playwright kodu. 4 aşamalı zincir.</p>
+      <div class="model">Claude Sonnet 4 / GPT-4o | Code Generation</div>
+    </div>
+    <div class="ai-card">
+      <h4>6. Self-Healing & Review</h4>
+      <p>Üretilen kodu otomatik review et, kırık locator'ları onar, kalite skoru hesapla.</p>
+      <div class="model">Claude Sonnet 4 | Code Review</div>
+    </div>
+    <div class="ai-card">
+      <h4>7. Chat Asistan</h4>
+      <p>Proje context'i ile soru-cevap. "Bu test neden fail oldu?" "Hangi testler etkilenir?"</p>
+      <div class="model">Claude Sonnet 4 / GPT-4o | Conversational</div>
+    </div>
+    <div class="ai-card">
+      <h4>8. Feedback & Öğrenme</h4>
+      <p>Test sonuçlarından pattern çıkar, gelecek önerileri iyileştir, flaky tespiti yap.</p>
+      <div class="model">Tüm modeller | Analytics</div>
+    </div>
+  </div>
+</div>
+
+<!-- DEPENDENCY MAP -->
+<div class="deps">
+  <h2>Teknoloji Bağımlılıkları</h2>
+  <div class="dep-grid">
+    <div class="dep-card">
+      <div class="layer">FRONTEND</div>
+      <h4>Next.js 14 + React 18</h4>
+      <p>TypeScript, Tailwind CSS, Radix UI, ReactFlow, dnd-kit. App Router mimarisi.</p>
+    </div>
+    <div class="dep-card">
+      <div class="layer">BACKEND API</div>
+      <h4>FastAPI + SQLAlchemy 2</h4>
+      <p>PostgreSQL 16, Alembic migrations, JWT auth, APScheduler. Port 8000.</p>
+    </div>
+    <div class="dep-card">
+      <div class="layer">TEST ENGINE</div>
+      <h4>Flask + Playwright</h4>
+      <p>pytest-bdd, Allure rapor, 39 blueprint, AI engine. Port 5001.</p>
+    </div>
+    <div class="dep-card">
+      <div class="layer">AI/LLM</div>
+      <h4>OpenAI + Anthropic</h4>
+      <p>GPT-4o, Claude Sonnet 4, g4f fallback. Structured output, JSON mode.</p>
+    </div>
+    <div class="dep-card">
+      <div class="layer">ALTYAPI</div>
+      <h4>Docker Compose</h4>
+      <p>PostgreSQL, Redis 7, MinIO (S3), n8n workflow. Monorepo.</p>
+    </div>
+    <div class="dep-card">
+      <div class="layer">CI/CD</div>
+      <h4>GitHub Actions</h4>
+      <p>9 workflow: CI, E2E, nightly, performance, smoke, deploy, scheduled.</p>
+    </div>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<div class="footer">
+  <p>TestwrightAI — AI-Destekli Test Otomasyon Platformu | Oluşturulma: 10 Nisan 2026 | Yasin Bulgan</p>
+</div>
+
+<script>
+  // Tıkla/aç animasyonu zaten CSS ile çalışıyor
+  // İlk faz varsayılan olarak açık
+</script>
+</body>
+</html>

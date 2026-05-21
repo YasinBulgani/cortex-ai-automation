@@ -1,0 +1,57 @@
+{
+  "cookies": [
+    {
+      "name": "bgts_access_token",
+      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxOTI2YmM5My04YjMyLTRmOTktYWVlOC03YjAzMTYwNjJlMGEiLCJpYXQiOjE3NzkwODI5NDEsImV4cCI6MTc3OTExMTc0MSwianRpIjoiYTVkNTg4MjcwYTEwZmY1YyJ9.vcF2XRjPxIv9h_kb3ivhMdvtTCdQS0ePQ015VkoUqzw",
+      "domain": "127.0.0.1",
+      "path": "/",
+      "expires": -1,
+      "httpOnly": true,
+      "secure": false,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "twai_session",
+      "value": "1",
+      "domain": "127.0.0.1",
+      "path": "/",
+      "expires": -1,
+      "httpOnly": false,
+      "secure": false,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "bgts_refresh_token",
+      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxOTI2YmM5My04YjMyLTRmOTktYWVlOC03YjAzMTYwNjJlMGEiLCJpYXQiOjE3NzkwODI5NDEsImV4cCI6MTc4MTY3NDk0MSwidHlwZSI6InJlZnJlc2giLCJqdGkiOiJkOTMzZjFiYTA0YWYyYWM2MjNiNTBiZmEzY2ZiMjg5NiJ9.rYF2TuutvaVLrsG22Mv6Ih0PjW9QL6zzxSSV7Sqmcyg",
+      "domain": "127.0.0.1",
+      "path": "/",
+      "expires": -1,
+      "httpOnly": true,
+      "secure": false,
+      "sameSite": "Lax"
+    }
+  ],
+  "origins": [
+    {
+      "origin": "http://127.0.0.1:3000",
+      "localStorage": [
+        {
+          "name": "tspm_access_token",
+          "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxOTI2YmM5My04YjMyLTRmOTktYWVlOC03YjAzMTYwNjJlMGEiLCJpYXQiOjE3NzkwODI5NDEsImV4cCI6MTc3OTExMTc0MSwianRpIjoiYTVkNTg4MjcwYTEwZmY1YyJ9.vcF2XRjPxIv9h_kb3ivhMdvtTCdQS0ePQ015VkoUqzw"
+        },
+        {
+          "name": "onboarded",
+          "value": "true"
+        },
+        {
+          "name": "tspm_refresh_token",
+          "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxOTI2YmM5My04YjMyLTRmOTktYWVlOC03YjAzMTYwNjJlMGEiLCJpYXQiOjE3NzkwODI5NDEsImV4cCI6MTc4MTY3NDk0MSwidHlwZSI6InJlZnJlc2giLCJqdGkiOiJkOTMzZjFiYTA0YWYyYWM2MjNiNTBiZmEzY2ZiMjg5NiJ9.rYF2TuutvaVLrsG22Mv6Ih0PjW9QL6zzxSSV7Sqmcyg"
+        },
+        {
+          "name": "neurex_onboarding_done",
+          "value": "1779082942322"
+        }
+      ]
+    }
+  ]
+}

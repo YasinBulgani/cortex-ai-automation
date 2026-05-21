@@ -1,0 +1,265 @@
+{
+  "id": "f9bf8154-343d-47cf-996a-5c9b70cad61f",
+  "startDate": "2026-03-25T12:57:22.403059Z",
+  "endDate": "2026-03-25T12:57:45.256696Z",
+  "progress": {
+    "value": 6,
+    "max": 6
+  },
+  "status": "DONE",
+  "steps": [
+    {
+      "id": "db2b8347-a355-4c36-9a42-90fa64baab53",
+      "modelLabel": "data:tabular",
+      "computeName": "SDK",
+      "restarts": 0,
+      "taskType": "TRAIN_TABULAR",
+      "stepCode": "PULL_TRAINING_DATA",
+      "startDate": "2026-03-25T12:57:22.403059Z",
+      "endDate": "2026-03-25T12:57:22.436419Z",
+      "computeResources": null,
+      "messages": null,
+      "errorMessage": null,
+      "progress": {
+        "value": 1,
+        "max": 1
+      },
+      "status": "DONE"
+    },
+    {
+      "id": "6a4014d9-b844-4281-aa57-5afe44a787a2",
+      "modelLabel": "data:tabular",
+      "computeName": "SDK",
+      "restarts": 0,
+      "taskType": "TRAIN_TABULAR",
+      "stepCode": "ANALYZE_TRAINING_DATA",
+      "startDate": "2026-03-25T12:57:22.437097Z",
+      "endDate": "2026-03-25T12:57:29.422686Z",
+      "computeResources": null,
+      "messages": null,
+      "errorMessage": null,
+      "progress": {
+        "value": 1,
+        "max": 1
+      },
+      "status": "DONE"
+    },
+    {
+      "id": "e6ca47dd-d8d6-4b64-bc00-420fcb5bbf84",
+      "modelLabel": "data:tabular",
+      "computeName": "SDK",
+      "restarts": 0,
+      "taskType": "TRAIN_TABULAR",
+      "stepCode": "ENCODE_TRAINING_DATA",
+      "startDate": "2026-03-25T12:57:29.425353Z",
+      "endDate": "2026-03-25T12:57:29.484435Z",
+      "computeResources": null,
+      "messages": null,
+      "errorMessage": null,
+      "progress": {
+        "value": 1,
+        "max": 1
+      },
+      "status": "DONE"
+    },
+    {
+      "id": "8c81b48b-adde-473f-a9e9-a3c024b50732",
+      "modelLabel": "data:tabular",
+      "computeName": "SDK",
+      "restarts": 0,
+      "taskType": "TRAIN_TABULAR",
+      "stepCode": "TRAIN_MODEL",
+      "startDate": "2026-03-25T12:57:29.485610Z",
+      "endDate": "2026-03-25T12:57:32.629292Z",
+      "computeResources": null,
+      "messages": [
+        {
+          "epoch": 0.03,
+          "is_checkpoint": 0,
+          "steps": 1,
+          "samples": 8,
+          "trn_loss": 37.3435,
+          "val_loss": null,
+          "total_time": 0.1,
+          "learn_rate": 0.0005,
+          "dp_eps": null,
+          "dp_delta": null
+        },
+        {
+          "epoch": 1.0,
+          "is_checkpoint": 1,
+          "steps": 30,
+          "samples": 240,
+          "trn_loss": 36.8557,
+          "val_loss": 37.318,
+          "total_time": 0.4,
+          "learn_rate": 0.0005,
+          "dp_eps": null,
+          "dp_delta": null
+        },
+        {
+          "epoch": 2.0,
+          "is_checkpoint": 1,
+          "steps": 60,
+          "samples": 473,
+          "trn_loss": 36.1212,
+          "val_loss": 37.3148,
+          "total_time": 0.6,
+          "learn_rate": 0.0005,
+          "dp_eps": null,
+          "dp_delta": null
+        },
+        {
+          "epoch": 3.0,
+          "is_checkpoint": 1,
+          "steps": 90,
+          "samples": 706,
+          "trn_loss": 35.7082,
+          "val_loss": 37.1624,
+          "total_time": 0.8,
+          "learn_rate": 0.0005,
+          "dp_eps": null,
+          "dp_delta": null
+        },
+        {
+          "epoch": 4.0,
+          "is_checkpoint": 1,
+          "steps": 120,
+          "samples": 939,
+          "trn_loss": 35.3081,
+          "val_loss": 37.0434,
+          "total_time": 1.0,
+          "learn_rate": 0.0005,
+          "dp_eps": null,
+          "dp_delta": null
+        },
+        {
+          "epoch": 5.0,
+          "is_checkpoint": 0,
+          "steps": 150,
+          "samples": 1172,
+          "trn_loss": 35.1109,
+          "val_loss": 37.1693,
+          "total_time": 1.1,
+          "learn_rate": 0.0005,
+          "dp_eps": null,
+          "dp_delta": null
+        },
+        {
+          "epoch": 6.0,
+          "is_checkpoint": 1,
+          "steps": 180,
+          "samples": 1405,
+          "trn_loss": 34.8214,
+          "val_loss": 37.0235,
+          "total_time": 1.3,
+          "learn_rate": 0.0005,
+          "dp_eps": null,
+          "dp_delta": null
+        },
+        {
+          "epoch": 7.0,
+          "is_checkpoint": 0,
+          "steps": 210,
+          "samples": 1638,
+          "trn_loss": 34.7077,
+          "val_loss": 37.1241,
+          "total_time": 1.5,
+          "learn_rate": 0.0005,
+          "dp_eps": null,
+          "dp_delta": null
+        },
+        {
+          "epoch": 8.0,
+          "is_checkpoint": 0,
+          "steps": 240,
+          "samples": 1871,
+          "trn_loss": 34.3979,
+          "val_loss": 37.2926,
+          "total_time": 1.7,
+          "learn_rate": 0.0005,
+          "dp_eps": null,
+          "dp_delta": null
+        },
+        {
+          "epoch": 9.0,
+          "is_checkpoint": 0,
+          "steps": 270,
+          "samples": 2104,
+          "trn_loss": 34.0377,
+          "val_loss": 37.1279,
+          "total_time": 2.0,
+          "learn_rate": 0.0005,
+          "dp_eps": null,
+          "dp_delta": null
+        },
+        {
+          "epoch": 10.0,
+          "is_checkpoint": 0,
+          "steps": 300,
+          "samples": 2337,
+          "trn_loss": 33.9774,
+          "val_loss": 37.4293,
+          "total_time": 2.1,
+          "learn_rate": 0.00025,
+          "dp_eps": null,
+          "dp_delta": null
+        },
+        {
+          "epoch": 11.0,
+          "is_checkpoint": 0,
+          "steps": 330,
+          "samples": 2570,
+          "trn_loss": 34.0012,
+          "val_loss": 37.0742,
+          "total_time": 2.4,
+          "learn_rate": 0.00025,
+          "dp_eps": null,
+          "dp_delta": null
+        }
+      ],
+      "errorMessage": null,
+      "progress": {
+        "value": 1,
+        "max": 1
+      },
+      "status": "DONE"
+    },
+    {
+      "id": "4cd50114-5a89-47aa-8c1f-fe2c744b30a3",
+      "modelLabel": "data:tabular",
+      "computeName": "SDK",
+      "restarts": 0,
+      "taskType": "TRAIN_TABULAR",
+      "stepCode": "GENERATE_MODEL_REPORT_DATA",
+      "startDate": "2026-03-25T12:57:33.162176Z",
+      "endDate": "2026-03-25T12:57:33.235850Z",
+      "computeResources": null,
+      "messages": null,
+      "errorMessage": null,
+      "progress": {
+        "value": 1,
+        "max": 1
+      },
+      "status": "DONE"
+    },
+    {
+      "id": "1fe144ac-61ef-4d74-9f44-7812bee48b8d",
+      "modelLabel": "data:tabular",
+      "computeName": "SDK",
+      "restarts": 0,
+      "taskType": "TRAIN_TABULAR",
+      "stepCode": "CREATE_MODEL_REPORT",
+      "startDate": "2026-03-25T12:57:33.254333Z",
+      "endDate": "2026-03-25T12:57:45.244735Z",
+      "computeResources": null,
+      "messages": null,
+      "errorMessage": null,
+      "progress": {
+        "value": 1,
+        "max": 1
+      },
+      "status": "DONE"
+    }
+  ]
+}

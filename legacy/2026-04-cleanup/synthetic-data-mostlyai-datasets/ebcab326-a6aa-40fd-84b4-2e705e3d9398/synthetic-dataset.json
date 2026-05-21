@@ -1,0 +1,69 @@
+{
+  "id": "ebcab326-a6aa-40fd-84b4-2e705e3d9398",
+  "generatorId": "d6de9e0a-18f2-4498-9df0-664830366d2d",
+  "metadata": null,
+  "name": "bank_loan_default",
+  "description": null,
+  "generationStatus": "DONE",
+  "generationTime": null,
+  "tables": [
+    {
+      "id": "e4f89780-c0f6-489b-ae37-38bc2be72290",
+      "name": "data",
+      "configuration": {
+        "sampleSize": 1,
+        "sampleSeedConnectorId": null,
+        "sampleSeedDict": null,
+        "sampleSeedData": null,
+        "samplingTemperature": 1.0,
+        "samplingTopP": 1.0,
+        "rebalancing": null,
+        "imputation": null,
+        "fairness": null,
+        "enableDataReport": true
+      },
+      "tabularModelMetrics": {
+        "accuracy": {
+          "overall": 0.6823638,
+          "univariate": 0.9037044,
+          "bivariate": 0.7392597,
+          "trivariate": 0.4041271,
+          "coherence": null,
+          "overallMax": 0.7396777,
+          "univariateMax": 0.9146456,
+          "bivariateMax": 0.7533822,
+          "trivariateMax": 0.5510054,
+          "coherenceMax": null
+        },
+        "distances": {
+          "imsTraining": 0.0,
+          "imsHoldout": 0.0,
+          "imsTrnHol": 0.0,
+          "dcrTraining": 0.653,
+          "dcrHoldout": 0.724,
+          "dcrTrnHol": 0.637,
+          "dcrShare": 0.644,
+          "nndrTraining": 0.701350753344,
+          "nndrHoldout": 0.749679354944,
+          "nndrTrnHol": 0.768312529315
+        },
+        "similarity": {
+          "cosineSimilarityTrainingSynthetic": 0.7494042,
+          "cosineSimilarityTrainingHoldout": 0.7552632,
+          "discriminatorAUCTrainingSynthetic": 0.428,
+          "discriminatorAUCTrainingHoldout": 0.478
+        }
+      },
+      "languageModelMetrics": null,
+      "foreignKeys": null,
+      "totalRows": 1,
+      "totalDatapoints": null,
+      "sourceTableTotalRows": 300
+    }
+  ],
+  "delivery": null,
+  "accuracy": null,
+  "usage": null,
+  "compute": null,
+  "randomState": null
+}

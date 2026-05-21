@@ -1,0 +1,87 @@
+{
+  "rules": [
+    {
+      "rule_id": "BDDK-001",
+      "regulation": "BDDK|KVKK",
+      "title": "Kullanıcı Girişinde Şifre Gerekir",
+      "description": "Geçerli kimlik bilgileriyle kullanıcı giriş yapma",
+      "applies_to": [
+        "SCN-001"
+      ],
+      "related_endpoint": "POST /api/v1/login",
+      "related_table": "User",
+      "validation": {
+        "type": "regex",
+        "field": "password",
+        "condition": "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*#?&])[A-Za-z\\d@$!%*#?&]{8,}$",
+        "error_message": "Şifre en az 8 karakter uzunluğunda ve en az bir büyük harf, küçük harf, rakam ve özel karakter içermelidir."
+      },
+      "severity": "mandatory"
+    },
+    {
+      "rule_id": "BDDK-002",
+      "regulation": "BDDK|KVKK",
+      "title": "Geçersiz Şifre ile Giriş Denemesi",
+      "description": "Geçersiz şifre ile giriş denemesi",
+      "applies_to": [
+        "SCN-002"
+      ],
+      "related_endpoint": "POST /api/v1/login",
+      "related_table": "User",
+      "validation": {
+        "type": "regex",
+        "field": "password",
+        "condition": "^.*$",
+        "error_message": "Geçersiz şifre"
+      },
+      "severity": "mandatory"
+    },
+    {
+      "rule_id": "BDDK-003",
+      "regulation": "KVKK",
+      "title": "Boş E-posta ile Giriş Denemesi",
+      "description": "Boş e-posta ile giriş denemesi",
+      "applies_to": [
+        "SCN-003"
+      ],
+      "related_endpoint": "POST /api/v1/login",
+      "related_table": "User",
+      "validation": {
+        "type": "regex",
+        "field": "email",
+        "condition": "^\\S+$",
+        "error_message": "E-posta adresi boş olamaz."
+      },
+      "severity": "mandatory"
+    }
+  ],
+  "manual_keys": [
+    {
+      "scenario_id": "SCN-004",
+      "reason": "Concurrency testi için manuel kalma gereklidir.",
+      "regulation": "BDDK|KVKK",
+      "risk_level": "critical"
+    },
+    {
+      "scenario_id": "SCN-007",
+      "reason": "Concurrency testi için manuel kalma gereklidir.",
+      "regulation": "BDDK|KVKK",
+      "risk_level": "critical"
+    },
+    {
+      "scenario_id": "SCN-010",
+      "reason": "Concurrency testi için manuel kalma gereklidir.",
+      "regulation": "BDDK|KVKK",
+      "risk_level": "critical"
+    }
+  ],
+  "compliance_summary": {
+    "total_rules": 3,
+    "mandatory": 2,
+    "scenarios_with_regulation": 4,
+    "applicable_regulations": [
+      "BDDK",
+      "KVKK"
+    ]
+  }
+}

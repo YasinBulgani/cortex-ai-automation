@@ -1,0 +1,67 @@
+# AI Gateway live smoke suite.
+#
+# Bu suite fixture kullanmaz. Sadece EVAL_RUN_LLM=1 ile çalıştırılır:
+#   cd backend && EVAL_RUN_LLM=1 python3 -m app.domains.evals.cli \
+#     --suites-dir app/domains/evals/live_suites --suite ai_gateway_live --strict-skip
+#
+# Amaç: gerçek model yolunda content, provider metadata, attempts, JSON mode ve
+# latency contract'ını nightly trend olarak ölçmek.
+
+name: ai_gateway_live
+adapter: ai_gateway_live
+description: >
+  Gerçek AI Gateway /ai/complete çağrılarıyla canlı LLM sözleşmesini ölçer.
+  Local Ollama veya uzak gateway hazır değilse strict modda fail olur.
+
+scorers:
+  - gateway_content_contains
+  - gateway_provider_allowed
+  - gateway_attempts_healthy
+  - gateway_json_valid
+  - gateway_latency_budget
+
+thresholds:
+  min_case_pass_rate: 1.0
+  mean:
+    gateway_content_contains: 1.0
+    gateway_provider_allowed: 1.0
+    gateway_attempts_healthy: 1.0
+    gateway_json_valid: 1.0
+    gateway_latency_budget: 1.0
+
+cases:
+  - id: live-chat-sentinel
+    description: Canlı chat cevabı sentinel token içerir
+    tags: [live, gateway, chat]
+    inputs:
+      task_type: chat
+      temperature: 0.0
+      max_tokens: 96
+      timeout: 90
+      user_message: >
+        Tek kısa Türkçe cümle yaz. Cümlenin içinde aynen NEUREX_OK ifadesi
+        bulunsun. Ek açıklama veya markdown kullanma.
+    expected:
+      contains_any: ["NEUREX_OK"]
+      provider_allowed: [vllm, ollama, groq, gemini, g4f, cache]
+      min_attempts: 1
+      max_latency_ms: 90000
+
+  - id: live-json-contract
+    description: Canlı JSON mode parse edilebilir JSON döndürür
+    tags: [live, gateway, json-mode]
+    inputs:
+      task_type: chat
+      json_mode: true
+      temperature: 0.0
+      max_tokens: 128
+      timeout: 90
+      user_message: >
+        Sadece geçerli JSON döndür. Markdown kullanma. Şema:
+        {"status":"ok","suite":"ai_gateway_live","score":1}
+    expected:
+      contains_any: ["ai_gateway_live"]
+      json_required: true
+      provider_allowed: [vllm, ollama, groq, gemini, g4f, cache]
+      min_attempts: 1
+      max_latency_ms: 90000

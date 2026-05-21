@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<title>Eğitim Planı Geri Bildirim</title>
+<style>
+body { font-family: Calibri, Arial, sans-serif; font-size: 11pt; line-height: 1.6; margin: 40px; color: #333; }
+.add { color: red; font-weight: bold; }
+.remove { color: red; text-decoration: line-through; font-weight: bold; }
+.note { color: red; font-style: italic; font-weight: bold; border-left: 3px solid red; padding-left: 10px; margin: 8px 0; }
+h2 { color: #1a1a1a; border-bottom: 1px solid #ccc; padding-bottom: 5px; }
+h3 { color: #2a2a2a; }
+.original { color: #333; }
+</style>
+</head>
+<body>
+
+<p>Merhaba Hakan Bey,</p>
+<p>Revize plan genel olarak oldukça iyi kurgulanmış; iş analisti perspektifine uygun, uygulamalı ve framework okuryazarlığına odaklı bir yapı oluşturulmuş. Aşağıda her gün için eklenmesini ve çıkarılmasını önerdiğimiz noktaları belirttik:</p>
+
+<hr>
+
+<h2>Eğitimin Temel Hedefi - Öneriler</h2>
+
+<p class="note">EKLE: "test verisi hazırlama ve yönetme konusunda temel farkındalık kazanabilmesi" (Test data management BA'lar için kritik bir alan)</p>
+
+<p class="note">EKLE: "otomasyon test raporlarını okuyup, iş etkisini yorumlayabilmesi" (Raporlama becerisi hedeflerde eksik)</p>
+
+<hr>
+
+<h2>1. Gün: Test Farkındalığı, Framework Okuryazarlığı ve BDD Senaryo Tasarımı</h2>
+
+<h3>İçerik:</h3>
+<ul>
+<li class="original">Test analisti / iş analisti / otomasyon ekibi rol ayrımı</li>
+<li class="original">Hangi testler otomasyona uygundur, hangileri değildir</li>
+<li class="original">Manuel test case'in otomasyona uygun hale getirilmesi</li>
+<li class="add">EKLE: "Otomasyon ROI bakış açısı — hangi senaryolar otomatize edilmeye değer, önceliklendirme kriterleri" (BA'ların senaryo seçiminde bilinçli karar vermesi için önemli)</li>
+<li class="original">Framework içindeki katmanlı yapı</li>
+<li class="original">Feature dosyası yapısı ve senaryo okuma yaklaşımı</li>
+<li class="original">`Background`, `Scenario Outline`, `Examples` kullanımı</li>
+<li class="add">EKLE: "Tag yapısı ve tag'lerin kullanım amacı (@smoke, @regression, @wip vb.)" (Feature dosyalarında tag kullanımı BA'lar için bilinmesi gereken temel bir kavram)</li>
+<li class="add">EKLE: "Gherkin best practice'leri: Given-When-Then kalıplarında sık yapılan hatalar" (Senaryo yazım kalitesini artırmak için gerekli)</li>
+<li class="original">`Before / After` yapılarının kullanım amacı</li>
+<li class="original">Step, hook ve yardımcı yapıların ne zaman devreye girdiğinin anlaşılması</li>
+<li class="remove">ÇIKART veya KISALT: "GT kural setine benzer bir senaryo review yaklaşımı"</li>
+<li class="note">NOT: GT tarafından örnek kural seti gelmediği sürece bu madde havada kalır. Bunun yerine genel bir "senaryo review checklist'i" oluşturulması daha pratik olabilir.</li>
+</ul>
+
+<h3>Uygulama:</h3>
+<ul>
+<li class="original">Manuel test senaryosunu otomasyona uygun feature taslağına dönüştürme</li>
+<li class="original">Kötü yazılmış feature örneklerini iyileştirme</li>
+<li class="original">`Scenario Outline` ile veri varyasyonlarını düzenleme</li>
+<li class="original">`Background` kullanımını doğru ve yanlış örnekler üzerinden değerlendirme</li>
+<li class="add">EKLE: "Katılımcıların kendi projelerinden/iş süreçlerinden bir senaryo seçerek feature dosyası oluşturması" (Gerçek iş senaryosu üzerinden pratik yapmak daha kalıcı olur)</li>
+</ul>
+
+<hr>
+
+<h2>2. Gün: Web Katkı Modeli, Locator Yazımı, Shadow Yapılar, Git ve Jenkins Süreçleri</h2>
+
+<h3>İçerik:</h3>
+<ul>
+<li class="original">Hazır web otomasyon yapısında BA katkı noktaları</li>
+<li class="original">Mevcut step ve sayfa yapılarının kullanarak yeni senaryolar oluşturma</li>
+<li class="original">Locator seçimi ve locator yazım mantığı</li>
+<li class="original">Stabil locator yaklaşımı</li>
+<li class="original">CSS / XPath kullanımına pratik bakış</li>
+<li class="remove">KISALT: "Shadow DOM ve iç içe shadow yapıların anlaşılması"</li>
+<li class="remove">KISALT: "Bu tip yapılarda locator çıkarma yaklaşımı"</li>
+<li class="note">NOT: Shadow DOM konusu BA seviyesi için fazla teknik derinlikte. 10-15 dakikalık bir "böyle bir yapı var, bu durumda otomasyon ekibine eskalasyon yapılır" şeklinde farkındalık düzeyinde tutulması yeterli. Kalan süre locator pratiğine ayrılmalı.</li>
+<li class="original">Hangi durumlarda otomasyon ekibine eskalasyon gerektiği</li>
+<li class="add">EKLE: "Browser DevTools kullanımı — Element inspect, Console sekmesi temel kullanım" (Locator bulmak ve hata analizi için DevTools bilgisi şart)</li>
+<li class="add">EKLE: "Wait/bekleme mekanizmaları hakkında temel farkındalık — neden bazen elementler bulunamaz" (BA'ların flaky test nedenlerini anlaması için önemli)</li>
+<li class="original">Git süreçlerine giriş:</li>
+<li class="original">&nbsp;&nbsp;lokal ve remote repo ayrımı ile lokal çalışma alanları</li>
+<li class="original">&nbsp;&nbsp;branch açma mantığı</li>
+<li class="original">&nbsp;&nbsp;commit yaklaşımı</li>
+<li class="original">&nbsp;&nbsp;pull request oluşturma</li>
+<li class="remove">&nbsp;&nbsp;DÜZELT: "peview ve onay süreci" → "review ve onay süreci" (yazım hatası)</li>
+<li class="add">EKLE: "Merge conflict durumunda ne yapılır — temel farkındalık" (BA'ların PR sürecinde conflict ile karşılaşması kaçınılmaz)</li>
+<li class="original">Jenkins üzerinden CI/CD akışı:</li>
+<li class="original">&nbsp;&nbsp;pipeline mantığı</li>
+<li class="original">&nbsp;&nbsp;stage yapısı</li>
+<li class="original">&nbsp;&nbsp;hangi testin nerede çalıştığı</li>
+<li class="original">&nbsp;&nbsp;temel rapor ve hata okuma yaklaşımı</li>
+<li class="add">EKLE: "Allure/test raporu okuma pratiği — passed, failed, broken, skipped farkları" (Rapor okuma somut tool üzerinden gösterilmeli)</li>
+</ul>
+
+<h3>Uygulama:</h3>
+<ul>
+<li class="original">Web ekranı üzerinden locator inceleme ve örnek locator üretme</li>
+<li class="remove">KISALT: "Shadow yapı içeren örnek ekranlarda element bulma yaklaşımı" → Sadece demo seviyesinde gösterilsin</li>
+<li class="original">Senaryo bazlı locator review çalışması</li>
+<li class="original">Örnek bir Jenkins akışı üzerinden test sonucu okuma ve yorumlama</li>
+<li class="original">Basit bir branch / PR akışı simülasyonu</li>
+<li class="add">EKLE: "DevTools üzerinden canlı locator bulma ve doğrulama uygulaması" (Hands-on DevTools pratiği kritik)</li>
+</ul>
+
+<p class="note">GENEL NOT 2. GÜN: Bu gün çok yoğun görünüyor. Shadow DOM kısaltılırsa ve Git/Jenkins bölümü temel seviyede tutulursa zamanlama daha rahat olur. Aksi halde bazı konuların 3. güne kaydırılması veya +1 gün içinde değerlendirilmesi gerekebilir.</p>
+
+<hr>
+
+<h2>3. Gün: API ve Mobil Test Farkındalığı, Context Yapısı ve Demo Uygulama</h2>
+
+<h3>İçerik:</h3>
+<ul>
+<li class="original">Mevcut Karate yapısının okunması</li>
+<li class="original">API testlerinde business doğrulama mantığı</li>
+<li class="add">EKLE: "Postman/API client ile manuel API testi yapma — request/response kavramı" (BA'ların API'yi somut olarak görmesi için Karate'den önce temel API kavramı gerekli)</li>
+<li class="add">EKLE: "HTTP metodları (GET, POST, PUT, DELETE) ve status code'ların iş anlamı (200, 400, 401, 404, 500)" (API testini anlamak için bu temel bilgi şart)</li>
+<li class="original">Hazır senaryoya yeni kontrol veya varyasyon ekleme yaklaşımı</li>
+<li class="original">Test verisi ve senaryo akışını business bakış açısıyla yorumlama</li>
+<li class="original">Mobil test jargonuna giriş:</li>
+<li class="original">&nbsp;&nbsp;native uygulama / webview / hybrid yapı / context farkı</li>
+<li class="original">Mobil otomasyonda locator yaklaşımı</li>
+<li class="original">`accessibility id` ve benzeri mobil odaklı locator kavramları</li>
+<li class="original">Android ve iOS tarafındaki temel farkların iş analisti perspektifinden değerlendirilmesi</li>
+<li class="original">Mobil testlerde cihaz / platform / farm farkındalığı</li>
+<li class="add">EKLE: "Appium Inspector temel tanıtımı — mobil element inceleme aracı" (DevTools'un mobil karşılığı olarak Appium Inspector gösterilmeli)</li>
+<li class="original">Demo mobil uygulama üzerinden örnek senaryo akışı</li>
+<li class="original">Başarısız koşuda BA tarafı ile otomasyon ekibi tarafının sorumluluk ayrımı</li>
+<li class="add">EKLE: "Hata raporlama şablonu — başarısız test için BA'nın otomasyon ekibine nasıl bilgi vermesi gerektiği" (Sorumluluk ayrımı yapılıyorsa, iletişim formatı da belirtilmeli)</li>
+</ul>
+
+<h3>Uygulama:</h3>
+<ul>
+<li class="original">Mevcut bir API senaryosunu business doğrulama açısından inceleme</li>
+<li class="original">API senaryosuna yeni kontrol fikri ekleme çalışması</li>
+<li class="add">EKLE: "Postman üzerinden basit bir API çağrısı yapma ve response kontrol etme" (Karate öncesi somut API deneyimi)</li>
+<li class="original">Demo mobil uygulama üzerinde native ve webview ayrımını gösterme</li>
+<li class="original">`accessibility id` ve context farkını örnekleme</li>
+<li class="original">Kapanış atölyesi: manuel test case'ten feature kurgusuna ve otomasyon katkısına uzanan mini uçtan uca çalışma</li>
+</ul>
+
+<hr>
+
+<h2>+1 Gün Önerisi Hakkında</h2>
+
+<p class="note">ÖNERİ: +1 günün eklenmesini kesinlikle destekliyoruz. Aşağıdaki içeriklerle kurgulanması önerilir:</p>
+
+<ul>
+<li class="add">Test seviyeleri (Unit, Integration, System, Acceptance) ve bunların otomasyon karşılıkları</li>
+<li class="add">Test tipleri (Fonksiyonel, Regresyon, Smoke, Sanity) ve otomasyondaki yeri</li>
+<li class="add">Test tasarım teknikleri (Boundary Value, Equivalence Partitioning, Decision Table) — uygulamalı</li>
+<li class="add">Uygulamalı test senaryo yazımı — gerçek iş süreçleri üzerinden</li>
+<li class="add">Test verisi yönetimi — veri bağımlılığı, test ortamı ve veri izolasyonu kavramları</li>
+<li class="add">Genel Q&A ve 3 günlük eğitimden kalan soruların cevaplanması</li>
+</ul>
+
+<p class="note">NOT: +1 gün, 1. günden ÖNCE yapılırsa daha etkili olabilir. Katılımcılar temel test bilgisiyle başlarsa, BDD ve framework konularını daha kolay kavrar.</p>
+
+<hr>
+
+<h2>Genel Notlar</h2>
+
+<ul>
+<li class="note">Eğitim materyallerinin önceden paylaşılması durumunda katılımcıların hazırlıklı gelmesi sağlanabilir.</li>
+<li class="note">Her günün sonunda 15-20 dakikalık bir "günün özeti + soru-cevap" bölümü planlanmalı.</li>
+<li class="note">Eğitim sonrası 1-2 hafta içinde kısa bir follow-up oturumu (online, 1 saat) planlanırsa öğrenilenlerin pekiştirilmesi sağlanabilir.</li>
+</ul>
+
+<p>Teşekkürler.</p>
+
+</body>
+</html>

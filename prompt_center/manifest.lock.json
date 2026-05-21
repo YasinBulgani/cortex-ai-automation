@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "manifest": "manifest.json",
+  "hash_algorithm": "sha256",
+  "prompt_center_hash": "3a77e8fd9b93891bd7e059c5f651c907303c2a0b108ba541cea7f2626bff515a",
+  "files": {
+    "policies/automation_rules.md": "41ea2023d61046948428fb1adeef59137915456059b3e35b8f63c67b7550477b",
+    "policies/base_identity.md": "aebd40167b2a9dadb91baf3dcbcddc1a108586fc8f532804942fedddc8af8a99",
+    "policies/global_guardrails.md": "5bb5d1a8138084bcb275747c4a1ad7dba183be6729bad38db9aa30bba8982ce8",
+    "policies/json_rules.md": "5044a482853fa43235a332ff33bfa0ad6c6bcab4da49843250ab63b6215e5cec",
+    "policies/test_design_rules.md": "9496d07e08e4629492aed29ce16936b13f006b6712d5e0928839a054ff6751df",
+    "tasks/analyze_document.md": "164c85cbae4c5065f4e48a180c5692e8fc0d4ac13e5dee4d76da852b77e725d7",
+    "tasks/chat.md": "41ea0a448cd164c32724c67d987a9ef3ae7a234cf568d7cdeacd1167d8239bc1",
+    "tasks/debug_test.md": "af3ae09924af45861cfd92eefa822070edb467633483ccbfd83e6a7756b1ea6d",
+    "tasks/generate_gherkin.md": "a189d16aca4fa374afdac5a87ffb73076805e182f4f7aa9772807cd09fc32965",
+    "tasks/generate_java_steps.md": "e21ed195756e25d54f2da4d3341bdbf4c4cc4c42d822dbb66fe8ce0975fa38ea",
+    "tasks/generate_playwright.md": "e524d82837a3e6b3f18595379bde9b84006a3d4b2e1d57b7fefd167a9feb0c47",
+    "tasks/generate_test_cases.md": "96fa40710f8223f829fefae57e912b8207f8665964ef69f892a8697f5fa0385a",
+    "tasks/nexus_code_analyze.md": "a9de6ce0749cbdd9cedc73c31b5ad617e2de55d4292ef85f15d678148fbf6b72",
+    "tasks/suggest_regression.md": "081fffb935a299d968cd390964fad6c4d985e3fddfb1e7451ec7661205d39d42"
+  }
+}

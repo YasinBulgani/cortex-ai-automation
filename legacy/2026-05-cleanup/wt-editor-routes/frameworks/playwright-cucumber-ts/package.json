@@ -1,0 +1,55 @@
+{
+  "name": "test-automation-framework",
+  "version": "2.0.0",
+  "description": "Enterprise-grade test automation framework built with Playwright, Cucumber, and TypeScript",
+  "main": "dist/index.js",
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  },
+  "scripts": {
+    "test": "cucumber-js",
+    "test:runner": "ts-node test-runner.ts",
+    "test:chrome": "cucumber-js --world-parameters '{\"browser\":\"chromium\"}'",
+    "test:firefox": "cucumber-js --world-parameters '{\"browser\":\"firefox\"}'",
+    "test:safari": "cucumber-js --world-parameters '{\"browser\":\"webkit\"}'",
+    "test:api": "cucumber-js --tags '@api'",
+    "test:web": "cucumber-js --tags '@web'",
+    "test:parallel": "cucumber-js --parallel 4",
+    "test:report": "cucumber-js && npm run report",
+    "report": "node utils/generate-report.js",
+    "install:browsers": "npx playwright install",
+    "lint": "eslint . --ext .ts",
+    "format": "prettier --write \"**/*.{ts,js,json,md}\"",
+    "clean": "rm -rf dist reports logs node_modules/.cache"
+  },
+  "keywords": [
+    "playwright",
+    "cucumber",
+    "bdd",
+    "typescript",
+    "test-automation",
+    "e2e",
+    "api-testing",
+    "web-automation"
+  ],
+  "author": "Test Automation Team",
+  "license": "MIT",
+  "devDependencies": {
+    "@cucumber/cucumber": "^10.0.0",
+    "@cucumber/pretty-formatter": "^1.0.1",
+    "@playwright/test": "^1.40.0",
+    "@types/node": "^20.10.0",
+    "@typescript-eslint/eslint-plugin": "^6.13.0",
+    "@typescript-eslint/parser": "^6.13.0",
+    "eslint": "^8.54.0",
+    "prettier": "^3.1.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.3.3"
+  },
+  "dependencies": {
+    "cucumber-html-reporter": "^7.0.0",
+    "dotenv": "^16.3.1",
+    "openai": "^4.20.0"
+  }
+}

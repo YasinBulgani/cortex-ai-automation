@@ -1,0 +1,355 @@
+# TestwrightAI Model Registry — TEK KAYNAK
+#
+# Bu dosya tüm LLM modellerinin fiyat/özellik/tier bilgisini tutar.
+# - backend/app/domains/ai/pricing.py bu dosyayı okur
+# - engine/services/llm_gateway.py MODEL_COSTS bu dosyadan türetilir
+# - backend/app/domains/agents/v2/tools/ai_gateway.py aynısı
+# - backend/app/domains/ai/smart_model_router.py tier eşlemesi
+#
+# Yeni model eklemek: bu dosyaya satır + PR. Duplike kod düzenleme YOK.
+#
+# Güncelleme tarihi: 2026-Q2
+# Fiyatlar USD / 1M token (provider liste fiyatı)
+
+schema_version: 1
+
+defaults:
+  tier: mid
+  supports_json: true
+  supports_tools: true
+  offline_safe: false
+  status: prod   # prod | canary | archived
+
+models:
+  # ────────────────────────────────────────────────────────────────────
+  # OpenAI
+  # ────────────────────────────────────────────────────────────────────
+  - id: gpt-4o
+    provider: openai
+    tier: mid
+    context_window: 128000
+    max_output: 16384
+    cost: {input: 2.50, output: 10.00, cached_input: 1.25}
+    supports_json: true
+    supports_tools: true
+    sla: {p95_ms: 3000}
+
+  - id: gpt-4o-mini
+    provider: openai
+    tier: mini
+    context_window: 128000
+    max_output: 16384
+    cost: {input: 0.15, output: 0.60, cached_input: 0.075}
+    supports_json: true
+    supports_tools: true
+    sla: {p95_ms: 2000}
+
+  - id: gpt-4.1
+    provider: openai
+    tier: mid
+    context_window: 1000000
+    max_output: 32768
+    cost: {input: 2.00, output: 8.00, cached_input: 0.50}
+    supports_json: true
+    supports_tools: true
+    sla: {p95_ms: 3500}
+
+  - id: gpt-4.1-mini
+    provider: openai
+    tier: mini
+    context_window: 1000000
+    max_output: 32768
+    cost: {input: 0.40, output: 1.60, cached_input: 0.10}
+    supports_json: true
+    supports_tools: true
+    sla: {p95_ms: 2000}
+
+  - id: gpt-4.1-nano
+    provider: openai
+    tier: mini
+    context_window: 1000000
+    max_output: 32768
+    cost: {input: 0.10, output: 0.40, cached_input: 0.025}
+    supports_json: true
+    supports_tools: true
+    sla: {p95_ms: 1500}
+
+  - id: o1
+    provider: openai
+    tier: premium
+    context_window: 200000
+    max_output: 100000
+    cost: {input: 15.00, output: 60.00, cached_input: 7.50}
+    supports_json: false       # reasoning modelleri JSON mode desteklemez
+    supports_tools: true
+    sla: {p95_ms: 30000}
+
+  - id: o1-mini
+    provider: openai
+    tier: mid
+    context_window: 128000
+    max_output: 65536
+    cost: {input: 1.10, output: 4.40, cached_input: 0.55}
+    supports_json: false
+    supports_tools: true
+    sla: {p95_ms: 15000}
+
+  - id: o3-mini
+    provider: openai
+    tier: mid
+    context_window: 200000
+    max_output: 100000
+    cost: {input: 1.10, output: 4.40, cached_input: 0.55}
+    supports_json: false
+    supports_tools: true
+    sla: {p95_ms: 20000}
+
+  # ────────────────────────────────────────────────────────────────────
+  # Anthropic
+  # ────────────────────────────────────────────────────────────────────
+  - id: claude-sonnet-4-20250514
+    aliases: [claude-sonnet-4, claude-3-5-sonnet-latest]
+    provider: anthropic
+    tier: premium
+    context_window: 200000
+    max_output: 8192
+    cost: {input: 3.00, output: 15.00}
+    supports_json: true
+    supports_tools: true
+    sla: {p95_ms: 5000}
+
+  - id: claude-3-5-sonnet-20241022
+    aliases: [claude-3-5-sonnet, claude-3.5-sonnet]
+    provider: anthropic
+    tier: premium
+    context_window: 200000
+    max_output: 8192
+    cost: {input: 3.00, output: 15.00}
+    supports_json: true
+    supports_tools: true
+    sla: {p95_ms: 5000}
+
+  - id: claude-3-5-haiku-20241022
+    aliases: [claude-3-5-haiku-latest, claude-3-5-haiku]
+    provider: anthropic
+    tier: mini
+    context_window: 200000
+    max_output: 8192
+    cost: {input: 0.80, output: 4.00}
+    supports_json: true
+    supports_tools: true
+    sla: {p95_ms: 3000}
+
+  - id: claude-opus-4-20250514
+    aliases: [claude-opus-4]
+    provider: anthropic
+    tier: premium
+    context_window: 200000
+    max_output: 32000
+    cost: {input: 15.00, output: 75.00}
+    supports_json: true
+    supports_tools: true
+    sla: {p95_ms: 8000}
+
+  # ────────────────────────────────────────────────────────────────────
+  # Google (Gemini)
+  # ────────────────────────────────────────────────────────────────────
+  - id: gemini-2.5-pro
+    provider: google
+    tier: premium
+    context_window: 2000000
+    max_output: 8192
+    cost: {input: 1.25, output: 10.00}
+    supports_json: true
+    supports_tools: true
+    sla: {p95_ms: 6000}
+
+  - id: gemini-2.5-flash
+    provider: google
+    tier: mid
+    context_window: 1000000
+    max_output: 8192
+    cost: {input: 0.30, output: 2.50}
+    supports_json: true
+    supports_tools: true
+    sla: {p95_ms: 2500}
+
+  - id: gemini-2.0-flash
+    provider: google
+    tier: mini
+    context_window: 1000000
+    max_output: 8192
+    cost: {input: 0.10, output: 0.40}
+    supports_json: true
+    supports_tools: true
+    sla: {p95_ms: 2000}
+
+  - id: gemini-1.5-flash
+    aliases: [gemini-1-5-flash]
+    provider: google
+    tier: mini
+    context_window: 1000000
+    max_output: 8192
+    cost: {input: 0.075, output: 0.30}
+    supports_json: true
+    supports_tools: true
+    sla: {p95_ms: 2500}
+
+  - id: gemini-1.5-pro
+    provider: google
+    tier: mid
+    context_window: 2000000
+    max_output: 8192
+    cost: {input: 1.25, output: 5.00}
+    supports_json: true
+    supports_tools: true
+    sla: {p95_ms: 5000}
+
+  # ────────────────────────────────────────────────────────────────────
+  # Groq (hızlı inference, kısıtlı model seti)
+  # ────────────────────────────────────────────────────────────────────
+  - id: llama3-70b-8192
+    provider: groq
+    tier: mid
+    context_window: 8192
+    max_output: 4096
+    cost: {input: 0.59, output: 0.79}
+    supports_json: true
+    supports_tools: false
+    sla: {p95_ms: 1000}
+
+  # ────────────────────────────────────────────────────────────────────
+  # On-prem (Ollama / vLLM) — ücretsiz, offline_safe
+  # ────────────────────────────────────────────────────────────────────
+  - id: qwen2.5-coder:14b-instruct-q4_K_M
+    aliases: [qwen2.5-coder:14b, qwen2.5-coder]
+    provider: ollama
+    tier: mid
+    context_window: 32768
+    max_output: 8192
+    cost: {input: 0.0, output: 0.0}
+    supports_json: true
+    supports_tools: true
+    offline_safe: true
+    sla: {p95_ms: 15000}
+
+  - id: qwen2.5-coder:7b-instruct-q4_K_M
+    aliases: [qwen2.5-coder:7b]
+    provider: ollama
+    tier: mini
+    context_window: 32768
+    max_output: 8192
+    cost: {input: 0.0, output: 0.0}
+    supports_json: true
+    supports_tools: true
+    offline_safe: true
+    sla: {p95_ms: 8000}
+
+  - id: qwen2.5:14b-instruct-q4_K_M
+    aliases: [qwen2.5:14b, qwen2.5]
+    provider: ollama
+    tier: mid
+    context_window: 32768
+    max_output: 8192
+    cost: {input: 0.0, output: 0.0}
+    supports_json: true
+    supports_tools: true
+    offline_safe: true
+    sla: {p95_ms: 15000}
+
+  - id: qwen2.5:32b
+    provider: ollama
+    tier: mid
+    context_window: 32768
+    max_output: 8192
+    cost: {input: 0.0, output: 0.0}
+    supports_json: true
+    supports_tools: true
+    offline_safe: true
+    sla: {p95_ms: 25000}
+
+  - id: llama3.2:3b-instruct-q4_K_M
+    aliases: [llama3.2:3b, llama-3.2, llama3]
+    provider: ollama
+    tier: mini
+    context_window: 128000
+    max_output: 4096
+    cost: {input: 0.0, output: 0.0}
+    supports_json: true
+    supports_tools: false
+    offline_safe: true
+    sla: {p95_ms: 3000}
+
+  - id: mistral
+    aliases: [mistral:7b]
+    provider: ollama
+    tier: mini
+    context_window: 32768
+    max_output: 4096
+    cost: {input: 0.0, output: 0.0}
+    supports_json: false
+    supports_tools: false
+    offline_safe: true
+    sla: {p95_ms: 5000}
+
+  # ────────────────────────────────────────────────────────────────────
+  # Embedding modelleri (retrieval için)
+  # ────────────────────────────────────────────────────────────────────
+  - id: bge-m3
+    provider: ollama
+    tier: mini
+    context_window: 8192
+    cost: {input: 0.0, output: 0.0}
+    supports_json: false
+    supports_tools: false
+    offline_safe: true
+    kind: embedding
+    sla: {p95_ms: 500}
+
+  - id: qwen2-vl:7b
+    provider: ollama
+    tier: mid
+    context_window: 32768
+    cost: {input: 0.0, output: 0.0}
+    supports_json: false
+    supports_tools: false
+    offline_safe: true
+    kind: vision
+    sla: {p95_ms: 15000}
+
+# ──────────────────────────────────────────────────────────────────────
+# Aile (prefix) fiyatları — tag varyasyonları için fallback
+# Bir model registry'de yoksa ama aile eşleşiyorsa bu satır kullanılır.
+# ──────────────────────────────────────────────────────────────────────
+families:
+  - prefix: gpt-4o
+    cost: {input: 2.50, output: 10.00}
+    tier: mid
+  - prefix: gpt-4.1
+    cost: {input: 2.00, output: 8.00}
+    tier: mid
+  - prefix: claude-sonnet
+    cost: {input: 3.00, output: 15.00}
+    tier: premium
+  - prefix: claude-3-5-sonnet
+    cost: {input: 3.00, output: 15.00}
+    tier: premium
+  - prefix: claude-3-5-haiku
+    cost: {input: 0.80, output: 4.00}
+    tier: mini
+  - prefix: qwen2.5-coder
+    cost: {input: 0.0, output: 0.0}
+    tier: mid
+    offline_safe: true
+  - prefix: qwen2.5
+    cost: {input: 0.0, output: 0.0}
+    tier: mid
+    offline_safe: true
+  - prefix: llama3
+    cost: {input: 0.0, output: 0.0}
+    tier: mini
+    offline_safe: true
+  - prefix: mistral
+    cost: {input: 0.0, output: 0.0}
+    tier: mini
+    offline_safe: true

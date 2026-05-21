@@ -1,0 +1,59 @@
+# gitleaks config — BGTS Test Dönüşüm
+# https://github.com/gitleaks/gitleaks/blob/master/config/gitleaks.toml
+
+title = "BGTS gitleaks config"
+
+[extend]
+useDefault = true
+
+# Projeye özel ek kurallar
+[[rules]]
+id = "openai-api-key"
+description = "OpenAI API key"
+regex = '''sk-(?:proj-)?[a-zA-Z0-9_-]{20,}'''
+tags = ["key", "openai"]
+keywords = ["sk-", "sk-proj"]
+
+[[rules]]
+id = "anthropic-api-key"
+description = "Anthropic API key"
+regex = '''sk-ant-[a-zA-Z0-9_-]{20,}'''
+tags = ["key", "anthropic"]
+keywords = ["sk-ant"]
+
+[[rules]]
+id = "jwt-secret-inline"
+description = "Hardcoded JWT_SECRET"
+regex = '''(?i)jwt_?secret["'\s:=]+[a-zA-Z0-9+/=_-]{32,}'''
+tags = ["secret", "jwt"]
+keywords = ["jwt_secret", "JWT_SECRET"]
+
+[[rules]]
+id = "postgres-url-with-password"
+description = "PostgreSQL URL with plaintext password"
+regex = '''postgres(?:ql)?(?:\+psycopg2)?://[^:\s]+:[^@\s'"]+@[a-zA-Z0-9.\-]+'''
+tags = ["db", "password"]
+keywords = ["postgres://", "postgresql://"]
+
+# Allowlist — bilerek kabul ettiğimiz değerler
+[allowlist]
+description = "False positives + docs + fixtures"
+regexes = [
+  # Test/dev placeholders
+  '''change-me-in-production-use-long-random-secret''',
+  '''twai_user:twai_pass@''',
+  '''user:pass@localhost''',
+  '''ollama''',  # Ollama API key placeholder
+  # Docs
+  '''(?i)example|placeholder|dummy|fake|test-?key|demo''',
+]
+paths = [
+  '''(^|/)\.env\.example$''',
+  '''(^|/)README(?:\.md)?$''',
+  '''(^|/)docs/.*\.md$''',
+  '''(^|/)tests?/.*fixtures?/''',
+  '''(^|/)node_modules/''',
+  '''(^|/)\.pw-browsers/''',
+  '''(^|/)legacy/''',
+  '''(^|/)\.venv/''',
+]

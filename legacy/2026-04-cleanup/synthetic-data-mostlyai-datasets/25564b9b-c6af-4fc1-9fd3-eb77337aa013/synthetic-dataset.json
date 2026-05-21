@@ -1,0 +1,69 @@
+{
+  "id": "25564b9b-c6af-4fc1-9fd3-eb77337aa013",
+  "generatorId": "ef5d512f-f9c6-4217-ab9e-c25a314099c0",
+  "metadata": null,
+  "name": "bank_loan_default",
+  "description": null,
+  "generationStatus": "DONE",
+  "generationTime": null,
+  "tables": [
+    {
+      "id": "58a4adf9-3a7a-48cc-80ca-5ec29377efdb",
+      "name": "data",
+      "configuration": {
+        "sampleSize": 1,
+        "sampleSeedConnectorId": null,
+        "sampleSeedDict": null,
+        "sampleSeedData": null,
+        "samplingTemperature": 1.0,
+        "samplingTopP": 1.0,
+        "rebalancing": null,
+        "imputation": null,
+        "fairness": null,
+        "enableDataReport": true
+      },
+      "tabularModelMetrics": {
+        "accuracy": {
+          "overall": 0.6900659,
+          "univariate": 0.9129622,
+          "bivariate": 0.7464808,
+          "trivariate": 0.4107546,
+          "coherence": null,
+          "overallMax": 0.7396777,
+          "univariateMax": 0.9146456,
+          "bivariateMax": 0.7533822,
+          "trivariateMax": 0.5510054,
+          "coherenceMax": null
+        },
+        "distances": {
+          "imsTraining": 0.0,
+          "imsHoldout": 0.0,
+          "imsTrnHol": 0.0,
+          "dcrTraining": 0.667,
+          "dcrHoldout": 0.671,
+          "dcrTrnHol": 0.683,
+          "dcrShare": 0.525,
+          "nndrTraining": 0.741892052017,
+          "nndrHoldout": 0.73564326937,
+          "nndrTrnHol": 0.734277127332
+        },
+        "similarity": {
+          "cosineSimilarityTrainingSynthetic": 0.8984307,
+          "cosineSimilarityTrainingHoldout": 0.5628934,
+          "discriminatorAUCTrainingSynthetic": 0.397,
+          "discriminatorAUCTrainingHoldout": 0.544
+        }
+      },
+      "languageModelMetrics": null,
+      "foreignKeys": null,
+      "totalRows": 1,
+      "totalDatapoints": null,
+      "sourceTableTotalRows": 300
+    }
+  ],
+  "delivery": null,
+  "accuracy": null,
+  "usage": null,
+  "compute": null,
+  "randomState": null
+}

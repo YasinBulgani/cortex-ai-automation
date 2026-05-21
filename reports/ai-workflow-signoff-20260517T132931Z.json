@@ -1,0 +1,297 @@
+{
+  "checks": [
+    {
+      "command": [
+        "python3",
+        "scripts/ops/check-prompt-manifest.py"
+      ],
+      "cwd": "/Users/yasin_bulgan/Desktop/Neurex_QA",
+      "duration_ms": 47,
+      "exit_code": 0,
+      "name": "prompt_manifest_integrity",
+      "required": true,
+      "started_at": "2026-05-17T13:29:31.955439+00:00",
+      "status": "pass",
+      "stderr_tail": "",
+      "stdout_tail": "prompt-manifest-ok 1a63b88a2b03856a7968c05611309c6b6b3a5f21b7fd31c5adbcd4c9bec80b01\n"
+    },
+    {
+      "command": [
+        "python3",
+        "scripts/arch_guard_llm_imports.py"
+      ],
+      "cwd": "/Users/yasin_bulgan/Desktop/Neurex_QA",
+      "duration_ms": 2455,
+      "exit_code": 0,
+      "name": "direct_llm_import_guard",
+      "required": true,
+      "started_at": "2026-05-17T13:29:32.003270+00:00",
+      "status": "pass",
+      "stderr_tail": "",
+      "stdout_tail": "✅ Arch Guard temiz — direct LLM import ihlali yok\n"
+    },
+    {
+      "command": [
+        "python3",
+        "-m",
+        "py_compile",
+        "scripts/ops/ai-workflow-release-signoff.py",
+        "scripts/ops/ai-workflow-artifact-retention.py",
+        "scripts/ops/build-llm-workflow-plan-xlsx.py",
+        "scripts/ops/check-prompt-manifest.py",
+        "backend/app/domains/ai/artifact_retention.py"
+      ],
+      "cwd": "/Users/yasin_bulgan/Desktop/Neurex_QA",
+      "duration_ms": 43,
+      "exit_code": 0,
+      "name": "ops_script_compile",
+      "required": true,
+      "started_at": "2026-05-17T13:29:34.459151+00:00",
+      "status": "pass",
+      "stderr_tail": "",
+      "stdout_tail": ""
+    },
+    {
+      "command": [
+        "python3",
+        "scripts/ops/ai-workflow-artifact-retention.py",
+        "--days",
+        "30"
+      ],
+      "cwd": "/Users/yasin_bulgan/Desktop/Neurex_QA",
+      "duration_ms": 461,
+      "exit_code": 0,
+      "name": "artifact_retention_dry_run",
+      "required": true,
+      "started_at": "2026-05-17T13:29:34.502725+00:00",
+      "status": "pass",
+      "stderr_tail": "GUVENLIK UYARISI: DATABASE_URL icinde placeholder gorunuyor. Gercek veritabani kimlik bilgilerini girdiginizden emin olun.\n",
+      "stdout_tail": "{\n  \"dry_run\": true,\n  \"retention_days\": 30,\n  \"cutoff\": \"2026-04-17T13:29:34.837160+00:00\",\n  \"matched_artifacts\": 0,\n  \"db_rows_deleted\": 0,\n  \"bytes_reclaimable\": 0,\n  \"bytes_deleted\": 0,\n  \"files_deleted\": [],\n  \"files_missing\": [],\n  \"files_skipped\": [],\n  \"skipped_reason\": \"artifact_tables_unavailable\",\n  \"query_error\": \"ProgrammingError: (psycopg2.errors.UndefinedTable) relation \\\"sd_agent_v2_run_artifacts\\\" does not exist\"\n}\n"
+    },
+    {
+      "command": [
+        "bash",
+        "-n",
+        "scripts/ops/backup-postgres-artifacts.sh",
+        "scripts/ops/restore-postgres-artifacts.sh",
+        "scripts/ops/ai-workflow-dr-drill.sh"
+      ],
+      "cwd": "/Users/yasin_bulgan/Desktop/Neurex_QA",
+      "duration_ms": 4,
+      "exit_code": 0,
+      "name": "ops_bash_syntax",
+      "required": true,
+      "started_at": "2026-05-17T13:29:34.964508+00:00",
+      "status": "pass",
+      "stderr_tail": "",
+      "stdout_tail": ""
+    },
+    {
+      "command": [
+        "python3",
+        "-c",
+        "from pathlib import Path; paths=['docs/ai-workflow-release-signoff.md','docs/ai-workflow-incident-runbook.md']; [(_ for _ in ()).throw(AssertionError(p)) for p in paths if not Path(p).exists() or not Path(p).read_text(encoding='utf-8').strip()]; print('runbook-ok')"
+      ],
+      "cwd": "/Users/yasin_bulgan/Desktop/Neurex_QA",
+      "duration_ms": 33,
+      "exit_code": 0,
+      "name": "release_runbook_present",
+      "required": true,
+      "started_at": "2026-05-17T13:29:34.969306+00:00",
+      "status": "pass",
+      "stderr_tail": "",
+      "stdout_tail": "runbook-ok\n"
+    },
+    {
+      "command": [
+        "python3",
+        "-c",
+        "import yaml; [yaml.safe_load(open(p)) for p in ['.github/workflows/ai-workflow-release-signoff.yml','.github/workflows/ai-workflow-retention.yml','.github/workflows/eval.yml','.github/workflows/engine-eval.yml','infra/prometheus/rules/bgts-alerts.yml']]; print('yaml-ok')"
+      ],
+      "cwd": "/Users/yasin_bulgan/Desktop/Neurex_QA",
+      "duration_ms": 82,
+      "exit_code": 0,
+      "name": "yaml_parse",
+      "required": true,
+      "started_at": "2026-05-17T13:29:35.002564+00:00",
+      "status": "pass",
+      "stderr_tail": "",
+      "stdout_tail": "yaml-ok\n"
+    },
+    {
+      "command": [
+        "bash",
+        "-lc",
+        "docker-compose config || docker compose config"
+      ],
+      "cwd": "/Users/yasin_bulgan/Desktop/Neurex_QA",
+      "duration_ms": 97,
+      "exit_code": 0,
+      "name": "compose_config_local",
+      "required": true,
+      "started_at": "2026-05-17T13:29:35.084660+00:00",
+      "status": "pass",
+      "stderr_tail": "",
+      "stdout_tail": " HEADLESS: \"true\"\n      MOBILE_ARTIFACTS_DIR: /app/mobile_uploads\n    healthcheck:\n      test:\n        - CMD-SHELL\n        - curl -fsS http://localhost:5001/health || exit 1\n      timeout: 5s\n      interval: 30s\n      retries: 3\n      start_period: 20s\n    networks:\n      default: null\n    ports:\n      - mode: ingress\n        host_ip: 127.0.0.1\n        target: 5001\n        published: \"5001\"\n        protocol: tcp\n    restart: unless-stopped\n    volumes:\n      - type: volume\n        source: engine_data\n        target: /app/reports\n        volume: {}\n      - type: volume\n        source: engine_screenshots\n        target: /app/screenshots\n        volume: {}\n      - type: volume\n        source: engine_mobile_uploads\n        target: /app/mobile_uploads\n        volume: {}\n  postgres:\n    container_name: twai_postgres\n    environment:\n      POSTGRES_DB: twai_db\n      POSTGRES_PASSWORD: twai_pass\n      POSTGRES_USER: twai_user\n    healthcheck:\n      test:\n        - CMD-SHELL\n        - pg_isready -U twai_user -d twai_db\n      timeout: 5s\n      interval: 10s\n      retries: 5\n    image: pgvector/pgvector:pg16\n    networks:\n      default: null\n    ports:\n      - mode: ingress\n        target: 5432\n        published: \"5432\"\n        protocol: tcp\n    restart: unless-stopped\n    volumes:\n      - type: volume\n        source: pgdata\n        target: /var/lib/postgresql/data\n        volume: {}\n      - type: bind\n        source: /Users/yasin_bulgan/Desktop/Neurex_QA/infra/postgres-init\n        target: /docker-entrypoint-initdb.d\n        read_only: true\n        bind: {}\n  redis:\n    container_name: twai_redis\n    healthcheck:\n      test:\n        - CMD\n        - redis-cli\n        - ping\n      timeout: 3s\n      interval: 10s\n      retries: 5\n    image: redis:7-alpine\n    networks:\n      default: null\n    ports:\n      - mode: ingress\n        target: 6379\n        published: \"6379\"\n        protocol: tcp\n    restart: unless-stopped\n  web:\n    build:\n      context: /Users/yasin_bulgan/Desktop/Neurex_QA/apps/web\n      dockerfile: Dockerfile\n    container_name: twai_web\n    depends_on:\n      backend:\n        condition: service_started\n        required: true\n      engine:\n        condition: service_started\n        required: true\n    environment:\n      API_PROXY_TARGET: http://backend:8000\n      NEXT_PUBLIC_API_BASE: http://backend:8000\n      NEXT_PUBLIC_ENGINE_BASE: http://engine:5001\n    networks:\n      default: null\n    ports:\n      - mode: ingress\n        target: 3000\n        published: \"3000\"\n        protocol: tcp\n    restart: unless-stopped\n  worker:\n    build:\n      context: /Users/yasin_bulgan/Desktop/Neurex_QA/backend\n      dockerfile: Dockerfile\n    command:\n      - sh\n      - -c\n      - rq worker -u $$REDIS_URL $$RQ_QUEUE_NAME\n    container_name: twai_worker\n    depends_on:\n      postgres:\n        condition: service_healthy\n        required: true\n      redis:\n        condition: service_healthy\n        required: true\n    environment:\n      ARTIFACTS_DIR: /app/data/artifacts\n      DATABASE_URL: postgresql+psycopg2://twai_user:twai_pass@postgres:5432/syndata_db\n      ENGINE_BASE_URL: http://engine:5001\n      ENGINE_INTERNAL_KEY: twai-internal-key-change-me\n      JWT_SECRET: aDSp9Dy-k3dWKB6KlUos8og8oouU3BxAL0WJfiQMjd75J_Sjy2DneppLkGMELcUK1N19lgljIuP5Ws8qnyC39g\n      REDIS_URL: redis://redis:6379/0\n      RQ_QUEUE_NAME: syndata_jobs\n      SKIP_APP_BOOTSTRAP: \"1\"\n    networks:\n      default: null\n    restart: unless-stopped\n    volumes:\n      - type: volume\n        source: backend_artifacts\n        target: /app/data/artifacts\n        volume: {}\nnetworks:\n  default:\n    name: neurex_qa_default\nvolumes:\n  backend_artifacts:\n    name: neurex_qa_backend_artifacts\n    driver: local\n  engine_data:\n    name: neurex_qa_engine_data\n    driver: local\n  engine_mobile_uploads:\n    name: neurex_qa_engine_mobile_uploads\n    driver: local\n  engine_screenshots:\n    name: neurex_qa_engine_screenshots\n    driver: local\n  pgdata:\n    name: neurex_qa_pgdata\n    driver: local\n"
+    },
+    {
+      "command": [
+        "bash",
+        "-lc",
+        "docker-compose -f docker-compose.prod.yml config || docker compose -f docker-compose.prod.yml config"
+      ],
+      "cwd": "/Users/yasin_bulgan/Desktop/Neurex_QA",
+      "duration_ms": 33,
+      "exit_code": 0,
+      "name": "compose_config_prod",
+      "required": true,
+      "started_at": "2026-05-17T13:29:35.182444+00:00",
+      "status": "pass",
+      "stderr_tail": "time=\"2026-05-17T16:29:35+03:00\" level=warning msg=\"The \\\"GITHUB_WEBHOOK_SECRET\\\" variable is not set. Defaulting to a blank string.\"\ntime=\"2026-05-17T16:29:35+03:00\" level=warning msg=\"The \\\"GITLAB_WEBHOOK_TOKEN\\\" variable is not set. Defaulting to a blank string.\"\ntime=\"2026-05-17T16:29:35+03:00\" level=warning msg=\"The \\\"GENERIC_WEBHOOK_TOKEN\\\" variable is not set. Defaulting to a blank string.\"\ntime=\"2026-05-17T16:29:35+03:00\" level=warning msg=\"The \\\"ENGINE_CORS_ORIGINS\\\" variable is not set. Defaulting to a blank string.\"\ntime=\"2026-05-17T16:29:35+03:00\" level=warning msg=\"The \\\"GRAFANA_ADMIN_PASSWORD\\\" variable is not set. Defaulting to a blank string.\"\ntime=\"2026-05-17T16:29:35+03:00\" level=warning msg=\"The \\\"GITHUB_WEBHOOK_SECRET\\\" variable is not set. Defaulting to a blank string.\"\ntime=\"2026-05-17T16:29:35+03:00\" level=warning msg=\"The \\\"GITLAB_WEBHOOK_TOKEN\\\" variable is not set. Defaulting to a blank string.\"\ntime=\"2026-05-17T16:29:35+03:00\" level=warning msg=\"The \\\"JENKINS_WEBHOOK_TOKEN\\\" variable is not set. Defaulting to a blank string.\"\ntime=\"2026-05-17T16:29:35+03:00\" level=warning msg=\"The \\\"N8N_CALLBACK_TOKEN\\\" variable is not set. Defaulting to a blank string.\"\n",
+      "stdout_tail": ": /etc/prometheus/prometheus.yml\n        read_only: true\n        bind: {}\n      - type: bind\n        source: /Users/yasin_bulgan/Desktop/Neurex_QA/infra/prometheus/rules\n        target: /etc/prometheus/rules\n        read_only: true\n        bind: {}\n      - type: volume\n        source: prometheus_data\n        target: /prometheus\n        volume: {}\n  redis:\n    command:\n      - redis-server\n      - --requirepass\n      - --maxmemory\n      - 256mb\n      - --maxmemory-policy\n      - allkeys-lru\n      - --save\n      - \"60\"\n      - \"1000\"\n      - --appendonly\n      - \"yes\"\n    container_name: bgts_redis_prod\n    expose:\n      - \"6379\"\n    healthcheck:\n      test:\n        - CMD-SHELL\n        - if [ -n \"$${REDIS_PASSWORD}\" ]; then redis-cli -a \"$${REDIS_PASSWORD}\" ping | grep PONG; else redis-cli ping | grep PONG; fi\n      timeout: 3s\n      interval: 10s\n      retries: 5\n    image: redis:7-alpine\n    networks:\n      bgts_internal: null\n    restart: always\n    volumes:\n      - type: volume\n        source: redis_data_prod\n        target: /data\n        volume: {}\n  redis-exporter:\n    container_name: bgts_redis_exporter\n    depends_on:\n      redis:\n        condition: service_healthy\n        required: true\n    deploy:\n      resources:\n        limits:\n          cpus: 0.25\n          memory: \"134217728\"\n    environment:\n      REDIS_ADDR: redis://redis:6379\n      REDIS_PASSWORD: \"\"\n    expose:\n      - \"9121\"\n    image: oliver006/redis_exporter:v1.61.0\n    networks:\n      bgts_internal: null\n    restart: always\n  web:\n    container_name: bgts_web_prod\n    depends_on:\n      backend:\n        condition: service_healthy\n        required: true\n    deploy:\n      resources:\n        limits:\n          cpus: 1\n          memory: \"536870912\"\n    environment:\n      NEXT_PUBLIC_API_BASE: http://127.0.0.1:8000\n      NEXT_PUBLIC_ENGINE_BASE: http://127.0.0.1:5001\n      NODE_ENV: production\n    expose:\n      - \"3000\"\n    image: ghcr.io/bgts/bgts-web:latest\n    networks:\n      bgts_internal: null\n    restart: always\n  worker:\n    command:\n      - sh\n      - -c\n      - rq worker -u $$REDIS_URL $$RQ_QUEUE_NAME\n    container_name: bgts_worker_prod\n    depends_on:\n      postgres:\n        condition: service_healthy\n        required: true\n      redis:\n        condition: service_healthy\n        required: true\n    deploy:\n      resources:\n        limits:\n          cpus: 1\n          memory: \"536870912\"\n    environment:\n      APP_ENV: production\n      ARTIFACTS_DIR: /app/data/artifacts\n      DATABASE_URL: postgresql+psycopg2://bgts_user:3fc89fbf59b3c68f26cc78f3b2ecc18afbd19d995c8f8f9c@127.0.0.1:5432/syndata_db\n      ENGINE_BASE_URL: http://engine:5001\n      ENGINE_INTERNAL_KEY: 78279018091701d1e38ade9507fb50b15654a37c48447ba8b3fa6e8f9e85bda1\n      REDIS_URL: redis://127.0.0.1:6379/0\n      RQ_QUEUE_NAME: syndata_jobs\n      SENTRY_DSN: \"\"\n    image: ghcr.io/bgts/bgts-backend:latest\n    networks:\n      bgts_internal: null\n    restart: always\n    volumes:\n      - type: volume\n        source: backend_artifacts_prod\n        target: /app/data/artifacts\n        volume: {}\nnetworks:\n  bgts_external:\n    name: neurex_qa_bgts_external\n    driver: bridge\n  bgts_internal:\n    name: neurex_qa_bgts_internal\n    driver: bridge\nvolumes:\n  alertmanager_data:\n    name: neurex_qa_alertmanager_data\n    driver: local\n  backend_artifacts_prod:\n    name: neurex_qa_backend_artifacts_prod\n    driver: local\n  engine_data_prod:\n    name: neurex_qa_engine_data_prod\n    driver: local\n  engine_mobile_uploads_prod:\n    name: neurex_qa_engine_mobile_uploads_prod\n    driver: local\n  engine_screenshots_prod:\n    name: neurex_qa_engine_screenshots_prod\n    driver: local\n  grafana_data:\n    name: neurex_qa_grafana_data\n    driver: local\n  nginx_cache:\n    name: neurex_qa_nginx_cache\n    driver: local\n  pgdata_prod:\n    name: neurex_qa_pgdata_prod\n    driver: local\n  prometheus_data:\n    name: neurex_qa_prometheus_data\n    driver: local\n  redis_data_prod:\n    name: neurex_qa_redis_data_prod\n    driver: local\n"
+    },
+    {
+      "command": [
+        "pytest",
+        "backend/app/domains/agents/v2/tests/test_ai_gateway.py",
+        "backend/app/domains/privacy/tests/test_privacy_service.py",
+        "backend/app/domains/agents/v2/tests/test_test_runner_sandbox.py",
+        "backend/app/domains/ai/tests/test_structured_output_policies.py",
+        "backend/app/domains/ai/tests/test_workflow_excel.py",
+        "backend/app/domains/ai/tests/test_workflows_api.py",
+        "backend/app/domains/ai/tests/test_artifact_retention.py",
+        "backend/app/domains/agents/v2/tests/test_run_store_and_api.py",
+        "-q"
+      ],
+      "cwd": "/Users/yasin_bulgan/Desktop/Neurex_QA",
+      "duration_ms": 2891,
+      "exit_code": 0,
+      "name": "backend_ai_workflow_tests",
+      "required": true,
+      "started_at": "2026-05-17T13:29:35.216316+00:00",
+      "status": "pass",
+      "stderr_tail": "",
+      "stdout_tail": "============================= test session starts ==============================\nplatform darwin -- Python 3.11.15, pytest-9.0.3, pluggy-1.6.0\nrootdir: /Users/yasin_bulgan/Desktop/Neurex_QA/backend\nconfigfile: pytest.ini\nplugins: Faker-40.15.0, langsmith-0.8.1, schemathesis-4.15.2, timeout-2.4.0, bdd-7.3.0, asyncio-1.3.0, hypothesis-6.152.2, anyio-4.13.0, allure-pytest-2.15.3\nasyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function\ncollected 42 items\n\nbackend/app/domains/agents/v2/tests/test_ai_gateway.py ...............   [ 35%]\nbackend/app/domains/privacy/tests/test_privacy_service.py .              [ 38%]\nbackend/app/domains/agents/v2/tests/test_test_runner_sandbox.py ..       [ 42%]\nbackend/app/domains/ai/tests/test_structured_output_policies.py ...      [ 50%]\nbackend/app/domains/ai/tests/test_workflow_excel.py .                    [ 52%]\nbackend/app/domains/ai/tests/test_workflows_api.py ......                [ 66%]\nbackend/app/domains/ai/tests/test_artifact_retention.py ...              [ 73%]\nbackend/app/domains/agents/v2/tests/test_run_store_and_api.py .......... [ 97%]\n.                                                                        [100%]\n\n=============================== warnings summary ===============================\n../../../../opt/homebrew/lib/python3.11/site-packages/langgraph/cache/base/__init__.py:8\n  /opt/homebrew/lib/python3.11/site-packages/langgraph/cache/base/__init__.py:8: LangChainPendingDeprecationWarning: The default value of `allowed_objects` will change in a future version. Pass an explicit value (e.g., allowed_objects='messages' or allowed_objects='core') to suppress this warning.\n    from langgraph.checkpoint.serde.jsonplus import JsonPlusSerializer\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n======================== 42 passed, 1 warning in 1.44s =========================\n"
+    },
+    {
+      "command": [
+        "python3",
+        "-m",
+        "app.domains.evals.cli",
+        "--suite",
+        "harness_smoke",
+        "--strict-skip",
+        "--no-report",
+        "--json",
+        "/Users/yasin_bulgan/Desktop/Neurex_QA/reports/evals/signoff-harness-smoke.json"
+      ],
+      "cwd": "/Users/yasin_bulgan/Desktop/Neurex_QA",
+      "duration_ms": 264,
+      "exit_code": 0,
+      "name": "eval_harness_smoke_strict",
+      "required": true,
+      "started_at": "2026-05-17T13:29:38.107835+00:00",
+      "status": "pass",
+      "stderr_tail": "",
+      "stdout_tail": "{\n  \"overall_passed\": true,\n  \"suites\": [\n    {\n      \"name\": \"harness_smoke\",\n      \"adapter\": \"static_fixture\",\n      \"passed\": true,\n      \"skipped\": false,\n      \"cases_total\": 3,\n      \"cases_passed\": 3,\n      \"threshold_failures\": [],\n      \"aggregate\": {\n        \"mean_exact_match\": 1.0,\n        \"mean_precision_at_1\": 1.0,\n        \"mean_mrr\": 1.0,\n        \"case_pass_rate\": 1.0,\n        \"cases_total\": 3.0,\n        \"cases_passed\": 3.0\n      },\n      \"total_latency_ms\": 0\n    }\n  ],\n  \"total_suites\": 1,\n  \"failed_suites\": 0\n}\n"
+    },
+    {
+      "command": [
+        "npm",
+        "run",
+        "type-check"
+      ],
+      "cwd": "/Users/yasin_bulgan/Desktop/Neurex_QA/apps/web",
+      "duration_ms": 1468,
+      "exit_code": 0,
+      "name": "frontend_type_check",
+      "required": true,
+      "started_at": "2026-05-17T13:29:38.372875+00:00",
+      "status": "pass",
+      "stderr_tail": "",
+      "stdout_tail": "\n> type-check\n> tsc --noEmit\n\n"
+    },
+    {
+      "command": [
+        "npx",
+        "playwright",
+        "test",
+        "e2e/ai-workflows.spec.ts",
+        "--project=regression",
+        "--reporter=list"
+      ],
+      "cwd": "/Users/yasin_bulgan/Desktop/Neurex_QA",
+      "duration_ms": 6975,
+      "exit_code": 0,
+      "name": "ai_workflow_ui_e2e",
+      "required": true,
+      "started_at": "2026-05-17T13:29:39.841178+00:00",
+      "status": "pass",
+      "stderr_tail": "\u001b[2m[WebServer] \u001b[22mGUVENLIK UYARISI: DATABASE_URL icinde placeholder gorunuyor. Gercek veritabani kimlik bilgilerini girdiginizden emin olun.\n\u001b[2m[WebServer] \u001b[22mslowapi bulunamadi, rate limiting devre disi.\n\u001b[2m[WebServer] \u001b[22mslowapi bulunamadi, rate limiting devre disi.\n\u001b[2m[WebServer] \u001b[22mINFO:     Started server process [32950]\n\u001b[2m[WebServer] \u001b[22mINFO:     Waiting for application startup.\n\u001b[2m[WebServer] \u001b[22mINFO:     Application startup complete.\n\u001b[2m[WebServer] \u001b[22mINFO:     Uvicorn running on http://127.0.0.1:8765 (Press CTRL+C to quit)\n(node:33181) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.\n(Use `node --trace-warnings ...` to show where the warning was created)\n(node:33181) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.\n(Use `node --trace-warnings ...` to show where the warning was created)\n",
+      "stdout_tail": "[global-setup] Auth state saved → /Users/yasin_bulgan/Desktop/Neurex_QA/e2e/.auth/admin.json\n\nRunning 1 test using 1 worker\n\n  ✓  1 [regression] › e2e/ai-workflows.spec.ts:43:7 › AI Workflow Health › operasyon paneli health metriklerini ve DLQ durumunu gösterir (1.2s)\n\n  1 passed (6.3s)\n"
+    },
+    {
+      "name": "workflow_soak",
+      "required": false,
+      "skipped_reason": "Pass --run-soak to execute this DB/artifact write gate.",
+      "status": "skipped"
+    },
+    {
+      "name": "dr_restore_drill",
+      "required": false,
+      "skipped_reason": "Pass --run-dr-drill to execute this destructive restore rehearsal.",
+      "status": "skipped"
+    }
+  ],
+  "context": {
+    "cwd": "/Users/yasin_bulgan/Desktop/Neurex_QA",
+    "data_write_confirmed": false,
+    "env_keys_present": [],
+    "environment_names": {},
+    "hostname": "192.168.68.101",
+    "platform": "macOS-26.4.1-arm64-arm-64bit",
+    "prod_like_environment": false,
+    "production_target_confirmed": false,
+    "profile": "full",
+    "python": "3.9.6",
+    "retention_days": 30,
+    "run_dr_drill_requested": false,
+    "run_soak_requested": false
+  },
+  "eval_summary": {
+    "failed_suites": 0,
+    "overall_passed": true,
+    "suites": [
+      {
+        "aggregate": {
+          "case_pass_rate": 1.0,
+          "cases_passed": 3.0,
+          "cases_total": 3.0,
+          "mean_exact_match": 1.0,
+          "mean_mrr": 1.0,
+          "mean_precision_at_1": 1.0
+        },
+        "cases_passed": 3,
+        "cases_total": 3,
+        "name": "harness_smoke",
+        "passed": true,
+        "skipped": false
+      }
+    ],
+    "total_suites": 1
+  },
+  "failed_required_checks": [],
+  "finished_at": "2026-05-17T13:29:46.816864+00:00",
+  "generated_at": "2026-05-17T13:29:46.816829+00:00",
+  "llm_quality_score": 9.86,
+  "operator_next_steps": [
+    "Run --profile full for the complete local release gate set.",
+    "Against approved staging/prod credentials, rerun with --run-soak --run-dr-drill --confirm-data-write.",
+    "For prod-like targets, add --confirm-production-target after release-manager approval.",
+    "Attach the generated JSON report to the release ticket before deployment approval."
+  ],
+  "prompt_center_hash": "1a63b88a2b03856a7968c05611309c6b6b3a5f21b7fd31c5adbcd4c9bec80b01",
+  "release_decision": "needs_external_soak_and_dr_signoff",
+  "schema_version": 1,
+  "started_at": "2026-05-17T13:29:31.940226+00:00"
+}

@@ -1,0 +1,3 @@
+✅ BAŞARILI
+'izinTalepEtSayfasıİzinBilgilendirmeFormuModal' adlı elemanın sayfada görünür olduğu kontrol ediliyor
+'izinTalepEtSayfasıİzinBilgilendirmeFormuModal' adlı eleman sayfada görünür durumda. Kontrol başarılı.

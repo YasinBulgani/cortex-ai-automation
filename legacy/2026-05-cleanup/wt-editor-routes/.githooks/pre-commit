@@ -1,0 +1,44 @@
+#!/usr/bin/env bash
+# ─────────────────────────────────────────────────────────────────────────────
+#  Pre-commit hook — pipeline conflict detection (warn-only)
+#
+#  Kurulum:
+#    git config core.hooksPath .githooks
+#
+#  Davranış:
+#    - Çakışma varsa WARN verir ama commit'i engellemez
+#    - STRICT_CONFLICTS=1 env ile blocking mode
+#    - SKIP_PIPELINE_HOOK=1 ile tamamen atla
+# ─────────────────────────────────────────────────────────────────────────────
+
+set -euo pipefail
+
+[[ "${SKIP_PIPELINE_HOOK:-}" == "1" ]] && exit 0
+
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+SCRIPT="$REPO_ROOT/scripts/pipeline/check-conflicts.sh"
+
+if [[ ! -x "$SCRIPT" ]]; then
+  # Script yoksa sessizce geç (pipeline henüz kurulmamış olabilir)
+  exit 0
+fi
+
+# Pipeline branch'indeyiz mi?
+CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+case "$CURRENT_BRANCH" in
+  analyze/*|propose/*|design/*|arch/*|feat/fe-*|feat/be-*|feat/data-*|feat/infra-*|integrate/*|qa/*|sec/*|a11y/*|perf/*|retro/*)
+    ;;
+  *)
+    # Pipeline dışı branch — sessizce geç
+    exit 0
+    ;;
+esac
+
+# Çalıştır (warn mode default)
+if [[ "${STRICT_CONFLICTS:-0}" == "1" ]]; then
+  "$SCRIPT" --strict
+else
+  "$SCRIPT" || true
+fi
+
+exit 0

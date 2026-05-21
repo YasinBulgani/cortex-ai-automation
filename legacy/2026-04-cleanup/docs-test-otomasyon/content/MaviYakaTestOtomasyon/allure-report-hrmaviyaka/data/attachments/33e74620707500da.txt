@@ -1,0 +1,3 @@
+✅ BAŞARILI
+'izinTalepEtSayfasıIzinTipiFiltreInput' adlı alana metin yazılıyor (Yazılan: Sınav İzni)
+'izinTalepEtSayfasıIzinTipiFiltreInput' adlı alana 'Sınav İzni' metni başarıyla yazıldı.

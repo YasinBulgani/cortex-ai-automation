@@ -1,0 +1,2 @@
+'izinlerimSayfasıTalepEdilenIzınText' adlı elemanın değeri kontrol ediliyor (Beklenen: uOOhXuI6EEVSDzk)
+Element: izinlerimSayfasıTalepEdilenIzınText, Beklenen metin: uOOhXuI6EEVSDzk

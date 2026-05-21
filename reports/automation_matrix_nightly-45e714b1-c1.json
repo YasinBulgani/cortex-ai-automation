@@ -1,0 +1,102 @@
+[
+  {
+    "scenario_id": "SCN-001",
+    "scenario_title": "Geçerli kimlik bilgileriyle kullanıcı giriş yapma",
+    "decision": "API|UI",
+    "tool": "pytest+httpx|Playwright",
+    "reason": "Giriş işleminin API endpoint'leri ile doğrulanması ve UI testi ile doğrulanması",
+    "automation_effort": "high",
+    "roi_score": 9.0,
+    "priority": "immediate"
+  },
+  {
+    "scenario_id": "SCN-002",
+    "scenario_title": "Geçersiz şifre ile giriş denemesi",
+    "decision": "API|UI",
+    "tool": "pytest+httpx|Playwright",
+    "reason": "Giriş işleminin API endpoint'leri ile doğrulanması ve UI testi ile doğrulanması",
+    "automation_effort": "high",
+    "roi_score": 9.0,
+    "priority": "immediate"
+  },
+  {
+    "scenario_id": "SCN-003",
+    "scenario_title": "Boş e-posta ile giriş denemesi",
+    "decision": "API|UI",
+    "tool": "pytest+httpx|Playwright",
+    "reason": "Giriş işleminin API endpoint'leri ile doğrulanması ve UI testi ile doğrulanması",
+    "automation_effort": "high",
+    "roi_score": 9.0,
+    "priority": "immediate"
+  },
+  {
+    "scenario_id": "SCN-004",
+    "scenario_title": "Çok fazla istek yapma (Concurrency)",
+    "decision": "MANUEL",
+    "tool": "",
+    "reason": "Regülasyon kanıtı gerektirir",
+    "automation_effort": "low",
+    "roi_score": 0.0,
+    "priority": "backlog"
+  },
+  {
+    "scenario_id": "SCN-005",
+    "scenario_title": "Geçerli kimlik bilgileriyle kullanıcı logout yapma",
+    "decision": "API|UI",
+    "tool": "pytest+httpx|Playwright",
+    "reason": "Çıkış işleminin API endpoint'leri ile doğrulanması ve UI testi ile doğrulanması",
+    "automation_effort": "high",
+    "roi_score": 9.0,
+    "priority": "immediate"
+  },
+  {
+    "scenario_id": "SCN-006",
+    "scenario_title": "Geçersiz JWT token ile logout denemesi",
+    "decision": "API|UI",
+    "tool": "pytest+httpx|Playwright",
+    "reason": "Çıkış işleminin API endpoint'leri ile doğrulanması ve UI testi ile doğrulanması",
+    "automation_effort": "high",
+    "roi_score": 9.0,
+    "priority": "immediate"
+  },
+  {
+    "scenario_id": "SCN-007",
+    "scenario_title": "Çok fazla logout isteği (Concurrency)",
+    "decision": "MANUEL",
+    "tool": "",
+    "reason": "Regülasyon kanıtı gerektirir",
+    "automation_effort": "low",
+    "roi_score": 0.0,
+    "priority": "backlog"
+  },
+  {
+    "scenario_id": "SCN-008",
+    "scenario_title": "Geçerli kimlik bilgileriyle kullanıcı token yenileme",
+    "decision": "API|UI",
+    "tool": "pytest+httpx|Playwright",
+    "reason": "Token yenileme işleminin API endpoint'leri ile doğrulanması ve UI testi ile doğrulanması",
+    "automation_effort": "high",
+    "roi_score": 9.0,
+    "priority": "immediate"
+  },
+  {
+    "scenario_id": "SCN-009",
+    "scenario_title": "Geçersiz JWT token ile token yenileme denemesi",
+    "decision": "API|UI",
+    "tool": "pytest+httpx|Playwright",
+    "reason": "Token yenileme işleminin API endpoint'leri ile doğrulanması ve UI testi ile doğrulanması",
+    "automation_effort": "high",
+    "roi_score": 9.0,
+    "priority": "immediate"
+  },
+  {
+    "scenario_id": "SCN-010",
+    "scenario_title": "Çok fazla token yenileme isteği (Concurrency)",
+    "decision": "MANUEL",
+    "tool": "",
+    "reason": "Regülasyon kanıtı gerektirir",
+    "automation_effort": "low",
+    "roi_score": 0.0,
+    "priority": "backlog"
+  }
+]

@@ -1,0 +1,127 @@
+# Neurex QA — Observability Stack overlay
+# Usage: docker compose -f docker-compose.yml -f docker-compose.observability.yml up -d
+#
+# Adds: OpenTelemetry Collector, Tempo (traces), Prometheus, Loki (logs), Grafana
+# All services send traces/metrics/logs to this stack via OTEL_EXPORTER_OTLP_ENDPOINT.
+
+services:
+  # ── OTel Collector (receives gRPC + HTTP, fans out to Tempo + Prometheus) ──
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.100.0
+    container_name: neurex-otel-collector
+    command: ["--config=/etc/otel-collector-config.yaml"]
+    volumes:
+      - ./infra/otel/otel-collector-config.yaml:/etc/otel-collector-config.yaml:ro
+    ports:
+      - "4317:4317"   # gRPC OTLP
+      - "4318:4318"   # HTTP OTLP
+      - "8888:8888"   # Collector self-metrics (Prometheus scrape)
+      - "13133:13133" # Health check
+    depends_on:
+      - tempo
+    networks:
+      - neurex-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:13133/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  # ── Tempo (distributed traces) ────────────────────────────────────────────
+  tempo:
+    image: grafana/tempo:2.4.1
+    container_name: neurex-tempo
+    command: ["-config.file=/etc/tempo/config.yaml"]
+    volumes:
+      - ./infra/otel/tempo-config.yaml:/etc/tempo/config.yaml:ro
+      - tempo-data:/var/tempo
+    ports:
+      - "3200:3200"   # Tempo HTTP API (Grafana datasource)
+      - "9095:9095"   # Tempo gRPC
+    networks:
+      - neurex-net
+    restart: unless-stopped
+
+  # ── Loki (log aggregation) ────────────────────────────────────────────────
+  loki:
+    image: grafana/loki:2.9.4
+    container_name: neurex-loki
+    command: ["-config.file=/etc/loki/config.yaml"]
+    volumes:
+      - ./infra/otel/loki-config.yaml:/etc/loki/config.yaml:ro
+      - loki-data:/loki
+    ports:
+      - "3100:3100"
+    networks:
+      - neurex-net
+    restart: unless-stopped
+
+  # ── Prometheus (metrics) ──────────────────────────────────────────────────
+  prometheus:
+    image: prom/prometheus:v2.51.0
+    container_name: neurex-prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--storage.tsdb.retention.time=30d"
+      - "--web.enable-remote-write-receiver"
+    volumes:
+      - ./infra/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    ports:
+      - "9090:9090"
+    networks:
+      - neurex-net
+    restart: unless-stopped
+
+  # ── Grafana (dashboards) ──────────────────────────────────────────────────
+  grafana:
+    image: grafana/grafana:10.4.2
+    container_name: neurex-grafana
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-neurex-grafana-2026}
+      GF_FEATURE_TOGGLES_ENABLE: traceqlEditor
+      GF_SERVER_ROOT_URL: ${GRAFANA_ROOT_URL:-http://localhost:3001}
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./infra/grafana/provisioning:/etc/grafana/provisioning:ro
+    ports:
+      - "3001:3000"
+    depends_on:
+      - prometheus
+      - tempo
+      - loki
+    networks:
+      - neurex-net
+    restart: unless-stopped
+
+  # ─── Inject OTEL env vars into all app services ──────────────────────────
+  backend:
+    environment:
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
+      OTEL_SERVICE_NAME: neurex-backend
+      OTEL_RESOURCE_ATTRIBUTES: deployment.environment=${APP_ENV:-development}
+
+  engine:
+    environment:
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
+      OTEL_SERVICE_NAME: neurex-engine
+      OTEL_RESOURCE_ATTRIBUTES: deployment.environment=${APP_ENV:-development}
+
+  ai-gateway:
+    environment:
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
+      OTEL_SERVICE_NAME: neurex-ai-gateway
+      OTEL_RESOURCE_ATTRIBUTES: deployment.environment=${APP_ENV:-development}
+
+volumes:
+  tempo-data:
+  loki-data:
+  prometheus-data:
+  grafana-data:
+
+networks:
+  neurex-net:
+    external: true

@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{TITLE}} - Test Dünyası</title>
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="stylesheet" href="test-type-page.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="container">
+            <div class="nav-brand">
+                <a href="../index.html" style="text-decoration: none; color: inherit; display: flex; align-items: center; gap: 0.5rem;">
+                    <span class="logo-icon">🧪</span>
+                    <span class="logo-text">Test Dünyası</span>
+                </a>
+            </div>
+            <ul class="nav-menu">
+                <li><a href="../index.html#home">Ana Sayfa</a></li>
+                <li><a href="../index.html#about">Hakkında</a></li>
+                <li><a href="../index.html#types">Test Türleri</a></li>
+                <li><a href="../index.html#tools">Araçlar</a></li>
+                <li><a href="../index.html#best-practices">En İyi Uygulamalar</a></li>
+                <li><a href="../index.html#contact">İletişim</a></li>
+            </ul>
+            <button class="menu-toggle" id="menuToggle">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Breadcrumb -->
+    <div class="breadcrumb">
+        <div class="container">
+            <a href="../index.html">Ana Sayfa</a>
+            <span>/</span>
+            <a href="../index.html#types">Test Türleri</a>
+            <span>/</span>
+            <span>{{TITLE}}</span>
+        </div>
+    </div>
+
+    <!-- Test Type Hero -->
+    <section class="test-type-hero">
+        <div class="container">
+            <div class="test-type-header">
+                <div class="test-type-icon-large">{{ICON}}</div>
+                <h1>{{TITLE}}</h1>
+                <p class="test-type-subtitle">{{DESCRIPTION}}</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Main Content -->
+    <section class="test-type-content">
+        <div class="container">
+            <div class="content-grid">
+                <div class="main-content">
+                    <div class="content-section">
+                        <h2>Genel Bakış</h2>
+                        <p>{{OVERVIEW}}</p>
+                    </div>
+
+                    <div class="content-section">
+                        <h2>Özellikler</h2>
+                        <ul class="features-list">
+                            {{FEATURES}}
+                        </ul>
+                    </div>
+
+                    <div class="content-section">
+                        <h2>Kullanım Alanları</h2>
+                        <div class="use-cases">
+                            {{USE_CASES}}
+                        </div>
+                    </div>
+
+                    <div class="content-section">
+                        <h2>Avantajlar</h2>
+                        <div class="benefits-grid">
+                            {{BENEFITS}}
+                        </div>
+                    </div>
+                </div>
+
+                <aside class="sidebar">
+                    <div class="sidebar-card">
+                        <h3>İlgili Test Türleri</h3>
+                        <ul class="related-links">
+                            {{RELATED_TYPES}}
+                        </ul>
+                    </div>
+                    <div class="sidebar-card">
+                        <h3>Önerilen Araçlar</h3>
+                        <ul class="recommended-tools">
+                            {{RECOMMENDED_TOOLS}}
+                        </ul>
+                    </div>
+                </aside>
+            </div>
+        </div>
+    </section>
+
+    <!-- Education Section for Test Type -->
+    <section class="test-type-education">
+        <div class="container">
+            <div class="section-header">
+                <h2>{{TITLE}} Eğitim Videoları</h2>
+                <p class="section-description">
+                    Bu test türü hakkında detaylı eğitim içerikleri ve videolar
+                </p>
+            </div>
+            <div class="education-grid">
+                <div class="education-card">
+                    <div class="video-container">
+                        <div class="video-placeholder">
+                            <div class="video-icon">▶</div>
+                            <p>Video Yükle</p>
+                        </div>
+                        <input type="file" id="videoUpload{{ID}}" accept="video/*" style="display: none;">
+                        <button class="upload-btn" onclick="document.getElementById('videoUpload{{ID}}').click()">
+                            Video Yükle
+                        </button>
+                    </div>
+                    <div class="education-content">
+                        <h3>Yeni Video Ekle</h3>
+                        <p>{{TITLE}} ile ilgili eğitim videolarınızı yükleyin</p>
+                        <div class="video-form" style="display: none;">
+                            <input type="text" placeholder="Video Başlığı" class="form-input">
+                            <textarea placeholder="Video Açıklaması" class="form-textarea"></textarea>
+                            <button class="btn btn-primary">Kaydet</button>
+                        </div>
+                    </div>
+                </div>
+                <!-- Sample video cards will be added here -->
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="test-type-cta">
+        <div class="container">
+            <h2>Bu Test Türü Hakkında Daha Fazla Bilgi Alın</h2>
+            <p>Uzman ekibimizle iletişime geçin ve projeniz için en uygun test stratejisini belirleyin.</p>
+            <a href="../index.html#contact" class="btn btn-primary btn-large">İletişime Geçin</a>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-brand">
+                    <span class="logo-icon">🧪</span>
+                    <span class="logo-text">Test Dünyası</span>
+                </div>
+                <p class="footer-text">
+                    Yazılım kalitesini artırmak için test otomasyonu dünyasında keşif yapın.
+                </p>
+                <div class="footer-links">
+                    <a href="../index.html#home">Ana Sayfa</a>
+                    <a href="../index.html#about">Hakkında</a>
+                    <a href="../index.html#types">Test Türleri</a>
+                    <a href="../index.html#tools">Araçlar</a>
+                    <a href="../index.html#best-practices">En İyi Uygulamalar</a>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2025 Test Dünyası. Tüm hakları saklıdır.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="../script.js"></script>
+</body>
+</html>

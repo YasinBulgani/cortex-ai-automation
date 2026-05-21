@@ -1,0 +1,1 @@
+# SyntheticBankData — Ana uygulama paketi

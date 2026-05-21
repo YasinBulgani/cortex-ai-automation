@@ -1,0 +1,1 @@
+{"ts": 1776603735958, "type": "agent_succeeded", "item_id": "GAP-001", "role": "product_validator", "model": "qwen2.5:14b", "latency_s": 176.48211479187012, "decision": "approve", "confidence": 0.9}

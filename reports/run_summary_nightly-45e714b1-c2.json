@@ -1,0 +1,23 @@
+{
+  "run_id": "nightly-45e714b1-c2",
+  "timestamp": "2026-05-16T20:55:43.282584+00:00",
+  "written_files": [
+    "engine/features/ai_generated/user_update.feature",
+    "engine/features/ai_generated/user_update.feature",
+    "engine/features/ai_generated/user_delete.feature",
+    "engine/features/ai_generated/user_delete.feature",
+    "e2e/banking/user_update.spec.ts",
+    "e2e/banking/user_update_invalid_jwt.spec.ts",
+    "e2e/banking/user_delete.spec.ts",
+    "e2e/banking/user_delete_invalid_jwt.spec.ts",
+    "reports/regulation_rules_nightly-45e714b1-c2.json",
+    "reports/scenarios_nightly-45e714b1-c2.json",
+    "reports/automation_matrix_nightly-45e714b1-c2.json",
+    "reports/manual_keys_nightly-45e714b1-c2.json"
+  ],
+  "scenario_count": 5,
+  "bdd_count": 4,
+  "playwright_count": 4,
+  "api_test_count": 0,
+  "errors": []
+}

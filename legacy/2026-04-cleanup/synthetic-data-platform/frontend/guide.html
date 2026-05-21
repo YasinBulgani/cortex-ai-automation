@@ -1,0 +1,867 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title data-i18n="app_name">Sentetik Banka Verisi Platformu - Kılavuz</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            color: #333;
+            line-height: 1.6;
+        }
+
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        header h1 {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .language-selector {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            z-index: 100;
+        }
+
+        .language-selector select {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 4px;
+            background: white;
+            cursor: pointer;
+            font-size: 1rem;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .toc {
+            background: white;
+            padding: 2rem;
+            border-radius: 8px;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .toc h2 {
+            color: #667eea;
+            margin-bottom: 1rem;
+            font-size: 1.5rem;
+        }
+
+        .toc ul {
+            list-style: none;
+        }
+
+        .toc ul li {
+            margin: 0.5rem 0;
+        }
+
+        .toc ul li a {
+            color: #667eea;
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+
+        .toc ul li a:hover {
+            color: #764ba2;
+            text-decoration: underline;
+        }
+
+        .section {
+            background: white;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .section h2 {
+            color: #667eea;
+            margin-bottom: 1rem;
+            font-size: 1.8rem;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 0.5rem;
+        }
+
+        .section h3 {
+            color: #764ba2;
+            margin: 1.5rem 0 1rem 0;
+            font-size: 1.3rem;
+        }
+
+        .section p {
+            margin-bottom: 1rem;
+            color: #555;
+        }
+
+        .step {
+            background: #f8f9fa;
+            border-left: 4px solid #667eea;
+            padding: 1.5rem;
+            margin: 1rem 0;
+            border-radius: 4px;
+        }
+
+        .step h4 {
+            color: #667eea;
+            margin-bottom: 0.5rem;
+            font-size: 1.1rem;
+        }
+
+        .code-block {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 1rem;
+            border-radius: 4px;
+            overflow-x: auto;
+            margin: 1rem 0;
+            font-family: 'Courier New', monospace;
+        }
+
+        .warning {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 1rem;
+            margin: 1rem 0;
+            border-radius: 4px;
+            color: #856404;
+        }
+
+        .info {
+            background: #d1ecf1;
+            border-left: 4px solid #17a2b8;
+            padding: 1rem;
+            margin: 1rem 0;
+            border-radius: 4px;
+            color: #0c5460;
+        }
+
+        .success {
+            background: #d4edda;
+            border-left: 4px solid #28a745;
+            padding: 1rem;
+            margin: 1rem 0;
+            border-radius: 4px;
+            color: #155724;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1rem 0;
+        }
+
+        table th, table td {
+            border: 1px solid #ddd;
+            padding: 0.75rem;
+            text-align: left;
+        }
+
+        table th {
+            background: #667eea;
+            color: white;
+        }
+
+        table tr:nth-child(even) {
+            background: #f8f9fa;
+        }
+
+        .button {
+            display: inline-block;
+            padding: 0.75rem 1.5rem;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            text-decoration: none;
+            transition: background 0.3s;
+            font-size: 1rem;
+            margin: 0.5rem 0.5rem 0.5rem 0;
+        }
+
+        .button:hover {
+            background: #764ba2;
+        }
+
+        .button-secondary {
+            background: #6c757d;
+        }
+
+        .button-secondary:hover {
+            background: #5a6268;
+        }
+
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin: 1.5rem 0;
+        }
+
+        .feature-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1.5rem;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .feature-card h4 {
+            margin-bottom: 0.5rem;
+        }
+
+        .feature-card p {
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        .breadcrumb {
+            background: white;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border-radius: 4px;
+            color: #666;
+        }
+
+        .breadcrumb a {
+            color: #667eea;
+            text-decoration: none;
+        }
+
+        .breadcrumb a:hover {
+            text-decoration: underline;
+        }
+
+        footer {
+            background: #2c3e50;
+            color: white;
+            padding: 2rem;
+            text-align: center;
+            margin-top: 3rem;
+        }
+
+        @media (max-width: 768px) {
+            header h1 {
+                font-size: 1.5rem;
+            }
+
+            .section {
+                padding: 1rem;
+            }
+
+            .container {
+                padding: 1rem;
+            }
+
+            .feature-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .language-selector {
+                top: auto;
+                bottom: 1rem;
+                right: 1rem;
+            }
+
+            table {
+                font-size: 0.9rem;
+            }
+
+            table th, table td {
+                padding: 0.5rem;
+            }
+        }
+
+        .nav-drawer {
+            display: none;
+        }
+
+        @media (max-width: 768px) {
+            .nav-drawer {
+                display: block;
+                position: fixed;
+                left: 0;
+                top: 0;
+                width: 250px;
+                height: 100vh;
+                background: white;
+                box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+                z-index: 1000;
+                overflow-y: auto;
+            }
+
+            .nav-drawer.open {
+                display: block;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="language-selector">
+        <select id="languageSelect" onchange="changeLanguage(this.value)">
+            <option value="tr" selected>Türkçe</option>
+            <option value="en">English</option>
+        </select>
+    </div>
+
+    <header>
+        <h1 data-i18n="app_name">Sentetik Banka Verisi Platformu</h1>
+        <p data-i18n="app_description">Gerçekçi ve güvenli test verisi oluşturmak için tasarlanmış platformu</p>
+    </header>
+
+    <div class="container">
+        <div class="breadcrumb">
+            <a href="/" data-i18n="navigation.home">Ana Sayfa</a> /
+            <span data-i18n="navigation.documentation">Dokümantasyon</span>
+        </div>
+
+        <div class="toc">
+            <h2 data-i18n="navigation.documentation">İçindekiler</h2>
+            <ul>
+                <li><a href="#getting-started" data-i18n="wizard.steps.welcome">Başlamak</a></li>
+                <li><a href="#data-upload" data-i18n="navigation.upload_schema">Veri Yükleme</a></li>
+                <li><a href="#schema-analysis" data-i18n="forms.labels.schema_file">Şema Analizi</a></li>
+                <li><a href="#rule-configuration" data-i18n="navigation.rules">Kural Yapılandırması</a></li>
+                <li><a href="#data-generation" data-i18n="navigation.generate_data">Veri Oluşturma</a></li>
+                <li><a href="#export-options" data-i18n="navigation.export">Dışa Aktarma Seçenekleri</a></li>
+            </ul>
+        </div>
+
+        <div class="section" id="getting-started">
+            <h2 data-i18n="wizard.steps.welcome">Başlamak</h2>
+
+            <p data-i18n="wizard.welcome_description">Sentetik Banka Verisi Platformu, gerçekçi banka verileri oluşturmak için tasarlanmış güçlü bir araçtır. Bu kılavuz, platformun tüm özelliklerini öğrenmenize yardımcı olacak.</p>
+
+            <h3>Sistem Gereksinimleri</h3>
+            <ul>
+                <li>Modern web tarayıcısı (Chrome, Firefox, Safari, Edge)</li>
+                <li>İnternet bağlantısı</li>
+                <li>En az 4GB RAM</li>
+                <li>Çalışan SyntheticBankData sunucusu</li>
+            </ul>
+
+            <h3>İlk Adımlar</h3>
+            <div class="step">
+                <h4>1. Platforma Giriş Yapın</h4>
+                <p>E-posta ve şifrenizi kullanarak platforma giriş yapın. Henüz hesabınız yoksa, bir tane oluşturmak için kayıt olun.</p>
+            </div>
+
+            <div class="step">
+                <h4>2. Dashboard'u Keşfedin</h4>
+                <p>Kontrol panelinde son etkinliklerinizi, istatistiklerinizi ve hızlı işlemlerinizi görebilirsiniz.</p>
+            </div>
+
+            <div class="step">
+                <h4>3. İlk Proje Oluşturun</h4>
+                <p>Yeni bir proje oluşturun ve veri oluşturma sürecini başlatın.</p>
+            </div>
+
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <h4 data-i18n="navigation.generate_data">Veri Oluşturma</h4>
+                    <p>Gerçekçi sentetik veriler hızlı bir şekilde oluşturun</p>
+                </div>
+                <div class="feature-card">
+                    <h4 data-i18n="navigation.rules">Kural Motoru</h4>
+                    <p>Verilere özel kurallar ve kısıtlamalar uygulayın</p>
+                </div>
+                <div class="feature-card">
+                    <h4 data-i18n="navigation.export">Çoklu Format</h4>
+                    <p>CSV, JSON, Excel ve daha fazla format desteklenir</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="section" id="data-upload">
+            <h2 data-i18n="navigation.upload_schema">Veri Yükleme</h2>
+
+            <p>Veri oluşturma sürecinin ilk adımı, veritabanı şemanızı platforma yüklemektir.</p>
+
+            <h3>Desteklenen Format Türleri</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th data-i18n="headers.type">Tip</th>
+                        <th data-i18n="headers.description">Açıklama</th>
+                        <th>Uzantı</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>JSON Schema</td>
+                        <td>JSON formatında şema tanımı</td>
+                        <td>.json</td>
+                    </tr>
+                    <tr>
+                        <td>CSV</td>
+                        <td>Virgülle ayrılmış değerler (başlık satırı gerekli)</td>
+                        <td>.csv</td>
+                    </tr>
+                    <tr>
+                        <td>SQL</td>
+                        <td>SQL CREATE TABLE deyimleri</td>
+                        <td>.sql</td>
+                    </tr>
+                    <tr>
+                        <td>Excel</td>
+                        <td>Excel çalışma kitabı (ilk sayfada şema)</td>
+                        <td>.xlsx</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>Şema Yükleme Adımları</h3>
+            <div class="step">
+                <h4>Adım 1: Dosya Seçin</h4>
+                <p>Yükleme alanına şema dosyanızı sürükleyip bırakın veya dosya seçim düğmesine tıklayın.</p>
+            </div>
+
+            <div class="step">
+                <h4>Adım 2: Dosya Doğrulaması</h4>
+                <p>Sistem dosyanızı otomatik olarak doğrulayacak ve herhangi bir hata varsa rapor edecektir.</p>
+            </div>
+
+            <div class="step">
+                <h4>Adım 3: Şema Analizi</h4>
+                <p>Dosya başarıyla yüklendikten sonra, şema analizi sayfasına yönlendirileceksiniz.</p>
+            </div>
+
+            <div class="warning">
+                <strong>Uyarı:</strong> Dosya boyutu 100MB'ı aşmayın. Daha büyük dosyalar için yöneticiye başvurun.
+            </div>
+
+            <div class="success">
+                <strong>İpucu:</strong> JSON Schema formatı en ayrıntılı seçenektir ve tüm veri türlerini tamamen destekler.
+            </div>
+        </div>
+
+        <div class="section" id="schema-analysis">
+            <h2 data-i18n="forms.labels.schema_file">Şema Analizi</h2>
+
+            <p>Şemanız yüklendikten sonra, sistem otomatik olarak analiz eder ve sütunları tanır.</p>
+
+            <h3>Şema Analiz Süreci</h3>
+            <ul>
+                <li><strong>Sütun Tanıma:</strong> Sistem sütun adlarından veri türünü anlamaya çalışır</li>
+                <li><strong>Tür Tespiti:</strong> Veri türleri otomatik olarak tespit edilir (tamsayı, metin, tarih vb.)</li>
+                <li><strong>İstatistik Hesaplama:</strong> Min/max değerler, null oranları ve daha fazlası hesaplanır</li>
+                <li><strong>İlişki Analizi:</strong> Tablolar arasındaki ilişkiler tanınır</li>
+            </ul>
+
+            <h3>Sütun Özellikleri</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Özellik</th>
+                        <th>Açıklama</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Veri Tipi</td>
+                        <td>Sütunun veri türü (metin, sayı, tarih vb.)</td>
+                    </tr>
+                    <tr>
+                        <td>Tekil</td>
+                        <td>Tüm değerlerin benzersiz olup olmadığı</td>
+                    </tr>
+                    <tr>
+                        <td>Boş Olabilir</td>
+                        <td>Null değerlere izin verilip verilmediği</td>
+                    </tr>
+                    <tr>
+                        <td>Varsayılan Değer</td>
+                        <td>Sütun için varsayılan değer</td>
+                    </tr>
+                    <tr>
+                        <td>Kısıtlamalar</td>
+                        <td>Min/max uzunluk, format desenleri vb.</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="info">
+                <strong>Not:</strong> Otomatik algılanan veri türlerini ve ayarlarını ihtiyaca göre manuel olarak düzenleyebilirsiniz.
+            </div>
+        </div>
+
+        <div class="section" id="rule-configuration">
+            <h2 data-i18n="navigation.rules">Kural Yapılandırması</h2>
+
+            <p>Kurallar, oluşturulacak verilerin nasıl görüneceğini kontrol etmek için güçlü bir yoldur.</p>
+
+            <h3>Kural Türleri</h3>
+
+            <h4>1. Veri Türü Kuralları</h4>
+            <div class="step">
+                <p>Sütunlar için veri türü kısıtlamaları tanımlar.</p>
+                <div class="code-block">
+{
+  "type": "string",
+  "minLength": 5,
+  "maxLength": 50,
+  "pattern": "^[A-Z][a-z]+$"
+}
+                </div>
+            </div>
+
+            <h4>2. İlişki Kuralları</h4>
+            <div class="step">
+                <p>Tablolar arasında referansiyel bütünlüğü sağlar.</p>
+                <div class="code-block">
+{
+  "type": "foreignKey",
+  "references": "customers.id",
+  "onDelete": "CASCADE"
+}
+                </div>
+            </div>
+
+            <h4>3. Doğrulama Kuralları</h4>
+            <div class="step">
+                <p>Oluşturulan verilerin doğrulama kriterlerini belirtir.</p>
+                <div class="code-block">
+{
+  "type": "validation",
+  "rules": [
+    {"field": "age", "min": 18, "max": 120},
+    {"field": "email", "format": "email"}
+  ]
+}
+                </div>
+            </div>
+
+            <h4>4. İş Mantığı Kuralları</h4>
+            <div class="step">
+                <p>Bankacılık alanına özgü kurallar uygular.</p>
+                <div class="code-block">
+{
+  "type": "business",
+  "rules": [
+    "account_balance >= 0",
+    "transaction_amount <= account_balance",
+    "interest_rate >= 0 AND interest_rate <= 50"
+  ]
+}
+                </div>
+            </div>
+
+            <h3>Kural Ekleme</h3>
+            <ol>
+                <li>Sütunu seçin</li>
+                <li>"Kural Ekle" düğmesine tıklayın</li>
+                <li>Kural türünü seçin</li>
+                <li>Kural parametrelerini yapılandırın</li>
+                <li>Kaydedin</li>
+            </ol>
+
+            <div class="warning">
+                <strong>Uyarı:</strong> Karmaşık kurallar veri oluşturma süresini uzatabilir. Başlayın basit kurallarla.
+            </div>
+        </div>
+
+        <div class="section" id="data-generation">
+            <h2 data-i18n="navigation.generate_data">Veri Oluşturma</h2>
+
+            <p>Şemanız ve kurallarınız hazır olduğunda, sentetik veri oluşturmaya başlayabilirsiniz.</p>
+
+            <h3>Oluşturma Parametreleri</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Parametre</th>
+                        <th>Açıklama</th>
+                        <th>Varsayılan</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td data-i18n="forms.labels.row_count">Satır Sayısı</td>
+                        <td>Oluşturulacak satır sayısı</td>
+                        <td>1000</td>
+                    </tr>
+                    <tr>
+                        <td data-i18n="forms.labels.seed">Seed Değeri</td>
+                        <td>Aynı verileri yeniden oluşturmak için</td>
+                        <td>Rastgele</td>
+                    </tr>
+                    <tr>
+                        <td>Batch Boyutu</td>
+                        <td>Bellek kullanımını kontrol etmek için</td>
+                        <td>10000</td>
+                    </tr>
+                    <tr>
+                        <td>Paralel Çalışanlar</td>
+                        <td>Veri oluşturma için kullanılacak iş parçacığı sayısı</td>
+                        <td>4</td>
+                    </tr>
+                    <tr>
+                        <td data-i18n="forms.labels.locale">Locale</td>
+                        <td>Yerel veri formatı (TR, EN vb.)</td>
+                        <td>TR</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>Oluşturma Süreci</h3>
+            <div class="step">
+                <h4>Adım 1: Parametreleri Ayarlayın</h4>
+                <p>Kaç satır veri oluşturmak istediğinizi ve diğer parametreleri belirtin.</p>
+            </div>
+
+            <div class="step">
+                <h4>Adım 2: Ön İzleme</h4>
+                <p>Oluşturulacak verilerin bir ön izlemesini görmek için "Ön İzle" düğmesine tıklayın.</p>
+            </div>
+
+            <div class="step">
+                <h4>Adım 3: Oluşturmayı Başlatın</h4>
+                <p>Tüm ayarlar doğru görünüyorsa "Oluştur" düğmesine tıklayın.</p>
+            </div>
+
+            <div class="step">
+                <h4>Adım 4: Takip Edin</h4>
+                <p>İlerleme çubuğu oluşturmanın ilerleyişini gösterir. İşlem tamamlanana kadar bekleyin.</p>
+            </div>
+
+            <div class="info">
+                <strong>İpucu:</strong> Seed değerini not etmeyi unutmayın. Daha sonra aynı verileri yeniden oluşturmak istiyorsanız bunu kullanabilirsiniz.
+            </div>
+
+            <h3>Veri Kalitesi</h3>
+            <p>Platform aşağıdaki kalite kontrolleri otomatik olarak gerçekleştirir:</p>
+            <ul>
+                <li>Veri tipi doğrulaması</li>
+                <li>Kısıtlama kontrolleri</li>
+                <li>Referansiyel bütünlük kontrolleri</li>
+                <li>İş mantığı kural kontrolleri</li>
+                <li>İstatistiksel dağılım doğrulaması</li>
+            </ul>
+        </div>
+
+        <div class="section" id="export-options">
+            <h2 data-i18n="navigation.export">Dışa Aktarma Seçenekleri</h2>
+
+            <p>Oluşturulan verilerinizi çeşitli formatlar ve hedeflere aktarabilirsiniz.</p>
+
+            <h3>Desteklenen Formatlar</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Format</th>
+                        <th>Uzantı</th>
+                        <th>Uygunluk</th>
+                        <th>Boyut</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>CSV</td>
+                        <td>.csv</td>
+                        <td>Tüm uygulamalar</td>
+                        <td>Orta</td>
+                    </tr>
+                    <tr>
+                        <td>JSON</td>
+                        <td>.json</td>
+                        <td>Web uygulamaları</td>
+                        <td>Büyük</td>
+                    </tr>
+                    <tr>
+                        <td>Excel</td>
+                        <td>.xlsx</td>
+                        <td>Office, analiz</td>
+                        <td>Orta</td>
+                    </tr>
+                    <tr>
+                        <td>Parquet</td>
+                        <td>.parquet</td>
+                        <td>Big Data, hız</td>
+                        <td>Küçük</td>
+                    </tr>
+                    <tr>
+                        <td>SQL INSERT</td>
+                        <td>.sql</td>
+                        <td>Veritabanları</td>
+                        <td>Büyük</td>
+                    </tr>
+                    <tr>
+                        <td>XML</td>
+                        <td>.xml</td>
+                        <td>Enterprise sistemler</td>
+                        <td>Çok Büyük</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>Dışa Aktarma Hedefleri</h3>
+
+            <h4>1. Dosya İndirme</h4>
+            <div class="step">
+                <p>Veriler seçilen formatta bilgisayarınıza indirilir.</p>
+                <p><strong>Avantajlar:</strong> Hızlı, güvenli, internete bağlı değil</p>
+            </div>
+
+            <h4>2. Veritabanı Aktarımı</h4>
+            <div class="step">
+                <p>Veriler doğrudan bir veritabanına yazılır.</p>
+                <p><strong>Avantajlar:</strong> İndirme yok, doğrudan test yapılabilir</p>
+                <p><strong>Hedeflenen Veritabanılar:</strong> PostgreSQL, MySQL, SQL Server, Oracle, MongoDB</p>
+            </div>
+
+            <h4>3. Bulut Depolama</h4>
+            <div class="step">
+                <p>Veriler bulut depolamaya yüklenir.</p>
+                <p><strong>Desteklenen Hizmetler:</strong> AWS S3, Azure Blob, Google Cloud Storage</p>
+            </div>
+
+            <h4>4. API Endpoint</h4>
+            <div class="step">
+                <p>Veriler REST API aracılığıyla erişilebilir hale getirilir.</p>
+                <p><strong>Avantajlar:</strong> Dinamik erişim, sayfalandırma, filtreleme</p>
+            </div>
+
+            <h3>Dışa Aktarma Yapılandırması</h3>
+            <div class="step">
+                <h4>Adım 1: Format Seçin</h4>
+                <p>Istediğiniz çıktı formatını seçin.</p>
+            </div>
+
+            <div class="step">
+                <h4>Adım 2: Hedef Seçin</h4>
+                <p>Dosya indirme, veritabanı vb. gibi bir hedef seçin.</p>
+            </div>
+
+            <div class="step">
+                <h4>Adım 3: Seçenekleri Yapılandırın</h4>
+                <p>Sütun seçimi, sıkıştırma, kodlama vb. için seçenekleri yapılandırın.</p>
+            </div>
+
+            <div class="step">
+                <h4>Adım 4: Dışa Aktar</h4>
+                <p>"Dışa Aktar" düğmesine tıklayın.</p>
+            </div>
+
+            <h3>Dışa Aktarma Seçenekleri</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Seçenek</th>
+                        <th>Açıklama</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Sütun Seçimi</td>
+                        <td>Hangi sütunların dışa aktarılacağını belirleyin</td>
+                    </tr>
+                    <tr>
+                        <td>Sıkıştırma</td>
+                        <td>Gzip, Bzip2 veya diğer sıkıştırma formatları</td>
+                    </tr>
+                    <tr>
+                        <td>Kodlama</td>
+                        <td>UTF-8, UTF-16, ISO-8859-1 vb.</td>
+                    </tr>
+                    <tr>
+                        <td>Başlık Satırı</td>
+                        <td>CSV ve benzer formatlar için sütun başlıklarını dahil edin</td>
+                    </tr>
+                    <tr>
+                        <td>Satır Filtreleme</td>
+                        <td>Dışa aktarmadan önce satırları filtreleyin</td>
+                    </tr>
+                    <tr>
+                        <td>İstatistikler</td>
+                        <td>Dışa aktarılan verilere ait özet istatistikleri ekleyin</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="success">
+                <strong>İpucu:</strong> CSV formatı en uyumlu olup, çoğu uygulamada açılabilir. Büyük veri setleri için Parquet formatı önerilir.
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>Sık Sorulan Sorular</h2>
+
+            <h3>S: Çok fazla satır veri oluşturabilir miyim?</h3>
+            <p>C: Evet! Platform 1.000.000+ satır veri oluşturabiliyor. Bellek ve disk alanınızda bağlı olarak daha fazla olabilir.</p>
+
+            <h3>S: Veritabanım için oluşturulan veriler gerçekçi midir?</h3>
+            <p>C: Evet, platform gerçekçi veri dağılımları ve bankacılık kurallarını kullanarak gerçekçi veriler üretir.</p>
+
+            <h3>S: Oluşturduğum verileri silebilir miyim?</h3>
+            <p>C: Evet, Veri Setleri bölümünden istediğiniz zaman verileri silebilirsiniz.</p>
+
+            <h3>S: Başka türlerde veriler oluşturabilir miyim?</h3>
+            <p>C: Platform özellikle banka verileri için tasarlanmıştır, ancak özel kurallar aracılığıyla diğer veri türlerini de destekleyebilir.</p>
+
+            <h3>S: Veri oluşturma işlemi ne kadar hızlı?</h3>
+            <p>C: Bu, veri setinin boyutuna, kuralların karmaşıklığına ve sunucu kaynaklarına bağlıdır. Tipik olarak 1000 satır <1 saniyede oluşturulur.</p>
+        </div>
+
+        <div class="section">
+            <h2>Destek ve Yardım</h2>
+
+            <p>Sorunuz varsa veya sorun yaşıyorsanız:</p>
+
+            <ul>
+                <li><strong>E-posta:</strong> support@syntheticbankdata.com</li>
+                <li><strong>Telefon:</strong> +90 (216) 000-0000</li>
+                <li><strong>Canlı Sohbet:</strong> Platform içinde sohbet desteği (İş saatleri: 09:00-17:00 CET)</li>
+                <li><strong>Belgeler:</strong> <a href="/docs">Tam API Belgeleri</a></li>
+            </ul>
+
+            <p>GitHub deposunda sorunlar dilimleyebilir ve özellikleri talep edebilirsiniz:</p>
+            <p><a href="https://github.com/syntheticbankdata/platform" class="button">GitHub Sayfası</a></p>
+        </div>
+    </div>
+
+    <footer>
+        <p>&copy; 2024 Sentetik Banka Verisi Platformu. Tüm hakları saklıdır.</p>
+        <p data-i18n="settings.version">Sürüm</p>: 1.0.0</p>
+    </footer>
+
+    <script>
+        function changeLanguage(lang) {
+            localStorage.setItem('language', lang);
+            location.reload();
+        }
+
+        function getTranslation(key) {
+            // Placeholder: i18n implementation would go here
+            return key;
+        }
+
+        // Initialize language from localStorage or browser preference
+        const savedLang = localStorage.getItem('language') || 'tr';
+        document.getElementById('languageSelect').value = savedLang;
+    </script>
+</body>
+</html>

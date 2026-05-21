@@ -1,0 +1,22 @@
+[
+  {
+    "key": "GirisAlanıInput",
+    "type": "name",
+    "value": "UserName"
+  },
+  {
+    "key": "SifreAlanıInput",
+    "type": "name",
+    "value": "Password"
+  },
+  {
+    "key": "GirisYapButon",
+    "type": "id",
+    "value": "btnLogin"
+  },
+  {
+    "key": "AnaSayfaKullanıcıAdıText",
+    "type": "xpath",
+    "value": "//a[@id='cart']//span[contains(@class,'username-text')][1]"
+  }
+]

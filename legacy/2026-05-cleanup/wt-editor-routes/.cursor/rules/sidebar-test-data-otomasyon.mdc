@@ -1,0 +1,35 @@
+---
+description: Sidebar "Test Verisi" / "Otomasyon" davranışı ve tıklama sorunları analizi
+globs: "apps/web/components/AppShell.tsx"
+alwaysApply: false
+---
+
+# Test Verisi ve Otomasyon — analiz agent rehberi
+
+Bu kural, kullanıcı "Test Verisi" veya "Otomasyon"a tıklayınca sayfa açılmıyor şikayetinde veya sidebar navigasyon hatalarında devreye girmelidir.
+
+## Tasarım (bilinmesi gerekenler)
+
+1. **Üst proje menüsü** (`nav(projectId)`): "Test Verileri" → `/p/{id}/test-data`, "Koşular" → `/p/{id}/executions` doğrudan `Link` ile gider.
+2. **Alt bölüm** (`SidebarSection`): Etiket **Test Verileri** ve **Otomasyon**; aktif proje varken ana satır doğrudan ilgili route’a gider, sağdaki ok ile proje listesi açılır (proje değiştirme).
+
+## Teşhis kontrol listesi
+
+| Belirti | Olası neden | Kontrol |
+|--------|-------------|---------|
+| Alt bölümde tek tıkla hiçbir şey olmuyor | Eski davranış: sadece accordion; proje yok | `layout.tsx` içinde `apiFetch("/api/v1/tspm/projects")` yanıtı ve `projects` dizisi |
+| "Proje bulunamadı" | `projects` boş veya API hatası | Ağ sekmesi, engine/TSPM API |
+| Üst menü çalışıyor, alt çalışmıyor | Eski UX — kod güncel mi | `SidebarSection` + `activeProjectId` kullanımı |
+| 404 | `targetPath` veya `[projectId]` route eksik | `apps/web/app/(dashboard)/p/[projectId]/test-data/page.tsx`, `executions/page.tsx` |
+
+## Kod konumu
+
+- Sidebar: `apps/web/components/AppShell.tsx` — `SidebarSection`, `targetPath` (`/test-data`, `/executions`).
+- Proje listesi: `apps/web/app/(dashboard)/layout.tsx` — `projects` state.
+
+## Agent talimatı
+
+1. Önce `AppShell.tsx` içinde `SidebarSection` ve `projectId` aktarımını oku.
+2. Kullanıcıda aktif proje var mı (`/p/...` URL) doğrula.
+3. API’den proje geliyor mu kontrol et; gerekirse `layout` veya proxy route’ları incele.
+4. Çift menü kafa karıştırıyorsa, üst "Test Verileri" / "Koşular" ile alt bölümün aynı hedefe gittiğini açıkla; gereksiz tekrar için sadeleştirme öner (ürün kararı).

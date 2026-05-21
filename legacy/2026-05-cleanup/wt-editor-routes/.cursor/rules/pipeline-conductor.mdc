@@ -1,0 +1,299 @@
+---
+description: 25-rollü (21 in-pipeline + 4 out-of-pipeline) agent orkestrasyon protokolü. Her agent kendi rolünü bilir, state'i `docs/ai/pipeline/state.json`'dan okur, dep graph `stages.json` üzerinden sonraki aşamalar açılır/skip edilir.
+alwaysApply: false
+---
+
+# Pipeline Conductor — 25 Rollü Agent Orkestrasyonu
+
+Bir fikrin/eksikliğin/bug'ın intake'ten production'a ve retro'ya kadar 21 ana aşama + 4 destek rolü üzerinden dolaşmasını yöneten protokol. Full AI, dep-graph tabanlı, maksimum paralel.
+
+**Ne zaman devrede:**
+- Kullanıcı "pipeline başlat", "analiz yap", "şu eksikliği işle", "bu aşamada ne yapmalıyım" der
+- `docs/ai/pipeline/state.json` içinde "waiting for <benim rolüm>" durumu var
+- PR label'ı `pipeline:<rol>` ve sen o rolün agent'ısın
+
+**Temel kaynaklar:**
+- State: `docs/ai/pipeline/state.json` (tek kaynak gerçek)
+- Dep graph: `docs/ai/pipeline/stages.json`
+- Rol kartları: `docs/ai/pipeline/roles/01-25.md`
+- Artifact şablonları: `docs/ai/pipeline/templates/*.md`
+- Driver script: `scripts/pipeline/stage.sh`
+
+---
+
+## 1. Pipeline haritası
+
+```
+[OUT-OF-PIPELINE]                       [IN-PIPELINE]
+                                                                      
+22. Intake/Triage ────────► stage.sh init ──► 1. Analyzer
+                                              ↓
+                                              2. Validator
+                                              ↓
+                                              3. Proposer
+                                              ↓
+                                      ┌─── 4. Approver ║ 12. Product Validator ─┐ (paralel)
+                                      ↓                                          ↓
+                                              [both approve]
+                                                    ↓
+                                      ┌─── 5. Designer ║ 6. Architect ──────────┐ (paralel)
+                                      ↓                                          ↓
+                                              [both done]
+                                                    ↓
+                              ┌─ 7. FE ║ 8. BE ║ 13. Data ║ 14. DevOps ─┐ (paralel, scope'a göre skip)
+                              ↓                                           ↓
+                                              [all done/skipped]
+                                                    ↓
+                                              15. Code Reviewer
+                                                    ↓
+                                              9. Integrator
+                                                    ↓
+                       ┌── 10. QA ║ 16. Security ║ 17. A11y ║ 18. Perf ──┐ (paralel, scope'a göre skip)
+                       ↓                                                  ↓
+                                              [all green]
+                                                    ↓
+                                              11. Promoter (test→main)
+                                                    ↓
+                                              19. Release Manager
+                                                    ↓
+                                              20. Observer (30dk canary)
+                                                    ↓
+                                              21. Retrospective (24h sonra)
+                                                    ↓
+                                                   DONE ─────► 23. Knowledge Curator (haftalık, retro'dan besleniyor)
+
+[CROSS-CUTTING]
+24. Dependency Watchdog — günlük; CVE → BUG item açar, pipeline'a girer
+25. Conflict Resolver — event-driven; 2+ branch aynı dosyada çakışırsa devreye girer
+```
+
+**Rol kartları:** `docs/ai/pipeline/roles/` altında 01-25. Agent kendi kartını okumadan iş yapmaz.
+
+---
+
+## 2. Item lifecycle
+
+Pipeline'dan geçen her şey bir **item**'dir. ID formatı: `<TYPE>-<NNN>`.
+
+| Type | Örnek | Nereden gelir |
+|---|---|---|
+| `GAP` | `GAP-042` | Analyzer veya intake |
+| `FEAT` | `FEAT-007` | Intake |
+| `BUG` | `BUG-019` | Intake veya dependency_watchdog |
+
+**Scope flag'leri** (`item.scope`) hangi aşamaların auto-skip olacağını belirler:
+
+| Flag | Etkilediği aşama | Default |
+|---|---|---|
+| `fe` | designer, frontend, a11y_auditor | true |
+| `be` | backend | true |
+| `data` | data_engineer | false |
+| `infra` | devops | false |
+| `perf_sensitive` | performance_tester | false |
+
+Script otomatik: `scope.X = false` → ilgili stage `skipped`.
+
+**Status değerleri:** `waiting`, `in_progress`, `blocked`, `done`, `rejected`, `feedback_loop`
+
+---
+
+## 3. Conductor modları
+
+Bir agent bu kural devredeyken 3 moddan birinde çalışır:
+
+### Mod A — **Role executor**
+Sana "sen X rolünü oynuyorsun, item Y üzerinde çalış" denmiş.
+
+**Akış:**
+1. `docs/ai/pipeline/roles/<NN-role>.md` oku
+2. `docs/ai/pipeline/state.json` oku, item Y'nin kendi aşamanda `waiting` olduğunu doğrula
+3. Önceki aşamaların artifact'lerini `docs/ai/pipeline/items/<Y>/` altından oku
+4. Rol kartının **Input → Work → Output** akışını uygula
+5. Kendi artifact'ini `docs/ai/pipeline/items/<Y>/<stage>.md` yoluna yaz
+6. Branch'inde commit at (kartta branch prefix yazılı, `stages.json`'da da var)
+7. `scripts/pipeline/stage.sh complete <Y> <role> [flags]` çalıştır
+8. Script dep graph'ı uygulayıp sonraki waiting'leri + skip'leri otomatik açar
+9. Kullanıcıya kısa özet: "X rolü bitti, açılan: [...], skipped: [...]"
+
+### Mod B — **Orchestrator** (ana conductor)
+Sana "pipeline'ı çalıştır" denmiş. Sen paralel subagent'lar spawn eden baş ajan'sın.
+
+**Akış:**
+1. `state.json` oku. Her item için "waiting aşamalar hangileri?"
+2. **Bağımsız çalışabilecek aşamaları tespit et** (dep graph otomatik parallel sağlar):
+   - Aynı paralel grup içindeki waiting aşamalar → hepsi eş zamanlı
+   - Farklı item'ların waiting aşamaları → hepsi eş zamanlı
+3. Her paralel iş için `Task(subagent_type: "generalPurpose")` aç — **aynı mesajda**
+4. Subagent prompt şablonu:
+   ```
+   Sen pipeline'da <ROLE> rolünü oynuyorsun. Item: <ID>.
+   
+   OKU:
+   - docs/ai/pipeline/roles/<NN-role>.md
+   - docs/ai/pipeline/items/<ID>/ önceki artifact'ler
+   - .cursor/rules/pipeline-conductor.mdc
+   - .cursor/rules/concurrent-git-hygiene.mdc
+   
+   YAP:
+   - Rol kartındaki akışı uygula
+   - Artifact'i yaz, branch'te commit at
+   - scripts/pipeline/stage.sh complete <ID> <role> [flags]
+   
+   DÖN:
+   - "done" + özet, veya "blocked: <sebep>"
+   ```
+5. Subagent'lar bittikten sonra `stage.sh status` ve `stage.sh run-check` çağır
+6. Yeni waiting'ler varsa 3-5'i tekrarla
+7. Hiç waiting kalmayınca durum raporu
+
+### Mod C — **Reader/reporter + destek rolleri**
+Sana "pipeline şu an nerede?" veya "intake/curator/watchdog yap" denmiş.
+
+Sub-mod'lar:
+- **status reporter:** `stage.sh status` çıktısını yorumla, öncelik öner
+- **intake/triage (rol 22):** gelen isteği GAP/FEAT/BUG'a sınıfla, `stage.sh init` çağır
+- **knowledge curator (rol 23):** retroları tara, GROUNDING.md güncelle (haftalık)
+- **dependency watchdog (rol 24):** deps tara, CVE için BUG aç (günlük)
+- **conflict resolver (rol 25):** çakışan branch'leri tespit et, koordine et
+
+---
+
+## 4. Paralel güvenliği — dep graph + git hygiene
+
+Her role agent'ı `concurrent-git-hygiene.mdc` kuralına **uymakla yükümlü**. Kritik noktalar:
+
+1. **Branch ownership**: rol kartında yazan branch prefix dışında commit yok
+   - Her branch prefix `stages.json`'da da tanımlı (`branch_prefix` alanı)
+2. **Stage isolation**: `git add <açık-path>`, asla `git add .` / `-A` / `commit -a`
+3. **Stash adı**: `<role>-agent-<id>-<timestamp>`
+4. **Commit etiketi**: mesaj sonu `[pipeline: <role> <id>]`
+5. **State.json kilidi**: `stage.sh` `.state.lock` ile yazma serializasyonu. Elle düzenleme YAPMA.
+6. **Scope flag güvenliği**: architect `scope.*` flag'lerini doğruluyor mu — yanlış flag yanlış stage'i skip ettirir
+
+---
+
+## 5. State.json sözleşmesi
+
+Script komutları (`scripts/pipeline/stage.sh`):
+
+| Komut | Açıklama |
+|---|---|
+| `init <TYPE> "<title>" [--scope ...]` | Yeni item |
+| `scope <ID> <flag>=<true\|false>` | Scope güncelle (auto-open/skip) |
+| `claim <ID> <ROLE>` | in_progress çek |
+| `complete <ID> <ROLE> [flags]` | done + sonrakileri aç |
+| `skip <ID> <ROLE> [reason]` | Manuel skip |
+| `reject <ID> <ROLE> "<reason>"` | Item'ı arşivle |
+| `loop-back <ID> <FROM> <TO> "<reason>"` | Feedback loop (max 3) |
+| `status [<ID>]` | Durum |
+| `run-check [<ID>]` | Hangi aşamalar açılmaya hazır (dry-run) |
+| `orphan-reset <ID> <ROLE>` | Takılmışı resetle |
+
+---
+
+## 6. Feedback loop kuralları
+
+| From | To | Tipik sebep |
+|---|---|---|
+| validator | analyzer | Bulgu revize (öncelik/kapsam) |
+| approver | proposer | Proposal revize (seçenek/strateji) |
+| product_validator | proposer | ROI zayıf, revize |
+| code_reviewer | frontend/backend/data/devops | Must-fix bulgular |
+| qa | frontend/backend/integrator | E2E kırmızı |
+| security_reviewer | backend/frontend | CVE/threat bulgu |
+| a11y_auditor | frontend | WCAG ihlali |
+| performance_tester | backend/frontend | SLA ihlali |
+| integrator | frontend/backend | Contract uyumsuzluğu |
+| observer | — | Rollback (needs_human) |
+
+Maksimum **3 loop** / to_stage. 3'ten sonra `needs_human: true` + `blocked`.
+
+---
+
+## 7. Auto-skip mantığı
+
+`stages.json` her stage için `default_on` belirtir:
+- `"always"` — her zaman açılır
+- `"scope.<flag>"` — scope flag `false` ise auto-skip
+- `"on_approve"` — validator approve ise açılır (reject ise skip)
+
+Script `deps_satisfied` olduğunda `should_auto_skip` kontrolü yapar. Skip edilen aşama bir sonrakinin dep'i ise transitive olarak da ilerler.
+
+**Örnek:**  
+`item.scope = { fe: true, be: false, data: false, infra: false, perf_sensitive: false }`  
+→ `frontend` waiting, `backend/data/devops` auto-skipped  
+→ `code_reviewer` frontend bitince açılır (diğer 3 zaten skipped)
+
+---
+
+## 8. Reporter formatı (kullanıcıya)
+
+Kullanıcı "nerede kaldık" dediğinde:
+
+```
+📋 Pipeline Durumu (N item aktif)
+
+┌─────────┬─────────────────────┬───────────────────┬─────────────┐
+│ ID      │ Title               │ Stage             │ Status      │
+├─────────┼─────────────────────┼───────────────────┼─────────────┤
+│ GAP-001 │ Sidebar a11y        │ frontend          │ in_progress │
+│ FEAT-01 │ Dark mode           │ qa + sec + a11y   │ waiting     │
+│ BUG-05  │ Auth race           │ observer (canary) │ in_progress │
+└─────────┴─────────────────────┴───────────────────┴─────────────┘
+
+Bekleyen ilk 5 aşama (parallel-ready):
+1. FEAT-01 → qa              | stage.sh claim FEAT-01 qa
+2. FEAT-01 → security_reviewer
+3. FEAT-01 → a11y_auditor
+4. GAP-042 → proposer
+5. ...
+
+Needs human:
+- BUG-05 (observer uyarı seviyesinde latency)
+
+Öneri: FEAT-01'in 3 pre-prod testini paralel başlat (conductor mode).
+```
+
+---
+
+## 9. Hata kurtarma
+
+| Senaryo | Aksiyon |
+|---|---|
+| Agent crash, in_progress'te kaldı, 30dk+ | `stage.sh orphan-reset <ID> <ROLE>` |
+| Confidence < 0.7 | Script otomatik `needs_human: true` |
+| 3+ feedback loop | `needs_human: true` + `blocked` |
+| Contract uyumsuzluğu | `loop-back integrator <fe\|be>` |
+| QA/Security/A11y/Perf NO-GO | İlgili implementer'a loop-back |
+| Main ile test diverged | Promoter bloke, insan |
+| Observer rollback | `needs_human: true`, revert PR öner |
+| Dep watchdog critical CVE | Otomatik BUG + fastTrack (analyzer atla) |
+| Conflict resolver C-class | 2+ item blocked, approver karar verir |
+
+---
+
+## 10. Yasaklar
+
+1. Rol kartını okumadan iş başlama
+2. state.json'a elle (script olmadan) yazma
+3. Başka rolün branch'ine commit atma
+4. `git add .` / `-A` kullanma
+5. QA/Security/A11y/Perf kırmızısını görmezden gelip `test`'e push
+6. Approver reddini bypass edip designer/architect'i başlatma
+7. 3'ten fazla feedback loop'u devam ettirme (insana bırak)
+8. `scope` flag'ini doğrulamadan init (yanlış skip yapabilir)
+9. Out-of-pipeline rollere (intake/curator/watchdog/resolver) iş başında state'i bozma
+10. Observer "HEALTHY" demeden promoter'ı "tamam" sayma
+
+---
+
+## Kaynaklar
+
+- [`docs/ai/pipeline/README.md`](mdc:docs/ai/pipeline/README.md) — kurulum ve kullanım
+- [`docs/ai/pipeline/roles/`](mdc:docs/ai/pipeline/roles) — 25 rol kartı (01-25)
+- [`docs/ai/pipeline/templates/`](mdc:docs/ai/pipeline/templates) — artifact şablonları
+- [`docs/ai/pipeline/stages.json`](mdc:docs/ai/pipeline/stages.json) — dep graph
+- [`docs/ai/pipeline/state.example.json`](mdc:docs/ai/pipeline/state.example.json) — örnek state
+- [`scripts/pipeline/stage.sh`](mdc:scripts/pipeline/stage.sh) — driver script
+- [`.cursor/rules/concurrent-git-hygiene.mdc`](mdc:.cursor/rules/concurrent-git-hygiene.mdc) — git disiplini
+- [`docs/BRANCHING_WORKFLOW.md`](mdc:docs/BRANCHING_WORKFLOW.md) — branch promotion

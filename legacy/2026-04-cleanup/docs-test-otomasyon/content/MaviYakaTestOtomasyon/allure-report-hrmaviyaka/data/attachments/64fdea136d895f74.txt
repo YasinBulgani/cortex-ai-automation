@@ -1,0 +1,2 @@
+'izinTalepEtSayfasıIzinTipiFiltreInput' adlı alana metin yazılıyor (Yazılan: Taşınma İzni)
+Element: izinTalepEtSayfasıIzinTipiFiltreInput, Yazılacak metin: Taşınma İzni

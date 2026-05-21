@@ -1,0 +1,84 @@
+{
+  "id": "60ce8898-faad-4465-9635-a7b2b3a7c1f4",
+  "startDate": "2026-03-25T08:09:58.746426Z",
+  "endDate": null,
+  "progress": {
+    "value": 2,
+    "max": 4
+  },
+  "status": "FAILED",
+  "steps": [
+    {
+      "id": "7e3988fc-246a-42b0-b655-5fae429081c5",
+      "modelLabel": "data:tabular",
+      "computeName": "SDK",
+      "restarts": 0,
+      "taskType": "GENERATE",
+      "stepCode": "GENERATE_DATA_TABULAR",
+      "startDate": "2026-03-25T08:09:58.746426Z",
+      "endDate": "2026-03-25T08:09:58.768970Z",
+      "computeResources": null,
+      "messages": null,
+      "errorMessage": null,
+      "progress": {
+        "value": 1,
+        "max": 1
+      },
+      "status": "DONE"
+    },
+    {
+      "id": "1ec4d5da-be5e-4ee7-af79-1baecafc2a6a",
+      "modelLabel": "data:tabular",
+      "computeName": "SDK",
+      "restarts": 0,
+      "taskType": "GENERATE",
+      "stepCode": "CREATE_DATA_REPORT_TABULAR",
+      "startDate": "2026-03-25T08:09:58.775007Z",
+      "endDate": "2026-03-25T08:09:58.808954Z",
+      "computeResources": null,
+      "messages": null,
+      "errorMessage": null,
+      "progress": {
+        "value": 1,
+        "max": 1
+      },
+      "status": "DONE"
+    },
+    {
+      "id": "396d27ed-8504-45ea-8012-367cc29b31e4",
+      "modelLabel": null,
+      "computeName": "SDK",
+      "restarts": 0,
+      "taskType": "GENERATE",
+      "stepCode": "FINALIZE_GENERATION",
+      "startDate": "2026-03-25T08:09:58.810991Z",
+      "endDate": null,
+      "computeResources": null,
+      "messages": null,
+      "errorMessage": null,
+      "progress": {
+        "value": 0,
+        "max": 1
+      },
+      "status": "FAILED"
+    },
+    {
+      "id": "900e7a32-8e49-4865-85ec-6a333e9a8f17",
+      "modelLabel": null,
+      "computeName": "SDK",
+      "restarts": 0,
+      "taskType": "GENERATE",
+      "stepCode": "DELIVER_DATA",
+      "startDate": null,
+      "endDate": null,
+      "computeResources": null,
+      "messages": null,
+      "errorMessage": null,
+      "progress": {
+        "value": 0,
+        "max": 1
+      },
+      "status": "FAILED"
+    }
+  ]
+}

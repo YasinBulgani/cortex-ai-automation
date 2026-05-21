@@ -1,0 +1,64 @@
+rules:
+  # Existing Rules
+  - name: "employed_salary_range"
+    condition: "employment_status == 'EMPLOYED'"
+    action: "set_salary_range"
+    priority: 10
+    params:
+      min: 30000
+      max: 150000
+
+  - name: "student_account"
+    condition: "age < 25 and employment_status == 'STUDENT'"
+    action: "set_account_type"
+    priority: 9
+    params:
+      type: "STUDENT_CHECKING"
+
+  - name: "multi_account_distribution"
+    condition: "account_count >= 2"
+    action: "set_account_mix"
+    priority: 8
+    params:
+      mix: ["CHECKING", "SAVINGS"]
+
+  # Advanced Rules
+  - name: "credit_score_employed"
+    condition: "employment_status == 'EMPLOYED'"
+    action: "set_credit_score_range"
+    priority: 15
+    params:
+      min: 120000
+      max: 190000
+
+  - name: "credit_score_student"
+    condition: "employment_status == 'STUDENT'"
+    action: "set_credit_score_range"
+    priority: 15
+    params:
+      min: 80000
+      max: 130000
+
+  - name: "elite_card_eligibility"
+    condition: "credit_score >= 1700 and annual_salary_try >= 100000"
+    action: "add_eligible_card"
+    priority: 5
+    params:
+      card_type: "ELITE"
+      limit_multiplier: 3
+
+  - name: "gold_card_eligibility"
+    condition: "credit_score >= 1400 and credit_score < 1700"
+    action: "add_eligible_card"
+    priority: 5
+    params:
+      card_type: "GOLD"
+      limit_multiplier: 1.5
+
+  - name: "classic_card_eligibility"
+    condition: "credit_score >= 1000 and credit_score < 1400"
+    action: "add_eligible_card"
+    priority: 5
+    params:
+      card_type: "CLASSIC"
+      limit_multiplier: 0.5

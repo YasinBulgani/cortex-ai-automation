@@ -1,0 +1,150 @@
+name: Mobile Automation Tests
+
+on:
+  push:
+    paths:
+      - "backend/app/domains/mobile/**"
+      - "backend/tests/mobile/**"
+      - "apps/web/app/(dashboard)/mobil-otomasyon/**"
+      - "docs/MOBIL_OTOMASYON_ARASTIRMA_RAPORU.md"
+      - "infra/mobile/**"
+      - ".github/workflows/mobile-tests.yml"
+  pull_request:
+    paths:
+      - "backend/app/domains/mobile/**"
+      - "backend/tests/mobile/**"
+      - "apps/web/app/(dashboard)/mobil-otomasyon/**"
+      - ".github/workflows/mobile-tests.yml"
+  workflow_dispatch:
+
+jobs:
+  # ─────────────────────────────────────────────────────────
+  # Backend — mobile domain unit/integration testleri
+  # ─────────────────────────────────────────────────────────
+  backend-mobile:
+    name: Backend Mobile Tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install fastapi "pydantic>=2" "httpx>=0.27" pytest pytest-mock
+
+      - name: Run mobile tests
+        env:
+          PYTHONPATH: .
+        run: |
+          pytest tests/mobile/ -v --tb=short -p no:cacheprovider
+
+      - name: Test summary
+        if: always()
+        run: |
+          echo "## Mobile Backend Tests" >> $GITHUB_STEP_SUMMARY
+          echo "Domain: backend/app/domains/mobile/" >> $GITHUB_STEP_SUMMARY
+
+  # ─────────────────────────────────────────────────────────
+  # Frontend — type-check + lint for mobile page
+  # ─────────────────────────────────────────────────────────
+  frontend-mobile:
+    name: Frontend Mobile Page
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/web
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+
+      - name: Install deps
+        run: npm ci
+
+      - name: Type-check
+        run: npx tsc --noEmit
+
+      - name: Lint mobile page
+        run: npx next lint --dir "app/(dashboard)/mobil-otomasyon"
+
+  # ─────────────────────────────────────────────────────────
+  # Shell script syntax (avd-provisioner)
+  # ─────────────────────────────────────────────────────────
+  scripts-lint:
+    name: Shell Scripts Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install shellcheck
+        run: sudo apt-get update && sudo apt-get install -y shellcheck
+
+      - name: Lint avd-provisioner.sh
+        run: shellcheck -S warning infra/mobile/avd-provisioner.sh
+
+      - name: Validate docker-compose
+        run: |
+          docker compose -f infra/mobile/docker-compose.mobile.yml config > /dev/null
+          echo "✓ docker-compose.mobile.yml geçerli"
+
+  # ─────────────────────────────────────────────────────────
+  # Integration — gerçek Appium (manuel tetik)
+  # ─────────────────────────────────────────────────────────
+  integration-appium:
+    name: Appium Integration (manuel)
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: macos-14
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install deps
+        run: |
+          pip install fastapi "pydantic>=2" "httpx>=0.27" pytest
+
+      - name: Setup Node + Appium
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install Appium
+        run: |
+          npm install -g appium@2
+          appium driver install uiautomator2
+          appium --version
+
+      - name: Start Appium server in background
+        run: |
+          appium server --port 4723 --allow-cors &
+          sleep 5
+          curl -sS http://127.0.0.1:4723/status | tee /tmp/appium-status.json
+
+      - name: Run integration tests
+        env:
+          APPIUM_URL: http://127.0.0.1:4723
+          PYTHONPATH: .
+        run: |
+          pytest tests/mobile/test_appium_client.py -v -m integration

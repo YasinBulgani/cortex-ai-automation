@@ -1,0 +1,53 @@
+# Eval harness smoke suite — dış bağımlılık yok.
+# static_fixture adapter inputs._fixture'ı aynen actual olarak döner; bu yüzden
+# "doğru" çıktı YAML'da case başına kontrollüdür. Amaç: runner + scorer +
+# threshold + aggregate yolunun uçtan uca çalıştığını kanıtlamak.
+
+name: harness_smoke
+adapter: static_fixture
+description: >
+  Eval harness'in kendini test eder — scorer/threshold/aggregate yolları.
+  CI'da her zaman yeşil olmalı; yeşil değilse harness kırılmıştır.
+
+scorers:
+  - exact_match
+  - precision_at_1
+  - mrr
+
+thresholds:
+  min_case_pass_rate: 1.0
+  mean:
+    exact_match: 1.0
+    precision_at_1: 1.0
+    mrr: 1.0
+
+cases:
+  - id: smoke-001
+    description: Tam eşleşme — top-1 doğru, relevant listede
+    inputs:
+      _fixture:
+        top_1: click_button
+        ranked_ids: [click_button, click_element, click_link]
+    expected:
+      top_1: click_button
+      relevant_ids: [click_button]
+
+  - id: smoke-002
+    description: Top-1 farklı action id ama relevant içinde
+    inputs:
+      _fixture:
+        top_1: click_element
+        ranked_ids: [click_element, click_button]
+    expected:
+      top_1: click_element
+      relevant_ids: [click_element, click_button]
+
+  - id: smoke-003
+    description: Tek aday, tam listede
+    inputs:
+      _fixture:
+        top_1: navigate_url
+        ranked_ids: [navigate_url]
+    expected:
+      top_1: navigate_url
+      relevant_ids: [navigate_url]

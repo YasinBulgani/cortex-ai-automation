@@ -1,0 +1,412 @@
+{
+  "id": "f9bf8154-343d-47cf-996a-5c9b70cad61f",
+  "name": "german_credit",
+  "description": null,
+  "trainingStatus": "DONE",
+  "trainingTime": null,
+  "usage": null,
+  "metadata": null,
+  "accuracy": 0.8440758,
+  "tables": [
+    {
+      "id": "16f65a39-96a7-4c08-9d70-b4d1be7e3bb2",
+      "sourceConnectorId": "684e682a-5774-462f-8819-ad0c77fcea79",
+      "location": "/Users/yasin_bulgan/mostlyai/connectors/684e682a-5774-462f-8819-ad0c77fcea79/data.parquet",
+      "name": "data",
+      "primaryKey": null,
+      "columns": [
+        {
+          "id": "abfd3094-24a2-409b-8ce5-b7d65e90eea3",
+          "name": "checking_account",
+          "included": true,
+          "modelEncodingType": "TABULAR_CATEGORICAL",
+          "valueRange": {
+            "min": null,
+            "max": null,
+            "values": [
+              "A11",
+              "A12",
+              "A13",
+              "A14"
+            ],
+            "has_null": false
+          }
+        },
+        {
+          "id": "d27480ec-5914-48cb-a46f-5ef312ac3c97",
+          "name": "duration",
+          "included": true,
+          "modelEncodingType": "TABULAR_NUMERIC_DIGIT",
+          "valueRange": {
+            "min": null,
+            "max": null,
+            "values": null,
+            "has_null": false
+          }
+        },
+        {
+          "id": "17c3f9a0-f1f8-4cd8-8c0e-bafef994cf5a",
+          "name": "credit_history",
+          "included": true,
+          "modelEncodingType": "TABULAR_CATEGORICAL",
+          "valueRange": {
+            "min": null,
+            "max": null,
+            "values": [
+              "A30",
+              "A31",
+              "A32",
+              "A33",
+              "A34"
+            ],
+            "has_null": false
+          }
+        },
+        {
+          "id": "a4eb57be-6b79-49ff-bf8d-49019ddde33f",
+          "name": "purpose",
+          "included": true,
+          "modelEncodingType": "TABULAR_CATEGORICAL",
+          "valueRange": {
+            "min": null,
+            "max": null,
+            "values": [
+              "business",
+              "car",
+              "education",
+              "furniture/equipment",
+              "other",
+              "radio/TV",
+              "repairs"
+            ],
+            "has_null": false
+          }
+        },
+        {
+          "id": "d64781be-bb44-4c8f-859e-a6ef3b9131fe",
+          "name": "credit_amount",
+          "included": true,
+          "modelEncodingType": "TABULAR_NUMERIC_BINNED",
+          "valueRange": {
+            "min": "867.0",
+            "max": "17742.0",
+            "values": null,
+            "has_null": false
+          }
+        },
+        {
+          "id": "bef5f6c2-343e-4fc1-a330-33818b8c7c85",
+          "name": "savings_account",
+          "included": true,
+          "modelEncodingType": "TABULAR_CATEGORICAL",
+          "valueRange": {
+            "min": null,
+            "max": null,
+            "values": [
+              "A61",
+              "A62",
+              "A63",
+              "A64",
+              "A65"
+            ],
+            "has_null": false
+          }
+        },
+        {
+          "id": "610b1eec-a67d-4ab3-b58f-3c9f94a98d9e",
+          "name": "employment",
+          "included": true,
+          "modelEncodingType": "TABULAR_CATEGORICAL",
+          "valueRange": {
+            "min": null,
+            "max": null,
+            "values": [
+              "A71",
+              "A72",
+              "A73",
+              "A74",
+              "A75"
+            ],
+            "has_null": false
+          }
+        },
+        {
+          "id": "514c0457-a682-4adf-8215-9cfaa0ca9e1b",
+          "name": "installment_rate",
+          "included": true,
+          "modelEncodingType": "TABULAR_NUMERIC_DISCRETE",
+          "valueRange": {
+            "min": null,
+            "max": null,
+            "values": [
+              "1",
+              "2",
+              "3",
+              "4"
+            ],
+            "has_null": false
+          }
+        },
+        {
+          "id": "e1ffbf21-b6dc-46f5-ae0e-8f28e3c6b5ed",
+          "name": "personal_status",
+          "included": true,
+          "modelEncodingType": "TABULAR_CATEGORICAL",
+          "valueRange": {
+            "min": null,
+            "max": null,
+            "values": [
+              "A91",
+              "A92",
+              "A93",
+              "A94"
+            ],
+            "has_null": false
+          }
+        },
+        {
+          "id": "04667626-4bcd-49ec-bac5-50913835e282",
+          "name": "other_debtors",
+          "included": true,
+          "modelEncodingType": "TABULAR_CATEGORICAL",
+          "valueRange": {
+            "min": null,
+            "max": null,
+            "values": [
+              "A101",
+              "A102",
+              "A103"
+            ],
+            "has_null": false
+          }
+        },
+        {
+          "id": "58f8aca1-74b8-4641-8a55-33e494d07828",
+          "name": "residence_since",
+          "included": true,
+          "modelEncodingType": "TABULAR_NUMERIC_DISCRETE",
+          "valueRange": {
+            "min": null,
+            "max": null,
+            "values": [
+              "1",
+              "2",
+              "3",
+              "4",
+              "5"
+            ],
+            "has_null": false
+          }
+        },
+        {
+          "id": "e8421a02-4e26-47b9-8abb-43c9593ee0f0",
+          "name": "property",
+          "included": true,
+          "modelEncodingType": "TABULAR_CATEGORICAL",
+          "valueRange": {
+            "min": null,
+            "max": null,
+            "values": [
+              "A121",
+              "A122",
+              "A123",
+              "A124"
+            ],
+            "has_null": false
+          }
+        },
+        {
+          "id": "3ba1c7c2-191c-4df4-868a-a57a6b2defc8",
+          "name": "age",
+          "included": true,
+          "modelEncodingType": "TABULAR_NUMERIC_DIGIT",
+          "valueRange": {
+            "min": null,
+            "max": null,
+            "values": null,
+            "has_null": false
+          }
+        },
+        {
+          "id": "55b6d67c-c19c-41ac-af66-81181322a571",
+          "name": "other_installments",
+          "included": true,
+          "modelEncodingType": "TABULAR_CATEGORICAL",
+          "valueRange": {
+            "min": null,
+            "max": null,
+            "values": [
+              "A141",
+              "A142",
+              "A143"
+            ],
+            "has_null": false
+          }
+        },
+        {
+          "id": "b39e26c6-36e9-436b-9f06-cd27535a9fc7",
+          "name": "housing",
+          "included": true,
+          "modelEncodingType": "TABULAR_CATEGORICAL",
+          "valueRange": {
+            "min": null,
+            "max": null,
+            "values": [
+              "free",
+              "own",
+              "rent"
+            ],
+            "has_null": false
+          }
+        },
+        {
+          "id": "26cb620f-4edc-424a-a22e-2e6674f81cc1",
+          "name": "existing_credits",
+          "included": true,
+          "modelEncodingType": "TABULAR_NUMERIC_DISCRETE",
+          "valueRange": {
+            "min": null,
+            "max": null,
+            "values": [
+              "1",
+              "2",
+              "3",
+              "4"
+            ],
+            "has_null": false
+          }
+        },
+        {
+          "id": "24ab39a2-b5d6-46c8-9f9b-10fb4f9be5e7",
+          "name": "job",
+          "included": true,
+          "modelEncodingType": "TABULAR_CATEGORICAL",
+          "valueRange": {
+            "min": null,
+            "max": null,
+            "values": [
+              "highly skilled",
+              "skilled",
+              "unskilled resident"
+            ],
+            "has_null": false
+          }
+        },
+        {
+          "id": "c399b7d2-da51-4505-9612-a63c55824669",
+          "name": "liable_people",
+          "included": true,
+          "modelEncodingType": "TABULAR_NUMERIC_DISCRETE",
+          "valueRange": {
+            "min": null,
+            "max": null,
+            "values": [
+              "0",
+              "1",
+              "2"
+            ],
+            "has_null": false
+          }
+        },
+        {
+          "id": "e6f197a4-23e2-4336-9635-a4bfded55ecc",
+          "name": "telephone",
+          "included": true,
+          "modelEncodingType": "TABULAR_CATEGORICAL",
+          "valueRange": {
+            "min": null,
+            "max": null,
+            "values": [
+              "no",
+              "yes"
+            ],
+            "has_null": false
+          }
+        },
+        {
+          "id": "241d5ec7-ad0c-4a69-b172-6375ec35b51b",
+          "name": "foreign_worker",
+          "included": true,
+          "modelEncodingType": "TABULAR_CATEGORICAL",
+          "valueRange": {
+            "min": null,
+            "max": null,
+            "values": [
+              "no",
+              "yes"
+            ],
+            "has_null": false
+          }
+        },
+        {
+          "id": "f80ca122-b177-4648-bae5-9222ffa2b535",
+          "name": "risk",
+          "included": true,
+          "modelEncodingType": "TABULAR_CATEGORICAL",
+          "valueRange": {
+            "min": null,
+            "max": null,
+            "values": [
+              "bad",
+              "good"
+            ],
+            "has_null": false
+          }
+        }
+      ],
+      "foreignKeys": null,
+      "tabularModelMetrics": {
+        "accuracy": {
+          "overall": 0.8440758,
+          "univariate": 0.9420629,
+          "bivariate": 0.8674127,
+          "trivariate": 0.7227517,
+          "coherence": null,
+          "overallMax": 0.8456231,
+          "univariateMax": 0.9409995,
+          "bivariateMax": 0.8636798,
+          "trivariateMax": 0.73219,
+          "coherenceMax": null
+        },
+        "distances": {
+          "imsTraining": 0.0,
+          "imsHoldout": 0.0,
+          "imsTrnHol": 0.0,
+          "dcrTraining": 0.504,
+          "dcrHoldout": 0.491,
+          "dcrTrnHol": 0.477,
+          "dcrShare": 0.525,
+          "nndrTraining": 0.831742823002,
+          "nndrHoldout": 0.835825229632,
+          "nndrTrnHol": 0.818495693328
+        },
+        "similarity": {
+          "cosineSimilarityTrainingSynthetic": 0.9717273,
+          "cosineSimilarityTrainingHoldout": 0.9587773,
+          "discriminatorAUCTrainingSynthetic": 0.39,
+          "discriminatorAUCTrainingHoldout": 0.401
+        }
+      },
+      "languageModelMetrics": null,
+      "tabularModelConfiguration": {
+        "model": "MOSTLY_AI/Medium",
+        "maxSampleSize": null,
+        "batchSize": null,
+        "gradientAccumulationSteps": null,
+        "maxTrainingTime": 14400.0,
+        "maxEpochs": 100.0,
+        "maxSequenceWindow": 100,
+        "enableFlexibleGeneration": true,
+        "valueProtection": true,
+        "rareCategoryReplacementMethod": "CONSTANT",
+        "differentialPrivacy": null,
+        "compute": null,
+        "enableModelReport": true
+      },
+      "languageModelConfiguration": null,
+      "totalRows": 300
+    }
+  ],
+  "constraints": null,
+  "randomState": null
+}

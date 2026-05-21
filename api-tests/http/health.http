@@ -1,0 +1,64 @@
+### Health probes — tüm servisler tek yerde
+# Aç → Run all → her servisin durumunu IntelliJ'de canlı gör.
+# Ortam değiştirme: sağ-üst dropdown "dev / staging / prod"
+
+# ===== Neurex Web (Next.js) =====
+GET {{web}}/api/health
+Accept: application/json
+
+###
+
+# ===== Backend (FastAPI) =====
+GET {{backend}}/health
+Accept: application/json
+
+###
+
+GET {{backend}}/api/v1/health
+Accept: application/json
+
+###
+
+# ===== Engine (Flask BDD runner) =====
+GET {{engine}}/health
+Accept: application/json
+
+###
+
+# ===== Cortex Dashboard (Flask) =====
+GET {{cortexDashboard}}/api/health
+Accept: application/json
+
+###
+
+# ===== AI Gateway =====
+GET {{aiGateway}}/health
+Accept: application/json
+
+###
+
+GET {{aiGateway}}/providers/status
+X-Internal-Key: {{gatewayInternalKey}}
+
+###
+
+# ===== Observability stack =====
+GET {{otelHealth}}/
+
+###
+
+GET {{prometheus}}/-/healthy
+
+###
+
+GET {{tempo}}/ready
+
+###
+
+GET {{loki}}/ready
+
+###
+
+GET {{grafana}}/api/health
+
+###

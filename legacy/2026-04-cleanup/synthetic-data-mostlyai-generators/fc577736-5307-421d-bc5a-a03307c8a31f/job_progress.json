@@ -1,0 +1,241 @@
+{
+  "id": "fc577736-5307-421d-bc5a-a03307c8a31f",
+  "startDate": "2026-03-25T08:09:36.473448Z",
+  "endDate": "2026-03-25T08:09:51.594792Z",
+  "progress": {
+    "value": 6,
+    "max": 6
+  },
+  "status": "DONE",
+  "steps": [
+    {
+      "id": "9b665d58-03c2-4b7f-ae24-375d911016af",
+      "modelLabel": "data:tabular",
+      "computeName": "SDK",
+      "restarts": 0,
+      "taskType": "TRAIN_TABULAR",
+      "stepCode": "PULL_TRAINING_DATA",
+      "startDate": "2026-03-25T08:09:36.473448Z",
+      "endDate": "2026-03-25T08:09:36.494147Z",
+      "computeResources": null,
+      "messages": null,
+      "errorMessage": null,
+      "progress": {
+        "value": 1,
+        "max": 1
+      },
+      "status": "DONE"
+    },
+    {
+      "id": "7518aa04-cc0b-4516-87d3-25456e8c1522",
+      "modelLabel": "data:tabular",
+      "computeName": "SDK",
+      "restarts": 0,
+      "taskType": "TRAIN_TABULAR",
+      "stepCode": "ANALYZE_TRAINING_DATA",
+      "startDate": "2026-03-25T08:09:36.495059Z",
+      "endDate": "2026-03-25T08:09:45.097531Z",
+      "computeResources": null,
+      "messages": null,
+      "errorMessage": null,
+      "progress": {
+        "value": 1,
+        "max": 1
+      },
+      "status": "DONE"
+    },
+    {
+      "id": "9d230c0d-d96d-4f74-8b1c-9c841cd3578e",
+      "modelLabel": "data:tabular",
+      "computeName": "SDK",
+      "restarts": 0,
+      "taskType": "TRAIN_TABULAR",
+      "stepCode": "ENCODE_TRAINING_DATA",
+      "startDate": "2026-03-25T08:09:45.100856Z",
+      "endDate": "2026-03-25T08:09:48.992634Z",
+      "computeResources": null,
+      "messages": null,
+      "errorMessage": null,
+      "progress": {
+        "value": 1,
+        "max": 1
+      },
+      "status": "DONE"
+    },
+    {
+      "id": "d5f60469-cae1-4c1b-ab61-cf882220e033",
+      "modelLabel": "data:tabular",
+      "computeName": "SDK",
+      "restarts": 0,
+      "taskType": "TRAIN_TABULAR",
+      "stepCode": "TRAIN_MODEL",
+      "startDate": "2026-03-25T08:09:48.993642Z",
+      "endDate": "2026-03-25T08:09:51.025407Z",
+      "computeResources": null,
+      "messages": [
+        {
+          "epoch": 1.0,
+          "is_checkpoint": 1,
+          "steps": 1,
+          "samples": 6,
+          "trn_loss": 4.0776,
+          "val_loss": 4.3552,
+          "total_time": 0.1,
+          "learn_rate": 0.00043,
+          "dp_eps": null,
+          "dp_delta": null
+        },
+        {
+          "epoch": 2.0,
+          "is_checkpoint": 1,
+          "steps": 2,
+          "samples": 12,
+          "trn_loss": 4.1339,
+          "val_loss": 4.291,
+          "total_time": 0.1,
+          "learn_rate": 0.00043,
+          "dp_eps": null,
+          "dp_delta": null
+        },
+        {
+          "epoch": 3.0,
+          "is_checkpoint": 1,
+          "steps": 3,
+          "samples": 18,
+          "trn_loss": 3.9928,
+          "val_loss": 4.1429,
+          "total_time": 0.1,
+          "learn_rate": 0.00043,
+          "dp_eps": null,
+          "dp_delta": null
+        },
+        {
+          "epoch": 4.0,
+          "is_checkpoint": 0,
+          "steps": 4,
+          "samples": 24,
+          "trn_loss": 4.2199,
+          "val_loss": 4.2854,
+          "total_time": 0.1,
+          "learn_rate": 0.00043,
+          "dp_eps": null,
+          "dp_delta": null
+        },
+        {
+          "epoch": 5.0,
+          "is_checkpoint": 1,
+          "steps": 5,
+          "samples": 30,
+          "trn_loss": 3.9704,
+          "val_loss": 4.1398,
+          "total_time": 0.2,
+          "learn_rate": 0.00043,
+          "dp_eps": null,
+          "dp_delta": null
+        },
+        {
+          "epoch": 6.0,
+          "is_checkpoint": 0,
+          "steps": 6,
+          "samples": 36,
+          "trn_loss": 3.986,
+          "val_loss": 4.3431,
+          "total_time": 0.2,
+          "learn_rate": 0.00043,
+          "dp_eps": null,
+          "dp_delta": null
+        },
+        {
+          "epoch": 7.0,
+          "is_checkpoint": 0,
+          "steps": 7,
+          "samples": 42,
+          "trn_loss": 4.0787,
+          "val_loss": 4.3406,
+          "total_time": 0.2,
+          "learn_rate": 0.00043,
+          "dp_eps": null,
+          "dp_delta": null
+        },
+        {
+          "epoch": 8.0,
+          "is_checkpoint": 0,
+          "steps": 8,
+          "samples": 48,
+          "trn_loss": 4.0388,
+          "val_loss": 4.1818,
+          "total_time": 0.2,
+          "learn_rate": 0.00043,
+          "dp_eps": null,
+          "dp_delta": null
+        },
+        {
+          "epoch": 9.0,
+          "is_checkpoint": 0,
+          "steps": 9,
+          "samples": 54,
+          "trn_loss": 3.8783,
+          "val_loss": 4.276,
+          "total_time": 0.2,
+          "learn_rate": 0.000215,
+          "dp_eps": null,
+          "dp_delta": null
+        },
+        {
+          "epoch": 10.0,
+          "is_checkpoint": 0,
+          "steps": 10,
+          "samples": 60,
+          "trn_loss": 3.9689,
+          "val_loss": 4.3363,
+          "total_time": 0.2,
+          "learn_rate": 0.000215,
+          "dp_eps": null,
+          "dp_delta": null
+        }
+      ],
+      "errorMessage": null,
+      "progress": {
+        "value": 1,
+        "max": 1
+      },
+      "status": "DONE"
+    },
+    {
+      "id": "5aa49811-1782-4743-8504-6dd7cc3996d6",
+      "modelLabel": "data:tabular",
+      "computeName": "SDK",
+      "restarts": 0,
+      "taskType": "TRAIN_TABULAR",
+      "stepCode": "GENERATE_MODEL_REPORT_DATA",
+      "startDate": "2026-03-25T08:09:51.535976Z",
+      "endDate": "2026-03-25T08:09:51.553168Z",
+      "computeResources": null,
+      "messages": null,
+      "errorMessage": null,
+      "progress": {
+        "value": 1,
+        "max": 1
+      },
+      "status": "DONE"
+    },
+    {
+      "id": "abd740ea-3389-4ee7-a3b7-d5757bde0850",
+      "modelLabel": "data:tabular",
+      "computeName": "SDK",
+      "restarts": 0,
+      "taskType": "TRAIN_TABULAR",
+      "stepCode": "CREATE_MODEL_REPORT",
+      "startDate": "2026-03-25T08:09:51.559410Z",
+      "endDate": "2026-03-25T08:09:51.592835Z",
+      "computeResources": null,
+      "messages": null,
+      "errorMessage": null,
+      "progress": {
+        "value": 1,
+        "max": 1
+      },
+      "status": "DONE"
+    }
+  ]
+}

@@ -1,0 +1,58 @@
+:root {
+  --bg: #f8fafc;
+  --bg-subtle: #f1f5f9;
+  --fg: #0f172a;
+  --muted: #64748b;
+  --muted-fg: #94a3b8;
+  --border: #e2e8f0;
+  --border-strong: #cbd5e1;
+  --accent: #2563eb;
+  --accent-fg: #ffffff;
+  --accent-subtle: #eff6ff;
+  --ai: #7c3aed;
+  --ai-fg: #ffffff;
+  --ai-subtle: #f5f3ff;
+  --success: #16a34a;
+  --success-fg: #ffffff;
+  --success-subtle: #f0fdf4;
+  --warning: #d97706;
+  --warning-fg: #ffffff;
+  --warning-subtle: #fffbeb;
+  --danger: #dc2626;
+  --danger-fg: #ffffff;
+  --danger-subtle: #fef2f2;
+  --radius: 0.5rem;
+  --radius-lg: 0.75rem;
+  --font-sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.05);
+  --shadow-elevated: 0 1px 3px rgb(0 0 0 / 0.06), 0 8px 24px rgb(0 0 0 / 0.06);
+  --shadow-lg: 0 4px 6px rgb(0 0 0 / 0.05), 0 20px 40px rgb(0 0 0 / 0.08);
+}
+
+.dark {
+  --bg: #0c0e14;
+  --bg-subtle: #131720;
+  --fg: #f1f5f9;
+  --muted: #94a3b8;
+  --muted-fg: #64748b;
+  --border: #1e2535;
+  --border-strong: #2d3748;
+  --accent: #3b82f6;
+  --accent-fg: #ffffff;
+  --accent-subtle: #1e293b;
+  --ai: #8b5cf6;
+  --ai-fg: #ffffff;
+  --ai-subtle: #1a1030;
+  --success: #22c55e;
+  --success-fg: #ffffff;
+  --success-subtle: #0d2818;
+  --warning: #f59e0b;
+  --warning-fg: #000000;
+  --warning-subtle: #1c1407;
+  --danger: #ef4444;
+  --danger-fg: #ffffff;
+  --danger-subtle: #1f0808;
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.3);
+  --shadow-elevated: 0 1px 3px rgb(0 0 0 / 0.4), 0 8px 24px rgb(0 0 0 / 0.35);
+  --shadow-lg: 0 4px 6px rgb(0 0 0 / 0.3), 0 20px 40px rgb(0 0 0 / 0.4);
+}

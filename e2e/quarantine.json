@@ -1,0 +1,6 @@
+{
+  "version": 1,
+  "updated": "2026-05-17",
+  "description": "Bilinen flaky testlerin karantina kayıt defteri. CI'yi bloke etmemesi için buraya ekle; kök nedeni bul ve entry'yi kaldır.",
+  "entries": []
+}

@@ -1,0 +1,165 @@
+pipeline {
+  agent any
+
+  options {
+    ansiColor('xterm')
+    timestamps()
+    disableConcurrentBuilds()
+    buildDiscarder(logRotator(numToKeepStr: '30'))
+    timeout(time: 45, unit: 'MINUTES')
+  }
+
+  parameters {
+    choice(name: 'TARGET_ENV', choices: ['staging', 'production'], description: 'Rollback hedef ortamı')
+    string(name: 'ROLLBACK_IMAGE_TAG', defaultValue: '', description: 'Geri donulecek image tag veya SHA')
+    string(name: 'ROLLBACK_REASON', defaultValue: '', description: 'Rollback nedeni, audit icin tutulur')
+    string(name: 'REMOTE_COMPOSE_FILE', defaultValue: 'docker-compose.prod.yml', description: 'Remote compose dosya yolu')
+    string(name: 'HEALTHCHECK_URL', defaultValue: '', description: 'Opsiyonel health check URL override')
+    booleanParam(name: 'REQUIRE_APPROVAL', defaultValue: true, description: 'Production rollback oncesi manuel onay iste')
+    booleanParam(name: 'SKIP_HEALTHCHECK', defaultValue: false, description: 'Acil durumda health check adimini atla')
+    string(name: 'NOTIFY_EMAIL_TO', defaultValue: '', description: 'Opsiyonel e-posta bildirim listesi')
+  }
+
+  environment {
+    EFFECTIVE_ROLLBACK_IMAGE_TAG = ''
+    EFFECTIVE_ROLLBACK_REASON = ''
+  }
+
+  stages {
+    stage('Checkout') {
+      steps {
+        checkout scm
+        sh 'mkdir -p reports'
+        sh 'chmod +x scripts/ci/*.sh'
+      }
+    }
+
+    stage('Validate Parameters') {
+      steps {
+        script {
+          env.EFFECTIVE_ROLLBACK_IMAGE_TAG = params.ROLLBACK_IMAGE_TAG?.trim()
+          env.EFFECTIVE_ROLLBACK_REASON = params.ROLLBACK_REASON?.trim() ?: 'manual rollback'
+
+          if (!env.EFFECTIVE_ROLLBACK_IMAGE_TAG) {
+            error('ROLLBACK_IMAGE_TAG bos olamaz.')
+          }
+
+          if (env.EFFECTIVE_ROLLBACK_IMAGE_TAG == 'latest') {
+            error('ROLLBACK_IMAGE_TAG=latest rollback icin kullanilamaz.')
+          }
+        }
+
+        sh '''
+          echo "Target environment: ${TARGET_ENV}"
+          echo "Rollback image tag: ${EFFECTIVE_ROLLBACK_IMAGE_TAG}"
+          echo "Rollback reason: ${EFFECTIVE_ROLLBACK_REASON}"
+          echo "Compose file: ${REMOTE_COMPOSE_FILE}"
+          echo "Skip healthcheck: ${SKIP_HEALTHCHECK}"
+        '''
+      }
+    }
+
+    stage('Production Approval') {
+      when {
+        allOf {
+          expression { return params.TARGET_ENV == 'production' }
+          expression { return params.REQUIRE_APPROVAL }
+        }
+      }
+      steps {
+        input message: "Production rollback baslatilsin mi? Tag: ${env.EFFECTIVE_ROLLBACK_IMAGE_TAG}", ok: 'Rollback'
+      }
+    }
+
+    stage('Rollback Staging') {
+      when {
+        expression { return params.TARGET_ENV == 'staging' }
+      }
+      steps {
+        sshagent(credentials: ['staging-ssh-key']) {
+          withCredentials([
+            string(credentialsId: 'staging-host', variable: 'DEPLOY_HOST'),
+            string(credentialsId: 'staging-user', variable: 'DEPLOY_USER'),
+            string(credentialsId: 'staging-path', variable: 'DEPLOY_PATH')
+          ]) {
+            sh '''
+              export TARGET_ENV="${TARGET_ENV}"
+              export ROLLBACK_IMAGE_TAG="${EFFECTIVE_ROLLBACK_IMAGE_TAG}"
+              export ROLLBACK_REASON="${EFFECTIVE_ROLLBACK_REASON}"
+              export IMAGE_TAG="${EFFECTIVE_ROLLBACK_IMAGE_TAG}"
+              export REMOTE_COMPOSE_FILE="${REMOTE_COMPOSE_FILE}"
+              export SKIP_HEALTHCHECK="${SKIP_HEALTHCHECK}"
+              if [ -n "${HEALTHCHECK_URL}" ]; then
+                export HEALTHCHECK_URL="${HEALTHCHECK_URL}"
+              fi
+              ./scripts/ci/rollback.sh staging
+            '''
+          }
+        }
+      }
+    }
+
+    stage('Rollback Production') {
+      when {
+        expression { return params.TARGET_ENV == 'production' }
+      }
+      steps {
+        sshagent(credentials: ['prod-ssh-key']) {
+          withCredentials([
+            string(credentialsId: 'prod-host', variable: 'DEPLOY_HOST'),
+            string(credentialsId: 'prod-user', variable: 'DEPLOY_USER'),
+            string(credentialsId: 'prod-path', variable: 'DEPLOY_PATH')
+          ]) {
+            sh '''
+              export TARGET_ENV="${TARGET_ENV}"
+              export ROLLBACK_IMAGE_TAG="${EFFECTIVE_ROLLBACK_IMAGE_TAG}"
+              export ROLLBACK_REASON="${EFFECTIVE_ROLLBACK_REASON}"
+              export IMAGE_TAG="${EFFECTIVE_ROLLBACK_IMAGE_TAG}"
+              export REMOTE_COMPOSE_FILE="${REMOTE_COMPOSE_FILE}"
+              export SKIP_HEALTHCHECK="${SKIP_HEALTHCHECK}"
+              if [ -n "${HEALTHCHECK_URL}" ]; then
+                export HEALTHCHECK_URL="${HEALTHCHECK_URL}"
+              fi
+              ./scripts/ci/rollback.sh production
+            '''
+          }
+        }
+      }
+    }
+  }
+
+  post {
+    success {
+      catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
+        sh './scripts/ci/notify.sh bgts-rollback SUCCESS "${BUILD_URL}"'
+      }
+      script {
+        if (params.NOTIFY_EMAIL_TO?.trim()) {
+          mail(
+            to: params.NOTIFY_EMAIL_TO.trim(),
+            subject: "BGTS ROLLBACK SUCCESS: ${params.TARGET_ENV} / ${env.EFFECTIVE_ROLLBACK_IMAGE_TAG}",
+            body: "Rollback basarili.\n\nJob: ${env.JOB_NAME}\nBuild: #${env.BUILD_NUMBER}\nTarget: ${params.TARGET_ENV}\nImage tag: ${env.EFFECTIVE_ROLLBACK_IMAGE_TAG}\nReason: ${env.EFFECTIVE_ROLLBACK_REASON}\nURL: ${env.BUILD_URL}"
+          )
+        }
+      }
+    }
+    failure {
+      catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+        sh './scripts/ci/notify.sh bgts-rollback FAILURE "${BUILD_URL}"'
+      }
+      script {
+        if (params.NOTIFY_EMAIL_TO?.trim()) {
+          mail(
+            to: params.NOTIFY_EMAIL_TO.trim(),
+            subject: "BGTS ROLLBACK FAILURE: ${params.TARGET_ENV} / ${env.EFFECTIVE_ROLLBACK_IMAGE_TAG}",
+            body: "Rollback basarisiz oldu.\n\nJob: ${env.JOB_NAME}\nBuild: #${env.BUILD_NUMBER}\nTarget: ${params.TARGET_ENV}\nImage tag: ${env.EFFECTIVE_ROLLBACK_IMAGE_TAG}\nReason: ${env.EFFECTIVE_ROLLBACK_REASON}\nURL: ${env.BUILD_URL}"
+          )
+        }
+      }
+    }
+    always {
+      archiveArtifacts artifacts: 'reports/rollback-metadata.json', allowEmptyArchive: true
+      deleteDir()
+    }
+  }
+}

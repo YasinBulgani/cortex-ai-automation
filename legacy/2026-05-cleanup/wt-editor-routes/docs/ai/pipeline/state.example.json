@@ -1,0 +1,124 @@
+{
+  "version": "1.0",
+  "updated_at": "2026-04-19T10:30:00Z",
+  "next_ids": { "GAP": 43, "FEAT": 8, "BUG": 20 },
+  "items": [
+    {
+      "id": "GAP-042",
+      "type": "GAP",
+      "title": "Sidebar menüsünde klavye navigasyonu eksik (a11y)",
+      "description": "Tab ile sidebar linklerine ulaşılmıyor, ARIA rolleri yok.",
+      "priority": "high",
+      "created_at": "2026-04-18T09:00:00Z",
+      "current_stage": "frontend",
+      "status": "in_progress",
+      "needs_human": false,
+      "feedback_loops": [],
+      "stages": {
+        "analyzer": {
+          "status": "done",
+          "branch": "analyze/gap-sweep-2026-04-18",
+          "artifact": "docs/ai/pipeline/items/GAP-042/gap-analysis.md",
+          "commit": "a1b2c3d",
+          "agent_id": "analyzer-1",
+          "started_at": "2026-04-18T09:00:00Z",
+          "completed_at": "2026-04-18T09:12:00Z",
+          "handoff_notes": "Axe scan 14 kritik bulgu verdi. GAP-042 en yüksek öncelikli."
+        },
+        "validator": {
+          "status": "done",
+          "branch": null,
+          "pr_number": 412,
+          "artifact": "PR-412 yorum",
+          "agent_id": "validator-1",
+          "started_at": "2026-04-18T09:15:00Z",
+          "completed_at": "2026-04-18T09:18:00Z",
+          "approval": { "decision": "approve", "reasoning": "WCAG 2.1 AA ihlali teyit edildi, reproducible.", "confidence": 0.92 }
+        },
+        "proposer": {
+          "status": "done",
+          "branch": "propose/GAP-042",
+          "artifact": "docs/ai/pipeline/items/GAP-042/proposal.md",
+          "commit": "b2c3d4e",
+          "agent_id": "proposer-1",
+          "completed_at": "2026-04-18T10:02:00Z",
+          "handoff_notes": "3 seçenek sundu; önerilen: Radix primitives ile refactor."
+        },
+        "approver": {
+          "status": "done",
+          "artifact": "PR-413 yorum",
+          "agent_id": "approver-1",
+          "completed_at": "2026-04-18T10:20:00Z",
+          "approval": { "decision": "approve", "reasoning": "Radix uygun, bundle etkisi kabul edilebilir (+4kb).", "confidence": 0.88 }
+        },
+        "designer": {
+          "status": "done",
+          "branch": "design/GAP-042",
+          "artifact": "docs/ai/pipeline/items/GAP-042/design.md",
+          "commit": "c3d4e5f",
+          "completed_at": "2026-04-18T14:00:00Z",
+          "handoff_notes": "Focus ring tokenları, skip-link, reduced-motion respect."
+        },
+        "architect": {
+          "status": "done",
+          "branch": "arch/GAP-042",
+          "artifact": "docs/ai/pipeline/items/GAP-042/arch-ADR.md",
+          "commit": "d4e5f6a",
+          "completed_at": "2026-04-18T14:15:00Z",
+          "handoff_notes": "Radix Navigation Menu + RovingFocus, breaking change yok."
+        },
+        "frontend": {
+          "status": "in_progress",
+          "branch": "feat/fe-GAP-042",
+          "started_at": "2026-04-19T08:00:00Z",
+          "agent_id": "fe-agent"
+        },
+        "backend": {
+          "status": "skipped",
+          "handoff_notes": "A11y-only değişiklik, backend dokunulmuyor."
+        }
+      }
+    },
+    {
+      "id": "FEAT-007",
+      "type": "FEAT",
+      "title": "Dark mode toggle (system + manual)",
+      "priority": "medium",
+      "current_stage": "designer",
+      "status": "in_progress",
+      "needs_human": false,
+      "feedback_loops": [
+        {
+          "from_stage": "approver",
+          "to_stage": "proposer",
+          "reason": "İlk proposal'da persist stratejisi yoktu. Revize et.",
+          "at": "2026-04-17T16:00:00Z"
+        }
+      ],
+      "stages": {
+        "proposer": { "status": "done", "completed_at": "2026-04-17T18:00:00Z" },
+        "approver": { "status": "done", "completed_at": "2026-04-17T18:30:00Z", "approval": { "decision": "approve", "confidence": 0.85 } },
+        "designer": { "status": "in_progress", "branch": "design/FEAT-007", "started_at": "2026-04-19T09:00:00Z" },
+        "architect": { "status": "in_progress", "branch": "arch/FEAT-007", "started_at": "2026-04-19T09:00:00Z" }
+      }
+    },
+    {
+      "id": "BUG-019",
+      "type": "BUG",
+      "title": "Auth token refresh 401 döndürüyor race condition",
+      "priority": "critical",
+      "current_stage": "qa",
+      "status": "waiting",
+      "needs_human": false,
+      "stages": {
+        "proposer": { "status": "done" },
+        "approver": { "status": "done", "approval": { "decision": "approve" } },
+        "architect": { "status": "done" },
+        "backend": { "status": "done", "branch": "feat/be-BUG-019", "commit": "e5f6a7b" },
+        "frontend": { "status": "skipped" },
+        "integrator": { "status": "done", "branch": "integrate/BUG-019" },
+        "qa": { "status": "waiting" }
+      }
+    }
+  ]
+}

@@ -1,0 +1,3 @@
+✅ BAŞARILI
+'izinlerimSayfasıTalepEdilenIzınText' adlı elemanın değeri kontrol ediliyor (Beklenen: Nu0bmjst72XNbzd)
+'izinlerimSayfasıTalepEdilenIzınText' adlı elemanın metni doğrulandı. Beklenen değer: 'Nu0bmjst72XNbzd' bulundu.

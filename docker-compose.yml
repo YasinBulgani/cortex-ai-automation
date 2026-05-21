@@ -1,0 +1,324 @@
+# TestwrightAI — Ana Docker Compose
+# Tüm servisleri tek dosyadan yönetir.
+#
+# Kullanım:
+#   docker compose up -d              # Tüm servisler
+#   docker compose up postgres redis  # Sadece altyapı
+#   docker compose up engine          # Sadece otomasyon motoru
+
+services:
+  # ─── Altyapı ─────────────────────────────────────────────────────────────────
+  postgres:
+    image: pgvector/pgvector:pg16  # pgvector extension için (postgres:16-alpine'dan upgrade)
+    container_name: twai_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: twai_user
+      POSTGRES_PASSWORD: twai_pass
+      POSTGRES_DB: twai_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./infra/postgres-init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U twai_user -d twai_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: twai_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  # ─── FastAPI Backend (Sentetik Veri + TSPM) ──────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: twai_backend
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql+psycopg2://twai_user:twai_pass@postgres:5432/syndata_db
+      REDIS_URL: redis://redis:6379/0
+      ARTIFACTS_DIR: /app/data/artifacts
+      AI_WORKFLOW_ARTIFACT_RETENTION_DAYS: "${AI_WORKFLOW_ARTIFACT_RETENTION_DAYS:-30}"
+      AI_RQ_QUEUE_NAME: ai_workflows
+      AGENTS_V2_QUEUE_BACKEND: rq
+      AGENTS_V2_SANDBOX_MODE: auto
+      JWT_SECRET: "${JWT_SECRET:-replace-with-long-random-jwt-secret-at-least-64-characters-please}"
+      CORS_ORIGINS: "http://localhost:3000,http://127.0.0.1:3000"
+      ENGINE_BASE_URL: "http://engine:5001"
+      ENGINE_INTERNAL_KEY: "twai-internal-key-change-me"
+      # Nexus QA AI Gateway
+      AI_GATEWAY_BASE_URL: "http://ai-gateway:8080"
+      GATEWAY_INTERNAL_KEY: "${GATEWAY_INTERNAL_KEY}"
+      AI_GATEWAY_REQUIRED: "${AI_GATEWAY_REQUIRED:-false}"
+      AI_BUDGET_PREFLIGHT_REQUIRED: "${AI_BUDGET_PREFLIGHT_REQUIRED:-false}"
+      AI_STRUCTURED_OUTPUT_FAIL_CLOSED: "${AI_STRUCTURED_OUTPUT_FAIL_CLOSED:-false}"
+      RUNNING_IN_DOCKER: "1"
+      RATE_LIMIT_REQUIRED: ${RATE_LIMIT_REQUIRED:-false}
+      REDIS_REQUIRED: ${REDIS_REQUIRED:-false}
+      AUTH_STATE_REDIS_REQUIRED: ${AUTH_STATE_REDIS_REQUIRED:-false}
+      LLM_RATE_LIMIT_REDIS_REQUIRED: ${LLM_RATE_LIMIT_REDIS_REQUIRED:-false}
+      CICD_REQUIRE_WEBHOOK_SECRETS: ${CICD_REQUIRE_WEBHOOK_SECRETS:-false}
+      N8N_REQUIRE_CALLBACK_SECRET: ${N8N_REQUIRE_CALLBACK_SECRET:-false}
+      GITHUB_WEBHOOK_SECRET: ${GITHUB_WEBHOOK_SECRET:-}
+      GITLAB_WEBHOOK_TOKEN: ${GITLAB_WEBHOOK_TOKEN:-}
+      JENKINS_WEBHOOK_TOKEN: ${JENKINS_WEBHOOK_TOKEN:-}
+      N8N_CALLBACK_TOKEN: ${N8N_CALLBACK_TOKEN:-}
+      # Ollama / Local LLM
+      AI_PROVIDER: "ollama"
+      AI_LOCAL_ONLY: "true"
+      OLLAMA_BASE_URL: "http://host.docker.internal:11434/v1"
+      OLLAMA_API_KEY: "ollama"
+      OLLAMA_MODEL_ANALYST: "qwen2.5:14b"
+      OLLAMA_MODEL_FAST: "llama3.1:8b"
+      OLLAMA_MODEL_CODER: "qwen2.5-coder:7b"
+      NEXUS_AUTOPILOT_ENABLED: "${NEXUS_AUTOPILOT_ENABLED:-false}"
+      NEXUS_AUTOPILOT_BACKGROUND_MODE: "${NEXUS_AUTOPILOT_BACKGROUND_MODE:-observe}"
+      NEXUS_AUTOPILOT_INTERVAL_SECONDS: "${NEXUS_AUTOPILOT_INTERVAL_SECONDS:-900}"
+      NEXUS_AUTOPILOT_START_DELAY_SECONDS: "${NEXUS_AUTOPILOT_START_DELAY_SECONDS:-15}"
+      NEXUS_AUTOPILOT_APPLY_SAFE_ACTIONS: "${NEXUS_AUTOPILOT_APPLY_SAFE_ACTIONS:-true}"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      engine:
+        condition: service_healthy
+      ai-gateway:
+        condition: service_healthy
+    volumes:
+      - backend_artifacts:/app/data/artifacts
+
+  # ─── FastAPI Backend — RQ Worker (Asenkron İşler) ────────────────────────────
+  worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: twai_worker
+    restart: unless-stopped
+    command: ["sh", "-c", "rq worker -u $$REDIS_URL $$RQ_QUEUE_NAME"]
+    environment:
+      DATABASE_URL: postgresql+psycopg2://twai_user:twai_pass@postgres:5432/syndata_db
+      REDIS_URL: redis://redis:6379/0
+      ARTIFACTS_DIR: /app/data/artifacts
+      RQ_QUEUE_NAME: syndata_jobs
+      # Worker HTTP auth yapmıyor ama Settings model validator ayaklanırken
+      # JWT_SECRET'in varlığını zorunlu kılıyor. Backend ile aynı dev değer:
+      JWT_SECRET: "${JWT_SECRET:-replace-with-long-random-jwt-secret-at-least-64-characters-please}"
+      ENGINE_BASE_URL: "http://engine:5001"
+      ENGINE_INTERNAL_KEY: "twai-internal-key-change-me"
+      # Worker startup'ta alembic upgrade yapmasına gerek yok — backend zaten
+      # yapıyor; hem ayrı image drift'i hem de race condition riskini azaltır.
+      SKIP_APP_BOOTSTRAP: "1"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - backend_artifacts:/app/data/artifacts
+
+  # ─── FastAPI Backend — AI Workflow Worker ──────────────────────────────────
+  ai-worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: twai_ai_worker
+    restart: unless-stopped
+    command: ["sh", "-c", "rq worker -u $$REDIS_URL $$AI_RQ_QUEUE_NAME"]
+    environment:
+      DATABASE_URL: postgresql+psycopg2://twai_user:twai_pass@postgres:5432/syndata_db
+      REDIS_URL: redis://redis:6379/0
+      ARTIFACTS_DIR: /app/data/artifacts
+      AI_WORKFLOW_ARTIFACT_RETENTION_DAYS: "${AI_WORKFLOW_ARTIFACT_RETENTION_DAYS:-30}"
+      AI_RQ_QUEUE_NAME: ai_workflows
+      AGENTS_V2_QUEUE_BACKEND: rq
+      AGENTS_V2_SANDBOX_MODE: auto
+      JWT_SECRET: "${JWT_SECRET:-replace-with-long-random-jwt-secret-at-least-64-characters-please}"
+      ENGINE_BASE_URL: "http://engine:5001"
+      ENGINE_INTERNAL_KEY: "twai-internal-key-change-me"
+      AI_GATEWAY_BASE_URL: "http://ai-gateway:8080"
+      GATEWAY_INTERNAL_KEY: "${GATEWAY_INTERNAL_KEY}"
+      AI_GATEWAY_REQUIRED: "${AI_GATEWAY_REQUIRED:-false}"
+      AI_BUDGET_PREFLIGHT_REQUIRED: "${AI_BUDGET_PREFLIGHT_REQUIRED:-false}"
+      AI_STRUCTURED_OUTPUT_FAIL_CLOSED: "${AI_STRUCTURED_OUTPUT_FAIL_CLOSED:-false}"
+      AI_PROVIDER: "ollama"
+      AI_LOCAL_ONLY: "true"
+      OLLAMA_BASE_URL: "http://host.docker.internal:11434/v1"
+      OLLAMA_API_KEY: "ollama"
+      OLLAMA_MODEL_ANALYST: "qwen2.5:14b"
+      OLLAMA_MODEL_FAST: "llama3.1:8b"
+      OLLAMA_MODEL_CODER: "qwen2.5-coder:7b"
+      SKIP_APP_BOOTSTRAP: "1"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      ai-gateway:
+        condition: service_healthy
+    volumes:
+      - backend_artifacts:/app/data/artifacts
+
+  # ─── Flask Automation Engine (Test Otomasyon Motoru) ─────────────────────────
+  # ADR-0002: Engine internal servis. Sadece 127.0.0.1 bind — docker iç ağından
+  # (web, backend) erişilebilir, dış ağdan (LAN) erişilemez. Tam "expose-only"
+  # geçişi frontend'in backend proxy'sine dönmesinden sonra yapılacak (Faz 4.C).
+  engine:
+    build:
+      context: ./engine
+      dockerfile: Dockerfile
+    container_name: twai_engine
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:5001:5001"
+    environment:
+      APP_ENV: ${APP_ENV:-development}
+      ENGINE_PORT: "5001"
+      BASE_URL: "https://example.com"
+      HEADLESS: "true"
+      BROWSER: chromium
+      ENGINE_INTERNAL_KEY: "twai-internal-key-change-me"
+      ENGINE_LLM_USE_GATEWAY: "${ENGINE_LLM_USE_GATEWAY:-0}"
+      ENGINE_LLM_ALLOW_DIRECT_PROVIDERS: "${ENGINE_LLM_ALLOW_DIRECT_PROVIDERS:-1}"
+      AI_GATEWAY_BASE_URL: "http://ai-gateway:8080"
+      GATEWAY_INTERNAL_KEY: "${GATEWAY_INTERNAL_KEY:-dev-internal-key}"
+      # Visium Farm — Mobil emülasyon
+      MOBILE_ARTIFACTS_DIR: "/app/mobile_uploads"
+      # Appium gerçek cihaz entegrasyonu (gelecek — şimdilik devre dışı)
+      # APPIUM_URL: "http://appium:4723"
+    volumes:
+      - engine_data:/app/reports
+      - engine_screenshots:/app/screenshots
+      - engine_mobile_uploads:/app/mobile_uploads
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:5001/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      start_period: 20s
+      retries: 3
+
+  # ─── Next.js Frontend ───────────────────────────────────────────────────────
+  web:
+    build:
+      context: ./apps/web
+      dockerfile: Dockerfile
+    container_name: twai_web
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      # SSR + next.config.mjs rewrites → backend container (Docker iç ağ)
+      NEXT_PUBLIC_API_BASE: http://backend:8000
+      # SSR engine çağrıları → container iç ağ; tarayıcı bundle'ı Dockerfile'daki değeri kullanır
+      NEXT_PUBLIC_ENGINE_BASE: http://engine:5001
+      # Next.js rewrites /api/v1/* için backend hedefi (runtime'da okunur)
+      API_PROXY_TARGET: http://backend:8000
+    depends_on:
+      - backend
+      - engine
+
+  # ─── Nexus QA AI Gateway (FAZ 0) ────────────────────────────────────────────
+  # Tüm AI isteklerinin geçtiği merkezi mikroservis.
+  # vLLM → Groq → Gemini → Ollama fallback zinciri.
+  ai-gateway:
+    build:
+      context: ./ai-gateway
+      dockerfile: Dockerfile
+    container_name: nexusqa_ai_gateway
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      APP_ENV: ${APP_ENV:-development}
+      PORT: "8080"
+      DEBUG: "false"
+      INTERNAL_KEY: "${GATEWAY_INTERNAL_KEY}"
+      REDIS_URL: "redis://redis:6379/1"
+      # AI sağlayıcı seçimi: "ollama" → Ollama primary; "auto" → vLLM→Groq→Gemini→Ollama
+      AI_PROVIDER: "${AI_PROVIDER:-ollama}"
+      AI_LOCAL_ONLY: "${AI_LOCAL_ONLY:-true}"
+      # Groq API key (ücretsiz: https://console.groq.com)
+      GROQ_API_KEY: "${GROQ_API_KEY:-}"
+      GROQ_MODEL: "llama3-70b-8192"
+      GROQ_ENABLED: "${GROQ_ENABLED:-false}"
+      # Gemini API key (ücretsiz: https://aistudio.google.com/app/apikey)
+      GEMINI_API_KEY: "${GEMINI_API_KEY:-}"
+      GEMINI_MODEL: "gemini-1.5-flash"
+      GEMINI_ENABLED: "${GEMINI_ENABLED:-false}"
+      # Ollama — OpenAI-uyumlu endpoint (host.docker.internal = Mac host)
+      OLLAMA_BASE_URL: "${OLLAMA_BASE_URL:-http://host.docker.internal:11434/v1}"
+      OLLAMA_API_KEY: "${OLLAMA_API_KEY:-ollama}"
+      OLLAMA_ENABLED: "${OLLAMA_ENABLED:-true}"
+      # Göreve özel Ollama modelleri
+      OLLAMA_MODEL_ANALYST: "${OLLAMA_MODEL_ANALYST:-llama3.1:8b}"
+      OLLAMA_MODEL_FAST: "${OLLAMA_MODEL_FAST:-llama3.1:8b}"
+      OLLAMA_MODEL_CODER: "${OLLAMA_MODEL_CODER:-qwen2.5-coder:7b}"
+      G4F_ENABLED: "${G4F_ENABLED:-false}"
+      PROMPT_CENTER_ROOT: "/prompt_center"
+    volumes:
+      - ./prompt_center:/prompt_center:ro
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/ping"]
+      interval: 30s
+      timeout: 10s
+      start_period: 20s
+      retries: 3
+    extra_hosts:
+      - "host.docker.internal:host-gateway"  # Ollama local erişimi için
+
+  # ─── NOT: ai-test-pipeline ───────────────────────────────────────────────────
+  # ai-test-pipeline/ dizini şu an yalnızca __pycache__ içermektedir.
+  # Kaynak kodlar eklendiğinde bu blok aktif edilecek (port: 5003).
+  # ai-test-pipeline:
+  #   build:
+  #     context: ./ai-test-pipeline
+  #     dockerfile: Dockerfile
+  #   container_name: twai_ai_pipeline
+  #   ports:
+  #     - "5003:5003"
+  #   depends_on:
+  #     - backend
+  #     - redis
+
+  # ─── Appium (Gelecek: Gerçek Cihaz) ─────────────────────────────────────────
+  # Gerçek fiziksel cihaz veya emülatör testleri için Appium server.
+  # Aktifleştirmek için yorum satırlarını kaldırın ve engine servisinde
+  # APPIUM_URL: "http://appium:4723" env değişkenini açın.
+  # appium:
+  #   image: appium/appium:latest
+  #   container_name: twai_appium
+  #   restart: unless-stopped
+  #   ports:
+  #     - "4723:4723"
+  #   volumes:
+  #     - /dev/bus/usb:/dev/bus/usb  # USB cihaz erişimi
+  #   privileged: true
+
+volumes:
+  pgdata:
+    driver: local
+  backend_artifacts:
+    driver: local
+  engine_data:
+    driver: local
+  engine_screenshots:
+    driver: local
+  engine_mobile_uploads:
+    driver: local

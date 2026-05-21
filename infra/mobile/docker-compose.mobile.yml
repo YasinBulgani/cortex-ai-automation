@@ -1,0 +1,93 @@
+# BGTS Mobil Otomasyon — Appium + Android Emulator Grid
+# ------------------------------------------------------
+# Kullanım (Linux host, GPU/KVM desteği ile):
+#   docker compose -f infra/mobile/docker-compose.mobile.yml up -d
+#
+# Not:
+#   - iOS Simulator Docker'da çalışmaz (Apple lisansı). iOS için Mac Mini node.
+#   - Her `android-emulator-N` konteyneri kendi Appium server'ını içerir.
+#   - Bu dosya 3 emulator ile başlar; production'da Kubernetes operator önerilir.
+#   - Host'ta KVM gerekli: /dev/kvm bind edilmeli.
+#
+# Portlar:
+#   4723-4725    Appium WebDriver
+#   6080-6082    noVNC (debug: tarayıcıdan cihaz ekranı)
+#   5554-5558    ADB ve emulator console (host'tan adb connect)
+
+version: "3.9"
+
+services:
+  android-emu-pixel8:
+    image: budtmo/docker-android:emulator_14.0
+    container_name: bgts-emu-pixel8
+    privileged: true
+    devices:
+      - "/dev/kvm:/dev/kvm"
+    environment:
+      EMULATOR_DEVICE: "Pixel 7"
+      WEB_VNC: "true"
+      APPIUM: "true"
+      APPIUM_HOST: "127.0.0.1"
+      APPIUM_PORT: 4723
+      RELAXED_SECURITY: "true"
+    ports:
+      - "4723:4723"
+      - "6080:6080"
+      - "5554:5554"
+      - "5555:5555"
+    volumes:
+      - ../../infra/mobile/apps:/root/tmp
+    restart: unless-stopped
+
+  android-emu-pixel6:
+    image: budtmo/docker-android:emulator_12.0
+    container_name: bgts-emu-pixel6
+    privileged: true
+    devices:
+      - "/dev/kvm:/dev/kvm"
+    environment:
+      EMULATOR_DEVICE: "Pixel 5"
+      WEB_VNC: "true"
+      APPIUM: "true"
+      APPIUM_HOST: "127.0.0.1"
+      APPIUM_PORT: 4724
+      RELAXED_SECURITY: "true"
+    ports:
+      - "4724:4723"
+      - "6081:6080"
+      - "5556:5554"
+      - "5557:5555"
+    volumes:
+      - ../../infra/mobile/apps:/root/tmp
+    restart: unless-stopped
+
+  android-emu-legacy:
+    image: budtmo/docker-android:emulator_9.0
+    container_name: bgts-emu-legacy
+    privileged: true
+    devices:
+      - "/dev/kvm:/dev/kvm"
+    environment:
+      EMULATOR_DEVICE: "Nexus 5"
+      WEB_VNC: "true"
+      APPIUM: "true"
+      APPIUM_HOST: "127.0.0.1"
+      APPIUM_PORT: 4725
+      RELAXED_SECURITY: "true"
+    ports:
+      - "4725:4723"
+      - "6082:6080"
+    volumes:
+      - ../../infra/mobile/apps:/root/tmp
+    restart: unless-stopped
+
+  # Opsiyonel: koordinatör Selenium Grid hub (Appium 2 grid için alternatif)
+  # Gerçekte BGTS'nin kendi Device Broker'ı bu rolü alıyor, bu sadece debug için.
+  selenium-hub:
+    image: selenium/hub:4.19
+    container_name: bgts-selenium-hub
+    ports:
+      - "4444:4444"
+    restart: unless-stopped
+    profiles:
+      - debug

@@ -1,0 +1,2 @@
+'anaSayfaIzinUcNoktaButon' adlı butona/elemana tıklanıyor
+Element anahtarı: anaSayfaIzinUcNoktaButon

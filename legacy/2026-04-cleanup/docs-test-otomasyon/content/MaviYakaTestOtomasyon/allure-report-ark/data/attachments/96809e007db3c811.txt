@@ -1,0 +1,3 @@
+✅ BAŞARILI
+'GirisYapButon' adlı butona/elemana tıklanıyor
+'GirisYapButon' adlı elemana başarıyla tıklandı. İşlem tamamlandı.

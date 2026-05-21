@@ -1,0 +1,12 @@
+❌ HATA
+'GirisAlanıInput' adlı alana metin yazılıyor (Yazılan: testautomation19)
+Hata: 'GirisAlanıInput' adlı alana metin yazılamadı. Element bulunamadı veya yazılabilir durumda değil.
+no such window: target window already closed
+from unknown error: web view not found
+  (Session info: chrome=146.0.7680.165)
+Build info: version: '4.41.0', revision: '9fc754f'
+System info: os.name: 'Mac OS X', os.arch: 'aarch64', os.version: '26.3', java.version: '25.0.2'
+Driver info: org.openqa.selenium.chrome.ChromeDriver
+Command: [4d536633cb50c5dff51c7997247bbe86, findElement {using=name, value=UserName}]
+Capabilities {acceptInsecureCerts: false, browserName: chrome, browserVersion: 146.0.7680.165, chrome: {chromedriverVersion: 146.0.7680.165 (4b989da09e1..., userDataDir: /var/folders/vn/073d6r0116z...}, fedcm:accounts: true, goog:chromeOptions: {debuggerAddress: localhost:59377}, goog:processID: 2515, networkConnectionEnabled: false, pageLoadStrategy: normal, platformName: mac, proxy: Proxy(), se:cdp: ws://localhost:59377/devtoo..., se:cdpVersion: 146.0.7680.165, setWindowRect: true, strictFileInteractability: false, timeouts: {implicit: 0, pageLoad: 300000, script: 30000}, unhandledPromptBehavior: dismiss and notify, webauthn:extension:credBlob: true, webauthn:extension:largeBlob: true, webauthn:extension:minPinLength: true, webauthn:extension:prf: true, webauthn:virtualAuthenticators: true}
+Session ID: 4d536633cb50c5dff51c7997247bbe86

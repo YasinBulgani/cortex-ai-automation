@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+    "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  TestwrightAI Ollama Sistem Servisi — Performans optimize edilmiş
+  Kurulum: sudo cp scripts/com.testwrightai.ollama.plist /Library/LaunchDaemons/
+            sudo launchctl load /Library/LaunchDaemons/com.testwrightai.ollama.plist
+  Güncelleme: sudo launchctl unload /Library/LaunchDaemons/com.testwrightai.ollama.plist
+              sudo cp scripts/com.testwrightai.ollama.plist /Library/LaunchDaemons/
+              sudo launchctl load /Library/LaunchDaemons/com.testwrightai.ollama.plist
+-->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.testwrightai.ollama</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/usr/local/bin/ollama</string>
+        <string>serve</string>
+    </array>
+
+    <key>KeepAlive</key>
+    <true/>
+
+    <key>RunAtLoad</key>
+    <true/>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <!-- Eşzamanlı yüklü model sayısı: 2 (analyst + coder aynı anda bellekte) -->
+        <key>OLLAMA_MAX_LOADED_MODELS</key>
+        <string>2</string>
+
+        <!-- Paralel istek: 2 (24GB için dengeli; 4 = bellek taşar) -->
+        <key>OLLAMA_NUM_PARALLEL</key>
+        <string>2</string>
+
+        <!-- Model süresi: 60 dakika (prefix cache çalışsın, model yeniden yüklenmesin) -->
+        <key>OLLAMA_KEEP_ALIVE</key>
+        <string>60m</string>
+
+        <!--
+          Flash Attention: KV cache quantization için ZORUNLU
+          Etki: 32B modelde VRAM kullanımı %40-50 azalır
+          Kaynak: smcleod.net/2024/12/bringing-k/v-context-quantisation-to-ollama
+        -->
+        <key>OLLAMA_FLASH_ATTENTION</key>
+        <string>1</string>
+
+        <!--
+          KV Cache quantization: q8_0 = F16'nın yarısı bellek, neredeyse sıfır kalite kaybı
+          q4_0 = 1/4 bellek ama kalite düşer → q8_0 dengeli seçim
+          Kaynak: deepwiki.com/ollama/ollama/5.3-kv-cache-system
+        -->
+        <key>OLLAMA_KV_CACHE_TYPE</key>
+        <string>q8_0</string>
+
+        <!-- Debug kapalı (prod ortam) -->
+        <key>OLLAMA_DEBUG</key>
+        <string>0</string>
+
+        <!-- Request kuyruğu (default 512, düşürerek bellek koru) -->
+        <key>OLLAMA_MAX_QUEUE</key>
+        <string>64</string>
+    </dict>
+
+    <key>StandardOutPath</key>
+    <string>/tmp/twai-ollama.log</string>
+    <key>StandardErrorPath</key>
+    <string>/tmp/twai-ollama-error.log</string>
+
+    <key>ThrottleInterval</key>
+    <integer>5</integer>
+
+    <key>ProcessType</key>
+    <string>Background</string>
+</dict>
+</plist>

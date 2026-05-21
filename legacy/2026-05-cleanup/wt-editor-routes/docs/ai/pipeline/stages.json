@@ -1,0 +1,163 @@
+{
+  "$comment": "Pipeline dependency graph — stage.sh bu grafı kullanarak aşama açar/kapar. 'depends_on' listesindeki tüm aşamalar 'done' veya 'skipped' olunca aşama 'waiting' olur.",
+  "version": "2.0",
+  "stages": {
+    "analyzer": {
+      "depends_on": [],
+      "default_on": "always",
+      "parallel_group": null,
+      "branch_prefix": "analyze/"
+    },
+    "validator": {
+      "depends_on": ["analyzer"],
+      "default_on": "always",
+      "branch_prefix": null,
+      "comment": "PR yorumu ile çalışır"
+    },
+    "proposer": {
+      "depends_on": ["validator"],
+      "default_on": "on_approve",
+      "branch_prefix": "propose/"
+    },
+    "approver": {
+      "depends_on": ["proposer"],
+      "parallel_group": "business_approval",
+      "default_on": "always",
+      "branch_prefix": null
+    },
+    "product_validator": {
+      "depends_on": ["proposer"],
+      "parallel_group": "business_approval",
+      "default_on": "always",
+      "branch_prefix": null,
+      "comment": "Approver (teknik) ile paralel — iş/ürün perspektifi"
+    },
+    "designer": {
+      "depends_on": ["approver", "product_validator"],
+      "parallel_group": "design_arch",
+      "default_on": "scope.fe",
+      "branch_prefix": "design/"
+    },
+    "architect": {
+      "depends_on": ["approver", "product_validator"],
+      "parallel_group": "design_arch",
+      "default_on": "always",
+      "branch_prefix": "arch/"
+    },
+    "frontend": {
+      "depends_on": ["designer", "architect"],
+      "parallel_group": "implementation",
+      "default_on": "scope.fe",
+      "branch_prefix": "feat/fe-"
+    },
+    "backend": {
+      "depends_on": ["architect"],
+      "parallel_group": "implementation",
+      "default_on": "scope.be",
+      "branch_prefix": "feat/be-"
+    },
+    "data_engineer": {
+      "depends_on": ["architect"],
+      "parallel_group": "implementation",
+      "default_on": "scope.data",
+      "branch_prefix": "feat/data-",
+      "comment": "Migration / data backfill"
+    },
+    "devops": {
+      "depends_on": ["architect"],
+      "parallel_group": "implementation",
+      "default_on": "scope.infra",
+      "branch_prefix": "feat/infra-",
+      "comment": "Docker, CI, k8s, env"
+    },
+    "code_reviewer": {
+      "depends_on": ["frontend", "backend", "data_engineer", "devops"],
+      "default_on": "always",
+      "branch_prefix": null,
+      "comment": "PR yorumu ile çalışır — FE/BE/Data/Infra PR'larını ayrı ayrı review"
+    },
+    "integrator": {
+      "depends_on": ["code_reviewer"],
+      "default_on": "always",
+      "branch_prefix": "integrate/"
+    },
+    "qa": {
+      "depends_on": ["integrator"],
+      "parallel_group": "pre_prod_tests",
+      "default_on": "always",
+      "branch_prefix": "qa/"
+    },
+    "security_reviewer": {
+      "depends_on": ["integrator"],
+      "parallel_group": "pre_prod_tests",
+      "default_on": "always",
+      "branch_prefix": "sec/"
+    },
+    "a11y_auditor": {
+      "depends_on": ["integrator"],
+      "parallel_group": "pre_prod_tests",
+      "default_on": "scope.fe",
+      "branch_prefix": "a11y/"
+    },
+    "performance_tester": {
+      "depends_on": ["integrator"],
+      "parallel_group": "pre_prod_tests",
+      "default_on": "scope.perf_sensitive",
+      "branch_prefix": "perf/"
+    },
+    "promoter": {
+      "depends_on": ["qa", "security_reviewer", "a11y_auditor", "performance_tester"],
+      "default_on": "always",
+      "branch_prefix": null
+    },
+    "release_manager": {
+      "depends_on": ["promoter"],
+      "default_on": "always",
+      "branch_prefix": null,
+      "comment": "Changelog + tag + release notes"
+    },
+    "observer": {
+      "depends_on": ["release_manager"],
+      "default_on": "always",
+      "branch_prefix": null,
+      "comment": "30dk canary window, prod health monitor"
+    },
+    "retrospective": {
+      "depends_on": ["observer"],
+      "default_on": "always",
+      "branch_prefix": null,
+      "comment": "Lessons learned, 24h sonra tetiklenir"
+    }
+  },
+  "out_of_pipeline": {
+    "intake_triage": {
+      "trigger": "user_request",
+      "comment": "Gelen isteği GAP/FEAT/BUG'a sınıflar, priority atar, stage.sh init çağırır"
+    },
+    "knowledge_curator": {
+      "trigger": "scheduled:weekly",
+      "comment": "GROUNDING.md güncel tutar, retro çıktılarından pattern çıkarır"
+    },
+    "dependency_watchdog": {
+      "trigger": "scheduled:daily",
+      "comment": "npm audit + pip-audit + renovate; CVE bulursa BUG, güncelleme FEAT açar"
+    },
+    "conflict_resolver": {
+      "trigger": "event:file_collision",
+      "comment": "Aktif item'ların aynı dosyaya dokunması durumunda devreye girer"
+    }
+  },
+  "parallel_groups": {
+    "business_approval": "İş + teknik onay paralel",
+    "design_arch": "UX + teknik mimari paralel",
+    "implementation": "FE + BE + Data + Infra paralel",
+    "pre_prod_tests": "QA + Security + A11y + Performance paralel"
+  },
+  "scope_flags": {
+    "fe": "Frontend değişikliği var mı?",
+    "be": "Backend değişikliği var mı?",
+    "data": "DB migration / data işi var mı?",
+    "infra": "CI/Docker/infra değişikliği var mı?",
+    "perf_sensitive": "Yeni endpoint veya büyük FE bundle değişikliği mi?"
+  }
+}

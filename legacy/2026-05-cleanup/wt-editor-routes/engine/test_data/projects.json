@@ -1,0 +1,69 @@
+{
+  "projects": [
+    {
+      "id": "prj-001",
+      "name": "Mobil Bankacılık v3.0 Test",
+      "description": "Mobil bankacılık uygulamasının 3.0 sürümü için kapsamlı fonksiyonel ve regresyon testleri. EFT, havale, kredi kartı işlemleri ve biyometrik kimlik doğrulama modüllerini kapsar.",
+      "status": "active",
+      "created_at": "2025-09-01T08:00:00Z",
+      "updated_at": "2026-03-28T16:45:00Z",
+      "owner": "usr-002",
+      "tags": ["mobil", "bankacılık", "android", "ios", "regresyon"],
+      "scenario_count": 48,
+      "environment": "staging",
+      "priority": "high"
+    },
+    {
+      "id": "prj-002",
+      "name": "İnternet Bankacılığı Regresyon",
+      "description": "İnternet bankacılığı platformunun tüm modüllerini kapsayan regresyon test paketi. Hesap yönetimi, para transferi, fatura ödeme ve yatırım işlemlerini içerir.",
+      "status": "active",
+      "created_at": "2025-07-15T10:30:00Z",
+      "updated_at": "2026-04-01T09:20:00Z",
+      "owner": "usr-002",
+      "tags": ["internet-bankacılığı", "regresyon", "web", "kritik"],
+      "scenario_count": 72,
+      "environment": "staging",
+      "priority": "critical"
+    },
+    {
+      "id": "prj-003",
+      "name": "Kredi Kartı Modülü",
+      "description": "Kredi kartı başvuru, limit artırımı, taksitlendirme, puan sorgulama ve ekstra kart talep süreçlerinin test otomasyonu.",
+      "status": "active",
+      "created_at": "2025-11-20T14:00:00Z",
+      "updated_at": "2026-03-30T11:10:00Z",
+      "owner": "usr-003",
+      "tags": ["kredi-kartı", "başvuru", "limit", "taksit", "puan"],
+      "scenario_count": 35,
+      "environment": "dev",
+      "priority": "high"
+    },
+    {
+      "id": "prj-004",
+      "name": "ATM Yazılımı Test",
+      "description": "ATM cihaz yazılımının para çekme, para yatırma, bakiye sorgulama, dekont yazdırma ve kart işlemleri modüllerinin test senaryoları.",
+      "status": "active",
+      "created_at": "2026-01-10T09:00:00Z",
+      "updated_at": "2026-03-25T15:30:00Z",
+      "owner": "usr-002",
+      "tags": ["atm", "donanım", "nakit", "kart-işlemleri"],
+      "scenario_count": 28,
+      "environment": "dev",
+      "priority": "medium"
+    },
+    {
+      "id": "prj-005",
+      "name": "Müşteri Yönetim Sistemi",
+      "description": "CRM entegrasyonlu müşteri yönetim sisteminin müşteri kaydı, segmentasyon, kampanya yönetimi ve raporlama modüllerinin test otomasyonu.",
+      "status": "active",
+      "created_at": "2026-02-01T11:00:00Z",
+      "updated_at": "2026-04-02T10:00:00Z",
+      "owner": "usr-003",
+      "tags": ["crm", "müşteri", "segmentasyon", "kampanya", "raporlama"],
+      "scenario_count": 41,
+      "environment": "staging",
+      "priority": "medium"
+    }
+  ]
+}

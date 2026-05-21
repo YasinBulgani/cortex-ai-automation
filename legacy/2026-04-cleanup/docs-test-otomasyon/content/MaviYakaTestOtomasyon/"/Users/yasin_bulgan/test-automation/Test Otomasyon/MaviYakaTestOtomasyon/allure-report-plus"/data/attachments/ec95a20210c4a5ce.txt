@@ -1,0 +1,3 @@
+✅ BAŞARILI
+'izinlerimSayfasıTalepEdilenIzınText' adlı elemanın değeri kontrol ediliyor (Beklenen: athSBmpCcd1LLY0)
+'izinlerimSayfasıTalepEdilenIzınText' adlı elemanın metni doğrulandı. Beklenen değer: 'athSBmpCcd1LLY0' bulundu.

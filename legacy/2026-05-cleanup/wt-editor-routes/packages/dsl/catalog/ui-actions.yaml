@@ -1,0 +1,2344 @@
+version: 1.0.0
+category_name: Ui Actions
+generated_by: packages/dsl/scripts/build_catalog.py
+generated_at: '2026-04-17'
+actions:
+- id: check_checkbox
+  category: ui.checkbox
+  description: 'Eylem: I check the checkbox {string}'
+  aliases:
+    en:
+    - I check the checkbox {string}
+  implementations:
+    java:
+      source_file: frameworks/selenium-cucumber-java/src/test/java/stepdefinitions/CheckboxSteps.java
+      function: checkCheckbox
+      pattern: I check the checkbox {string}
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: clear_and_enter_text
+  category: ui.input
+  description: 'Eylem: I clear and enter {string} into the input {string}'
+  aliases:
+    en:
+    - I clear and enter {string} into the input {string}
+  implementations:
+    java:
+      source_file: frameworks/selenium-cucumber-java/src/test/java/stepdefinitions/InputSteps.java
+      function: clearAndEnterText
+      pattern: I clear and enter {string} into the input {string}
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: clear_the_input_field
+  category: ui.input
+  description: 'Eylem: I clear the input {string}'
+  aliases:
+    en:
+    - I clear the input {string}
+  implementations:
+    java:
+      source_file: frameworks/selenium-cucumber-java/src/test/java/stepdefinitions/InputSteps.java
+      function: clearTheInputField
+      pattern: I clear the input {string}
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: click_on_element
+  category: ui.click
+  description: 'Eylem: I click on {string}'
+  aliases:
+    en:
+    - I click on {string}
+  implementations:
+    java:
+      source_file: frameworks/selenium-cucumber-java/src/test/java/stepdefinitions/ClickSteps.java
+      function: clickOnElement
+      pattern: I click on {string}
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/common-steps.ts
+      pattern: I click on {string}
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: click_project
+  category: ui.click
+  description: 'Eylem: kullanıcı "{name}" adlı projeye tıklar'
+  aliases:
+    tr:
+    - kullanıcı "{name}" adlı projeye tıklar
+  implementations:
+    python:
+      source_file: engine/steps/bgts_project_steps.py
+      function: click_project
+      pattern: kullanıcı "{name}" adlı projeye tıklar
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: name
+    type: string
+    required: true
+- id: click_selector
+  category: ui.click
+  description: 'Eylem: kullanıcı "{selector}" seçicisini tıklar'
+  aliases:
+    tr:
+    - kullanıcı "{selector}" seçicisini tıklar
+  implementations:
+    python:
+      source_file: engine/steps/common_steps.py
+      function: click_selector
+      pattern: kullanıcı "{selector}" seçicisini tıklar
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: selector
+    type: string
+    required: true
+- id: click_text
+  category: ui.click
+  description: 'Eylem: kullanıcı "{text}" metnine tıklar'
+  aliases:
+    tr:
+    - kullanıcı "{text}" metnine tıklar
+  implementations:
+    python:
+      source_file: engine/steps/common_steps.py
+      function: click_text
+      pattern: kullanıcı "{text}" metnine tıklar
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: text
+    type: string
+    required: true
+- id: double_click_on_element
+  category: ui.click.double
+  description: 'Eylem: I double click on {string}'
+  aliases:
+    en:
+    - I double click on {string}
+  implementations:
+    java:
+      source_file: frameworks/selenium-cucumber-java/src/test/java/stepdefinitions/ClickSteps.java
+      function: doubleClickOnElement
+      pattern: I double click on {string}
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: drag_and_drop
+  category: ui.drag_drop
+  description: 'Eylem: I drag {string} and drop on {string}'
+  aliases:
+    tr:
+    - I drag {string} and drop on {string}
+  implementations:
+    java:
+      source_file: frameworks/selenium-cucumber-java/src/test/java/stepdefinitions/DragDropSteps.java
+      function: dragAndDrop
+      pattern: I drag {string} and drop on {string}
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: en_clear
+  category: ui.input
+  description: 'Eylem: I clear the input ''{key}'''
+  aliases:
+    en:
+    - I clear the input '{key}'
+  implementations:
+    python:
+      source_file: engine/steps/english_steps.py
+      function: en_clear
+      pattern: I clear the input '{key}'
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: key
+    type: locator
+    required: true
+- id: en_clear_and_fill_bare
+  category: ui.input
+  description: 'Eylem: I clear and enter (?P<value>\S+) into the input (?P<key>.+)'
+  aliases:
+    en:
+    - I clear and enter (?P<value>\S+) into the input (?P<key>.+)
+  implementations:
+    python:
+      source_file: engine/steps/english_steps.py
+      function: en_clear_and_fill_bare
+      pattern: I clear and enter (?P<value>\S+) into the input (?P<key>.+)
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+- id: en_clear_double_quotes
+  category: ui.input
+  description: 'Eylem: I clear the input "{key}"'
+  aliases:
+    en:
+    - I clear the input "{key}"
+  implementations:
+    python:
+      source_file: engine/steps/english_steps.py
+      function: en_clear_double_quotes
+      pattern: I clear the input "{key}"
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: key
+    type: locator
+    required: true
+- id: en_click
+  category: ui.click
+  description: 'Eylem: I click on ''{key}'''
+  aliases:
+    en:
+    - I click on '{key}'
+  implementations:
+    python:
+      source_file: engine/steps/english_steps.py
+      function: en_click
+      pattern: I click on '{key}'
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: key
+    type: locator
+    required: true
+- id: en_click_bare
+  category: ui.click
+  description: 'Eylem: I click on (?P<key>.+)'
+  aliases:
+    en:
+    - I click on (?P<key>.+)
+  implementations:
+    python:
+      source_file: engine/steps/english_steps.py
+      function: en_click_bare
+      pattern: I click on (?P<key>.+)
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+- id: en_click_double_quotes
+  category: ui.click
+  description: 'Eylem: I click on "{key}"'
+  aliases:
+    en:
+    - I click on "{key}"
+  implementations:
+    python:
+      source_file: engine/steps/english_steps.py
+      function: en_click_double_quotes
+      pattern: I click on "{key}"
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: key
+    type: locator
+    required: true
+- id: en_dblclick
+  category: ui.click.double
+  description: 'Eylem: I double click on ''{key}'''
+  aliases:
+    en:
+    - I double click on '{key}'
+  implementations:
+    python:
+      source_file: engine/steps/english_steps.py
+      function: en_dblclick
+      pattern: I double click on '{key}'
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: key
+    type: locator
+    required: true
+- id: en_drag_drop
+  category: ui.drag_drop
+  description: 'Eylem: I drag ''{source}'' to ''{target}'''
+  aliases:
+    tr:
+    - I drag '{source}' to '{target}'
+  implementations:
+    python:
+      source_file: engine/steps/english_steps.py
+      function: en_drag_drop
+      pattern: I drag '{source}' to '{target}'
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: source
+    type: string
+    required: true
+  - name: target
+    type: string
+    required: true
+- id: en_fill
+  category: ui.input
+  description: 'Eylem: I enter ''{value}'' into the input ''{key}'''
+  aliases:
+    en:
+    - I enter '{value}' into the input '{key}'
+  implementations:
+    python:
+      source_file: engine/steps/english_steps.py
+      function: en_fill
+      pattern: I enter '{value}' into the input '{key}'
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: value
+    type: string
+    required: true
+  - name: key
+    type: locator
+    required: true
+- id: en_fill_double_quotes
+  category: ui.input
+  description: 'Eylem: I enter "{value}" into the input "{key}"'
+  aliases:
+    en:
+    - I enter "{value}" into the input "{key}"
+  implementations:
+    python:
+      source_file: engine/steps/english_steps.py
+      function: en_fill_double_quotes
+      pattern: I enter "{value}" into the input "{key}"
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: value
+    type: string
+    required: true
+  - name: key
+    type: locator
+    required: true
+- id: en_hover
+  category: ui.hover
+  description: 'Eylem: I hover over ''{key}'''
+  aliases:
+    tr:
+    - I hover over '{key}'
+  implementations:
+    python:
+      source_file: engine/steps/english_steps.py
+      function: en_hover
+      pattern: I hover over '{key}'
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: key
+    type: locator
+    required: true
+- id: en_open_url
+  category: ui.navigation
+  description: (Ön koşul) I open the application url from config '{key}'
+  aliases:
+    en:
+    - I open the application url from config '{key}'
+  implementations:
+    python:
+      source_file: engine/steps/english_steps.py
+      function: en_open_url
+      pattern: I open the application url from config '{key}'
+  tags:
+  - auto-extracted
+  - given
+  since: '2026-04-17'
+  parameters:
+  - name: key
+    type: locator
+    required: true
+- id: en_open_url_bare
+  category: ui.navigation
+  description: (Ön koşul) I open the application url (?P<key>.+)
+  aliases:
+    en:
+    - I open the application url (?P<key>.+)
+  implementations:
+    python:
+      source_file: engine/steps/english_steps.py
+      function: en_open_url_bare
+      pattern: I open the application url (?P<key>.+)
+  tags:
+  - auto-extracted
+  - given
+  since: '2026-04-17'
+- id: en_open_url_double_quotes
+  category: ui.navigation
+  description: (Ön koşul) I open the application url "{key}"
+  aliases:
+    en:
+    - I open the application url "{key}"
+  implementations:
+    python:
+      source_file: engine/steps/english_steps.py
+      function: en_open_url_double_quotes
+      pattern: I open the application url "{key}"
+  tags:
+  - auto-extracted
+  - given
+  since: '2026-04-17'
+  parameters:
+  - name: key
+    type: locator
+    required: true
+- id: en_press_key
+  category: ui.keyboard
+  description: 'Eylem: I press the ''{key}'' key'
+  aliases:
+    en:
+    - I press the '{key}' key
+  implementations:
+    python:
+      source_file: engine/steps/english_steps.py
+      function: en_press_key
+      pattern: I press the '{key}' key
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: key
+    type: locator
+    required: true
+- id: en_scroll_to
+  category: ui.scroll
+  description: 'Eylem: I scroll to ''{key}'''
+  aliases:
+    tr:
+    - I scroll to '{key}'
+  implementations:
+    python:
+      source_file: engine/steps/english_steps.py
+      function: en_scroll_to
+      pattern: I scroll to '{key}'
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: key
+    type: locator
+    required: true
+- id: en_select
+  category: ui.select
+  description: 'Eylem: I select ''{label}'' from ''{key}'''
+  aliases:
+    en:
+    - I select '{label}' from '{key}'
+  implementations:
+    python:
+      source_file: engine/steps/english_steps.py
+      function: en_select
+      pattern: I select '{label}' from '{key}'
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: label
+    type: string
+    required: true
+  - name: key
+    type: locator
+    required: true
+- id: en_upload
+  category: ui.input
+  description: 'Eylem: I upload the file ''{file_type}'' to the input ''{key}'''
+  aliases:
+    en:
+    - I upload the file '{file_type}' to the input '{key}'
+  implementations:
+    python:
+      source_file: engine/steps/english_steps.py
+      function: en_upload
+      pattern: I upload the file '{file_type}' to the input '{key}'
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: file_type
+    type: string
+    required: true
+  - name: key
+    type: locator
+    required: true
+- id: en_wait
+  category: ui.wait
+  description: 'Eylem: I wait for {seconds:d} seconds'
+  aliases:
+    tr:
+    - I wait for {int} seconds
+    - I wait for {seconds:d} seconds
+  implementations:
+    python:
+      source_file: engine/steps/english_steps.py
+      function: en_wait
+      pattern: I wait for {seconds:d} seconds
+    java:
+      source_file: frameworks/selenium-cucumber-java/src/test/java/stepdefinitions/WaitSteps.java
+      function: waitForSeconds
+      pattern: I wait for {int} seconds
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/common-steps.ts
+      pattern: I wait for {int} seconds
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: seconds
+    type: int
+    required: true
+  - name: int
+    type: string
+    required: true
+- id: en_wait_clickable_bare
+  category: ui.wait
+  description: 'Eylem: I wait for element (?P<key>.+) to be clickable'
+  aliases:
+    tr:
+    - I wait for element (?P<key>.+) to be clickable
+  implementations:
+    python:
+      source_file: engine/steps/english_steps.py
+      function: en_wait_clickable_bare
+      pattern: I wait for element (?P<key>.+) to be clickable
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+- id: enter_text_and_press_key
+  category: ui.input
+  description: 'Eylem: I enter {string} into the input {string} and press {string}'
+  aliases:
+    en:
+    - I enter {string} into the input {string} and press {string}
+  implementations:
+    java:
+      source_file: frameworks/selenium-cucumber-java/src/test/java/stepdefinitions/InputSteps.java
+      function: enterTextAndPressKey
+      pattern: I enter {string} into the input {string} and press {string}
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: enter_text_into_input
+  category: ui.input
+  description: 'Eylem: I enter {string} into the input {string}'
+  aliases:
+    en:
+    - I enter {string} into the input {string}
+  implementations:
+    java:
+      source_file: frameworks/selenium-cucumber-java/src/test/java/stepdefinitions/InputSteps.java
+      function: enterTextIntoInput
+      pattern: I enter {string} into the input {string}
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: enter_value_stored_under_into_input
+  category: ui.input
+  description: 'Eylem: I enter the value stored under {string} into the input {string}'
+  aliases:
+    en:
+    - I enter the value stored under {string} into the input {string}
+  implementations:
+    java:
+      source_file: frameworks/selenium-cucumber-java/src/test/java/stepdefinitions/ScenarioContextSteps.java
+      function: enterValueStoredUnderIntoInput
+      pattern: I enter the value stored under {string} into the input {string}
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: fill_and_enter
+  category: ui.input
+  description: 'Eylem: kullanıcı "{selector}" alanına "{value}" yazıp Enter\''a basar'
+  aliases:
+    tr:
+    - kullanıcı "{selector}" alanına "{value}" yazıp Enter\'a basar
+  implementations:
+    python:
+      source_file: engine/steps/common_steps.py
+      function: fill_and_enter
+      pattern: kullanıcı "{selector}" alanına "{value}" yazıp Enter\'a basar
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: selector
+    type: string
+    required: true
+  - name: value
+    type: string
+    required: true
+- id: fill_import_filename
+  category: ui.upload
+  description: 'Eylem: kullanıcı "{filename}" dosya adını girer'
+  aliases:
+    tr:
+    - kullanıcı "{filename}" dosya adını girer
+  implementations:
+    python:
+      source_file: engine/steps/bgts_import_steps.py
+      function: fill_import_filename
+      pattern: kullanıcı "{filename}" dosya adını girer
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: filename
+    type: string
+    required: true
+- id: fill_input
+  category: ui.input
+  description: 'Eylem: kullanıcı "{selector}" kutusuna "{value}" yazar'
+  aliases:
+    tr:
+    - kullanıcı "{selector}" kutusuna "{value}" yazar
+  implementations:
+    python:
+      source_file: engine/steps/common_steps.py
+      function: fill_input
+      pattern: kullanıcı "{selector}" kutusuna "{value}" yazar
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: selector
+    type: string
+    required: true
+  - name: value
+    type: string
+    required: true
+- id: fill_search
+  category: ui.input
+  description: 'Eylem: kullanıcı arama kutusuna "{value}" yazar'
+  aliases:
+    tr:
+    - kullanıcı arama kutusuna "{value}" yazar
+  implementations:
+    python:
+      source_file: engine/steps/common_steps.py
+      function: fill_search
+      pattern: kullanıcı arama kutusuna "{value}" yazar
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: value
+    type: string
+    required: true
+- id: hover_over
+  category: ui.hover
+  description: 'Eylem: I hover over {string}'
+  aliases:
+    tr:
+    - I hover over {string}
+  implementations:
+    java:
+      source_file: frameworks/selenium-cucumber-java/src/test/java/stepdefinitions/HoverSteps.java
+      function: hoverOver
+      pattern: I hover over {string}
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/common-steps.ts
+      pattern: I hover over {string}
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_clear_the_input_field
+  category: ui.input
+  description: 'Eylem: I clear the input field {string}'
+  aliases:
+    en:
+    - I clear the input field {string}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/common-steps.ts
+      pattern: I clear the input field {string}
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_click_in_the_modal
+  category: ui.click
+  description: 'Eylem: I click {string} in the modal'
+  aliases:
+    en:
+    - I click {string} in the modal
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/web-steps.ts
+      pattern: I click {string} in the modal
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_click_next_page
+  category: ui.click
+  description: 'Eylem: I click next page'
+  aliases:
+    en:
+    - I click next page
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/web-steps.ts
+      pattern: I click next page
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+- id: i_click_on_a_pending_buy_order_from_the
+  category: ui.click
+  description: 'Eylem: I click on a pending buy order from the list'
+  aliases:
+    en:
+    - I click on a pending buy order from the list
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/web.steps.ts
+      pattern: I click on a pending buy order from the list
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+- id: i_click_on_a_pending_sell_order_from_the
+  category: ui.click
+  description: 'Eylem: I click on a pending sell order from the list'
+  aliases:
+    en:
+    - I click on a pending sell order from the list
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/web.steps.ts
+      pattern: I click on a pending sell order from the list
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+- id: i_click_on_the_first_selected_cryptocurr
+  category: ui.click
+  description: 'Eylem: I click on the first selected cryptocurrency'
+  aliases:
+    en:
+    - I click on the first selected cryptocurrency
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/web.steps.ts
+      pattern: I click on the first selected cryptocurrency
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+- id: i_click_page
+  category: ui.click
+  description: 'Eylem: I click page {int}'
+  aliases:
+    en:
+    - I click page {int}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/web-steps.ts
+      pattern: I click page {int}
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: int
+    type: string
+    required: true
+- id: i_click_row_with
+  category: ui.click
+  description: 'Eylem: I click row with {string}'
+  aliases:
+    en:
+    - I click row with {string}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/web-steps.ts
+      pattern: I click row with {string}
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_click_the_button
+  category: ui.click
+  description: 'Eylem: I click the {string} button'
+  aliases:
+    en:
+    - I click the {string} button
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/common-steps.ts
+      pattern: I click the {string} button
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_click_the_button_to_fill_unit_price
+  category: ui.click
+  description: 'Eylem: I click the {string} button to fill unit price'
+  aliases:
+    en:
+    - I click the {string} button to fill unit price
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/web.steps.ts
+      pattern: I click the {string} button to fill unit price
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_click_the_link
+  category: ui.click
+  description: 'Eylem: I click the {string} link'
+  aliases:
+    en:
+    - I click the {string} link
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/common-steps.ts
+      pattern: I click the {string} link
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_click_the_login_button
+  category: ui.click
+  description: 'Eylem: I click the Login button'
+  aliases:
+    en:
+    - I click the Login button
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/web.steps.ts
+      pattern: I click the Login button
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+- id: i_enter_credentials_and_login
+  category: ui.input
+  description: 'Eylem: I enter credentials and login'
+  aliases:
+    en:
+    - I enter credentials and login
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/paribu-steps.ts
+      pattern: I enter credentials and login
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+- id: i_enter_in
+  category: ui.input
+  description: 'Eylem: I enter {string} in {string}'
+  aliases:
+    en:
+    - I enter {string} in {string}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/common-steps.ts
+      pattern: I enter {string} in {string}
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_enter_invalid_country_code
+  category: ui.input
+  description: 'Eylem: I enter invalid country code {string}'
+  aliases:
+    en:
+    - I enter invalid country code {string}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/web.steps.ts
+      pattern: I enter invalid country code {string}
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_enter_invalid_mobile_number
+  category: ui.input
+  description: 'Eylem: I enter invalid mobile number {string}'
+  aliases:
+    en:
+    - I enter invalid mobile number {string}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/web.steps.ts
+      pattern: I enter invalid mobile number {string}
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_enter_invalid_password
+  category: ui.input
+  description: 'Eylem: I enter invalid password {string}'
+  aliases:
+    en:
+    - I enter invalid password {string}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/web.steps.ts
+      pattern: I enter invalid password {string}
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_enter_quantity_in_the_buy_sell_panel
+  category: ui.input
+  description: 'Eylem: I enter quantity {string} in the Buy-Sell panel'
+  aliases:
+    en:
+    - I enter quantity {string} in the Buy-Sell panel
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/web.steps.ts
+      pattern: I enter quantity {string} in the Buy-Sell panel
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_enter_unit_price_in_the_buy_sell_panel
+  category: ui.input
+  description: 'Eylem: I enter unit price {string} in the Buy-Sell panel'
+  aliases:
+    en:
+    - I enter unit price {string} in the Buy-Sell panel
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/web.steps.ts
+      pattern: I enter unit price {string} in the Buy-Sell panel
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_fill_the_form_with
+  category: ui.input
+  description: 'Eylem: I fill the form with:'
+  aliases:
+    en:
+    - 'I fill the form with:'
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/web-steps.ts
+      pattern: 'I fill the form with:'
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+- id: i_fill_with
+  category: ui.input
+  description: 'Eylem: I fill {string} with {string}'
+  aliases:
+    en:
+    - I fill {string} with {string}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/common-steps.ts
+      pattern: I fill {string} with {string}
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_go_to_markets_page
+  category: ui.navigation
+  description: 'Eylem: I go to markets page'
+  aliases:
+    tr:
+    - I go to markets page
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/paribu-steps.ts
+      pattern: I go to markets page
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+- id: i_go_to_my_profile
+  category: ui.navigation
+  description: 'Eylem: I go to my profile'
+  aliases:
+    tr:
+    - I go to my profile
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/paribu-steps.ts
+      pattern: I go to my profile
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+- id: i_go_to_trading_page
+  category: ui.navigation
+  description: 'Eylem: I go to trading page'
+  aliases:
+    tr:
+    - I go to trading page
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/paribu-steps.ts
+      pattern: I go to trading page
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+- id: i_go_to_url
+  category: ui.navigation
+  description: 'Eylem: I go to URL {string}'
+  aliases:
+    tr:
+    - I go to URL {string}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/common-steps.ts
+      pattern: I go to URL {string}
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_go_to_wallet_page
+  category: ui.navigation
+  description: 'Eylem: I go to wallet page'
+  aliases:
+    tr:
+    - I go to wallet page
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/paribu-steps.ts
+      pattern: I go to wallet page
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+- id: i_navigate_to
+  category: ui.navigation
+  description: (Ön koşul) I navigate to {string}
+  aliases:
+    en:
+    - I navigate to {string}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/common-steps.ts
+      pattern: I navigate to {string}
+  tags:
+  - auto-extracted
+  - given
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_navigate_to_paribu_homepage
+  category: ui.navigation
+  description: (Ön koşul) I navigate to Paribu homepage
+  aliases:
+    en:
+    - I navigate to Paribu homepage
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/web.steps.ts
+      pattern: I navigate to Paribu homepage
+  tags:
+  - auto-extracted
+  - given
+  since: '2026-04-17'
+- id: i_navigate_to_paribu_login_page
+  category: ui.navigation
+  description: (Ön koşul) I navigate to Paribu login page
+  aliases:
+    en:
+    - I navigate to Paribu login page
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/paribu-steps.ts
+      pattern: I navigate to Paribu login page
+  tags:
+  - auto-extracted
+  - given
+  since: '2026-04-17'
+- id: i_navigate_to_the_login_page
+  category: ui.navigation
+  description: 'Eylem: I navigate to the Login page'
+  aliases:
+    en:
+    - I navigate to the Login page
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/web.steps.ts
+      pattern: I navigate to the Login page
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+- id: i_navigate_to_the_markets_page
+  category: ui.navigation
+  description: 'Eylem: I navigate to the Markets page'
+  aliases:
+    en:
+    - I navigate to the Markets page
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/web.steps.ts
+      pattern: I navigate to the Markets page
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+- id: i_press
+  category: ui.keyboard
+  description: 'Eylem: I press {string}'
+  aliases:
+    tr:
+    - I press {string}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/common-steps.ts
+      pattern: I press {string}
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_press_enter
+  category: ui.input
+  description: 'Eylem: I press Enter'
+  aliases:
+    en:
+    - I press Enter
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/common-steps.ts
+      pattern: I press Enter
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+- id: i_press_escape
+  category: ui.keyboard
+  description: 'Eylem: I press Escape'
+  aliases:
+    tr:
+    - I press Escape
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/common-steps.ts
+      pattern: I press Escape
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+- id: i_press_in
+  category: ui.keyboard
+  description: 'Eylem: I press {string} in {string}'
+  aliases:
+    tr:
+    - I press {string} in {string}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/common-steps.ts
+      pattern: I press {string} in {string}
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_scroll_to
+  category: ui.scroll
+  description: 'Eylem: I scroll to {string}'
+  aliases:
+    tr:
+    - I scroll to {string}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/common-steps.ts
+      pattern: I scroll to {string}
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_select_option_from_dropdown
+  category: ui.select
+  description: 'Eylem: I select {string} option from dropdown'
+  aliases:
+    en:
+    - I select {string} option from dropdown
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/web-steps.ts
+      pattern: I select {string} option from dropdown
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_select_random_coins_with_positive_24h
+  category: ui.select
+  description: 'Eylem: I select {int} random coins with positive 24h change'
+  aliases:
+    en:
+    - I select {int} random coins with positive 24h change
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/web.steps.ts
+      pattern: I select {int} random coins with positive 24h change
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: int
+    type: string
+    required: true
+- id: i_select_the_filter
+  category: ui.select
+  description: 'Eylem: I select the {string} filter'
+  aliases:
+    en:
+    - I select the {string} filter
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/web.steps.ts
+      pattern: I select the {string} filter
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_take_a_full_page_screenshot_named
+  category: ui.screenshot
+  description: 'Eylem: I take a full page screenshot named {string}'
+  aliases:
+    tr:
+    - I take a full page screenshot named {string}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/visual-steps.ts
+      pattern: I take a full page screenshot named {string}
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_take_a_screenshot_named
+  category: ui.screenshot
+  description: 'Eylem: I take a screenshot named {string}'
+  aliases:
+    tr:
+    - I take a screenshot named {string}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/common-steps.ts
+      pattern: I take a screenshot named {string}
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_take_a_screenshot_of_named
+  category: ui.screenshot
+  description: 'Eylem: I take a screenshot of {string} named {string}'
+  aliases:
+    tr:
+    - I take a screenshot of {string} named {string}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/visual-steps.ts
+      pattern: I take a screenshot of {string} named {string}
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_type_in
+  category: ui.input
+  description: 'Eylem: I type {string} in {string}'
+  aliases:
+    en:
+    - I type {string} in {string}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/common-steps.ts
+      pattern: I type {string} in {string}
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_wait_for_text_to_appear
+  category: ui.wait
+  description: 'Eylem: I wait for text {string} to appear'
+  aliases:
+    tr:
+    - I wait for text {string} to appear
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/common-steps.ts
+      pattern: I wait for text {string} to appear
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_wait_for_to_be_hidden
+  category: ui.wait
+  description: 'Eylem: I wait for {string} to be hidden'
+  aliases:
+    tr:
+    - I wait for {string} to be hidden
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/common-steps.ts
+      pattern: I wait for {string} to be hidden
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_wait_for_to_be_visible
+  category: ui.wait
+  description: 'Eylem: I wait for {string} to be visible'
+  aliases:
+    tr:
+    - I wait for {string} to be visible
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/common-steps.ts
+      pattern: I wait for {string} to be visible
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: open_application_url
+  category: ui.navigation
+  description: (Ön koşul) I open the application url {string}
+  aliases:
+    en:
+    - I open the application url {string}
+  implementations:
+    java:
+      source_file: frameworks/selenium-cucumber-java/src/test/java/stepdefinitions/NavigationSteps.java
+      function: openApplicationUrl
+      pattern: I open the application url {string}
+  tags:
+  - auto-extracted
+  - given
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: open_application_url_from_config
+  category: ui.navigation
+  description: (Ön koşul) I open the application url from config {string}
+  aliases:
+    en:
+    - I open the application url from config {string}
+  implementations:
+    java:
+      source_file: frameworks/selenium-cucumber-java/src/test/java/stepdefinitions/NavigationSteps.java
+      function: openApplicationUrlFromConfig
+      pattern: I open the application url from config {string}
+  tags:
+  - auto-extracted
+  - given
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: press_enter
+  category: ui.input
+  description: 'Eylem: kullanıcı Enter tuşuna basar'
+  aliases:
+    tr:
+    - kullanıcı Enter tuşuna basar
+  implementations:
+    python:
+      source_file: engine/steps/common_steps.py
+      function: press_enter
+      pattern: kullanıcı Enter tuşuna basar
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+- id: press_the_key
+  category: ui.keyboard
+  description: 'Eylem: I press the {string} key'
+  aliases:
+    en:
+    - I press the {string} key
+  implementations:
+    java:
+      source_file: frameworks/selenium-cucumber-java/src/test/java/stepdefinitions/KeyboardSteps.java
+      function: pressTheKey
+      pattern: I press the {string} key
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: right_click_on_element
+  category: ui.click.right
+  description: 'Eylem: I right click on {string}'
+  aliases:
+    en:
+    - I right click on {string}
+  implementations:
+    java:
+      source_file: frameworks/selenium-cucumber-java/src/test/java/stepdefinitions/ClickSteps.java
+      function: rightClickOnElement
+      pattern: I right click on {string}
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: scroll_down_by_pixels
+  category: ui.scroll
+  description: 'Eylem: I scroll down by {int} pixels'
+  aliases:
+    tr:
+    - I scroll down by {int} pixels
+  implementations:
+    java:
+      source_file: frameworks/selenium-cucumber-java/src/test/java/stepdefinitions/ScrollSteps.java
+      function: scrollDownByPixels
+      pattern: I scroll down by {int} pixels
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: int
+    type: string
+    required: true
+- id: scroll_to_bottom
+  category: ui.scroll
+  description: 'Eylem: I scroll to bottom'
+  aliases:
+    tr:
+    - I scroll to bottom
+  implementations:
+    java:
+      source_file: frameworks/selenium-cucumber-java/src/test/java/stepdefinitions/ScrollSteps.java
+      function: scrollToBottom
+      pattern: I scroll to bottom
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+- id: scroll_to_the_element
+  category: ui.scroll
+  description: 'Eylem: I scroll to the element {string}'
+  aliases:
+    en:
+    - I scroll to the element {string}
+  implementations:
+    java:
+      source_file: frameworks/selenium-cucumber-java/src/test/java/stepdefinitions/ScrollSteps.java
+      function: scrollToTheElement
+      pattern: I scroll to the element {string}
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: scroll_to_top
+  category: ui.scroll
+  description: 'Eylem: I scroll to top'
+  aliases:
+    tr:
+    - I scroll to top
+  implementations:
+    java:
+      source_file: frameworks/selenium-cucumber-java/src/test/java/stepdefinitions/ScrollSteps.java
+      function: scrollToTop
+      pattern: I scroll to top
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+- id: scroll_up_by_pixels
+  category: ui.scroll
+  description: 'Eylem: I scroll up by {int} pixels'
+  aliases:
+    tr:
+    - I scroll up by {int} pixels
+  implementations:
+    java:
+      source_file: frameworks/selenium-cucumber-java/src/test/java/stepdefinitions/ScrollSteps.java
+      function: scrollUpByPixels
+      pattern: I scroll up by {int} pixels
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: int
+    type: string
+    required: true
+- id: select_by_value
+  category: ui.select
+  description: 'Eylem: I select value {string} from {string}'
+  aliases:
+    en:
+    - I select value {string} from {string}
+  implementations:
+    java:
+      source_file: frameworks/selenium-cucumber-java/src/test/java/stepdefinitions/SelectSteps.java
+      function: selectByValue
+      pattern: I select value {string} from {string}
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/common-steps.ts
+      pattern: I select value {string} from {string}
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: select_by_visible_text
+  category: ui.select
+  description: 'Eylem: I select {string} from {string}'
+  aliases:
+    en:
+    - I select {string} from {string}
+  implementations:
+    java:
+      source_file: frameworks/selenium-cucumber-java/src/test/java/stepdefinitions/SelectSteps.java
+      function: selectByVisibleText
+      pattern: I select {string} from {string}
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/common-steps.ts
+      pattern: I select {string} from {string}
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: select_radio_by_value
+  category: ui.select
+  description: 'Eylem: I select radio {string} with value {string}'
+  aliases:
+    en:
+    - I select radio {string} with value {string}
+  implementations:
+    java:
+      source_file: frameworks/selenium-cucumber-java/src/test/java/stepdefinitions/RadioSteps.java
+      function: selectRadioByValue
+      pattern: I select radio {string} with value {string}
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: step_assert_checked
+  category: ui.checkbox
+  description: 'Doğrulama: "{key}" checkbox\''i isaretli olmalidir'
+  aliases:
+    tr:
+    - '"{key}" checkbox\''i isaretli olmalidir'
+  implementations:
+    python:
+      source_file: engine/steps/checkbox_steps.py
+      function: step_assert_checked
+      pattern: '"{key}" checkbox\''i isaretli olmalidir'
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+  parameters:
+  - name: key
+    type: locator
+    required: true
+- id: step_assert_unchecked
+  category: ui.checkbox
+  description: 'Doğrulama: "{key}" checkbox\''i isaretli olmamalidir'
+  aliases:
+    tr:
+    - '"{key}" checkbox\''i isaretli olmamalidir'
+  implementations:
+    python:
+      source_file: engine/steps/checkbox_steps.py
+      function: step_assert_unchecked
+      pattern: '"{key}" checkbox\''i isaretli olmamalidir'
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+  parameters:
+  - name: key
+    type: locator
+    required: true
+- id: step_check
+  category: ui.checkbox
+  description: 'Eylem: kullanici "{key}" checkbox\''ini isaretler'
+  aliases:
+    tr:
+    - kullanici "{key}" checkbox\'ini isaretler
+  implementations:
+    python:
+      source_file: engine/steps/checkbox_steps.py
+      function: step_check
+      pattern: kullanici "{key}" checkbox\'ini isaretler
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: key
+    type: locator
+    required: true
+- id: step_click_element
+  category: ui.click
+  description: 'Eylem: kullanici "{key}" elementine tiklar'
+  aliases:
+    tr:
+    - kullanici "{key}" elementine tiklar
+  implementations:
+    python:
+      source_file: engine/steps/click_steps.py
+      function: step_click_element
+      pattern: kullanici "{key}" elementine tiklar
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: key
+    type: locator
+    required: true
+- id: step_click_text
+  category: ui.click
+  description: 'Eylem: kullanici "{text}" metnine tiklar'
+  aliases:
+    tr:
+    - kullanici "{text}" metnine tiklar
+  implementations:
+    python:
+      source_file: engine/steps/click_steps.py
+      function: step_click_text
+      pattern: kullanici "{text}" metnine tiklar
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: text
+    type: string
+    required: true
+- id: step_double_click
+  category: ui.click.double
+  description: 'Eylem: kullanici "{key}" elementine cift tiklar'
+  aliases:
+    tr:
+    - kullanici "{key}" elementine cift tiklar
+  implementations:
+    python:
+      source_file: engine/steps/click_steps.py
+      function: step_double_click
+      pattern: kullanici "{key}" elementine cift tiklar
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: key
+    type: locator
+    required: true
+- id: step_fill_and_enter
+  category: ui.input
+  description: 'Eylem: kullanici "{key}" alanina "{value}" yazip Enter\''a basar'
+  aliases:
+    tr:
+    - kullanici "{key}" alanina "{value}" yazip Enter\'a basar
+  implementations:
+    python:
+      source_file: engine/steps/input_steps.py
+      function: step_fill_and_enter
+      pattern: kullanici "{key}" alanina "{value}" yazip Enter\'a basar
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: key
+    type: locator
+    required: true
+  - name: value
+    type: string
+    required: true
+- id: step_fill_input
+  category: ui.input
+  description: 'Eylem: kullanici "{key}" alanina "{value}" yazar'
+  aliases:
+    tr:
+    - kullanici "{key}" alanina "{value}" yazar
+  implementations:
+    python:
+      source_file: engine/steps/input_steps.py
+      function: step_fill_input
+      pattern: kullanici "{key}" alanina "{value}" yazar
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: key
+    type: locator
+    required: true
+  - name: value
+    type: string
+    required: true
+- id: step_force_click
+  category: ui.click
+  description: 'Eylem: kullanici "{key}" elementine force tiklar'
+  aliases:
+    tr:
+    - kullanici "{key}" elementine force tiklar
+  implementations:
+    python:
+      source_file: engine/steps/click_steps.py
+      function: step_force_click
+      pattern: kullanici "{key}" elementine force tiklar
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: key
+    type: locator
+    required: true
+- id: step_hover
+  category: ui.hover
+  description: 'Eylem: kullanici "{key}" elementinin uzerine gelir'
+  aliases:
+    tr:
+    - kullanici "{key}" elementinin uzerine gelir
+  implementations:
+    python:
+      source_file: engine/steps/hover_steps.py
+      function: step_hover
+      pattern: kullanici "{key}" elementinin uzerine gelir
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: key
+    type: locator
+    required: true
+- id: step_hover_and_click
+  category: ui.click
+  description: 'Eylem: kullanici "{hover_key}" uzerine gelir ve "{click_key}" elementine tiklar'
+  aliases:
+    tr:
+    - kullanici "{hover_key}" uzerine gelir ve "{click_key}" elementine tiklar
+  implementations:
+    python:
+      source_file: engine/steps/hover_steps.py
+      function: step_hover_and_click
+      pattern: kullanici "{hover_key}" uzerine gelir ve "{click_key}" elementine tiklar
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: hover_key
+    type: string
+    required: true
+  - name: click_key
+    type: string
+    required: true
+- id: step_right_click
+  category: ui.click.right
+  description: 'Eylem: kullanici "{key}" elementine sag tiklar'
+  aliases:
+    tr:
+    - kullanici "{key}" elementine sag tiklar
+  implementations:
+    python:
+      source_file: engine/steps/click_steps.py
+      function: step_right_click
+      pattern: kullanici "{key}" elementine sag tiklar
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: key
+    type: locator
+    required: true
+- id: step_scroll_bottom
+  category: ui.scroll
+  description: 'Eylem: kullanici sayfa sonuna scroll yapar'
+  aliases:
+    tr:
+    - kullanici sayfa sonuna scroll yapar
+  implementations:
+    python:
+      source_file: engine/steps/scroll_steps.py
+      function: step_scroll_bottom
+      pattern: kullanici sayfa sonuna scroll yapar
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+- id: step_scroll_down
+  category: ui.scroll
+  description: 'Eylem: kullanici sayfayi asagi scroll yapar'
+  aliases:
+    tr:
+    - kullanici sayfayi asagi scroll yapar
+  implementations:
+    python:
+      source_file: engine/steps/scroll_steps.py
+      function: step_scroll_down
+      pattern: kullanici sayfayi asagi scroll yapar
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+- id: step_scroll_to
+  category: ui.scroll
+  description: 'Eylem: kullanici "{key}" elementine scroll yapar'
+  aliases:
+    tr:
+    - kullanici "{key}" elementine scroll yapar
+  implementations:
+    python:
+      source_file: engine/steps/scroll_steps.py
+      function: step_scroll_to
+      pattern: kullanici "{key}" elementine scroll yapar
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: key
+    type: locator
+    required: true
+- id: step_scroll_top
+  category: ui.scroll
+  description: 'Eylem: kullanici sayfa basina scroll yapar'
+  aliases:
+    tr:
+    - kullanici sayfa basina scroll yapar
+  implementations:
+    python:
+      source_file: engine/steps/scroll_steps.py
+      function: step_scroll_top
+      pattern: kullanici sayfa basina scroll yapar
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+- id: step_scroll_up
+  category: ui.scroll
+  description: 'Eylem: kullanici sayfayi yukari scroll yapar'
+  aliases:
+    tr:
+    - kullanici sayfayi yukari scroll yapar
+  implementations:
+    python:
+      source_file: engine/steps/scroll_steps.py
+      function: step_scroll_up
+      pattern: kullanici sayfayi yukari scroll yapar
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+- id: step_select_by_index
+  category: ui.select
+  description: 'Eylem: kullanici "{key}" dropdown\''undan {index:d}. siradakini secer'
+  aliases:
+    tr:
+    - kullanici "{key}" dropdown\'undan {index:d}. siradakini secer
+  implementations:
+    python:
+      source_file: engine/steps/select_steps.py
+      function: step_select_by_index
+      pattern: kullanici "{key}" dropdown\'undan {index:d}. siradakini secer
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: key
+    type: locator
+    required: true
+  - name: index
+    type: int
+    required: true
+- id: step_select_by_label
+  category: ui.select
+  description: 'Eylem: kullanici "{key}" dropdown\''undan "{label}" metnini secer'
+  aliases:
+    tr:
+    - kullanici "{key}" dropdown\'undan "{label}" metnini secer
+  implementations:
+    python:
+      source_file: engine/steps/select_steps.py
+      function: step_select_by_label
+      pattern: kullanici "{key}" dropdown\'undan "{label}" metnini secer
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: key
+    type: locator
+    required: true
+  - name: label
+    type: string
+    required: true
+- id: step_select_by_value
+  category: ui.select
+  description: 'Eylem: kullanici "{key}" dropdown\''undan "{value}" degerini secer'
+  aliases:
+    tr:
+    - kullanici "{key}" dropdown\'undan "{value}" degerini secer
+  implementations:
+    python:
+      source_file: engine/steps/select_steps.py
+      function: step_select_by_value
+      pattern: kullanici "{key}" dropdown\'undan "{value}" degerini secer
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: key
+    type: locator
+    required: true
+  - name: value
+    type: string
+    required: true
+- id: step_type_slowly
+  category: ui.input
+  description: 'Eylem: kullanici "{key}" alanina karakter karakter "{value}" yazar'
+  aliases:
+    tr:
+    - kullanici "{key}" alanina karakter karakter "{value}" yazar
+  implementations:
+    python:
+      source_file: engine/steps/input_steps.py
+      function: step_type_slowly
+      pattern: kullanici "{key}" alanina karakter karakter "{value}" yazar
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: key
+    type: locator
+    required: true
+  - name: value
+    type: string
+    required: true
+- id: step_uncheck
+  category: ui.checkbox
+  description: 'Eylem: kullanici "{key}" checkbox\''inin isaretini kaldirir'
+  aliases:
+    tr:
+    - kullanici "{key}" checkbox\'inin isaretini kaldirir
+  implementations:
+    python:
+      source_file: engine/steps/checkbox_steps.py
+      function: step_uncheck
+      pattern: kullanici "{key}" checkbox\'inin isaretini kaldirir
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: key
+    type: locator
+    required: true
+- id: take_screenshot
+  category: ui.screenshot
+  description: 'Eylem: I take a screenshot {string}'
+  aliases:
+    tr:
+    - I take a screenshot {string}
+  implementations:
+    java:
+      source_file: frameworks/selenium-cucumber-java/src/test/java/stepdefinitions/ScreenshotSteps.java
+      function: takeScreenshot
+      pattern: I take a screenshot {string}
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: take_screenshot_of_element
+  category: ui.screenshot
+  description: 'Eylem: I take screenshot of element {string}'
+  aliases:
+    tr:
+    - I take screenshot of element {string}
+  implementations:
+    java:
+      source_file: frameworks/selenium-cucumber-java/src/test/java/stepdefinitions/ScreenshotSteps.java
+      function: takeScreenshotOfElement
+      pattern: I take screenshot of element {string}
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: uncheck_checkbox
+  category: ui.checkbox
+  description: 'Eylem: I uncheck the checkbox {string}'
+  aliases:
+    en:
+    - I uncheck the checkbox {string}
+  implementations:
+    java:
+      source_file: frameworks/selenium-cucumber-java/src/test/java/stepdefinitions/CheckboxSteps.java
+      function: uncheckCheckbox
+      pattern: I uncheck the checkbox {string}
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: upload_file_to_input
+  category: ui.input
+  description: 'Eylem: I upload the file {string} to the input {string}'
+  aliases:
+    en:
+    - I upload the file {string} to the input {string}
+  implementations:
+    java:
+      source_file: frameworks/selenium-cucumber-java/src/test/java/stepdefinitions/InputSteps.java
+      function: uploadFileToInput
+      pattern: I upload the file {string} to the input {string}
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: verify_checkbox_is_checked
+  category: ui.checkbox
+  description: 'Doğrulama: I verify checkbox {string} is checked'
+  aliases:
+    tr:
+    - I verify checkbox {string} is checked
+  implementations:
+    java:
+      source_file: frameworks/selenium-cucumber-java/src/test/java/stepdefinitions/CheckboxSteps.java
+      function: verifyCheckboxIsChecked
+      pattern: I verify checkbox {string} is checked
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: verify_checkbox_is_unchecked
+  category: ui.checkbox
+  description: 'Doğrulama: I verify checkbox {string} is unchecked'
+  aliases:
+    tr:
+    - I verify checkbox {string} is unchecked
+  implementations:
+    java:
+      source_file: frameworks/selenium-cucumber-java/src/test/java/stepdefinitions/CheckboxSteps.java
+      function: verifyCheckboxIsUnchecked
+      pattern: I verify checkbox {string} is unchecked
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: verify_radio_selected
+  category: ui.radio
+  description: 'Doğrulama: I verify radio {string} is selected with value {string}'
+  aliases:
+    tr:
+    - I verify radio {string} is selected with value {string}
+  implementations:
+    java:
+      source_file: frameworks/selenium-cucumber-java/src/test/java/stepdefinitions/RadioSteps.java
+      function: verifyRadioSelected
+      pattern: I verify radio {string} is selected with value {string}
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: wait_for_element_clickable
+  category: ui.wait
+  description: 'Eylem: I wait for element {string} to be clickable'
+  aliases:
+    tr:
+    - I wait for element {string} to be clickable
+  implementations:
+    java:
+      source_file: frameworks/selenium-cucumber-java/src/test/java/stepdefinitions/WaitSteps.java
+      function: waitForElementClickable
+      pattern: I wait for element {string} to be clickable
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: wait_for_element_to_disappear
+  category: ui.wait
+  description: 'Eylem: I wait for element {string} to disappear'
+  aliases:
+    tr:
+    - I wait for element {string} to disappear
+  implementations:
+    java:
+      source_file: frameworks/selenium-cucumber-java/src/test/java/stepdefinitions/WaitSteps.java
+      function: waitForElementToDisappear
+      pattern: I wait for element {string} to disappear
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: wait_ms
+  category: ui.wait
+  description: 'Eylem: kullanıcı "{ms}" milisaniye bekler'
+  aliases:
+    tr:
+    - kullanıcı "{ms}" milisaniye bekler
+  implementations:
+    python:
+      source_file: engine/steps/common_steps.py
+      function: wait_ms
+      pattern: kullanıcı "{ms}" milisaniye bekler
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: ms
+    type: duration_ms
+    required: true

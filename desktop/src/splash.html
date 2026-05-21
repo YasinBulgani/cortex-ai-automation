@@ -1,0 +1,278 @@
+<!doctype html>
+<html lang="tr">
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'; img-src 'self' data:;" />
+    <title>TestwrightAI</title>
+    <style>
+      :root {
+        --bg: #0b1020;
+        --bg-elev: #121833;
+        --accent: #6366f1;
+        --accent-2: #22d3ee;
+        --text: #e5e7eb;
+        --muted: #9ca3af;
+        --ok: #22c55e;
+        --warn: #f59e0b;
+        --err: #ef4444;
+        --border: rgba(255, 255, 255, 0.08);
+      }
+      * { box-sizing: border-box; }
+      html, body {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+        color: var(--text);
+        background: radial-gradient(1200px 600px at 50% -100px, #1d2757 0%, var(--bg) 60%);
+        user-select: none;
+        -webkit-user-select: none;
+      }
+      .wrap {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        padding: 28px 32px;
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 18px;
+      }
+      .brand-badge {
+        width: 36px;
+        height: 36px;
+        border-radius: 9px;
+        background: linear-gradient(135deg, var(--accent), var(--accent-2));
+        display: grid;
+        place-items: center;
+        font-weight: 700;
+        color: #0b1020;
+        font-size: 14px;
+      }
+      .brand-title {
+        font-size: 18px;
+        font-weight: 600;
+        letter-spacing: 0.2px;
+      }
+      .brand-sub {
+        font-size: 12px;
+        color: var(--muted);
+        margin-top: 2px;
+      }
+      .phase {
+        margin-top: 6px;
+        font-size: 14px;
+        color: var(--muted);
+        min-height: 20px;
+      }
+      .services {
+        margin-top: 16px;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+      .svc {
+        background: var(--bg-elev);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 10px 12px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 13px;
+      }
+      .dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: var(--muted);
+        box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.04);
+      }
+      .dot.waiting { background: var(--warn); animation: pulse 1.2s ease-in-out infinite; }
+      .dot.ready { background: var(--ok); }
+      .dot.err { background: var(--err); }
+      @keyframes pulse {
+        0%, 100% { opacity: 0.6; }
+        50% { opacity: 1; }
+      }
+      .bar {
+        margin-top: 14px;
+        width: 100%;
+        height: 4px;
+        border-radius: 4px;
+        background: rgba(255, 255, 255, 0.08);
+        overflow: hidden;
+      }
+      .bar > span {
+        display: block;
+        height: 100%;
+        width: 15%;
+        background: linear-gradient(90deg, var(--accent), var(--accent-2));
+        animation: slide 1.6s ease-in-out infinite;
+      }
+      @keyframes slide {
+        0% { margin-left: -15%; }
+        100% { margin-left: 100%; }
+      }
+      .log {
+        margin-top: 14px;
+        flex: 1;
+        min-height: 0;
+        background: #080c1b;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 10px 12px;
+        overflow: auto;
+        font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+        font-size: 11px;
+        color: #93c5fd;
+        line-height: 1.45;
+        white-space: pre-wrap;
+        word-break: break-word;
+      }
+      .log::-webkit-scrollbar { width: 6px; }
+      .log::-webkit-scrollbar-thumb { background: #1f2a44; border-radius: 4px; }
+      .error-box {
+        margin-top: 14px;
+        background: rgba(239, 68, 68, 0.1);
+        border: 1px solid rgba(239, 68, 68, 0.4);
+        border-radius: 10px;
+        padding: 12px 14px;
+        display: none;
+      }
+      .error-box.visible { display: block; }
+      .error-title { font-weight: 600; color: #fecaca; margin-bottom: 4px; }
+      .error-detail { font-size: 12px; color: var(--muted); white-space: pre-wrap; }
+      .actions {
+        display: none;
+        gap: 8px;
+        margin-top: 12px;
+      }
+      .actions.visible { display: flex; }
+      button {
+        background: var(--accent);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 8px 14px;
+        font-size: 13px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: filter 0.15s;
+      }
+      button:hover { filter: brightness(1.1); }
+      button.ghost {
+        background: transparent;
+        border: 1px solid var(--border);
+      }
+      .foot {
+        margin-top: 10px;
+        font-size: 11px;
+        color: var(--muted);
+        text-align: center;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="brand">
+        <div class="brand-badge">TW</div>
+        <div>
+          <div class="brand-title">TestwrightAI</div>
+          <div class="brand-sub">AI destekli test otomasyonu — Masaüstü Demo</div>
+        </div>
+      </div>
+
+      <div id="phase" class="phase">Başlatılıyor…</div>
+      <div class="bar"><span></span></div>
+
+      <div class="services">
+        <div class="svc"><span id="dot-postgres" class="dot"></span><span>PostgreSQL + Redis</span></div>
+        <div class="svc"><span id="dot-backend" class="dot"></span><span>Backend API (:8000)</span></div>
+        <div class="svc"><span id="dot-engine" class="dot"></span><span>Engine (:5001)</span></div>
+        <div class="svc"><span id="dot-frontend" class="dot"></span><span>Frontend (:3000)</span></div>
+      </div>
+
+      <div id="log" class="log"></div>
+
+      <div id="error" class="error-box">
+        <div id="error-title" class="error-title"></div>
+        <div id="error-detail" class="error-detail"></div>
+      </div>
+      <div id="actions" class="actions">
+        <button id="retry-btn">Yeniden Dene</button>
+        <button id="docker-btn" class="ghost">Docker Desktop İndir</button>
+        <button id="quit-btn" class="ghost">Çık</button>
+      </div>
+
+      <div class="foot">İlk çalıştırmada imaj indirme nedeniyle birkaç dakika sürebilir.</div>
+    </div>
+
+    <script>
+      const phaseEl = document.getElementById('phase');
+      const logEl = document.getElementById('log');
+      const errorBox = document.getElementById('error');
+      const errorTitle = document.getElementById('error-title');
+      const errorDetail = document.getElementById('error-detail');
+      const actions = document.getElementById('actions');
+
+      const dots = {
+        postgres: document.getElementById('dot-postgres'),
+        backend: document.getElementById('dot-backend'),
+        engine: document.getElementById('dot-engine'),
+        frontend: document.getElementById('dot-frontend'),
+      };
+
+      const stepToService = {
+        'compose-up': 'postgres',
+        'wait-backend': 'backend',
+        'wait-engine': 'engine',
+        'wait-frontend': 'frontend',
+      };
+
+      function setDot(name, state) {
+        if (!dots[name]) return;
+        dots[name].classList.remove('waiting', 'ready', 'err');
+        if (state) dots[name].classList.add(state);
+      }
+
+      window.twai.onPhase(({ step, label }) => {
+        phaseEl.textContent = label;
+        if (step === 'compose-up') setDot('postgres', 'waiting');
+        if (step === 'wait-backend') { setDot('postgres', 'ready'); setDot('backend', 'waiting'); }
+        if (step === 'wait-engine') { setDot('backend', 'ready'); setDot('engine', 'waiting'); }
+        if (step === 'wait-frontend') { setDot('engine', 'ready'); setDot('frontend', 'waiting'); }
+        if (step === 'done') setDot('frontend', 'ready');
+      });
+
+      window.twai.onServiceWaiting(({ name }) => setDot(name, 'waiting'));
+      window.twai.onServiceReady(({ name }) => setDot(name, 'ready'));
+
+      window.twai.onComposeLog(({ line }) => {
+        logEl.textContent += line;
+        logEl.scrollTop = logEl.scrollHeight;
+        const maxLen = 8000;
+        if (logEl.textContent.length > maxLen) {
+          logEl.textContent = logEl.textContent.slice(-maxLen);
+        }
+      });
+
+      window.twai.onError(({ title, detail }) => {
+        phaseEl.textContent = 'Hata';
+        errorTitle.textContent = title;
+        errorDetail.textContent = detail;
+        errorBox.classList.add('visible');
+        actions.classList.add('visible');
+        Object.keys(dots).forEach((k) => {
+          if (!dots[k].classList.contains('ready')) setDot(k, 'err');
+        });
+      });
+
+      document.getElementById('retry-btn').addEventListener('click', () => window.twai.retry());
+      document.getElementById('docker-btn').addEventListener('click', () => window.twai.openDocker());
+      document.getElementById('quit-btn').addEventListener('click', () => window.twai.quit());
+    </script>
+  </body>
+</html>

@@ -1,0 +1,3 @@
+✅ BAŞARILI
+'izinlerimSayfasıTalepEdilenIzınText' adlı elemanın değeri kontrol ediliyor (Beklenen: qa3oXaQ9xMBjgCD)
+'izinlerimSayfasıTalepEdilenIzınText' adlı elemanın metni doğrulandı. Beklenen değer: 'qa3oXaQ9xMBjgCD' bulundu.

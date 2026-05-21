@@ -1,0 +1,957 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nexus QA — Master Uygulama Planı</title>
+<style>
+  :root {
+    --bg: #0a0f1e;
+    --bg2: #111827;
+    --bg3: #1e293b;
+    --border: #1e3a5f;
+    --text: #e2e8f0;
+    --muted: #64748b;
+    --blue: #3b82f6;
+    --blue-light: #93c5fd;
+    --green: #22c55e;
+    --yellow: #eab308;
+    --red: #ef4444;
+    --purple: #a855f7;
+    --cyan: #06b6d4;
+    --orange: #f97316;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:'Segoe UI',system-ui,sans-serif; background:var(--bg); color:var(--text); line-height:1.6; }
+
+  /* NAV */
+  nav { position:sticky; top:0; z-index:100; background:rgba(10,15,30,0.95); backdrop-filter:blur(12px); border-bottom:1px solid var(--border); padding:12px 40px; display:flex; align-items:center; gap:24px; }
+  nav .logo { font-size:18px; font-weight:700; color:#fff; letter-spacing:-0.5px; }
+  nav .logo span { color:var(--blue); }
+  nav a { font-size:13px; color:var(--muted); text-decoration:none; cursor:pointer; transition:color .2s; }
+  nav a:hover { color:var(--text); }
+  nav .badge { margin-left:auto; padding:4px 12px; background:#1e3a5f; color:var(--blue-light); border-radius:20px; font-size:12px; font-weight:600; }
+
+  /* SECTIONS */
+  section { padding:48px 40px; border-bottom:1px solid #1a2035; }
+  section:last-child { border:none; }
+  .section-title { font-size:22px; font-weight:700; color:#fff; margin-bottom:6px; }
+  .section-sub { font-size:14px; color:var(--muted); margin-bottom:28px; }
+
+  /* HERO */
+  .hero { padding:60px 40px; background:linear-gradient(135deg, #0a0f1e 0%, #0d1b3e 50%, #0a0f1e 100%); text-align:center; }
+  .hero h1 { font-size:42px; font-weight:800; color:#fff; letter-spacing:-1px; margin-bottom:12px; }
+  .hero h1 span { color:var(--blue); }
+  .hero p { font-size:16px; color:var(--muted); max-width:600px; margin:0 auto 32px; }
+  .hero-grid { display:grid; grid-template-columns:repeat(5,1fr); gap:16px; max-width:800px; margin:0 auto; }
+  .hero-card { background:var(--bg3); border:1px solid var(--border); border-radius:12px; padding:20px 12px; }
+  .hero-card .n { font-size:28px; font-weight:800; }
+  .hero-card .l { font-size:12px; color:var(--muted); margin-top:4px; }
+  .n.blue { color:var(--blue); }
+  .n.green { color:var(--green); }
+  .n.yellow { color:var(--yellow); }
+  .n.purple { color:var(--purple); }
+  .n.cyan { color:var(--cyan); }
+
+  /* NAME SUGGESTION */
+  .name-box { background:linear-gradient(135deg,#1a1040,#0d1b3e); border:1px solid #2e4080; border-radius:12px; padding:20px 28px; margin-bottom:32px; display:flex; align-items:center; gap:16px; }
+  .name-box .icon { font-size:28px; }
+  .name-box h3 { font-size:16px; color:#fff; }
+  .name-box p { font-size:13px; color:var(--muted); }
+
+  /* FLOW */
+  .flow-wrap { overflow-x:auto; padding-bottom:8px; }
+  .flow { display:flex; align-items:center; gap:0; min-width:900px; }
+  .flow-step { flex:1; padding:16px 12px; border-radius:10px; text-align:center; font-size:13px; font-weight:600; position:relative; }
+  .flow-arrow { color:var(--muted); font-size:18px; padding:0 4px; flex-shrink:0; }
+  .fs-0 { background:#1a1040; border:1px solid #6d28d9; color:#c4b5fd; }
+  .fs-1 { background:#1a2a10; border:1px solid #16a34a; color:#86efac; }
+  .fs-2 { background:#1a1f40; border:1px solid #2563eb; color:#93c5fd; }
+  .fs-3 { background:#1a3a10; border:1px solid #15803d; color:#86efac; }
+  .fs-4 { background:#3a2a10; border:1px solid #d97706; color:#fde68a; }
+  .fs-5 { background:#1a3a3a; border:1px solid #0891b2; color:#a5f3fc; }
+  .fs-6 { background:#3a1a10; border:1px solid #b45309; color:#fcd34d; }
+  .flow-step .tag { display:block; font-size:10px; font-weight:400; opacity:0.7; margin-top:3px; }
+
+  /* KARARLAR */
+  .decisions-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; }
+  .dec-card { background:var(--bg3); border:1px solid #1e293b; border-radius:10px; padding:16px; }
+  .dec-card .cat { font-size:11px; color:var(--blue); font-weight:700; margin-bottom:6px; letter-spacing:.5px; }
+  .dec-card .key { font-size:13px; color:#fff; margin-bottom:3px; }
+  .dec-card .val { font-size:13px; color:var(--muted); }
+  .dec-card .val.green { color:var(--green); }
+  .dec-card .val.yellow { color:var(--yellow); }
+  .dec-card .val.purple { color:var(--purple); }
+  .dec-card .val.cyan { color:var(--cyan); }
+
+  /* FAZLAR */
+  .phase-card { background:var(--bg2); border:1px solid #1e293b; border-radius:14px; margin-bottom:16px; overflow:hidden; }
+  .phase-card:hover { border-color:#334155; }
+  .ph-header { display:flex; align-items:center; gap:16px; padding:20px 24px; cursor:pointer; user-select:none; }
+  .ph-num { width:44px; height:44px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:18px; font-weight:800; flex-shrink:0; }
+  .ph-info { flex:1; }
+  .ph-info h3 { font-size:15px; color:#fff; margin-bottom:2px; }
+  .ph-meta { display:flex; gap:16px; font-size:12px; color:var(--muted); }
+  .ph-badges { display:flex; gap:8px; align-items:center; }
+  .badge { padding:3px 10px; border-radius:20px; font-size:11px; font-weight:700; }
+  .b-red { background:#7f1d1d; color:#fca5a5; }
+  .b-yellow { background:#713f12; color:#fde047; }
+  .b-blue { background:#1e3a5f; color:#93c5fd; }
+  .b-green { background:#14532d; color:#86efac; }
+  .b-purple { background:#3b0764; color:#e9d5ff; }
+  .ph-body { display:none; padding:0 24px 24px; }
+  .phase-card.open .ph-body { display:block; }
+  .ph-arrow { color:var(--muted); font-size:12px; transition:transform .2s; }
+  .phase-card.open .ph-arrow { transform:rotate(180deg); }
+
+  .task-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:12px; }
+  .task-group { background:#0a0f1e; border:1px solid #1e293b; border-radius:8px; padding:14px; }
+  .task-group h4 { font-size:12px; color:var(--blue); font-weight:700; margin-bottom:8px; letter-spacing:.5px; }
+  .task-list { list-style:none; }
+  .task-list li { font-size:13px; color:#cbd5e1; padding:4px 0; border-bottom:1px solid #1a2035; display:flex; gap:8px; align-items:flex-start; }
+  .task-list li:last-child { border:none; }
+  .task-list li::before { content:"▸"; color:var(--blue); flex-shrink:0; margin-top:1px; }
+
+  .ai-box { background:linear-gradient(135deg,#1a0a3a,#0d1b3e); border:1px solid #4c1d95; border-radius:8px; padding:14px; margin-top:12px; }
+  .ai-box h4 { font-size:12px; color:#c084fc; font-weight:700; margin-bottom:6px; }
+  .ai-box p { font-size:13px; color:#cbd5e1; }
+  .ai-box .model { font-size:11px; color:#fbbf24; margin-top:4px; }
+
+  .file-tags { margin-top:10px; display:flex; flex-wrap:wrap; gap:6px; }
+  .ftag { background:#0a0f1e; border:1px solid #1e3a5f; border-radius:4px; padding:2px 8px; font-size:11px; color:#7dd3fc; font-family:monospace; }
+
+  /* AI ARCHITECTURE */
+  .arch-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:16px; }
+  .arch-card { background:var(--bg3); border:1px solid #1e293b; border-radius:10px; padding:18px; }
+  .arch-card .arch-title { font-size:14px; color:#fff; font-weight:600; margin-bottom:4px; }
+  .arch-card .arch-sub { font-size:12px; color:var(--blue); margin-bottom:8px; }
+  .arch-card p { font-size:13px; color:var(--muted); }
+  .arch-card .stack { margin-top:8px; display:flex; flex-wrap:wrap; gap:4px; }
+  .stag { padding:2px 8px; background:#1e293b; border-radius:4px; font-size:11px; color:#94a3b8; }
+
+  /* TECH STACK */
+  .tech-table { width:100%; border-collapse:collapse; }
+  .tech-table th { text-align:left; font-size:12px; color:var(--blue); font-weight:700; padding:10px 14px; border-bottom:1px solid #1e293b; letter-spacing:.5px; }
+  .tech-table td { padding:10px 14px; font-size:13px; border-bottom:1px solid #111827; }
+  .tech-table tr:last-child td { border:none; }
+  .tech-table .layer { color:#94a3b8; }
+  .tech-table .tech { color:#fff; }
+  .tech-table .note { color:var(--muted); font-size:12px; }
+  .tech-table .status { padding:2px 8px; border-radius:10px; font-size:11px; font-weight:600; }
+  .s-exists { background:#14532d; color:#86efac; }
+  .s-new { background:#1e3a5f; color:#93c5fd; }
+  .s-update { background:#713f12; color:#fde047; }
+
+  /* RISK */
+  .risk-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; }
+  .risk-card { border-radius:10px; padding:16px; border:1px solid; }
+  .risk-high { background:#1a0a0a; border-color:#7f1d1d; }
+  .risk-med { background:#1a1200; border-color:#713f12; }
+  .risk-low { background:#0a1a0a; border-color:#14532d; }
+  .risk-card h4 { font-size:13px; font-weight:600; margin-bottom:6px; }
+  .risk-high h4 { color:#fca5a5; }
+  .risk-med h4 { color:#fde047; }
+  .risk-low h4 { color:#86efac; }
+  .risk-card p { font-size:12px; color:var(--muted); }
+  .risk-card .solution { font-size:12px; color:#94a3b8; margin-top:6px; padding-top:6px; border-top:1px solid #1e293b; }
+
+  /* TIMELINE */
+  .timeline { position:relative; padding-left:32px; }
+  .timeline::before { content:''; position:absolute; left:8px; top:0; bottom:0; width:2px; background:linear-gradient(to bottom, var(--blue), var(--purple)); }
+  .tl-item { position:relative; margin-bottom:24px; }
+  .tl-item::before { content:''; position:absolute; left:-28px; top:6px; width:12px; height:12px; border-radius:50%; background:var(--blue); border:2px solid var(--bg); }
+  .tl-item h4 { font-size:14px; color:#fff; margin-bottom:3px; }
+  .tl-item p { font-size:13px; color:var(--muted); }
+  .tl-item .days { font-size:12px; color:var(--blue); font-weight:600; }
+
+  /* RESPONSIVE */
+  @media(max-width:900px) {
+    section, .hero { padding:32px 20px; }
+    nav { padding:12px 20px; }
+    .hero h1 { font-size:28px; }
+    .hero-grid, .decisions-grid, .task-grid, .arch-grid, .risk-grid { grid-template-columns:1fr; }
+    nav a { display:none; }
+    .flow { min-width:700px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="logo">Nexus QA <span>Master Plan</span></div>
+  <a onclick="document.getElementById('flow').scrollIntoView({behavior:'smooth'})">Akış</a>
+  <a onclick="document.getElementById('kararlar').scrollIntoView({behavior:'smooth'})">Kararlar</a>
+  <a onclick="document.getElementById('fazlar').scrollIntoView({behavior:'smooth'})">Fazlar</a>
+  <a onclick="document.getElementById('mimari').scrollIntoView({behavior:'smooth'})">Mimari</a>
+  <a onclick="document.getElementById('timeline').scrollIntoView({behavior:'smooth'})">Timeline</a>
+  <a onclick="document.getElementById('riskler').scrollIntoView({behavior:'smooth'})">Riskler</a>
+  <div class="badge">⚡ Güncellendi: 10 Nisan 2026</div>
+</nav>
+
+<!-- HERO -->
+<div class="hero">
+  <h1><span>Nexus QA</span> Platformu</h1>
+  <p>DB'den analiz dokümanına, oradan AI destekli test case'lere, otomasyona ve raporlamaya kadar uçtan uca AI pipeline.</p>
+  <div class="hero-grid">
+    <div class="hero-card"><div class="n blue">8</div><div class="l">Uygulama Fazı</div></div>
+    <div class="hero-card"><div class="n yellow">~25</div><div class="l">İş Günü</div></div>
+    <div class="hero-card"><div class="n green">%60</div><div class="l">Mevcut Durum</div></div>
+    <div class="hero-card"><div class="n purple">8</div><div class="l">AI Entegrasyon</div></div>
+    <div class="hero-card"><div class="n cyan">4</div><div class="l">Ücretsiz AI Model</div></div>
+  </div>
+</div>
+
+<!-- PLATFORM ADI -->
+<section>
+  <div class="section-title">🏷️ Platform Adı Önerileri</div>
+  <div class="section-sub">AI tarafından önerilen isimler — birini seç veya kendi ismini söyle</div>
+  <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px;">
+    <div class="name-box" style="flex-direction:column;text-align:center;padding:20px 12px;">
+      <div style="font-size:28px">🔨</div>
+      <div style="font-size:16px;font-weight:700;color:#fff;margin:8px 0 4px">TestForge</div>
+      <div style="font-size:12px;color:var(--muted)">Testi şekillendir, güçlendir</div>
+    </div>
+    <div class="name-box" style="flex-direction:column;text-align:center;padding:20px 12px;">
+      <div style="font-size:28px">🌊</div>
+      <div style="font-size:16px;font-weight:700;color:#fff;margin:8px 0 4px">QAFlow</div>
+      <div style="font-size:12px;color:var(--muted)">Kesintisiz test akışı</div>
+    </div>
+    <div class="name-box" style="flex-direction:column;text-align:center;padding:20px 12px;border-color:#6d28d9;background:linear-gradient(135deg,#1a1040,#0d1b3e);">
+      <div style="font-size:28px">🔮</div>
+      <div style="font-size:16px;font-weight:700;color:#c4b5fd;margin:8px 0 4px">Orbis QA ⭐</div>
+      <div style="font-size:12px;color:var(--muted)">Döngü, bütünlük, kapsam</div>
+    </div>
+    <div class="name-box" style="flex-direction:column;text-align:center;padding:20px 12px;">
+      <div style="font-size:28px">🔗</div>
+      <div style="font-size:16px;font-weight:700;color:#fff;margin:8px 0 4px">Nexus QA</div>
+      <div style="font-size:12px;color:var(--muted)">Bağlantı noktası</div>
+    </div>
+    <div class="name-box" style="flex-direction:column;text-align:center;padding:20px 12px;">
+      <div style="font-size:28px">🔍</div>
+      <div style="font-size:16px;font-weight:700;color:#fff;margin:8px 0 4px">TestLens</div>
+      <div style="font-size:12px;color:var(--muted)">Test mercek analizi</div>
+    </div>
+  </div>
+</section>
+
+<!-- AKIŞ -->
+<section id="flow">
+  <div class="section-title">🗺️ Uçtan Uca Akış</div>
+  <div class="section-sub">Kullanıcı platformu açtığı andan raporlamaya kadar tam yolculuk</div>
+  <div class="flow-wrap">
+    <div class="flow">
+      <div class="flow-step fs-0">🚀 Faz 0<br><span class="tag">Ücretsiz AI Kur</span></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step fs-1">🏠 Landing Page<br><span class="tag">Yeni Proje / Listele</span></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step fs-2">📄 Doküman Yükle<br><span class="tag">Word/PDF/Confluence</span></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step fs-3">🧪 AI Test Case<br><span class="tag">Gherkin + Toplu Onay</span></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step fs-4">📋 Regresyon Seti<br><span class="tag">AI Dinamik Öneri</span></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step fs-5">⚙️ Otomasyon Kodu<br><span class="tag">Java/Playwright Üret</span></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step fs-6">📊 Koş + Raporla<br><span class="tag">Allure + AI Debug</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- KARARLAR -->
+<section id="kararlar">
+  <div class="section-title">✅ Alınan Kararlar</div>
+  <div class="section-sub">Tüm soru-cevap turlarından çıkan netleştirilmiş gereksinimler</div>
+  <div class="decisions-grid">
+    <div class="dec-card"><div class="cat">KULLANICI</div><div class="key">Hedef kitle</div><div class="val green">Küçük ekip (2-5 kişi)</div></div>
+    <div class="dec-card"><div class="cat">VERİTABANI</div><div class="key">DB desteği</div><div class="val green">PostgreSQL, MySQL, Oracle, MSSQL</div></div>
+    <div class="dec-card"><div class="dec-card"><div class="cat">AI MODEL</div><div class="key">Tercih</div><div class="val purple">Groq → Gemini → Ollama → g4f (ücretsiz zincir)</div></div></div>
+    <div class="dec-card"><div class="cat">DOKÜMAN</div><div class="key">Yükleme formatı</div><div class="val green">Word + PDF + Confluence URL (serbest format)</div></div>
+    <div class="dec-card"><div class="cat">DOKÜMAN</div><div class="key">AI görevi</div><div class="val green">Test Case üret → Regresyon öner</div></div>
+    <div class="dec-card"><div class="cat">TEST STANDARDI</div><div class="key">Format</div><div class="val cyan">Gherkin (Given/When/Then)</div></div>
+    <div class="dec-card"><div class="cat">TEST STANDARDI</div><div class="key">Dil</div><div class="val cyan">Türkçe/İngilizce — ayardan seçilir</div></div>
+    <div class="dec-card"><div class="cat">TEST STANDARDI</div><div class="key">Kapsam</div><div class="val yellow">Fonksiyonel + Negatif + Güvenlik + Performans</div></div>
+    <div class="dec-card"><div class="cat">TEST STANDARDI</div><div class="key">Data-driven</div><div class="val green">Scenario Outline — mümkün olan her yerde</div></div>
+    <div class="dec-card"><div class="cat">OTOMASYON ALTYAPI</div><div class="key">Java</div><div class="val green">NexusQATestOtomasyon — Selenium + Cucumber + Allure</div></div>
+    <div class="dec-card"><div class="cat">OTOMASYON ALTYAPI</div><div class="key">Seçim</div><div class="val cyan">Proje başında Java mi Playwright mi seçilir</div></div>
+    <div class="dec-card"><div class="cat">OTOMASYON ALTYAPI</div><div class="key">Step Def</div><div class="val yellow">Önce mevcut NexusQA step'leri kullan, eksik varsa yeni yaz</div></div>
+    <div class="dec-card"><div class="cat">OTOMASYON ALTYAPI</div><div class="key">POM</div><div class="val green">URL tarama + locator giriş + recorder — hepsi desteklenir</div></div>
+    <div class="dec-card"><div class="cat">OTOMASYON ALTYAPI</div><div class="key">API testi</div><div class="val cyan">Rest Assured (Java) veya Supertest (TS) — proje seçimi</div></div>
+    <div class="dec-card"><div class="cat">KOD ÜRETİMİ</div><div class="key">Kayıt yeri</div><div class="val green">NexusQA/features/ai-generated/ klasörüne otomatik</div></div>
+    <div class="dec-card"><div class="cat">KOD ÜRETİMİ</div><div class="key">Kalite kontrol</div><div class="val purple">Derleme + Lint + AI self-review skoru (üçlü kontrol)</div></div>
+    <div class="dec-card"><div class="cat">REGRESYON</div><div class="key">Yönetim</div><div class="val purple">AI dinamik — her dokümanda günceller</div></div>
+    <div class="dec-card"><div class="cat">REGRESYON</div><div class="key">Tetik</div><div class="val yellow">Manuel + DB değişikliği + yeni doküman — hepsi</div></div>
+    <div class="dec-card"><div class="cat">TEST VERİSİ</div><div class="key">Strateji</div><div class="val green">Önce DB'den çek, yoksa AI domain'e göre üretsin</div></div>
+    <div class="dec-card"><div class="cat">TEST VERİSİ</div><div class="key">Depolama</div><div class="val cyan">Statik: Excel, Dinamik: PostgreSQL</div></div>
+    <div class="dec-card"><div class="cat">KOŞU</div><div class="key">Ortam</div><div class="val green">Lokal koş (mvn test subprocess olarak)</div></div>
+    <div class="dec-card"><div class="cat">KOŞU</div><div class="key">Tarayıcı</div><div class="val cyan">Proje başında seçilir</div></div>
+    <div class="dec-card"><div class="cat">KOŞU</div><div class="key">Video</div><div class="val yellow">Her koşuda video kaydı</div></div>
+    <div class="dec-card"><div class="cat">RAPORLAMA</div><div class="key">Format</div><div class="val green">Allure detay + Platform dashboard özeti (ikisi birlikte)</div></div>
+    <div class="dec-card"><div class="cat">RAPORLAMA</div><div class="key">AI analiz</div><div class="val purple">Fail → AI debug → neden? açıklaması</div></div>
+    <div class="dec-card"><div class="cat">ONAY</div><div class="key">Mekanizma</div><div class="val cyan">Toplu onay — hepsini bir anda onayla/reddet</div></div>
+    <div class="dec-card"><div class="cat">ONAY</div><div class="key">Otomasyon seviyesi</div><div class="val yellow">Karma — kritik noktalarda onay, geri kalanlar otomatik</div></div>
+    <div class="dec-card"><div class="cat">TASARIM</div><div class="key">Tema</div><div class="val cyan">Dark/Light toggle — kullanıcı seçer</div></div>
+    <div class="dec-card"><div class="cat">TASARIM</div><div class="key">Renk paleti</div><div class="val blue">Kurumsal mavi + beyaz</div></div>
+    <div class="dec-card"><div class="cat">TASARIM</div><div class="key">AI loading</div><div class="val purple">Stream output — cümle cümle canlı yazar</div></div>
+    <div class="dec-card"><div class="cat">TASARIM</div><div class="key">İkonlar</div><div class="val cyan">Phosphor Icons</div></div>
+    <div class="dec-card"><div class="cat">TASARIM</div><div class="key">Grafikler</div><div class="val blue">D3.js — özel animasyonlu</div></div>
+    <div class="dec-card"><div class="cat">TASARIM</div><div class="key">Mobil</div><div class="val green">Tam responsive</div></div>
+    <div class="dec-card"><div class="cat">AI</div><div class="key">Prompt yönetimi</div><div class="val yellow">Kodda default, UI'dan override edilebilir</div></div>
+    <div class="dec-card"><div class="cat">AI</div><div class="key">Hatalı çıktı</div><div class="val purple">3 retry — en iyi puanlıyı seç</div></div>
+    <div class="dec-card"><div class="cat">AI</div><div class="key">Açıklanabilirlik</div><div class="val cyan">'Detay' butonuyla opsiyonel gerekçe</div></div>
+    <div class="dec-card"><div class="cat">AI</div><div class="key">Token limit</div><div class="val yellow">Otomatik chunk — bölüm bölüm işle</div></div>
+    <div class="dec-card"><div class="cat">AI</div><div class="key">Chat bağlamı</div><div class="val green">Her şey: proje + testler + raporlar + dokümanlar</div></div>
+    <div class="dec-card"><div class="cat">AI</div><div class="key">Fallback</div><div class="val purple">Groq → Gemini → Ollama → offline mod</div></div>
+    <div class="dec-card"><div class="cat">BACKEND</div><div class="key">Mimari</div><div class="val blue">Microservice — AI Gateway ayrı servis (Nginx proxy)</div></div>
+    <div class="dec-card"><div class="cat">BACKEND</div><div class="key">DB migrasyon</div><div class="val cyan">Alembic otomatik — model değişince</div></div>
+    <div class="dec-card"><div class="cat">BACKEND</div><div class="key">Async işler</div><div class="val purple">WebSocket — canlı ilerleme stream'i</div></div>
+    <div class="dec-card"><div class="cat">BACKEND</div><div class="key">Servis iletişim</div><div class="val yellow">REST (sync) + Redis queue (async)</div></div>
+    <div class="dec-card"><div class="cat">ALTYAPI</div><div class="key">Docker</div><div class="val green">Makefile ile yönet — make dev, make prod</div></div>
+    <div class="dec-card"><div class="cat">ALTYAPI</div><div class="key">URL</div><div class="val cyan">bgts.local — custom domain</div></div>
+    <div class="dec-card"><div class="cat">ALTYAPI</div><div class="key">Dosya depolama</div><div class="val blue">MinIO — her ortamda zorunlu</div></div>
+    <div class="dec-card"><div class="cat">ALTYAPI</div><div class="key">Cache</div><div class="val purple">AI sonuçları + DB sorgu — ikisi birlikte Redis</div></div>
+    <div class="dec-card"><div class="cat">ALTYAPI</div><div class="key">Log</div><div class="val cyan">Structured JSON log — analiz edilebilir</div></div>
+    <div class="dec-card"><div class="cat">GÜVENLİK</div><div class="key">Auth</div><div class="val green">JWT + şifreli API key depolama (AES)</div></div>
+    <div class="dec-card"><div class="cat">VERSİYON</div><div class="key">Takip</div><div class="val yellow">Her değişiklik kaydedilsin — tam history</div></div>
+    <div class="dec-card"><div class="cat">SİLME</div><div class="key">Strateji</div><div class="val cyan">Soft delete — arşivlenir, geri getirilebilir</div></div>
+    <div class="dec-card"><div class="cat">BİLDİRİM</div><div class="key">Kanal</div><div class="val blue">Tarayıcı push notification</div></div>
+    <div class="dec-card"><div class="cat">ARAMA</div><div class="key">Tip</div><div class="val purple">Metin + filtre + AI doğal dil arama</div></div>
+    <div class="dec-card"><div class="cat">HEDEF</div><div class="key">Amaç</div><div class="val green">Portfolyo — kendini göstermek için</div></div>
+    <div class="dec-card"><div class="cat">ÇALIŞMA</div><div class="key">Tempo</div><div class="val cyan">Her gün — hızlı ilerleme</div></div>
+  </div>
+</section>
+
+<!-- FAZLAR -->
+<section id="fazlar">
+  <div class="section-title">📋 Uygulama Fazları</div>
+  <div class="section-sub">Başlangıçtan tamamlamaya kadar 8 faz — tıklayarak detayları gör</div>
+
+  <!-- FAZ 0 -->
+  <div class="phase-card open" onclick="this.classList.toggle('open')">
+    <div class="ph-header">
+      <div class="ph-num" style="background:#1a0a3a;color:#c4b5fd;">0</div>
+      <div class="ph-info">
+        <h3>Faz 0 — Ücretsiz AI Entegrasyonu (BAŞLANGIÇ NOKTASI)</h3>
+        <div class="ph-meta"><span>⏱ 2-3 gün</span><span>📁 Engine + Backend</span><span>🎯 Tüm akışın temeli</span></div>
+      </div>
+      <div class="ph-badges"><span class="badge b-red">KRİTİK İLK</span><span class="ph-arrow">▼</span></div>
+    </div>
+    <div class="ph-body">
+      <div class="task-grid">
+        <div class="task-group">
+          <h4>GROQ ENTEGRASYONU</h4>
+          <ul class="task-list">
+            <li>Groq ücretsiz API key alımı (console.groq.com)</li>
+            <li>groq-sdk paketi kur (Python + Node)</li>
+            <li>llama3-70b-8192 model ile test</li>
+            <li>Mevcut ai_engine.py'e Groq provider ekle</li>
+            <li>Hız testi: token/saniye ölç</li>
+          </ul>
+        </div>
+        <div class="task-group">
+          <h4>GEMINI ENTEGRASYONU</h4>
+          <ul class="task-list">
+            <li>Google AI Studio'dan ücretsiz Gemini key al</li>
+            <li>google-generativeai paketi kur</li>
+            <li>gemini-1.5-flash model — hızlı ve ücretsiz</li>
+            <li>Fallback provider olarak ekle</li>
+            <li>Rate limit: dakikada 60 istek</li>
+          </ul>
+        </div>
+        <div class="task-group">
+          <h4>OLLAMA (LOKAL MODEL)</h4>
+          <ul class="task-list">
+            <li>ollama.ai'den kur (macOS native)</li>
+            <li>llama3:8b veya mistral:7b indir</li>
+            <li>Engine'e Ollama provider ekle</li>
+            <li>İnternet bağlantısı olmadan çalışır</li>
+          </ul>
+        </div>
+        <div class="task-group">
+          <h4>AI GATEWAY MİKROSERVİS</h4>
+          <ul class="task-list">
+            <li>Yeni FastAPI servisi: ai-gateway/ klasörü</li>
+            <li>Model routing: Groq → Gemini → Ollama → g4f</li>
+            <li>Rate limit tespiti + otomatik fallback</li>
+            <li>Retry mekanizması (3 deneme, en iyi seç)</li>
+            <li>Nginx'e /api/ai/* proxy ekle</li>
+            <li>docker-compose'a ai-gateway servisi ekle</li>
+          </ul>
+        </div>
+      </div>
+      <div class="ai-box">
+        <h4>🤖 Model Öncelik Zinciri</h4>
+        <p>Groq (llama3-70b) → Gemini 1.5 Flash → Ollama (local) → g4f (fallback)<br>Rate limit aşılırsa otomatik sonraki modele geç. Hepsi çalışmazsa offline mod.</p>
+        <div class="model">Tahmini maliyet: $0 — tamamen ücretsiz</div>
+      </div>
+      <div class="file-tags">
+        <span class="ftag">engine/core/ai_engine.py</span>
+        <span class="ftag">ai-gateway/ (YENİ MİKROSERVİS)</span>
+        <span class="ftag">ai-gateway/providers/groq_provider.py</span>
+        <span class="ftag">ai-gateway/providers/gemini_provider.py</span>
+        <span class="ftag">ai-gateway/providers/ollama_provider.py</span>
+        <span class="ftag">infra/nginx/nginx.conf</span>
+        <span class="ftag">Makefile (make dev komutu)</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- FAZ 1 -->
+  <div class="phase-card" onclick="this.classList.toggle('open')">
+    <div class="ph-header">
+      <div class="ph-num" style="background:#1a2a10;color:#86efac;">1</div>
+      <div class="ph-info">
+        <h3>Faz 1 — Landing Page & Proje Wizard'ı</h3>
+        <div class="ph-meta"><span>⏱ 2-3 gün</span><span>📁 Frontend (Next.js)</span><span>🎯 Kullanıcı giriş deneyimi</span></div>
+      </div>
+      <div class="ph-badges"><span class="badge b-red">KRİTİK</span><span class="ph-arrow">▼</span></div>
+    </div>
+    <div class="ph-body">
+      <div class="task-grid">
+        <div class="task-group">
+          <h4>LANDING PAGE</h4>
+          <ul class="task-list">
+            <li>Dashboard'u landing page'e dönüştür — istatistik kartları + "Yeni Proje" + "Projelere Bak"</li>
+            <li>Proje kartı: ad + başarı oranı + faz ilerleme çubuğu</li>
+            <li>Arama + filtre (durum, tarih, framework)</li>
+            <li>Soft delete ile arşivlenen projeleri ayrı göster</li>
+          </ul>
+        </div>
+        <div class="task-group">
+          <h4>YENİ PROJE WIZARD'I</h4>
+          <ul class="task-list">
+            <li>4 adımlı wizard: Proje Adı → Framework Seç → DB/Ortam → AI Ayarı</li>
+            <li>Framework seçimi: Java (NexusQA) / Playwright TS</li>
+            <li>DB bağlantısı opsiyonel — atlanabilir</li>
+            <li>Tarayıcı seçimi: Chrome / Firefox / Edge / Proje'de seç</li>
+            <li>Ortam yönetimi: dev/test/preprod ortam ekle</li>
+          </ul>
+        </div>
+        <div class="task-group">
+          <h4>PROJE DURUM PANELİ</h4>
+          <ul class="task-list">
+            <li>Her proje için akış ilerleme çubuğu sidebar'da</li>
+            <li>Doküman Yüklendi ✓ → Test Üretildi ✓ → Otomasyon ✓ gibi adımlar</li>
+            <li>Tamamlanmamış adımlar için hızlı erişim butonu</li>
+          </ul>
+        </div>
+        <div class="task-group">
+          <h4>GENEL UI İYİLEŞTİRMELER</h4>
+          <ul class="task-list">
+            <li>Dark/Light toggle — header'da</li>
+            <li>Phosphor icons kurulumu ve geçiş</li>
+            <li>bgts.local domain ayarı (Makefile'da otomatik)</li>
+            <li>Tarayıcı push notification izni</li>
+          </ul>
+        </div>
+      </div>
+      <div class="file-tags">
+        <span class="ftag">app/(dashboard)/page.tsx</span>
+        <span class="ftag">app/(dashboard)/new-project/page.tsx</span>
+        <span class="ftag">components/landing/</span>
+        <span class="ftag">components/project-card.tsx</span>
+        <span class="ftag">components/project-wizard.tsx</span>
+        <span class="ftag">components/phase-progress.tsx</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- FAZ 2 -->
+  <div class="phase-card" onclick="this.classList.toggle('open')">
+    <div class="ph-header">
+      <div class="ph-num" style="background:#1a1f40;color:#93c5fd;">2</div>
+      <div class="ph-info">
+        <h3>Faz 2 — Doküman Yükleme & AI Parse Pipeline</h3>
+        <div class="ph-meta"><span>⏱ 3-4 gün</span><span>📁 Backend + AI Gateway + Frontend</span><span>🎯 Temel AI akışı</span></div>
+      </div>
+      <div class="ph-badges"><span class="badge b-red">KRİTİK</span><span class="ph-arrow">▼</span></div>
+    </div>
+    <div class="ph-body">
+      <div class="task-grid">
+        <div class="task-group">
+          <h4>DOKÜMAN YÜKLEYİCİ</h4>
+          <ul class="task-list">
+            <li>Word (.docx) parser — python-docx ile metin çıkar</li>
+            <li>PDF parser — PyMuPDF ile metin + tablo çıkar</li>
+            <li>Confluence URL çekici — Confluence REST API (API token)</li>
+            <li>MinIO'ya yükle, DB'de referans sakla</li>
+            <li>Büyük doküman: otomatik chunk (3000 token/parça)</li>
+          </ul>
+        </div>
+        <div class="task-group">
+          <h4>AI DOKÜMAN ANALİZİ</h4>
+          <ul class="task-list">
+            <li>Serbest format dokümanı AI'a gönder</li>
+            <li>AI çıkarımı: iş alanı, kullanıcı rolleri, temel akışlar</li>
+            <li>Modül tespiti: hangi modüller var? (Login, Ödeme, Rapor...)</li>
+            <li>Stream output ile canlı analiz gösterimi</li>
+            <li>Confidence score her çıkarım için</li>
+          </ul>
+        </div>
+        <div class="task-group">
+          <h4>DB BAĞLANTISI (OPSİYONEL)</h4>
+          <ul class="task-list">
+            <li>DB bağlantı bilgisi şifreli sakla (AES encrypt)</li>
+            <li>PostgreSQL, MySQL, Oracle, MSSQL connector'ları</li>
+            <li>100+ tablo varsa modüle ayır, grup grup analiz</li>
+            <li>DB şeması + doküman birleştir → zengin bağlam</li>
+          </ul>
+        </div>
+        <div class="task-group">
+          <h4>BACKEND ENDPOINTLERİ</h4>
+          <ul class="task-list">
+            <li>POST /api/v1/documents/upload (Word/PDF)</li>
+            <li>POST /api/v1/documents/confluence-fetch</li>
+            <li>POST /api/v1/documents/{id}/analyze (AI)</li>
+            <li>GET /api/v1/documents/{id}/analysis-result</li>
+            <li>WebSocket /ws/analysis-progress/{jobId}</li>
+          </ul>
+        </div>
+      </div>
+      <div class="ai-box">
+        <h4>🤖 AI Kullanım Detayı — Faz 2</h4>
+        <p>Doküman içeriği → chunklara bölünür → her chunk AI'a gönderilir → sonuçlar birleştirilir → modül haritası çıkar.<br>
+        Büyük dokümanlarda özet önce çıkarılır, özet üzerinden analiz yapılır.</p>
+        <div class="model">Model: Groq llama3-70b (hız için) | Fallback: Gemini 1.5 Flash</div>
+      </div>
+      <div class="file-tags">
+        <span class="ftag">backend/app/domains/documents/ (YENİ)</span>
+        <span class="ftag">backend/app/domains/datasets/ (YENİ)</span>
+        <span class="ftag">ai-gateway/prompts/document_analysis.py</span>
+        <span class="ftag">app/(dashboard)/p/[id]/analysis/page.tsx</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- FAZ 3 -->
+  <div class="phase-card" onclick="this.classList.toggle('open')">
+    <div class="ph-header">
+      <div class="ph-num" style="background:#1a3a10;color:#86efac;">3</div>
+      <div class="ph-info">
+        <h3>Faz 3 — AI Test Case Üretimi & Toplu Onay</h3>
+        <div class="ph-meta"><span>⏱ 4-5 gün</span><span>📁 Backend + Engine + Frontend</span><span>🎯 Temel ürün değeri</span></div>
+      </div>
+      <div class="ph-badges"><span class="badge b-red">KRİTİK</span><span class="ph-arrow">▼</span></div>
+    </div>
+    <div class="ph-body">
+      <div class="task-grid">
+        <div class="task-group">
+          <h4>AI TEST CASE ÜRETİCİ</h4>
+          <ul class="task-list">
+            <li>Bağlam: doküman + DB şeması + geçmiş sonuçlar + kullanıcı yorumları</li>
+            <li>Gherkin formatında (Türkçe/İngilizce — ayardan)</li>
+            <li>Scenario Outline — mümkün olan her yerde</li>
+            <li>Kapsam: Fonksiyonel + Negatif + Güvenlik + Performans</li>
+            <li>AI ID üretimi: anlamlı, mod ül tabanlı</li>
+            <li>AI öncelik önerisi: P0/P1/P2/P3</li>
+            <li>AI tag önerisi: @smoke @regression @critical vs.</li>
+          </ul>
+        </div>
+        <div class="task-group">
+          <h4>TOPLU ONAY EKRANI</h4>
+          <ul class="task-list">
+            <li>Tüm AI önerilerini tek listede göster</li>
+            <li>Toplu seç + onayla / reddet</li>
+            <li>Her test case için düzenleme modu</li>
+            <li>Öncelik değiştirme, tag ekleme/çıkarma</li>
+            <li>'Detay' butonu — AI neden bu testi önerdi?</li>
+            <li>Onaylananlar DB'ye kaydedilir</li>
+          </ul>
+        </div>
+        <div class="task-group">
+          <h4>TEST CASE YÖNETİMİ</h4>
+          <ul class="task-list">
+            <li>Metin + filtre + AI doğal dil arama</li>
+            <li>Sabit + serbest + AI otomatik tag sistemi</li>
+            <li>Versiyon takibi — her değişiklik kaydedilsin</li>
+            <li>Versiyonlar arası diff görünümü</li>
+            <li>Soft delete — test case arşivlensin</li>
+          </ul>
+        </div>
+        <div class="task-group">
+          <h4>TEST VERİSİ</h4>
+          <ul class="task-list">
+            <li>DB bağlıysa: örnek satırlar çek, maskele</li>
+            <li>DB yoksa: AI domain'e göre sentetik üretsin</li>
+            <li>Scenario Outline Examples tablosu otomatik doldur</li>
+            <li>Excel/PostgreSQL'e kaydet</li>
+          </ul>
+        </div>
+      </div>
+      <div class="ai-box">
+        <h4>🤖 AI Kullanım Detayı — Faz 3</h4>
+        <p>Analiz sonucu + DB şeması → Test case prompt → AI JSON output (id, title, tags, priority, gherkin, confidence)<br>
+        3 retry: en yüksek coverage score'lu seçilir. Kullanıcı onaylarsa DB'ye kaydedilir.</p>
+        <div class="model">Model: Groq llama3-70b | JSON mode | Temperature: 0.3</div>
+      </div>
+      <div class="file-tags">
+        <span class="ftag">backend/app/domains/testcases/ (YENİ)</span>
+        <span class="ftag">ai-gateway/prompts/test_generation.py</span>
+        <span class="ftag">app/(dashboard)/p/[id]/scenarios/page.tsx</span>
+        <span class="ftag">components/bulk-approval.tsx</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- FAZ 4 -->
+  <div class="phase-card" onclick="this.classList.toggle('open')">
+    <div class="ph-header">
+      <div class="ph-num" style="background:#3a2a10;color:#fde68a;">4</div>
+      <div class="ph-info">
+        <h3>Faz 4 — AI Regresyon Seti Önerisi</h3>
+        <div class="ph-meta"><span>⏱ 3-4 gün</span><span>📁 Backend + Frontend</span><span>🎯 Akıllı test seçimi</span></div>
+      </div>
+      <div class="ph-badges"><span class="badge b-yellow">YÜKSEK</span><span class="ph-arrow">▼</span></div>
+    </div>
+    <div class="ph-body">
+      <div class="task-grid">
+        <div class="task-group">
+          <h4>REGRESYON ÖNERİCİ</h4>
+          <ul class="task-list">
+            <li>Doküman değişikliği → etkilenen modüller → ilgili testler</li>
+            <li>DB tablo bağımlılık grafiği (FK analizi)</li>
+            <li>Risk skoru hesaplama her test için</li>
+            <li>AI: "Bu alanlar değişti → şu testler etkilenir" gerekçesi</li>
+          </ul>
+        </div>
+        <div class="task-group">
+          <h4>TETIK MEKANİZMASI</h4>
+          <ul class="task-list">
+            <li>Manuel: "Regresyon Güncelle" butonu</li>
+            <li>Yeni doküman yüklenince otomatik güncelle</li>
+            <li>DB şema değişikliği tespiti → otomatik güncelle</li>
+            <li>Her deploy'da güncel regresyon seti koşulsun</li>
+          </ul>
+        </div>
+        <div class="task-group">
+          <h4>REGRESYON SET YÖNETİMİ</h4>
+          <ul class="task-list">
+            <li>Öncelik görünümü: P0 → P1 → P2 → P3</li>
+            <li>Tahmini süre hesabı (test sayısı × ortalama süre)</li>
+            <li>Bağımlılık grafiği görselleştirme (D3.js)</li>
+            <li>Set geçmişi — hangi sette ne vardı?</li>
+          </ul>
+        </div>
+        <div class="task-group">
+          <h4>DB MODELLERİ</h4>
+          <ul class="task-list">
+            <li>RegressionSet tablosu</li>
+            <li>RegressionSetItem tablosu (test_case_id, priority, reason)</li>
+            <li>RegressionSetHistory — her güncelleme kaydı</li>
+          </ul>
+        </div>
+      </div>
+      <div class="ai-box">
+        <h4>🤖 AI Kullanım Detayı — Faz 4</h4>
+        <p>Değişiklik diff + test case listesi → AI bağımlılık analizi → öncelikli regresyon seti JSON çıktısı.<br>
+        Her test için: "neden regresyonda?" gerekçesi + güven skoru.</p>
+        <div class="model">Model: Groq llama3-70b | Reasoning modu | Detaylı prompt</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FAZ 5 -->
+  <div class="phase-card" onclick="this.classList.toggle('open')">
+    <div class="ph-header">
+      <div class="ph-num" style="background:#1a3a3a;color:#a5f3fc;">5</div>
+      <div class="ph-info">
+        <h3>Faz 5 — Otomasyon Kodu Üretimi (NexusQA + Playwright)</h3>
+        <div class="ph-meta"><span>⏱ 4-5 gün</span><span>📁 Engine + NexusQA + Frontend</span><span>🎯 Otomasyonun kalbi</span></div>
+      </div>
+      <div class="ph-badges"><span class="badge b-yellow">YÜKSEK</span><span class="ph-arrow">▼</span></div>
+    </div>
+    <div class="ph-body">
+      <div class="task-grid">
+        <div class="task-group">
+          <h4>SEÇIM EKRANI</h4>
+          <ul class="task-list">
+            <li>Test case listesinde checkbox'lar</li>
+            <li>AI otomasyon uygunluk skoru badge'i (%92 gibi)</li>
+            <li>"AI önerilerini seç" butonu — yüksek skor olanları seç</li>
+            <li>Framework seçimi: Java/Selenium veya Playwright TS</li>
+            <li>Toplu "Otomasyona Çevir" butonu</li>
+          </ul>
+        </div>
+        <div class="task-group">
+          <h4>JAVA/SELENIUM KOD ÜRETİCİ (MAVİYAKA)</h4>
+          <ul class="task-list">
+            <li>Gherkin feature dosyası → features/ai-generated/ klasörüne yaz</li>
+            <li>Önce NexusQA mevcut step'lerini eşleştir (ClickSteps, InputSteps vb.)</li>
+            <li>Eksik step varsa yeni Java step definition yaz</li>
+            <li>POM: URL tarama + locator keşfi + otomatik class üretimi</li>
+            <li>Derleme kontrolü: mvn compile ile doğrula</li>
+            <li>Lint: Checkstyle ile stil kontrol</li>
+            <li>AI self-review skoru hesapla</li>
+          </ul>
+        </div>
+        <div class="task-group">
+          <h4>PLAYWRIGHT KOD ÜRETİCİ</h4>
+          <ul class="task-list">
+            <li>Gherkin → TypeScript Playwright kodu</li>
+            <li>Page Object Model otomatik üretimi</li>
+            <li>Her koşuda video kaydı yapılandırması</li>
+            <li>ESLint + TypeScript derleme kontrol</li>
+            <li>API testi: Supertest entegrasyonu</li>
+          </ul>
+        </div>
+        <div class="task-group">
+          <h4>TEST VERİSİ ENTEGRASYONİ</h4>
+          <ul class="task-list">
+            <li>DB bağlıysa örnek satır çek + maskele</li>
+            <li>Yoksa AI sentetik veri üretsin</li>
+            <li>Scenario Outline Examples tablosu doldur</li>
+            <li>Excel dosyası otomatik oluştur</li>
+          </ul>
+        </div>
+      </div>
+      <div class="ai-box">
+        <h4>🤖 4 Aşamalı AI Kod Üretim Zinciri</h4>
+        <p>
+          1️⃣ Manuel test adımları → <strong>Gherkin feature</strong> (AI)<br>
+          2️⃣ Gherkin → <strong>Step Definitions</strong> (AI, NexusQA step'lerini önce kontrol eder)<br>
+          3️⃣ Step Defs → <strong>Playwright/Java kodu</strong> (AI)<br>
+          4️⃣ Üretilen kod → <strong>Self-Review + Skor</strong> (AI)
+        </p>
+        <div class="model">Model: Groq mixtral-8x7b (kod üretimi için daha iyi) | Fallback: Gemini 1.5 Flash</div>
+      </div>
+      <div class="file-tags">
+        <span class="ftag">engine/routes/pipeline_routes.py (GENİŞLET)</span>
+        <span class="ftag">engine/routes/batch_automation_routes.py (YENİ)</span>
+        <span class="ftag">NexusQA/features/ai-generated/ (ÇIKTI)</span>
+        <span class="ftag">ai-gateway/prompts/code_generation.py</span>
+        <span class="ftag">components/automation-selector.tsx</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- FAZ 6 -->
+  <div class="phase-card" onclick="this.classList.toggle('open')">
+    <div class="ph-header">
+      <div class="ph-num" style="background:#3a1a10;color:#fcd34d;">6</div>
+      <div class="ph-info">
+        <h3>Faz 6 — Test Koşusu, Allure & AI Debug</h3>
+        <div class="ph-meta"><span>⏱ 3-4 gün</span><span>📁 Engine + Frontend + WebSocket</span><span>🎯 Tam döngü kapanışı</span></div>
+      </div>
+      <div class="ph-badges"><span class="badge b-yellow">YÜKSEK</span><span class="ph-arrow">▼</span></div>
+    </div>
+    <div class="ph-body">
+      <div class="task-grid">
+        <div class="task-group">
+          <h4>TEST KOŞUSU</h4>
+          <ul class="task-list">
+            <li>Platform mvn test subprocess olarak çalıştırır</li>
+            <li>WebSocket ile canlı log stream'i UI'a</li>
+            <li>İlerleme çubuğu: kaç test bitti / kaç kaldı</li>
+            <li>Video kaydı her koşuda otomatik</li>
+            <li>Koşu tamamlanınca tarayıcı push notification</li>
+          </ul>
+        </div>
+        <div class="task-group">
+          <h4>ALLURE + PLATFORM RAPORU</h4>
+          <ul class="task-list">
+            <li>Allure detay raporu: her test adımı, screenshot, video</li>
+            <li>Platform dashboard özeti: pass/fail oranı, trend grafiği (D3.js)</li>
+            <li>Koşu geçmişi: her koşu kaydedilsin</li>
+            <li>Karşılaştırma: önceki koşu vs mevcut</li>
+          </ul>
+        </div>
+        <div class="task-group">
+          <h4>AI DEBUG & ANALİZ</h4>
+          <ul class="task-list">
+            <li>Fail olan testler → AI analiz: neden fail oldu?</li>
+            <li>Flaky test tespiti: aynı test bazen geçti bazen geçmedi</li>
+            <li>Bug mı, flaky mi? AI karar önerisi (ben karar veririm)</li>
+            <li>Düzeltme önerisi: "Şu locator değişmiş, güncelle"</li>
+            <li>Self-healing: broken locator otomatik onar</li>
+          </ul>
+        </div>
+        <div class="task-group">
+          <h4>FEEDBACK LOOP</h4>
+          <ul class="task-list">
+            <li>Test sonuçları → regresyon setini güncelle</li>
+            <li>Sık fail olanlar → öncelik artır</li>
+            <li>Hiç fail olmayanlar → regresyondan çıkar?</li>
+            <li>AI öğrenme sinyali: onay/red kaydet</li>
+          </ul>
+        </div>
+      </div>
+      <div class="ai-box">
+        <h4>🤖 AI Debug Akışı</h4>
+        <p>Fail log + screenshot + Allure output → AI analiz → "Element bulunamadı: #submit-btn, selector değişmiş olabilir" + düzeltme önerisi.<br>
+        Kullanıcı "Bu bug" veya "Flaky" seçer, AI öğrenir.</p>
+        <div class="model">Model: Groq llama3-70b | Log analizi modu</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FAZ 7 -->
+  <div class="phase-card" onclick="this.classList.toggle('open')">
+    <div class="ph-header">
+      <div class="ph-num" style="background:#1a0a3a;color:#e9d5ff;">7</div>
+      <div class="ph-info">
+        <h3>Faz 7 — AI Chat Asistanı & Uçtan Uca Bütünleşme</h3>
+        <div class="ph-meta"><span>⏱ 3-4 gün</span><span>📁 Tüm katmanlar</span><span>🎯 Akıllı platform</span></div>
+      </div>
+      <div class="ph-badges"><span class="badge b-purple">TAMAMLAMA</span><span class="ph-arrow">▼</span></div>
+    </div>
+    <div class="ph-body">
+      <div class="task-grid">
+        <div class="task-group">
+          <h4>AI CHAT ASISTAN</h4>
+          <ul class="task-list">
+            <li>Her sayfada sağ altta chat widget'ı</li>
+            <li>Bağlam: tüm proje verisi + testler + raporlar + dokümanlar</li>
+            <li>Stream output — cevap cümle cümle gelir</li>
+            <li>"Bu tabloya kolon eklendi, hangi testler etkilenir?" sorusu</li>
+            <li>"Geçen hafta fail olan testlerin ortak noktası?" sorusu</li>
+            <li>Doğal dil arama: "login ile ilgili kritik testler"</li>
+          </ul>
+        </div>
+        <div class="task-group">
+          <h4>AI AYARLAR PANELİ</h4>
+          <ul class="task-list">
+            <li>Model seçimi: Groq / Gemini / Ollama</li>
+            <li>API key yönetimi: UI + .env desteği (AES şifreli)</li>
+            <li>Token kullanım takibi</li>
+            <li>Prompt override — varsayılan promptları UI'dan düzenle</li>
+            <li>Rate limit durumu görüntüleme</li>
+          </ul>
+        </div>
+        <div class="task-group">
+          <h4>SON ENTEGRASYON TESTLERİ</h4>
+          <ul class="task-list">
+            <li>Uçtan uca akış: Landing → Doküman → Test → Otomasyon → Rapor</li>
+            <li>Hata senaryoları: yanlış DB, AI timeout, büyük doküman</li>
+            <li>Performans: UI 2sn, AI 30sn limit</li>
+            <li>Mobil responsive kontrol</li>
+            <li>bgts.local domain kurulum testi</li>
+          </ul>
+        </div>
+        <div class="task-group">
+          <h4>POLISH & TEMİZLİK</h4>
+          <ul class="task-list">
+            <li>Deprecated klasörler temizle (~1.2 GB boşalt)</li>
+            <li>Loading state'ler, error handling, toast bildirimleri</li>
+            <li>Swagger API dökümantasyonu</li>
+            <li>make dev, make test, make clean komutları</li>
+            <li>README güncelleme</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- MİMARİ -->
+<section id="mimari">
+  <div class="section-title">🏗️ Sistem Mimarisi</div>
+  <div class="section-sub">8 servis, Nginx reverse proxy, bgts.local domain</div>
+  <div class="arch-grid">
+    <div class="arch-card">
+      <div class="arch-title">Frontend — Next.js 14</div>
+      <div class="arch-sub">PORT: 3000 → bgts.local</div>
+      <p>Landing page, proje wizard, test case yönetimi, toplu onay, otomasyon seçim, Allure entegrasyonu, AI chat widget, D3.js grafikler, Phosphor icons, dark/light mode.</p>
+      <div class="stack"><span class="stag">Next.js 14</span><span class="stag">TypeScript</span><span class="stag">Tailwind</span><span class="stag">D3.js</span><span class="stag">Phosphor</span><span class="stag">WebSocket</span></div>
+    </div>
+    <div class="arch-card">
+      <div class="arch-title">Backend API — FastAPI</div>
+      <div class="arch-sub">PORT: 8000 → bgts.local/api/v1</div>
+      <p>Kullanıcı yönetimi, proje CRUD, doküman yönetimi, test case CRUD, regresyon seti, ortam yönetimi, versiyonlama, soft delete, audit log. Alembic otomatik migrasyon.</p>
+      <div class="stack"><span class="stag">FastAPI</span><span class="stag">SQLAlchemy</span><span class="stag">Alembic</span><span class="stag">JWT</span><span class="stag">PostgreSQL</span></div>
+    </div>
+    <div class="arch-card">
+      <div class="arch-title">🆕 AI Gateway — FastAPI</div>
+      <div class="arch-sub">PORT: internal → bgts.local/api/ai</div>
+      <p>Tüm AI çağrılarının merkezi noktası. Model routing, retry mekanizması (3 deneme), rate limit tespiti, otomatik fallback zinciri, prompt yönetimi, AI cache (Redis), structured JSON output.</p>
+      <div class="stack"><span class="stag">FastAPI</span><span class="stag">Groq SDK</span><span class="stag">Gemini</span><span class="stag">Ollama</span><span class="stag">g4f</span><span class="stag">Redis Cache</span></div>
+    </div>
+    <div class="arch-card">
+      <div class="arch-title">Test Engine — Flask</div>
+      <div class="arch-sub">PORT: 5001 → bgts.local/engine</div>
+      <p>Otomasyon kod üretimi, Java subprocess çalıştırma, Playwright koşusu, batch pipeline, locator keşfi, self-healing, Allure rapor parse, WebSocket progress stream.</p>
+      <div class="stack"><span class="stag">Flask</span><span class="stag">Playwright</span><span class="stag">subprocess</span><span class="stag">Allure</span><span class="stag">WebSocket</span></div>
+    </div>
+    <div class="arch-card">
+      <div class="arch-title">Altyapı Servisleri</div>
+      <div class="arch-sub">Docker Compose — Makefile ile yönet</div>
+      <p>PostgreSQL 16 (veri), Redis 7 (cache + queue + session), MinIO (doküman/rapor depolama — her ortamda zorunlu), n8n (workflow), Nginx (reverse proxy, bgts.local).</p>
+      <div class="stack"><span class="stag">PostgreSQL 16</span><span class="stag">Redis 7</span><span class="stag">MinIO</span><span class="stag">n8n</span><span class="stag">Nginx</span></div>
+    </div>
+    <div class="arch-card">
+      <div class="arch-title">NexusQA Test Otomasyonu</div>
+      <div class="arch-sub">Java 17 + Selenium + Cucumber + Allure</div>
+      <p>AI üretilen feature dosyaları features/ai-generated/ klasörüne yazılır. Mevcut step definitions önce kullanılır. Platform mvn test subprocess ile çalıştırır. Video kaydı her koşuda.</p>
+      <div class="stack"><span class="stag">Java 17</span><span class="stag">Selenium 4</span><span class="stag">Cucumber</span><span class="stag">Allure 2</span><span class="stag">Maven</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- TIMELINE -->
+<section id="timeline">
+  <div class="section-title">📅 Uygulama Takvimi</div>
+  <div class="section-sub">~25 iş günü — her gün çalışma temposuyla</div>
+  <div class="timeline">
+    <div class="tl-item"><div class="days">Gün 1-3</div><h4>Faz 0 — Ücretsiz AI Entegrasyonu</h4><p>Groq + Gemini + Ollama kurulum, AI Gateway microservice, Nginx proxy, Makefile</p></div>
+    <div class="tl-item"><div class="days">Gün 4-6</div><h4>Faz 1 — Landing Page</h4><p>Dashboard dönüşümü, proje wizard, durum paneli, dark/light toggle, bgts.local</p></div>
+    <div class="tl-item"><div class="days">Gün 7-10</div><h4>Faz 2 — Doküman Yükleme & AI Parse</h4><p>Word/PDF/Confluence parser, AI analiz pipeline, stream output, DB connector</p></div>
+    <div class="tl-item"><div class="days">Gün 11-15</div><h4>Faz 3 — AI Test Case Üretimi</h4><p>Gherkin üretimi, toplu onay ekranı, tag sistemi, versiyon takibi, arama</p></div>
+    <div class="tl-item"><div class="days">Gün 16-19</div><h4>Faz 4 — Regresyon Seti</h4><p>AI regresyon önerisi, bağımlılık grafiği (D3.js), tetik mekanizmaları</p></div>
+    <div class="tl-item"><div class="days">Gün 20-24</div><h4>Faz 5 — Otomasyon Kodu Üretimi</h4><p>Java/Playwright kod üretimi, NexusQA entegrasyonu, test verisi, kalite kontrol</p></div>
+    <div class="tl-item"><div class="days">Gün 25-28</div><h4>Faz 6 — Koşu, Allure & AI Debug</h4><p>Subprocess koşu, WebSocket stream, Allure + dashboard rapor, AI debug</p></div>
+    <div class="tl-item"><div class="days">Gün 29-32</div><h4>Faz 7 — AI Chat & Tamamlama</h4><p>Chat asistanı, AI ayarlar paneli, uçtan uca testler, temizlik, README</p></div>
+  </div>
+</section>
+
+<!-- RİSKLER -->
+<section id="riskler">
+  <div class="section-title">⚠️ Riskler & Çözümler</div>
+  <div class="section-sub">Önceden tespit edilen riskler ve çözüm stratejileri</div>
+  <div class="risk-grid">
+    <div class="risk-card risk-high">
+      <h4>🔴 Ücretsiz Model Kalitesi</h4>
+      <p>Groq/Gemini karmaşık Java kodu üretiminde yetersiz kalabilir.</p>
+      <div class="solution">✅ Çözüm: NexusQA mevcut step'lerini yeniden kullan stratejisi. AI sıfırdan yazmak yerine eşleştirme yapacak — başarı oranı %80+ olmalı.</div>
+    </div>
+    <div class="risk-card risk-high">
+      <h4>🔴 Rate Limit Aşımı</h4>
+      <p>Groq dakikada 30 istek, Gemini dakikada 60 istek limiti var.</p>
+      <div class="solution">✅ Çözüm: Otomatik fallback zinciri. Groq → Gemini → Ollama → g4f. Ollama lokal olduğu için limitsiz.</div>
+    </div>
+    <div class="risk-card risk-high">
+      <h4>🔴 Büyük Doküman Token Limiti</h4>
+      <p>100+ sayfalık dokümanlar token limitini aşar.</p>
+      <div class="solution">✅ Çözüm: Otomatik chunk (3000 token). Önce özet çıkar, özet üzerinden analiz. Modüle böl.</div>
+    </div>
+    <div class="risk-card risk-med">
+      <h4>🟡 Java Kod Derleme Hatası</h4>
+      <p>AI ürettiği Java kodu derlenmeyebilir.</p>
+      <div class="solution">✅ Çözüm: mvn compile ile test et. Hata varsa AI'a hata mesajını gönder → düzelt → tekrar dene (max 3).</div>
+    </div>
+    <div class="risk-card risk-med">
+      <h4>🟡 NexusQA Step Eşleşmeme</h4>
+      <p>AI mevcut step'leri tanımayabilir veya yanlış eşleştirebilir.</p>
+      <div class="solution">✅ Çözüm: Tüm mevcut step metodlarını prompt'a ekle. AI seçim yapacak, yeni yazmayacak.</div>
+    </div>
+    <div class="risk-card risk-low">
+      <h4>🟢 bgts.local DNS Sorunu</h4>
+      <p>/etc/hosts değişikliği yönetici yetkisi gerektirir.</p>
+      <div class="solution">✅ Çözüm: make dev komutu otomatik /etc/hosts günceller (sudo ile). Tek seferlik kurulum.</div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<div style="padding:32px 40px;text-align:center;color:var(--muted);font-size:13px;border-top:1px solid var(--border);">
+  <p>Nexus QA Platformu — Master Plan | Yasin Bulgan | 10 Nisan 2026</p>
+  <p style="margin-top:4px;">8 Faz · ~25 Gün · 4 Ücretsiz AI Model · 0₺ Maliyet</p>
+</div>
+
+<script>
+  // Smooth scroll için
+  document.querySelectorAll('nav a').forEach(a => {
+    a.addEventListener('click', e => e.preventDefault());
+  });
+</script>
+
+</body>
+</html>

@@ -1,0 +1,232 @@
+{
+  "artifact_dir": "/tmp/neurex-soak-artifacts/load-250",
+  "created_runs": 250,
+  "expected_dead_letters": 25,
+  "expected_statuses": {
+    "cancelled": 27,
+    "completed": 167,
+    "failed_validation": 28,
+    "pending_approval": 10,
+    "running": 18
+  },
+  "expected_workflow_types": {
+    "analysis": 42,
+    "code_generation": 42,
+    "repair": 41,
+    "report": 41,
+    "review": 42,
+    "test_generation": 42
+  },
+  "health": {
+    "active_runs": 109,
+    "approval_count": 304,
+    "artifact_bytes": 706560,
+    "artifact_count": 1000,
+    "by_status": {
+      "cancelled": 160,
+      "completed": 649,
+      "failed_validation": 82,
+      "pending_approval": 34,
+      "running": 75
+    },
+    "by_workflow_type": {
+      "analysis": 158,
+      "code_generation": 158,
+      "repair": 154,
+      "report": 154,
+      "review": 158,
+      "test_generation": 158
+    },
+    "cost_usd": 91.6,
+    "dead_letters_total": 106,
+    "event_counts": {
+      "approval_recorded": 304,
+      "approval_required": 34,
+      "artifact_created": 1000,
+      "cancelled": 160,
+      "failed_validation": 82,
+      "queue_enqueued": 1000,
+      "soak_progress": 1000,
+      "workflow_completed": 649,
+      "workflow_created": 1000
+    },
+    "generated_at": "2026-05-18T06:13:09.609020Z",
+    "llm_calls_count": 2500,
+    "oldest_active_seconds": 11045.438759,
+    "queue_depth": 0,
+    "recent_dead_letters": [
+      {
+        "created_at": "2026-05-18T06:13:07.462953+03:00",
+        "dead_letter_id": "172e07ac-0b14-46d6-bf1e-25f96496afcb",
+        "last_error": "synthetic",
+        "payload": {
+          "index": 250,
+          "profile": "load-250"
+        },
+        "queue_name": "ai_workflows",
+        "reason": "load-250 synthetic dead letter",
+        "retry_count": 2,
+        "run_id": "636a9d29-ab1f-4548-bcf8-e85a6d760964"
+      },
+      {
+        "created_at": "2026-05-18T06:13:07.197390+03:00",
+        "dead_letter_id": "5e97a4ac-67d2-4539-ba03-79bced6672b5",
+        "last_error": "synthetic",
+        "payload": {
+          "index": 240,
+          "profile": "load-250"
+        },
+        "queue_name": "ai_workflows",
+        "reason": "load-250 synthetic dead letter",
+        "retry_count": 0,
+        "run_id": "30f01d03-07a2-483f-95f4-a1c4f2ad7763"
+      },
+      {
+        "created_at": "2026-05-18T06:13:07.049352+03:00",
+        "dead_letter_id": "d327f9b3-f3c2-4b99-be7b-0013e8e17a88",
+        "last_error": "synthetic",
+        "payload": {
+          "index": 230,
+          "profile": "load-250"
+        },
+        "queue_name": "ai_workflows",
+        "reason": "load-250 synthetic dead letter",
+        "retry_count": 2,
+        "run_id": "4de8d292-cfbd-4764-8c4f-066ca4a84476"
+      },
+      {
+        "created_at": "2026-05-18T06:13:06.815283+03:00",
+        "dead_letter_id": "69fce39f-5b43-4243-9fab-697e69ec1b29",
+        "last_error": "synthetic",
+        "payload": {
+          "index": 220,
+          "profile": "load-250"
+        },
+        "queue_name": "ai_workflows",
+        "reason": "load-250 synthetic dead letter",
+        "retry_count": 0,
+        "run_id": "be85338c-1602-46d6-8c51-727262a4f33f"
+      },
+      {
+        "created_at": "2026-05-18T06:13:06.683700+03:00",
+        "dead_letter_id": "576a3cc1-5db8-4b45-bae2-3b3fc2adc326",
+        "last_error": "synthetic",
+        "payload": {
+          "index": 210,
+          "profile": "load-250"
+        },
+        "queue_name": "ai_workflows",
+        "reason": "load-250 synthetic dead letter",
+        "retry_count": 2,
+        "run_id": "14213f21-2c59-4e58-9421-b0bbbdf57e74"
+      },
+      {
+        "created_at": "2026-05-18T06:13:06.484283+03:00",
+        "dead_letter_id": "fdc3527d-06a5-431d-8e8e-f11f5affae68",
+        "last_error": "synthetic",
+        "payload": {
+          "index": 200,
+          "profile": "load-250"
+        },
+        "queue_name": "ai_workflows",
+        "reason": "load-250 synthetic dead letter",
+        "retry_count": 0,
+        "run_id": "cb654909-f035-4ed3-ad2a-d14f82c378dc"
+      },
+      {
+        "created_at": "2026-05-18T06:13:06.175392+03:00",
+        "dead_letter_id": "4f019af5-918f-4b78-8d73-52cc1628f880",
+        "last_error": "synthetic",
+        "payload": {
+          "index": 190,
+          "profile": "load-250"
+        },
+        "queue_name": "ai_workflows",
+        "reason": "load-250 synthetic dead letter",
+        "retry_count": 2,
+        "run_id": "61175c2b-0695-491e-88f6-3c90a3cd4531"
+      },
+      {
+        "created_at": "2026-05-18T06:13:05.821495+03:00",
+        "dead_letter_id": "5a944003-99ff-47d8-bb49-30f965710e37",
+        "last_error": "synthetic",
+        "payload": {
+          "index": 180,
+          "profile": "load-250"
+        },
+        "queue_name": "ai_workflows",
+        "reason": "load-250 synthetic dead letter",
+        "retry_count": 0,
+        "run_id": "345bd4db-9412-4a61-bd32-5f5b586e8e72"
+      },
+      {
+        "created_at": "2026-05-18T06:13:05.559758+03:00",
+        "dead_letter_id": "b68846e5-414f-466c-8bc6-ad3983d77956",
+        "last_error": "synthetic",
+        "payload": {
+          "index": 170,
+          "profile": "load-250"
+        },
+        "queue_name": "ai_workflows",
+        "reason": "load-250 synthetic dead letter",
+        "retry_count": 2,
+        "run_id": "199ffa27-119b-42e9-bad7-7a3cb901d994"
+      },
+      {
+        "created_at": "2026-05-18T06:13:05.308741+03:00",
+        "dead_letter_id": "766cd54f-b8b4-4ed2-909c-eb33bc2e981e",
+        "last_error": "synthetic",
+        "payload": {
+          "index": 160,
+          "profile": "load-250"
+        },
+        "queue_name": "ai_workflows",
+        "reason": "load-250 synthetic dead letter",
+        "retry_count": 0,
+        "run_id": "1c9532f2-baec-49c1-a953-c8ae0224ecf2"
+      }
+    ],
+    "runs_total": 1000,
+    "sample_size": 1000,
+    "tokens_used": 916000
+  },
+  "profile": "load-250",
+  "profile_summary": {
+    "active_runs": 28,
+    "approval_count": 87,
+    "artifact_bytes": 256000,
+    "artifact_count": 250,
+    "by_status": {
+      "cancelled": 27,
+      "completed": 167,
+      "failed_validation": 28,
+      "pending_approval": 10,
+      "running": 18
+    },
+    "by_workflow_type": {
+      "analysis": 42,
+      "code_generation": 42,
+      "repair": 41,
+      "report": 41,
+      "review": 42,
+      "test_generation": 42
+    },
+    "cost_usd": 31.375,
+    "dead_letters_total": 25,
+    "event_counts": {
+      "approval_recorded": 87,
+      "approval_required": 10,
+      "artifact_created": 250,
+      "cancelled": 27,
+      "failed_validation": 28,
+      "queue_enqueued": 250,
+      "soak_progress": 250,
+      "workflow_completed": 167,
+      "workflow_created": 250
+    },
+    "llm_calls_count": 625,
+    "runs_total": 250,
+    "tokens_used": 313750
+  },
+  "replayed_runs": 250
+}

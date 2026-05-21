@@ -1,0 +1,12 @@
+apiVersion: 1
+
+providers:
+  - name: BGTS Dashboards
+    orgId: 1
+    folder: "Nexus QA"
+    type: file
+    disableDeletion: false
+    editable: true
+    updateIntervalSeconds: 30
+    options:
+      path: /etc/grafana/provisioning/dashboards

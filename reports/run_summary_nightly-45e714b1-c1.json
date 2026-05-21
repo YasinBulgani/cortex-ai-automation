@@ -1,0 +1,24 @@
+{
+  "run_id": "nightly-45e714b1-c1",
+  "timestamp": "2026-05-16T20:25:17.123544+00:00",
+  "written_files": [
+    "engine/features/ai_generated/login.feature",
+    "engine/features/ai_generated/login.feature",
+    "engine/features/ai_generated/login.feature",
+    "engine/features/ai_generated/logout.feature",
+    "engine/features/ai_generated/logout.feature",
+    "e2e/banking/login.spec.ts",
+    "e2e/banking/login.spec.ts",
+    "e2e/banking/login.spec.ts",
+    "e2e/banking/logout.spec.ts",
+    "reports/regulation_rules_nightly-45e714b1-c1.json",
+    "reports/scenarios_nightly-45e714b1-c1.json",
+    "reports/automation_matrix_nightly-45e714b1-c1.json",
+    "reports/manual_keys_nightly-45e714b1-c1.json"
+  ],
+  "scenario_count": 10,
+  "bdd_count": 5,
+  "playwright_count": 4,
+  "api_test_count": 0,
+  "errors": []
+}

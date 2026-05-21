@@ -1,0 +1,84 @@
+{
+  "id": "631abb83-6caf-4213-a64d-c87ed9b41bdd",
+  "startDate": null,
+  "endDate": null,
+  "progress": {
+    "value": 0,
+    "max": 4
+  },
+  "status": null,
+  "steps": [
+    {
+      "id": "2db886dd-9da1-47fb-82b2-a34abcbf0add",
+      "modelLabel": "data:tabular",
+      "computeName": "SDK",
+      "restarts": 0,
+      "taskType": "GENERATE",
+      "stepCode": "GENERATE_DATA_TABULAR",
+      "startDate": null,
+      "endDate": null,
+      "computeResources": null,
+      "messages": null,
+      "errorMessage": null,
+      "progress": {
+        "value": 0,
+        "max": 1
+      },
+      "status": "NEW"
+    },
+    {
+      "id": "3ad3199f-ec74-4308-aedf-0bbd23cd9dfe",
+      "modelLabel": "data:tabular",
+      "computeName": "SDK",
+      "restarts": 0,
+      "taskType": "GENERATE",
+      "stepCode": "CREATE_DATA_REPORT_TABULAR",
+      "startDate": null,
+      "endDate": null,
+      "computeResources": null,
+      "messages": null,
+      "errorMessage": null,
+      "progress": {
+        "value": 0,
+        "max": 1
+      },
+      "status": "NEW"
+    },
+    {
+      "id": "74afbef3-7f2e-4a85-b296-fd586e3eb56a",
+      "modelLabel": null,
+      "computeName": "SDK",
+      "restarts": 0,
+      "taskType": "GENERATE",
+      "stepCode": "FINALIZE_GENERATION",
+      "startDate": null,
+      "endDate": null,
+      "computeResources": null,
+      "messages": null,
+      "errorMessage": null,
+      "progress": {
+        "value": 0,
+        "max": 1
+      },
+      "status": "NEW"
+    },
+    {
+      "id": "e6edb966-ccd7-43b2-8ee8-79e3e89af693",
+      "modelLabel": null,
+      "computeName": "SDK",
+      "restarts": 0,
+      "taskType": "GENERATE",
+      "stepCode": "DELIVER_DATA",
+      "startDate": null,
+      "endDate": null,
+      "computeResources": null,
+      "messages": null,
+      "errorMessage": null,
+      "progress": {
+        "value": 0,
+        "max": 1
+      },
+      "status": "NEW"
+    }
+  ]
+}

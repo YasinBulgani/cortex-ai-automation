@@ -1,0 +1,786 @@
+[
+  {
+    "timestamp": "2026-04-20T00:43:39.562632",
+    "old_locator": "[data-testid='old-btn']",
+    "new_locator": "[data-testid='login-btn-submit']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-04-20T00:43:39.564292",
+    "old_locator": ".old1",
+    "new_locator": "[data-testid='btn1']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-04-20T00:43:39.565457",
+    "old_locator": ".old",
+    "new_locator": "[data-testid='new']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-04-20T00:43:39.566713",
+    "old_locator": ".old",
+    "new_locator": "[data-testid='new']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-04-20T00:43:39.573098",
+    "old_locator": ".old",
+    "new_locator": "[data-testid='new']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-04-20T00:43:39.574419",
+    "old_locator": ".old",
+    "new_locator": "[data-testid='new']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-04-20T00:43:39.575734",
+    "old_locator": ".old",
+    "new_locator": "[data-testid='x']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-04-20T00:43:39.577214",
+    "old_locator": ".old",
+    "new_locator": "[data-testid='fresh']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-04-20T00:47:09.646477",
+    "old_locator": "[data-testid='old-btn']",
+    "new_locator": "[data-testid='login-btn-submit']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-04-20T00:47:09.657086",
+    "old_locator": ".old1",
+    "new_locator": "[data-testid='btn1']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-04-20T00:47:09.666630",
+    "old_locator": ".old",
+    "new_locator": "[data-testid='new']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-04-20T00:47:09.677709",
+    "old_locator": ".old",
+    "new_locator": "[data-testid='new']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-04-20T00:47:09.761845",
+    "old_locator": ".old",
+    "new_locator": "[data-testid='new']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-04-20T00:47:09.774842",
+    "old_locator": ".old",
+    "new_locator": "[data-testid='new']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-04-20T00:47:09.789169",
+    "old_locator": ".old",
+    "new_locator": "[data-testid='x']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-04-20T00:47:09.798694",
+    "old_locator": ".old",
+    "new_locator": "[data-testid='fresh']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-04-20T09:40:01.156233",
+    "old_locator": "[data-testid='old-btn']",
+    "new_locator": "[data-testid='login-btn-submit']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-04-20T09:40:01.161538",
+    "old_locator": ".old1",
+    "new_locator": "[data-testid='btn1']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-04-20T09:40:01.165057",
+    "old_locator": ".old",
+    "new_locator": "[data-testid='new']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-04-20T09:40:01.173090",
+    "old_locator": ".old",
+    "new_locator": "[data-testid='new']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-04-20T09:40:01.198100",
+    "old_locator": ".old",
+    "new_locator": "[data-testid='new']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-04-20T09:40:01.201654",
+    "old_locator": ".old",
+    "new_locator": "[data-testid='new']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-04-20T09:40:01.204366",
+    "old_locator": ".old",
+    "new_locator": "[data-testid='x']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-04-20T09:40:01.207019",
+    "old_locator": ".old",
+    "new_locator": "[data-testid='fresh']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-04-22T18:25:41.456339",
+    "old_locator": "[data-testid='old-btn']",
+    "new_locator": "[data-testid='login-btn-submit']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-04-22T18:25:41.457797",
+    "old_locator": ".old1",
+    "new_locator": "[data-testid='btn1']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-04-22T18:25:41.458829",
+    "old_locator": ".old",
+    "new_locator": "[data-testid='new']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-04-22T18:25:41.460055",
+    "old_locator": ".old",
+    "new_locator": "[data-testid='new']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-04-22T18:25:41.465665",
+    "old_locator": ".old",
+    "new_locator": "[data-testid='new']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-04-22T18:25:41.466707",
+    "old_locator": ".old",
+    "new_locator": "[data-testid='new']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-04-22T18:25:41.468091",
+    "old_locator": ".old",
+    "new_locator": "[data-testid='x']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-04-22T18:25:41.469160",
+    "old_locator": ".old",
+    "new_locator": "[data-testid='fresh']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-04-24T09:16:01.745068",
+    "old_locator": "[data-testid='old-btn']",
+    "new_locator": "[data-testid='login-btn-submit']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-04-24T09:16:01.750573",
+    "old_locator": ".old1",
+    "new_locator": "[data-testid='btn1']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-04-24T09:16:01.757531",
+    "old_locator": ".old",
+    "new_locator": "[data-testid='new']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-04-24T09:16:01.810511",
+    "old_locator": ".old",
+    "new_locator": "[data-testid='new']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-04-24T09:16:01.957676",
+    "old_locator": ".old",
+    "new_locator": "[data-testid='new']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-04-24T09:16:01.960499",
+    "old_locator": ".old",
+    "new_locator": "[data-testid='new']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-04-24T09:16:01.968036",
+    "old_locator": ".old",
+    "new_locator": "[data-testid='x']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-04-24T09:16:01.977337",
+    "old_locator": ".old",
+    "new_locator": "[data-testid='fresh']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-04-24T17:57:42.145646",
+    "old_locator": "[data-testid='old-btn']",
+    "new_locator": "[data-testid='login-btn-submit']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-04-24T17:57:42.148142",
+    "old_locator": ".old1",
+    "new_locator": "[data-testid='btn1']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-04-24T17:57:42.150296",
+    "old_locator": ".old",
+    "new_locator": "[data-testid='new']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-04-24T17:57:42.153137",
+    "old_locator": ".old",
+    "new_locator": "[data-testid='new']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-04-24T17:57:42.162169",
+    "old_locator": ".old",
+    "new_locator": "[data-testid='new']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-04-24T17:57:42.164433",
+    "old_locator": ".old",
+    "new_locator": "[data-testid='new']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-04-24T17:57:42.166717",
+    "old_locator": ".old",
+    "new_locator": "[data-testid='x']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-04-24T17:57:42.168381",
+    "old_locator": ".old",
+    "new_locator": "[data-testid='fresh']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-04-24T17:59:52.739365",
+    "old_locator": "[data-testid='old-btn']",
+    "new_locator": "[data-testid='login-btn-submit']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-04-24T17:59:52.741111",
+    "old_locator": ".old1",
+    "new_locator": "[data-testid='btn1']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-04-24T17:59:52.742509",
+    "old_locator": ".old",
+    "new_locator": "[data-testid='new']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-04-24T17:59:52.744107",
+    "old_locator": ".old",
+    "new_locator": "[data-testid='new']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-04-24T17:59:52.751406",
+    "old_locator": ".old",
+    "new_locator": "[data-testid='new']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-04-24T17:59:52.753004",
+    "old_locator": ".old",
+    "new_locator": "[data-testid='new']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-04-24T17:59:52.754617",
+    "old_locator": ".old",
+    "new_locator": "[data-testid='x']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-04-24T17:59:52.756073",
+    "old_locator": ".old",
+    "new_locator": "[data-testid='fresh']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-04-24T18:00:43.945692",
+    "old_locator": "[data-testid='old-btn']",
+    "new_locator": "[data-testid='login-btn-submit']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-04-24T18:00:43.947392",
+    "old_locator": ".old1",
+    "new_locator": "[data-testid='btn1']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-04-24T18:00:43.948837",
+    "old_locator": ".old",
+    "new_locator": "[data-testid='new']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-04-24T18:00:43.950428",
+    "old_locator": ".old",
+    "new_locator": "[data-testid='new']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-04-24T18:00:43.957515",
+    "old_locator": ".old",
+    "new_locator": "[data-testid='new']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-04-24T18:00:43.960012",
+    "old_locator": ".old",
+    "new_locator": "[data-testid='new']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-04-24T18:00:43.961750",
+    "old_locator": ".old",
+    "new_locator": "[data-testid='x']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-04-24T18:00:43.963326",
+    "old_locator": ".old",
+    "new_locator": "[data-testid='fresh']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-04-24T18:00:59.046832",
+    "old_locator": "[data-testid='old-btn']",
+    "new_locator": "[data-testid='login-btn-submit']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-04-24T18:00:59.048388",
+    "old_locator": ".old1",
+    "new_locator": "[data-testid='btn1']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-04-24T18:00:59.050020",
+    "old_locator": ".old",
+    "new_locator": "[data-testid='new']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-04-24T18:00:59.051717",
+    "old_locator": ".old",
+    "new_locator": "[data-testid='new']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-04-24T18:00:59.058074",
+    "old_locator": ".old",
+    "new_locator": "[data-testid='new']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-04-24T18:00:59.059616",
+    "old_locator": ".old",
+    "new_locator": "[data-testid='new']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-04-24T18:00:59.061246",
+    "old_locator": ".old",
+    "new_locator": "[data-testid='x']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-04-24T18:00:59.062730",
+    "old_locator": ".old",
+    "new_locator": "[data-testid='fresh']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-04-24T18:01:24.528699",
+    "old_locator": "[data-testid='old-btn']",
+    "new_locator": "[data-testid='login-btn-submit']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-04-24T18:01:24.530294",
+    "old_locator": ".old1",
+    "new_locator": "[data-testid='btn1']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-04-24T18:01:24.531778",
+    "old_locator": ".old",
+    "new_locator": "[data-testid='new']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-04-24T18:01:24.533509",
+    "old_locator": ".old",
+    "new_locator": "[data-testid='new']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-04-24T18:01:24.539832",
+    "old_locator": ".old",
+    "new_locator": "[data-testid='new']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-04-24T18:01:24.541526",
+    "old_locator": ".old",
+    "new_locator": "[data-testid='new']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-04-24T18:01:24.543183",
+    "old_locator": ".old",
+    "new_locator": "[data-testid='x']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-04-24T18:01:24.544668",
+    "old_locator": ".old",
+    "new_locator": "[data-testid='fresh']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-04-24T18:02:02.511291",
+    "old_locator": "[data-testid='old-btn']",
+    "new_locator": "[data-testid='login-btn-submit']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-04-24T18:02:02.512861",
+    "old_locator": ".old1",
+    "new_locator": "[data-testid='btn1']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-04-24T18:02:02.514292",
+    "old_locator": ".old",
+    "new_locator": "[data-testid='new']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-04-24T18:02:02.515889",
+    "old_locator": ".old",
+    "new_locator": "[data-testid='new']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-04-24T18:02:02.522853",
+    "old_locator": ".old",
+    "new_locator": "[data-testid='new']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-04-24T18:02:02.524520",
+    "old_locator": ".old",
+    "new_locator": "[data-testid='new']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-04-24T18:02:02.526345",
+    "old_locator": ".old",
+    "new_locator": "[data-testid='x']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-04-24T18:02:02.528503",
+    "old_locator": ".old",
+    "new_locator": "[data-testid='fresh']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-04-24T18:04:46.052185",
+    "old_locator": "[data-testid='old-btn']",
+    "new_locator": "[data-testid='login-btn-submit']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-04-24T18:04:46.055470",
+    "old_locator": ".old1",
+    "new_locator": "[data-testid='btn1']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-04-24T18:04:46.056956",
+    "old_locator": ".old",
+    "new_locator": "[data-testid='new']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-04-24T18:04:46.058549",
+    "old_locator": ".old",
+    "new_locator": "[data-testid='new']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-04-24T18:04:46.064792",
+    "old_locator": ".old",
+    "new_locator": "[data-testid='new']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-04-24T18:04:46.066359",
+    "old_locator": ".old",
+    "new_locator": "[data-testid='new']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-04-24T18:04:46.067988",
+    "old_locator": ".old",
+    "new_locator": "[data-testid='x']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-04-24T18:04:46.069457",
+    "old_locator": ".old",
+    "new_locator": "[data-testid='fresh']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-04-24T18:05:20.759683",
+    "old_locator": "[data-testid='old-btn']",
+    "new_locator": "[data-testid='login-btn-submit']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-04-24T18:05:20.763043",
+    "old_locator": ".old1",
+    "new_locator": "[data-testid='btn1']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-04-24T18:05:20.764880",
+    "old_locator": ".old",
+    "new_locator": "[data-testid='new']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-04-24T18:05:20.766873",
+    "old_locator": ".old",
+    "new_locator": "[data-testid='new']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-04-24T18:05:20.775967",
+    "old_locator": ".old",
+    "new_locator": "[data-testid='new']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-04-24T18:05:20.777870",
+    "old_locator": ".old",
+    "new_locator": "[data-testid='new']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-04-24T18:05:20.779773",
+    "old_locator": ".old",
+    "new_locator": "[data-testid='x']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-04-24T18:05:20.782657",
+    "old_locator": ".old",
+    "new_locator": "[data-testid='fresh']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-04-24T18:06:16.561059",
+    "old_locator": "[data-testid='old-btn']",
+    "new_locator": "[data-testid='login-btn-submit']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-04-24T18:06:16.563084",
+    "old_locator": ".old1",
+    "new_locator": "[data-testid='btn1']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-04-24T18:06:16.565647",
+    "old_locator": ".old",
+    "new_locator": "[data-testid='new']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-04-24T18:06:16.567713",
+    "old_locator": ".old",
+    "new_locator": "[data-testid='new']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-04-24T18:06:16.577640",
+    "old_locator": ".old",
+    "new_locator": "[data-testid='new']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-04-24T18:06:16.580178",
+    "old_locator": ".old",
+    "new_locator": "[data-testid='new']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-04-24T18:06:16.582276",
+    "old_locator": ".old",
+    "new_locator": "[data-testid='x']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-04-24T18:06:16.585016",
+    "old_locator": ".old",
+    "new_locator": "[data-testid='fresh']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  }
+]

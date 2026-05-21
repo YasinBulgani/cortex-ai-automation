@@ -1,0 +1,127 @@
+name: pipeline-conflict-scan
+
+# Rol 25 (Conflict Resolver) — saatlik branch çakışma taraması.
+# Aktif pipeline branch'leri aynı dosyaya dokunuyorsa rapor üretir;
+# kritik overlap varsa issue açar.
+
+on:
+  schedule:
+    - cron: '*/30 * * * *'   # Her 30 dk
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Fetch all branches
+        run: git fetch --all --quiet
+
+      - name: Install jq
+        run: sudo apt-get update && sudo apt-get install -y jq
+
+      - name: Run conflict check (JSON)
+        id: scan
+        run: |
+          chmod +x scripts/pipeline/check-conflicts.sh
+          OUTPUT=$(./scripts/pipeline/check-conflicts.sh --json)
+          echo "$OUTPUT" > conflict-report.json
+
+          CONFLICTS=$(jq '.conflicts | length' conflict-report.json)
+          echo "conflict_count=$CONFLICTS" >> "$GITHUB_OUTPUT"
+          echo "Conflicts found: $CONFLICTS"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: conflict-report-${{ github.run_id }}
+          path: conflict-report.json
+          retention-days: 30
+
+      - name: Create/update issue if conflicts exist
+        if: steps.scan.outputs.conflict_count != '0'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const report = JSON.parse(fs.readFileSync('conflict-report.json', 'utf8'));
+
+            // Find existing open issue with same label
+            const existing = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: 'pipeline:conflict'
+            });
+
+            let body = `## 🔀 Pipeline Branch Conflicts — ${new Date().toISOString().slice(0,10)}\n\n`;
+            body += `**Conflicts:** ${report.conflicts.length}\n`;
+            body += `**Active branches:** ${report.branches.length}\n\n`;
+            for (const c of report.conflicts) {
+              body += `### \`${c.branch_a}\` ↔ \`${c.branch_b}\`\n\n`;
+              body += 'Conflicting files:\n';
+              for (const f of c.files) {
+                body += `- \`${f}\`\n`;
+              }
+              body += '\n';
+            }
+            body += `\n---\n\n`;
+            body += `Agent prompt (conflict_resolver rolü):\n\n`;
+            body += '```\n';
+            body += `Sen pipeline'da conflict_resolver rolünü oynuyorsun.\n`;
+            body += `OKU: docs/ai/pipeline/roles/25-conflict-resolver.md\n`;
+            body += `Bu issue'daki çakışmaları A/B/C sınıfına göre değerlendir ve koordinasyon planını yorumla.\n`;
+            body += '```\n';
+            body += `\n_Auto-generated every 30 min by pipeline-conflict-scan._`;
+
+            if (existing.data.length > 0) {
+              // Update first existing
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: existing.data[0].number,
+                body: `Update:\n\n${body}`
+              });
+            } else {
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: `[pipeline] Branch conflicts detected (${report.conflicts.length})`,
+                body,
+                labels: ['pipeline:conflict']
+              });
+            }
+
+      - name: Close issue if no conflicts
+        if: steps.scan.outputs.conflict_count == '0'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const open = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: 'pipeline:conflict'
+            });
+            for (const i of open.data) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: i.number,
+                body: '✓ No more conflicts detected. Closing.'
+              });
+              await github.rest.issues.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: i.number,
+                state: 'closed'
+              });
+            }

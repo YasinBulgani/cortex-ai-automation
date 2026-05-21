@@ -1,0 +1,73 @@
+{
+  "runs": [
+    {
+      "timestamp": "2026-03-17T13:31:50.614321",
+      "test_results": {
+        "passed": 0,
+        "failed": 1,
+        "errors": [
+          "Pytest not installed"
+        ],
+        "output": ""
+      },
+      "analysis": {
+        "analysis": "Test sonu\u00e7lar\u0131nda ba\u015far\u0131s\u0131z bir test bulundu ve hata mesaj\u0131 'Pytest not installed' g\u00f6r\u00fcld\u00fc. Bu, test edilecek projede Pytest yok oldu\u011funu g\u00f6sterir.",
+        "root_cause": "Pytest y\u00fcklenmemi\u015f olmas\u0131",
+        "solution": "Projeye Pytest y\u00fcklenmesi gerekir. Pytest y\u00fcklenebilir veya y\u00fcklenmeme \u00f6zelli\u011fe sahip bir paket y\u00f6neticisi kullan\u0131labilir.",
+        "code_improvement": "Pytest'i projenize ekleyerek bu sorun \u00e7\u00f6z\u00fclecektir.\n\u00d6rne\u011fin, python -m pip install pytest"
+      }
+    },
+    {
+      "timestamp": "2026-03-17T13:33:46.045452",
+      "test_results": {
+        "passed": 0,
+        "failed": 1,
+        "errors": [
+          "Pytest not installed"
+        ],
+        "output": ""
+      },
+      "analysis": {
+        "analysis": "Test sonu\u00e7lar\u0131nda g\u00f6r\u00fclm\u00fc\u015ft\u00fc ki bir ba\u015far\u0131s\u0131z test oldu ve hata mesaj\u0131 'Pytest not installed' oldu. Bu durumda, testler yap\u0131ld\u0131\u011f\u0131nda yaz\u0131l\u0131mdan bir python test ara\u00e7 seti (\u00f6nde geleni pytest olarak) kurulmad\u0131\u011f\u0131 i\u00e7in s\u0131ras\u0131yla hata al\u0131nd\u0131.",
+        "root_cause": "Pytest kurulmad\u0131\u011f\u0131 i\u00e7in test s\u0131ras\u0131nda hata al\u0131nd\u0131.",
+        "solution": "Pytest kurulmas\u0131 gerekmektedir. Python komut sat\u0131r\u0131ndan (terminal) a\u015fa\u011f\u0131daki komutu \u00e7al\u0131\u015ft\u0131r\u0131n: `pip install pytest`",
+        "code_improvement": "Pytest kuruldu\u011funda, test kodunuzda a\u015fa\u011f\u0131daki sat\u0131r\u0131 yazman\u0131z gerekmektedir: `def test_function_name():` \u00f6rne\u011fin `def test_example():`"
+      }
+    },
+    {
+      "timestamp": "2026-03-17T14:12:43.647846",
+      "test_results": {
+        "passed": 0,
+        "failed": 1,
+        "errors": [
+          "Pytest not installed"
+        ],
+        "output": ""
+      },
+      "analysis": {
+        "analysis": "Test sonu\u00e7lar\u0131nda sadece ba\u015far\u0131s\u0131z bir test bulundu, ba\u015far\u0131l\u0131 testler s\u0131f\u0131rd\u0131r. Bu, pytest kullan\u0131lmad\u0131\u011f\u0131n\u0131 g\u00f6sterir.",
+        "root_cause": "Pytest y\u00fcklenmedi ve testler \u00e7al\u0131\u015ft\u0131r\u0131ld\u0131\u011f\u0131nda hata mesaj\u0131 verdi.",
+        "solution": "Pytest'i y\u00fckleyerek \u00e7\u00f6z\u00fclebilir. Python paket y\u00f6neticisinizden (\u00f6rne\u011fin, pip veya conda) pytest'i kurabilirsiniz.",
+        "code_improvement": "Kod de\u011fi\u015fiklikleri yap\u0131lmadan, y\u00fckleme sorununu \u00e7\u00f6z\u00fclebilir. A\u015fa\u011f\u0131daki komutlar \u00f6rne\u011fiyle Python paket y\u00f6neticisinizden pytest'i kurabilirsiniz:\n\n- pip: `pip install pytest`\n- conda: `conda install pytest`"
+      }
+    }
+  ],
+  "errors": [
+    {
+      "timestamp": "2026-03-17T13:31:50.614332",
+      "error": "Failed: 1, Errors: ['Pytest not installed']",
+      "solution": "Projeye Pytest y\u00fcklenmesi gerekir. Pytest y\u00fcklenebilir veya y\u00fcklenmeme \u00f6zelli\u011fe sahip bir paket y\u00f6neticisi kullan\u0131labilir."
+    },
+    {
+      "timestamp": "2026-03-17T13:33:46.045462",
+      "error": "Failed: 1, Errors: ['Pytest not installed']",
+      "solution": "Pytest kurulmas\u0131 gerekmektedir. Python komut sat\u0131r\u0131ndan (terminal) a\u015fa\u011f\u0131daki komutu \u00e7al\u0131\u015ft\u0131r\u0131n: `pip install pytest`"
+    },
+    {
+      "timestamp": "2026-03-17T14:12:43.647914",
+      "error": "Failed: 1, Errors: ['Pytest not installed']",
+      "solution": "Pytest'i y\u00fckleyerek \u00e7\u00f6z\u00fclebilir. Python paket y\u00f6neticisinizden (\u00f6rne\u011fin, pip veya conda) pytest'i kurabilirsiniz."
+    }
+  ],
+  "improvements": []
+}

@@ -1,0 +1,12 @@
+[
+  {
+    "key": "myButton",
+    "type": "css",
+    "value": "[data-testid='my-button']"
+  },
+  {
+    "key": "myButton",
+    "type": "id",
+    "value": "btnMyAction"
+  }
+]

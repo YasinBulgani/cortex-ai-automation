@@ -1,0 +1,3 @@
+✅ BAŞARILI
+'izinTalepEtSayfasıİzinOnayFormuCheckBox' adlı butona/elemana tıklanıyor
+'izinTalepEtSayfasıİzinOnayFormuCheckBox' adlı elemana başarıyla tıklandı. İşlem tamamlandı.

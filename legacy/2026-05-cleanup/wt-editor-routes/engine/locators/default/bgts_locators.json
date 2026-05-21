@@ -1,0 +1,375 @@
+{
+  "login_page": {
+    "name": "login_page",
+    "chain": [
+      { "type": "testid", "value": "[data-testid=\"login-page\"]", "confidence": 1.0, "stable": true }
+    ],
+    "page_url": "/login",
+    "screen": "login",
+    "element_type": "container"
+  },
+  "login_email_input": {
+    "name": "login_email_input",
+    "chain": [
+      { "type": "testid", "value": "[data-testid=\"login-input-email\"]", "confidence": 1.0, "stable": true },
+      { "type": "css", "value": "#email", "confidence": 0.9, "stable": true },
+      { "type": "css", "value": "[placeholder=\"ornek@sirket.com\"]", "confidence": 0.7, "stable": false }
+    ],
+    "page_url": "/login",
+    "screen": "login",
+    "element_type": "input"
+  },
+  "login_password_input": {
+    "name": "login_password_input",
+    "chain": [
+      { "type": "testid", "value": "[data-testid=\"login-input-password\"]", "confidence": 1.0, "stable": true },
+      { "type": "css", "value": "#password", "confidence": 0.9, "stable": true },
+      { "type": "css", "value": "[placeholder=\"••••••••\"]", "confidence": 0.7, "stable": false }
+    ],
+    "page_url": "/login",
+    "screen": "login",
+    "element_type": "input"
+  },
+  "login_submit_btn": {
+    "name": "login_submit_btn",
+    "chain": [
+      { "type": "testid", "value": "[data-testid=\"login-btn-submit\"]", "confidence": 1.0, "stable": true },
+      { "type": "role", "value": "button[name=\"Giriş Yap\"]", "confidence": 0.95, "stable": true },
+      { "type": "css", "value": "button[type=\"submit\"]", "confidence": 0.6, "stable": false }
+    ],
+    "page_url": "/login",
+    "screen": "login",
+    "element_type": "button"
+  },
+  "login_logo": {
+    "name": "login_logo",
+    "chain": [
+      { "type": "testid", "value": "[data-testid=\"login-logo\"]", "confidence": 1.0, "stable": true },
+      { "type": "css", "value": "svg[aria-label=\"BGTEST\"]", "confidence": 0.85, "stable": true }
+    ],
+    "page_url": "/login",
+    "screen": "login",
+    "element_type": "image"
+  },
+  "login_error_alert": {
+    "name": "login_error_alert",
+    "chain": [
+      { "type": "testid", "value": "[data-testid=\"login-alert-error\"]", "confidence": 1.0, "stable": true },
+      { "type": "css", "value": ".text-red-600", "confidence": 0.3, "stable": false }
+    ],
+    "page_url": "/login",
+    "screen": "login",
+    "element_type": "alert"
+  },
+  "login_remember_check": {
+    "name": "login_remember_check",
+    "chain": [
+      { "type": "testid", "value": "[data-testid=\"login-check-remember\"]", "confidence": 1.0, "stable": true }
+    ],
+    "page_url": "/login",
+    "screen": "login",
+    "element_type": "checkbox"
+  },
+  "login_forgot_btn": {
+    "name": "login_forgot_btn",
+    "chain": [
+      { "type": "testid", "value": "[data-testid=\"login-btn-forgot\"]", "confidence": 1.0, "stable": true },
+      { "type": "text", "value": "text=\"Şifremi unuttum\"", "confidence": 0.5, "stable": false }
+    ],
+    "page_url": "/login",
+    "screen": "login",
+    "element_type": "button"
+  },
+  "projects_name_input": {
+    "name": "projects_name_input",
+    "chain": [
+      { "type": "testid", "value": "[data-testid=\"projects-input-name\"]", "confidence": 1.0, "stable": true },
+      { "type": "css", "value": "[placeholder=\"Örn. Ödeme API\"]", "confidence": 0.7, "stable": false }
+    ],
+    "page_url": "/projects",
+    "screen": "projects",
+    "element_type": "input"
+  },
+  "projects_create_btn": {
+    "name": "projects_create_btn",
+    "chain": [
+      { "type": "testid", "value": "[data-testid=\"projects-btn-create\"]", "confidence": 1.0, "stable": true },
+      { "type": "role", "value": "button[name=\"Oluştur\"]", "confidence": 0.95, "stable": true }
+    ],
+    "page_url": "/projects",
+    "screen": "projects",
+    "element_type": "button"
+  },
+  "sidebar_projects_link": {
+    "name": "sidebar_projects_link",
+    "chain": [
+      { "type": "testid", "value": "[data-testid=\"sidebar-link-projects\"]", "confidence": 1.0, "stable": true },
+      { "type": "text", "value": "text=\"Projeler\"", "confidence": 0.5, "stable": false }
+    ],
+    "page_url": "*",
+    "screen": "global",
+    "element_type": "link"
+  },
+  "sidebar_scenarios_link": {
+    "name": "sidebar_scenarios_link",
+    "chain": [
+      { "type": "testid", "value": "[data-testid=\"sidebar-link-scenarios\"]", "confidence": 1.0, "stable": true },
+      { "type": "text", "value": "text=\"Senaryolar\"", "confidence": 0.5, "stable": false }
+    ],
+    "page_url": "*",
+    "screen": "global",
+    "element_type": "link"
+  },
+  "sidebar_executions_link": {
+    "name": "sidebar_executions_link",
+    "chain": [
+      { "type": "testid", "value": "[data-testid=\"sidebar-link-executions\"]", "confidence": 1.0, "stable": true }
+    ],
+    "page_url": "*",
+    "screen": "global",
+    "element_type": "link"
+  },
+  "sidebar_flows_link": {
+    "name": "sidebar_flows_link",
+    "chain": [
+      { "type": "testid", "value": "[data-testid=\"sidebar-link-flows\"]", "confidence": 1.0, "stable": true }
+    ],
+    "page_url": "*",
+    "screen": "global",
+    "element_type": "link"
+  },
+  "sidebar_approvals_link": {
+    "name": "sidebar_approvals_link",
+    "chain": [
+      { "type": "testid", "value": "[data-testid=\"sidebar-link-approvals\"]", "confidence": 1.0, "stable": true }
+    ],
+    "page_url": "*",
+    "screen": "global",
+    "element_type": "link"
+  },
+  "sidebar_regression_link": {
+    "name": "sidebar_regression_link",
+    "chain": [
+      { "type": "testid", "value": "[data-testid=\"sidebar-link-regression\"]", "confidence": 1.0, "stable": true }
+    ],
+    "page_url": "*",
+    "screen": "global",
+    "element_type": "link"
+  },
+  "header_user_menu_btn": {
+    "name": "header_user_menu_btn",
+    "chain": [
+      { "type": "testid", "value": "[data-testid=\"header-btn-user-menu\"]", "confidence": 1.0, "stable": true },
+      { "type": "css", "value": "[aria-label=\"Kullanıcı menüsü\"]", "confidence": 0.85, "stable": true }
+    ],
+    "page_url": "*",
+    "screen": "global",
+    "element_type": "button"
+  },
+  "scenarios_search_input": {
+    "name": "scenarios_search_input",
+    "chain": [
+      { "type": "testid", "value": "[data-testid=\"scenarios-input-search\"]", "confidence": 1.0, "stable": true },
+      { "type": "css", "value": "[placeholder=\"Başlıkta ara…\"]", "confidence": 0.7, "stable": false }
+    ],
+    "page_url": "/p/*/scenarios",
+    "screen": "scenarios",
+    "element_type": "input"
+  },
+  "scenarios_new_btn": {
+    "name": "scenarios_new_btn",
+    "chain": [
+      { "type": "testid", "value": "[data-testid=\"scenarios-btn-new\"]", "confidence": 1.0, "stable": true },
+      { "type": "text", "value": "text=\"Yeni senaryo\"", "confidence": 0.5, "stable": false }
+    ],
+    "page_url": "/p/*/scenarios",
+    "screen": "scenarios",
+    "element_type": "button"
+  },
+  "scenarios_table": {
+    "name": "scenarios_table",
+    "chain": [
+      { "type": "testid", "value": "[data-testid=\"scenarios-table\"]", "confidence": 1.0, "stable": true },
+      { "type": "css", "value": "table", "confidence": 0.4, "stable": false }
+    ],
+    "page_url": "/p/*/scenarios",
+    "screen": "scenarios",
+    "element_type": "table"
+  },
+  "scenario_title_input": {
+    "name": "scenario_title_input",
+    "chain": [
+      { "type": "testid", "value": "[data-testid=\"scenario-form-input-title\"]", "confidence": 1.0, "stable": true },
+      { "type": "css", "value": "#sc-title", "confidence": 0.9, "stable": true }
+    ],
+    "page_url": "/p/*/scenarios/new",
+    "screen": "scenario_form",
+    "element_type": "input"
+  },
+  "scenario_save_btn": {
+    "name": "scenario_save_btn",
+    "chain": [
+      { "type": "testid", "value": "[data-testid=\"scenario-form-btn-save\"]", "confidence": 1.0, "stable": true },
+      { "type": "role", "value": "button[name=\"Kaydet\"]", "confidence": 0.95, "stable": true }
+    ],
+    "page_url": "/p/*/scenarios/new",
+    "screen": "scenario_form",
+    "element_type": "button"
+  },
+  "execution_name_input": {
+    "name": "execution_name_input",
+    "chain": [
+      { "type": "testid", "value": "[data-testid=\"execution-input-name\"]", "confidence": 1.0, "stable": true },
+      { "type": "css", "value": "#ex-name", "confidence": 0.9, "stable": true }
+    ],
+    "page_url": "/p/*/executions/new",
+    "screen": "executions",
+    "element_type": "input"
+  },
+  "execution_start_btn": {
+    "name": "execution_start_btn",
+    "chain": [
+      { "type": "testid", "value": "[data-testid=\"execution-btn-start\"]", "confidence": 1.0, "stable": true },
+      { "type": "text", "value": "text=\"Koşuyu oluştur\"", "confidence": 0.5, "stable": false }
+    ],
+    "page_url": "/p/*/executions/new",
+    "screen": "executions",
+    "element_type": "button"
+  },
+  "flows_name_input": {
+    "name": "flows_name_input",
+    "chain": [
+      { "type": "testid", "value": "[data-testid=\"flows-input-name\"]", "confidence": 1.0, "stable": true },
+      { "type": "css", "value": "[placeholder=\"Akış adı…\"]", "confidence": 0.7, "stable": false }
+    ],
+    "page_url": "/p/*/flows",
+    "screen": "flows",
+    "element_type": "input"
+  },
+  "flows_create_btn": {
+    "name": "flows_create_btn",
+    "chain": [
+      { "type": "testid", "value": "[data-testid=\"flows-btn-create\"]", "confidence": 1.0, "stable": true },
+      { "type": "role", "value": "button[name=\"Oluştur\"]", "confidence": 0.95, "stable": true }
+    ],
+    "page_url": "/p/*/flows",
+    "screen": "flows",
+    "element_type": "button"
+  },
+  "approvals_approve_btn": {
+    "name": "approvals_approve_btn",
+    "chain": [
+      { "type": "testid", "value": "[data-testid=\"approvals-btn-approve\"]", "confidence": 1.0, "stable": true },
+      { "type": "role", "value": "button[name=\"Onayla\"]", "confidence": 0.95, "stable": true }
+    ],
+    "page_url": "/p/*/approvals",
+    "screen": "approvals",
+    "element_type": "button"
+  },
+  "approvals_reject_btn": {
+    "name": "approvals_reject_btn",
+    "chain": [
+      { "type": "testid", "value": "[data-testid=\"approvals-btn-reject\"]", "confidence": 1.0, "stable": true },
+      { "type": "role", "value": "button[name=\"Reddet\"]", "confidence": 0.95, "stable": true }
+    ],
+    "page_url": "/p/*/approvals",
+    "screen": "approvals",
+    "element_type": "button"
+  },
+  "regression_name_input": {
+    "name": "regression_name_input",
+    "chain": [
+      { "type": "testid", "value": "[data-testid=\"regression-input-name\"]", "confidence": 1.0, "stable": true },
+      { "type": "css", "value": "[placeholder=\"Set adı…\"]", "confidence": 0.7, "stable": false }
+    ],
+    "page_url": "/p/*/regression",
+    "screen": "regression",
+    "element_type": "input"
+  },
+  "regression_suggest_btn": {
+    "name": "regression_suggest_btn",
+    "chain": [
+      { "type": "testid", "value": "[data-testid=\"regression-btn-suggest\"]", "confidence": 1.0, "stable": true },
+      { "type": "text", "value": "text=\"AI ile Set Öner\"", "confidence": 0.5, "stable": false }
+    ],
+    "page_url": "/p/*/regression",
+    "screen": "regression",
+    "element_type": "button"
+  },
+  "import_upload_btn": {
+    "name": "import_upload_btn",
+    "chain": [
+      { "type": "testid", "value": "[data-testid=\"import-btn-upload\"]", "confidence": 1.0, "stable": true },
+      { "type": "text", "value": "text=\"İçe aktarmayı başlat\"", "confidence": 0.5, "stable": false }
+    ],
+    "page_url": "/p/*/import",
+    "screen": "import",
+    "element_type": "button"
+  },
+  "header_notifications_btn": {
+    "name": "header_notifications_btn",
+    "chain": [
+      { "type": "testid", "value": "[data-testid=\"header-btn-notifications\"]", "confidence": 1.0, "stable": true },
+      { "type": "css", "value": "[aria-label=\"Bildirimler\"]", "confidence": 0.85, "stable": true }
+    ],
+    "page_url": "*",
+    "screen": "global",
+    "element_type": "button"
+  },
+  "header_theme_btn": {
+    "name": "header_theme_btn",
+    "chain": [
+      { "type": "testid", "value": "[data-testid=\"header-btn-theme\"]", "confidence": 1.0, "stable": true },
+      { "type": "css", "value": "[aria-label=\"Tema\"]", "confidence": 0.85, "stable": true }
+    ],
+    "page_url": "*",
+    "screen": "global",
+    "element_type": "button"
+  },
+  "header_project_select": {
+    "name": "header_project_select",
+    "chain": [
+      { "type": "testid", "value": "[data-testid=\"header-select-project\"]", "confidence": 1.0, "stable": true }
+    ],
+    "page_url": "*",
+    "screen": "global",
+    "element_type": "select"
+  },
+  "flow_editor_canvas": {
+    "name": "flow_editor_canvas",
+    "chain": [
+      { "type": "testid", "value": "[data-testid=\"flow-editor\"]", "confidence": 1.0, "stable": true },
+      { "type": "css", "value": ".react-flow", "confidence": 0.4, "stable": false }
+    ],
+    "page_url": "/p/*/flows/*",
+    "screen": "flow_editor",
+    "element_type": "container"
+  },
+  "flow_editor_save_btn": {
+    "name": "flow_editor_save_btn",
+    "chain": [
+      { "type": "testid", "value": "[data-testid=\"flow-editor-btn-save\"]", "confidence": 1.0, "stable": true }
+    ],
+    "page_url": "/p/*/flows/*",
+    "screen": "flow_editor",
+    "element_type": "button"
+  },
+  "execution_complete_btn": {
+    "name": "execution_complete_btn",
+    "chain": [
+      { "type": "testid", "value": "[data-testid=\"execution-btn-complete\"]", "confidence": 1.0, "stable": true }
+    ],
+    "page_url": "/p/*/executions/*",
+    "screen": "execution_detail",
+    "element_type": "button"
+  },
+  "execution_rerun_btn": {
+    "name": "execution_rerun_btn",
+    "chain": [
+      { "type": "testid", "value": "[data-testid=\"execution-btn-rerun\"]", "confidence": 1.0, "stable": true }
+    ],
+    "page_url": "/p/*/executions/*",
+    "screen": "execution_detail",
+    "element_type": "button"
+  }
+}

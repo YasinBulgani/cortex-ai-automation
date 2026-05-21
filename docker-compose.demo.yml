@@ -1,0 +1,49 @@
+# Demo mode override — UX-F1-102
+#
+# Kullanım:
+#   docker compose -f docker-compose.yml -f docker-compose.demo.yml up -d
+#   VEYA:
+#   make demo  (Makefile bu dosyayı otomatik kullanır)
+#
+# Default docker-compose.yml üzerine biner, demo için şunları değiştirir:
+#   - Ollama default modeli "qwen2.5-coder:7b" (14b yerine — M4 24GB'da daha hızlı)
+#   - Background scheduler + file watcher devre dışı (demo'da gereksiz CPU)
+#   - Sentry kapalı (demo'da hata izleme gereksiz)
+#   - Prometheus kapalı
+#   - Log seviyesi INFO (debug spam yok)
+#
+# Production için BU DOSYAYI KULLANMAYIN — docker-compose.prod.yml.
+
+version: "3.9"
+
+services:
+  backend:
+    environment:
+      # Hafif: background cron'lar demo'da çalışmasın
+      AI_BACKGROUND_ENABLED: "false"
+      RUNTIME_SCHEDULER_ENABLED: "false"
+      RUNTIME_BANKING_SCHEDULER_ENABLED: "false"
+      RUNTIME_STARTUP_INDEX_ENABLED: "false"
+      RUNTIME_FILE_WATCHER_ENABLED: "false"
+      PROMETHEUS_ENABLED: "false"
+      SENTRY_DSN: ""
+      # Demo için lokal Ollama default
+      AI_PROVIDER: "ollama"
+      OLLAMA_MODEL_ANALYST: "qwen2.5:14b-instruct-q4_K_M"
+      OLLAMA_MODEL_CODER: "qwen2.5-coder:7b-instruct-q4_K_M"
+      OLLAMA_MODEL_FAST: "llama3.2:3b-instruct-q4_K_M"
+      # Rate limit demo'da sıkı değil
+      RATE_LIMIT_REQUIRED: "false"
+
+  engine:
+    environment:
+      # Demo'da headful tercih: kullanıcı çalıştığını görsün
+      HEADLESS: "false"
+      BROWSER: "chromium"
+      AI_PROVIDER: "ollama"
+      OLLAMA_MODEL: "qwen2.5-coder:7b-instruct-q4_K_M"
+
+  web:
+    environment:
+      # Demo için default brand (override edilebilir)
+      NEXT_PUBLIC_APP_NAME: "${NEXT_PUBLIC_APP_NAME:-TestwrightAI Demo}"

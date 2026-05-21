@@ -1,0 +1,313 @@
+{
+  "id": "842ae34b-e6e5-4c47-b9e1-c9db4ee5084d",
+  "startDate": "2026-03-25T08:24:47.839810Z",
+  "endDate": "2026-03-25T08:24:57.656496Z",
+  "progress": {
+    "value": 6,
+    "max": 6
+  },
+  "status": "DONE",
+  "steps": [
+    {
+      "id": "2775d758-3f4d-49a4-aa1d-c40a8f78de20",
+      "modelLabel": "data:tabular",
+      "computeName": "SDK",
+      "restarts": 0,
+      "taskType": "TRAIN_TABULAR",
+      "stepCode": "PULL_TRAINING_DATA",
+      "startDate": "2026-03-25T08:24:47.839810Z",
+      "endDate": "2026-03-25T08:24:47.891534Z",
+      "computeResources": null,
+      "messages": null,
+      "errorMessage": null,
+      "progress": {
+        "value": 1,
+        "max": 1
+      },
+      "status": "DONE"
+    },
+    {
+      "id": "f82067e5-3c95-4a47-a11f-325f28931c7e",
+      "modelLabel": "data:tabular",
+      "computeName": "SDK",
+      "restarts": 0,
+      "taskType": "TRAIN_TABULAR",
+      "stepCode": "ANALYZE_TRAINING_DATA",
+      "startDate": "2026-03-25T08:24:47.892407Z",
+      "endDate": "2026-03-25T08:24:55.775965Z",
+      "computeResources": null,
+      "messages": null,
+      "errorMessage": null,
+      "progress": {
+        "value": 1,
+        "max": 1
+      },
+      "status": "DONE"
+    },
+    {
+      "id": "b7f8240b-fe7d-46c7-a940-46b6360250de",
+      "modelLabel": "data:tabular",
+      "computeName": "SDK",
+      "restarts": 0,
+      "taskType": "TRAIN_TABULAR",
+      "stepCode": "ENCODE_TRAINING_DATA",
+      "startDate": "2026-03-25T08:24:55.778717Z",
+      "endDate": "2026-03-25T08:24:55.839007Z",
+      "computeResources": null,
+      "messages": null,
+      "errorMessage": null,
+      "progress": {
+        "value": 1,
+        "max": 1
+      },
+      "status": "DONE"
+    },
+    {
+      "id": "824bd106-7830-4c3c-b4b8-9c39c16d848e",
+      "modelLabel": "data:tabular",
+      "computeName": "SDK",
+      "restarts": 0,
+      "taskType": "TRAIN_TABULAR",
+      "stepCode": "TRAIN_MODEL",
+      "startDate": "2026-03-25T08:24:55.840282Z",
+      "endDate": "2026-03-25T08:24:56.914060Z",
+      "computeResources": null,
+      "messages": [
+        {
+          "epoch": 1.0,
+          "is_checkpoint": 1,
+          "steps": 1,
+          "samples": 8,
+          "trn_loss": 25.3796,
+          "val_loss": 28.5713,
+          "total_time": 0.1,
+          "learn_rate": 0.0005,
+          "dp_eps": null,
+          "dp_delta": null
+        },
+        {
+          "epoch": 2.0,
+          "is_checkpoint": 0,
+          "steps": 2,
+          "samples": 14,
+          "trn_loss": 23.6705,
+          "val_loss": 28.9614,
+          "total_time": 0.1,
+          "learn_rate": 0.0005,
+          "dp_eps": null,
+          "dp_delta": null
+        },
+        {
+          "epoch": 3.0,
+          "is_checkpoint": 1,
+          "steps": 3,
+          "samples": 22,
+          "trn_loss": 23.4196,
+          "val_loss": 28.1979,
+          "total_time": 0.1,
+          "learn_rate": 0.0005,
+          "dp_eps": null,
+          "dp_delta": null
+        },
+        {
+          "epoch": 4.0,
+          "is_checkpoint": 0,
+          "steps": 4,
+          "samples": 28,
+          "trn_loss": 25.3892,
+          "val_loss": 28.2841,
+          "total_time": 0.1,
+          "learn_rate": 0.0005,
+          "dp_eps": null,
+          "dp_delta": null
+        },
+        {
+          "epoch": 5.0,
+          "is_checkpoint": 0,
+          "steps": 5,
+          "samples": 36,
+          "trn_loss": 23.066,
+          "val_loss": 28.2804,
+          "total_time": 0.1,
+          "learn_rate": 0.0005,
+          "dp_eps": null,
+          "dp_delta": null
+        },
+        {
+          "epoch": 6.0,
+          "is_checkpoint": 0,
+          "steps": 6,
+          "samples": 42,
+          "trn_loss": 24.9772,
+          "val_loss": 28.2967,
+          "total_time": 0.1,
+          "learn_rate": 0.0005,
+          "dp_eps": null,
+          "dp_delta": null
+        },
+        {
+          "epoch": 7.0,
+          "is_checkpoint": 1,
+          "steps": 7,
+          "samples": 50,
+          "trn_loss": 24.6946,
+          "val_loss": 27.886,
+          "total_time": 0.2,
+          "learn_rate": 0.00025,
+          "dp_eps": null,
+          "dp_delta": null
+        },
+        {
+          "epoch": 8.0,
+          "is_checkpoint": 1,
+          "steps": 8,
+          "samples": 56,
+          "trn_loss": 23.7391,
+          "val_loss": 27.7947,
+          "total_time": 0.2,
+          "learn_rate": 0.00025,
+          "dp_eps": null,
+          "dp_delta": null
+        },
+        {
+          "epoch": 9.0,
+          "is_checkpoint": 0,
+          "steps": 9,
+          "samples": 64,
+          "trn_loss": 23.2572,
+          "val_loss": 28.327,
+          "total_time": 0.2,
+          "learn_rate": 0.00025,
+          "dp_eps": null,
+          "dp_delta": null
+        },
+        {
+          "epoch": 10.0,
+          "is_checkpoint": 0,
+          "steps": 10,
+          "samples": 70,
+          "trn_loss": 25.4048,
+          "val_loss": 27.8373,
+          "total_time": 0.2,
+          "learn_rate": 0.00025,
+          "dp_eps": null,
+          "dp_delta": null
+        },
+        {
+          "epoch": 11.0,
+          "is_checkpoint": 1,
+          "steps": 11,
+          "samples": 78,
+          "trn_loss": 24.1729,
+          "val_loss": 27.5654,
+          "total_time": 0.2,
+          "learn_rate": 0.00025,
+          "dp_eps": null,
+          "dp_delta": null
+        },
+        {
+          "epoch": 12.0,
+          "is_checkpoint": 0,
+          "steps": 12,
+          "samples": 84,
+          "trn_loss": 22.4272,
+          "val_loss": 28.2856,
+          "total_time": 0.2,
+          "learn_rate": 0.00025,
+          "dp_eps": null,
+          "dp_delta": null
+        },
+        {
+          "epoch": 13.0,
+          "is_checkpoint": 0,
+          "steps": 13,
+          "samples": 92,
+          "trn_loss": 23.7047,
+          "val_loss": 28.5944,
+          "total_time": 0.2,
+          "learn_rate": 0.00025,
+          "dp_eps": null,
+          "dp_delta": null
+        },
+        {
+          "epoch": 14.0,
+          "is_checkpoint": 0,
+          "steps": 14,
+          "samples": 98,
+          "trn_loss": 22.5346,
+          "val_loss": 28.17,
+          "total_time": 0.3,
+          "learn_rate": 0.00025,
+          "dp_eps": null,
+          "dp_delta": null
+        },
+        {
+          "epoch": 15.0,
+          "is_checkpoint": 0,
+          "steps": 15,
+          "samples": 106,
+          "trn_loss": 24.0146,
+          "val_loss": 28.1993,
+          "total_time": 0.3,
+          "learn_rate": 0.000125,
+          "dp_eps": null,
+          "dp_delta": null
+        },
+        {
+          "epoch": 16.0,
+          "is_checkpoint": 0,
+          "steps": 16,
+          "samples": 112,
+          "trn_loss": 22.05,
+          "val_loss": 28.1879,
+          "total_time": 0.3,
+          "learn_rate": 0.000125,
+          "dp_eps": null,
+          "dp_delta": null
+        }
+      ],
+      "errorMessage": null,
+      "progress": {
+        "value": 1,
+        "max": 1
+      },
+      "status": "DONE"
+    },
+    {
+      "id": "fe5682ed-d7bf-4143-a9c8-8dabd4da2db4",
+      "modelLabel": "data:tabular",
+      "computeName": "SDK",
+      "restarts": 0,
+      "taskType": "TRAIN_TABULAR",
+      "stepCode": "GENERATE_MODEL_REPORT_DATA",
+      "startDate": "2026-03-25T08:24:57.550370Z",
+      "endDate": "2026-03-25T08:24:57.595590Z",
+      "computeResources": null,
+      "messages": null,
+      "errorMessage": null,
+      "progress": {
+        "value": 1,
+        "max": 1
+      },
+      "status": "DONE"
+    },
+    {
+      "id": "7bc98889-8b6b-4da9-bbb5-a6e4abeb7e20",
+      "modelLabel": "data:tabular",
+      "computeName": "SDK",
+      "restarts": 0,
+      "taskType": "TRAIN_TABULAR",
+      "stepCode": "CREATE_MODEL_REPORT",
+      "startDate": "2026-03-25T08:24:57.610082Z",
+      "endDate": "2026-03-25T08:24:57.654199Z",
+      "computeResources": null,
+      "messages": null,
+      "errorMessage": null,
+      "progress": {
+        "value": 1,
+        "max": 1
+      },
+      "status": "DONE"
+    }
+  ]
+}

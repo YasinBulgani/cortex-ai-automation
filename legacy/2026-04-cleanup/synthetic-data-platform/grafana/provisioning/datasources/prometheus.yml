@@ -1,0 +1,17 @@
+# Grafana Datasource Yapılandırması — Prometheus
+#
+# Otomatik olarak Prometheus datasource'unu yapılandırır.
+# Grafana başlangıcında bu dosya yüklenir.
+
+apiVersion: 1
+
+datasources:
+  - name: Prometheus
+    type: prometheus
+    url: http://prometheus:9090
+    access: proxy
+    isDefault: true
+    editable: true
+    jsonData:
+      timeInterval: 15s
+    secureJsonData: {}

@@ -1,0 +1,215 @@
+{
+  "profiles": {
+    "customer_profile": {
+      "description": "Türk bankacılık müşteri profili konfigürasyonu",
+      "fields": {
+        "tckn": {
+          "type": "tckn",
+          "description": "11 haneli TC Kimlik Numarası (algoritmik olarak geçerli)",
+          "pattern": "^[1-9][0-9]{10}$",
+          "unique": true
+        },
+        "ad": {
+          "type": "turkish_first_name",
+          "samples": ["Ahmet", "Mehmet", "Mustafa", "Ali", "Hüseyin", "Hasan", "İbrahim", "Ömer", "Yusuf", "Murat", "Fatma", "Ayşe", "Emine", "Hatice", "Zeynep", "Elif", "Merve", "Büşra", "Özge", "Şeyma"]
+        },
+        "soyad": {
+          "type": "turkish_last_name",
+          "samples": ["Yılmaz", "Kaya", "Demir", "Çelik", "Şahin", "Yıldız", "Yıldırım", "Öztürk", "Aydın", "Özdemir", "Arslan", "Doğan", "Kılıç", "Aslan", "Çetin", "Kara", "Koç", "Kurt", "Özkan", "Şimşek"]
+        },
+        "dogum_tarihi": {
+          "type": "date_range",
+          "min": "1950-01-01",
+          "max": "2005-12-31",
+          "format": "YYYY-MM-DD"
+        },
+        "cinsiyet": {
+          "type": "choice",
+          "values": ["Erkek", "Kadın"]
+        },
+        "telefon": {
+          "type": "turkish_phone",
+          "pattern": "+90 5XX XXX XX XX",
+          "prefixes": ["530", "531", "532", "533", "534", "535", "536", "537", "538", "539", "540", "541", "542", "543", "544", "545", "546", "547", "548", "549", "550", "551", "552", "553", "554", "555", "556", "557", "558", "559"]
+        },
+        "email": {
+          "type": "generated",
+          "template": "{ad_lower}.{soyad_lower}@{domain}",
+          "domains": ["gmail.com", "hotmail.com", "yahoo.com", "outlook.com"]
+        },
+        "adres": {
+          "type": "turkish_address",
+          "cities": ["İstanbul", "Ankara", "İzmir", "Bursa", "Antalya", "Adana", "Konya", "Gaziantep", "Şanlıurfa", "Kocaeli", "Mersin", "Diyarbakır", "Hatay", "Manisa", "Kayseri"]
+        },
+        "segment": {
+          "type": "weighted_choice",
+          "values": {
+            "Bireysel": 0.60,
+            "Premium": 0.25,
+            "Kurumsal": 0.15
+          }
+        },
+        "risk_skoru": {
+          "type": "integer_range",
+          "min": 0,
+          "max": 100
+        },
+        "meslek": {
+          "type": "choice",
+          "values": ["Mühendis", "Doktor", "Avukat", "Öğretmen", "Esnaf", "Memur", "İşçi", "Serbest Meslek", "Emekli", "Öğrenci"]
+        }
+      }
+    },
+    "account_profile": {
+      "description": "Banka hesap profili konfigürasyonu",
+      "fields": {
+        "iban": {
+          "type": "turkish_iban",
+          "description": "TR + 2 kontrol + 5 banka kodu + 1 rezerv + 16 hesap no (toplam 26 karakter)",
+          "pattern": "^TR[0-9]{24}$",
+          "bank_codes": {
+            "00010": "T.C. Ziraat Bankası",
+            "00012": "T. Halk Bankası",
+            "00015": "T. Vakıflar Bankası",
+            "00046": "Akbank",
+            "00062": "Garanti BBVA",
+            "00064": "Türkiye İş Bankası",
+            "00067": "Yapı ve Kredi Bankası",
+            "00099": "ING Bank",
+            "00111": "QNB Finansbank",
+            "00134": "Denizbank"
+          },
+          "unique": true
+        },
+        "hesap_turu": {
+          "type": "choice",
+          "values": ["Vadesiz TL", "Vadeli TL", "Vadesiz USD", "Vadesiz EUR", "Altın Hesabı", "Yatırım Hesabı"]
+        },
+        "para_birimi": {
+          "type": "mapped",
+          "mapping": {
+            "Vadesiz TL": "TRY",
+            "Vadeli TL": "TRY",
+            "Vadesiz USD": "USD",
+            "Vadesiz EUR": "EUR",
+            "Altın Hesabı": "XAU",
+            "Yatırım Hesabı": "TRY"
+          }
+        },
+        "bakiye": {
+          "type": "decimal_range",
+          "ranges_by_segment": {
+            "Bireysel": {"min": 100, "max": 500000},
+            "Premium": {"min": 50000, "max": 5000000},
+            "Kurumsal": {"min": 100000, "max": 50000000}
+          },
+          "precision": 2
+        },
+        "faiz_orani": {
+          "type": "decimal_range",
+          "min": 0.0,
+          "max": 55.0,
+          "precision": 2,
+          "applicable_types": ["Vadeli TL"]
+        },
+        "acilis_tarihi": {
+          "type": "date_range",
+          "min": "2020-01-01",
+          "max": "2026-04-01",
+          "format": "YYYY-MM-DD"
+        }
+      }
+    },
+    "transaction_profile": {
+      "description": "Finansal işlem profili konfigürasyonu",
+      "fields": {
+        "islem_turu": {
+          "type": "weighted_choice",
+          "values": {
+            "EFT": 0.20,
+            "Havale": 0.15,
+            "Para Çekme": 0.15,
+            "Para Yatırma": 0.10,
+            "Fatura Ödeme": 0.15,
+            "Kart Ödeme": 0.15,
+            "Döviz Alım": 0.05,
+            "Döviz Satım": 0.05
+          }
+        },
+        "tutar": {
+          "type": "decimal_range",
+          "ranges_by_type": {
+            "EFT": {"min": 10, "max": 500000},
+            "Havale": {"min": 1, "max": 1000000},
+            "Para Çekme": {"min": 20, "max": 10000},
+            "Para Yatırma": {"min": 50, "max": 100000},
+            "Fatura Ödeme": {"min": 10, "max": 5000},
+            "Kart Ödeme": {"min": 5, "max": 50000},
+            "Döviz Alım": {"min": 100, "max": 500000},
+            "Döviz Satım": {"min": 100, "max": 500000}
+          },
+          "precision": 2
+        },
+        "kanal": {
+          "type": "weighted_choice",
+          "values": {
+            "Mobil": 0.40,
+            "İnternet": 0.30,
+            "ATM": 0.15,
+            "Şube": 0.10,
+            "Telefon Bankacılığı": 0.05
+          }
+        },
+        "durum": {
+          "type": "weighted_choice",
+          "values": {
+            "Başarılı": 0.92,
+            "Başarısız": 0.05,
+            "Beklemede": 0.02,
+            "İptal": 0.01
+          }
+        },
+        "aciklama_sablonlari": {
+          "EFT": ["Kira ödemesi", "Maaş ödemesi", "Fatura ödemesi", "Borç ödeme", "Alışveriş ödemesi"],
+          "Havale": ["Hesaplar arası transfer", "Aile desteği", "Eğitim ödemesi", "Kişisel transfer"],
+          "Fatura Ödeme": ["Elektrik faturası", "Su faturası", "Doğalgaz faturası", "İnternet faturası", "Telefon faturası"],
+          "Kart Ödeme": ["Market alışverişi", "Online alışveriş", "Akaryakıt", "Restoran", "Ulaşım"]
+        }
+      }
+    }
+  },
+  "scenario_configs": {
+    "bireysel": {
+      "description": "Bireysel bankacılık senaryosu",
+      "customer_count": 500,
+      "accounts_per_customer": {"min": 1, "max": 3},
+      "transactions_per_account": {"min": 5, "max": 50},
+      "segment": "Bireysel",
+      "risk_score_range": {"min": 10, "max": 60},
+      "primary_channels": ["Mobil", "İnternet"],
+      "common_transaction_types": ["EFT", "Fatura Ödeme", "Kart Ödeme", "Para Çekme"]
+    },
+    "kurumsal": {
+      "description": "Kurumsal bankacılık senaryosu",
+      "customer_count": 100,
+      "accounts_per_customer": {"min": 2, "max": 8},
+      "transactions_per_account": {"min": 20, "max": 200},
+      "segment": "Kurumsal",
+      "risk_score_range": {"min": 5, "max": 40},
+      "primary_channels": ["İnternet", "Şube"],
+      "common_transaction_types": ["EFT", "Havale", "Döviz Alım", "Döviz Satım"],
+      "special_features": ["toplu_ödeme", "döviz_işlemleri", "ticari_kredi"]
+    },
+    "premium": {
+      "description": "Premium bankacılık senaryosu",
+      "customer_count": 200,
+      "accounts_per_customer": {"min": 2, "max": 5},
+      "transactions_per_account": {"min": 10, "max": 100},
+      "segment": "Premium",
+      "risk_score_range": {"min": 5, "max": 30},
+      "primary_channels": ["Mobil", "İnternet", "Şube"],
+      "common_transaction_types": ["EFT", "Havale", "Döviz Alım", "Yatırım"],
+      "special_features": ["portföy_yönetimi", "özel_faiz", "kişisel_bankacı"]
+    }
+  }
+}

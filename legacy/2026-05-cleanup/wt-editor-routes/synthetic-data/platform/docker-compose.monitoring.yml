@@ -1,0 +1,81 @@
+# Docker Compose Monitoring Stack — SyntheticBankData
+#
+# Prometheus ve Grafana servislerini başlatır.
+# Metrikleri toplamak ve görselleştirmek için kullanılır.
+#
+# Başlatma:
+#   docker-compose -f docker-compose.monitoring.yml up -d
+#
+# Erişim:
+#   Prometheus: http://localhost:9090
+#   Grafana: http://localhost:3000
+
+version: '3.8'
+
+services:
+  # Prometheus — Metrikleri toplama ve saklama
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: syntheticbank_prometheus
+    volumes:
+      # Prometheus yapılandırma dosyası
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      # Verileri saklamak için bind mount
+      - prometheus_data:/prometheus
+    ports:
+      - "9090:9090"
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=30d'
+    networks:
+      - monitoring
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9090/-/healthy"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Grafana — Metrikleri görselleştirme
+  grafana:
+    image: grafana/grafana:latest
+    container_name: syntheticbank_grafana
+    environment:
+      # Grafana konfigürasyonu
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_SERVER_ROOT_URL: http://localhost:3000
+      GF_INSTALL_PLUGINS: "grafana-clock-panel,grafana-simple-json-datasource"
+    volumes:
+      # Provisioning ayarları
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      # Dashboards
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+      # Grafana veri yolu
+      - grafana_data:/var/lib/grafana
+    ports:
+      - "3000:3000"
+    networks:
+      - monitoring
+    restart: unless-stopped
+    depends_on:
+      - prometheus
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+volumes:
+  prometheus_data:
+    driver: local
+  grafana_data:
+    driver: local
+
+networks:
+  monitoring:
+    driver: bridge

@@ -1,0 +1,203 @@
+{
+  "config": {
+    "configFile": "/Users/yasin_bulgan/Desktop/Neurex_QA/playwright.config.ts",
+    "rootDir": "/Users/yasin_bulgan/Desktop/Neurex_QA/e2e",
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": "/Users/yasin_bulgan/Desktop/Neurex_QA/e2e/global-setup.ts",
+    "globalTeardown": "/Users/yasin_bulgan/Desktop/Neurex_QA/e2e/global-teardown.ts",
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {},
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "/Users/yasin_bulgan/Desktop/Neurex_QA/reports/pw_banking_nightly-b4b36565-c1",
+        "repeatEach": 1,
+        "retries": 1,
+        "metadata": {},
+        "id": "smoke",
+        "name": "smoke",
+        "testDir": "/Users/yasin_bulgan/Desktop/Neurex_QA/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "smoke.spec.ts",
+          "login.spec.ts"
+        ],
+        "timeout": 45000
+      },
+      {
+        "outputDir": "/Users/yasin_bulgan/Desktop/Neurex_QA/reports/pw_banking_nightly-b4b36565-c1",
+        "repeatEach": 1,
+        "retries": 1,
+        "metadata": {},
+        "id": "service",
+        "name": "service",
+        "testDir": "/Users/yasin_bulgan/Desktop/Neurex_QA/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "**/login.spec.ts"
+        ],
+        "timeout": 30000
+      },
+      {
+        "outputDir": "/Users/yasin_bulgan/Desktop/Neurex_QA/reports/pw_banking_nightly-b4b36565-c1",
+        "repeatEach": 1,
+        "retries": 2,
+        "metadata": {},
+        "id": "regression",
+        "name": "regression",
+        "testDir": "/Users/yasin_bulgan/Desktop/Neurex_QA/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "regression.spec.ts",
+          "projects.spec.ts",
+          "scenarios.spec.ts",
+          "approvals.spec.ts",
+          "rbac.spec.ts",
+          "executions.spec.ts",
+          "flows.spec.ts",
+          "import.spec.ts",
+          "requirements.spec.ts",
+          "schedules.spec.ts",
+          "test-data.spec.ts",
+          "integrations.spec.ts",
+          "bdd-generate.spec.ts",
+          "navigation.spec.ts",
+          "api-tests.spec.ts",
+          "scenario-versions.spec.ts",
+          "reports.spec.ts",
+          "visual-page.spec.ts",
+          "mobile.spec.ts",
+          "ai-workflows.spec.ts",
+          "ai-quality.spec.ts",
+          "mobile-appium.spec.ts"
+        ],
+        "timeout": 90000
+      },
+      {
+        "outputDir": "/Users/yasin_bulgan/Desktop/Neurex_QA/reports/pw_banking_nightly-b4b36565-c1",
+        "repeatEach": 1,
+        "retries": 2,
+        "metadata": {},
+        "id": "full",
+        "name": "full",
+        "testDir": "/Users/yasin_bulgan/Desktop/Neurex_QA/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.spec.ts"
+        ],
+        "timeout": 120000
+      },
+      {
+        "outputDir": "/Users/yasin_bulgan/Desktop/Neurex_QA/reports/pw_banking_nightly-b4b36565-c1",
+        "repeatEach": 1,
+        "retries": 1,
+        "metadata": {},
+        "id": "mobile",
+        "name": "mobile",
+        "testDir": "/Users/yasin_bulgan/Desktop/Neurex_QA/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "mobile.spec.ts",
+          "mobile-responsive.spec.ts"
+        ],
+        "timeout": 60000
+      },
+      {
+        "outputDir": "/Users/yasin_bulgan/Desktop/Neurex_QA/reports/pw_banking_nightly-b4b36565-c1",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {},
+        "id": "a11y",
+        "name": "a11y",
+        "testDir": "/Users/yasin_bulgan/Desktop/Neurex_QA/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "accessibility.spec.ts"
+        ],
+        "timeout": 60000
+      },
+      {
+        "outputDir": "/Users/yasin_bulgan/Desktop/Neurex_QA/reports/pw_banking_nightly-b4b36565-c1",
+        "repeatEach": 1,
+        "retries": 1,
+        "metadata": {},
+        "id": "smoke-firefox",
+        "name": "smoke-firefox",
+        "testDir": "/Users/yasin_bulgan/Desktop/Neurex_QA/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "smoke.spec.ts",
+          "login.spec.ts",
+          "navigation.spec.ts"
+        ],
+        "timeout": 60000
+      },
+      {
+        "outputDir": "/Users/yasin_bulgan/Desktop/Neurex_QA/reports/pw_banking_nightly-b4b36565-c1",
+        "repeatEach": 1,
+        "retries": 1,
+        "metadata": {},
+        "id": "smoke-webkit",
+        "name": "smoke-webkit",
+        "testDir": "/Users/yasin_bulgan/Desktop/Neurex_QA/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "smoke.spec.ts",
+          "login.spec.ts",
+          "navigation.spec.ts"
+        ],
+        "timeout": 60000
+      },
+      {
+        "outputDir": "/Users/yasin_bulgan/Desktop/Neurex_QA/reports/pw_banking_nightly-b4b36565-c1",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {},
+        "id": "visual",
+        "name": "visual",
+        "testDir": "/Users/yasin_bulgan/Desktop/Neurex_QA/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "visual-regression.spec.ts"
+        ],
+        "timeout": 45000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "json"
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.59.1",
+    "workers": 2,
+    "webServer": null
+  },
+  "suites": [],
+  "errors": [
+    {
+      "message": "Error: Process from config.webServer was not able to start. Exit code: 1",
+      "stack": "Error: Process from config.webServer was not able to start. Exit code: 1"
+    }
+  ],
+  "stats": {
+    "startTime": "2026-05-20T23:02:16.537Z",
+    "duration": 14305.23,
+    "expected": 0,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}

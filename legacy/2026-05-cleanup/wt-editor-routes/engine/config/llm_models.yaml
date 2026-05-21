@@ -1,0 +1,46 @@
+# BGTS AI Test Engine — LLM Model Tanımları
+# Her model için maliyet, parametre ve kullanım alanı tanımları.
+
+models:
+  gpt-4o:
+    provider: openai
+    max_tokens: 4096
+    temperature: 0.2
+    cost_per_million_input: 2.50
+    cost_per_million_output: 10.00
+    use_for:
+      - test_generation
+      - bdd_generation
+      - coverage_analysis
+      - assertion_analysis
+
+  gpt-4o-mini:
+    provider: openai
+    max_tokens: 2048
+    temperature: 0.1
+    cost_per_million_input: 0.15
+    cost_per_million_output: 0.60
+    use_for:
+      - locator_generation
+      - simple_classification
+
+  claude-3-5-sonnet-latest:
+    provider: anthropic
+    max_tokens: 4096
+    temperature: 0.2
+    cost_per_million_input: 3.00
+    cost_per_million_output: 15.00
+    use_for:
+      - self_healing
+      - security_analysis
+      - dom_analysis
+
+  claude-3-5-haiku-latest:
+    provider: anthropic
+    max_tokens: 2048
+    temperature: 0.1
+    cost_per_million_input: 0.80
+    cost_per_million_output: 4.00
+    use_for:
+      - classification
+      - simple_analysis

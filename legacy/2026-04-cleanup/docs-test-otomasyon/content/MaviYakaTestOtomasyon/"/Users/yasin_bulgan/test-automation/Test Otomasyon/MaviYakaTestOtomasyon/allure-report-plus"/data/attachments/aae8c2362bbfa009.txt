@@ -1,0 +1,2 @@
+'izinTalepEtSayfasıİzinTalepEtButon' adlı butona/elemana tıklanıyor
+Element anahtarı: izinTalepEtSayfasıİzinTalepEtButon

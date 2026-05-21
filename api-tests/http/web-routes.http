@@ -1,0 +1,51 @@
+### Next.js sayfalarını HTTP üzerinden doğrula
+# Dashboard auth bypass için apps/web/.env.local içine
+#   NEXT_PUBLIC_AUTH_MIDDLEWARE_ENABLED=false
+
+### Ana sayfa
+GET {{web}}/
+
+###
+
+### Login sayfası
+GET {{web}}/login
+
+###
+
+### Product family sayfaları — hepsi /products/<id>
+GET {{web}}/products/one
+
+###
+
+GET {{web}}/products/studio
+
+###
+
+GET {{web}}/products/service
+
+###
+
+GET {{web}}/products/web
+
+###
+
+GET {{web}}/products/mobile
+
+###
+
+GET {{web}}/products/data
+
+###
+
+GET {{web}}/products/intelligence
+
+###
+
+GET {{web}}/products/nexus-code
+
+###
+
+### Storybook (apps/storybook)
+GET http://localhost:6006/
+
+###

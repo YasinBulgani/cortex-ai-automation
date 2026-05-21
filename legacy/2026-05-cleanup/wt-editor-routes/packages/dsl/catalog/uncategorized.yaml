@@ -1,0 +1,2846 @@
+version: 1.0.0
+category_name: Uncategorized Actions
+generated_by: packages/dsl/scripts/build_catalog.py
+generated_at: '2026-04-17'
+actions:
+- id: ai_perform_task
+  category: uncategorized.general
+  description: 'Eylem: AI "{task}" görevini gerçekleştirir'
+  aliases:
+    tr:
+    - AI "{task}" görevini gerçekleştirir
+  implementations:
+    python:
+      source_file: engine/steps/common_steps.py
+      function: ai_perform_task
+      pattern: AI "{task}" görevini gerçekleştirir
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: task
+    type: string
+    required: true
+- id: approve_item
+  category: uncategorized.general
+  description: 'Eylem: kullanıcı "{approval_id}" onayını onaylar'
+  aliases:
+    tr:
+    - kullanıcı "{approval_id}" onayını onaylar
+  implementations:
+    python:
+      source_file: engine/steps/bgts_approval_steps.py
+      function: approve_item
+      pattern: kullanıcı "{approval_id}" onayını onaylar
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: approval_id
+    type: string
+    required: true
+- id: assert_at_least_one_passed
+  category: uncategorized.general
+  description: 'Doğrulama: en az 1 adım başarılı olmalıdır'
+  aliases:
+    tr:
+    - en az 1 adım başarılı olmalıdır
+  implementations:
+    python:
+      source_file: engine/steps/common_steps.py
+      function: assert_at_least_one_passed
+      pattern: en az 1 adım başarılı olmalıdır
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+- id: assert_element_present
+  category: uncategorized.general
+  description: 'Doğrulama: "{element}" elementi sayfada mevcut olmalıdır'
+  aliases:
+    tr:
+    - '"{element}" elementi sayfada mevcut olmalıdır'
+  implementations:
+    python:
+      source_file: engine/steps/bgts_smoke_steps.py
+      function: assert_element_present
+      pattern: '"{element}" elementi sayfada mevcut olmalıdır'
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+  parameters:
+  - name: element
+    type: string
+    required: true
+- id: assert_import_page_loaded
+  category: uncategorized.general
+  description: 'Doğrulama: içe aktarma sayfası yüklenmiş olmalıdır'
+  aliases:
+    tr:
+    - içe aktarma sayfası yüklenmiş olmalıdır
+  implementations:
+    python:
+      source_file: engine/steps/bgts_import_steps.py
+      function: assert_import_page_loaded
+      pattern: içe aktarma sayfası yüklenmiş olmalıdır
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+- id: assert_logged_out
+  category: uncategorized.general
+  description: 'Doğrulama: kullanıcı başarıyla çıkış yapmış olmalıdır'
+  aliases:
+    tr:
+    - kullanıcı başarıyla çıkış yapmış olmalıdır
+  implementations:
+    python:
+      source_file: engine/steps/bgts_smoke_steps.py
+      function: assert_logged_out
+      pattern: kullanıcı başarıyla çıkış yapmış olmalıdır
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+- id: assert_module_accessible
+  category: uncategorized.general
+  description: 'Doğrulama: "{module}" modülü erişilebilir olmalıdır'
+  aliases:
+    tr:
+    - '"{module}" modülü erişilebilir olmalıdır'
+  implementations:
+    python:
+      source_file: engine/steps/bgts_regression_steps.py
+      function: assert_module_accessible
+      pattern: '"{module}" modülü erişilebilir olmalıdır'
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+  parameters:
+  - name: module
+    type: string
+    required: true
+- id: assert_no_page_errors
+  category: uncategorized.general
+  description: 'Doğrulama: sayfa hatasız yüklenmiş olmalıdır'
+  aliases:
+    tr:
+    - sayfa hatasız yüklenmiş olmalıdır
+  implementations:
+    python:
+      source_file: engine/steps/bgts_regression_steps.py
+      function: assert_no_page_errors
+      pattern: sayfa hatasız yüklenmiş olmalıdır
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+- id: assert_page_loaded
+  category: uncategorized.general
+  description: 'Doğrulama: sayfa başarıyla yüklenmiş olmalıdır'
+  aliases:
+    tr:
+    - sayfa başarıyla yüklenmiş olmalıdır
+  implementations:
+    python:
+      source_file: engine/steps/bgts_smoke_steps.py
+      function: assert_page_loaded
+      pattern: sayfa başarıyla yüklenmiş olmalıdır
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+- id: assert_pii_scan_success
+  category: uncategorized.general
+  description: 'Doğrulama: PII tarama sonuçları dönmüş olmalıdır'
+  aliases:
+    tr:
+    - PII tarama sonuçları dönmüş olmalıdır
+  implementations:
+    python:
+      source_file: engine/steps/bgts_synthetic_steps.py
+      function: assert_pii_scan_success
+      pattern: PII tarama sonuçları dönmüş olmalıdır
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+- id: assert_platform_healthy
+  category: uncategorized.general
+  description: 'Doğrulama: platform temel işlevleri çalışır durumda olmalıdır'
+  aliases:
+    tr:
+    - platform temel işlevleri çalışır durumda olmalıdır
+  implementations:
+    python:
+      source_file: engine/steps/bgts_smoke_steps.py
+      function: assert_platform_healthy
+      pattern: platform temel işlevleri çalışır durumda olmalıdır
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+- id: assert_redirected_to_projects
+  category: uncategorized.general
+  description: 'Doğrulama: kullanıcı projeler sayfasına yönlendirilmelidir'
+  aliases:
+    tr:
+    - kullanıcı projeler sayfasına yönlendirilmelidir
+  implementations:
+    python:
+      source_file: engine/steps/bgts_login_steps.py
+      function: assert_redirected_to_projects
+      pattern: kullanıcı projeler sayfasına yönlendirilmelidir
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+- id: assert_title_contains
+  category: uncategorized.general
+  description: 'Doğrulama: sayfa başlığı "{text}" içermelidir'
+  aliases:
+    tr:
+    - sayfa başlığı "{text}" içermelidir
+  implementations:
+    python:
+      source_file: engine/steps/common_steps.py
+      function: assert_title_contains
+      pattern: sayfa başlığı "{text}" içermelidir
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+  parameters:
+  - name: text
+    type: string
+    required: true
+- id: assert_url_contains
+  category: uncategorized.general
+  description: 'Doğrulama: URL "{text}" içermelidir'
+  aliases:
+    tr:
+    - URL "{text}" içermelidir
+  implementations:
+    python:
+      source_file: engine/steps/common_steps.py
+      function: assert_url_contains
+      pattern: URL "{text}" içermelidir
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+  parameters:
+  - name: text
+    type: string
+    required: true
+- id: bulk_delete_scenarios
+  category: uncategorized.general
+  description: 'Eylem: kullanıcı seçili senaryoları toplu siler'
+  aliases:
+    tr:
+    - kullanıcı seçili senaryoları toplu siler
+  implementations:
+    python:
+      source_file: engine/steps/bgts_scenario_steps.py
+      function: bulk_delete_scenarios
+      pattern: kullanıcı seçili senaryoları toplu siler
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+- id: delete_project
+  category: uncategorized.general
+  description: 'Eylem: kullanıcı "{name}" projesini siler'
+  aliases:
+    tr:
+    - kullanıcı "{name}" projesini siler
+  implementations:
+    python:
+      source_file: engine/steps/bgts_project_steps.py
+      function: delete_project
+      pattern: kullanıcı "{name}" projesini siler
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: name
+    type: string
+    required: true
+- id: delete_scenario_step
+  category: uncategorized.general
+  description: 'Eylem: kullanıcı "{scenario_id}" senaryosunu siler'
+  aliases:
+    tr:
+    - kullanıcı "{scenario_id}" senaryosunu siler
+  implementations:
+    python:
+      source_file: engine/steps/bgts_scenario_steps.py
+      function: delete_scenario_step
+      pattern: kullanıcı "{scenario_id}" senaryosunu siler
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: scenario_id
+    type: string
+    required: true
+- id: edit_and_approve_draft
+  category: uncategorized.general
+  description: 'Eylem: kullanıcı taslağı "{content}" olarak düzenleyip onaylar'
+  aliases:
+    tr:
+    - kullanıcı taslağı "{content}" olarak düzenleyip onaylar
+  implementations:
+    python:
+      source_file: engine/steps/bgts_approval_steps.py
+      function: edit_and_approve_draft
+      pattern: kullanıcı taslağı "{content}" olarak düzenleyip onaylar
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: content
+    type: string
+    required: true
+- id: edit_scenario_step
+  category: uncategorized.general
+  description: 'Eylem: kullanıcı "{scenario_id}" senaryosunu düzenler'
+  aliases:
+    tr:
+    - kullanıcı "{scenario_id}" senaryosunu düzenler
+  implementations:
+    python:
+      source_file: engine/steps/bgts_scenario_steps.py
+      function: edit_scenario_step
+      pattern: kullanıcı "{scenario_id}" senaryosunu düzenler
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: scenario_id
+    type: string
+    required: true
+- id: en_assert_hidden_bare
+  category: uncategorized.general
+  description: 'Doğrulama: I don''t see element (?P<key>.+)'
+  aliases:
+    en:
+    - I don't see element (?P<key>.+)
+  implementations:
+    python:
+      source_file: engine/steps/english_steps.py
+      function: en_assert_hidden_bare
+      pattern: I don't see element (?P<key>.+)
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+- id: en_assert_visible
+  category: uncategorized.general
+  description: 'Doğrulama: I see the element ''{key}'''
+  aliases:
+    en:
+    - I see the element '{key}'
+  implementations:
+    python:
+      source_file: engine/steps/english_steps.py
+      function: en_assert_visible
+      pattern: I see the element '{key}'
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+  parameters:
+  - name: key
+    type: locator
+    required: true
+- id: en_assert_visible_bare
+  category: uncategorized.general
+  description: 'Doğrulama: I see the element (?P<key>.+)'
+  aliases:
+    en:
+    - I see the element (?P<key>.+)
+  implementations:
+    python:
+      source_file: engine/steps/english_steps.py
+      function: en_assert_visible_bare
+      pattern: I see the element (?P<key>.+)
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+- id: en_assert_visible_double_quotes
+  category: uncategorized.general
+  description: 'Doğrulama: I see the element "{key}"'
+  aliases:
+    en:
+    - I see the element "{key}"
+  implementations:
+    python:
+      source_file: engine/steps/english_steps.py
+      function: en_assert_visible_double_quotes
+      pattern: I see the element "{key}"
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+  parameters:
+  - name: key
+    type: locator
+    required: true
+- id: en_check
+  category: uncategorized.general
+  description: 'Eylem: I check ''{key}'''
+  aliases:
+    tr:
+    - I check '{key}'
+  implementations:
+    python:
+      source_file: engine/steps/english_steps.py
+      function: en_check
+      pattern: I check '{key}'
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: key
+    type: locator
+    required: true
+- id: en_navigate
+  category: uncategorized.general
+  description: (Ön koşul) I am on the "{path}" page
+  aliases:
+    en:
+    - I am on the "{path}" page
+  implementations:
+    python:
+      source_file: engine/steps/english_steps.py
+      function: en_navigate
+      pattern: I am on the "{path}" page
+  tags:
+  - auto-extracted
+  - given
+  since: '2026-04-17'
+  parameters:
+  - name: path
+    type: url
+    required: true
+- id: en_refresh
+  category: uncategorized.general
+  description: 'Eylem: I refresh the page'
+  aliases:
+    en:
+    - I refresh the page
+  implementations:
+    python:
+      source_file: engine/steps/english_steps.py
+      function: en_refresh
+      pattern: I refresh the page
+    java:
+      source_file: frameworks/selenium-cucumber-java/src/test/java/stepdefinitions/NavigationSteps.java
+      function: refreshPage
+      pattern: I refresh the page
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/common-steps.ts
+      pattern: I refresh the page
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+- id: en_uncheck
+  category: uncategorized.general
+  description: 'Eylem: I uncheck ''{key}'''
+  aliases:
+    tr:
+    - I uncheck '{key}'
+  implementations:
+    python:
+      source_file: engine/steps/english_steps.py
+      function: en_uncheck
+      pattern: I uncheck '{key}'
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: key
+    type: locator
+    required: true
+- id: filter_by_priority
+  category: uncategorized.general
+  description: 'Eylem: kullanıcı senaryoları "{priority}" önceliğine göre filtreler'
+  aliases:
+    tr:
+    - kullanıcı senaryoları "{priority}" önceliğine göre filtreler
+  implementations:
+    python:
+      source_file: engine/steps/bgts_scenario_steps.py
+      function: filter_by_priority
+      pattern: kullanıcı senaryoları "{priority}" önceliğine göre filtreler
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: priority
+    type: string
+    required: true
+- id: filter_by_type
+  category: uncategorized.general
+  description: 'Eylem: kullanıcı senaryoları "{scenario_type}" türüne göre filtreler'
+  aliases:
+    tr:
+    - kullanıcı senaryoları "{scenario_type}" türüne göre filtreler
+  implementations:
+    python:
+      source_file: engine/steps/bgts_scenario_steps.py
+      function: filter_by_type
+      pattern: kullanıcı senaryoları "{scenario_type}" türüne göre filtreler
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: scenario_type
+    type: string
+    required: true
+- id: generate_bdd_scenario
+  category: uncategorized.general
+  description: 'Eylem: kullanıcı "{text}" metni ile BDD senaryosu üretir'
+  aliases:
+    tr:
+    - kullanıcı "{text}" metni ile BDD senaryosu üretir
+  implementations:
+    python:
+      source_file: engine/steps/bgts_scenario_steps.py
+      function: generate_bdd_scenario
+      pattern: kullanıcı "{text}" metni ile BDD senaryosu üretir
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: text
+    type: string
+    required: true
+- id: go_back
+  category: uncategorized.general
+  description: 'Eylem: I go back'
+  aliases:
+    tr:
+    - I go back
+  implementations:
+    java:
+      source_file: frameworks/selenium-cucumber-java/src/test/java/stepdefinitions/NavigationSteps.java
+      function: goBack
+      pattern: I go back
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/common-steps.ts
+      pattern: I go back
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+- id: go_forward
+  category: uncategorized.general
+  description: 'Eylem: I go forward'
+  aliases:
+    tr:
+    - I go forward
+  implementations:
+    java:
+      source_file: frameworks/selenium-cucumber-java/src/test/java/stepdefinitions/NavigationSteps.java
+      function: goForward
+      pattern: I go forward
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/common-steps.ts
+      pattern: I go forward
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+- id: i_am_logged_in_as
+  category: uncategorized.general
+  description: (Ön koşul) I am logged in as {string}
+  aliases:
+    tr:
+    - I am logged in as {string}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/web-steps.ts
+      pattern: I am logged in as {string}
+  tags:
+  - auto-extracted
+  - given
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_am_logged_out
+  category: uncategorized.general
+  description: (Ön koşul) I am logged out
+  aliases:
+    tr:
+    - I am logged out
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/web-steps.ts
+      pattern: I am logged out
+  tags:
+  - auto-extracted
+  - given
+  since: '2026-04-17'
+- id: i_am_on_the_paribu_home_page
+  category: uncategorized.general
+  description: (Ön koşul) I am on the Paribu home page
+  aliases:
+    en:
+    - I am on the Paribu home page
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/paribu-steps.ts
+      pattern: I am on the Paribu home page
+  tags:
+  - auto-extracted
+  - given
+  since: '2026-04-17'
+- id: i_analyze_performance_for_optimization
+  category: uncategorized.general
+  description: 'Eylem: I analyze performance for optimization'
+  aliases:
+    tr:
+    - I analyze performance for optimization
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/ai-steps.ts
+      pattern: I analyze performance for optimization
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+- id: i_analyze_performance_trends
+  category: uncategorized.general
+  description: 'Eylem: I analyze performance trends'
+  aliases:
+    tr:
+    - I analyze performance trends
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/reporting-steps.ts
+      pattern: I analyze performance trends
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+- id: i_analyze_test_coverage_for_the_generate
+  category: uncategorized.general
+  description: 'Eylem: I analyze test coverage for the generated scenarios'
+  aliases:
+    en:
+    - I analyze test coverage for the generated scenarios
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/ai-steps.ts
+      pattern: I analyze test coverage for the generated scenarios
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+- id: i_analyze_test_trends_for_the_last_hours
+  category: uncategorized.general
+  description: 'Eylem: I analyze test trends for the last {int} hours'
+  aliases:
+    en:
+    - I analyze test trends for the last {int} hours
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/reporting-steps.ts
+      pattern: I analyze test trends for the last {int} hours
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: int
+    type: string
+    required: true
+- id: i_analyze_the_visual_difference_with_ai
+  category: uncategorized.general
+  description: 'Eylem: I analyze the visual difference with AI'
+  aliases:
+    en:
+    - I analyze the visual difference with AI
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/visual-ai-steps.ts
+      pattern: I analyze the visual difference with AI
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+- id: i_benchmark_the_operation_for_iterations
+  category: uncategorized.general
+  description: 'Eylem: I benchmark the operation {string} for {int} iterations'
+  aliases:
+    en:
+    - I benchmark the operation {string} for {int} iterations
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/performance-steps.ts
+      pattern: I benchmark the operation {string} for {int} iterations
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+  - name: int
+    type: string
+    required: true
+- id: i_check
+  category: uncategorized.general
+  description: 'Eylem: I check {string}'
+  aliases:
+    tr:
+    - I check {string}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/web-steps.ts
+      pattern: I check {string}
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_check_ai_client_statistics
+  category: uncategorized.general
+  description: 'Eylem: I check AI client statistics'
+  aliases:
+    tr:
+    - I check AI client statistics
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/ai-steps.ts
+      pattern: I check AI client statistics
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+- id: i_check_recording_statistics
+  category: uncategorized.general
+  description: 'Eylem: I check recording statistics'
+  aliases:
+    tr:
+    - I check recording statistics
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/recording-steps.ts
+      pattern: I check recording statistics
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+- id: i_check_the_core_web_vitals
+  category: uncategorized.general
+  description: 'Eylem: I check the core web vitals'
+  aliases:
+    en:
+    - I check the core web vitals
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/performance-steps.ts
+      pattern: I check the core web vitals
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+- id: i_check_the_network_performance
+  category: uncategorized.general
+  description: 'Eylem: I check the network performance'
+  aliases:
+    en:
+    - I check the network performance
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/performance-steps.ts
+      pattern: I check the network performance
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+- id: i_clear
+  category: uncategorized.general
+  description: 'Eylem: I clear {string}'
+  aliases:
+    tr:
+    - I clear {string}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/common-steps.ts
+      pattern: I clear {string}
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_clear_all_visual_baselines
+  category: uncategorized.general
+  description: 'Eylem: I clear all visual baselines'
+  aliases:
+    tr:
+    - I clear all visual baselines
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/visual-steps.ts
+      pattern: I clear all visual baselines
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+- id: i_close_the_cookie_notice_if_present
+  category: uncategorized.general
+  description: (Ön koşul) I close the cookie notice if present
+  aliases:
+    en:
+    - I close the cookie notice if present
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/web.steps.ts
+      pattern: I close the cookie notice if present
+  tags:
+  - auto-extracted
+  - given
+  since: '2026-04-17'
+- id: i_close_the_modal
+  category: uncategorized.general
+  description: 'Eylem: I close the modal'
+  aliases:
+    en:
+    - I close the modal
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/web-steps.ts
+      pattern: I close the modal
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+- id: i_compare_multiple_elements
+  category: uncategorized.general
+  description: 'Eylem: I compare multiple elements'
+  aliases:
+    tr:
+    - I compare multiple elements
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/e2e-steps.ts
+      pattern: I compare multiple elements
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+- id: i_convert_recorded_actions_to_test_steps
+  category: uncategorized.general
+  description: 'Eylem: I convert recorded actions to test steps'
+  aliases:
+    tr:
+    - I convert recorded actions to test steps
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/recording-steps.ts
+      pattern: I convert recorded actions to test steps
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+- id: i_debug_the_failing_test
+  category: uncategorized.general
+  description: 'Eylem: I debug the failing test {string}'
+  aliases:
+    en:
+    - I debug the failing test {string}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/ai-steps.ts
+      pattern: I debug the failing test {string}
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_delete_the_first_product
+  category: uncategorized.general
+  description: 'Eylem: I delete the first product'
+  aliases:
+    en:
+    - I delete the first product
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/api.steps.ts
+      pattern: I delete the first product
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+- id: i_delete_the_visual_baseline
+  category: uncategorized.general
+  description: 'Eylem: I delete the visual baseline {string}'
+  aliases:
+    en:
+    - I delete the visual baseline {string}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/visual-steps.ts
+      pattern: I delete the visual baseline {string}
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_download_file
+  category: uncategorized.general
+  description: 'Eylem: I download file {string}'
+  aliases:
+    tr:
+    - I download file {string}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/web-steps.ts
+      pattern: I download file {string}
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_execute_a_complete_ai_test_generation
+  category: uncategorized.general
+  description: 'Eylem: I execute a complete AI test generation workflow'
+  aliases:
+    tr:
+    - I execute a complete AI test generation workflow
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/ai-steps.ts
+      pattern: I execute a complete AI test generation workflow
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+- id: i_export_the_recording_as_gherkin
+  category: uncategorized.general
+  description: 'Eylem: I export the recording as Gherkin'
+  aliases:
+    en:
+    - I export the recording as Gherkin
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/recording-steps.ts
+      pattern: I export the recording as Gherkin
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+- id: i_export_the_recording_as_json
+  category: uncategorized.general
+  description: 'Eylem: I export the recording as JSON'
+  aliases:
+    en:
+    - I export the recording as JSON
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/recording-steps.ts
+      pattern: I export the recording as JSON
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+- id: i_extract_fields_from_test_data
+  category: uncategorized.general
+  description: 'Eylem: I extract fields {string} from test data'
+  aliases:
+    tr:
+    - I extract fields {string} from test data
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/data-steps.ts
+      pattern: I extract fields {string} from test data
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_filter_test_data_by_user_role
+  category: uncategorized.general
+  description: 'Eylem: I filter test data by user role {string}'
+  aliases:
+    en:
+    - I filter test data by user role {string}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/data-steps.ts
+      pattern: I filter test data by user role {string}
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_filter_test_data_where_equals
+  category: uncategorized.general
+  description: 'Eylem: I filter test data where {string} equals {string}'
+  aliases:
+    tr:
+    - I filter test data where {string} equals {string}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/data-steps.ts
+      pattern: I filter test data where {string} equals {string}
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_generate_a_test_report_in_format
+  category: uncategorized.general
+  description: 'Eylem: I generate a test report in {string} format'
+  aliases:
+    tr:
+    - I generate a test report in {string} format
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/reporting-steps.ts
+      pattern: I generate a test report in {string} format
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_generate_comprehensive_analytics_repor
+  category: uncategorized.general
+  description: 'Eylem: I generate comprehensive analytics report'
+  aliases:
+    tr:
+    - I generate comprehensive analytics report
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/reporting-steps.ts
+      pattern: I generate comprehensive analytics report
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+- id: i_generate_step_definitions_from_the_rec
+  category: uncategorized.general
+  description: 'Eylem: I generate step definitions from the recording'
+  aliases:
+    en:
+    - I generate step definitions from the recording
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/recording-steps.ts
+      pattern: I generate step definitions from the recording
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+- id: i_generate_test_reports_in_multiple_form
+  category: uncategorized.general
+  description: 'Eylem: I generate test reports in multiple formats'
+  aliases:
+    tr:
+    - I generate test reports in multiple formats
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/reporting-steps.ts
+      pattern: I generate test reports in multiple formats
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+- id: i_generate_test_scenarios_for
+  category: uncategorized.general
+  description: 'Eylem: I generate test scenarios for {string}'
+  aliases:
+    tr:
+    - I generate test scenarios for {string}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/ai-steps.ts
+      pattern: I generate test scenarios for {string}
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_generate_visual_analysis_report
+  category: uncategorized.general
+  description: 'Eylem: I generate visual analysis report'
+  aliases:
+    tr:
+    - I generate visual analysis report
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/visual-ai-steps.ts
+      pattern: I generate visual analysis report
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+- id: i_get_failure_predictions
+  category: uncategorized.general
+  description: 'Eylem: I get failure predictions'
+  aliases:
+    tr:
+    - I get failure predictions
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/reporting-steps.ts
+      pattern: I get failure predictions
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+- id: i_get_the_price_for
+  category: uncategorized.general
+  description: 'Eylem: I get the price for {string}'
+  aliases:
+    en:
+    - I get the price for {string}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/paribu-steps.ts
+      pattern: I get the price for {string}
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_have_a_comprehensive_ai_test_generatio
+  category: uncategorized.general
+  description: (Ön koşul) I have a comprehensive AI test generation setup
+  aliases:
+    tr:
+    - I have a comprehensive AI test generation setup
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/ai-steps.ts
+      pattern: I have a comprehensive AI test generation setup
+  tags:
+  - auto-extracted
+  - given
+  since: '2026-04-17'
+- id: i_have_a_comprehensive_test_context
+  category: uncategorized.general
+  description: (Ön koşul) I have a comprehensive test context
+  aliases:
+    tr:
+    - I have a comprehensive test context
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/e2e-steps.ts
+      pattern: I have a comprehensive test context
+  tags:
+  - auto-extracted
+  - given
+  since: '2026-04-17'
+- id: i_have_a_test_recording_setup
+  category: uncategorized.general
+  description: (Ön koşul) I have a test recording setup
+  aliases:
+    tr:
+    - I have a test recording setup
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/recording-steps.ts
+      pattern: I have a test recording setup
+  tags:
+  - auto-extracted
+  - given
+  since: '2026-04-17'
+- id: i_have_a_test_run_with_results
+  category: uncategorized.general
+  description: (Ön koşul) I have a test run with results
+  aliases:
+    tr:
+    - I have a test run with results
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/reporting-steps.ts
+      pattern: I have a test run with results
+  tags:
+  - auto-extracted
+  - given
+  since: '2026-04-17'
+- id: i_have_ai_test_generation_enabled
+  category: uncategorized.general
+  description: (Ön koşul) I have AI test generation enabled
+  aliases:
+    tr:
+    - I have AI test generation enabled
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/ai-steps.ts
+      pattern: I have AI test generation enabled
+  tags:
+  - auto-extracted
+  - given
+  since: '2026-04-17'
+- id: i_have_generated_random_email
+  category: uncategorized.general
+  description: (Ön koşul) I have generated random email {string}
+  aliases:
+    tr:
+    - I have generated random email {string}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/data-steps.ts
+      pattern: I have generated random email {string}
+  tags:
+  - auto-extracted
+  - given
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_have_generated_random_password
+  category: uncategorized.general
+  description: (Ön koşul) I have generated random password {string}
+  aliases:
+    tr:
+    - I have generated random password {string}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/data-steps.ts
+      pattern: I have generated random password {string}
+  tags:
+  - auto-extracted
+  - given
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_have_generated_random_username
+  category: uncategorized.general
+  description: (Ön koşul) I have generated random username {string}
+  aliases:
+    tr:
+    - I have generated random username {string}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/data-steps.ts
+      pattern: I have generated random username {string}
+  tags:
+  - auto-extracted
+  - given
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_have_generated_test_data_with_users
+  category: uncategorized.general
+  description: (Ön koşul) I have generated test data with {int} users
+  aliases:
+    tr:
+    - I have generated test data with {int} users
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/data-steps.ts
+      pattern: I have generated test data with {int} users
+  tags:
+  - auto-extracted
+  - given
+  since: '2026-04-17'
+  parameters:
+  - name: int
+    type: string
+    required: true
+- id: i_have_random_test_data_from
+  category: uncategorized.general
+  description: (Ön koşul) I have random test data from {string}
+  aliases:
+    tr:
+    - I have random test data from {string}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/data-steps.ts
+      pattern: I have random test data from {string}
+  tags:
+  - auto-extracted
+  - given
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_have_random_test_data_items_from
+  category: uncategorized.general
+  description: (Ön koşul) I have {int} random test data items from {string}
+  aliases:
+    tr:
+    - I have {int} random test data items from {string}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/data-steps.ts
+      pattern: I have {int} random test data items from {string}
+  tags:
+  - auto-extracted
+  - given
+  since: '2026-04-17'
+  parameters:
+  - name: int
+    type: string
+    required: true
+  - name: string
+    type: string
+    required: true
+- id: i_have_test_data_from
+  category: uncategorized.general
+  description: (Ön koşul) I have test data from {string}
+  aliases:
+    tr:
+    - I have test data from {string}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/data-steps.ts
+      pattern: I have test data from {string}
+  tags:
+  - auto-extracted
+  - given
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_have_the_following_data
+  category: uncategorized.general
+  description: '(Ön koşul) I have the following data:'
+  aliases:
+    en:
+    - 'I have the following data:'
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/common-steps.ts
+      pattern: 'I have the following data:'
+  tags:
+  - auto-extracted
+  - given
+  since: '2026-04-17'
+- id: i_have_unique_test_data_items_from
+  category: uncategorized.general
+  description: (Ön koşul) I have {int} unique test data items from {string}
+  aliases:
+    tr:
+    - I have {int} unique test data items from {string}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/data-steps.ts
+      pattern: I have {int} unique test data items from {string}
+  tags:
+  - auto-extracted
+  - given
+  since: '2026-04-17'
+  parameters:
+  - name: int
+    type: string
+    required: true
+  - name: string
+    type: string
+    required: true
+- id: i_have_visual_ai_analysis_enabled
+  category: uncategorized.general
+  description: (Ön koşul) I have visual AI analysis enabled
+  aliases:
+    tr:
+    - I have visual AI analysis enabled
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/visual-ai-steps.ts
+      pattern: I have visual AI analysis enabled
+  tags:
+  - auto-extracted
+  - given
+  since: '2026-04-17'
+- id: i_load_test_data_item_from
+  category: uncategorized.general
+  description: (Ön koşul) I load test data item {int} from {string}
+  aliases:
+    tr:
+    - I load test data item {int} from {string}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/data-steps.ts
+      pattern: I load test data item {int} from {string}
+  tags:
+  - auto-extracted
+  - given
+  since: '2026-04-17'
+  parameters:
+  - name: int
+    type: string
+    required: true
+  - name: string
+    type: string
+    required: true
+- id: i_log_in_with_and
+  category: uncategorized.general
+  description: 'Eylem: I log in with {string} and {string}'
+  aliases:
+    tr:
+    - I log in with {string} and {string}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/web-steps.ts
+      pattern: I log in with {string} and {string}
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_logout
+  category: uncategorized.general
+  description: 'Eylem: I logout'
+  aliases:
+    tr:
+    - I logout
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/paribu-steps.ts
+      pattern: I logout
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+- id: i_measure_the_page_load_time
+  category: uncategorized.general
+  description: 'Eylem: I measure the page load time'
+  aliases:
+    en:
+    - I measure the page load time
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/performance-steps.ts
+      pattern: I measure the page load time
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+- id: i_measure_the_performance_of
+  category: uncategorized.general
+  description: 'Eylem: I measure the performance of {string}'
+  aliases:
+    en:
+    - I measure the performance of {string}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/performance-steps.ts
+      pattern: I measure the performance of {string}
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_merge_test_data_from_and
+  category: uncategorized.general
+  description: 'Eylem: I merge test data from {string} and {string}'
+  aliases:
+    tr:
+    - I merge test data from {string} and {string}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/data-steps.ts
+      pattern: I merge test data from {string} and {string}
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_merge_test_data_from_and_2
+  category: uncategorized.general
+  description: 'Eylem: I merge test data from {string}, {string}, and {string}'
+  aliases:
+    tr:
+    - I merge test data from {string}, {string}, and {string}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/data-steps.ts
+      pattern: I merge test data from {string}, {string}, and {string}
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_perform_a_complete_recording_workflow
+  category: uncategorized.general
+  description: 'Eylem: I perform a complete recording workflow'
+  aliases:
+    tr:
+    - I perform a complete recording workflow
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/recording-steps.ts
+      pattern: I perform a complete recording workflow
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+- id: i_perform_comprehensive_reporting_workfl
+  category: uncategorized.general
+  description: 'Eylem: I perform comprehensive reporting workflow'
+  aliases:
+    tr:
+    - I perform comprehensive reporting workflow
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/reporting-steps.ts
+      pattern: I perform comprehensive reporting workflow
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+- id: i_perform_comprehensive_visual_ai_analys
+  category: uncategorized.general
+  description: 'Eylem: I perform comprehensive visual AI analysis'
+  aliases:
+    tr:
+    - I perform comprehensive visual AI analysis
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/visual-ai-steps.ts
+      pattern: I perform comprehensive visual AI analysis
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+- id: i_perform_risk_assessment_for_the_test_s
+  category: uncategorized.general
+  description: 'Eylem: I perform risk assessment for the test suite'
+  aliases:
+    en:
+    - I perform risk assessment for the test suite
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/reporting-steps.ts
+      pattern: I perform risk assessment for the test suite
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+- id: i_perform_sequential_operations_with_val
+  category: uncategorized.general
+  description: 'Eylem: I perform sequential operations with validation'
+  aliases:
+    tr:
+    - I perform sequential operations with validation
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/e2e-steps.ts
+      pattern: I perform sequential operations with validation
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+- id: i_perform_smart_baseline_analysis
+  category: uncategorized.general
+  description: 'Eylem: I perform smart baseline analysis'
+  aliases:
+    tr:
+    - I perform smart baseline analysis
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/visual-ai-steps.ts
+      pattern: I perform smart baseline analysis
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+- id: i_record_a_failed_test
+  category: uncategorized.general
+  description: 'Eylem: I record a failed test'
+  aliases:
+    tr:
+    - I record a failed test
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/reporting-steps.ts
+      pattern: I record a failed test
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+- id: i_record_test_run_results
+  category: uncategorized.general
+  description: 'Eylem: I record test run results'
+  aliases:
+    tr:
+    - I record test run results
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/reporting-steps.ts
+      pattern: I record test run results
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+- id: i_replay_the_recorded_actions
+  category: uncategorized.general
+  description: 'Eylem: I replay the recorded actions'
+  aliases:
+    en:
+    - I replay the recorded actions
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/recording-steps.ts
+      pattern: I replay the recorded actions
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+- id: i_run_accessibility_scan
+  category: uncategorized.general
+  description: 'Eylem: I run accessibility scan'
+  aliases:
+    tr:
+    - I run accessibility scan
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/e2e-steps.ts
+      pattern: I run accessibility scan
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+- id: i_save_test_data_as_fixture
+  category: uncategorized.general
+  description: 'Eylem: I save test data as fixture {string}'
+  aliases:
+    tr:
+    - I save test data as fixture {string}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/data-steps.ts
+      pattern: I save test data as fixture {string}
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_search_for
+  category: uncategorized.general
+  description: 'Eylem: I search for {string}'
+  aliases:
+    tr:
+    - I search for {string}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/paribu-steps.ts
+      pattern: I search for {string}
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+  notes: 'Ek implementasyon konumları: typescript:frameworks/playwright-cucumber-ts/steps/web-steps.ts'
+- id: i_see_the_element
+  category: uncategorized.general
+  description: 'Doğrulama: I see the element {string}'
+  aliases:
+    en:
+    - I see the element {string}
+  implementations:
+    java:
+      source_file: frameworks/selenium-cucumber-java/src/test/java/stepdefinitions/AssertionSteps.java
+      function: iSeeTheElement
+      pattern: I see the element {string}
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_set_performance_threshold_for_page_loa
+  category: uncategorized.general
+  description: 'Eylem: I set performance threshold for page load to {int} milliseconds'
+  aliases:
+    tr:
+    - I set performance threshold for page load to {int} milliseconds
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/performance-steps.ts
+      pattern: I set performance threshold for page load to {int} milliseconds
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: int
+    type: string
+    required: true
+- id: i_set_the_time_filter_to
+  category: uncategorized.general
+  description: 'Eylem: I set the time filter to {string}'
+  aliases:
+    en:
+    - I set the time filter to {string}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/web.steps.ts
+      pattern: I set the time filter to {string}
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_set_visual_threshold_to
+  category: uncategorized.general
+  description: 'Eylem: I set visual threshold to {float}'
+  aliases:
+    tr:
+    - I set visual threshold to {float}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/visual-steps.ts
+      pattern: I set visual threshold to {float}
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: float
+    type: string
+    required: true
+- id: i_sort_by_price_in_descending_order
+  category: uncategorized.general
+  description: 'Eylem: I sort by price in descending order'
+  aliases:
+    tr:
+    - I sort by price in descending order
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/web.steps.ts
+      pattern: I sort by price in descending order
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+- id: i_start_recording_user_actions
+  category: uncategorized.general
+  description: (Ön koşul) I start recording user actions
+  aliases:
+    en:
+    - I start recording user actions
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/recording-steps.ts
+      pattern: I start recording user actions
+  tags:
+  - auto-extracted
+  - given
+  since: '2026-04-17'
+- id: i_stop_recording
+  category: uncategorized.general
+  description: 'Eylem: I stop recording'
+  aliases:
+    tr:
+    - I stop recording
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/recording-steps.ts
+      pattern: I stop recording
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+- id: i_store_the_first_product_id
+  category: uncategorized.general
+  description: 'Doğrulama: I store the first product ID'
+  aliases:
+    en:
+    - I store the first product ID
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/api.steps.ts
+      pattern: I store the first product ID
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+- id: i_submit_the_form
+  category: uncategorized.general
+  description: 'Eylem: I submit the form'
+  aliases:
+    en:
+    - I submit the form
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/web-steps.ts
+      pattern: I submit the form
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+- id: i_submit_the_form_named
+  category: uncategorized.general
+  description: 'Eylem: I submit the form named {string}'
+  aliases:
+    en:
+    - I submit the form named {string}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/web-steps.ts
+      pattern: I submit the form named {string}
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_uncheck
+  category: uncategorized.general
+  description: 'Eylem: I uncheck {string}'
+  aliases:
+    tr:
+    - I uncheck {string}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/web-steps.ts
+      pattern: I uncheck {string}
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_update_the_isdeleted_field_of_the_firs
+  category: uncategorized.general
+  description: 'Eylem: I update the isDeleted field of the first product to {string}'
+  aliases:
+    en:
+    - I update the isDeleted field of the first product to {string}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/api.steps.ts
+      pattern: I update the isDeleted field of the first product to {string}
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_update_the_isdeleted_field_of_the_firs_2
+  category: uncategorized.general
+  description: 'Eylem: I update the isDeleted field of the first product to true'
+  aliases:
+    en:
+    - I update the isDeleted field of the first product to true
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/api.steps.ts
+      pattern: I update the isDeleted field of the first product to true
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+- id: i_update_the_title_of_the_first_product
+  category: uncategorized.general
+  description: 'Eylem: I update the title of the first product to {string}'
+  aliases:
+    en:
+    - I update the title of the first product to {string}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/api.steps.ts
+      pattern: I update the title of the first product to {string}
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_update_the_visual_baseline
+  category: uncategorized.general
+  description: 'Eylem: I update the visual baseline {string}'
+  aliases:
+    en:
+    - I update the visual baseline {string}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/visual-steps.ts
+      pattern: I update the visual baseline {string}
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_update_the_visual_baseline_for_as
+  category: uncategorized.general
+  description: 'Eylem: I update the visual baseline for {string} as {string}'
+  aliases:
+    en:
+    - I update the visual baseline for {string} as {string}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/visual-steps.ts
+      pattern: I update the visual baseline for {string} as {string}
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_validate_page_accessibility_and_perfor
+  category: uncategorized.general
+  description: 'Eylem: I validate page accessibility and performance'
+  aliases:
+    tr:
+    - I validate page accessibility and performance
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/e2e-steps.ts
+      pattern: I validate page accessibility and performance
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+- id: i_view_the_markets
+  category: uncategorized.general
+  description: 'Eylem: I view the markets'
+  aliases:
+    en:
+    - I view the markets
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/paribu-steps.ts
+      pattern: I view the markets
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+- id: navigate_to_home
+  category: uncategorized.general
+  description: (Ön koşul) kullanıcı ana sayfadadır
+  aliases:
+    tr:
+    - kullanıcı ana sayfadadır
+  implementations:
+    python:
+      source_file: engine/steps/common_steps.py
+      function: navigate_to_home
+      pattern: kullanıcı ana sayfadadır
+  tags:
+  - auto-extracted
+  - given
+  since: '2026-04-17'
+- id: navigate_to_path
+  category: uncategorized.general
+  description: (Ön koşul) kullanıcı "{path}" sayfasındadır
+  aliases:
+    tr:
+    - kullanıcı "{path}" sayfasındadır
+  implementations:
+    python:
+      source_file: engine/steps/common_steps.py
+      function: navigate_to_path
+      pattern: kullanıcı "{path}" sayfasındadır
+  tags:
+  - auto-extracted
+  - given
+  since: '2026-04-17'
+  parameters:
+  - name: path
+    type: url
+    required: true
+- id: navigate_to_project_dashboard
+  category: uncategorized.general
+  description: (Ön koşul) kullanıcı test projesinin dashboard'ındadır
+  aliases:
+    tr:
+    - kullanıcı test projesinin dashboard'ındadır
+  implementations:
+    python:
+      source_file: engine/steps/common_steps.py
+      function: navigate_to_project_dashboard
+      pattern: kullanıcı test projesinin dashboard'ındadır
+  tags:
+  - auto-extracted
+  - given
+  since: '2026-04-17'
+- id: navigate_to_project_sub
+  category: uncategorized.general
+  description: (Ön koşul) kullanıcı test projesinin "{sub_page}" sayfasındadır
+  aliases:
+    tr:
+    - kullanıcı test projesinin "{sub_page}" sayfasındadır
+  implementations:
+    python:
+      source_file: engine/steps/common_steps.py
+      function: navigate_to_project_sub
+      pattern: kullanıcı test projesinin "{sub_page}" sayfasındadır
+  tags:
+  - auto-extracted
+  - given
+  since: '2026-04-17'
+  parameters:
+  - name: sub_page
+    type: string
+    required: true
+- id: navigate_to_url
+  category: uncategorized.general
+  description: 'Eylem: kullanici "{url}" adresine gider'
+  aliases:
+    tr:
+    - kullanici "{url}" adresine gider
+  implementations:
+    python:
+      source_file: engine/steps/common_steps.py
+      function: navigate_to_url
+      pattern: kullanici "{url}" adresine gider
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: url
+    type: url
+    required: true
+- id: navigate_via_sidebar
+  category: uncategorized.general
+  description: 'Eylem: kullanıcı sidebar\''dan "{section}" bölümüne gider'
+  aliases:
+    tr:
+    - kullanıcı sidebar\'dan "{section}" bölümüne gider
+  implementations:
+    python:
+      source_file: engine/steps/bgts_project_steps.py
+      function: navigate_via_sidebar
+      pattern: kullanıcı sidebar\'dan "{section}" bölümüne gider
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: section
+    type: string
+    required: true
+- id: open_import_page
+  category: uncategorized.general
+  description: 'Eylem: kullanıcı içe aktarma sayfasını açar'
+  aliases:
+    tr:
+    - kullanıcı içe aktarma sayfasını açar
+  implementations:
+    python:
+      source_file: engine/steps/bgts_smoke_steps.py
+      function: open_import_page
+      pattern: kullanıcı içe aktarma sayfasını açar
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+- id: refresh_page
+  category: uncategorized.general
+  description: 'Eylem: kullanici sayfayi yeniler'
+  aliases:
+    tr:
+    - kullanici sayfayi yeniler
+  implementations:
+    python:
+      source_file: engine/steps/common_steps.py
+      function: refresh_page
+      pattern: kullanici sayfayi yeniler
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+- id: reject_item
+  category: uncategorized.general
+  description: 'Eylem: kullanıcı "{approval_id}" onayını reddeder'
+  aliases:
+    tr:
+    - kullanıcı "{approval_id}" onayını reddeder
+  implementations:
+    python:
+      source_file: engine/steps/bgts_approval_steps.py
+      function: reject_item
+      pattern: kullanıcı "{approval_id}" onayını reddeder
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: approval_id
+    type: string
+    required: true
+- id: reject_item_with_reason
+  category: uncategorized.general
+  description: 'Eylem: kullanıcı "{approval_id}" onayını "{reason}" sebebiyle reddeder'
+  aliases:
+    tr:
+    - kullanıcı "{approval_id}" onayını "{reason}" sebebiyle reddeder
+  implementations:
+    python:
+      source_file: engine/steps/bgts_approval_steps.py
+      function: reject_item_with_reason
+      pattern: kullanıcı "{approval_id}" onayını "{reason}" sebebiyle reddeder
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: approval_id
+    type: string
+    required: true
+  - name: reason
+    type: string
+    required: true
+- id: save_attribute_of_element_as
+  category: uncategorized.general
+  description: 'Eylem: I save the attribute {string} of element {string} as {string}'
+  aliases:
+    en:
+    - I save the attribute {string} of element {string} as {string}
+  implementations:
+    java:
+      source_file: frameworks/selenium-cucumber-java/src/test/java/stepdefinitions/ScenarioContextSteps.java
+      function: saveAttributeOfElementAs
+      pattern: I save the attribute {string} of element {string} as {string}
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: save_element_text
+  category: uncategorized.general
+  description: 'Doğrulama: "{selector}" elementinin değerini "{key}" olarak kaydet'
+  aliases:
+    tr:
+    - '"{selector}" elementinin değerini "{key}" olarak kaydet'
+  implementations:
+    python:
+      source_file: engine/steps/common_steps.py
+      function: save_element_text
+      pattern: '"{selector}" elementinin değerini "{key}" olarak kaydet'
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+  parameters:
+  - name: selector
+    type: string
+    required: true
+  - name: key
+    type: locator
+    required: true
+- id: save_generated_scenarios
+  category: uncategorized.general
+  description: 'Eylem: kullanıcı üretilen senaryoları kaydeder'
+  aliases:
+    tr:
+    - kullanıcı üretilen senaryoları kaydeder
+  implementations:
+    python:
+      source_file: engine/steps/bgts_scenario_steps.py
+      function: save_generated_scenarios
+      pattern: kullanıcı üretilen senaryoları kaydeder
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+- id: save_value_of_element_as
+  category: uncategorized.general
+  description: 'Eylem: I save the value of element {string} as {string}'
+  aliases:
+    en:
+    - I save the value of element {string} as {string}
+  implementations:
+    java:
+      source_file: frameworks/selenium-cucumber-java/src/test/java/stepdefinitions/ScenarioContextSteps.java
+      function: saveValueOfElementAs
+      pattern: I save the value of element {string} as {string}
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: search_projects
+  category: uncategorized.general
+  description: 'Eylem: kullanıcı projeleri "{query}" ile arar'
+  aliases:
+    tr:
+    - kullanıcı projeleri "{query}" ile arar
+  implementations:
+    python:
+      source_file: engine/steps/bgts_project_steps.py
+      function: search_projects
+      pattern: kullanıcı projeleri "{query}" ile arar
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: query
+    type: string
+    required: true
+- id: search_scenarios_2
+  category: uncategorized.general
+  description: 'Eylem: kullanıcı senaryoları "{query}" ile arar'
+  aliases:
+    tr:
+    - kullanıcı senaryoları "{query}" ile arar
+  implementations:
+    python:
+      source_file: engine/steps/bgts_scenario_steps.py
+      function: search_scenarios
+      pattern: kullanıcı senaryoları "{query}" ile arar
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: query
+    type: string
+    required: true
+- id: select_all_scenarios
+  category: uncategorized.general
+  description: 'Eylem: kullanıcı tüm senaryoları seçer'
+  aliases:
+    tr:
+    - kullanıcı tüm senaryoları seçer
+  implementations:
+    python:
+      source_file: engine/steps/bgts_scenario_steps.py
+      function: select_all_scenarios
+      pattern: kullanıcı tüm senaryoları seçer
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+- id: select_dataset
+  category: uncategorized.general
+  description: (Ön koşul) kullanıcı "{dataset_id}" veri setini seçmiştir
+  aliases:
+    tr:
+    - kullanıcı "{dataset_id}" veri setini seçmiştir
+  implementations:
+    python:
+      source_file: engine/steps/bgts_synthetic_steps.py
+      function: select_dataset
+      pattern: kullanıcı "{dataset_id}" veri setini seçmiştir
+  tags:
+  - auto-extracted
+  - given
+  since: '2026-04-17'
+  parameters:
+  - name: dataset_id
+    type: string
+    required: true
+- id: set_variable
+  category: uncategorized.general
+  description: 'Doğrulama: "{key}" değişkenine "{value}" değerini ata'
+  aliases:
+    tr:
+    - '"{key}" değişkenine "{value}" değerini ata'
+  implementations:
+    python:
+      source_file: engine/steps/common_steps.py
+      function: set_variable
+      pattern: '"{key}" değişkenine "{value}" değerini ata'
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+  parameters:
+  - name: key
+    type: locator
+    required: true
+  - name: value
+    type: string
+    required: true
+- id: step_assert_count
+  category: uncategorized.general
+  description: 'Doğrulama: sayfada "{count:d}" adet "{key}" elementi bulunmalidir'
+  aliases:
+    tr:
+    - sayfada "{count:d}" adet "{key}" elementi bulunmalidir
+  implementations:
+    python:
+      source_file: engine/steps/assertion_steps.py
+      function: step_assert_count
+      pattern: sayfada "{count:d}" adet "{key}" elementi bulunmalidir
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+  parameters:
+  - name: count
+    type: int
+    required: true
+  - name: key
+    type: locator
+    required: true
+- id: step_assert_disabled
+  category: uncategorized.general
+  description: 'Doğrulama: "{key}" elementi deaktif olmalidir'
+  aliases:
+    tr:
+    - '"{key}" elementi deaktif olmalidir'
+  implementations:
+    python:
+      source_file: engine/steps/assertion_steps.py
+      function: step_assert_disabled
+      pattern: '"{key}" elementi deaktif olmalidir'
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+  parameters:
+  - name: key
+    type: locator
+    required: true
+- id: step_assert_enabled
+  category: uncategorized.general
+  description: 'Doğrulama: "{key}" elementi aktif olmalidir'
+  aliases:
+    tr:
+    - '"{key}" elementi aktif olmalidir'
+  implementations:
+    python:
+      source_file: engine/steps/assertion_steps.py
+      function: step_assert_enabled
+      pattern: '"{key}" elementi aktif olmalidir'
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+  parameters:
+  - name: key
+    type: locator
+    required: true
+- id: step_assert_hidden
+  category: uncategorized.general
+  description: 'Doğrulama: "{key}" elementi gizli olmalidir'
+  aliases:
+    tr:
+    - '"{key}" elementi gizli olmalidir'
+  implementations:
+    python:
+      source_file: engine/steps/assertion_steps.py
+      function: step_assert_hidden
+      pattern: '"{key}" elementi gizli olmalidir'
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+  parameters:
+  - name: key
+    type: locator
+    required: true
+- id: step_assert_text
+  category: uncategorized.general
+  description: 'Doğrulama: "{key}" elementinin metni "{expected}" olmalidir'
+  aliases:
+    tr:
+    - '"{key}" elementinin metni "{expected}" olmalidir'
+  implementations:
+    python:
+      source_file: engine/steps/assertion_steps.py
+      function: step_assert_text
+      pattern: '"{key}" elementinin metni "{expected}" olmalidir'
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+  parameters:
+  - name: key
+    type: locator
+    required: true
+  - name: expected
+    type: string
+    required: true
+- id: step_assert_title
+  category: uncategorized.general
+  description: 'Doğrulama: sayfa basligi "{text}" icermelidir'
+  aliases:
+    tr:
+    - sayfa basligi "{text}" icermelidir
+  implementations:
+    python:
+      source_file: engine/steps/assertion_steps.py
+      function: step_assert_title
+      pattern: sayfa basligi "{text}" icermelidir
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+  parameters:
+  - name: text
+    type: string
+    required: true
+- id: step_assert_url
+  category: uncategorized.general
+  description: 'Doğrulama: sayfa URL\''si "{text}" icermelidir'
+  aliases:
+    tr:
+    - sayfa URL\'si "{text}" icermelidir
+  implementations:
+    python:
+      source_file: engine/steps/assertion_steps.py
+      function: step_assert_url
+      pattern: sayfa URL\'si "{text}" icermelidir
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+  parameters:
+  - name: text
+    type: string
+    required: true
+- id: step_assert_value
+  category: uncategorized.general
+  description: 'Doğrulama: "{key}" elementinin degeri "{expected}" olmalidir'
+  aliases:
+    tr:
+    - '"{key}" elementinin degeri "{expected}" olmalidir'
+  implementations:
+    python:
+      source_file: engine/steps/assertion_steps.py
+      function: step_assert_value
+      pattern: '"{key}" elementinin degeri "{expected}" olmalidir'
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+  parameters:
+  - name: key
+    type: locator
+    required: true
+  - name: expected
+    type: string
+    required: true
+- id: step_clear_input
+  category: uncategorized.general
+  description: 'Eylem: kullanici "{key}" alanini temizler'
+  aliases:
+    tr:
+    - kullanici "{key}" alanini temizler
+  implementations:
+    python:
+      source_file: engine/steps/input_steps.py
+      function: step_clear_input
+      pattern: kullanici "{key}" alanini temizler
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: key
+    type: locator
+    required: true
+- id: step_clear_upload
+  category: uncategorized.general
+  description: 'Eylem: kullanici "{key}" alanindaki dosyayi temizler'
+  aliases:
+    tr:
+    - kullanici "{key}" alanindaki dosyayi temizler
+  implementations:
+    python:
+      source_file: engine/steps/upload_steps.py
+      function: step_clear_upload
+      pattern: kullanici "{key}" alanindaki dosyayi temizler
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: key
+    type: locator
+    required: true
+- id: step_drag_drop
+  category: uncategorized.general
+  description: 'Eylem: kullanici "{source}" elementini "{target}" elementine surukler'
+  aliases:
+    tr:
+    - kullanici "{source}" elementini "{target}" elementine surukler
+  implementations:
+    python:
+      source_file: engine/steps/drag_drop_steps.py
+      function: step_drag_drop
+      pattern: kullanici "{source}" elementini "{target}" elementine surukler
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: source
+    type: string
+    required: true
+  - name: target
+    type: string
+    required: true
+- id: step_press_key
+  category: uncategorized.general
+  description: 'Eylem: kullanici "{key}" tusuna basar'
+  aliases:
+    tr:
+    - kullanici "{key}" tusuna basar
+  implementations:
+    python:
+      source_file: engine/steps/keyboard_steps.py
+      function: step_press_key
+      pattern: kullanici "{key}" tusuna basar
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: key
+    type: locator
+    required: true
+- id: step_press_on_element
+  category: uncategorized.general
+  description: 'Eylem: kullanici "{element}" elementinde "{key}" tusuna basar'
+  aliases:
+    tr:
+    - kullanici "{element}" elementinde "{key}" tusuna basar
+  implementations:
+    python:
+      source_file: engine/steps/keyboard_steps.py
+      function: step_press_on_element
+      pattern: kullanici "{element}" elementinde "{key}" tusuna basar
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: element
+    type: string
+    required: true
+  - name: key
+    type: locator
+    required: true
+- id: step_upload_file
+  category: uncategorized.general
+  description: 'Eylem: kullanici "{key}" alanina "{file}" dosyasini yukler'
+  aliases:
+    tr:
+    - kullanici "{key}" alanina "{file}" dosyasini yukler
+  implementations:
+    python:
+      source_file: engine/steps/upload_steps.py
+      function: step_upload_file
+      pattern: kullanici "{key}" alanina "{file}" dosyasini yukler
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: key
+    type: locator
+    required: true
+  - name: file
+    type: string
+    required: true
+- id: submit_import_form
+  category: uncategorized.general
+  description: 'Eylem: kullanıcı içe aktarma formunu gönderir'
+  aliases:
+    tr:
+    - kullanıcı içe aktarma formunu gönderir
+  implementations:
+    python:
+      source_file: engine/steps/bgts_import_steps.py
+      function: submit_import_form
+      pattern: kullanıcı içe aktarma formunu gönderir
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+- id: test_fixture_is_available
+  category: uncategorized.general
+  description: (Ön koşul) test fixture {string} is available
+  aliases:
+    tr:
+    - test fixture {string} is available
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/data-steps.ts
+      pattern: test fixture {string} is available
+  tags:
+  - auto-extracted
+  - given
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: the_application_is_started
+  category: uncategorized.general
+  description: (Ön koşul) the application is started
+  aliases:
+    en:
+    - the application is started
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/common-steps.ts
+      pattern: the application is started
+  tags:
+  - auto-extracted
+  - given
+  since: '2026-04-17'
+- id: the_visual_baseline_exists
+  category: uncategorized.general
+  description: (Ön koşul) the visual baseline {string} exists
+  aliases:
+    en:
+    - the visual baseline {string} exists
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/visual-steps.ts
+      pattern: the visual baseline {string} exists
+  tags:
+  - auto-extracted
+  - given
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: upload_import_file
+  category: uncategorized.general
+  description: 'Eylem: kullanıcı "{filename}" dosyasını içe aktarma alanına yükler'
+  aliases:
+    tr:
+    - kullanıcı "{filename}" dosyasını içe aktarma alanına yükler
+  implementations:
+    python:
+      source_file: engine/steps/bgts_import_steps.py
+      function: upload_import_file
+      pattern: kullanıcı "{filename}" dosyasını içe aktarma alanına yükler
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: filename
+    type: string
+    required: true
+- id: user_logs_out
+  category: uncategorized.general
+  description: 'Eylem: kullanıcı oturumu kapatır'
+  aliases:
+    tr:
+    - kullanıcı oturumu kapatır
+  implementations:
+    python:
+      source_file: engine/steps/bgts_login_steps.py
+      function: user_logs_out
+      pattern: kullanıcı oturumu kapatır
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+- id: user_on_import_page_waiting
+  category: uncategorized.general
+  description: (Ön koşul) kullanıcı içe aktarma sayfasında bekliyor
+  aliases:
+    tr:
+    - kullanıcı içe aktarma sayfasında bekliyor
+  implementations:
+    python:
+      source_file: engine/steps/bgts_import_steps.py
+      function: user_on_import_page_waiting
+      pattern: kullanıcı içe aktarma sayfasında bekliyor
+  tags:
+  - auto-extracted
+  - given
+  since: '2026-04-17'
+- id: user_on_project_dashboard
+  category: uncategorized.general
+  description: (Ön koşul) kullanıcı "{project_name}" projesinin dashboard\'ında
+  aliases:
+    tr:
+    - kullanıcı "{project_name}" projesinin dashboard\'ında
+  implementations:
+    python:
+      source_file: engine/steps/bgts_project_steps.py
+      function: user_on_project_dashboard
+      pattern: kullanıcı "{project_name}" projesinin dashboard\'ında
+  tags:
+  - auto-extracted
+  - given
+  since: '2026-04-17'
+  parameters:
+  - name: project_name
+    type: string
+    required: true
+- id: user_on_project_import_page
+  category: uncategorized.general
+  description: (Ön koşul) kullanıcı "{project_id}" projesi için içe aktarma sayfasındadır
+  aliases:
+    tr:
+    - kullanıcı "{project_id}" projesi için içe aktarma sayfasındadır
+  implementations:
+    python:
+      source_file: engine/steps/bgts_import_steps.py
+      function: user_on_project_import_page
+      pattern: kullanıcı "{project_id}" projesi için içe aktarma sayfasındadır
+  tags:
+  - auto-extracted
+  - given
+  since: '2026-04-17'
+  parameters:
+  - name: project_id
+    type: string
+    required: true
+- id: verify_element_not_exists
+  category: uncategorized.general
+  description: 'Doğrulama: I don''t see element {string}'
+  aliases:
+    en:
+    - I don't see element {string}
+  implementations:
+    java:
+      source_file: frameworks/selenium-cucumber-java/src/test/java/stepdefinitions/AssertionSteps.java
+      function: verifyElementNotExists
+      pattern: I don't see element {string}
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: verify_homepage_loads
+  category: uncategorized.general
+  description: 'Eylem: kullanıcı ana sayfanın yüklendiğini doğrular'
+  aliases:
+    tr:
+    - kullanıcı ana sayfanın yüklendiğini doğrular
+  implementations:
+    python:
+      source_file: engine/steps/bgts_smoke_steps.py
+      function: verify_homepage_loads
+      pattern: kullanıcı ana sayfanın yüklendiğini doğrular
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+- id: view_version_history
+  category: uncategorized.general
+  description: 'Eylem: kullanıcı versiyon geçmişini açar'
+  aliases:
+    tr:
+    - kullanıcı versiyon geçmişini açar
+  implementations:
+    python:
+      source_file: engine/steps/bgts_scenario_steps.py
+      function: view_version_history
+      pattern: kullanıcı versiyon geçmişini açar
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+- id: visit_all_modules
+  category: uncategorized.general
+  description: 'Eylem: kullanıcı tüm ana modülleri sırayla ziyaret eder'
+  aliases:
+    tr:
+    - kullanıcı tüm ana modülleri sırayla ziyaret eder
+  implementations:
+    python:
+      source_file: engine/steps/bgts_regression_steps.py
+      function: visit_all_modules
+      pattern: kullanıcı tüm ana modülleri sırayla ziyaret eder
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'

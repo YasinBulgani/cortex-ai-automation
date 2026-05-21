@@ -1,0 +1,3 @@
+✅ BAŞARILI
+'izinTalepEtSayfasıDosyaYüklemeAlanıInput' adlı eleman üzerinde işlem yapılıyor (/Users/yasin_bulgan/test-automation/Test Otomasyon/MaviYakaTestOtomasyon/src/test/resources/testFile/Test_Pdf.pdf)
+'izinTalepEtSayfasıDosyaYüklemeAlanıInput' adlı file inputa dosya yolu başarıyla yüklendi. (Dosya: /Users/yasin_bulgan/test-automation/Test Otomasyon/MaviYakaTestOtomasyon/src/test/resources/testFile/Test_Pdf.pdf)

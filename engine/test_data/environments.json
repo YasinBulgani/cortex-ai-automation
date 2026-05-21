@@ -1,0 +1,88 @@
+{
+  "environments": {
+    "dev": {
+      "name": "Development",
+      "description": "Geliştirme ortamı - yerel geliştirme ve birim testleri için",
+      "base_url": "http://localhost:3000",
+      "api_url": "http://localhost:8000/api/v1",
+      "ws_url": "ws://localhost:8000/ws",
+      "db_host": "localhost",
+      "db_port": 5432,
+      "db_name": "bgts_dev",
+      "debug": true,
+      "log_level": "DEBUG",
+      "mock_services": true,
+      "ssl_verify": false,
+      "timeout_ms": 30000,
+      "browser": {
+        "headless": false,
+        "slow_mo": 100,
+        "viewport": {"width": 1920, "height": 1080}
+      },
+      "features": {
+        "enable_ai": true,
+        "enable_synthetic_data": true,
+        "enable_monkey_testing": true,
+        "enable_visual_regression": false
+      }
+    },
+    "staging": {
+      "name": "Staging",
+      "description": "Staging ortamı - entegrasyon testleri ve UAT için",
+      "base_url": "https://staging.bgts.com",
+      "api_url": "https://staging-api.bgts.com/api/v1",
+      "ws_url": "wss://staging-api.bgts.com/ws",
+      "db_host": "staging-db.bgts.internal",
+      "db_port": 5432,
+      "db_name": "bgts_staging",
+      "debug": false,
+      "log_level": "INFO",
+      "mock_services": false,
+      "ssl_verify": true,
+      "timeout_ms": 60000,
+      "browser": {
+        "headless": true,
+        "slow_mo": 0,
+        "viewport": {"width": 1920, "height": 1080}
+      },
+      "features": {
+        "enable_ai": true,
+        "enable_synthetic_data": true,
+        "enable_monkey_testing": true,
+        "enable_visual_regression": true
+      }
+    },
+    "production": {
+      "name": "Production",
+      "description": "Üretim ortamı - sadece smoke testler için (DİKKAT: salt-okunur işlemler)",
+      "base_url": "https://app.bgts.com",
+      "api_url": "https://api.bgts.com/api/v1",
+      "ws_url": "wss://api.bgts.com/ws",
+      "db_host": "PLACEHOLDER_DO_NOT_USE",
+      "db_port": 5432,
+      "db_name": "PLACEHOLDER_DO_NOT_USE",
+      "debug": false,
+      "log_level": "WARNING",
+      "mock_services": false,
+      "ssl_verify": true,
+      "timeout_ms": 30000,
+      "browser": {
+        "headless": true,
+        "slow_mo": 0,
+        "viewport": {"width": 1920, "height": 1080}
+      },
+      "features": {
+        "enable_ai": false,
+        "enable_synthetic_data": false,
+        "enable_monkey_testing": false,
+        "enable_visual_regression": false
+      },
+      "restrictions": {
+        "readonly": true,
+        "allowed_test_types": ["smoke"],
+        "max_parallel_tests": 1,
+        "require_approval": true
+      }
+    }
+  }
+}

@@ -1,0 +1,102 @@
+# Claude Code worktrees
+.claude/
+
+# Playwright browsers (downloaded at runtime)
+.pw-browsers/
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Virtual environments
+venv*/
+.venv*/
+env/
+.env
+# Nested venvs (ai-test-automation etc.)
+**/venv/
+**/.venv/
+ai-test-automation/jarvis/venv/
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Database
+*.sqlite
+*.db
+*.sqlite3
+
+# Logs & reports
+*.log
+allure-results/
+allure-report/
+screenshots/
+exports/
+uploads/
+
+# Node
+node_modules/
+.next/
+dist/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test artifacts
+.pytest_cache/
+.coverage
+htmlcov/
+coverage.xml
+
+# Playwright
+playwright-report/
+test-results/
+e2e/.auth/
+e2e/.auth/*.json
+reports/e2e-html/
+reports/e2e-artifacts/
+reports/e2e-results.json
+reports/e2e-junit.xml
+
+# Temporary deployment notes / session artifacts
+DEPLOYMENT_LIVE_STATUS.txt
+DEPLOYMENT_STATUS_REPORT.txt
+DEPLOYMENT_SUMMARY.txt
+STAGING_DEPLOYMENT_LOG.md
+STAGING_SMOKE_TESTS.md
+
+# Credentials & secrets
+frameworks/playwright-cucumber-ts/test-data/api-credentials.json
+Paribu/test-data/api-credentials.json
+
+# Java compiled artifacts
+**/*.class
+tools/aday-degerlendirme/src/**/*.class
+
+# Allure raporları (CI artifact olarak saklanır, git'e eklenmez)
+reports/allure/nexusqa/
+allure-report-ark/
+allure-report-ghz/
+allure-report-girit/
+allure-report-hrnexusqa/
+allure-report-pex/
+allure-report-plus/
+
+# Audio recordings (aday-degerlendirme)
+tools/aday-degerlendirme/data/**/audio/
+packages/dsl/catalog/_extracted/

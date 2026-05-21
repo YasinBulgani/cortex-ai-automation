@@ -1,0 +1,30 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "commonjs",
+    "lib": ["ES2022"],
+    "moduleResolution": "node",
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "strict": true,
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "outDir": "./dist-bdd",
+    "rootDir": ".",
+    "baseUrl": ".",
+    "paths": {
+      "@pages/*": ["e2e/pages/*"],
+      "@steps/*": ["e2e/bdd/steps/*"],
+      "@support/*": ["e2e/bdd/support/*"],
+      "@config/*": ["e2e/config/*"]
+    }
+  },
+  "include": [
+    "e2e/bdd/**/*.ts",
+    "e2e/pages/**/*.ts",
+    "e2e/helpers/**/*.ts",
+    "e2e/utils/**/*.ts",
+    "e2e/config/**/*.ts"
+  ],
+  "exclude": ["node_modules", "dist-bdd"]
+}

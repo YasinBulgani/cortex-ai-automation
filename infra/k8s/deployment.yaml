@@ -1,0 +1,525 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# TestwrightAI — Kubernetes Deployment Manifests
+#
+# Ön koşullar:
+#   kubectl apply -f namespace.yaml
+#   kubectl create secret generic testwright-ai-secrets \
+#     --from-literal=jwt-secret=$(openssl rand -base64 64) \
+#     --from-literal=db-password=CHANGEME \
+#     --from-literal=engine-internal-key=$(openssl rand -hex 32) \
+#     -n testwright-ai
+# ═══════════════════════════════════════════════════════════════════════════════
+
+---
+# Namespace
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: testwright-ai
+  labels:
+    app.kubernetes.io/name: testwright-ai
+    environment: production
+
+---
+# ── Backend Deployment ────────────────────────────────────────────────────────
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: testwright-ai-backend
+  namespace: testwright-ai
+  labels:
+    app: testwright-ai-backend
+    tier: backend
+    version: "1.0"
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: testwright-ai-backend
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: testwright-ai-backend
+        tier: backend
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+      containers:
+        - name: backend
+          image: ghcr.io/testwright-ai/testwright-ai-backend:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8000
+              name: http
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: testwright-ai-secrets
+                  key: database-url
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: testwright-ai-secrets
+                  key: jwt-secret
+            - name: ENGINE_INTERNAL_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: testwright-ai-secrets
+                  key: engine-internal-key
+            - name: REDIS_URL
+              value: "redis://testwright-ai-redis:6379/0"
+            - name: ENGINE_BASE_URL
+              value: "http://testwright-ai-engine:5001"
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: "http://neurex-otel-collector:4317"
+            - name: OTEL_SERVICE_NAME
+              value: "neurex-backend"
+            - name: OTEL_RESOURCE_ATTRIBUTES
+              value: "deployment.environment=production"
+            - name: LOG_FORMAT
+              value: "json"
+            - name: CORS_ORIGINS
+              value: "https://bgtest.dev"
+            - name: DEBUG
+              value: "false"
+            - name: PROMETHEUS_ENABLED
+              value: "true"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "256Mi"
+            limits:
+              cpu: "1000m"
+              memory: "1Gi"
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+            capabilities:
+              drop: ["ALL"]
+
+---
+# ── Backend Service ───────────────────────────────────────────────────────────
+apiVersion: v1
+kind: Service
+metadata:
+  name: testwright-ai-backend
+  namespace: testwright-ai
+spec:
+  selector:
+    app: testwright-ai-backend
+  ports:
+    - port: 8000
+      targetPort: 8000
+      name: http
+
+---
+# ── Engine Deployment ─────────────────────────────────────────────────────────
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: testwright-ai-engine
+  namespace: testwright-ai
+  labels:
+    app: testwright-ai-engine
+    tier: engine
+spec:
+  replicas: 1   # Engine stateful (screenshot storage) — tek replika
+  selector:
+    matchLabels:
+      app: testwright-ai-engine
+  template:
+    metadata:
+      labels:
+        app: testwright-ai-engine
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+      containers:
+        - name: engine
+          image: ghcr.io/testwright-ai/testwright-ai-engine:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 5001
+              name: http
+          env:
+            - name: ENGINE_PORT
+              value: "5001"
+            - name: HEADLESS
+              value: "true"
+            - name: ENGINE_INTERNAL_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: testwright-ai-secrets
+                  key: engine-internal-key
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: "http://neurex-otel-collector:4317"
+            - name: OTEL_SERVICE_NAME
+              value: "neurex-engine"
+            - name: LOG_FORMAT
+              value: "json"
+          volumeMounts:
+            - name: engine-data
+              mountPath: /app/reports
+            - name: engine-screenshots
+              mountPath: /app/screenshots
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 5001
+            initialDelaySeconds: 30
+            periodSeconds: 15
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 5001
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: "500m"
+              memory: "512Mi"
+            limits:
+              cpu: "2000m"
+              memory: "2Gi"
+      volumes:
+        - name: engine-data
+          persistentVolumeClaim:
+            claimName: engine-data-pvc
+        - name: engine-screenshots
+          persistentVolumeClaim:
+            claimName: engine-screenshots-pvc
+
+---
+# ── Engine Service ────────────────────────────────────────────────────────────
+apiVersion: v1
+kind: Service
+metadata:
+  name: testwright-ai-engine
+  namespace: testwright-ai
+spec:
+  selector:
+    app: testwright-ai-engine
+  ports:
+    - port: 5001
+      targetPort: 5001
+
+---
+# ── Frontend Deployment ───────────────────────────────────────────────────────
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: testwright-ai-web
+  namespace: testwright-ai
+  labels:
+    app: testwright-ai-web
+    tier: frontend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: testwright-ai-web
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: testwright-ai-web
+    spec:
+      containers:
+        - name: web
+          image: ghcr.io/testwright-ai/testwright-ai-web:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 3000
+          env:
+            - name: NEXT_PUBLIC_API_BASE
+              value: "https://bgtest.dev"
+            - name: NEXT_PUBLIC_ENGINE_URL
+              value: "https://bgtest.dev/engine"
+            - name: NODE_ENV
+              value: production
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 3000
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 3000
+            initialDelaySeconds: 10
+            periodSeconds: 5
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+
+---
+# ── Frontend Service ──────────────────────────────────────────────────────────
+apiVersion: v1
+kind: Service
+metadata:
+  name: testwright-ai-web
+  namespace: testwright-ai
+spec:
+  selector:
+    app: testwright-ai-web
+  ports:
+    - port: 3000
+      targetPort: 3000
+
+---
+# ── AI Gateway Deployment ─────────────────────────────────────────────────────
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: testwright-ai-gateway
+  namespace: testwright-ai
+  labels:
+    app: testwright-ai-gateway
+    tier: ai-gateway
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: testwright-ai-gateway
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: testwright-ai-gateway
+        tier: ai-gateway
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+      containers:
+        - name: ai-gateway
+          image: ghcr.io/testwright-ai/testwright-ai-gateway:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8080
+              name: http
+          env:
+            - name: ENGINE_INTERNAL_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: testwright-ai-secrets
+                  key: engine-internal-key
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: "http://neurex-otel-collector:4317"
+            - name: OTEL_SERVICE_NAME
+              value: "neurex-ai-gateway"
+            - name: OTEL_RESOURCE_ATTRIBUTES
+              value: "deployment.environment=production"
+            - name: LOG_FORMAT
+              value: "json"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 20
+            periodSeconds: 10
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "256Mi"
+            limits:
+              cpu: "1000m"
+              memory: "1Gi"
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+            capabilities:
+              drop: ["ALL"]
+
+---
+# ── AI Gateway Service ────────────────────────────────────────────────────────
+apiVersion: v1
+kind: Service
+metadata:
+  name: testwright-ai-gateway
+  namespace: testwright-ai
+spec:
+  selector:
+    app: testwright-ai-gateway
+  ports:
+    - port: 8080
+      targetPort: 8080
+      name: http
+
+---
+# ── Ingress (cert-manager + Let's Encrypt) ────────────────────────────────────
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: testwright-ai-ingress
+  namespace: testwright-ai
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
+spec:
+  tls:
+    - hosts:
+        - bgtest.dev
+        - www.bgtest.dev
+      secretName: testwright-ai-tls
+  rules:
+    - host: bgtest.dev
+      http:
+        paths:
+          - path: /api/
+            pathType: Prefix
+            backend:
+              service:
+                name: testwright-ai-backend
+                port:
+                  number: 8000
+          - path: /engine/
+            pathType: Prefix
+            backend:
+              service:
+                name: testwright-ai-engine
+                port:
+                  number: 5001
+          - path: /ai/
+            pathType: Prefix
+            backend:
+              service:
+                name: testwright-ai-gateway
+                port:
+                  number: 8080
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: testwright-ai-web
+                port:
+                  number: 3000
+
+---
+# ── HorizontalPodAutoscaler — Backend ─────────────────────────────────────────
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: testwright-ai-backend-hpa
+  namespace: testwright-ai
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: testwright-ai-backend
+  minReplicas: 2
+  maxReplicas: 6
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80
+
+---
+# ── HorizontalPodAutoscaler — AI Gateway ──────────────────────────────────────
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: testwright-ai-gateway-hpa
+  namespace: testwright-ai
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: testwright-ai-gateway
+  minReplicas: 2
+  maxReplicas: 8
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80
+
+---
+# ── PersistentVolumeClaims ────────────────────────────────────────────────────
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: engine-data-pvc
+  namespace: testwright-ai
+spec:
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests:
+      storage: 10Gi
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: engine-screenshots-pvc
+  namespace: testwright-ai
+spec:
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests:
+      storage: 5Gi

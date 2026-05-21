@@ -1,0 +1,59 @@
+# AI BDD Configuration — Gherkin senaryo üretimi ayarları
+bdd_generator:
+  llm:
+    provider: openai
+    model: gpt-4o
+    temperature: 0.2
+    max_tokens: 4000
+
+  input_sources:
+    - type: requirement
+      description: "Doğal dil gereksinimleri"
+    - type: code
+      description: "Mevcut test kodundan reverse engineering"
+    - type: api_spec
+      description: "OpenAPI spesifikasyonundan"
+
+  output:
+    format: gherkin
+    language: en
+    directory: ./features/generated/
+    step_definitions_dir: ./steps/
+
+  rules:
+    tags:
+      - "@smoke for critical happy-path scenarios"
+      - "@regression for comprehensive coverage"
+      - "@security for auth/access scenarios"
+      - "@negative for error handling scenarios"
+      - "@edge-case for boundary conditions"
+      - "@ai-generated for all AI generated scenarios"
+    naming: "{feature}_{scenario_number}.feature"
+    max_scenarios_per_feature: 15
+    include_negative_cases: true
+    include_boundary_cases: true
+    include_data_driven: true
+
+  existing_steps:
+    scan_directory: ./steps/
+    reuse_existing: true
+    suggest_new_only: true
+
+  supported_steps:
+    - "Given kullanıcı ana sayfadadır"
+    - 'Given kullanıcı "<path>" sayfasındadır'
+    - 'When kullanıcı "<metin>" metnine tıklar'
+    - 'When kullanıcı "<selector>" kutusuna "<değer>" yazar'
+    - 'When kullanıcı arama kutusuna "<değer>" yazar'
+    - "When kullanıcı Enter tuşuna basar"
+    - 'When kullanıcı "<ms>" milisaniye bekler'
+    - 'When AI "<görev>" görevini gerçekleştirir'
+    - 'Then sayfa başlığı "<metin>" içermelidir'
+    - 'Then URL "<metin>" içermelidir'
+    - 'Then "<selector>" elementi görünür olmalıdır'
+    - "Then en az 1 adım başarılı olmalıdır"
+
+  validation:
+    lint_gherkin: true
+    check_step_mappings: true
+    dry_run: false

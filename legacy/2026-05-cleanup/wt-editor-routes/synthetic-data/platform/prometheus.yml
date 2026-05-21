@@ -1,0 +1,32 @@
+# Prometheus Yapılandırması — SyntheticBankData Monitoring
+#
+# Bu dosya Prometheus'u FastAPI uygulamasının metrikleri toplaması için yapılandırır.
+# Global ayarlar, scrape job'ı ve alerting kuralları içerir.
+
+global:
+  scrape_interval: 15s        # Metrikleri ne sıklıkla topla
+  evaluation_interval: 15s    # Alert kurallarını ne sıklıkla değerlendir
+  external_labels:
+    monitor: 'syntheticbank-monitor'
+
+# Alert kuralları dosyası
+# rule_files:
+#   - "alert_rules.yml"
+
+scrape_configs:
+  # Prometheus kendini izle
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # SyntheticBankData FastAPI uygulaması
+  - job_name: 'syntheticbank'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: ['app:8000']
+    scrape_interval: 15s
+    scrape_timeout: 10s
+    # Hata durumunda yeniden deneme
+    scrape_failure_log: true
+    # İlk tarama gecikme süresi
+    delay_on_startup: 5s

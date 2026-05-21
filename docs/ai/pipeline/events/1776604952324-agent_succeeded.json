@@ -1,0 +1,1 @@
+{"ts": 1776604952324, "type": "agent_succeeded", "item_id": "GAP-001", "role": "release_manager", "model": "llama3.1:8b", "latency_s": 74.66180515289307, "decision": null, "confidence": null}

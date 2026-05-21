@@ -1,0 +1,225 @@
+{
+  "version": "1.0",
+  "description": "Hesap tablosu kural seti — bankacılık sentetik veri üretimi",
+  "exported_at": "2026-03-28T00:00:00",
+  "total_rules": 13,
+  "rules": [
+    {
+      "rule_id": "acc-001",
+      "column_name": "hesap_no",
+      "rule_type": "UNIQUE",
+      "definition": {
+        "unique": true,
+        "observed_distinct_ratio": 1.0
+      },
+      "confidence": 0.95,
+      "is_active": true,
+      "description": "Hesap numarası benzersiz olmalı",
+      "source": "manual"
+    },
+    {
+      "rule_id": "acc-002",
+      "column_name": "hesap_no",
+      "rule_type": "REGEX",
+      "definition": {
+        "pattern": "^\\d{10,16}$",
+        "semantic_type": "account_number",
+        "match_ratio": 1.0
+      },
+      "confidence": 0.93,
+      "is_active": true,
+      "description": "Hesap numarası formatı: 10-16 haneli sayı",
+      "source": "manual"
+    },
+    {
+      "rule_id": "acc-003",
+      "column_name": "iban",
+      "rule_type": "REGEX",
+      "definition": {
+        "pattern": "^TR\\d{24}$",
+        "semantic_type": "iban",
+        "match_ratio": 1.0
+      },
+      "confidence": 0.95,
+      "is_active": true,
+      "description": "Türk IBAN formatı: TR + 24 hane",
+      "source": "manual"
+    },
+    {
+      "rule_id": "acc-004",
+      "column_name": "hesap_tipi",
+      "rule_type": "ENUM",
+      "definition": {
+        "values": ["vadesiz", "vadeli", "mevduat", "cari", "tasarruf", "yatirim", "kredi"],
+        "frequencies": {
+          "vadesiz": 0.35,
+          "vadeli": 0.20,
+          "mevduat": 0.15,
+          "cari": 0.10,
+          "tasarruf": 0.08,
+          "yatirim": 0.07,
+          "kredi": 0.05
+        },
+        "allow_null": false,
+        "distinct_count": 7
+      },
+      "confidence": 0.92,
+      "is_active": true,
+      "description": "Hesap tipi: vadesiz, vadeli, mevduat, cari, tasarruf, yatirim, kredi",
+      "source": "manual"
+    },
+    {
+      "rule_id": "acc-005",
+      "column_name": "hesap_durumu",
+      "rule_type": "ENUM",
+      "definition": {
+        "values": ["aktif", "pasif", "kapali", "donmus", "blokeli"],
+        "frequencies": {
+          "aktif": 0.75,
+          "pasif": 0.10,
+          "kapali": 0.08,
+          "donmus": 0.04,
+          "blokeli": 0.03
+        },
+        "allow_null": false,
+        "distinct_count": 5
+      },
+      "confidence": 0.90,
+      "is_active": true,
+      "description": "Hesap durumu: aktif, pasif, kapali, donmus, blokeli",
+      "source": "manual"
+    },
+    {
+      "rule_id": "acc-006",
+      "column_name": "para_birimi",
+      "rule_type": "ENUM",
+      "definition": {
+        "values": ["TRY", "USD", "EUR", "GBP"],
+        "frequencies": {
+          "TRY": 0.80,
+          "USD": 0.10,
+          "EUR": 0.07,
+          "GBP": 0.03
+        },
+        "allow_null": false,
+        "distinct_count": 4
+      },
+      "confidence": 0.93,
+      "is_active": true,
+      "description": "Para birimi: TRY, USD, EUR, GBP",
+      "source": "manual"
+    },
+    {
+      "rule_id": "acc-007",
+      "column_name": "bakiye",
+      "rule_type": "RANGE",
+      "definition": {
+        "min": 0,
+        "max": 999999999,
+        "mean": 45000.0,
+        "std": 125000.0,
+        "median": 8500.0
+      },
+      "confidence": 0.88,
+      "is_active": true,
+      "description": "Hesap bakiyesi [0 — 999.999.999] TL aralığında",
+      "source": "manual"
+    },
+    {
+      "rule_id": "acc-008",
+      "column_name": "bakiye",
+      "rule_type": "DISTRIBUTION",
+      "definition": {
+        "distribution": "lognormal",
+        "params": {
+          "mean": 45000.0,
+          "std": 125000.0,
+          "median": 8500.0
+        }
+      },
+      "confidence": 0.82,
+      "is_active": true,
+      "description": "Bakiye dağılımı: lognormal (sağa çarpık — az sayıda yüksek bakiye)",
+      "source": "manual"
+    },
+    {
+      "rule_id": "acc-009",
+      "column_name": "acilis_tarihi",
+      "rule_type": "RANGE",
+      "definition": {
+        "min_date": "2000-01-01",
+        "max_date": "2026-03-28",
+        "data_type": "date",
+        "format": "%Y-%m-%d"
+      },
+      "confidence": 0.85,
+      "is_active": true,
+      "description": "Hesap açılış tarihi [2000 — bugün] aralığında",
+      "source": "manual"
+    },
+    {
+      "rule_id": "acc-010",
+      "column_name": "faiz_orani",
+      "rule_type": "RANGE",
+      "definition": {
+        "min": 0.0,
+        "max": 0.55,
+        "mean": 0.18,
+        "std": 0.10
+      },
+      "confidence": 0.84,
+      "is_active": true,
+      "description": "Faiz oranı [%0 — %55] aralığında",
+      "source": "manual"
+    },
+    {
+      "rule_id": "acc-011",
+      "column_name": "sube_kodu",
+      "rule_type": "RANGE",
+      "definition": {
+        "min": 100,
+        "max": 9999,
+        "data_type": "integer"
+      },
+      "confidence": 0.80,
+      "is_active": true,
+      "description": "Şube kodu [100 — 9999] aralığında",
+      "source": "manual"
+    },
+    {
+      "rule_id": "acc-012",
+      "column_name": "vade_tarihi",
+      "rule_type": "CONDITIONAL",
+      "definition": {
+        "condition": {
+          "column": "hesap_tipi",
+          "operator": "==",
+          "value": "vadeli"
+        },
+        "then": {
+          "column": "vade_tarihi",
+          "operator": "not_null"
+        }
+      },
+      "confidence": 0.82,
+      "is_active": true,
+      "description": "Vadeli hesap → vade tarihi zorunlu",
+      "source": "manual"
+    },
+    {
+      "rule_id": "acc-013",
+      "column_name": "musteri_no",
+      "rule_type": "DEPENDENCY",
+      "definition": {
+        "depends_on": "musteri_no",
+        "dependency_type": "foreign_key",
+        "referenced_table": "musteriler",
+        "referenced_column": "musteri_no"
+      },
+      "confidence": 0.90,
+      "is_active": true,
+      "description": "Hesap → müşteri yabancı anahtar ilişkisi",
+      "source": "manual"
+    }
+  ]
+}

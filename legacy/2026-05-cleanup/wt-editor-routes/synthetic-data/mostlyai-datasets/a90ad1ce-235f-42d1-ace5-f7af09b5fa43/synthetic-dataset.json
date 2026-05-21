@@ -1,0 +1,38 @@
+{
+  "id": "a90ad1ce-235f-42d1-ace5-f7af09b5fa43",
+  "generatorId": "842ae34b-e6e5-4c47-b9e1-c9db4ee5084d",
+  "metadata": null,
+  "name": "test_123",
+  "description": null,
+  "generationStatus": "DONE",
+  "generationTime": null,
+  "tables": [
+    {
+      "id": "ba4f0f92-3e39-43c4-8589-cfb61ef5e9a7",
+      "name": "data",
+      "configuration": {
+        "sampleSize": 1,
+        "sampleSeedConnectorId": null,
+        "sampleSeedDict": null,
+        "sampleSeedData": null,
+        "samplingTemperature": 1.0,
+        "samplingTopP": 1.0,
+        "rebalancing": null,
+        "imputation": null,
+        "fairness": null,
+        "enableDataReport": true
+      },
+      "tabularModelMetrics": null,
+      "languageModelMetrics": null,
+      "foreignKeys": null,
+      "totalRows": 1,
+      "totalDatapoints": null,
+      "sourceTableTotalRows": 20
+    }
+  ],
+  "delivery": null,
+  "accuracy": null,
+  "usage": null,
+  "compute": null,
+  "randomState": null
+}

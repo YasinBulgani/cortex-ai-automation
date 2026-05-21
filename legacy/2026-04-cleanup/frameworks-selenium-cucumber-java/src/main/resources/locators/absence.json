@@ -1,0 +1,132 @@
+[
+  {
+    "key": "anaSayfaIzinUcNoktaButon",
+    "type": "xpath",
+    "value": "//span[@data-key='tooltip-content-1']"
+  },
+  {
+    "key": "anaSayfaIzinTalepEtButon",
+    "type": "xpath",
+    "value": "(//a[@id='scoreCardPrId'])[6]"
+  },
+  {
+    "key": "anaSayfaIzinlerimButon",
+    "type": "xpath",
+    "value": "(//a[ normalize-space(.)='İzinlerim'])[2]"
+  },
+  {
+    "key": "izinlerimSayfasıİzinTalepEtButon",
+    "type": "xpath",
+    "value": "//a[@name='AddOrUpdate']"
+  },
+  {
+    "key": "izinTalepEtSayfasıIzinTipiSelectBox",
+    "type": "id",
+    "value": "s2id_LeaveId"
+  },
+  {
+    "key": "izinTalepEtSayfasıIzinTipiFiltreInput",
+    "type": "id",
+    "value": "s2id_autogen1_search"
+  },
+  {
+    "key": "izinTalepEtSayfasıTarihAralığıSeçmeDatePicker",
+    "type": "id",
+    "value": "FrequencyDate"
+  },
+  {
+    "key": "izinTalepEtSayfasıİzinOnayFormuCheckBox",
+    "type": "xpath",
+    "value": "//label[@for='isAcceptLeaveForm']"
+  },
+  {
+    "key": "izinTalepEtSayfasıİzinAçıklaması",
+    "type": "id",
+    "value": "Description"
+  },
+  {
+    "key": "izinTalepEtSayfasıİzinOnayFormuModal",
+    "type": "xpath",
+    "value": "(//div[@id='page-in'])[2]"
+  },
+  {
+    "key": "izinTalepEtSayfasıİzinTalepEtButon",
+    "type": "xpath",
+    "value": "//a[@onclick='employeeLeaveCustom.postCreate.validateCreate()']"
+  },
+  {
+    "key": "izinlerimSayfasıTalepEdilenIzınText",
+    "type": "xpath",
+    "value": "//h1[contains(@class,'card-description')]"
+  },
+  {
+    "key": "izinlerimSayfasıTalepEdilenIzınUcNoktaButon",
+    "type": "xpath",
+    "value": "(//div[@id='advencescard'][1])//em"
+  },
+  {
+    "key": "izinlerimSayfasıTalepEdilenIzınSilButon",
+    "type": "xpath",
+    "value": "(//a[contains(@onclick,'employeeLeave.postDelete')])[2]"
+  },
+  {
+    "key": "izinlerimSayfasıTalepEdilenIzınSilmeOnayButon",
+    "type": "xpath",
+    "value": "//button[@class='confirm']"
+  },
+  {
+    "key": "izinlerimSayfasıTalepEdilenIzınSilmeIslemBasarılıUyarıText",
+    "type": "xpath",
+    "value": "//div[contains(normalize-space(text()),'Başarıyla Silindi')]"
+  },
+  {
+    "key": "izinTalepEtSayfasıIzinTipiDropdownOptionList",
+    "type": "xpath",
+    "value": "//li[@role='presentation']//div[@role='option']"
+  },
+  {
+    "key": "izinlerimSayfasıİzinAramaInput",
+    "type": "id",
+    "value": "SearchInput"
+  },
+  {
+    "key": "izinTalepEtSayfasıDosyaYüklemeAlanıInput",
+    "type": "xpath",
+    "value": "//input[@type='file']"
+  },
+  {
+    "key": "izinTalepEtSayfasıSınavİzniBilgilendirmeFormuButon",
+    "type": "id",
+    "value": "InformationFileName"
+  },
+  {
+    "key": "izinTalepEtSayfasıİzinBilgilendirmeFormuModal",
+    "type": "xpath",
+    "value": "//div[@class='pdf-container']"
+  },
+  {
+    "key": "izinTalepEtSayfasıÜcretsizİzniBilgilendirmeButon",
+    "type": "id",
+    "value": "InformationFileNameWithHandWritten"
+  },
+  {
+    "key": "izinTalepEtSayfasıİzinTalebiİşlemBaşarılıText",
+    "type": "xpath",
+    "value": "//h4[contains(@class,'ui-pnotify-title') and normalize-space(.)='İşlem başarılı.']"
+  },
+  {
+    "key": "izinTalepEtSayfasıZorunluAlanlarUyarıText",
+    "type": "xpath",
+    "value": "//div[normalize-space(.)='Lütfen gerekli alanları doldurunuz']"
+  },
+  {
+    "key": "izinTalepEtSayfasıAçıklamaAlanıZorunlulukUyarısıInput",
+    "type": "xpath",
+    "value": "//textarea[@id='Description' and contains(@class,'customError')]"
+  },
+  {
+    "key": "izinTalepEtSayfasıİzinTalepOnayAlanıZorunlulukUyarısıCheckBox",
+    "type": "xpath",
+    "value": "//textarea[@id='Description' and contains(@class,'customError')]"
+  }
+]

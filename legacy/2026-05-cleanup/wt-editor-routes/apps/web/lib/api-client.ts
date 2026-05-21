@@ -1,0 +1,299 @@
+/**
+ * TestwrightAI Enhanced API Client — Refresh Token + TanStack Query Entegrasyonu
+ *
+ * Ozellikler:
+ *   - HttpOnly cookie tabanli oturum yonetimi
+ *   - Otomatik token yenileme (401 → refresh → retry)
+ *   - Concurrent request deduplication (ayni anda birden fazla 401 gelirse tek refresh)
+ *   - Token rotation (her refresh'te yeni access + refresh token)
+ */
+
+const rawApiBase = process.env.NEXT_PUBLIC_API_BASE;
+const API_BASE =
+  rawApiBase === undefined ? "http://127.0.0.1:8000" : rawApiBase.replace(/\/$/, "");
+
+function getSafeNextPath(candidate: string | null): string {
+  if (!candidate) return "";
+  const trimmed = candidate.trim();
+  if (
+    !trimmed.startsWith("/")
+    || trimmed.startsWith("//")
+    || trimmed === "/login"
+    || trimmed.startsWith("/login/")
+  ) return "";
+  if (trimmed.includes("\\") || trimmed.includes("\r") || trimmed.includes("\n")) return "";
+  return trimmed;
+}
+
+function getLoginRedirectUrl() {
+  if (typeof window === "undefined") return "/login";
+
+  const currentPath = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+  const safePath = getSafeNextPath(currentPath);
+  const loginUrl = new URL("/login", window.location.origin);
+  if (safePath && safePath !== "/login") {
+    loginUrl.searchParams.set("next", safePath);
+  }
+
+  return loginUrl.toString();
+}
+
+// Frontend defaults to the authenticated backend proxy so browsers do not need
+// direct access to the Flask engine host. NEXT_PUBLIC_ENGINE_URL is kept only
+// as a backwards-compatible alias while configs migrate to *_BASE.
+const ENGINE_BASE = (
+  process.env.NEXT_PUBLIC_ENGINE_BASE ??
+  process.env.NEXT_PUBLIC_ENGINE_URL ??
+  "/api/v1/automation/proxy"
+).replace(/\/$/, "");
+
+// ── Token Storage ────────────────────────────────────────────────────
+const TOKEN_KEY = "tspm_access_token";
+const REFRESH_TOKEN_KEY = "tspm_refresh_token";
+const TOKEN_EXPIRES_AT_KEY = "tspm_access_token_expires_at";
+
+export function getToken(): string | null {
+  if (typeof window === "undefined") return null;
+  return localStorage.getItem(TOKEN_KEY);
+}
+
+export function setToken(token: string) {
+  localStorage.setItem(TOKEN_KEY, token);
+}
+
+export function getRefreshToken(): string | null {
+  if (typeof window === "undefined") return null;
+  return localStorage.getItem(REFRESH_TOKEN_KEY);
+}
+
+export function setRefreshToken(token: string) {
+  localStorage.setItem(REFRESH_TOKEN_KEY, token);
+}
+
+/**
+ * Access token'ın ne zaman biteceğini (ms epoch) döndürür; bilinmiyorsa null.
+ * Proaktif refresh için kullanılır.
+ */
+export function getTokenExpiresAt(): number | null {
+  if (typeof window === "undefined") return null;
+  const raw = localStorage.getItem(TOKEN_EXPIRES_AT_KEY);
+  if (!raw) return null;
+  const v = Number(raw);
+  return Number.isFinite(v) ? v : null;
+}
+
+/**
+ * Token'ları kaydeder.
+ * @param access        JWT access token (zorunlu)
+ * @param refresh       Refresh token (opsiyonel)
+ * @param expiresIn     Access token ömrü, saniye (opsiyonel — /auth/login'in döndüğü expires_in)
+ */
+export function setTokens(
+  access: string,
+  refresh?: string | null,
+  expiresIn?: number | null,
+) {
+  setToken(access);
+  if (refresh) setRefreshToken(refresh);
+  if (typeof expiresIn === "number" && Number.isFinite(expiresIn) && expiresIn > 0) {
+    localStorage.setItem(
+      TOKEN_EXPIRES_AT_KEY,
+      String(Date.now() + expiresIn * 1000),
+    );
+  }
+}
+
+export function clearTokens() {
+  localStorage.removeItem(TOKEN_KEY);
+  localStorage.removeItem(REFRESH_TOKEN_KEY);
+  localStorage.removeItem(TOKEN_EXPIRES_AT_KEY);
+}
+
+/** @deprecated Eski API uyumlulugu — clearTokens() tercih edin */
+export const clearToken = clearTokens;
+
+// ── Refresh Token Mekanizmasi ────────────────────────────────────────
+let refreshPromise: Promise<boolean> | null = null;
+
+async function refreshAccessToken(): Promise<boolean> {
+  try {
+    const res = await fetch(`${API_BASE}/api/v1/auth/refresh`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({}),
+    });
+
+    if (!res.ok) {
+      clearTokens();
+      return false;
+    }
+
+    const data = await res.json();
+    setTokens(data.access_token, data.refresh_token, data.expires_in);
+    return true;
+  } catch {
+    clearTokens();
+    return false;
+  }
+}
+
+/**
+ * Deduplicated refresh — birden fazla 401 ayni anda gelirse
+ * tek bir refresh istegi gonderir, diger request'ler bekler.
+ */
+async function ensureValidToken(): Promise<boolean> {
+  if (!refreshPromise) {
+    refreshPromise = refreshAccessToken().finally(() => {
+      refreshPromise = null;
+    });
+  }
+  return refreshPromise;
+}
+
+// ── API Errors ───────────────────────────────────────────────────────
+export class ApiError extends Error {
+  status: number;
+  body: unknown;
+
+  constructor(status: number, message: string, body?: unknown) {
+    super(message);
+    this.name = "ApiError";
+    this.status = status;
+    this.body = body;
+  }
+}
+
+function extractApiErrorMessage(body: unknown, fallback: string): string {
+  if (typeof body === "string" && body) return body;
+  if (!body || typeof body !== "object") return fallback;
+
+  const detail = "detail" in body ? (body as { detail?: unknown }).detail : body;
+  if (typeof detail === "string" && detail) return detail;
+  if (!detail || typeof detail !== "object") return fallback;
+
+  const message = (detail as { message?: unknown }).message;
+  if (typeof message === "string" && message) {
+    const details = (detail as { details?: unknown }).details;
+    return typeof details === "string" && details ? `${message}: ${details}` : message;
+  }
+
+  return fallback;
+}
+
+// ── Core Fetch ───────────────────────────────────────────────────────
+export type ApiFetchOptions = RequestInit & {
+  json?: unknown;
+  /**
+   * Public/auth endpoints for login/reset flows.
+   * noAuth=true skips refresh + automatic login redirect on 401.
+   */
+  noAuth?: boolean;
+  /**
+   * Optional override for retry behavior after a 401.
+   * Defaults to `!noAuth`.
+   */
+  retryOnUnauthorized?: boolean;
+};
+
+export async function apiFetch<T>(
+  path: string,
+  init: ApiFetchOptions = {},
+): Promise<T> {
+  const {
+    json,
+    headers,
+    noAuth = false,
+    retryOnUnauthorized = !noAuth,
+    ...rest
+  } = init;
+  const h = new Headers(headers);
+
+  if (json !== undefined) {
+    h.set("Content-Type", "application/json");
+  }
+
+  let res = await fetch(`${API_BASE}${path}`, {
+    ...rest,
+    credentials: "include",
+    headers: h,
+    body: json !== undefined ? JSON.stringify(json) : rest.body,
+  });
+
+  // 401 → refresh token ile yenileme dene
+  if (res.status === 401 && retryOnUnauthorized) {
+    const refreshed = await ensureValidToken();
+    if (refreshed) {
+      const h2 = new Headers(headers);
+      if (json !== undefined) h2.set("Content-Type", "application/json");
+
+      res = await fetch(`${API_BASE}${path}`, {
+        ...rest,
+        credentials: "include",
+        headers: h2,
+        body: json !== undefined ? JSON.stringify(json) : rest.body,
+      });
+    }
+  }
+
+  if (!res.ok) {
+    const text = await res.text();
+    let body: unknown;
+    try {
+      body = JSON.parse(text);
+    } catch {
+      body = text;
+    }
+    const detail =
+      typeof body === "object" && body !== null && "detail" in body
+        ? String((body as { detail: unknown }).detail)
+        : text || res.statusText;
+
+    // Auth akışı:
+    //  - 401 = token geçersiz/expire → refresh zaten denenmişti, başarısız oldu ⇒ login'e yolla
+    //  - 403 = kimlik doğru ama yetki yok ⇒ login'e atma, token silme;
+    //          çağrı yerindeki hata handler kullanıcıya "yetkiniz yok" diyebilir.
+    //  - Auth endpoint'lerinde (/auth/*) redirect YAPMA ki sayfa kendi hatasını göstersin.
+    const isAuthPath = path.startsWith("/api/v1/auth/");
+    if (res.status === 401 && !isAuthPath && typeof window !== "undefined") {
+      clearTokens();
+      if (!window.location.pathname.startsWith("/login")) {
+        const redirect = encodeURIComponent(
+          window.location.pathname + window.location.search,
+        );
+        window.location.href = `/login?next=${redirect}`;
+      }
+    }
+
+    throw new ApiError(res.status, detail, body);
+  }
+
+  if (res.status === 204) return undefined as T;
+  return res.json() as Promise<T>;
+}
+
+/** Dogrudan Flask motoruna istek — proxy tercih edin. */
+export async function engineFetch<T>(
+  path: string,
+  init: RequestInit & { json?: unknown } = {},
+): Promise<T> {
+  const { json, headers, ...rest } = init;
+  const h = new Headers(headers);
+  if (json !== undefined) {
+    h.set("Content-Type", "application/json");
+  }
+  const res = await fetch(`${ENGINE_BASE}${path}`, {
+    ...rest,
+    headers: h,
+    credentials: "include",
+    body: json !== undefined ? JSON.stringify(json) : rest.body,
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new ApiError(res.status, text || res.statusText);
+  }
+  if (res.status === 204) return undefined as T;
+  return res.json() as Promise<T>;
+}
+
+export { API_BASE, ENGINE_BASE };

@@ -1,0 +1,29 @@
+# Test çerçeveleri
+pytest==7.4.3
+pytest-asyncio==0.21.1
+pytest-playwright==0.4.3
+pytest-html==4.1.1
+pytest-xdist==3.5.0
+
+# Browser otomasyon
+playwright==1.41.0
+
+# Konfigürasyon
+python-dotenv==1.0.0
+
+# Raporlama
+allure-pytest==2.13.2
+
+# HTTP istemci
+requests==2.31.0
+
+# Fake verisi oluşturma
+faker==22.0.0
+
+# Linting ve formatlama
+black==24.1.1
+isort==5.13.2
+flake8==7.0.0
+
+# Type checking
+mypy==1.8.0

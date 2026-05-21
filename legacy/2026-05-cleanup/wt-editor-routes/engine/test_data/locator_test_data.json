@@ -1,0 +1,186 @@
+{
+  "pages": {
+    "login_page": {
+      "url": "/login",
+      "description": "Giriş sayfası element seçicileri",
+      "elements": {
+        "username_field": {
+          "css": "input[name='username'], input[name='email'], #username, #email",
+          "xpath": "//input[@name='username' or @name='email']",
+          "test_id": "[data-testid='login-username']",
+          "aria": "[aria-label='Kullanıcı adı'], [aria-label='E-posta']",
+          "description": "Kullanıcı adı / e-posta giriş alanı"
+        },
+        "password_field": {
+          "css": "input[name='password'], input[type='password'], #password",
+          "xpath": "//input[@name='password' or @type='password']",
+          "test_id": "[data-testid='login-password']",
+          "aria": "[aria-label='Şifre']",
+          "description": "Şifre giriş alanı"
+        },
+        "login_button": {
+          "css": "button[type='submit'], .login-btn, #login-button",
+          "xpath": "//button[@type='submit' or contains(text(), 'Giriş')]",
+          "test_id": "[data-testid='login-submit']",
+          "aria": "[aria-label='Giriş Yap']",
+          "text": "Giriş Yap",
+          "description": "Giriş yap butonu"
+        },
+        "error_message": {
+          "css": ".error-message, .alert-danger, .login-error, [role='alert']",
+          "xpath": "//div[contains(@class, 'error') or @role='alert']",
+          "test_id": "[data-testid='login-error']",
+          "description": "Hata mesajı alanı"
+        },
+        "remember_me": {
+          "css": "input[name='remember'], #remember-me, .remember-checkbox",
+          "test_id": "[data-testid='remember-me']",
+          "description": "Beni hatırla onay kutusu"
+        },
+        "forgot_password_link": {
+          "css": "a[href*='forgot'], a[href*='reset'], .forgot-password",
+          "xpath": "//a[contains(text(), 'Şifremi Unuttum')]",
+          "text": "Şifremi Unuttum",
+          "description": "Şifremi unuttum bağlantısı"
+        }
+      }
+    },
+    "dashboard_page": {
+      "url": "/dashboard",
+      "description": "Ana panel element seçicileri",
+      "elements": {
+        "stat_cards": {
+          "css": ".stat-card, .dashboard-stat, .metric-card, [data-type='stat']",
+          "xpath": "//div[contains(@class, 'stat-card') or contains(@class, 'metric')]",
+          "test_id": "[data-testid='stat-card']",
+          "description": "İstatistik kartları (toplam test, başarı oranı vb.)"
+        },
+        "charts": {
+          "css": ".chart-container, canvas, .recharts-wrapper, [data-type='chart']",
+          "xpath": "//div[contains(@class, 'chart')] | //canvas",
+          "test_id": "[data-testid='dashboard-chart']",
+          "description": "Grafik alanları"
+        },
+        "activity_list": {
+          "css": ".activity-list, .recent-activity, .timeline, [data-type='activity']",
+          "xpath": "//div[contains(@class, 'activity') or contains(@class, 'timeline')]",
+          "test_id": "[data-testid='activity-list']",
+          "description": "Son aktivite listesi"
+        },
+        "project_summary": {
+          "css": ".project-summary, .project-overview",
+          "test_id": "[data-testid='project-summary']",
+          "description": "Proje özet kartı"
+        },
+        "quick_actions": {
+          "css": ".quick-actions, .action-buttons",
+          "test_id": "[data-testid='quick-actions']",
+          "description": "Hızlı işlem butonları"
+        },
+        "notification_bell": {
+          "css": ".notification-bell, .notifications-icon, [data-type='notifications']",
+          "xpath": "//button[contains(@class, 'notification')]",
+          "test_id": "[data-testid='notification-bell']",
+          "description": "Bildirim zili ikonu"
+        }
+      }
+    },
+    "projects_page": {
+      "url": "/projects",
+      "description": "Projeler sayfası element seçicileri",
+      "elements": {
+        "project_cards": {
+          "css": ".project-card, .project-item, [data-type='project']",
+          "xpath": "//div[contains(@class, 'project-card')]",
+          "test_id": "[data-testid='project-card']",
+          "description": "Proje kartları"
+        },
+        "create_button": {
+          "css": ".create-project-btn, button.create-btn, #new-project",
+          "xpath": "//button[contains(text(), 'Yeni Proje')]",
+          "test_id": "[data-testid='create-project']",
+          "text": "Yeni Proje",
+          "description": "Yeni proje oluştur butonu"
+        },
+        "search_input": {
+          "css": "input[placeholder*='Ara'], .project-search, #project-search",
+          "xpath": "//input[contains(@placeholder, 'Ara')]",
+          "test_id": "[data-testid='project-search']",
+          "description": "Proje arama kutusu"
+        },
+        "filter_dropdown": {
+          "css": ".filter-dropdown, select.project-filter, #status-filter",
+          "test_id": "[data-testid='project-filter']",
+          "description": "Durum filtresi açılır menü"
+        },
+        "sort_button": {
+          "css": ".sort-btn, button[aria-label='Sırala']",
+          "test_id": "[data-testid='project-sort']",
+          "description": "Sıralama butonu"
+        },
+        "pagination": {
+          "css": ".pagination, nav[aria-label='Sayfalama']",
+          "test_id": "[data-testid='pagination']",
+          "description": "Sayfalama kontrolü"
+        }
+      }
+    },
+    "scenarios_page": {
+      "url": "/scenarios",
+      "description": "Senaryolar sayfası element seçicileri",
+      "elements": {
+        "scenario_table": {
+          "css": "table.scenario-table, .scenario-list, [data-type='scenarios']",
+          "xpath": "//table[contains(@class, 'scenario')]",
+          "test_id": "[data-testid='scenario-table']",
+          "description": "Senaryo tablosu"
+        },
+        "filter_panel": {
+          "css": ".filter-panel, .sidebar-filters, [data-type='filters']",
+          "xpath": "//div[contains(@class, 'filter-panel')]",
+          "test_id": "[data-testid='filter-panel']",
+          "description": "Filtre paneli"
+        },
+        "bulk_actions": {
+          "css": ".bulk-actions, .batch-toolbar, [data-type='bulk']",
+          "xpath": "//div[contains(@class, 'bulk-actions')]",
+          "test_id": "[data-testid='bulk-actions']",
+          "description": "Toplu işlem araç çubuğu"
+        },
+        "create_scenario_button": {
+          "css": ".create-scenario-btn, #new-scenario",
+          "xpath": "//button[contains(text(), 'Yeni Senaryo')]",
+          "test_id": "[data-testid='create-scenario']",
+          "text": "Yeni Senaryo",
+          "description": "Yeni senaryo oluştur butonu"
+        },
+        "priority_filter": {
+          "css": "select[name='priority'], .priority-filter",
+          "test_id": "[data-testid='priority-filter']",
+          "description": "Öncelik filtresi (P0-P3)"
+        },
+        "status_filter": {
+          "css": "select[name='status'], .status-filter",
+          "test_id": "[data-testid='status-filter']",
+          "description": "Durum filtresi (taslak/onaylı/reddedildi)"
+        },
+        "type_filter": {
+          "css": "select[name='type'], .type-filter",
+          "test_id": "[data-testid='type-filter']",
+          "description": "Tür filtresi (fonksiyonel/regresyon/smoke)"
+        },
+        "select_all_checkbox": {
+          "css": "input[name='select-all'], th input[type='checkbox']",
+          "test_id": "[data-testid='select-all']",
+          "description": "Tümünü seç onay kutusu"
+        },
+        "export_button": {
+          "css": ".export-btn, button[aria-label='Dışa Aktar']",
+          "test_id": "[data-testid='export-scenarios']",
+          "text": "Dışa Aktar",
+          "description": "Dışa aktarma butonu"
+        }
+      }
+    }
+  }
+}

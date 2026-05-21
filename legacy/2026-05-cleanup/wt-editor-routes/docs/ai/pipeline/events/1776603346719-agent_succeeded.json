@@ -1,0 +1,1 @@
+{"ts": 1776603346719, "type": "agent_succeeded", "item_id": "GAP-001", "role": "analyzer", "model": "llama3.1:8b", "latency_s": 49.553282022476196, "decision": null, "confidence": null}

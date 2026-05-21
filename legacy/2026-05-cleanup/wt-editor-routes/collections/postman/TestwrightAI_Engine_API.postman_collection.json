@@ -1,0 +1,638 @@
+{
+	"info": {
+		"_postman_id": "bgts-engine-api-v1",
+		"name": "TestwrightAI Engine API",
+		"description": "BGTS Test Dönüşüm Platformu — Flask Automation Engine (port 5001)\n\nTest koşturma motoru, BDD feature yönetimi, AI destekli senaryo üretimi, görsel regresyon, erişilebilirlik testleri, test kaydedici ve sentetik veri simülasyonu.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"variable": [
+		{ "key": "engine_url", "value": "http://localhost:5001" },
+		{ "key": "run_id", "value": "" },
+		{ "key": "session_id", "value": "" },
+		{ "key": "project_name", "value": "" }
+	],
+	"item": [
+		{
+			"name": "Health & Settings",
+			"item": [
+				{
+					"name": "Health Check",
+					"request": { "method": "GET", "header": [], "url": { "raw": "{{engine_url}}/api/health", "host": ["{{engine_url}}"], "path": ["api", "health"] } },
+					"event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status 200', function () { pm.response.to.have.status(200); });", "pm.test('Status ok', function () { pm.expect(pm.response.json().status).to.eql('ok'); });"] } }]
+				},
+				{
+					"name": "Get Settings",
+					"request": { "method": "GET", "header": [], "url": { "raw": "{{engine_url}}/api/settings", "host": ["{{engine_url}}"], "path": ["api", "settings"] } },
+					"event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status 200', function () { pm.response.to.have.status(200); });"] } }]
+				},
+				{
+					"name": "Save Settings",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\n    \"BASE_URL\": \"https://test.garantibbva.com.tr\",\n    \"BROWSER\": \"chromium\",\n    \"HEADLESS\": \"true\",\n    \"OPENAI_MODEL\": \"gpt-4o\"\n}" },
+						"url": { "raw": "{{engine_url}}/api/settings", "host": ["{{engine_url}}"], "path": ["api", "settings"] }
+					},
+					"event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status 200', function () { pm.response.to.have.status(200); });"] } }]
+				},
+				{
+					"name": "Get Stats",
+					"request": { "method": "GET", "header": [], "url": { "raw": "{{engine_url}}/api/stats", "host": ["{{engine_url}}"], "path": ["api", "stats"] } },
+					"event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status 200', function () { pm.response.to.have.status(200); });"] } }]
+				},
+				{
+					"name": "Get Comprehensive Reports",
+					"request": { "method": "GET", "header": [], "url": { "raw": "{{engine_url}}/api/reports/comprehensive", "host": ["{{engine_url}}"], "path": ["api", "reports", "comprehensive"] } },
+					"event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status 200', function () { pm.response.to.have.status(200); });"] } }]
+				},
+				{
+					"name": "System Status",
+					"request": { "method": "GET", "header": [], "url": { "raw": "{{engine_url}}/api/projects/status", "host": ["{{engine_url}}"], "path": ["api", "projects", "status"] } },
+					"event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status 200', function () { pm.response.to.have.status(200); });"] } }]
+				},
+				{
+					"name": "Export Data (ZIP)",
+					"request": { "method": "GET", "header": [], "url": { "raw": "{{engine_url}}/api/export", "host": ["{{engine_url}}"], "path": ["api", "export"] } },
+					"event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status 200', function () { pm.response.to.have.status(200); });"] } }]
+				}
+			]
+		},
+		{
+			"name": "Auth",
+			"item": [
+				{
+					"name": "Register",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\n    \"email\": \"ahmet.yilmaz@bgts.com.tr\",\n    \"password\": \"Test1234!\"\n}" },
+						"url": { "raw": "{{engine_url}}/api/auth/register", "host": ["{{engine_url}}"], "path": ["api", "auth", "register"] }
+					},
+					"event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status 200', function () { pm.response.to.have.status(200); });"] } }]
+				},
+				{
+					"name": "Login",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\n    \"email\": \"test@test.com\",\n    \"password\": \"test\"\n}" },
+						"url": { "raw": "{{engine_url}}/api/auth/login", "host": ["{{engine_url}}"], "path": ["api", "auth", "login"] }
+					},
+					"event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status 200', function () { pm.response.to.have.status(200); });", "pm.test('Login successful', function () { pm.expect(pm.response.json().success).to.be.true; });"] } }]
+				},
+				{
+					"name": "Logout",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": { "raw": "{{engine_url}}/api/auth/logout", "host": ["{{engine_url}}"], "path": ["api", "auth", "logout"] }
+					},
+					"event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status 200', function () { pm.response.to.have.status(200); });"] } }]
+				}
+			]
+		},
+		{
+			"name": "Features",
+			"description": "BDD .feature dosya yönetimi",
+			"item": [
+				{
+					"name": "List Features",
+					"request": { "method": "GET", "header": [], "url": { "raw": "{{engine_url}}/api/features", "host": ["{{engine_url}}"], "path": ["api", "features"] } },
+					"event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status 200', function () { pm.response.to.have.status(200); });", "pm.test('Returns array', function () { pm.expect(pm.response.json()).to.be.an('array'); });"] } }]
+				},
+				{
+					"name": "Get Feature",
+					"request": { "method": "GET", "header": [], "url": { "raw": "{{engine_url}}/api/features/login.feature", "host": ["{{engine_url}}"], "path": ["api", "features", "login.feature"] } },
+					"event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status 200', function () { pm.response.to.have.status(200); });"] } }]
+				},
+				{
+					"name": "Save Feature",
+					"request": {
+						"method": "PUT",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\n    \"content\": \"Feature: Internet Bankaciligi Giris\\n  BDDK regülasyonlarina uygun giris senaryolari\\n\\n  Scenario: Basarili giris\\n    Given Kullanici giris sayfasindadir\\n    When TCKN olarak \\\"12345678901\\\" girer\\n    And Sifre olarak \\\"Test1234!\\\" girer\\n    And Giris butonuna tiklar\\n    Then Ana sayfa goruntulenir\\n\\n  Scenario: Hatali sifre ile giris\\n    Given Kullanici giris sayfasindadir\\n    When TCKN olarak \\\"12345678901\\\" girer\\n    And Sifre olarak \\\"yanlis_sifre\\\" girer\\n    And Giris butonuna tiklar\\n    Then \\\"Hatali kullanici adi veya sifre\\\" mesaji goruntulenir\"\n}" },
+						"url": { "raw": "{{engine_url}}/api/features/banking/login.feature", "host": ["{{engine_url}}"], "path": ["api", "features", "banking", "login.feature"] }
+					},
+					"event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status 200', function () { pm.response.to.have.status(200); });"] } }]
+				},
+				{
+					"name": "Create Folder",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\n    \"path\": \"banking/eft\"\n}" },
+						"url": { "raw": "{{engine_url}}/api/features/folder", "host": ["{{engine_url}}"], "path": ["api", "features", "folder"] }
+					},
+					"event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status 200', function () { pm.response.to.have.status(200); });"] } }]
+				},
+				{
+					"name": "Delete Feature",
+					"request": { "method": "DELETE", "header": [], "url": { "raw": "{{engine_url}}/api/features/banking/login.feature", "host": ["{{engine_url}}"], "path": ["api", "features", "banking", "login.feature"] } },
+					"event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status 200', function () { pm.response.to.have.status(200); });"] } }]
+				}
+			]
+		},
+		{
+			"name": "Runner",
+			"description": "Test koşturma — pytest ve Maven. SSE stream ile canlı çıktı.",
+			"item": [
+				{
+					"name": "Run Tests",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\n    \"markers\": \"not ai\",\n    \"features_list\": [\"banking/login.feature\", \"banking/eft.feature\"]\n}" },
+						"url": { "raw": "{{engine_url}}/api/run", "host": ["{{engine_url}}"], "path": ["api", "run"] }
+					},
+					"event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status 200', function () { pm.response.to.have.status(200); });", "pm.test('Has run_id', function () {", "    var body = pm.response.json();", "    pm.expect(body).to.have.property('run_id');", "    pm.collectionVariables.set('run_id', body.run_id);", "});"] } }]
+				},
+				{
+					"name": "Stream Run Output (SSE)",
+					"request": {
+						"method": "GET",
+						"header": [{ "key": "Accept", "value": "text/event-stream" }],
+						"url": { "raw": "{{engine_url}}/api/run/{{run_id}}/stream", "host": ["{{engine_url}}"], "path": ["api", "run", "{{run_id}}", "stream"] },
+						"description": "Server-Sent Events stream. Postman'de tam olarak desteklenmez; curl veya browser ile test edin:\n\ncurl -N {{engine_url}}/api/run/{{run_id}}/stream"
+					},
+					"event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status 200', function () { pm.response.to.have.status(200); });"] } }]
+				},
+				{
+					"name": "Run Maven Tests",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\n    \"maven_path\": \"/path/to/NexusQATestOtomasyon\"\n}" },
+						"url": { "raw": "{{engine_url}}/api/run-maven", "host": ["{{engine_url}}"], "path": ["api", "run-maven"] }
+					},
+					"event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status 200', function () { pm.response.to.have.status(200); });"] } }]
+				},
+				{
+					"name": "Create Project (Legacy)",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\n    \"name\": \"MobilBankacilik\",\n    \"platform\": \"mobile\"\n}" },
+						"url": { "raw": "{{engine_url}}/api/projects/create", "host": ["{{engine_url}}"], "path": ["api", "projects", "create"] }
+					},
+					"event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status 200', function () { pm.response.to.have.status(200); });"] } }]
+				},
+				{
+					"name": "List Projects (Legacy)",
+					"request": { "method": "GET", "header": [], "url": { "raw": "{{engine_url}}/api/projects/list", "host": ["{{engine_url}}"], "path": ["api", "projects", "list"] } },
+					"event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status 200', function () { pm.response.to.have.status(200); });"] } }]
+				},
+				{
+					"name": "Setup Everything",
+					"request": { "method": "POST", "header": [], "url": { "raw": "{{engine_url}}/api/projects/setup", "host": ["{{engine_url}}"], "path": ["api", "projects", "setup"] } },
+					"event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status 200', function () { pm.response.to.have.status(200); });"] } }]
+				},
+				{
+					"name": "Start Services",
+					"request": { "method": "POST", "header": [], "url": { "raw": "{{engine_url}}/api/projects/start-services", "host": ["{{engine_url}}"], "path": ["api", "projects", "start-services"] } },
+					"event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status 200', function () { pm.response.to.have.status(200); });"] } }]
+				}
+			]
+		},
+		{
+			"name": "Projects",
+			"description": "Proje yönetimi — oluşturma, listeleme, açma, silme",
+			"item": [
+				{
+					"name": "List Projects",
+					"request": { "method": "GET", "header": [], "url": { "raw": "{{engine_url}}/api/projects", "host": ["{{engine_url}}"], "path": ["api", "projects"] } },
+					"event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status 200', function () { pm.response.to.have.status(200); });"] } }]
+				},
+				{
+					"name": "Create Project",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\n    \"name\": \"internet-bankaciligi-regresyon\"\n}" },
+						"url": { "raw": "{{engine_url}}/api/projects/create", "host": ["{{engine_url}}"], "path": ["api", "projects", "create"] }
+					},
+					"event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status 201', function () { pm.response.to.have.status(201); });"] } }]
+				},
+				{
+					"name": "Open Project",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\n    \"name\": \"internet-bankaciligi-regresyon\"\n}" },
+						"url": { "raw": "{{engine_url}}/api/projects/open", "host": ["{{engine_url}}"], "path": ["api", "projects", "open"] }
+					},
+					"event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status 200', function () { pm.response.to.have.status(200); });"] } }]
+				},
+				{
+					"name": "Get Project Details",
+					"request": { "method": "GET", "header": [], "url": { "raw": "{{engine_url}}/api/projects/main", "host": ["{{engine_url}}"], "path": ["api", "projects", "main"] } },
+					"event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status 200', function () { pm.response.to.have.status(200); });"] } }]
+				},
+				{
+					"name": "Delete Project",
+					"request": { "method": "DELETE", "header": [], "url": { "raw": "{{engine_url}}/api/projects/internet-bankaciligi-regresyon/delete", "host": ["{{engine_url}}"], "path": ["api", "projects", "internet-bankaciligi-regresyon", "delete"] } },
+					"event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status 200', function () { pm.response.to.have.status(200); });"] } }]
+				}
+			]
+		},
+		{
+			"name": "Locators",
+			"description": "Element locator yönetimi ve AI destekli sayfa keşfi",
+			"item": [
+				{
+					"name": "Get Locators",
+					"request": { "method": "GET", "header": [], "url": { "raw": "{{engine_url}}/api/locators", "host": ["{{engine_url}}"], "path": ["api", "locators"] } },
+					"event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status 200', function () { pm.response.to.have.status(200); });"] } }]
+				},
+				{
+					"name": "Save Locator",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\n    \"name\": \"login_tckn_input\",\n    \"locator_value\": \"#tckn-input\",\n    \"page_url\": \"https://test.garantibbva.com.tr/login\"\n}" },
+						"url": { "raw": "{{engine_url}}/api/locators", "host": ["{{engine_url}}"], "path": ["api", "locators"] }
+					},
+					"event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status 200', function () { pm.response.to.have.status(200); });"] } }]
+				},
+				{
+					"name": "Delete Locator",
+					"request": { "method": "DELETE", "header": [], "url": { "raw": "{{engine_url}}/api/locators/1", "host": ["{{engine_url}}"], "path": ["api", "locators", "1"] } },
+					"event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status 200', function () { pm.response.to.have.status(200); });"] } }]
+				},
+				{
+					"name": "AI Discover Page Elements",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\n    \"url\": \"https://test.garantibbva.com.tr/login\"\n}" },
+						"url": { "raw": "{{engine_url}}/api/discover", "host": ["{{engine_url}}"], "path": ["api", "discover"] }
+					},
+					"event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status 200', function () { pm.response.to.have.status(200); });"] } }]
+				}
+			]
+		},
+		{
+			"name": "AI",
+			"description": "AI destekli BDD üretimi, API analizi, güvenlik taraması",
+			"item": [
+				{
+					"name": "Generate Feature from Requirement",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\n    \"requirements\": \"İnternet bankacılığı EFT modülü: Kullanıcı vadesiz hesabından başka banka hesabına EFT yapabilmeli. IBAN doğrulaması yapılmalı. Günlük limit kontrolü olmalı. Transfer sonrası dekont gösterilmeli.\",\n    \"url\": \"https://test.garantibbva.com.tr/eft\",\n    \"tech\": \"playwright-python\"\n}" },
+						"url": { "raw": "{{engine_url}}/api/generate-feature", "host": ["{{engine_url}}"], "path": ["api", "generate-feature"] }
+					},
+					"event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status 200', function () { pm.response.to.have.status(200); });", "pm.test('Has content', function () { pm.expect(pm.response.json()).to.have.property('content'); });"] } }]
+				},
+				{
+					"name": "Analyze API Request",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\n    \"request\": {\n        \"method\": \"POST\",\n        \"url\": \"/api/v1/eft/transfer\",\n        \"headers\": { \"Content-Type\": \"application/json\", \"Authorization\": \"Bearer xxx\" },\n        \"body\": { \"sender_iban\": \"TR330006100519786457841326\", \"receiver_iban\": \"TR180006200019800006672315\", \"amount\": 1500.00 }\n    },\n    \"response\": {\n        \"status\": 200,\n        \"body\": { \"transaction_id\": \"TXN20260403001\", \"status\": \"completed\", \"fee\": 5.50 }\n    }\n}" },
+						"url": { "raw": "{{engine_url}}/api/analyze-api-request", "host": ["{{engine_url}}"], "path": ["api", "analyze-api-request"] }
+					},
+					"event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status 200', function () { pm.response.to.have.status(200); });"] } }]
+				},
+				{
+					"name": "Security Scan",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\n    \"url\": \"https://test.garantibbva.com.tr\"\n}" },
+						"url": { "raw": "{{engine_url}}/api/security-scan", "host": ["{{engine_url}}"], "path": ["api", "security-scan"] }
+					},
+					"event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status 200', function () { pm.response.to.have.status(200); });"] } }]
+				},
+				{
+					"name": "Inspector (Playwright Codegen)",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\n    \"url\": \"https://test.garantibbva.com.tr/login\"\n}" },
+						"url": { "raw": "{{engine_url}}/api/inspect", "host": ["{{engine_url}}"], "path": ["api", "inspect"] }
+					},
+					"event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status 200', function () { pm.response.to.have.status(200); });"] } }]
+				}
+			]
+		},
+		{
+			"name": "Visual Regression",
+			"description": "Görsel regresyon testleri — baseline yönetimi ve karşılaştırma",
+			"item": [
+				{
+					"name": "List Baselines",
+					"request": { "method": "GET", "header": [], "url": { "raw": "{{engine_url}}/api/visual/baselines?domain=default", "host": ["{{engine_url}}"], "path": ["api", "visual", "baselines"], "query": [{ "key": "domain", "value": "default" }] } },
+					"event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status 200', function () { pm.response.to.have.status(200); });"] } }]
+				},
+				{
+					"name": "Get Baseline",
+					"request": { "method": "GET", "header": [], "url": { "raw": "{{engine_url}}/api/visual/baselines/default/login_page", "host": ["{{engine_url}}"], "path": ["api", "visual", "baselines", "default", "login_page"] } },
+					"event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status 200 or 404', function () { pm.expect(pm.response.code).to.be.oneOf([200, 404]); });"] } }]
+				},
+				{
+					"name": "Upload Baseline",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{ "key": "file", "type": "file", "src": "" },
+								{ "key": "domain", "value": "garanti", "type": "text" },
+								{ "key": "test_name", "value": "login_page", "type": "text" }
+							]
+						},
+						"url": { "raw": "{{engine_url}}/api/visual/baselines/upload", "host": ["{{engine_url}}"], "path": ["api", "visual", "baselines", "upload"] }
+					}
+				},
+				{
+					"name": "Compare Visual (URL)",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\n    \"test_name\": \"login_page\",\n    \"domain\": \"garanti\",\n    \"url\": \"https://test.garantibbva.com.tr/login\",\n    \"threshold\": 0.95,\n    \"ignore_regions\": [{ \"x\": 0, \"y\": 0, \"w\": 200, \"h\": 50 }]\n}" },
+						"url": { "raw": "{{engine_url}}/api/visual/compare", "host": ["{{engine_url}}"], "path": ["api", "visual", "compare"] }
+					},
+					"event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status 200', function () { pm.response.to.have.status(200); });"] } }]
+				},
+				{
+					"name": "Batch Compare",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\n    \"domain\": \"garanti\",\n    \"test_cases\": [\n        { \"test_name\": \"login_page\", \"url\": \"https://test.garantibbva.com.tr/login\" },\n        { \"test_name\": \"dashboard\", \"url\": \"https://test.garantibbva.com.tr/dashboard\" },\n        { \"test_name\": \"eft_page\", \"url\": \"https://test.garantibbva.com.tr/eft\" }\n    ],\n    \"threshold\": 0.92\n}" },
+						"url": { "raw": "{{engine_url}}/api/visual/batch", "host": ["{{engine_url}}"], "path": ["api", "visual", "batch"] }
+					},
+					"event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status 200', function () { pm.response.to.have.status(200); });"] } }]
+				}
+			]
+		},
+		{
+			"name": "Accessibility",
+			"description": "WCAG 2.1 erişilebilirlik testleri",
+			"item": [
+				{
+					"name": "Test URL",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\n    \"url\": \"https://test.garantibbva.com.tr/login\",\n    \"wcag_level\": \"AA\",\n    \"use_axe\": false,\n    \"wait_ms\": 2000\n}" },
+						"url": { "raw": "{{engine_url}}/api/a11y/test", "host": ["{{engine_url}}"], "path": ["api", "a11y", "test"] }
+					},
+					"event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status 200', function () { pm.response.to.have.status(200); });"] } }]
+				},
+				{
+					"name": "Batch Test URLs",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\n    \"urls\": [\n        \"https://test.garantibbva.com.tr/login\",\n        \"https://test.garantibbva.com.tr/dashboard\",\n        \"https://test.garantibbva.com.tr/eft\"\n    ],\n    \"wcag_level\": \"AA\"\n}" },
+						"url": { "raw": "{{engine_url}}/api/a11y/test/batch", "host": ["{{engine_url}}"], "path": ["api", "a11y", "test", "batch"] }
+					},
+					"event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status 200', function () { pm.response.to.have.status(200); });"] } }]
+				},
+				{
+					"name": "Generate Report",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\n    \"url\": \"https://test.garantibbva.com.tr/login\",\n    \"wcag_level\": \"AA\",\n    \"include_warnings\": true\n}" },
+						"url": { "raw": "{{engine_url}}/api/a11y/report", "host": ["{{engine_url}}"], "path": ["api", "a11y", "report"] }
+					},
+					"event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status 200', function () { pm.response.to.have.status(200); });"] } }]
+				},
+				{
+					"name": "Get WCAG Rules",
+					"request": { "method": "GET", "header": [], "url": { "raw": "{{engine_url}}/api/a11y/rules", "host": ["{{engine_url}}"], "path": ["api", "a11y", "rules"] } },
+					"event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status 200', function () { pm.response.to.have.status(200); });"] } }]
+				},
+				{
+					"name": "Get A11y Config",
+					"request": { "method": "GET", "header": [], "url": { "raw": "{{engine_url}}/api/a11y/config", "host": ["{{engine_url}}"], "path": ["api", "a11y", "config"] } },
+					"event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status 200', function () { pm.response.to.have.status(200); });"] } }]
+				},
+				{
+					"name": "Update A11y Config",
+					"request": {
+						"method": "PUT",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\n    \"wcag_level\": \"AAA\",\n    \"headless\": true,\n    \"timeout\": 30000\n}" },
+						"url": { "raw": "{{engine_url}}/api/a11y/config", "host": ["{{engine_url}}"], "path": ["api", "a11y", "config"] }
+					},
+					"event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status 200', function () { pm.response.to.have.status(200); });"] } }]
+				}
+			]
+		},
+		{
+			"name": "Recorder",
+			"description": "Test kaydedici — oturum yönetimi, aksiyon ekleme, kod üretimi",
+			"item": [
+				{
+					"name": "Start Recording",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\n    \"name\": \"EFT Transfer Kaydi\",\n    \"domain\": \"garanti\",\n    \"base_url\": \"https://test.garantibbva.com.tr\"\n}" },
+						"url": { "raw": "{{engine_url}}/api/recorder/start", "host": ["{{engine_url}}"], "path": ["api", "recorder", "start"] }
+					},
+					"event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status 200', function () { pm.response.to.have.status(200); });", "var body = pm.response.json();", "if (body.session_id) pm.collectionVariables.set('session_id', body.session_id);"] } }]
+				},
+				{
+					"name": "Add Action",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\n    \"action_type\": \"click\",\n    \"selector\": \"#eft-menu-button\",\n    \"selector_type\": \"css\",\n    \"element_name\": \"eft_menu_btn\",\n    \"element_info\": { \"tag\": \"button\", \"id\": \"eft-menu-button\", \"aria-label\": \"EFT Transfer\" }\n}" },
+						"url": { "raw": "{{engine_url}}/api/recorder/{{session_id}}/action", "host": ["{{engine_url}}"], "path": ["api", "recorder", "{{session_id}}", "action"] }
+					},
+					"event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status 200', function () { pm.response.to.have.status(200); });"] } }]
+				},
+				{
+					"name": "Get Actions",
+					"request": { "method": "GET", "header": [], "url": { "raw": "{{engine_url}}/api/recorder/{{session_id}}/actions", "host": ["{{engine_url}}"], "path": ["api", "recorder", "{{session_id}}", "actions"] } },
+					"event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status 200', function () { pm.response.to.have.status(200); });"] } }]
+				},
+				{
+					"name": "Stop Recording",
+					"request": { "method": "POST", "header": [], "url": { "raw": "{{engine_url}}/api/recorder/{{session_id}}/stop", "host": ["{{engine_url}}"], "path": ["api", "recorder", "{{session_id}}", "stop"] } },
+					"event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status 200', function () { pm.response.to.have.status(200); });"] } }]
+				},
+				{
+					"name": "List Sessions",
+					"request": { "method": "GET", "header": [], "url": { "raw": "{{engine_url}}/api/recorder/sessions?domain=garanti", "host": ["{{engine_url}}"], "path": ["api", "recorder", "sessions"], "query": [{ "key": "domain", "value": "garanti" }] } },
+					"event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status 200', function () { pm.response.to.have.status(200); });"] } }]
+				},
+				{
+					"name": "Generate Code",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\n    \"session_path\": \"/path/to/session.json\",\n    \"format\": \"cucumber\",\n    \"feature_title\": \"EFT Transfer Senaryosu\"\n}" },
+						"url": { "raw": "{{engine_url}}/api/recorder/generate", "host": ["{{engine_url}}"], "path": ["api", "recorder", "generate"] }
+					},
+					"event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status 200', function () { pm.response.to.have.status(200); });"] } }]
+				},
+				{
+					"name": "List Locators by Domain",
+					"request": { "method": "GET", "header": [], "url": { "raw": "{{engine_url}}/api/recorder/locators/garanti", "host": ["{{engine_url}}"], "path": ["api", "recorder", "locators", "garanti"] } },
+					"event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status 200', function () { pm.response.to.have.status(200); });"] } }]
+				}
+			]
+		},
+		{
+			"name": "Manual Tests",
+			"description": "Manuel test yönetimi ve AI ile otomatik test üretimi",
+			"item": [
+				{
+					"name": "List Manual Tests",
+					"request": { "method": "GET", "header": [], "url": { "raw": "{{engine_url}}/api/manual-tests", "host": ["{{engine_url}}"], "path": ["api", "manual-tests"] } },
+					"event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status 200', function () { pm.response.to.have.status(200); });"] } }]
+				},
+				{
+					"name": "Create Manual Test",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\n    \"title\": \"Havale İşlemi Doğrulama\"\n}" },
+						"url": { "raw": "{{engine_url}}/api/manual-tests", "host": ["{{engine_url}}"], "path": ["api", "manual-tests"] }
+					},
+					"event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status 200', function () { pm.response.to.have.status(200); });"] } }]
+				},
+				{
+					"name": "Add Manual Step",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\n    \"action\": \"Havale menüsüne tıkla ve alıcı IBAN gir\",\n    \"expected\": \"IBAN doğrulama başarılı mesajı görüntülenir\"\n}" },
+						"url": { "raw": "{{engine_url}}/api/manual-tests/1/steps", "host": ["{{engine_url}}"], "path": ["api", "manual-tests", "1", "steps"] }
+					},
+					"event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status 200', function () { pm.response.to.have.status(200); });"] } }]
+				},
+				{
+					"name": "Update Manual Test Status",
+					"request": {
+						"method": "PUT",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\n    \"status\": \"passed\"\n}" },
+						"url": { "raw": "{{engine_url}}/api/manual-tests/1", "host": ["{{engine_url}}"], "path": ["api", "manual-tests", "1"] }
+					},
+					"event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status 200', function () { pm.response.to.have.status(200); });"] } }]
+				}
+			]
+		},
+		{
+			"name": "Regression Sets (Engine)",
+			"description": "Feature bazlı regresyon seti yönetimi",
+			"item": [
+				{
+					"name": "List Regression Sets",
+					"request": { "method": "GET", "header": [], "url": { "raw": "{{engine_url}}/api/regression-sets", "host": ["{{engine_url}}"], "path": ["api", "regression-sets"] } },
+					"event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status 200', function () { pm.response.to.have.status(200); });"] } }]
+				},
+				{
+					"name": "Create Regression Set",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\n    \"name\": \"Kritik Bankacılık Akışları\"\n}" },
+						"url": { "raw": "{{engine_url}}/api/regression-sets", "host": ["{{engine_url}}"], "path": ["api", "regression-sets"] }
+					},
+					"event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status 200', function () { pm.response.to.have.status(200); });"] } }]
+				},
+				{
+					"name": "Add Feature to Set",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\n    \"feature_name\": \"banking/login.feature\"\n}" },
+						"url": { "raw": "{{engine_url}}/api/regression-sets/1/features", "host": ["{{engine_url}}"], "path": ["api", "regression-sets", "1", "features"] }
+					},
+					"event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status 200', function () { pm.response.to.have.status(200); });"] } }]
+				}
+			]
+		},
+		{
+			"name": "Lifecycle",
+			"description": "Test yaşam döngüsü — analiz ve akış kaydetme",
+			"item": [
+				{
+					"name": "Process Analyst Document",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\n    \"text\": \"Müşteri internet bankacılığı üzerinden döviz alım-satım işlemi yapabilmelidir. Sistem güncel kur bilgisini göstermeli, işlem sonrasında hesap bakiyesi güncellenmeli ve işlem dekontu oluşturulmalıdır.\"\n}" },
+						"url": { "raw": "{{engine_url}}/api/lifecycle/process-analyst", "host": ["{{engine_url}}"], "path": ["api", "lifecycle", "process-analyst"] }
+					},
+					"event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status 200', function () { pm.response.to.have.status(200); });"] } }]
+				},
+				{
+					"name": "Save Flow",
+					"request": { "method": "POST", "header": [], "url": { "raw": "{{engine_url}}/api/lifecycle/save", "host": ["{{engine_url}}"], "path": ["api", "lifecycle", "save"] } },
+					"event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status 200', function () { pm.response.to.have.status(200); });"] } }]
+				}
+			]
+		},
+		{
+			"name": "DataSim",
+			"description": "Sentetik veri simülasyonu — Mostly AI, SQLite/PostgreSQL entegrasyonu",
+			"item": [
+				{
+					"name": "List Datasets Catalog",
+					"request": { "method": "GET", "header": [], "url": { "raw": "{{engine_url}}/api/datasim/datasets", "host": ["{{engine_url}}"], "path": ["api", "datasim", "datasets"] } },
+					"event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status 200', function () { pm.response.to.have.status(200); });", "pm.test('Returns array', function () { pm.expect(pm.response.json()).to.be.an('array'); });"] } }]
+				},
+				{
+					"name": "Load Dataset",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\n    \"id\": \"banking_transactions\",\n    \"sample_rows\": 50\n}" },
+						"url": { "raw": "{{engine_url}}/api/datasim/datasets/load", "host": ["{{engine_url}}"], "path": ["api", "datasim", "datasets", "load"] }
+					},
+					"event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status 200', function () { pm.response.to.have.status(200); });"] } }]
+				},
+				{
+					"name": "Check Mostly AI Install",
+					"request": { "method": "GET", "header": [], "url": { "raw": "{{engine_url}}/api/datasim/check-install", "host": ["{{engine_url}}"], "path": ["api", "datasim", "check-install"] } },
+					"event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status 200', function () { pm.response.to.have.status(200); });"] } }]
+				},
+				{
+					"name": "SQLite/PG Catalog",
+					"request": { "method": "GET", "header": [], "url": { "raw": "{{engine_url}}/api/datasim/sqlite/catalog", "host": ["{{engine_url}}"], "path": ["api", "datasim", "sqlite", "catalog"] } },
+					"event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status 200', function () { pm.response.to.have.status(200); });"] } }]
+				},
+				{
+					"name": "Get DB Tables",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\n    \"id\": \"banking_full\"\n}" },
+						"url": { "raw": "{{engine_url}}/api/datasim/sqlite/tables", "host": ["{{engine_url}}"], "path": ["api", "datasim", "sqlite", "tables"] }
+					},
+					"event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status 200', function () { pm.response.to.have.status(200); });"] } }]
+				},
+				{
+					"name": "Preview Table Data",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\n    \"id\": \"banking_full\",\n    \"table\": \"customers\",\n    \"limit\": 20\n}" },
+						"url": { "raw": "{{engine_url}}/api/datasim/sqlite/preview", "host": ["{{engine_url}}"], "path": ["api", "datasim", "sqlite", "preview"] }
+					},
+					"event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status 200', function () { pm.response.to.have.status(200); });"] } }]
+				},
+				{
+					"name": "Proxy Request",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\n    \"url\": \"https://jsonplaceholder.typicode.com/posts/1\",\n    \"method\": \"GET\",\n    \"headers\": []\n}" },
+						"url": { "raw": "{{engine_url}}/api/request", "host": ["{{engine_url}}"], "path": ["api", "request"] }
+					},
+					"event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status 200', function () { pm.response.to.have.status(200); });"] } }]
+				}
+			]
+		}
+	]
+}

@@ -161,7 +161,7 @@ if (Test-Python310) {
 # ── 3. Maven via mvnw (project-bundled wrapper) ──────────────
 Header "3/5 · Maven wrapper kontrolü"
 # Detect framework/ subdir vs legacy flat layout
-$FrameworkDir = Join-Path $InstallDir "framework"
+$FrameworkDir = Join-Path $InstallDir "frameworks\cortex-java"
 if (-not (Test-Path (Join-Path $FrameworkDir "pom.xml"))) {
     $FrameworkDir = $InstallDir
 }

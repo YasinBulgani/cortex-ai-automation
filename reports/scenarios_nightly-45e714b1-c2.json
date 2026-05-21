@@ -1,0 +1,137 @@
+[
+  {
+    "id": "SCN-001",
+    "module": "User",
+    "title": "Kullanıcı bilgilerini güncelleme (Happy Path)",
+    "type": "positive",
+    "description": "Geçerli bir kullanıcı, kendi kullanıcı bilgilerini güncelleyebilir.",
+    "preconditions": [
+      "Kullanıcı JWT ile giriş yaptı",
+      "Güncellemek istenen kullanıcı bilgileri mevcut"
+    ],
+    "steps": [
+      {
+        "order": 1,
+        "action": "PUT /api/v1/users/{user_id} — jwt: valid_jwt_token, data: {\"email\": \"new_email@test.com\", \"firstName\": \"NewFirstName\", \"lastName\": \"NewLastName\"}",
+        "expected": "200 OK + Updated user details"
+      }
+    ],
+    "expected_result": "Kullanıcı bilgileri başarıyla güncellendi ve 200 OK döner.",
+    "priority": "P1",
+    "depends_on": [],
+    "tags": [
+      "user-management",
+      "update"
+    ],
+    "related_endpoint": "PUT /api/v1/users/{user_id}"
+  },
+  {
+    "id": "SCN-002",
+    "module": "User",
+    "title": "Geçersiz JWT ile kullanıcı bilgilerini güncellemeye deneme",
+    "type": "negative",
+    "description": "Geçersiz bir JWT ile kullanıcı bilgilerini güncellemeye denendiğinde, hata mesajı döner.",
+    "preconditions": [
+      "Kullanıcı JWT ile giriş yaptı",
+      "Güncellemek istenen kullanıcı bilgileri mevcut"
+    ],
+    "steps": [
+      {
+        "order": 1,
+        "action": "PUT /api/v1/users/{user_id} — jwt: invalid_jwt_token, data: {\"email\": \"new_email@test.com\", \"firstName\": \"NewFirstName\", \"lastName\": \"NewLastName\"}",
+        "expected": "401 Unauthorized"
+      }
+    ],
+    "expected_result": "Geçersiz JWT ile kullanıcı bilgilerini güncellemeye denendiğinde 401 Unauthorized döner.",
+    "priority": "P2",
+    "depends_on": [],
+    "tags": [
+      "security",
+      "update"
+    ],
+    "related_endpoint": "PUT /api/v1/users/{user_id}"
+  },
+  {
+    "id": "SCN-003",
+    "module": "User",
+    "title": "Kullanıcı silme (Happy Path)",
+    "type": "positive",
+    "description": "Geçerli bir kullanıcı, kendi hesabını silebilir.",
+    "preconditions": [
+      "Kullanıcı JWT ile giriş yaptı",
+      "Silinmek istenen kullanıcı mevcut"
+    ],
+    "steps": [
+      {
+        "order": 1,
+        "action": "DELETE /api/v1/users/{user_id} — jwt: valid_jwt_token",
+        "expected": "204 No Content"
+      }
+    ],
+    "expected_result": "Kullanıcı başarıyla silinir ve 204 No Content döner.",
+    "priority": "P1",
+    "depends_on": [],
+    "tags": [
+      "user-management",
+      "delete"
+    ],
+    "related_endpoint": "DELETE /api/v1/users/{user_id}"
+  },
+  {
+    "id": "SCN-004",
+    "module": "User",
+    "title": "Geçersiz JWT ile kullanıcı silmeye deneme",
+    "type": "negative",
+    "description": "Geçersiz bir JWT ile kullanıcı silmeye denendiğinde, hata mesajı döner.",
+    "preconditions": [
+      "Kullanıcı JWT ile giriş yaptı",
+      "Silinmek istenen kullanıcı mevcut"
+    ],
+    "steps": [
+      {
+        "order": 1,
+        "action": "DELETE /api/v1/users/{user_id} — jwt: invalid_jwt_token",
+        "expected": "401 Unauthorized"
+      }
+    ],
+    "expected_result": "Geçersiz JWT ile kullanıcı silmeye denendiğinde 401 Unauthorized döner.",
+    "priority": "P2",
+    "depends_on": [],
+    "tags": [
+      "security",
+      "delete"
+    ],
+    "related_endpoint": "DELETE /api/v1/users/{user_id}"
+  },
+  {
+    "id": "SCN-005",
+    "module": "User",
+    "title": "Kullanıcı silme işlemi sırasında birden fazla istek gönderme (Concurrency)",
+    "type": "edge_case",
+    "description": "Birden fazla silme isteği aynı anda gönderildiğinde, ilk isteğin başarılı olmasına rağmen diğerlerinin hata döndürmesini kontrol et.",
+    "preconditions": [
+      "Kullanıcı JWT ile giriş yaptı",
+      "Silinmek istenen kullanıcı mevcut"
+    ],
+    "steps": [
+      {
+        "order": 1,
+        "action": "DELETE /api/v1/users/{user_id} — jwt: valid_jwt_token",
+        "expected": "204 No Content"
+      },
+      {
+        "order": 2,
+        "action": "DELETE /api/v1/users/{user_id} — jwt: valid_jwt_token",
+        "expected": "404 Not Found"
+      }
+    ],
+    "expected_result": "İlk silme isteği başarılı olurken ikinci istek hata döner.",
+    "priority": "P3",
+    "depends_on": [],
+    "tags": [
+      "concurrency",
+      "delete"
+    ],
+    "related_endpoint": "DELETE /api/v1/users/{user_id}"
+  }
+]

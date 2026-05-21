@@ -1,0 +1,2 @@
+'AnaSayfaKullanıcıAdıText' adlı elemanın değeri kontrol ediliyor (Beklenen: Test19)
+Element: AnaSayfaKullanıcıAdıText, Beklenen metin: Test19

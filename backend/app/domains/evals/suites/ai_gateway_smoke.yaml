@@ -1,0 +1,102 @@
+# AI Gateway smoke / failover contract suite (Dalga 2).
+#
+# Varsayılan deterministiktir: fixture üzerinden provider metadata, attempts,
+# JSON mode ve latency contract'ı ölçülür. Canlı LLM trendi için aynı adapter
+# EVAL_RUN_LLM=1 ile fixture'sız case'lerde gerçek /ai/complete çağırabilir.
+
+name: ai_gateway_smoke
+adapter: ai_gateway
+description: >
+  AI Gateway'in temel sözleşmesini ölçer: content boş değil, provider metadata
+  geçerli, attempt zinciri raporlanıyor, JSON mode parse edilebilir ve latency
+  bütçesi aşılmıyor.
+
+scorers:
+  - gateway_content_contains
+  - gateway_provider_allowed
+  - gateway_attempts_healthy
+  - gateway_json_valid
+  - gateway_latency_budget
+
+thresholds:
+  min_case_pass_rate: 1.0
+  mean:
+    gateway_content_contains: 1.0
+    gateway_provider_allowed: 1.0
+    gateway_attempts_healthy: 1.0
+    gateway_json_valid: 1.0
+    gateway_latency_budget: 1.0
+
+cases:
+  - id: gw-chat-basic
+    description: Chat cevabı boş değil ve provider/attempt metadata'sı var
+    tags: [gateway, chat, metadata]
+    inputs:
+      task_type: chat
+      user_message: "Neurex QA hazır mı?"
+      _fixture:
+        content: "Neurex QA hazır. Test otomasyonu için devam edebiliriz."
+        provider_used: ollama
+        model_used: llama3.1:8b
+        latency_ms: 842
+        attempts:
+          - provider: ollama
+            success: true
+            latency_ms: 842
+            tokens_used: 28
+    expected:
+      contains_any: ["hazır", "test"]
+      provider_allowed: [vllm, ollama, groq, gemini, g4f, cache]
+      min_attempts: 1
+      max_latency_ms: 5000
+
+  - id: gw-failover-attempts
+    description: İlk provider başarısız, sonraki provider başarı metadata'sı
+    tags: [gateway, failover, attempts]
+    inputs:
+      task_type: chat
+      user_message: "Kısa fallback kontrolü yap."
+      _fixture:
+        content: "Fallback zinciri çalıştı."
+        provider_used: ollama
+        model_used: llama3.1:8b
+        latency_ms: 1260
+        attempts:
+          - provider: vllm
+            success: false
+            error: provider_unavailable
+            latency_ms: 0
+          - provider: ollama
+            success: true
+            latency_ms: 1260
+            tokens_used: 19
+    expected:
+      contains_any: ["fallback", "çalıştı"]
+      provider_allowed: [ollama, groq, gemini, g4f]
+      min_attempts: 2
+      require_failed_before_success: true
+      max_latency_ms: 8000
+
+  - id: gw-json-mode
+    description: JSON task içeriği parse edilebilir olmalı
+    tags: [gateway, json-mode, structured]
+    inputs:
+      task_type: analyze_document
+      json_mode: true
+      user_message: "Login modülünü özetle."
+      _fixture:
+        content: '{"modules":[{"name":"Login","risk":"medium"}],"total_estimated_cases":4}'
+        provider_used: ollama
+        model_used: qwen2.5:14b
+        latency_ms: 1740
+        attempts:
+          - provider: ollama
+            success: true
+            latency_ms: 1740
+            tokens_used: 74
+    expected:
+      contains_any: ["modules", "Login"]
+      json_required: true
+      provider_allowed: [vllm, ollama, groq, gemini, g4f]
+      min_attempts: 1
+      max_latency_ms: 10000

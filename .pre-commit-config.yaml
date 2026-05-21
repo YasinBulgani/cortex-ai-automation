@@ -1,0 +1,85 @@
+# BGTS pre-commit hooks — isteğe bağlı ama önerilen.
+#
+# Kurulum (bir kez):
+#   pip install pre-commit
+#   pre-commit install
+#
+# Test çalıştır:
+#   pre-commit run --all-files
+#
+# Devre dışı bırakmak için (tek commit için):
+#   git commit --no-verify
+
+repos:
+  - repo: local
+    hooks:
+      - id: dsl-catalog-validate
+        name: DSL Katalog Doğrulama
+        description: packages/dsl/catalog/*.yaml dosyalarını JSON Schema'ya karşı doğrular.
+        entry: python3 packages/dsl/scripts/validate_catalog.py
+        language: system
+        pass_filenames: false
+        files: ^packages/dsl/(catalog|schema)/
+
+      - id: dsl-catalog-sync
+        name: DSL Yeni Step Senkronizasyonu
+        description: Staged step definition dosyalarında katalog'da olmayan yeni pattern varsa uyarır.
+        entry: python3 packages/dsl/scripts/check_new_steps.py --staged
+        language: system
+        pass_filenames: false
+        files: >-
+          ^(
+            engine/steps/|
+            backend/tests/bdd/steps/|
+            frameworks/playwright-cucumber-ts/steps/
+          )
+
+      - id: tr-normalize-check
+        name: Türkçe Karakter Normalizasyon Kontrolü
+        description: apps/web/ içinde ASCII Türkçe yazım kalıntılarını bulursa commit'i durdurur.
+        entry: python3 scripts/tr_normalize.py --check-only --root apps/web
+        language: system
+        pass_filenames: false
+        files: ^apps/web/.*\.(ts|tsx)$
+
+      # ─── Architecture cleanup guards (ADR-0004) ────────────────────────────
+      - id: no-tracked-pyc
+        name: "Guard: .pyc dosyaları git'e girmesin"
+        description: Python bytecode dosyalarını (.pyc, .pyo, __pycache__) staging'de reddeder.
+        entry: bash -c 'files=$(git diff --cached --name-only --diff-filter=A | grep -E "\\.pyc$|\\.pyo$|__pycache__/"); if [ -n "$files" ]; then echo "HATA — Python bytecode git'"'"'e eklenemez:"; echo "$files"; exit 1; fi'
+        language: system
+        pass_filenames: false
+        stages: [pre-commit]
+
+      - id: no-ds-store
+        name: "Guard: .DS_Store dosyaları git'e girmesin"
+        description: macOS .DS_Store metadata dosyalarını reddeder.
+        entry: bash -c 'files=$(git diff --cached --name-only --diff-filter=A | grep -E "(^|/)\\.DS_Store$"); if [ -n "$files" ]; then echo "HATA — .DS_Store git'"'"'e eklenemez:"; echo "$files"; exit 1; fi'
+        language: system
+        pass_filenames: false
+        stages: [pre-commit]
+
+      - id: no-tsbuildinfo
+        name: "Guard: *.tsbuildinfo dosyaları git'e girmesin"
+        description: TypeScript incremental build metadata dosyalarını reddeder.
+        entry: bash -c 'files=$(git diff --cached --name-only --diff-filter=A | grep -E "\\.tsbuildinfo$"); if [ -n "$files" ]; then echo "HATA — *.tsbuildinfo build artefaktıdır, git'"'"'e eklenemez:"; echo "$files"; exit 1; fi'
+        language: system
+        pass_filenames: false
+        stages: [pre-commit]
+
+      - id: legacy-readonly
+        name: "Guard: legacy/ altı salt-okunur (ADR-0004)"
+        description: legacy/ altında yeni/değişen dosya tespit ederse commit'i durdurur. Silme serbest.
+        entry: bash -c 'files=$(git diff --cached --name-only --diff-filter=AM -- legacy/ | grep -v "^legacy/README.md$"); if [ -n "$files" ]; then echo "HATA — legacy/ altı salt-okunur (ADR-0004). Dosya değiştirmek yerine önce aktif yola geri taşıyın:"; echo "$files"; exit 1; fi'
+        language: system
+        pass_filenames: false
+        stages: [pre-commit]
+
+      # ─── Security guards (D3.4) ─────────────────────────────────────────
+      - id: gitleaks-local
+        name: "Guard: gitleaks (secret scan)"
+        description: Staged değişiklikleri gitleaks ile tarar. gitleaks kurulu değilse atlanır.
+        entry: bash -c 'command -v gitleaks >/dev/null 2>&1 || { echo "gitleaks kurulu degil - atlaniyor (CI'"'"'da zorunlu)"; exit 0; }; gitleaks protect --staged --redact --config .gitleaks.toml'
+        language: system
+        pass_filenames: false
+        stages: [pre-commit]

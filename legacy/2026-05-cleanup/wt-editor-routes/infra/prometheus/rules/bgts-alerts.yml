@@ -1,0 +1,93 @@
+groups:
+  - name: bgts-service-health
+    rules:
+      - alert: BgtsBackendDown
+        expr: up{job="bgts-backend"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          service: backend
+        annotations:
+          summary: "BGTS backend is down"
+          description: "Prometheus cannot scrape the FastAPI backend for 2 minutes."
+
+      - alert: BgtsEngineDown
+        expr: up{job="bgts-engine"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          service: engine
+        annotations:
+          summary: "BGTS engine is down"
+          description: "Prometheus cannot scrape the engine service for 2 minutes."
+
+      - alert: BgtsAiGatewayDown
+        expr: up{job="bgts-ai-gateway"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          service: ai-gateway
+        annotations:
+          summary: "BGTS AI gateway is down"
+          description: "Prometheus cannot scrape the AI gateway for 2 minutes."
+
+      - alert: BgtsNginxExporterDown
+        expr: up{job="nginx"} == 0
+        for: 5m
+        labels:
+          severity: warning
+          service: nginx
+        annotations:
+          summary: "Nginx exporter is down"
+          description: "Nginx exporter has been unavailable for 5 minutes."
+
+      - alert: BgtsRedisExporterDown
+        expr: up{job="redis"} == 0
+        for: 5m
+        labels:
+          severity: warning
+          service: redis
+        annotations:
+          summary: "Redis exporter is down"
+          description: "Redis exporter has been unavailable for 5 minutes."
+
+      - alert: BgtsPostgresExporterDown
+        expr: up{job="postgres"} == 0
+        for: 5m
+        labels:
+          severity: warning
+          service: postgres
+        annotations:
+          summary: "Postgres exporter is down"
+          description: "Postgres exporter has been unavailable for 5 minutes."
+
+  - name: bgts-backend-performance
+    rules:
+      - alert: BgtsHigh5xxRate
+        expr: |
+          (
+            sum(rate(http_requests_total{job="bgts-backend",status=~"5.."}[5m]))
+            /
+            clamp_min(sum(rate(http_requests_total{job="bgts-backend"}[5m])), 0.001)
+          ) > 0.05
+        for: 10m
+        labels:
+          severity: warning
+          service: backend
+        annotations:
+          summary: "BGTS backend 5xx rate is elevated"
+          description: "More than 5% of backend requests are returning 5xx responses for 10 minutes."
+
+      - alert: BgtsHighP95Latency
+        expr: |
+          histogram_quantile(
+            0.95,
+            sum by (le) (rate(http_request_duration_seconds_bucket{job="bgts-backend"}[5m]))
+          ) > 2
+        for: 10m
+        labels:
+          severity: warning
+          service: backend
+        annotations:
+          summary: "BGTS backend p95 latency is high"
+          description: "Backend p95 latency has exceeded 2 seconds for 10 minutes."

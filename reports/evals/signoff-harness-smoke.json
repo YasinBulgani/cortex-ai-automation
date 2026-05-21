@@ -1,0 +1,25 @@
+{
+  "overall_passed": true,
+  "suites": [
+    {
+      "name": "harness_smoke",
+      "adapter": "static_fixture",
+      "passed": true,
+      "skipped": false,
+      "cases_total": 3,
+      "cases_passed": 3,
+      "threshold_failures": [],
+      "aggregate": {
+        "mean_exact_match": 1.0,
+        "mean_precision_at_1": 1.0,
+        "mean_mrr": 1.0,
+        "case_pass_rate": 1.0,
+        "cases_total": 3.0,
+        "cases_passed": 3.0
+      },
+      "total_latency_ms": 0
+    }
+  ],
+  "total_suites": 1,
+  "failed_suites": 0
+}

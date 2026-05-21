@@ -1,0 +1,279 @@
+{
+  "generated_at": "2026-05-17T13:07:20.210048+00:00",
+  "report_dir": "/Users/yasin_bulgan/Desktop/Neurex_QA/reports/evals/20260517-130720",
+  "suites": [
+    {
+      "suite_name": "ai_gateway_smoke",
+      "adapter_name": "ai_gateway",
+      "cases": [
+        {
+          "case_id": "gw-chat-basic",
+          "passed": true,
+          "scores": [
+            {
+              "name": "gateway_content_contains",
+              "value": 1.0,
+              "passed": true,
+              "details": {
+                "content_len": 55,
+                "contains_any": [
+                  "hazır",
+                  "test"
+                ],
+                "hits": [
+                  "hazır",
+                  "test"
+                ]
+              }
+            },
+            {
+              "name": "gateway_provider_allowed",
+              "value": 1.0,
+              "passed": true,
+              "details": {
+                "provider_used": "ollama",
+                "allowed": [
+                  "cache",
+                  "g4f",
+                  "gemini",
+                  "groq",
+                  "ollama",
+                  "vllm"
+                ]
+              }
+            },
+            {
+              "name": "gateway_attempts_healthy",
+              "value": 1.0,
+              "passed": true,
+              "details": {
+                "attempt_count": 1,
+                "min_attempts": 1,
+                "success_count": 1,
+                "failed_count": 0,
+                "failed_before_success": false
+              }
+            },
+            {
+              "name": "gateway_json_valid",
+              "value": 1.0,
+              "passed": true,
+              "details": {
+                "skipped": true
+              }
+            },
+            {
+              "name": "gateway_latency_budget",
+              "value": 1.0,
+              "passed": true,
+              "details": {
+                "latency_ms": 842,
+                "max_latency_ms": 5000
+              }
+            }
+          ],
+          "latency_ms": 0,
+          "actual": {
+            "content": "Neurex QA hazır. Test otomasyonu için devam edebiliriz.",
+            "provider_used": "ollama",
+            "model_used": "llama3.1:8b",
+            "latency_ms": 842,
+            "attempts": [
+              {
+                "provider": "ollama",
+                "success": true,
+                "latency_ms": 842,
+                "tokens_used": 28
+              }
+            ]
+          },
+          "error": null
+        },
+        {
+          "case_id": "gw-failover-attempts",
+          "passed": true,
+          "scores": [
+            {
+              "name": "gateway_content_contains",
+              "value": 1.0,
+              "passed": true,
+              "details": {
+                "content_len": 25,
+                "contains_any": [
+                  "fallback",
+                  "çalıştı"
+                ],
+                "hits": [
+                  "fallback",
+                  "çalıştı"
+                ]
+              }
+            },
+            {
+              "name": "gateway_provider_allowed",
+              "value": 1.0,
+              "passed": true,
+              "details": {
+                "provider_used": "ollama",
+                "allowed": [
+                  "g4f",
+                  "gemini",
+                  "groq",
+                  "ollama"
+                ]
+              }
+            },
+            {
+              "name": "gateway_attempts_healthy",
+              "value": 1.0,
+              "passed": true,
+              "details": {
+                "attempt_count": 2,
+                "min_attempts": 2,
+                "success_count": 1,
+                "failed_count": 1,
+                "failed_before_success": true
+              }
+            },
+            {
+              "name": "gateway_json_valid",
+              "value": 1.0,
+              "passed": true,
+              "details": {
+                "skipped": true
+              }
+            },
+            {
+              "name": "gateway_latency_budget",
+              "value": 1.0,
+              "passed": true,
+              "details": {
+                "latency_ms": 1260,
+                "max_latency_ms": 8000
+              }
+            }
+          ],
+          "latency_ms": 0,
+          "actual": {
+            "content": "Fallback zinciri çalıştı.",
+            "provider_used": "ollama",
+            "model_used": "llama3.1:8b",
+            "latency_ms": 1260,
+            "attempts": [
+              {
+                "provider": "vllm",
+                "success": false,
+                "error": "provider_unavailable",
+                "latency_ms": 0
+              },
+              {
+                "provider": "ollama",
+                "success": true,
+                "latency_ms": 1260,
+                "tokens_used": 19
+              }
+            ]
+          },
+          "error": null
+        },
+        {
+          "case_id": "gw-json-mode",
+          "passed": true,
+          "scores": [
+            {
+              "name": "gateway_content_contains",
+              "value": 1.0,
+              "passed": true,
+              "details": {
+                "content_len": 72,
+                "contains_any": [
+                  "modules",
+                  "Login"
+                ],
+                "hits": [
+                  "modules",
+                  "Login"
+                ]
+              }
+            },
+            {
+              "name": "gateway_provider_allowed",
+              "value": 1.0,
+              "passed": true,
+              "details": {
+                "provider_used": "ollama",
+                "allowed": [
+                  "g4f",
+                  "gemini",
+                  "groq",
+                  "ollama",
+                  "vllm"
+                ]
+              }
+            },
+            {
+              "name": "gateway_attempts_healthy",
+              "value": 1.0,
+              "passed": true,
+              "details": {
+                "attempt_count": 1,
+                "min_attempts": 1,
+                "success_count": 1,
+                "failed_count": 0,
+                "failed_before_success": false
+              }
+            },
+            {
+              "name": "gateway_json_valid",
+              "value": 1.0,
+              "passed": true,
+              "details": {
+                "parsed_type": "dict"
+              }
+            },
+            {
+              "name": "gateway_latency_budget",
+              "value": 1.0,
+              "passed": true,
+              "details": {
+                "latency_ms": 1740,
+                "max_latency_ms": 10000
+              }
+            }
+          ],
+          "latency_ms": 0,
+          "actual": {
+            "content": "{\"modules\":[{\"name\":\"Login\",\"risk\":\"medium\"}],\"total_estimated_cases\":4}",
+            "provider_used": "ollama",
+            "model_used": "qwen2.5:14b",
+            "latency_ms": 1740,
+            "attempts": [
+              {
+                "provider": "ollama",
+                "success": true,
+                "latency_ms": 1740,
+                "tokens_used": 74
+              }
+            ]
+          },
+          "error": null
+        }
+      ],
+      "started_at": "2026-05-17T13:07:20.202220Z",
+      "finished_at": "2026-05-17T13:07:20.209017Z",
+      "passed": true,
+      "aggregate": {
+        "mean_gateway_content_contains": 1.0,
+        "mean_gateway_provider_allowed": 1.0,
+        "mean_gateway_attempts_healthy": 1.0,
+        "mean_gateway_json_valid": 1.0,
+        "mean_gateway_latency_budget": 1.0,
+        "case_pass_rate": 1.0,
+        "cases_total": 3.0,
+        "cases_passed": 3.0
+      },
+      "threshold_failures": [],
+      "total_latency_ms": 0
+    }
+  ]
+}

@@ -1,0 +1,93 @@
+# Sentetik veri platformu — tek komutla dev ortamı (Postgres + Redis + API + RQ worker)
+#
+# Kullanım (repo kökünden):
+#   docker compose -f infra/docker-compose.syndata.yml up --build
+#
+# UI: ayrı terminalde  cd frontend && npm run dev  (proxy → http://127.0.0.1:8000)
+#
+# Postgres host makinede 5433 (çakışmayı azaltmak için). API: http://127.0.0.1:8000
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: twai_user
+      POSTGRES_PASSWORD: twai_pass
+      POSTGRES_DB: twai_db
+    ports:
+      - "5433:5432"
+    volumes:
+      - syndata_pgdata:/var/lib/postgresql/data
+      - ./postgres-init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U twai_user -d syndata_db"]
+      interval: 3s
+      timeout: 5s
+      retries: 15
+      start_period: 10s
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  syndata-api:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql+psycopg2://twai_user:twai_pass@postgres:5432/syndata_db
+      REDIS_URL: redis://redis:6379/0
+      JWT_SECRET: dev-only-change-in-production
+      ARTIFACTS_DIR: /app/data/artifacts
+      CORS_ORIGINS: http://127.0.0.1:5173,http://localhost:5173
+      # Simülasyon verisi (dataset + başarılı iş + CSV); prod’da kapatın
+      RUN_SEED_DEMO: "1"
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: "5432"
+    volumes:
+      - syndata_artifacts:/app/data/artifacts
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=2)\"",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+
+  syndata-worker:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    # RQ worker varsayılan Redis’i 127.0.0.1:6379 kabul eder; konteynerde redis servisine -u ile bağlan
+    command: ["sh", "-c", "exec rq worker -u \"$$REDIS_URL\" syndata_jobs"]
+    environment:
+      SKIP_APP_BOOTSTRAP: "1"
+      DATABASE_URL: postgresql+psycopg2://twai_user:twai_pass@postgres:5432/syndata_db
+      REDIS_URL: redis://redis:6379/0
+      ARTIFACTS_DIR: /app/data/artifacts
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: "5432"
+    volumes:
+      - syndata_artifacts:/app/data/artifacts
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      syndata-api:
+        condition: service_healthy
+
+volumes:
+  syndata_pgdata:
+  syndata_artifacts:

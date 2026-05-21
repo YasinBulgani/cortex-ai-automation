@@ -1,0 +1,75 @@
+### Cortex Dashboard API — test koşumu, sonuç, AI sınıflandırma
+# Dashboard çalışıyor olmalı: make cortex-dashboard
+
+# ===== Health + version =====
+GET {{cortexDashboard}}/api/health
+
+###
+
+# ===== Feature listesi =====
+GET {{cortexDashboard}}/api/features
+
+###
+
+# ===== Mevcut sonuçlar (target/cucumber.json) =====
+GET {{cortexDashboard}}/api/results
+
+###
+
+# ===== Screenshot galerisi =====
+GET {{cortexDashboard}}/api/screenshots
+
+###
+
+# ===== Config (maskelenmiş) =====
+GET {{cortexDashboard}}/api/config
+
+###
+
+# ===== TEST KOŞUMU BAŞLAT =====
+POST {{cortexDashboard}}/api/run
+Content-Type: application/json
+
+{
+  "feature": "frameworks/cortex-java/src/test/resources/projects/cortex/features/login.feature",
+  "tag": "@smoke"
+}
+
+> {%
+client.global.set("lastRunId", response.body.run_id);
+%}
+
+###
+
+# ===== Koşum durumu =====
+GET {{cortexDashboard}}/api/run/{{lastRunId}}/status
+
+###
+
+# ===== Canlı log akışı (SSE — IntelliJ'de stream izlenir) =====
+GET {{cortexDashboard}}/api/run/{{lastRunId}}/stream
+Accept: text/event-stream
+
+###
+
+# ===== Koşumu durdur =====
+POST {{cortexDashboard}}/api/run/{{lastRunId}}/stop
+
+###
+
+# ===== Tüm koşumlar =====
+GET {{cortexDashboard}}/api/runs
+
+###
+
+# ===== AI hata sınıflandırma =====
+POST {{cortexDashboard}}/api/classify_error
+Content-Type: application/json
+
+{
+  "error_message": "org.openqa.selenium.NoSuchElementException: Unable to locate element using locator: //button[@id='login-btn']",
+  "scenario": "Cortex login",
+  "step": "I click \"loginButton\""
+}
+
+###

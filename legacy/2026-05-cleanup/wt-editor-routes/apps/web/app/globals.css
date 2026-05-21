@@ -1,0 +1,48 @@
+@import "./styles/tokens.css";
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    @apply antialiased;
+  }
+  body {
+    @apply bg-bg text-fg min-h-screen;
+  }
+
+  /* WCAG 2.3.3 — Animation from Interactions.
+     prefers-reduced-motion aktifse tüm animasyon/geçişleri minimize et.
+     Tailwind'in `motion-reduce:` varyantı component'lerde kullanılıyor;
+     global fallback'i buraya koyuyoruz (3rd-party CSS dahil her şey için). */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+
+  /* Sadece klavye focus'u için net bir ring — fare click'lerinde görünmez.
+     Tailwind focus-visible: variant'ları var; bu sadece component'lerde
+     focus-visible kullanmayan 3rd-party element'ler için global safety. */
+  :focus-visible {
+    outline: 2px solid #60a5fa;  /* blue-400 */
+    outline-offset: 2px;
+  }
+}
+
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(200%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  @keyframes shimmer {
+    0%, 100% { transform: none; }
+  }
+}

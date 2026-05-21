@@ -1,0 +1,32 @@
+[
+  {
+    "key": "profilSayfasıButon",
+    "type": "xpath",
+    "value": "//a[contains(@href,'Profile') or contains(@href,'profile') or contains(normalize-space(.),'Profilim')]"
+  },
+  {
+    "key": "profilSayfasıAdSoyadText",
+    "type": "xpath",
+    "value": "//div[contains(@class,'profile')]//h2 | //div[contains(@class,'profile')]//span[contains(@class,'name')]"
+  },
+  {
+    "key": "profilSayfasıSicilNoText",
+    "type": "xpath",
+    "value": "//div[contains(@class,'profile')]//span[contains(@class,'registration') or contains(@class,'sicil')]"
+  },
+  {
+    "key": "profilSayfasıDepartmanText",
+    "type": "xpath",
+    "value": "//div[contains(@class,'profile')]//span[contains(@class,'department') or contains(@class,'departman')]"
+  },
+  {
+    "key": "profilSayfasıFotoğrafAlanı",
+    "type": "xpath",
+    "value": "//div[contains(@class,'profile')]//img | //div[contains(@class,'avatar')]"
+  },
+  {
+    "key": "anaSayfaLogoButon",
+    "type": "xpath",
+    "value": "//a[contains(@class,'logo') or contains(@class,'brand') or @href='/']//img | //a[contains(@class,'navbar-brand')]"
+  }
+]

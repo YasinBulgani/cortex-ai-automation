@@ -1,0 +1,8 @@
+{
+  "name": "Playwright — Onay Akışı",
+  "type": "playwright",
+  "description": "AI generator'ün ürettiği Playwright onay testi — kalite skoru 70+ olmalı",
+  "expected_min_score": 70,
+  "prompt_input": "Kullanıcı onay sayfasını açar, bekleyen onayı seçer ve onaylar. Senaryo listesinde onaylanan başlık görünmeli.",
+  "output": "import { test, expect } from '@playwright/test';\nimport { getAdminToken, apiCreateProject, apiCreateApproval } from './helpers/auth';\nimport { API_BASE } from './config/runtime';\n\ntest.describe('Onay Akışı', () => {\n  let projectId: string;\n  let token: string;\n\n  test.beforeAll(async ({ playwright }) => {\n    const request = await playwright.request.newContext();\n    token = await getAdminToken(request);\n    projectId = await apiCreateProject(request, token, `Onay Test ${Date.now()}`);\n    await request.dispose();\n  });\n\n  test('bekleyen onay onaylanabilmeli', async ({ page, request }) => {\n    const approvalId = await apiCreateApproval(request, token, projectId, 'Test Onayı');\n    await page.goto(`/p/${projectId}/approvals`);\n    await expect(page.getByTestId(`approvals-card-${approvalId}`)).toBeVisible({ timeout: 10_000 });\n    await page.getByTestId(`approvals-card-${approvalId}`).click();\n    await page.getByTestId('approvals-btn-approve').click();\n    await expect(page.getByTestId('approvals-status-approved')).toBeVisible({ timeout: 10_000 });\n  });\n});\n"
+}

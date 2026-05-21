@@ -1,0 +1,424 @@
+{
+  "scenarios": [
+    {
+      "id": "scn-001",
+      "project_id": "prj-001",
+      "title": "Mobil Uygulama ile EFT Gönderimi",
+      "description": "Kullanıcının mobil bankacılık uygulaması üzerinden başka banka hesabına EFT göndermesi",
+      "preconditions": ["Kullanıcı giriş yapmış olmalı", "Hesapta yeterli bakiye bulunmalı", "Alıcı IBAN geçerli olmalı"],
+      "steps": [
+        {"step": 1, "action": "Ana menüden 'Para Transferi' seçeneğine tıkla", "expected": "Transfer ekranı açılır"},
+        {"step": 2, "action": "'EFT' sekmesini seç", "expected": "EFT formu görüntülenir"},
+        {"step": 3, "action": "Alıcı IBAN numarasını gir: TR330006100519786457841326", "expected": "IBAN doğrulanır ve alıcı adı görüntülenir"},
+        {"step": 4, "action": "Tutar alanına 1500.00 TL gir", "expected": "Tutar kabul edilir"},
+        {"step": 5, "action": "Açıklama alanına 'Kira ödemesi' yaz", "expected": "Açıklama kaydedilir"},
+        {"step": 6, "action": "'Gönder' butonuna tıkla", "expected": "Onay ekranı görüntülenir"},
+        {"step": 7, "action": "SMS doğrulama kodunu gir ve onayla", "expected": "EFT başarıyla tamamlanır, dekont gösterilir"}
+      ],
+      "expected_results": "EFT işlemi başarıyla gerçekleşir, hesap bakiyesi güncellenir ve işlem geçmişinde görüntülenir",
+      "priority": "P0",
+      "type": "functional",
+      "status": "approved",
+      "tags": ["eft", "transfer", "mobil", "kritik"],
+      "created_by": "usr-003",
+      "assigned_to": "usr-003"
+    },
+    {
+      "id": "scn-002",
+      "project_id": "prj-001",
+      "title": "Biyometrik Kimlik Doğrulama ile Giriş",
+      "description": "Kullanıcının parmak izi veya yüz tanıma ile mobil bankacılık uygulamasına giriş yapması",
+      "preconditions": ["Biyometrik kimlik doğrulama aktif olmalı", "Cihazda biyometrik sensör bulunmalı"],
+      "steps": [
+        {"step": 1, "action": "Mobil uygulamayı aç", "expected": "Giriş ekranı görüntülenir"},
+        {"step": 2, "action": "'Biyometrik Giriş' butonuna tıkla", "expected": "Biyometrik doğrulama istemi açılır"},
+        {"step": 3, "action": "Parmak izini tarat", "expected": "Parmak izi başarıyla doğrulanır"},
+        {"step": 4, "action": "Ana ekranın yüklenmesini bekle", "expected": "Dashboard görüntülenir, bakiye bilgisi gösterilir"}
+      ],
+      "expected_results": "Kullanıcı biyometrik kimlik doğrulama ile başarıyla giriş yapar",
+      "priority": "P0",
+      "type": "functional",
+      "status": "approved",
+      "tags": ["biyometrik", "giriş", "güvenlik", "mobil"],
+      "created_by": "usr-003",
+      "assigned_to": "usr-003"
+    },
+    {
+      "id": "scn-003",
+      "project_id": "prj-002",
+      "title": "İnternet Bankacılığı Fatura Ödeme",
+      "description": "Kullanıcının internet bankacılığı üzerinden elektrik faturasını ödemesi",
+      "preconditions": ["Kullanıcı internet bankacılığına giriş yapmış olmalı", "Kayıtlı fatura bulunmalı"],
+      "steps": [
+        {"step": 1, "action": "Sol menüden 'Ödemeler' > 'Fatura Ödeme' seçeneğini tıkla", "expected": "Fatura ödeme sayfası açılır"},
+        {"step": 2, "action": "Kurum listesinden 'TEDAŞ' seç", "expected": "Kurum seçilir"},
+        {"step": 3, "action": "Abone numarasını gir", "expected": "Fatura bilgileri sorgulanır ve görüntülenir"},
+        {"step": 4, "action": "Ödeme tutarını doğrula ve 'Öde' butonuna tıkla", "expected": "Ödeme onay ekranı gösterilir"},
+        {"step": 5, "action": "İşlemi onayla", "expected": "Fatura başarıyla ödenir, makbuz gösterilir"}
+      ],
+      "expected_results": "Fatura ödemesi başarıyla tamamlanır ve ödeme geçmişinde kaydedilir",
+      "priority": "P1",
+      "type": "functional",
+      "status": "approved",
+      "tags": ["fatura", "ödeme", "internet-bankacılığı"],
+      "created_by": "usr-002",
+      "assigned_to": "usr-003"
+    },
+    {
+      "id": "scn-004",
+      "project_id": "prj-002",
+      "title": "Havale İşlemi - Aynı Banka",
+      "description": "Aynı banka içi hesaplar arası havale işlemi",
+      "preconditions": ["Kullanıcı giriş yapmış olmalı", "En az 2 hesap tanımlı olmalı"],
+      "steps": [
+        {"step": 1, "action": "'Para Transferi' > 'Havale' menüsüne git", "expected": "Havale formu açılır"},
+        {"step": 2, "action": "Gönderen hesabı seç", "expected": "Hesap bakiyesi görüntülenir"},
+        {"step": 3, "action": "Alıcı hesap numarasını gir", "expected": "Alıcı bilgileri doğrulanır"},
+        {"step": 4, "action": "Tutar olarak 5000.00 TL gir", "expected": "Tutar kabul edilir"},
+        {"step": 5, "action": "'Transfer Et' butonuna tıkla ve onayla", "expected": "Havale başarıyla gerçekleşir"}
+      ],
+      "expected_results": "Havale işlemi anlık olarak tamamlanır, her iki hesap bakiyesi güncellenir",
+      "priority": "P0",
+      "type": "functional",
+      "status": "approved",
+      "tags": ["havale", "transfer", "aynı-banka"],
+      "created_by": "usr-002",
+      "assigned_to": "usr-003"
+    },
+    {
+      "id": "scn-005",
+      "project_id": "prj-002",
+      "title": "Hesap Özeti ve Ekstre Görüntüleme",
+      "description": "Kullanıcının hesap özeti ve aylık ekstre bilgilerini görüntülemesi",
+      "preconditions": ["Kullanıcı giriş yapmış olmalı", "Hesapta işlem geçmişi bulunmalı"],
+      "steps": [
+        {"step": 1, "action": "'Hesaplarım' menüsüne tıkla", "expected": "Hesap listesi görüntülenir"},
+        {"step": 2, "action": "İlgili hesabı seç", "expected": "Hesap detay sayfası açılır"},
+        {"step": 3, "action": "'Hesap Hareketleri' sekmesine tıkla", "expected": "Son 30 günlük hareketler listelenir"},
+        {"step": 4, "action": "Tarih aralığı filtresini uygula", "expected": "Seçilen tarih aralığındaki hareketler görüntülenir"},
+        {"step": 5, "action": "'PDF İndir' butonuna tıkla", "expected": "Ekstre PDF olarak indirilir"}
+      ],
+      "expected_results": "Hesap özeti ve ekstre doğru şekilde görüntülenir ve indirilebilir",
+      "priority": "P1",
+      "type": "functional",
+      "status": "approved",
+      "tags": ["hesap", "ekstre", "raporlama"],
+      "created_by": "usr-003",
+      "assigned_to": "usr-003"
+    },
+    {
+      "id": "scn-006",
+      "project_id": "prj-003",
+      "title": "Kredi Kartı Online Başvuru",
+      "description": "Yeni kredi kartı başvurusunun online olarak yapılması",
+      "preconditions": ["Kullanıcı giriş yapmış olmalı", "Müşteri segmenti bireysel olmalı"],
+      "steps": [
+        {"step": 1, "action": "'Kredi Kartı' > 'Yeni Başvuru' menüsüne git", "expected": "Başvuru formu açılır"},
+        {"step": 2, "action": "Kart türünü seç (Gold/Platinum/Classic)", "expected": "Kart özellikleri görüntülenir"},
+        {"step": 3, "action": "Gelir bilgilerini doldur", "expected": "Ön değerlendirme yapılır"},
+        {"step": 4, "action": "Teslimat adresini seç", "expected": "Adres doğrulanır"},
+        {"step": 5, "action": "Sözleşmeyi oku ve onayla", "expected": "Sözleşme kabul edilir"},
+        {"step": 6, "action": "'Başvuruyu Gönder' butonuna tıkla", "expected": "Başvuru numarası ile onay ekranı gösterilir"}
+      ],
+      "expected_results": "Kredi kartı başvurusu başarıyla oluşturulur ve takip numarası verilir",
+      "priority": "P1",
+      "type": "functional",
+      "status": "approved",
+      "tags": ["kredi-kartı", "başvuru", "online"],
+      "created_by": "usr-003",
+      "assigned_to": "usr-003"
+    },
+    {
+      "id": "scn-007",
+      "project_id": "prj-003",
+      "title": "Kredi Kartı Limit Artırımı",
+      "description": "Mevcut kredi kartı limitinin artırılması talebi",
+      "preconditions": ["Kullanıcının aktif kredi kartı olmalı", "Son 6 ayda düzenli ödeme yapmış olmalı"],
+      "steps": [
+        {"step": 1, "action": "'Kredi Kartlarım' sayfasına git", "expected": "Kartlar listelenir"},
+        {"step": 2, "action": "İlgili kartı seç ve 'Limit İşlemleri' tıkla", "expected": "Limit işlemleri paneli açılır"},
+        {"step": 3, "action": "'Limit Artırımı Talep Et' butonuna tıkla", "expected": "Talep formu görüntülenir"},
+        {"step": 4, "action": "İstenen yeni limit tutarını gir", "expected": "Sistem uygunluk kontrolü yapar"},
+        {"step": 5, "action": "Talebi onayla", "expected": "Talep başarıyla kaydedilir, referans numarası verilir"}
+      ],
+      "expected_results": "Limit artırım talebi oluşturulur ve değerlendirme sürecine alınır",
+      "priority": "P2",
+      "type": "functional",
+      "status": "approved",
+      "tags": ["kredi-kartı", "limit", "talep"],
+      "created_by": "usr-002",
+      "assigned_to": "usr-003"
+    },
+    {
+      "id": "scn-008",
+      "project_id": "prj-003",
+      "title": "Taksitlendirme İşlemi",
+      "description": "Kredi kartı hesap özetindeki bir harcamanın taksitlendirilmesi",
+      "preconditions": ["Kredi kartında taksitlendirilebilir işlem bulunmalı"],
+      "steps": [
+        {"step": 1, "action": "Kart hesap özetini aç", "expected": "Harcamalar listelenir"},
+        {"step": 2, "action": "Taksitlendirmek istenen işlemi seç", "expected": "İşlem detayı ve taksit seçenekleri görüntülenir"},
+        {"step": 3, "action": "Taksit sayısını seç (3/6/9/12)", "expected": "Aylık taksit tutarı hesaplanır"},
+        {"step": 4, "action": "'Taksitlendir' butonuna tıkla ve onayla", "expected": "İşlem taksitlendirilir, yeni ödeme planı gösterilir"}
+      ],
+      "expected_results": "Harcama başarıyla taksitlendirilir ve ödeme planı oluşturulur",
+      "priority": "P2",
+      "type": "functional",
+      "status": "draft",
+      "tags": ["kredi-kartı", "taksit", "ödeme-planı"],
+      "created_by": "usr-003",
+      "assigned_to": "usr-003"
+    },
+    {
+      "id": "scn-009",
+      "project_id": "prj-004",
+      "title": "ATM Para Çekme İşlemi",
+      "description": "ATM cihazından banka kartı ile nakit para çekme",
+      "preconditions": ["Kart aktif olmalı", "Hesapta yeterli bakiye bulunmalı", "Günlük çekim limiti aşılmamış olmalı"],
+      "steps": [
+        {"step": 1, "action": "Kartı ATM'ye tak", "expected": "PIN giriş ekranı görüntülenir"},
+        {"step": 2, "action": "4 haneli PIN kodunu gir", "expected": "PIN doğrulanır, ana menü açılır"},
+        {"step": 3, "action": "'Para Çekme' seçeneğini tıkla", "expected": "Tutar seçim ekranı görüntülenir"},
+        {"step": 4, "action": "Hızlı tutar olarak 500 TL seç", "expected": "İşlem onay ekranı gösterilir"},
+        {"step": 5, "action": "İşlemi onayla", "expected": "Nakit verilir, dekont yazdırma seçeneği sunulur"},
+        {"step": 6, "action": "Kartı al", "expected": "İşlem tamamlanır"}
+      ],
+      "expected_results": "Para çekme işlemi başarıyla tamamlanır, bakiye güncellenir",
+      "priority": "P0",
+      "type": "functional",
+      "status": "approved",
+      "tags": ["atm", "para-çekme", "nakit", "kritik"],
+      "created_by": "usr-002",
+      "assigned_to": "usr-003"
+    },
+    {
+      "id": "scn-010",
+      "project_id": "prj-004",
+      "title": "ATM Para Yatırma (Zarfsız)",
+      "description": "ATM cihazına zarfsız nakit para yatırma işlemi",
+      "preconditions": ["ATM cihazı para yatırma özelliğine sahip olmalı", "Kart aktif olmalı"],
+      "steps": [
+        {"step": 1, "action": "Kartı ATM'ye tak ve PIN gir", "expected": "Ana menü açılır"},
+        {"step": 2, "action": "'Para Yatırma' seçeneğini seç", "expected": "Para yatırma ekranı açılır"},
+        {"step": 3, "action": "Nakit banknotları para kasasına yerleştir", "expected": "ATM banknotları sayar ve toplamı gösterir"},
+        {"step": 4, "action": "Yatırılacak tutarı doğrula ve onayla", "expected": "Para yatırma işlemi tamamlanır"},
+        {"step": 5, "action": "Dekont yazdır", "expected": "İşlem dekontu yazdırılır"}
+      ],
+      "expected_results": "Nakit para başarıyla hesaba yatırılır ve bakiye güncellenir",
+      "priority": "P0",
+      "type": "functional",
+      "status": "approved",
+      "tags": ["atm", "para-yatırma", "nakit"],
+      "created_by": "usr-002",
+      "assigned_to": "usr-003"
+    },
+    {
+      "id": "scn-011",
+      "project_id": "prj-005",
+      "title": "Yeni Müşteri Kaydı",
+      "description": "CRM sistemine yeni bireysel müşteri kaydının oluşturulması",
+      "preconditions": ["Kullanıcının müşteri kayıt yetkisi olmalı"],
+      "steps": [
+        {"step": 1, "action": "'Müşteri İşlemleri' > 'Yeni Müşteri' menüsüne git", "expected": "Müşteri kayıt formu açılır"},
+        {"step": 2, "action": "TCKN alanına 11 haneli kimlik numarasını gir", "expected": "Mernis doğrulaması yapılır"},
+        {"step": 3, "action": "Ad, soyad, doğum tarihi bilgilerini doldur", "expected": "Kişisel bilgiler kaydedilir"},
+        {"step": 4, "action": "İletişim bilgilerini gir (telefon, e-posta, adres)", "expected": "İletişim bilgileri doğrulanır"},
+        {"step": 5, "action": "Müşteri segmentini seç (Bireysel/Premium)", "expected": "Segment atanır"},
+        {"step": 6, "action": "'Kaydı Tamamla' butonuna tıkla", "expected": "Müşteri kaydı başarıyla oluşturulur, müşteri numarası verilir"}
+      ],
+      "expected_results": "Yeni müşteri kaydı CRM sisteminde başarıyla oluşturulur",
+      "priority": "P0",
+      "type": "functional",
+      "status": "approved",
+      "tags": ["crm", "müşteri-kaydı", "bireysel"],
+      "created_by": "usr-003",
+      "assigned_to": "usr-003"
+    },
+    {
+      "id": "scn-012",
+      "project_id": "prj-005",
+      "title": "Müşteri Segmentasyon Güncelleme",
+      "description": "Mevcut müşterinin segmentinin değiştirilmesi (Bireysel → Premium)",
+      "preconditions": ["Müşteri kaydı mevcut olmalı", "Kullanıcının segment güncelleme yetkisi olmalı"],
+      "steps": [
+        {"step": 1, "action": "Müşteri arama ekranında TCKN ile ara", "expected": "Müşteri bilgileri görüntülenir"},
+        {"step": 2, "action": "'Segment Yönetimi' sekmesine git", "expected": "Mevcut segment bilgisi gösterilir"},
+        {"step": 3, "action": "Yeni segment olarak 'Premium' seç", "expected": "Segment değişiklik onay ekranı açılır"},
+        {"step": 4, "action": "Değişiklik nedenini yaz ve onayla", "expected": "Segment güncellenir, geçmiş loglanır"}
+      ],
+      "expected_results": "Müşteri segmenti başarıyla güncellenir ve değişiklik geçmişi kaydedilir",
+      "priority": "P2",
+      "type": "functional",
+      "status": "approved",
+      "tags": ["crm", "segmentasyon", "güncelleme"],
+      "created_by": "usr-003",
+      "assigned_to": "usr-003"
+    },
+    {
+      "id": "scn-013",
+      "project_id": "prj-001",
+      "title": "Mobil Push Bildirim Testi",
+      "description": "İşlem sonrası push bildirim gönderiminin doğrulanması",
+      "preconditions": ["Bildirim izinleri açık olmalı", "Cihaz token'ı kayıtlı olmalı"],
+      "steps": [
+        {"step": 1, "action": "Mobil uygulama üzerinden bir EFT işlemi gerçekleştir", "expected": "EFT başarıyla tamamlanır"},
+        {"step": 2, "action": "Push bildiriminin gelmesini bekle (max 30 sn)", "expected": "Bildirim cihaza ulaşır"},
+        {"step": 3, "action": "Bildirim içeriğini doğrula", "expected": "İşlem tutarı ve açıklaması doğru gösterilir"},
+        {"step": 4, "action": "Bildirime tıkla", "expected": "İşlem detay sayfasına yönlendirilir"}
+      ],
+      "expected_results": "Push bildirim doğru içerikle zamanında gönderilir",
+      "priority": "P1",
+      "type": "functional",
+      "status": "draft",
+      "tags": ["mobil", "bildirim", "push"],
+      "created_by": "usr-003",
+      "assigned_to": "usr-003"
+    },
+    {
+      "id": "scn-014",
+      "project_id": "prj-002",
+      "title": "Çoklu Para Birimi Hesap Yönetimi",
+      "description": "USD ve EUR döviz hesaplarının açılması ve yönetimi",
+      "preconditions": ["Kullanıcı giriş yapmış olmalı"],
+      "steps": [
+        {"step": 1, "action": "'Hesaplarım' > 'Yeni Hesap Aç' menüsüne git", "expected": "Hesap açma formu görüntülenir"},
+        {"step": 2, "action": "Hesap türü olarak 'Döviz Hesabı' seç", "expected": "Döviz seçenekleri listelenir"},
+        {"step": 3, "action": "Para birimi olarak 'USD' seç", "expected": "USD hesap detayları gösterilir"},
+        {"step": 4, "action": "'Hesap Aç' butonuna tıkla ve onayla", "expected": "USD hesabı açılır, IBAN atanır"},
+        {"step": 5, "action": "Hesap listesinde yeni hesabı doğrula", "expected": "USD hesabı listede görünür"}
+      ],
+      "expected_results": "Döviz hesabı başarıyla açılır ve hesap listesinde görüntülenir",
+      "priority": "P1",
+      "type": "functional",
+      "status": "approved",
+      "tags": ["hesap", "döviz", "usd", "eur"],
+      "created_by": "usr-002",
+      "assigned_to": "usr-003"
+    },
+    {
+      "id": "scn-015",
+      "project_id": "prj-002",
+      "title": "İnternet Bankacılığı Login Regresyon",
+      "description": "Giriş sayfasının tüm senaryolarını kapsayan regresyon testi",
+      "preconditions": ["Test ortamı erişilebilir olmalı"],
+      "steps": [
+        {"step": 1, "action": "Giriş sayfasını aç", "expected": "Login formu görüntülenir"},
+        {"step": 2, "action": "Geçerli kullanıcı adı ve şifre ile giriş yap", "expected": "Dashboard'a yönlendirilir"},
+        {"step": 3, "action": "Çıkış yap ve geçersiz şifre ile dene", "expected": "Hata mesajı gösterilir"},
+        {"step": 4, "action": "5 kez yanlış şifre gir", "expected": "Hesap geçici olarak kilitlenir"},
+        {"step": 5, "action": "'Şifremi Unuttum' linkine tıkla", "expected": "Şifre sıfırlama sayfasına yönlendirilir"}
+      ],
+      "expected_results": "Tüm giriş senaryoları beklenen şekilde çalışır",
+      "priority": "P0",
+      "type": "regression",
+      "status": "approved",
+      "tags": ["login", "regresyon", "güvenlik"],
+      "created_by": "usr-002",
+      "assigned_to": "usr-003"
+    },
+    {
+      "id": "scn-016",
+      "project_id": "prj-001",
+      "title": "Mobil Bankacılık Smoke Test",
+      "description": "Mobil uygulamanın temel işlevselliğini doğrulayan hızlı smoke test",
+      "preconditions": ["Uygulama yüklenmiş ve çalışır durumda olmalı"],
+      "steps": [
+        {"step": 1, "action": "Uygulamayı başlat", "expected": "Giriş ekranı 3 saniye içinde yüklenir"},
+        {"step": 2, "action": "Giriş yap", "expected": "Dashboard görüntülenir"},
+        {"step": 3, "action": "Bakiye sorgula", "expected": "Güncel bakiye gösterilir"},
+        {"step": 4, "action": "Son işlemleri kontrol et", "expected": "İşlem listesi yüklenir"},
+        {"step": 5, "action": "Profil sayfasını aç", "expected": "Kullanıcı bilgileri görüntülenir"}
+      ],
+      "expected_results": "Uygulamanın temel ekranları ve işlevleri sorunsuz çalışır",
+      "priority": "P0",
+      "type": "smoke",
+      "status": "approved",
+      "tags": ["smoke", "mobil", "temel-fonksiyon"],
+      "created_by": "usr-002",
+      "assigned_to": "usr-003"
+    },
+    {
+      "id": "scn-017",
+      "project_id": "prj-004",
+      "title": "ATM Yanlış PIN Girişi - Kart Bloke",
+      "description": "3 kez yanlış PIN girişi sonrası kartın bloke edilmesi (negatif senaryo)",
+      "preconditions": ["Test kartı aktif olmalı"],
+      "steps": [
+        {"step": 1, "action": "Kartı ATM'ye tak", "expected": "PIN giriş ekranı açılır"},
+        {"step": 2, "action": "Yanlış PIN gir (1. deneme)", "expected": "'Hatalı PIN, 2 hakkınız kaldı' mesajı gösterilir"},
+        {"step": 3, "action": "Yanlış PIN gir (2. deneme)", "expected": "'Hatalı PIN, 1 hakkınız kaldı' mesajı gösterilir"},
+        {"step": 4, "action": "Yanlış PIN gir (3. deneme)", "expected": "Kart bloke edilir, uyarı mesajı gösterilir, kart yutulur"}
+      ],
+      "expected_results": "3 başarısız PIN denemesi sonrası kart bloke olur ve güvenlik bildirimi gönderilir",
+      "priority": "P0",
+      "type": "functional",
+      "status": "approved",
+      "tags": ["atm", "pin", "güvenlik", "negatif"],
+      "created_by": "usr-002",
+      "assigned_to": "usr-003"
+    },
+    {
+      "id": "scn-018",
+      "project_id": "prj-005",
+      "title": "Kampanya Yönetimi ve Hedefleme",
+      "description": "CRM üzerinden yeni kampanya oluşturma ve müşteri segmentine hedefleme",
+      "preconditions": ["Kullanıcının kampanya yönetim yetkisi olmalı", "En az bir müşteri segmenti tanımlı olmalı"],
+      "steps": [
+        {"step": 1, "action": "'Kampanyalar' > 'Yeni Kampanya' menüsüne git", "expected": "Kampanya oluşturma formu açılır"},
+        {"step": 2, "action": "Kampanya adı, açıklama ve tarih aralığını gir", "expected": "Temel bilgiler kaydedilir"},
+        {"step": 3, "action": "Hedef segment olarak 'Premium Bireysel' seç", "expected": "Hedef kitle sayısı gösterilir"},
+        {"step": 4, "action": "Kampanya koşullarını tanımla", "expected": "Koşullar kaydedilir"},
+        {"step": 5, "action": "Kampanyayı aktif et", "expected": "Kampanya durumu 'Aktif' olarak güncellenir"}
+      ],
+      "expected_results": "Kampanya başarıyla oluşturulur, hedef segmente atanır ve aktif edilir",
+      "priority": "P2",
+      "type": "functional",
+      "status": "draft",
+      "tags": ["crm", "kampanya", "hedefleme"],
+      "created_by": "usr-003",
+      "assigned_to": "usr-003"
+    },
+    {
+      "id": "scn-019",
+      "project_id": "prj-003",
+      "title": "Kredi Kartı Puan Sorgulama ve Harcama",
+      "description": "Kredi kartı bonus puanlarının sorgulanması ve puan ile alışveriş yapılması",
+      "preconditions": ["Kredi kartında biriken puan bulunmalı"],
+      "steps": [
+        {"step": 1, "action": "'Kredi Kartlarım' > 'Puan İşlemleri' menüsüne git", "expected": "Puan bakiyesi görüntülenir"},
+        {"step": 2, "action": "'Puan Harca' sekmesine tıkla", "expected": "Puan kataloğu açılır"},
+        {"step": 3, "action": "Bir ürün seç ve sepete ekle", "expected": "Ürün sepete eklenir"},
+        {"step": 4, "action": "Puan ile ödeme yap", "expected": "Puan bakiyesinden düşülür, sipariş onaylanır"}
+      ],
+      "expected_results": "Puan sorgulama ve harcama işlemi başarıyla tamamlanır",
+      "priority": "P2",
+      "type": "functional",
+      "status": "draft",
+      "tags": ["kredi-kartı", "puan", "bonus"],
+      "created_by": "usr-003",
+      "assigned_to": "usr-003"
+    },
+    {
+      "id": "scn-020",
+      "project_id": "prj-002",
+      "title": "Toplu Ödeme (Bordro) İşlemi",
+      "description": "Kurumsal müşterinin toplu bordro ödemesi yapması",
+      "preconditions": ["Kurumsal hesap aktif olmalı", "Bordro dosyası hazır olmalı"],
+      "steps": [
+        {"step": 1, "action": "'Kurumsal İşlemler' > 'Toplu Ödeme' menüsüne git", "expected": "Toplu ödeme ekranı açılır"},
+        {"step": 2, "action": "Bordro dosyasını (CSV) yükle", "expected": "Dosya parse edilir, alıcı listesi gösterilir"},
+        {"step": 3, "action": "Toplam tutarı ve alıcı sayısını doğrula", "expected": "Özet bilgiler doğru gösterilir"},
+        {"step": 4, "action": "'Ödemeleri Başlat' butonuna tıkla", "expected": "Onay kodu istenir"},
+        {"step": 5, "action": "SMS onay kodunu gir", "expected": "Toplu ödeme başlatılır"},
+        {"step": 6, "action": "İşlem sonuç raporunu kontrol et", "expected": "Başarılı/başarısız ödemeler raporlanır"}
+      ],
+      "expected_results": "Toplu bordro ödemesi başarıyla gerçekleştirilir ve sonuç raporu oluşturulur",
+      "priority": "P1",
+      "type": "functional",
+      "status": "approved",
+      "tags": ["kurumsal", "bordro", "toplu-ödeme"],
+      "created_by": "usr-002",
+      "assigned_to": "usr-003"
+    }
+  ]
+}

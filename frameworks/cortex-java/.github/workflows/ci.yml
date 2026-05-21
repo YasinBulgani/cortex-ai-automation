@@ -1,0 +1,128 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  CORTEX_AES_KEY:  ${{ secrets.CORTEX_AES_KEY  || 'ciCiKey1234ABCD' }}
+  CORTEX_USERNAME: ${{ secrets.CORTEX_USERNAME || 'ci_user@example.com' }}
+  CORTEX_PASSWORD: ${{ secrets.CORTEX_PASSWORD || 'ci_dummy_password' }}
+
+jobs:
+
+  build:
+    name: Build + compile
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+      - run: ./mvnw -B -q -DskipTests compile
+      - run: ./mvnw -B -q test-compile
+
+  lint:
+    name: Locator Linter
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: '17', cache: maven }
+      - run: ./mvnw -B -q compile exec:java -Dexec.mainClass=utils.LocatorLinter
+
+  smoke:
+    name: Smoke (Playwright headless)
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: '17', cache: maven }
+
+      - name: Install Playwright browsers
+        run: ./mvnw -B -q compile exec:java
+            -Dexec.mainClass=com.microsoft.playwright.CLI
+            -Dexec.args="install --with-deps chromium"
+
+      - name: Run smoke suite
+        run: ./mvnw -B test -Psmoke,headless -Dcucumber.filter.tags="@smoke and not @manual"
+        continue-on-error: true
+
+      - name: Upload reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke-reports
+          path: |
+            target/cucumber-report.html
+            target/cucumber.json
+            target/failed.txt
+            target/allure-results/
+            screenshots/playwright/
+
+  regression:
+    name: Regression (4 thread parallel)
+    runs-on: ubuntu-latest
+    needs: smoke
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: '17', cache: maven }
+
+      - name: Install Playwright browsers
+        run: ./mvnw -B -q compile exec:java
+            -Dexec.mainClass=com.microsoft.playwright.CLI
+            -Dexec.args="install --with-deps chromium"
+
+      - name: Run regression
+        run: ./mvnw -B test -Pregression,parallel,headless -Dparallel.threads=4
+        continue-on-error: true
+
+      - name: Upload reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: regression-reports
+          path: |
+            target/cucumber-report.html
+            target/cucumber.json
+            target/failed.txt
+            target/allure-results/
+            target/playwright-traces/
+            screenshots/playwright/
+
+      - name: Allure history
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: allure-results
+          path: target/allure-results/
+
+  dashboard:
+    name: Python dashboard smoke
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.11', cache: pip }
+      - run: pip install -r python_server/requirements.txt
+      - name: Syntax check
+        run: |
+          python -m py_compile python_server/flask_api.py
+          python -m py_compile python_server/train_model.py
+          python -m py_compile scripts/launcher.py
+      - name: Boot test
+        run: |
+          DASHBOARD_PORT=5557 python python_server/flask_api.py &
+          PID=$!
+          sleep 6
+          curl -sS -f http://localhost:5557/api/health
+          kill $PID

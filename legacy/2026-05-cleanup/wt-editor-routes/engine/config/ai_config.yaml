@@ -1,0 +1,59 @@
+# BGTS AI Test Engine — Ana Konfigürasyon
+# Tüm AI özelliklerinin merkezi açma/kapama ve parametre ayarları.
+
+ai:
+  enabled: true
+  features:
+    test_generation: true
+    bdd_generation: true
+    self_healing: true
+    prioritization: true
+    anomaly_detection: true
+    flaky_detection: true
+    coverage_analysis: true
+    assertion_analysis: true
+    security_scanning: false       # Faz 4'te aktif edilecek
+
+llm:
+  default_model: "gpt-4o"
+  fallback_model: "gpt-4o-mini"
+  cache_enabled: true
+  cache_ttl_seconds: 3600
+  pii_sanitization: true
+  budget_limit_usd: 100.0
+  rate_limit_per_hour: 100
+  timeout_seconds: 30
+
+healing:
+  enabled: true
+  max_retries: 1
+  strategies:
+    - testid_fuzzy
+    - role_match
+    - label_match
+    - text_match
+    - ai_assisted
+  quarantine_threshold: 0.3
+  quarantine_max_days: 14
+
+prioritization:
+  time_budget_seconds: 300
+  min_score_threshold: 0.1
+  weights:
+    dependency: 0.4
+    failure_rate: 0.35
+    recency: 0.25
+
+anomaly:
+  z_threshold_warning: 2.0
+  z_threshold_critical: 3.0
+  history_window: 30
+
+synthetic_data:
+  generator: "faker"               # "faker" | "kde" | "ctgan"
+  seed: 42
+  default_customer_count: 100
+  correlation_preservation: true
+  differential_privacy:
+    enabled: false                 # Faz 4'te aktif edilecek
+    epsilon: 1.0

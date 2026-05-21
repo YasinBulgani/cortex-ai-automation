@@ -1,0 +1,79 @@
+{
+  "id": "fc577736-5307-421d-bc5a-a03307c8a31f",
+  "name": "test_model",
+  "description": null,
+  "trainingStatus": "DONE",
+  "trainingTime": null,
+  "usage": null,
+  "metadata": null,
+  "accuracy": null,
+  "tables": [
+    {
+      "id": "d08d15ca-fe7b-4d60-aca5-7563d8ecccf7",
+      "sourceConnectorId": "3e8fd549-b869-4930-a912-59b9582fe29b",
+      "location": "/Users/yasin_bulgan/mostlyai/connectors/3e8fd549-b869-4930-a912-59b9582fe29b/data.parquet",
+      "name": "data",
+      "primaryKey": null,
+      "columns": [
+        {
+          "id": "6923864b-2df4-430f-bf6d-e6b751a95568",
+          "name": "age",
+          "included": true,
+          "modelEncodingType": "TABULAR_NUMERIC_DIGIT",
+          "valueRange": {
+            "min": null,
+            "max": null,
+            "values": null,
+            "has_null": false
+          }
+        },
+        {
+          "id": "9e7b5129-9b09-4d02-be26-ddd5432aec9e",
+          "name": "income",
+          "included": true,
+          "modelEncodingType": "TABULAR_NUMERIC_DIGIT",
+          "valueRange": {
+            "min": null,
+            "max": null,
+            "values": null,
+            "has_null": false
+          }
+        },
+        {
+          "id": "d9abdde4-b005-402f-819d-f054e28a7e24",
+          "name": "default",
+          "included": true,
+          "modelEncodingType": "TABULAR_NUMERIC_DIGIT",
+          "valueRange": {
+            "min": null,
+            "max": null,
+            "values": null,
+            "has_null": false
+          }
+        }
+      ],
+      "foreignKeys": null,
+      "tabularModelMetrics": null,
+      "languageModelMetrics": null,
+      "tabularModelConfiguration": {
+        "model": "MOSTLY_AI/Medium",
+        "maxSampleSize": null,
+        "batchSize": null,
+        "gradientAccumulationSteps": null,
+        "maxTrainingTime": 14400.0,
+        "maxEpochs": 100.0,
+        "maxSequenceWindow": 100,
+        "enableFlexibleGeneration": true,
+        "valueProtection": true,
+        "rareCategoryReplacementMethod": "CONSTANT",
+        "differentialPrivacy": null,
+        "compute": null,
+        "enableModelReport": true
+      },
+      "languageModelConfiguration": null,
+      "totalRows": 10
+    }
+  ],
+  "constraints": null,
+  "randomState": null
+}

@@ -1,0 +1,3 @@
+✅ BAŞARILI
+'GirisAlanıInput' adlı alana metin yazılıyor (Yazılan: testautomation10)
+'GirisAlanıInput' adlı alana 'testautomation10' metni başarıyla yazıldı.

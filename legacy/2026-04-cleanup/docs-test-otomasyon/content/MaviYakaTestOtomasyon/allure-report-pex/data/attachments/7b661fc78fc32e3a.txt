@@ -1,0 +1,2 @@
+'GirisAlanıInput' adlı alana metin yazılıyor (Yazılan: testautomation19)
+Element: GirisAlanıInput, Yazılacak metin: testautomation19

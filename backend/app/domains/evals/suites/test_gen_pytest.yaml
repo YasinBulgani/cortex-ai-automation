@@ -1,0 +1,133 @@
+# Test üretim kalite eval suitesi — pytest/pytest-bdd çıktıları (Dalga 1 · E1).
+#
+# CI'da DETERMINISTIC: her case'de `inputs._fixture` var → adapter bu
+# fixture'ı aynen döner, scorer'lar skorlar. Gerçek LLM gerekmez.
+# Nightly'de aynı suite ``EVAL_RUN_LLM=1`` ile koşulup trend ölçülür.
+#
+# Amaç: "bir değişiklik üretilen test kodu kalitesini düşürüyor mu?" sorusuna
+# regresyonla cevap vermek. Case başına minimum sinyal seti: AST valid +
+# assertion var + data-testid kullanımı.
+
+name: test_gen_pytest
+adapter: test_gen
+description: >
+  Doğal dil → pytest/pytest-bdd kodu üretimi için kalite regresyon suitei.
+  AST geçerliliği, assertion varlığı ve data-testid disiplinini ölçer.
+
+scorers:
+  - python_ast_valid
+  - python_has_assert
+  - python_has_testid
+
+thresholds:
+  # Case-level pass "tüm scorer geçmeli" demek. UI olmayan case (tg-003)
+  # python_has_testid'i geçemez → %75 yeterli.
+  min_case_pass_rate: 0.75
+  mean:
+    python_ast_valid: 1.0
+    python_has_assert: 0.8
+    python_has_testid: 0.6
+
+cases:
+  # ── case 1: temiz pytest + testid ─────────────────────────────────────
+  - id: tg-001
+    description: Login happy-path pytest — testid ve assert içerir
+    tags: [positive, login, ui]
+    inputs:
+      framework: pytest
+      requirement: "Kullanıcı doğru şifre girince dashboard'a yönlensin"
+      _fixture:
+        code: |
+          import pytest
+          from playwright.sync_api import Page, expect
+
+          def test_login_happy(page: Page):
+              page.goto("/login")
+              page.get_by_test_id("login-input-username").fill("ali")
+              page.get_by_test_id("login-input-password").fill("secret")
+              page.get_by_test_id("login-btn-submit").click()
+              expect(page.get_by_test_id("dashboard-header-welcome")).to_be_visible()
+        framework: pytest
+
+  # ── case 2: BDD feature + steps ───────────────────────────────────────
+  - id: tg-002
+    description: Pytest-BDD step — hesap bakiye kontrolü
+    tags: [positive, banking, bdd]
+    inputs:
+      framework: pytest-bdd
+      requirement: "Hesap bakiyesi pozitif olunca transfer butonu aktif"
+      _fixture:
+        code: |
+          import pytest
+          from pytest_bdd import scenario, given, when, then
+
+          @scenario("transfer.feature", "Pozitif bakiye transfer izni")
+          def test_transfer_enabled():
+              pass
+
+          @given("hesap bakiyesi 500 TL")
+          def set_balance(page):
+              page.get_by_test_id("account-label-balance").wait_for()
+
+          @when("transfer ekranı açılır")
+          def open_transfer(page):
+              page.get_by_test_id("account-btn-transfer").click()
+
+          @then("transfer butonu aktiftir")
+          def button_enabled(page):
+              assert page.get_by_test_id("transfer-btn-submit").is_enabled()
+
+  # ── case 3: API test (testid yok — beklenen) ─────────────────────────
+  - id: tg-003
+    description: Salt API testi — data-testid aranmıyor
+    tags: [api, positive]
+    inputs:
+      framework: pytest
+      requirement: "GET /accounts 200 döner ve JSON body'de hesap listesi var"
+      _fixture:
+        code: |
+          import pytest
+          import requests
+
+          def test_list_accounts():
+              r = requests.get("https://api.example.com/accounts")
+              assert r.status_code == 200
+              body = r.json()
+              assert isinstance(body, list)
+              assert len(body) >= 1
+
+  # ── case 4: negative path — yanlış şifre ──────────────────────────────
+  - id: tg-004
+    description: Negatif login — hata banner'ı görünür
+    tags: [negative, login, ui]
+    inputs:
+      framework: pytest
+      requirement: "Yanlış şifre girilirse error banner gösterilir"
+      _fixture:
+        code: |
+          from playwright.sync_api import Page, expect
+
+          def test_login_wrong_password(page: Page):
+              page.goto("/login")
+              page.get_by_test_id("login-input-username").fill("ali")
+              page.get_by_test_id("login-input-password").fill("wrong")
+              page.get_by_test_id("login-btn-submit").click()
+              expect(page.get_by_test_id("login-banner-error")).to_be_visible()
+              expect(page.get_by_test_id("login-banner-error")).to_contain_text("Hatalı")
+
+  # ── case 5: AST FAIL — assertion eksik ────────────────────────────────
+  # Bu case testin kendini test ediyor: threshold gerçekten etkili mi?
+  # python_has_assert = 0 dönmeli, overall pass_rate < 1 → threshold
+  # default 1.0 olduğu için suite fail olacak. Bu yüzden bu case'i
+  # "regresyon kanıtı" olarak saklıyoruz ama açık halde tutmuyoruz.
+  # Etkinleştirmek istenirse threshold değiştirilmeli.
+  #- id: tg-neg-001
+  #  description: Assert'siz kod — threshold'u test eder
+  #  tags: [regression, meta]
+  #  inputs:
+  #    framework: pytest
+  #    requirement: "Bu test fail edecek çünkü assertion yok"
+  #    _fixture:
+  #      code: |
+  #        def test_no_assert():
+  #            x = 1 + 1

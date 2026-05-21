@@ -1,0 +1,173 @@
+###############################################################################
+# TestwrightAI Smoke Tests — Quick validation chain
+# Sırayla çalıştırılmalıdır: health → login → create project → scenarios → run
+###############################################################################
+
+@base_url = http://localhost:8000
+@engine_url = http://localhost:5001
+
+###############################################################################
+# STEP 1: Backend Health
+###############################################################################
+
+### 1a. Backend Health
+# @name backendHealth
+GET {{base_url}}/health
+
+### 1b. Backend Readiness (DB check)
+# @name backendReady
+GET {{base_url}}/ready
+
+### 1c. Engine Health
+# @name engineHealth
+GET {{engine_url}}/api/health
+
+### 1d. System Status (Engine services)
+# @name systemStatus
+GET {{engine_url}}/api/projects/status
+
+###############################################################################
+# STEP 2: Authentication
+###############################################################################
+
+### 2a. Login to Backend (FastAPI)
+# @name backendLogin
+POST {{base_url}}/api/v1/auth/login
+Content-Type: application/json
+
+{
+    "email": "admin@bgts.com.tr",
+    "password": "Bgts2024!"
+}
+
+### 2b. Verify Token — Get Current User
+# @name currentUser
+GET {{base_url}}/api/v1/auth/me
+Authorization: Bearer {{backendLogin.response.body.access_token}}
+
+### 2c. Login to Engine (Flask)
+# @name engineLogin
+POST {{engine_url}}/api/auth/login
+Content-Type: application/json
+
+{
+    "email": "test@test.com",
+    "password": "test"
+}
+
+###############################################################################
+# STEP 3: Create TSPM Project
+###############################################################################
+
+### 3a. Create Project
+# @name createProject
+POST {{base_url}}/api/v1/tspm/projects
+Authorization: Bearer {{backendLogin.response.body.access_token}}
+Content-Type: application/json
+
+{
+    "name": "Smoke Test Projesi",
+    "description": "Otomatik smoke test ile oluşturulan proje — silinebilir"
+}
+
+### 3b. List Projects (verify creation)
+# @name listProjects
+GET {{base_url}}/api/v1/tspm/projects
+Authorization: Bearer {{backendLogin.response.body.access_token}}
+
+### 3c. Get Project Dashboard
+# @name projectDashboard
+GET {{base_url}}/api/v1/tspm/projects/{{createProject.response.body.id}}/dashboard
+Authorization: Bearer {{backendLogin.response.body.access_token}}
+
+###############################################################################
+# STEP 4: Create and List Scenarios
+###############################################################################
+
+### 4a. Create Scenario
+# @name createScenario
+POST {{base_url}}/api/v1/tspm/projects/{{createProject.response.body.id}}/scenarios
+Authorization: Bearer {{backendLogin.response.body.access_token}}
+Content-Type: application/json
+
+{
+    "title": "Smoke Test — Başarılı Giriş Senaryosu",
+    "description": "Smoke test kapsamında oluşturulan temel giriş senaryosu",
+    "status": "draft",
+    "steps": [
+        { "order": 0, "keyword": "Given", "text": "Kullanıcı giriş sayfasındadır" },
+        { "order": 1, "keyword": "When", "text": "TCKN ve şifre ile giriş yapar" },
+        { "order": 2, "keyword": "Then", "text": "Ana sayfa görüntülenir" }
+    ]
+}
+
+### 4b. List Scenarios (verify creation)
+# @name listScenarios
+GET {{base_url}}/api/v1/tspm/projects/{{createProject.response.body.id}}/scenarios
+Authorization: Bearer {{backendLogin.response.body.access_token}}
+
+### 4c. Get Scenario Detail
+# @name getScenario
+GET {{base_url}}/api/v1/tspm/projects/{{createProject.response.body.id}}/scenarios/{{createScenario.response.body.id}}
+Authorization: Bearer {{backendLogin.response.body.access_token}}
+
+###############################################################################
+# STEP 5: Run Tests (Engine)
+###############################################################################
+
+### 5a. List Features (Engine)
+# @name listFeatures
+GET {{engine_url}}/api/features
+
+### 5b. Run Tests
+# @name runTests
+POST {{engine_url}}/api/run
+Content-Type: application/json
+
+{
+    "markers": "not ai"
+}
+
+### 5c. Stream Output (use curl for SSE)
+# curl -N http://localhost:5001/api/run/{{runTests.response.body.run_id}}/stream
+GET {{engine_url}}/api/run/{{runTests.response.body.run_id}}/stream
+Accept: text/event-stream
+
+###############################################################################
+# STEP 6: Verify Supporting Systems
+###############################################################################
+
+### 6a. List Datasets (Synthetic Data Catalog)
+# @name listDatasets
+GET {{base_url}}/api/v1/datasets
+Authorization: Bearer {{backendLogin.response.body.access_token}}
+
+### 6b. DataSim Catalog (Engine)
+# @name datasimCatalog
+GET {{engine_url}}/api/datasim/datasets
+
+### 6c. SQLite/PG Catalog
+# @name dbCatalog
+GET {{engine_url}}/api/datasim/sqlite/catalog
+
+### 6d. Get Engine Settings
+# @name engineSettings
+GET {{engine_url}}/api/settings
+
+### 6e. Automation Engine Health (via Backend Proxy)
+# @name automationHealth
+GET {{base_url}}/api/v1/automation/health
+Authorization: Bearer {{backendLogin.response.body.access_token}}
+
+###############################################################################
+# STEP 7: Cleanup (Optional)
+###############################################################################
+
+### 7a. Delete Created Scenario
+POST {{base_url}}/api/v1/tspm/projects/{{createProject.response.body.id}}/scenarios/bulk-delete
+Authorization: Bearer {{backendLogin.response.body.access_token}}
+Content-Type: application/json
+
+{
+    "ids": ["{{createScenario.response.body.id}}"]
+}

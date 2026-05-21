@@ -1,0 +1,82 @@
+#!/usr/bin/env bash
+# ─────────────────────────────────────────────────────────────────────────────
+#  Pre-push hook — pipeline validations (strict)
+#
+#  Kurulum:
+#    git config core.hooksPath .githooks
+#
+#  Davranış:
+#    - Pipeline branch'inden push ediliyorsa:
+#      1. Conflict check (warn)
+#      2. Commit mesajlarında [pipeline: <role> <id>] etiketi var mı? (warn)
+#      3. `test` / `main`'e direct push engellenir
+# ─────────────────────────────────────────────────────────────────────────────
+
+set -euo pipefail
+
+[[ "${SKIP_PIPELINE_HOOK:-}" == "1" ]] && exit 0
+
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+
+# ─── Rule 1: main/test'e doğrudan push engellenir ─────────────────────────────
+remote="$1"
+url="$2"
+while read -r local_ref local_sha remote_ref remote_sha; do
+  case "$remote_ref" in
+    refs/heads/main|refs/heads/test)
+      echo "✗ $remote_ref'e doğrudan push yasak. PR üzerinden promote edilir." >&2
+      echo "  Bkz: docs/BRANCHING_WORKFLOW.md + .cursor/rules/concurrent-git-hygiene.mdc" >&2
+      exit 1
+      ;;
+  esac
+done
+
+# ─── Rule 2: Pipeline branch + commit tag kontrolü ────────────────────────────
+role=""
+case "$CURRENT_BRANCH" in
+  analyze/*)    role=analyzer ;;
+  propose/*)    role=proposer ;;
+  design/*)     role=designer ;;
+  arch/*)       role=architect ;;
+  feat/fe-*)    role=frontend ;;
+  feat/be-*)    role=backend ;;
+  feat/data-*)  role=data_engineer ;;
+  feat/infra-*) role=devops ;;
+  integrate/*)  role=integrator ;;
+  qa/*)         role=qa ;;
+  sec/*)        role=security_reviewer ;;
+  a11y/*)       role=a11y_auditor ;;
+  perf/*)       role=performance_tester ;;
+  retro/*)      role=retrospective ;;
+esac
+
+if [[ -n "$role" ]]; then
+  # Fetch test silently
+  git fetch origin test --quiet 2>/dev/null || true
+  BASE_SHA=$(git rev-parse origin/test 2>/dev/null || git rev-parse test 2>/dev/null || echo "")
+  if [[ -n "$BASE_SHA" ]]; then
+    missing=0
+    total=0
+    while read -r sha; do
+      total=$((total+1))
+      msg=$(git log -1 --pretty=%B "$sha")
+      if ! grep -qE "\[pipeline: ${role}( [A-Z]+-[0-9]+)?\]" <<< "$msg"; then
+        missing=$((missing+1))
+      fi
+    done < <(git log --format=%H "$BASE_SHA..HEAD" 2>/dev/null)
+
+    if [[ $missing -gt 0 ]]; then
+      echo "⚠  $missing/$total commit'te [pipeline: $role ...] etiketi eksik." >&2
+      echo "   Bu sadece uyarıdır. Atlamak için: SKIP_PIPELINE_HOOK=1 git push" >&2
+    fi
+  fi
+
+  # Conflict check (warn)
+  SCRIPT="$REPO_ROOT/scripts/pipeline/check-conflicts.sh"
+  if [[ -x "$SCRIPT" ]]; then
+    "$SCRIPT" || true
+  fi
+fi
+
+exit 0

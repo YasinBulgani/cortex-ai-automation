@@ -1,0 +1,36 @@
+# BGTS pre-commit hooks — isteğe bağlı ama önerilen.
+#
+# Kurulum (bir kez):
+#   pip install pre-commit
+#   pre-commit install
+#
+# Test çalıştır:
+#   pre-commit run --all-files
+#
+# Devre dışı bırakmak için (tek commit için):
+#   git commit --no-verify
+
+repos:
+  - repo: local
+    hooks:
+      - id: dsl-catalog-validate
+        name: DSL Katalog Doğrulama
+        description: packages/dsl/catalog/*.yaml dosyalarını JSON Schema'ya karşı doğrular.
+        entry: python3 packages/dsl/scripts/validate_catalog.py
+        language: system
+        pass_filenames: false
+        files: ^packages/dsl/(catalog|schema)/
+
+      - id: dsl-catalog-sync
+        name: DSL Yeni Step Senkronizasyonu
+        description: Staged step definition dosyalarında katalog'da olmayan yeni pattern varsa uyarır.
+        entry: python3 packages/dsl/scripts/check_new_steps.py --staged
+        language: system
+        pass_filenames: false
+        files: >-
+          ^(
+            engine/steps/|
+            backend/tests/bdd/steps/|
+            frameworks/selenium-cucumber-java/src/test/java/stepdefinitions/|
+            frameworks/playwright-cucumber-ts/steps/
+          )

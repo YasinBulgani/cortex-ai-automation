@@ -1,0 +1,2 @@
+'izinTalepEtSayfasıSınavİzniBilgilendirmeFormuButon' adlı butona/elemana tıklanıyor
+Element anahtarı: izinTalepEtSayfasıSınavİzniBilgilendirmeFormuButon

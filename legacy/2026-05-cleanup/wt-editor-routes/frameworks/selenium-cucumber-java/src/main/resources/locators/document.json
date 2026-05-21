@@ -1,0 +1,72 @@
+[
+  {
+    "key": "anaSayfaBelgelerMenuButon",
+    "type": "xpath",
+    "value": "//a[contains(normalize-space(.),'Belge') or contains(@href,'Document')]//span | //li[contains(@class,'menu')]//a[contains(normalize-space(.),'Belge')]"
+  },
+  {
+    "key": "anaSayfaBelgelerimButon",
+    "type": "xpath",
+    "value": "//a[contains(normalize-space(.),'Belgelerim') or contains(@href,'MyDocument')]"
+  },
+  {
+    "key": "belgelerimSayfasıBaslık",
+    "type": "xpath",
+    "value": "//h1[contains(normalize-space(.),'Belge')] | //div[contains(@class,'page-title') and contains(normalize-space(.),'Belge')]"
+  },
+  {
+    "key": "belgelerimSayfasıYuklemeButon",
+    "type": "xpath",
+    "value": "//a[contains(normalize-space(.),'Yükle') or contains(normalize-space(.),'Ekle') or @name='AddOrUpdate']"
+  },
+  {
+    "key": "belgelerimSayfasıDosyaInput",
+    "type": "xpath",
+    "value": "//input[@type='file']"
+  },
+  {
+    "key": "belgelerimSayfasıKaydetButon",
+    "type": "xpath",
+    "value": "//button[contains(normalize-space(text()),'Kaydet')] | //a[contains(@onclick,'validate')]"
+  },
+  {
+    "key": "belgelerimSayfasıYuklemeBasariliText",
+    "type": "xpath",
+    "value": "//h4[contains(@class,'ui-pnotify-title') and contains(normalize-space(.),'başarılı')]"
+  },
+  {
+    "key": "belgelerimSayfasıAramaInput",
+    "type": "id",
+    "value": "SearchInput"
+  },
+  {
+    "key": "belgelerimSayfasıAramaButon",
+    "type": "id",
+    "value": "txtSearchBtn"
+  },
+  {
+    "key": "belgelerimSayfasıIlkBelgeText",
+    "type": "xpath",
+    "value": "(//div[contains(@class,'card')]//h1 | //div[contains(@class,'card')]//span[contains(@class,'title')])[1]"
+  },
+  {
+    "key": "belgelerimSayfasıIlkBelgeUcNoktaButon",
+    "type": "xpath",
+    "value": "(//div[contains(@class,'card')][1])//em[contains(@class,'dot') or contains(@class,'more')]"
+  },
+  {
+    "key": "belgelerimSayfasıSilButon",
+    "type": "xpath",
+    "value": "//a[contains(@onclick,'postDelete') or contains(normalize-space(.),'Sil')]"
+  },
+  {
+    "key": "belgelerimSayfasıSilmeOnayButon",
+    "type": "xpath",
+    "value": "//button[@class='confirm']"
+  },
+  {
+    "key": "belgelerimSayfasıSilmeBasariliText",
+    "type": "xpath",
+    "value": "//div[contains(normalize-space(text()),'Başarıyla Silindi')]"
+  }
+]

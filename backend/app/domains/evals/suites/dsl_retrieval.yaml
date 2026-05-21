@@ -1,0 +1,141 @@
+# DSL retrieval golden suite — gerçek alias_index.search() çağırır.
+# Gateway erişilebilir değilse runner otomatik olarak SKIP yapar (exit 0).
+#
+# Golden set stratejisi: her case için 1+ "relevant" action_id verilir;
+# top_1 en beklenen sonuçtur, ama precision@5/MRR/recall@5 sıralamada
+# alternatif relevant match'leri de ödüllendirir.
+#
+# NOT: Bu ilk ~12 case'lik bir başlangıç seti; sprint boyunca büyüyecek.
+# Her AI/prompt/model PR'ı en az 3 yeni case eklemek zorunda (plan §7.1).
+
+name: dsl_retrieval
+adapter: dsl_retrieval
+description: >
+  TR/EN kullanıcı niyetlerinin doğru DSL action'larına yönlendirildiğini
+  doğrular. Reranker ve embedding model regresyonu için tetikleyicidir.
+
+scorers:
+  - exact_match
+  - precision_at_1
+  - precision_at_5
+  - mrr
+  - recall_at_5
+
+thresholds:
+  min_case_pass_rate: 0.6   # başlangıç: case bazında %60'ı geçsin yeter
+  mean:
+    precision_at_1: 0.65    # top-1 isabet ortalama ≥ 0.65
+    mrr: 0.70               # ilk relevant ortalama ~ rank 1.4 civarı
+    recall_at_5: 0.75       # top-5 içinde relevant'ların %75'i
+
+cases:
+  # ── Türkçe doğrudan ifadeler ─────────────────────────────────────────
+  - id: tr-click-selector
+    description: Türkçe selector ile tıklama niyeti
+    inputs:
+      query: "kullanıcı butonu tıklar"
+      k: 10
+    expected:
+      top_1: click_selector
+      relevant_ids: [click_selector, click_text, click_on_element, click_project]
+
+  - id: tr-click-text
+    description: Metne tıklama — text-based selector niyeti
+    inputs:
+      query: "'Giriş' metnine tıkla"
+      k: 10
+    expected:
+      top_1: click_text
+      relevant_ids: [click_text, click_selector, click_on_element]
+
+  - id: tr-fill-input
+    description: Input alanına değer yazma
+    inputs:
+      query: "kullanıcı adı alanına 'admin' yaz"
+      k: 10
+    expected:
+      relevant_ids: [fill_input, enter_text_into_input, clear_and_enter_text, fill_and_enter]
+
+  - id: tr-clear-input
+    description: Input temizleme
+    inputs:
+      query: "alanı temizle"
+      k: 10
+    expected:
+      relevant_ids: [clear_the_input_field, i_clear_the_input_field, en_clear]
+
+  - id: tr-hover
+    description: Fare hover
+    inputs:
+      query: "elemanın üzerine gel"
+      k: 10
+    expected:
+      relevant_ids: [hover_over, en_hover]
+
+  - id: tr-drag-drop
+    description: Sürükle-bırak
+    inputs:
+      query: "'kutu' elemanını 'hedef' üstüne sürükle ve bırak"
+      k: 10
+    expected:
+      relevant_ids: [drag_and_drop, en_drag_drop]
+
+  # ── Türkçe parafraz (reranker ödüllendiren) ──────────────────────────
+  - id: tr-paraphrase-open-url
+    description: "Parafraz: 'URL aç' yerine 'sayfaya git'"
+    inputs:
+      query: "login sayfasına git"
+      k: 10
+    expected:
+      relevant_ids: [en_open_url, en_open_url_bare, en_open_url_double_quotes]
+
+  - id: tr-paraphrase-click-form
+    description: "Parafraz: 'formunu aç' → url veya click aksiyonu"
+    inputs:
+      query: "iletişim formunu aç"
+      k: 10
+    expected:
+      relevant_ids:
+        - en_open_url
+        - en_open_url_bare
+        - click_selector
+        - click_text
+
+  # ── İngilizce ──────────────────────────────────────────────────────────
+  - id: en-click-text
+    description: English exact phrase
+    inputs:
+      query: "I click the text 'Login'"
+      k: 10
+      lang: "en"
+    expected:
+      top_1: click_text
+      relevant_ids: [click_text, click_selector, click_on_element]
+
+  - id: en-fill
+    description: English fill
+    inputs:
+      query: "I fill 'admin' into the username field"
+      k: 10
+      lang: "en"
+    expected:
+      relevant_ids: [fill_input, enter_text_into_input, en_fill, en_fill_double_quotes]
+
+  # ── Assertion ───────────────────────────────────────────────────────────
+  - id: tr-check-checkbox
+    description: Checkbox işaretle
+    inputs:
+      query: "'kabul ediyorum' onay kutusunu işaretle"
+      k: 10
+    expected:
+      relevant_ids: [check_checkbox]
+
+  # ── Scroll ──────────────────────────────────────────────────────────────
+  - id: en-scroll
+    description: Scroll action
+    inputs:
+      query: "scroll to the element"
+      k: 10
+      lang: "en"
+    expected:
+      relevant_ids: [en_scroll_to]

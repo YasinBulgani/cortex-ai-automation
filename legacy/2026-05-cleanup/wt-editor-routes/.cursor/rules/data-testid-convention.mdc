@@ -1,0 +1,55 @@
+---
+description: data-testid naming convention and usage rules for UI test automation
+globs: "**/*.tsx"
+alwaysApply: false
+---
+
+# data-testid Convention
+
+Every interactive UI element MUST have a `data-testid` attribute for test automation stability.
+
+## Naming Pattern
+
+```
+{screen}-{element-type}-{identifier}
+```
+
+| Type | Pattern | Example |
+|------|---------|---------|
+| Page container | `{screen}-page` | `login-page` |
+| Form | `{screen}-form` | `login-form` |
+| Input | `{screen}-input-{field}` | `login-input-email` |
+| Button | `{screen}-btn-{action}` | `login-btn-submit` |
+| Link | `{screen}-link-{target}` | `sidebar-link-scenarios` |
+| Table | `{screen}-table` | `scenarios-table` |
+| Row | `{screen}-row-{id}` | `scenarios-row-{s.id}` |
+| Checkbox | `{screen}-check-{name}` | `scenarios-check-{s.id}` |
+| Select | `{screen}-select-{name}` | `requirements-select-priority` |
+| Alert | `{screen}-alert-{type}` | `login-alert-error` |
+| Heading | `{screen}-heading` | `scenarios-heading` |
+
+## Rules
+
+1. Use kebab-case for all testid values
+2. Dynamic IDs use template literals: `` data-testid={`scenarios-row-${s.id}`} ``
+3. Screen name = route segment (login, projects, scenarios, flows, executions, approvals, regression, import)
+4. Global elements use: `sidebar-*`, `header-*`, `user-menu-*`
+5. Never use CSS classes or Tailwind utilities as locators — they break on styling changes
+6. `Button`, `Input` components pass `data-testid` via `...props` spread — just add the prop
+
+## Example
+
+```tsx
+// ✅ GOOD
+<Button data-testid="scenarios-btn-new">Yeni senaryo</Button>
+<Input data-testid="login-input-email" placeholder="ornek@sirket.com" />
+<tr data-testid={`scenarios-row-${s.id}`}>
+
+// ❌ BAD — no testid on interactive element
+<Button>Kaydet</Button>
+<input type="text" />
+
+// ❌ BAD — wrong naming
+<Button data-testid="btn1">
+<Input data-testid="emailField">
+```

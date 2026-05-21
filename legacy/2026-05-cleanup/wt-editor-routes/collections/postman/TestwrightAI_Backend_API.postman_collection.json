@@ -1,0 +1,888 @@
+{
+	"info": {
+		"_postman_id": "bgts-backend-api-v1",
+		"name": "TestwrightAI Backend API",
+		"description": "TestwrightAI Platformu — FastAPI Backend (port 8000)\n\nTürk bankacılık sektörü test otomasyon platformu. Sentetik veri üretimi, test yönetimi (TSPM), kural motoru ve CI/CD entegrasyonları.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"auth": {
+		"type": "bearer",
+		"bearer": [
+			{
+				"key": "token",
+				"value": "{{token}}",
+				"type": "string"
+			}
+		]
+	},
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					"// Auto-login if token is missing or expired",
+					"if (!pm.environment.get('token')) {",
+					"    const loginUrl = pm.environment.get('base_url') + '/api/v1/auth/login';",
+					"    pm.sendRequest({",
+					"        url: loginUrl,",
+					"        method: 'POST',",
+					"        header: { 'Content-Type': 'application/json' },",
+					"        body: {",
+					"            mode: 'raw',",
+					"            raw: JSON.stringify({",
+					"                email: pm.environment.get('admin_email'),",
+					"                password: pm.environment.get('admin_password')",
+					"            })",
+					"        }",
+					"    }, function (err, res) {",
+					"        if (!err && res.code === 200) {",
+					"            var body = res.json();",
+					"            pm.environment.set('token', body.access_token);",
+					"        }",
+					"    });",
+					"}"
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					"// Global response time check",
+					"pm.test('Response time < 5s', function () {",
+					"    pm.expect(pm.response.responseTime).to.be.below(5000);",
+					"});"
+				]
+			}
+		}
+	],
+	"variable": [
+		{ "key": "base_url", "value": "http://localhost:8000" },
+		{ "key": "project_id", "value": "" },
+		{ "key": "scenario_id", "value": "" },
+		{ "key": "dataset_id", "value": "" },
+		{ "key": "job_id", "value": "" },
+		{ "key": "execution_id", "value": "" },
+		{ "key": "flow_id", "value": "" },
+		{ "key": "regression_set_id", "value": "" },
+		{ "key": "schedule_id", "value": "" },
+		{ "key": "collection_id", "value": "" },
+		{ "key": "requirement_id", "value": "" }
+	],
+	"item": [
+		{
+			"name": "Platform",
+			"description": "Health check ve sistem durumu endpoint'leri",
+			"item": [
+				{
+					"name": "Health Check",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": { "raw": "{{base_url}}/health", "host": ["{{base_url}}"], "path": ["health"] },
+						"auth": { "type": "noauth" }
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+									"pm.test('Body has ok status', function () {",
+									"    var body = pm.response.json();",
+									"    pm.expect(body.status).to.eql('ok');",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Readiness Check",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": { "raw": "{{base_url}}/ready", "host": ["{{base_url}}"], "path": ["ready"] },
+						"auth": { "type": "noauth" }
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+									"pm.test('Database ready', function () {",
+									"    pm.expect(pm.response.json().ready).to.be.true;",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Automation Engine Health",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": { "raw": "{{base_url}}/api/v1/automation/health", "host": ["{{base_url}}"], "path": ["api", "v1", "automation", "health"] }
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status 200', function () { pm.response.to.have.status(200); });"
+								]
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Auth",
+			"description": "Kimlik doğrulama ve kullanıcı bilgisi",
+			"item": [
+				{
+					"name": "Login",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"admin@bgts.com.tr\",\n    \"password\": \"Bgts2024!\"\n}"
+						},
+						"url": { "raw": "{{base_url}}/api/v1/auth/login", "host": ["{{base_url}}"], "path": ["api", "v1", "auth", "login"] },
+						"auth": { "type": "noauth" }
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+									"pm.test('Has access_token', function () {",
+									"    var body = pm.response.json();",
+									"    pm.expect(body).to.have.property('access_token');",
+									"    pm.environment.set('token', body.access_token);",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "Get Current User",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": { "raw": "{{base_url}}/api/v1/auth/me", "host": ["{{base_url}}"], "path": ["api", "v1", "auth", "me"] }
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+									"pm.test('Has user info', function () {",
+									"    var body = pm.response.json();",
+									"    pm.expect(body).to.have.property('email');",
+									"    pm.expect(body).to.have.property('roles');",
+									"});"
+								]
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Datasets",
+			"description": "Veri seti kataloğu yönetimi — oluşturma, listeleme, versiyonlama, şema",
+			"item": [
+				{
+					"name": "List Datasets",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": { "raw": "{{base_url}}/api/v1/datasets", "host": ["{{base_url}}"], "path": ["api", "v1", "datasets"] }
+					},
+					"event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status 200', function () { pm.response.to.have.status(200); });", "pm.test('Returns array', function () { pm.expect(pm.response.json()).to.be.an('array'); });"] } }]
+				},
+				{
+					"name": "Create Dataset",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Garanti BBVA Müşteri Verileri\",\n    \"description\": \"Bireysel bankacılık müşteri demografik bilgileri ve hesap özetleri. TCKN, IBAN, telefon ve adres verileri içerir.\"\n}"
+						},
+						"url": { "raw": "{{base_url}}/api/v1/datasets", "host": ["{{base_url}}"], "path": ["api", "v1", "datasets"] }
+					},
+					"event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status 201', function () { pm.response.to.have.status(201); });", "var body = pm.response.json();", "pm.test('Has id', function () { pm.expect(body).to.have.property('id'); });", "if (body.id) pm.collectionVariables.set('dataset_id', body.id);"] } }]
+				},
+				{
+					"name": "Get Dataset",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": { "raw": "{{base_url}}/api/v1/datasets/{{dataset_id}}", "host": ["{{base_url}}"], "path": ["api", "v1", "datasets", "{{dataset_id}}"] }
+					},
+					"event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status 200', function () { pm.response.to.have.status(200); });"] } }]
+				},
+				{
+					"name": "Create Dataset Version",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"snapshot\": {\n        \"columns\": [\n            { \"name\": \"tckn\", \"type\": \"string\", \"pii\": true },\n            { \"name\": \"ad\", \"type\": \"string\" },\n            { \"name\": \"soyad\", \"type\": \"string\" },\n            { \"name\": \"iban\", \"type\": \"string\", \"pii\": true },\n            { \"name\": \"bakiye\", \"type\": \"decimal\" },\n            { \"name\": \"hesap_turu\", \"type\": \"enum\", \"values\": [\"vadesiz\", \"vadeli\", \"yatirim\"] }\n        ]\n    },\n    \"profile\": {\n        \"row_count\": 50000,\n        \"null_ratio\": 0.02\n    },\n    \"pii_flags\": [\"tckn\", \"iban\"]\n}"
+						},
+						"url": { "raw": "{{base_url}}/api/v1/datasets/{{dataset_id}}/versions", "host": ["{{base_url}}"], "path": ["api", "v1", "datasets", "{{dataset_id}}", "versions"] }
+					},
+					"event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status 201', function () { pm.response.to.have.status(201); });", "var body = pm.response.json();", "if (body.id) pm.collectionVariables.set('version_id', body.id);"] } }]
+				},
+				{
+					"name": "List Dataset Versions",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": { "raw": "{{base_url}}/api/v1/datasets/{{dataset_id}}/versions", "host": ["{{base_url}}"], "path": ["api", "v1", "datasets", "{{dataset_id}}", "versions"] }
+					},
+					"event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status 200', function () { pm.response.to.have.status(200); });"] } }]
+				},
+				{
+					"name": "Get Schema for Version",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": { "raw": "{{base_url}}/api/v1/datasets/{{dataset_id}}/versions/{{version_id}}/schema", "host": ["{{base_url}}"], "path": ["api", "v1", "datasets", "{{dataset_id}}", "versions", "{{version_id}}", "schema"] }
+					},
+					"event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status 200', function () { pm.response.to.have.status(200); });"] } }]
+				}
+			]
+		},
+		{
+			"name": "Rules",
+			"description": "Veri seti kural setleri — sentetik veri üretim kuralları",
+			"item": [
+				{
+					"name": "List Rule Sets",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": { "raw": "{{base_url}}/api/v1/datasets/{{dataset_id}}/rule-sets", "host": ["{{base_url}}"], "path": ["api", "v1", "datasets", "{{dataset_id}}", "rule-sets"] }
+					},
+					"event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status 200', function () { pm.response.to.have.status(200); });"] } }]
+				},
+				{
+					"name": "Create Rule Set",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"KVKK Uyumlu Müşteri Kuralları\",\n    \"rules_body\": {\n        \"tckn\": { \"type\": \"tckn\", \"unique\": true, \"algorithm\": \"mod11\" },\n        \"iban\": { \"type\": \"iban\", \"country\": \"TR\", \"bank_code\": \"0062\" },\n        \"bakiye\": { \"min\": 0, \"max\": 5000000, \"distribution\": \"lognormal\" },\n        \"ad\": { \"type\": \"turkish_first_name\" },\n        \"soyad\": { \"type\": \"turkish_last_name\" }\n    },\n    \"version\": 1\n}"
+						},
+						"url": { "raw": "{{base_url}}/api/v1/datasets/{{dataset_id}}/rule-sets", "host": ["{{base_url}}"], "path": ["api", "v1", "datasets", "{{dataset_id}}", "rule-sets"] }
+					},
+					"event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status 201', function () { pm.response.to.have.status(201); });", "var body = pm.response.json();", "if (body.id) pm.collectionVariables.set('rule_set_id', body.id);"] } }]
+				},
+				{
+					"name": "Get Rule Set",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": { "raw": "{{base_url}}/api/v1/datasets/{{dataset_id}}/rule-sets/{{rule_set_id}}", "host": ["{{base_url}}"], "path": ["api", "v1", "datasets", "{{dataset_id}}", "rule-sets", "{{rule_set_id}}"] }
+					},
+					"event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status 200', function () { pm.response.to.have.status(200); });"] } }]
+				}
+			]
+		},
+		{
+			"name": "Generation Jobs",
+			"description": "Sentetik veri üretim işleri — kuyruğa ekleme, durum sorgulama, artefaktlar",
+			"item": [
+				{
+					"name": "List Jobs",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/jobs?limit=20",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "jobs"],
+							"query": [{ "key": "limit", "value": "20" }]
+						}
+					},
+					"event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status 200', function () { pm.response.to.have.status(200); });"] } }]
+				},
+				{
+					"name": "Enqueue Generation Job",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"dataset_version_id\": \"{{version_id}}\",\n    \"rule_set_id\": \"{{rule_set_id}}\"\n}"
+						},
+						"url": { "raw": "{{base_url}}/api/v1/jobs", "host": ["{{base_url}}"], "path": ["api", "v1", "jobs"] }
+					},
+					"event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status 202', function () { pm.response.to.have.status(202); });", "var body = pm.response.json();", "if (body.id) pm.collectionVariables.set('job_id', body.id);"] } }]
+				},
+				{
+					"name": "Get Job Status",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": { "raw": "{{base_url}}/api/v1/jobs/{{job_id}}", "host": ["{{base_url}}"], "path": ["api", "v1", "jobs", "{{job_id}}"] }
+					},
+					"event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status 200', function () { pm.response.to.have.status(200); });"] } }]
+				},
+				{
+					"name": "Get Job Events",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": { "raw": "{{base_url}}/api/v1/jobs/{{job_id}}/events", "host": ["{{base_url}}"], "path": ["api", "v1", "jobs", "{{job_id}}", "events"] }
+					},
+					"event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status 200', function () { pm.response.to.have.status(200); });"] } }]
+				},
+				{
+					"name": "Get Job Artifacts",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": { "raw": "{{base_url}}/api/v1/jobs/{{job_id}}/artifacts", "host": ["{{base_url}}"], "path": ["api", "v1", "jobs", "{{job_id}}", "artifacts"] }
+					},
+					"event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status 200', function () { pm.response.to.have.status(200); });"] } }]
+				},
+				{
+					"name": "Download Artifact",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": { "raw": "{{base_url}}/api/v1/artifacts/{{artifact_id}}/download", "host": ["{{base_url}}"], "path": ["api", "v1", "artifacts", "{{artifact_id}}", "download"] }
+					},
+					"event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status 200', function () { pm.response.to.have.status(200); });"] } }]
+				}
+			]
+		},
+		{
+			"name": "TSPM — Projects",
+			"description": "Test Senaryosu Proje Yönetimi — Projeler",
+			"item": [
+				{
+					"name": "List Projects",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": { "raw": "{{base_url}}/api/v1/tspm/projects", "host": ["{{base_url}}"], "path": ["api", "v1", "tspm", "projects"] }
+					},
+					"event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status 200', function () { pm.response.to.have.status(200); });", "pm.test('Returns array', function () { pm.expect(pm.response.json()).to.be.an('array'); });"] } }]
+				},
+				{
+					"name": "Create Project",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"İnternet Bankacılığı Regresyon\",\n    \"description\": \"Garanti BBVA İnternet Şubesi regresyon test senaryoları. EFT, havale, fatura ödeme ve hesap yönetimi modülleri.\"\n}"
+						},
+						"url": { "raw": "{{base_url}}/api/v1/tspm/projects", "host": ["{{base_url}}"], "path": ["api", "v1", "tspm", "projects"] }
+					},
+					"event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status 201', function () { pm.response.to.have.status(201); });", "var body = pm.response.json();", "if (body.id) pm.collectionVariables.set('project_id', body.id);"] } }]
+				},
+				{
+					"name": "Get Project Dashboard",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": { "raw": "{{base_url}}/api/v1/tspm/projects/{{project_id}}/dashboard", "host": ["{{base_url}}"], "path": ["api", "v1", "tspm", "projects", "{{project_id}}", "dashboard"] }
+					},
+					"event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status 200', function () { pm.response.to.have.status(200); });", "pm.test('Has counts', function () {", "    var body = pm.response.json();", "    pm.expect(body).to.have.property('scenario_count');", "    pm.expect(body).to.have.property('execution_count');", "});"] } }]
+				}
+			]
+		},
+		{
+			"name": "TSPM — Scenarios",
+			"description": "Test senaryoları — CRUD, BDD üretimi, toplu silme, versiyon yönetimi",
+			"item": [
+				{
+					"name": "List Scenarios",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/tspm/projects/{{project_id}}/scenarios?q=",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "tspm", "projects", "{{project_id}}", "scenarios"],
+							"query": [{ "key": "q", "value": "", "description": "Arama filtresi (opsiyonel)" }]
+						}
+					},
+					"event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status 200', function () { pm.response.to.have.status(200); });"] } }]
+				},
+				{
+					"name": "Create Scenario",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"title\": \"EFT ile Para Transferi — Başarılı Senaryo\",\n    \"description\": \"Vadesiz hesaptan başka banka hesabına EFT ile para transferi yapılması. Bakiye kontrolü, IBAN doğrulama ve dekont üretimi dahil.\",\n    \"status\": \"draft\",\n    \"steps\": [\n        { \"order\": 0, \"keyword\": \"Given\", \"text\": \"Kullanıcı internet bankacılığına giriş yapmıştır\" },\n        { \"order\": 1, \"keyword\": \"And\", \"text\": \"Vadesiz hesap bakiyesi 5000 TL üzerindedir\" },\n        { \"order\": 2, \"keyword\": \"When\", \"text\": \"Para Transferi > EFT menüsüne tıklar\" },\n        { \"order\": 3, \"keyword\": \"And\", \"text\": \"Alıcı IBAN olarak TR330006100519786457841326 girer\" },\n        { \"order\": 4, \"keyword\": \"And\", \"text\": \"Tutar olarak 1500.00 TL girer\" },\n        { \"order\": 5, \"keyword\": \"And\", \"text\": \"Açıklama olarak 'Kira ödemesi Nisan 2026' yazar\" },\n        { \"order\": 6, \"keyword\": \"And\", \"text\": \"Onayla butonuna tıklar\" },\n        { \"order\": 7, \"keyword\": \"Then\", \"text\": \"Transfer başarılı mesajı görüntülenir\" },\n        { \"order\": 8, \"keyword\": \"And\", \"text\": \"Dekont numarası ekranda gösterilir\" }\n    ]\n}"
+						},
+						"url": { "raw": "{{base_url}}/api/v1/tspm/projects/{{project_id}}/scenarios", "host": ["{{base_url}}"], "path": ["api", "v1", "tspm", "projects", "{{project_id}}", "scenarios"] }
+					},
+					"event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status 201', function () { pm.response.to.have.status(201); });", "var body = pm.response.json();", "if (body.id) pm.collectionVariables.set('scenario_id', body.id);"] } }]
+				},
+				{
+					"name": "Get Scenario",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": { "raw": "{{base_url}}/api/v1/tspm/projects/{{project_id}}/scenarios/{{scenario_id}}", "host": ["{{base_url}}"], "path": ["api", "v1", "tspm", "projects", "{{project_id}}", "scenarios", "{{scenario_id}}"] }
+					},
+					"event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status 200', function () { pm.response.to.have.status(200); });"] } }]
+				},
+				{
+					"name": "Update Scenario",
+					"request": {
+						"method": "PUT",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"title\": \"EFT ile Para Transferi — Güncellenmiş\",\n    \"status\": \"review\",\n    \"steps\": [\n        { \"order\": 0, \"keyword\": \"Given\", \"text\": \"Kullanıcı internet bankacılığına giriş yapmıştır\" },\n        { \"order\": 1, \"keyword\": \"And\", \"text\": \"Vadesiz hesap bakiyesi transfer tutarından yüksektir\" },\n        { \"order\": 2, \"keyword\": \"When\", \"text\": \"EFT menüsünden transfer işlemi başlatır\" },\n        { \"order\": 3, \"keyword\": \"Then\", \"text\": \"Transfer başarılı mesajı ve dekont numarası görüntülenir\" }\n    ]\n}"
+						},
+						"url": { "raw": "{{base_url}}/api/v1/tspm/projects/{{project_id}}/scenarios/{{scenario_id}}", "host": ["{{base_url}}"], "path": ["api", "v1", "tspm", "projects", "{{project_id}}", "scenarios", "{{scenario_id}}"] }
+					},
+					"event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status 200', function () { pm.response.to.have.status(200); });"] } }]
+				},
+				{
+					"name": "Generate BDD Scenarios",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"analysis_text\": \"İnternet bankacılığı fatura ödeme modülü: Kullanıcı elektrik, su, doğalgaz, telefon ve internet faturalarını ödeyebilir. Otomatik ödeme talimatı verebilir. Fatura sorgulama yapabilir. Ödeme makbuzu alabilir. Geçmiş ödemelerini listeleyebilir.\",\n    \"extra_instructions\": \"Her fatura tipi için ayrı senaryo üret. Negatif senaryoları da dahil et (yetersiz bakiye, hatalı abone no).\"\n}"
+						},
+						"url": { "raw": "{{base_url}}/api/v1/tspm/projects/{{project_id}}/scenarios/generate-bdd", "host": ["{{base_url}}"], "path": ["api", "v1", "tspm", "projects", "{{project_id}}", "scenarios", "generate-bdd"] }
+					},
+					"event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status 200', function () { pm.response.to.have.status(200); });", "pm.test('Has scenarios', function () {", "    pm.expect(pm.response.json()).to.have.property('scenarios');", "});"] } }]
+				},
+				{
+					"name": "Save BDD Scenarios",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"scenarios\": [\n        {\n            \"title\": \"Elektrik Faturası Ödeme\",\n            \"description\": \"Başarılı elektrik faturası ödeme senaryosu\",\n            \"gherkin\": \"Feature: Fatura Ödeme\\n  Scenario: Elektrik faturası öde\\n    Given Kullanıcı giriş yapmıştır\\n    When Fatura ödeme menüsüne gider\\n    Then Ödeme başarılı olur\",\n            \"steps\": [\n                { \"keyword\": \"Given\", \"text\": \"Kullanıcı giriş yapmıştır\" },\n                { \"keyword\": \"When\", \"text\": \"Fatura ödeme menüsüne gider\" },\n                { \"keyword\": \"Then\", \"text\": \"Ödeme başarılı olur\" }\n            ]\n        }\n    ]\n}"
+						},
+						"url": { "raw": "{{base_url}}/api/v1/tspm/projects/{{project_id}}/scenarios/save-bdd", "host": ["{{base_url}}"], "path": ["api", "v1", "tspm", "projects", "{{project_id}}", "scenarios", "save-bdd"] }
+					},
+					"event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status 201', function () { pm.response.to.have.status(201); });"] } }]
+				},
+				{
+					"name": "Bulk Delete Scenarios",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"ids\": [\"{{scenario_id}}\"]\n}"
+						},
+						"url": { "raw": "{{base_url}}/api/v1/tspm/projects/{{project_id}}/scenarios/bulk-delete", "host": ["{{base_url}}"], "path": ["api", "v1", "tspm", "projects", "{{project_id}}", "scenarios", "bulk-delete"] }
+					},
+					"event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status 204', function () { pm.response.to.have.status(204); });"] } }]
+				},
+				{
+					"name": "List Scenario Versions",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": { "raw": "{{base_url}}/api/v1/tspm/projects/{{project_id}}/scenarios/{{scenario_id}}/versions", "host": ["{{base_url}}"], "path": ["api", "v1", "tspm", "projects", "{{project_id}}", "scenarios", "{{scenario_id}}", "versions"] }
+					},
+					"event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status 200', function () { pm.response.to.have.status(200); });"] } }]
+				},
+				{
+					"name": "Diff Scenario Versions",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": { "raw": "{{base_url}}/api/v1/tspm/projects/{{project_id}}/scenarios/{{scenario_id}}/versions/1/diff/2", "host": ["{{base_url}}"], "path": ["api", "v1", "tspm", "projects", "{{project_id}}", "scenarios", "{{scenario_id}}", "versions", "1", "diff", "2"] }
+					},
+					"event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status 200', function () { pm.response.to.have.status(200); });"] } }]
+				},
+				{
+					"name": "Bind Data to Scenario",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"data_set_id\": \"{{test_data_id}}\",\n    \"parameter_mapping\": {\n        \"iban\": \"alici_iban\",\n        \"tutar\": \"transfer_tutari\"\n    }\n}"
+						},
+						"url": { "raw": "{{base_url}}/api/v1/tspm/projects/{{project_id}}/scenarios/{{scenario_id}}/bind-data", "host": ["{{base_url}}"], "path": ["api", "v1", "tspm", "projects", "{{project_id}}", "scenarios", "{{scenario_id}}", "bind-data"] }
+					},
+					"event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status 201', function () { pm.response.to.have.status(201); });"] } }]
+				},
+				{
+					"name": "Get Expanded Scenario",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": { "raw": "{{base_url}}/api/v1/tspm/projects/{{project_id}}/scenarios/{{scenario_id}}/expanded", "host": ["{{base_url}}"], "path": ["api", "v1", "tspm", "projects", "{{project_id}}", "scenarios", "{{scenario_id}}", "expanded"] }
+					},
+					"event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status 200', function () { pm.response.to.have.status(200); });"] } }]
+				}
+			]
+		},
+		{
+			"name": "TSPM — Requirements",
+			"description": "Gereksinimler ve kapsam matrisi",
+			"item": [
+				{
+					"name": "Create Requirement",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"external_id\": \"REQ-IB-042\",\n    \"title\": \"EFT Transfer Limit Kontrolü\",\n    \"description\": \"Bireysel müşteriler için günlük EFT transfer limiti 500.000 TL olmalıdır. Kurumsal müşteriler için limit 5.000.000 TL.\",\n    \"priority\": \"high\",\n    \"source\": \"BDDK Düzenleme 2026/03\"\n}"
+						},
+						"url": { "raw": "{{base_url}}/api/v1/tspm/projects/{{project_id}}/requirements", "host": ["{{base_url}}"], "path": ["api", "v1", "tspm", "projects", "{{project_id}}", "requirements"] }
+					},
+					"event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status 201', function () { pm.response.to.have.status(201); });", "var body = pm.response.json();", "if (body.id) pm.collectionVariables.set('requirement_id', body.id);"] } }]
+				},
+				{
+					"name": "List Requirements",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": { "raw": "{{base_url}}/api/v1/tspm/projects/{{project_id}}/requirements", "host": ["{{base_url}}"], "path": ["api", "v1", "tspm", "projects", "{{project_id}}", "requirements"] }
+					},
+					"event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status 200', function () { pm.response.to.have.status(200); });"] } }]
+				},
+				{
+					"name": "Update Requirement",
+					"request": {
+						"method": "PUT",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\n    \"priority\": \"critical\",\n    \"description\": \"Günlük EFT limiti güncellemesi — BDDK 2026/03 düzenlemesi uyarınca\"\n}" },
+						"url": { "raw": "{{base_url}}/api/v1/tspm/projects/{{project_id}}/requirements/{{requirement_id}}", "host": ["{{base_url}}"], "path": ["api", "v1", "tspm", "projects", "{{project_id}}", "requirements", "{{requirement_id}}"] }
+					},
+					"event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status 200', function () { pm.response.to.have.status(200); });"] } }]
+				},
+				{
+					"name": "Link Scenario to Requirement",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\n    \"requirement_ids\": [\"{{requirement_id}}\"]\n}" },
+						"url": { "raw": "{{base_url}}/api/v1/tspm/projects/{{project_id}}/scenarios/{{scenario_id}}/requirements", "host": ["{{base_url}}"], "path": ["api", "v1", "tspm", "projects", "{{project_id}}", "scenarios", "{{scenario_id}}", "requirements"] }
+					},
+					"event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status 201', function () { pm.response.to.have.status(201); });"] } }]
+				},
+				{
+					"name": "Get Coverage Matrix",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": { "raw": "{{base_url}}/api/v1/tspm/projects/{{project_id}}/coverage-matrix", "host": ["{{base_url}}"], "path": ["api", "v1", "tspm", "projects", "{{project_id}}", "coverage-matrix"] }
+					},
+					"event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status 200', function () { pm.response.to.have.status(200); });"] } }]
+				},
+				{
+					"name": "Get Coverage Gaps",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": { "raw": "{{base_url}}/api/v1/tspm/projects/{{project_id}}/coverage-gaps", "host": ["{{base_url}}"], "path": ["api", "v1", "tspm", "projects", "{{project_id}}", "coverage-gaps"] }
+					},
+					"event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status 200', function () { pm.response.to.have.status(200); });"] } }]
+				},
+				{
+					"name": "Delete Requirement",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": { "raw": "{{base_url}}/api/v1/tspm/projects/{{project_id}}/requirements/{{requirement_id}}", "host": ["{{base_url}}"], "path": ["api", "v1", "tspm", "projects", "{{project_id}}", "requirements", "{{requirement_id}}"] }
+					},
+					"event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status 204', function () { pm.response.to.have.status(204); });"] } }]
+				}
+			]
+		},
+		{
+			"name": "TSPM — Executions",
+			"description": "Test koşuları — oluşturma, detay, tekrar koşma, trendler",
+			"item": [
+				{
+					"name": "List Executions",
+					"request": { "method": "GET", "header": [], "url": { "raw": "{{base_url}}/api/v1/tspm/projects/{{project_id}}/executions", "host": ["{{base_url}}"], "path": ["api", "v1", "tspm", "projects", "{{project_id}}", "executions"] } },
+					"event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status 200', function () { pm.response.to.have.status(200); });"] } }]
+				},
+				{
+					"name": "Create Execution",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\n    \"name\": \"Sprint 14 — Haftalık Regresyon\",\n    \"scenario_ids\": [\"{{scenario_id}}\"]\n}" },
+						"url": { "raw": "{{base_url}}/api/v1/tspm/projects/{{project_id}}/executions", "host": ["{{base_url}}"], "path": ["api", "v1", "tspm", "projects", "{{project_id}}", "executions"] }
+					},
+					"event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status 201', function () { pm.response.to.have.status(201); });", "var body = pm.response.json();", "if (body.id) pm.collectionVariables.set('execution_id', body.id);"] } }]
+				},
+				{
+					"name": "Get Execution Detail",
+					"request": { "method": "GET", "header": [], "url": { "raw": "{{base_url}}/api/v1/tspm/projects/{{project_id}}/executions/{{execution_id}}", "host": ["{{base_url}}"], "path": ["api", "v1", "tspm", "projects", "{{project_id}}", "executions", "{{execution_id}}"] } },
+					"event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status 200', function () { pm.response.to.have.status(200); });"] } }]
+				},
+				{
+					"name": "Update Result Status",
+					"request": {
+						"method": "PATCH",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\n    \"status\": \"passed\"\n}" },
+						"url": { "raw": "{{base_url}}/api/v1/tspm/projects/{{project_id}}/executions/{{execution_id}}/results/{{result_id}}", "host": ["{{base_url}}"], "path": ["api", "v1", "tspm", "projects", "{{project_id}}", "executions", "{{execution_id}}", "results", "{{result_id}}"] }
+					},
+					"event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status 200', function () { pm.response.to.have.status(200); });"] } }]
+				},
+				{
+					"name": "Re-run Execution",
+					"request": { "method": "POST", "header": [], "url": { "raw": "{{base_url}}/api/v1/tspm/projects/{{project_id}}/executions/{{execution_id}}", "host": ["{{base_url}}"], "path": ["api", "v1", "tspm", "projects", "{{project_id}}", "executions", "{{execution_id}}"] } },
+					"event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status 201', function () { pm.response.to.have.status(201); });"] } }]
+				},
+				{
+					"name": "Get Execution Trends",
+					"request": { "method": "GET", "header": [], "url": { "raw": "{{base_url}}/api/v1/tspm/projects/{{project_id}}/execution-trends?days=30", "host": ["{{base_url}}"], "path": ["api", "v1", "tspm", "projects", "{{project_id}}", "execution-trends"], "query": [{ "key": "days", "value": "30" }] } },
+					"event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status 200', function () { pm.response.to.have.status(200); });"] } }]
+				},
+				{
+					"name": "Get Execution Stats",
+					"request": { "method": "GET", "header": [], "url": { "raw": "{{base_url}}/api/v1/tspm/projects/{{project_id}}/execution-stats", "host": ["{{base_url}}"], "path": ["api", "v1", "tspm", "projects", "{{project_id}}", "execution-stats"] } },
+					"event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status 200', function () { pm.response.to.have.status(200); });"] } }]
+				},
+				{
+					"name": "Get Flaky Tests",
+					"request": { "method": "GET", "header": [], "url": { "raw": "{{base_url}}/api/v1/tspm/projects/{{project_id}}/flaky-tests", "host": ["{{base_url}}"], "path": ["api", "v1", "tspm", "projects", "{{project_id}}", "flaky-tests"] } },
+					"event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status 200', function () { pm.response.to.have.status(200); });"] } }]
+				}
+			]
+		},
+		{
+			"name": "TSPM — Flows & Regression",
+			"description": "Test akışları, regresyon setleri ve AI önerileri",
+			"item": [
+				{
+					"name": "List Flows",
+					"request": { "method": "GET", "header": [], "url": { "raw": "{{base_url}}/api/v1/tspm/projects/{{project_id}}/flows", "host": ["{{base_url}}"], "path": ["api", "v1", "tspm", "projects", "{{project_id}}", "flows"] } },
+					"event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status 200', function () { pm.response.to.have.status(200); });"] } }]
+				},
+				{
+					"name": "Create Flow",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\n    \"name\": \"EFT Uçtan Uca Akışı\",\n    \"description\": \"Giriş → Hesap Seçimi → EFT Formu → Onay → Dekont akışı\"\n}" },
+						"url": { "raw": "{{base_url}}/api/v1/tspm/projects/{{project_id}}/flows", "host": ["{{base_url}}"], "path": ["api", "v1", "tspm", "projects", "{{project_id}}", "flows"] }
+					},
+					"event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status 201', function () { pm.response.to.have.status(201); });", "var body = pm.response.json();", "if (body.id) pm.collectionVariables.set('flow_id', body.id);"] } }]
+				},
+				{
+					"name": "Update Flow Graph",
+					"request": {
+						"method": "PUT",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\n    \"nodes\": [\n        { \"id\": \"n1\", \"label\": \"Giriş\", \"type\": \"start\" },\n        { \"id\": \"n2\", \"label\": \"Hesap Seç\", \"type\": \"step\" },\n        { \"id\": \"n3\", \"label\": \"EFT Formu\", \"type\": \"step\" },\n        { \"id\": \"n4\", \"label\": \"Onay\", \"type\": \"decision\" },\n        { \"id\": \"n5\", \"label\": \"Dekont\", \"type\": \"end\" }\n    ],\n    \"edges\": [\n        { \"source\": \"n1\", \"target\": \"n2\" },\n        { \"source\": \"n2\", \"target\": \"n3\" },\n        { \"source\": \"n3\", \"target\": \"n4\" },\n        { \"source\": \"n4\", \"target\": \"n5\" }\n    ]\n}" },
+						"url": { "raw": "{{base_url}}/api/v1/tspm/projects/{{project_id}}/flows/{{flow_id}}/graph", "host": ["{{base_url}}"], "path": ["api", "v1", "tspm", "projects", "{{project_id}}", "flows", "{{flow_id}}", "graph"] }
+					},
+					"event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status 200', function () { pm.response.to.have.status(200); });"] } }]
+				},
+				{
+					"name": "List Regression Sets",
+					"request": { "method": "GET", "header": [], "url": { "raw": "{{base_url}}/api/v1/tspm/projects/{{project_id}}/regression-sets", "host": ["{{base_url}}"], "path": ["api", "v1", "tspm", "projects", "{{project_id}}", "regression-sets"] } },
+					"event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status 200', function () { pm.response.to.have.status(200); });"] } }]
+				},
+				{
+					"name": "Create Regression Set",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\n    \"name\": \"Para Transferi Regresyon Seti\",\n    \"description\": \"EFT, havale ve FAST transfer senaryolarını kapsayan regresyon seti\"\n}" },
+						"url": { "raw": "{{base_url}}/api/v1/tspm/projects/{{project_id}}/regression-sets", "host": ["{{base_url}}"], "path": ["api", "v1", "tspm", "projects", "{{project_id}}", "regression-sets"] }
+					},
+					"event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status 201', function () { pm.response.to.have.status(201); });", "var body = pm.response.json();", "if (body.id) pm.collectionVariables.set('regression_set_id', body.id);"] } }]
+				},
+				{
+					"name": "Add Scenarios to Regression Set",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\n    \"scenario_ids\": [\"{{scenario_id}}\"]\n}" },
+						"url": { "raw": "{{base_url}}/api/v1/tspm/projects/{{project_id}}/regression-sets/{{regression_set_id}}/add", "host": ["{{base_url}}"], "path": ["api", "v1", "tspm", "projects", "{{project_id}}", "regression-sets", "{{regression_set_id}}", "add"] }
+					},
+					"event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status 200', function () { pm.response.to.have.status(200); });"] } }]
+				},
+				{
+					"name": "AI Suggest Regression Sets",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\n    \"extra_instructions\": \"Kritik bankacılık işlemlerini öncelikle grupla. Risk seviyesine göre sırala.\"\n}" },
+						"url": { "raw": "{{base_url}}/api/v1/tspm/projects/{{project_id}}/regression-sets/suggest", "host": ["{{base_url}}"], "path": ["api", "v1", "tspm", "projects", "{{project_id}}", "regression-sets", "suggest"] }
+					},
+					"event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status 200', function () { pm.response.to.have.status(200); });"] } }]
+				}
+			]
+		},
+		{
+			"name": "TSPM — Schedules & Approvals",
+			"description": "Zamanlama, onay akışları ve import",
+			"item": [
+				{
+					"name": "Create Schedule",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\n    \"name\": \"Günlük Gece Regresyon\",\n    \"cron_expression\": \"0 2 * * *\",\n    \"regression_set_id\": \"{{regression_set_id}}\",\n    \"scenario_ids\": [],\n    \"is_active\": true\n}" },
+						"url": { "raw": "{{base_url}}/api/v1/tspm/projects/{{project_id}}/schedules", "host": ["{{base_url}}"], "path": ["api", "v1", "tspm", "projects", "{{project_id}}", "schedules"] }
+					},
+					"event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status 201', function () { pm.response.to.have.status(201); });", "var body = pm.response.json();", "if (body.id) pm.collectionVariables.set('schedule_id', body.id);"] } }]
+				},
+				{
+					"name": "List Schedules",
+					"request": { "method": "GET", "header": [], "url": { "raw": "{{base_url}}/api/v1/tspm/projects/{{project_id}}/schedules", "host": ["{{base_url}}"], "path": ["api", "v1", "tspm", "projects", "{{project_id}}", "schedules"] } },
+					"event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status 200', function () { pm.response.to.have.status(200); });"] } }]
+				},
+				{
+					"name": "Trigger Schedule",
+					"request": { "method": "POST", "header": [], "url": { "raw": "{{base_url}}/api/v1/tspm/projects/{{project_id}}/schedules/{{schedule_id}}/trigger", "host": ["{{base_url}}"], "path": ["api", "v1", "tspm", "projects", "{{project_id}}", "schedules", "{{schedule_id}}", "trigger"] } },
+					"event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status 201', function () { pm.response.to.have.status(201); });"] } }]
+				},
+				{
+					"name": "List Approvals",
+					"request": { "method": "GET", "header": [], "url": { "raw": "{{base_url}}/api/v1/tspm/projects/{{project_id}}/approvals", "host": ["{{base_url}}"], "path": ["api", "v1", "tspm", "projects", "{{project_id}}", "approvals"] } },
+					"event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status 200', function () { pm.response.to.have.status(200); });"] } }]
+				},
+				{
+					"name": "Decide Approval",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\n    \"decision\": \"approved\"\n}" },
+						"url": { "raw": "{{base_url}}/api/v1/tspm/projects/{{project_id}}/approvals/{{approval_id}}/decide", "host": ["{{base_url}}"], "path": ["api", "v1", "tspm", "projects", "{{project_id}}", "approvals", "{{approval_id}}", "decide"] }
+					},
+					"event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status 200', function () { pm.response.to.have.status(200); });"] } }]
+				},
+				{
+					"name": "Create Import",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\n    \"filename\": \"eft_test_senaryolari.xlsx\",\n    \"raw_text\": \"Senaryo 1: Başarılı EFT transferi\\nSenaryo 2: Yetersiz bakiye ile EFT\\nSenaryo 3: Geçersiz IBAN ile EFT\"\n}" },
+						"url": { "raw": "{{base_url}}/api/v1/tspm/projects/{{project_id}}/imports", "host": ["{{base_url}}"], "path": ["api", "v1", "tspm", "projects", "{{project_id}}", "imports"] }
+					},
+					"event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status 201', function () { pm.response.to.have.status(201); });"] } }]
+				}
+			]
+		},
+		{
+			"name": "TSPM — Test Data",
+			"description": "Test veri setleri ve senaryo veri bağlama",
+			"item": [
+				{
+					"name": "Create Test Data",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\n    \"name\": \"EFT Transfer Test Verileri\",\n    \"description\": \"Farklı tutarlar ve IBAN'lar ile EFT transfer test verileri\",\n    \"columns\": [\"alici_iban\", \"transfer_tutari\", \"aciklama\", \"beklenen_sonuc\"],\n    \"rows\": [\n        { \"alici_iban\": \"TR330006100519786457841326\", \"transfer_tutari\": \"1500.00\", \"aciklama\": \"Kira ödemesi\", \"beklenen_sonuc\": \"basarili\" },\n        { \"alici_iban\": \"TR180006200019800006672315\", \"transfer_tutari\": \"25000.50\", \"aciklama\": \"Fatura ödemesi\", \"beklenen_sonuc\": \"basarili\" },\n        { \"alici_iban\": \"TR00INVALIDIBAN\", \"transfer_tutari\": \"100.00\", \"aciklama\": \"Geçersiz IBAN\", \"beklenen_sonuc\": \"hata\" },\n        { \"alici_iban\": \"TR330006100519786457841326\", \"transfer_tutari\": \"999999999.00\", \"aciklama\": \"Limit aşımı\", \"beklenen_sonuc\": \"limit_hatasi\" }\n    ]\n}" },
+						"url": { "raw": "{{base_url}}/api/v1/tspm/projects/{{project_id}}/test-data", "host": ["{{base_url}}"], "path": ["api", "v1", "tspm", "projects", "{{project_id}}", "test-data"] }
+					},
+					"event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status 201', function () { pm.response.to.have.status(201); });"] } }]
+				},
+				{
+					"name": "List Test Data",
+					"request": { "method": "GET", "header": [], "url": { "raw": "{{base_url}}/api/v1/tspm/projects/{{project_id}}/test-data", "host": ["{{base_url}}"], "path": ["api", "v1", "tspm", "projects", "{{project_id}}", "test-data"] } },
+					"event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status 200', function () { pm.response.to.have.status(200); });"] } }]
+				}
+			]
+		},
+		{
+			"name": "TSPM — Integrations & API Testing",
+			"description": "Dış entegrasyonlar ve API test koleksiyonları",
+			"item": [
+				{
+					"name": "Create Integration",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\n    \"provider\": \"jira\",\n    \"config\": {\n        \"base_url\": \"https://bgts.atlassian.net\",\n        \"project_key\": \"IB\",\n        \"api_token\": \"***\"\n    },\n    \"is_active\": true\n}" },
+						"url": { "raw": "{{base_url}}/api/v1/tspm/projects/{{project_id}}/integrations", "host": ["{{base_url}}"], "path": ["api", "v1", "tspm", "projects", "{{project_id}}", "integrations"] }
+					},
+					"event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status 201', function () { pm.response.to.have.status(201); });"] } }]
+				},
+				{
+					"name": "List Integrations",
+					"request": { "method": "GET", "header": [], "url": { "raw": "{{base_url}}/api/v1/tspm/projects/{{project_id}}/integrations", "host": ["{{base_url}}"], "path": ["api", "v1", "tspm", "projects", "{{project_id}}", "integrations"] } },
+					"event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status 200', function () { pm.response.to.have.status(200); });"] } }]
+				},
+				{
+					"name": "Create API Collection",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\n    \"name\": \"EFT API Testleri\",\n    \"description\": \"EFT para transfer API'lerinin fonksiyonel testleri\",\n    \"base_url\": \"https://api-test.garantibbva.com.tr\",\n    \"headers\": {\n        \"Content-Type\": \"application/json\",\n        \"X-API-Key\": \"test-key-123\"\n    }\n}" },
+						"url": { "raw": "{{base_url}}/api/v1/tspm/projects/{{project_id}}/api-tests/collections", "host": ["{{base_url}}"], "path": ["api", "v1", "tspm", "projects", "{{project_id}}", "api-tests", "collections"] }
+					},
+					"event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status 201', function () { pm.response.to.have.status(201); });", "var body = pm.response.json();", "if (body.id) pm.collectionVariables.set('collection_id', body.id);"] } }]
+				},
+				{
+					"name": "List API Collections",
+					"request": { "method": "GET", "header": [], "url": { "raw": "{{base_url}}/api/v1/tspm/projects/{{project_id}}/api-tests/collections", "host": ["{{base_url}}"], "path": ["api", "v1", "tspm", "projects", "{{project_id}}", "api-tests", "collections"] } },
+					"event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status 200', function () { pm.response.to.have.status(200); });"] } }]
+				},
+				{
+					"name": "Run API Collection",
+					"request": { "method": "POST", "header": [], "url": { "raw": "{{base_url}}/api/v1/tspm/projects/{{project_id}}/api-tests/collections/{{collection_id}}/run", "host": ["{{base_url}}"], "path": ["api", "v1", "tspm", "projects", "{{project_id}}", "api-tests", "collections", "{{collection_id}}", "run"] } },
+					"event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status 200', function () { pm.response.to.have.status(200); });"] } }]
+				},
+				{
+					"name": "List API Test Runs",
+					"request": { "method": "GET", "header": [], "url": { "raw": "{{base_url}}/api/v1/tspm/projects/{{project_id}}/api-tests/runs", "host": ["{{base_url}}"], "path": ["api", "v1", "tspm", "projects", "{{project_id}}", "api-tests", "runs"] } },
+					"event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status 200', function () { pm.response.to.have.status(200); });"] } }]
+				}
+			]
+		},
+		{
+			"name": "TSPM — Members",
+			"description": "Proje üye yönetimi",
+			"item": [
+				{
+					"name": "Add Member",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\n    \"user_id\": \"{{member_user_id}}\",\n    \"role\": \"tester\"\n}" },
+						"url": { "raw": "{{base_url}}/api/v1/tspm/projects/{{project_id}}/members", "host": ["{{base_url}}"], "path": ["api", "v1", "tspm", "projects", "{{project_id}}", "members"] }
+					},
+					"event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status 201', function () { pm.response.to.have.status(201); });"] } }]
+				},
+				{
+					"name": "List Members",
+					"request": { "method": "GET", "header": [], "url": { "raw": "{{base_url}}/api/v1/tspm/projects/{{project_id}}/members", "host": ["{{base_url}}"], "path": ["api", "v1", "tspm", "projects", "{{project_id}}", "members"] } },
+					"event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Status 200', function () { pm.response.to.have.status(200); });"] } }]
+				}
+			]
+		}
+	]
+}

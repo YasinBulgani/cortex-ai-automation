@@ -1,0 +1,27 @@
+{
+  "name": "@testwright-ai/ai-engine",
+  "version": "0.1.0",
+  "description": "AI-powered test automation engine for TestwrightAI",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "heal:setup": "ts-node src/healing/setup.ts",
+    "generate:test": "ts-node src/generation/test-generator.ts",
+    "generate:bdd": "ts-node src/generation/bdd-generator.ts",
+    "analyze:anomalies": "ts-node src/intelligence/anomaly-detector.ts",
+    "analyze:assertions": "ts-node src/intelligence/assertion-advisor.ts",
+    "prioritize": "ts-node src/intelligence/test-prioritizer.ts",
+    "data:generate": "ts-node src/data/ai-data-factory.ts",
+    "data:mask": "ts-node src/data/data-masker.ts"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.39.0",
+    "@faker-js/faker": "^9.0.0",
+    "healwright": "^1.6.0",
+    "typescript": "^5.7.0"
+  },
+  "devDependencies": {
+    "ts-node": "^10.9.0",
+    "@types/node": "^22.0.0"
+  }
+}

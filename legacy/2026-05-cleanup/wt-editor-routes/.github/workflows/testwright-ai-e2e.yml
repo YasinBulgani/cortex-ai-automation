@@ -1,0 +1,392 @@
+name: TestwrightAI E2E Tests
+
+on:
+  workflow_dispatch:
+    inputs:
+      test_scope:
+        description: "Test kapsamı"
+        required: false
+        default: "all"
+        type: choice
+        options:
+          - all
+          - smoke
+          - regression
+          - api
+  schedule:
+    # Her gece 02:00 UTC çalışır (nightly smoke)
+    - cron: "0 2 * * *"
+
+concurrency:
+  group: testwright-ai-e2e-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PYTHON_VERSION: "3.11"
+  TESTING: "true"
+  HEADLESS: "true"
+  TEST_ENV: "ci"
+  BASE_URL: "http://localhost:3000"
+  API_URL: "http://localhost:8000/api/v1"
+  ENGINE_URL: "http://localhost:5001"
+
+jobs:
+  # ═══════════════════════════════════════════════════════════
+  # Smoke Tests — Hızlı geri bildirim (~5 dk)
+  # ═══════════════════════════════════════════════════════════
+  smoke-tests:
+    name: "💨 TestwrightAI Smoke Tests"
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: test_user
+          POSTGRES_PASSWORD: test_password
+          POSTGRES_DB: twai_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: |
+            engine/requirements.txt
+            backend/requirements.txt
+
+      - name: Install engine dependencies
+        working-directory: engine
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest-xdist pytest-rerunfailures
+
+      - name: Install Playwright
+        working-directory: engine
+        run: python -m playwright install chromium --with-deps
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('engine/requirements.txt') }}
+          restore-keys: playwright-${{ runner.os }}-
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: pip install -r requirements.txt
+
+      - name: Start backend
+        working-directory: backend
+        run: |
+          python -m flask run --host=0.0.0.0 --port=8000 &
+          sleep 5
+        env:
+          DATABASE_URL: postgresql+psycopg2://test_user:test_password@localhost:5432/twai_test
+          REDIS_URL: redis://localhost:6379/0
+          FLASK_APP: app:create_app
+
+      - name: Start engine
+        working-directory: engine
+        run: |
+          python -m flask run --host=0.0.0.0 --port=5001 &
+          sleep 3
+        env:
+          DATABASE_URL: postgresql+psycopg2://test_user:test_password@localhost:5432/twai_test
+
+      - name: Run smoke tests
+        working-directory: engine
+        run: |
+          python bgts_runner.py --smoke --report --json-output ../reports/testwright-ai-smoke-results.json
+        env:
+          DATABASE_URL: postgresql+psycopg2://test_user:test_password@localhost:5432/twai_test
+          REDIS_URL: redis://localhost:6379/0
+
+      - name: Upload Allure results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: testwright-ai-smoke-allure
+          path: engine/allure-results/
+          retention-days: 14
+
+      - name: Upload HTML reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: testwright-ai-smoke-reports
+          path: |
+            engine/reports/
+            reports/
+          retention-days: 14
+
+      - name: Upload screenshots on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: testwright-ai-smoke-screenshots
+          path: engine/screenshots/
+          retention-days: 7
+
+  # ═══════════════════════════════════════════════════════════
+  # API Tests — Smoke ile paralel
+  # ═══════════════════════════════════════════════════════════
+  api-tests:
+    name: "🔌 TestwrightAI API Tests"
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: test_user
+          POSTGRES_PASSWORD: test_password
+          POSTGRES_DB: twai_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: |
+            engine/requirements.txt
+            backend/requirements.txt
+
+      - name: Install engine dependencies
+        working-directory: engine
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest-xdist
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: pip install -r requirements.txt
+
+      - name: Start backend
+        working-directory: backend
+        run: |
+          python -m flask run --host=0.0.0.0 --port=8000 &
+          sleep 5
+        env:
+          DATABASE_URL: postgresql+psycopg2://test_user:test_password@localhost:5432/twai_test
+          REDIS_URL: redis://localhost:6379/0
+          FLASK_APP: app:create_app
+
+      - name: Start engine
+        working-directory: engine
+        run: |
+          python -m flask run --host=0.0.0.0 --port=5001 &
+          sleep 3
+        env:
+          DATABASE_URL: postgresql+psycopg2://test_user:test_password@localhost:5432/twai_test
+
+      - name: Run API tests
+        working-directory: engine
+        run: |
+          python bgts_runner.py --api --json-output ../reports/testwright-ai-api-results.json
+        env:
+          DATABASE_URL: postgresql+psycopg2://test_user:test_password@localhost:5432/twai_test
+          REDIS_URL: redis://localhost:6379/0
+
+      - name: Upload Allure results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: testwright-ai-api-allure
+          path: engine/allure-results/
+          retention-days: 14
+
+      - name: Upload reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: testwright-ai-api-reports
+          path: |
+            engine/reports/
+            reports/
+          retention-days: 14
+
+      - name: Upload screenshots on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: testwright-ai-api-screenshots
+          path: engine/screenshots/
+          retention-days: 7
+
+  # ═══════════════════════════════════════════════════════════
+  # Regression Tests — Smoke başarılı olduktan sonra
+  # ═══════════════════════════════════════════════════════════
+  regression-tests:
+    name: "🔄 TestwrightAI Regression Tests"
+    runs-on: ubuntu-latest
+    needs: [smoke-tests]
+    if: |
+      always() &&
+      needs.smoke-tests.result == 'success' &&
+      (github.event_name == 'push' || github.event.inputs.test_scope == 'regression' || github.event.inputs.test_scope == 'all')
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: test_user
+          POSTGRES_PASSWORD: test_password
+          POSTGRES_DB: twai_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: |
+            engine/requirements.txt
+            backend/requirements.txt
+
+      - name: Install engine dependencies
+        working-directory: engine
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest-xdist pytest-rerunfailures
+
+      - name: Install Playwright
+        working-directory: engine
+        run: python -m playwright install chromium --with-deps
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('engine/requirements.txt') }}
+          restore-keys: playwright-${{ runner.os }}-
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: pip install -r requirements.txt
+
+      - name: Start backend
+        working-directory: backend
+        run: |
+          python -m flask run --host=0.0.0.0 --port=8000 &
+          sleep 5
+        env:
+          DATABASE_URL: postgresql+psycopg2://test_user:test_password@localhost:5432/twai_test
+          REDIS_URL: redis://localhost:6379/0
+          FLASK_APP: app:create_app
+
+      - name: Start engine
+        working-directory: engine
+        run: |
+          python -m flask run --host=0.0.0.0 --port=5001 &
+          sleep 3
+        env:
+          DATABASE_URL: postgresql+psycopg2://test_user:test_password@localhost:5432/twai_test
+
+      - name: Run regression tests
+        working-directory: engine
+        run: |
+          python bgts_runner.py --regression --parallel 4 --retry 2 --report --json-output ../reports/testwright-ai-regression-results.json
+        env:
+          DATABASE_URL: postgresql+psycopg2://test_user:test_password@localhost:5432/twai_test
+          REDIS_URL: redis://localhost:6379/0
+
+      - name: Upload Allure results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: testwright-ai-regression-allure
+          path: engine/allure-results/
+          retention-days: 30
+
+      - name: Upload HTML reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: testwright-ai-regression-reports
+          path: |
+            engine/reports/
+            engine/allure-report/
+            reports/
+          retention-days: 30
+
+      - name: Upload screenshots on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: testwright-ai-regression-screenshots
+          path: engine/screenshots/
+          retention-days: 14
+
+      - name: Generate GitHub summary
+        if: always()
+        run: |
+          echo "## TestwrightAI Regression Test Sonuçları" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [ -f reports/testwright-ai-regression-results.json ]; then
+            echo '```json' >> $GITHUB_STEP_SUMMARY
+            cat reports/testwright-ai-regression-results.json >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+          else
+            echo "Sonuç dosyası bulunamadı." >> $GITHUB_STEP_SUMMARY
+          fi

@@ -49,28 +49,34 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 #   • DMG mounted volume (script + source/ at top of volume)
 #   • Cloned repo (installer/mac/install.sh)
 #   • Legacy flat layout (pom.xml at repo root)
-if [[ -f "$SCRIPT_DIR/../../framework/pom.xml" ]]; then
+if [[ -f "$SCRIPT_DIR/../../frameworks/cortex-java/pom.xml" ]]; then
     REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
-elif [[ -f "$SCRIPT_DIR/../source/framework/pom.xml" ]]; then
+elif [[ -f "$SCRIPT_DIR/../source/frameworks/cortex-java/pom.xml" ]]; then
     REPO_ROOT="$(cd "$SCRIPT_DIR/../source" && pwd)"
-elif [[ -f "$SCRIPT_DIR/source/framework/pom.xml" ]]; then
+elif [[ -f "$SCRIPT_DIR/source/frameworks/cortex-java/pom.xml" ]]; then
     # DMG layout: install.sh + source/ next to each other on volume root
     REPO_ROOT="$SCRIPT_DIR/source"
+elif [[ -f "$SCRIPT_DIR/../../framework/pom.xml" ]]; then
+    # Old layout (pre-mirror)
+    REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 elif [[ -f "$SCRIPT_DIR/../../pom.xml" ]]; then
     # Legacy flat (otomasyon_atolyesi style)
     REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 else
     REPO_ROOT="$SCRIPT_DIR"
     while [[ "$REPO_ROOT" != "/" \
+          && ! -f "$REPO_ROOT/frameworks/cortex-java/pom.xml" \
           && ! -f "$REPO_ROOT/framework/pom.xml" \
           && ! -f "$REPO_ROOT/pom.xml" ]]; do
         REPO_ROOT="$(dirname "$REPO_ROOT")"
     done
 fi
 
-# Find where pom.xml actually lives
-if [[ -f "$REPO_ROOT/framework/pom.xml" ]]; then
-    FRAMEWORK_ROOT="$REPO_ROOT/framework"
+# Find where pom.xml actually lives — preferred order: monorepo → flat
+if [[ -f "$REPO_ROOT/frameworks/cortex-java/pom.xml" ]]; then
+    FRAMEWORK_ROOT="$REPO_ROOT/frameworks/cortex-java"
+elif [[ -f "$REPO_ROOT/framework/pom.xml" ]]; then
+    FRAMEWORK_ROOT="$REPO_ROOT/frameworks/cortex-java"
 elif [[ -f "$REPO_ROOT/pom.xml" ]]; then
     FRAMEWORK_ROOT="$REPO_ROOT"
 else
@@ -211,8 +217,8 @@ ok "Proje kopyalandı."
 # ── 4. Maven dependencies + Playwright ────────────────────────
 header "4/6 · Maven bağımlılıkları indiriliyor (ilk seferinde ~3-5 dk)"
 # Run Maven inside framework/ subdir (or root if legacy layout)
-if [[ -d "$INSTALL_DIR/framework" ]]; then
-    cd "$INSTALL_DIR/framework"
+if [[ -d "$INSTALL_DIR/frameworks/cortex-java" ]]; then
+    cd "$INSTALL_DIR/frameworks/cortex-java"
 else
     cd "$INSTALL_DIR"
 fi
@@ -245,8 +251,8 @@ ok "Java tarafı hazır."
 # ── 5. Python venv + deps ─────────────────────────────────────
 header "5/6 · Python venv + bağımlılıklar"
 # Locate python_server (framework subdir or legacy flat)
-if [[ -d "$INSTALL_DIR/framework/python_server" ]]; then
-    PY_DIR="$INSTALL_DIR/framework"
+if [[ -d "$INSTALL_DIR/frameworks/cortex-java/python_server" ]]; then
+    PY_DIR="$INSTALL_DIR/frameworks/cortex-java"
 else
     PY_DIR="$INSTALL_DIR"
 fi
@@ -303,8 +309,8 @@ set -e
 
 INSTALL_DIR="$INSTALL_DIR"
 # Auto-detect framework subdir vs legacy flat layout
-if [[ -d "\$INSTALL_DIR/framework/python_server" ]]; then
-    PY_DIR="\$INSTALL_DIR/framework"
+if [[ -d "\$INSTALL_DIR/frameworks/cortex-java/python_server" ]]; then
+    PY_DIR="\$INSTALL_DIR/frameworks/cortex-java"
 else
     PY_DIR="\$INSTALL_DIR"
 fi

@@ -1,0 +1,190 @@
+{
+  "id": "367ce42e-af04-4108-b6d2-5481b8ff0d97",
+  "name": "bank_loan_default",
+  "description": null,
+  "trainingStatus": "DONE",
+  "trainingTime": null,
+  "usage": null,
+  "metadata": null,
+  "accuracy": 0.6961509,
+  "tables": [
+    {
+      "id": "cc00a005-b5ba-44ca-b75c-50c5a1ec7b45",
+      "sourceConnectorId": "2cfe30a0-33b1-49e4-bdae-66e18baffefc",
+      "location": "/Users/yasin_bulgan/mostlyai/connectors/2cfe30a0-33b1-49e4-bdae-66e18baffefc/data.parquet",
+      "name": "data",
+      "primaryKey": null,
+      "columns": [
+        {
+          "id": "3cca9b69-3f8c-4188-95d1-5b1d006dc1d3",
+          "name": "age",
+          "included": true,
+          "modelEncodingType": "TABULAR_NUMERIC_DIGIT",
+          "valueRange": {
+            "min": null,
+            "max": null,
+            "values": null,
+            "has_null": false
+          }
+        },
+        {
+          "id": "8f62113b-7453-4378-b346-bb91ea5af81e",
+          "name": "ed",
+          "included": true,
+          "modelEncodingType": "TABULAR_NUMERIC_DISCRETE",
+          "valueRange": {
+            "min": null,
+            "max": null,
+            "values": [
+              "1",
+              "2",
+              "3",
+              "4"
+            ],
+            "has_null": false
+          }
+        },
+        {
+          "id": "7147a93a-4b30-44e7-8226-bdd0b5c5bcaa",
+          "name": "employ",
+          "included": true,
+          "modelEncodingType": "TABULAR_NUMERIC_DIGIT",
+          "valueRange": {
+            "min": null,
+            "max": null,
+            "values": null,
+            "has_null": false
+          }
+        },
+        {
+          "id": "46ecca96-cf43-4a21-af4e-71d4d4d29d25",
+          "name": "address",
+          "included": true,
+          "modelEncodingType": "TABULAR_NUMERIC_DIGIT",
+          "valueRange": {
+            "min": null,
+            "max": null,
+            "values": null,
+            "has_null": false
+          }
+        },
+        {
+          "id": "15070044-ab05-44f5-833a-4da3af6d069d",
+          "name": "income",
+          "included": true,
+          "modelEncodingType": "TABULAR_NUMERIC_BINNED",
+          "valueRange": {
+            "min": "19.3",
+            "max": "196.3",
+            "values": null,
+            "has_null": false
+          }
+        },
+        {
+          "id": "ed0b04c6-734e-47a5-8b20-6c5290a2a223",
+          "name": "debtinc",
+          "included": true,
+          "modelEncodingType": "TABULAR_NUMERIC_DIGIT",
+          "valueRange": {
+            "min": null,
+            "max": null,
+            "values": null,
+            "has_null": false
+          }
+        },
+        {
+          "id": "4a10cfc3-a843-452b-a3ce-4ee7963708f7",
+          "name": "creddebt",
+          "included": true,
+          "modelEncodingType": "TABULAR_NUMERIC_BINNED",
+          "valueRange": {
+            "min": "0.6",
+            "max": "14.74",
+            "values": null,
+            "has_null": false
+          }
+        },
+        {
+          "id": "de36f0a8-4c38-44f3-bcce-6ee79da71b9e",
+          "name": "othdebt",
+          "included": true,
+          "modelEncodingType": "TABULAR_NUMERIC_DIGIT",
+          "valueRange": {
+            "min": null,
+            "max": null,
+            "values": null,
+            "has_null": false
+          }
+        },
+        {
+          "id": "b4f04731-a012-4441-ae4e-663ff2b50d04",
+          "name": "default",
+          "included": true,
+          "modelEncodingType": "TABULAR_NUMERIC_DISCRETE",
+          "valueRange": {
+            "min": null,
+            "max": null,
+            "values": [
+              "0",
+              "1"
+            ],
+            "has_null": false
+          }
+        }
+      ],
+      "foreignKeys": null,
+      "tabularModelMetrics": {
+        "accuracy": {
+          "overall": 0.6961509,
+          "univariate": 0.9270367,
+          "bivariate": 0.7543522,
+          "trivariate": 0.4070637,
+          "coherence": null,
+          "overallMax": 0.7396777,
+          "univariateMax": 0.9146456,
+          "bivariateMax": 0.7533822,
+          "trivariateMax": 0.5510054,
+          "coherenceMax": null
+        },
+        "distances": {
+          "imsTraining": 0.0,
+          "imsHoldout": 0.0,
+          "imsTrnHol": 0.0,
+          "dcrTraining": 0.69,
+          "dcrHoldout": 0.694,
+          "dcrTrnHol": 0.659,
+          "dcrShare": 0.492,
+          "nndrTraining": 0.750444995531,
+          "nndrHoldout": 0.7393735673,
+          "nndrTrnHol": 0.708882154918
+        },
+        "similarity": {
+          "cosineSimilarityTrainingSynthetic": 0.8360219,
+          "cosineSimilarityTrainingHoldout": 0.5968323,
+          "discriminatorAUCTrainingSynthetic": 0.504,
+          "discriminatorAUCTrainingHoldout": 0.467
+        }
+      },
+      "languageModelMetrics": null,
+      "tabularModelConfiguration": {
+        "model": "MOSTLY_AI/Medium",
+        "maxSampleSize": null,
+        "batchSize": null,
+        "gradientAccumulationSteps": null,
+        "maxTrainingTime": 14400.0,
+        "maxEpochs": 100.0,
+        "maxSequenceWindow": 100,
+        "enableFlexibleGeneration": true,
+        "valueProtection": true,
+        "rareCategoryReplacementMethod": "CONSTANT",
+        "differentialPrivacy": null,
+        "compute": null,
+        "enableModelReport": true
+      },
+      "languageModelConfiguration": null,
+      "totalRows": 300
+    }
+  ],
+  "constraints": null,
+  "randomState": null
+}

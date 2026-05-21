@@ -1,0 +1,270 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+#  Makefile.pipeline — 25-rollü agent pipeline targets
+#
+#  Ana Makefile'a eklenir: `include Makefile.pipeline`
+# ═══════════════════════════════════════════════════════════════════════════════
+
+.PHONY: pipeline-help pipeline-init pipeline-status pipeline-item pipeline-run-check \
+        pipeline-scope pipeline-claim pipeline-complete pipeline-skip \
+        pipeline-reject pipeline-loop-back pipeline-orphan-reset \
+        pipeline-metrics pipeline-metrics-json \
+        pipeline-scan-deps pipeline-check-conflicts pipeline-curate \
+        pipeline-reset pipeline-example pipeline-validate \
+        pipeline-deps-install pipeline-hf-ping pipeline-llm-ping pipeline-ollama-warm \
+        pipeline-agent-run \
+        pipeline-run-once pipeline-run-watch pipeline-run-single \
+        pipeline-dashboard pipeline-dashboard-dev
+
+STAGE := ./scripts/pipeline/stage.sh
+STATE := docs/ai/pipeline/state.json
+METRICS := ./scripts/pipeline/metrics.py
+
+# ─── Yardım ──────────────────────────────────────────────────────────────────
+pipeline-help:
+	@echo ""
+	@echo "╔═══════════════════════════════════════════════════════════════════╗"
+	@echo "║        Pipeline Conductor — 25 Rollü Agent Orkestrasyon         ║"
+	@echo "╠═══════════════════════════════════════════════════════════════════╣"
+	@echo "║                                                                   ║"
+	@echo "║  LIFECYCLE                                                        ║"
+	@echo "║    make pipeline-init TYPE=GAP TITLE=\"...\"                       ║"
+	@echo "║         [SCOPE=\"fe=true,be=false,...\"]                           ║"
+	@echo "║    make pipeline-status               Tüm item durumu             ║"
+	@echo "║    make pipeline-item ID=GAP-001      Tek item detayı             ║"
+	@echo "║    make pipeline-run-check [ID=...]   Hangi aşamalar hazır        ║"
+	@echo "║    make pipeline-scope ID=... KV=...  Scope flag güncelle         ║"
+	@echo "║    make pipeline-claim ID=... ROLE=.. Role in_progress'e çek      ║"
+	@echo "║    make pipeline-complete ID=... ROLE=... [FLAGS=...]             ║"
+	@echo "║    make pipeline-skip ID=... ROLE=... [REASON=...]                ║"
+	@echo "║    make pipeline-reject ID=... ROLE=... REASON=...                ║"
+	@echo "║    make pipeline-loop-back ID=... FROM=... TO=... REASON=...      ║"
+	@echo "║                                                                   ║"
+	@echo "║  INSPECTION                                                       ║"
+	@echo "║    make pipeline-metrics              Markdown KPI raporu         ║"
+	@echo "║    make pipeline-metrics-json         JSON export                 ║"
+	@echo "║    make pipeline-validate             state.json schema check     ║"
+	@echo "║                                                                   ║"
+	@echo "║  AUTOMATION                                                       ║"
+	@echo "║    make pipeline-scan-deps            Dep watchdog (CVE scan)     ║"
+	@echo "║    make pipeline-check-conflicts      Branch çakışma taraması     ║"
+	@echo "║    make pipeline-curate               Knowledge curator (haftalık)║"
+	@echo "║                                                                   ║"
+	@echo "║  LLM (Ollama lokal / HuggingFace cloud) + PARALEL KOŞUM           ║"
+	@echo "║    make pipeline-deps-install         Python deps kur             ║"
+	@echo "║    make pipeline-llm-ping             Aktif provider doğrula      ║"
+	@echo "║    make pipeline-ollama-ping          Ollama + model listesi      ║"
+	@echo "║    make pipeline-ollama-warm          Tüm tier modelleri ısıt     ║"
+	@echo "║    make pipeline-hf-ping              HuggingFace doğrula         ║"
+	@echo "║    make pipeline-agent-run ID=... ROLE=...                        ║"
+	@echo "║    make pipeline-run-once [CONCURRENT=3]                          ║"
+	@echo "║    make pipeline-run-watch [CONCURRENT=3] (daemon)                ║"
+	@echo "║    make pipeline-run-single ID=GAP-001                            ║"
+	@echo "║                                                                   ║"
+	@echo "║  CANLI DASHBOARD                                                  ║"
+	@echo "║    make pipeline-dashboard [PORT=8765]   Dashboard başlat         ║"
+	@echo "║    make pipeline-dashboard-dev           Auto-reload mode         ║"
+	@echo "║                                                                   ║"
+	@echo "║  RECOVERY                                                         ║"
+	@echo "║    make pipeline-orphan-reset ID=... ROLE=...                     ║"
+	@echo "║    make pipeline-reset                Tüm state'i temizle         ║"
+	@echo "║    make pipeline-example              Örnek state yükle           ║"
+	@echo "║                                                                   ║"
+	@echo "╚═══════════════════════════════════════════════════════════════════╝"
+	@echo ""
+	@echo "Detaylı rehber: docs/ai/pipeline/README.md"
+
+# ─── Lifecycle ───────────────────────────────────────────────────────────────
+pipeline-init:
+ifndef TYPE
+	$(error TYPE gerekli: TYPE=GAP|FEAT|BUG)
+endif
+ifndef TITLE
+	$(error TITLE gerekli: TITLE="başlık metni")
+endif
+	@if [ -n "$(SCOPE)" ]; then \
+		$(STAGE) init $(TYPE) "$(TITLE)" --scope $(SCOPE); \
+	else \
+		$(STAGE) init $(TYPE) "$(TITLE)"; \
+	fi
+
+pipeline-status:
+	@$(STAGE) status
+
+pipeline-item:
+ifndef ID
+	$(error ID gerekli: ID=GAP-001)
+endif
+	@$(STAGE) status $(ID)
+
+pipeline-run-check:
+	@$(STAGE) run-check $(ID)
+
+pipeline-scope:
+ifndef ID
+	$(error ID gerekli)
+endif
+ifndef KV
+	$(error KV gerekli: KV="fe=true" gibi)
+endif
+	@$(STAGE) scope $(ID) $(KV)
+
+pipeline-claim:
+ifndef ID
+	$(error ID gerekli)
+endif
+ifndef ROLE
+	$(error ROLE gerekli)
+endif
+	@$(STAGE) claim $(ID) $(ROLE)
+
+pipeline-complete:
+ifndef ID
+	$(error ID gerekli)
+endif
+ifndef ROLE
+	$(error ROLE gerekli)
+endif
+	@$(STAGE) complete $(ID) $(ROLE) $(FLAGS)
+
+pipeline-skip:
+ifndef ID
+	$(error ID gerekli)
+endif
+ifndef ROLE
+	$(error ROLE gerekli)
+endif
+	@$(STAGE) skip $(ID) $(ROLE) "$(REASON)"
+
+pipeline-reject:
+ifndef ID
+	$(error ID gerekli)
+endif
+ifndef ROLE
+	$(error ROLE gerekli)
+endif
+ifndef REASON
+	$(error REASON gerekli)
+endif
+	@$(STAGE) reject $(ID) $(ROLE) "$(REASON)"
+
+pipeline-loop-back:
+ifndef ID
+	$(error ID gerekli)
+endif
+ifndef FROM
+	$(error FROM gerekli)
+endif
+ifndef TO
+	$(error TO gerekli)
+endif
+ifndef REASON
+	$(error REASON gerekli)
+endif
+	@$(STAGE) loop-back $(ID) $(FROM) $(TO) "$(REASON)"
+
+pipeline-orphan-reset:
+ifndef ID
+	$(error ID gerekli)
+endif
+ifndef ROLE
+	$(error ROLE gerekli)
+endif
+	@$(STAGE) orphan-reset $(ID) $(ROLE)
+
+# ─── Inspection ──────────────────────────────────────────────────────────────
+pipeline-metrics:
+	@$(PYTHON) $(METRICS) --format markdown
+
+pipeline-metrics-json:
+	@$(PYTHON) $(METRICS) --format json
+
+pipeline-validate:
+	@command -v ajv >/dev/null 2>&1 || { \
+		echo "ajv-cli required: npm install -g ajv-cli ajv-formats"; exit 1; \
+	}
+	@ajv validate -s docs/ai/pipeline/state.schema.json -d $(STATE) --spec=draft7 --all-errors
+
+# ─── Automation ──────────────────────────────────────────────────────────────
+pipeline-scan-deps:
+	@./scripts/pipeline/dep-watchdog.sh
+
+pipeline-check-conflicts:
+	@./scripts/pipeline/check-conflicts.sh
+
+pipeline-curate:
+	@./scripts/pipeline/knowledge-curator.sh
+
+# ─── Recovery ────────────────────────────────────────────────────────────────
+pipeline-reset:
+	@echo "⚠️  Bu tüm pipeline state'ini siler. Devam? [y/N]"; \
+	read confirm; \
+	if [ "$$confirm" = "y" ] || [ "$$confirm" = "Y" ]; then \
+		echo '{"version":"2.0","updated_at":"2026-01-01T00:00:00Z","next_ids":{"GAP":1,"FEAT":1,"BUG":1},"items":[]}' > $(STATE); \
+		find docs/ai/pipeline/items -mindepth 1 -maxdepth 1 -type d -exec rm -rf {} + 2>/dev/null || true; \
+		echo "✓ State reset."; \
+	else \
+		echo "İptal."; \
+	fi
+
+pipeline-example:
+	@cp docs/ai/pipeline/state.example.json $(STATE)
+	@echo "✓ Örnek state yüklendi."
+
+# ─── LLM (HuggingFace) + Paralel Koşum ──────────────────────────────────────
+pipeline-deps-install:
+	@echo "→ Installing pipeline Python dependencies..."
+	@$(PIP) install -r scripts/pipeline/requirements.txt
+
+pipeline-llm-ping:
+	@echo "→ LLM provider ping (aktif provider)..."
+	@$(PYTHON) -c "import sys; sys.path.insert(0, 'scripts/pipeline'); import json; from llm import ping_all; print(json.dumps(ping_all(), indent=2, default=str))"
+
+pipeline-hf-ping:
+	@echo "→ HuggingFace client ping..."
+	@LLM_PROVIDER=huggingface $(PYTHON) scripts/pipeline/llm/hf_client.py
+
+pipeline-ollama-ping:
+	@echo "→ Ollama client ping..."
+	@$(PYTHON) scripts/pipeline/llm/ollama_client.py
+
+pipeline-ollama-warm:
+	@echo "→ Ollama modellerini ısıt (tier model'ler belleğe yüklenir)..."
+	@MODELS="$${OLLAMA_DEFAULT_MODEL:-qwen2.5:14b},$${OLLAMA_POWERFUL_MODEL:-qwen2.5:32b},$${OLLAMA_FAST_MODEL:-llama3.1:8b},$${OLLAMA_CODER_MODEL:-qwen2.5-coder:7b}" \
+	 OLLAMA_HOST="$${OLLAMA_HOST:-http://127.0.0.1:11434}" \
+	 TWAI_OLLAMA_WARM_MODELS="$$MODELS" \
+	 TWAI_OLLAMA_HOST="$$OLLAMA_HOST" \
+	 bash scripts/ollama-warm.sh
+
+pipeline-agent-run:
+ifndef ID
+	$(error ID gerekli: make pipeline-agent-run ID=GAP-001 ROLE=analyzer)
+endif
+ifndef ROLE
+	$(error ROLE gerekli)
+endif
+	@$(PYTHON) scripts/pipeline/agent_runner.py --item $(ID) --role $(ROLE) $(RUN_FLAGS)
+
+pipeline-run-once:
+	@$(PYTHON) scripts/pipeline/run_pipeline.py once --max-concurrent $(or $(CONCURRENT),3) $(RUN_FLAGS)
+
+pipeline-run-watch:
+	@$(PYTHON) scripts/pipeline/run_pipeline.py watch --max-concurrent $(or $(CONCURRENT),3) $(RUN_FLAGS)
+
+pipeline-run-single:
+ifndef ID
+	$(error ID gerekli: make pipeline-run-single ID=GAP-001)
+endif
+	@$(PYTHON) scripts/pipeline/run_pipeline.py single --item $(ID) --max-concurrent $(or $(CONCURRENT),3)
+
+# ─── Canlı Dashboard ────────────────────────────────────────────────────────
+pipeline-dashboard:
+	@echo "🚀 Dashboard → http://127.0.0.1:$(or $(PORT),8765)"
+	@$(PYTHON) -m uvicorn scripts.pipeline.dashboard.server:app \
+		--host $(or $(HOST),127.0.0.1) \
+		--port $(or $(PORT),8765)
+
+pipeline-dashboard-dev:
+	@$(PYTHON) -m uvicorn scripts.pipeline.dashboard.server:app \
+		--host $(or $(HOST),127.0.0.1) \
+		--port $(or $(PORT),8765) \
+		--reload

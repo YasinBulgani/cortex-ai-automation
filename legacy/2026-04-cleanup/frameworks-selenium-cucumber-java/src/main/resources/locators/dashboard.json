@@ -1,0 +1,42 @@
+[
+  {
+    "key": "anaSayfaIzinWidget",
+    "type": "xpath",
+    "value": "//div[contains(@class,'score-card') and .//span[contains(text(),'İzin') or contains(text(),'izin')]]"
+  },
+  {
+    "key": "anaSayfaAvansWidget",
+    "type": "xpath",
+    "value": "//div[@id='advance' or (contains(@class,'score-card') and .//span[contains(text(),'Avans') or contains(text(),'avans')])]"
+  },
+  {
+    "key": "anaSayfaIzinUcNoktaButon",
+    "type": "xpath",
+    "value": "//span[@data-key='tooltip-content-1']"
+  },
+  {
+    "key": "anaSayfaAvansUcNoktaButon",
+    "type": "xpath",
+    "value": "//div[@id='advance']//span[contains(@data-key,'tooltip')]"
+  },
+  {
+    "key": "anaSayfaIzinlerimButon",
+    "type": "xpath",
+    "value": "(//a[ normalize-space(.)='İzinlerim'])[2]"
+  },
+  {
+    "key": "anaSayfaIzinTalepEtButon",
+    "type": "xpath",
+    "value": "(//a[@id='scoreCardPrId'])[6]"
+  },
+  {
+    "key": "anaSayfaAvansLarımButon",
+    "type": "xpath",
+    "value": "(//a[@id='scoreCardPrId' and normalize-space(text())='Avanslarım' ])[2]"
+  },
+  {
+    "key": "anaSayfaAvansTalepEtButon",
+    "type": "xpath",
+    "value": "(//a[@href='/TrendyolAdvance/Advances?linkType=1&request=true'])[2]"
+  }
+]

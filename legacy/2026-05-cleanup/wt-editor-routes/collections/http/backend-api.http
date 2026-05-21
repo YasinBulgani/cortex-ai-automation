@@ -1,0 +1,565 @@
+###############################################################################
+# TestwrightAI Backend API — VS Code REST Client (.http)
+# FastAPI Backend on port 8000
+# Türk Bankacılık Sektörü Test Dönüşüm Platformu
+###############################################################################
+
+@base_url = http://localhost:8000
+@token = {{$dotenv TOKEN}}
+@project_id = {{$dotenv PROJECT_ID}}
+@scenario_id = {{$dotenv SCENARIO_ID}}
+@dataset_id = {{$dotenv DATASET_ID}}
+@version_id = {{$dotenv VERSION_ID}}
+@job_id = {{$dotenv JOB_ID}}
+@execution_id = {{$dotenv EXECUTION_ID}}
+@flow_id = {{$dotenv FLOW_ID}}
+@regression_set_id = {{$dotenv REGRESSION_SET_ID}}
+@schedule_id = {{$dotenv SCHEDULE_ID}}
+@collection_id = {{$dotenv COLLECTION_ID}}
+@requirement_id = {{$dotenv REQUIREMENT_ID}}
+
+###############################################################################
+# PLATFORM — Health & Readiness
+###############################################################################
+
+### Health Check
+GET {{base_url}}/health
+
+### Readiness Check (DB)
+GET {{base_url}}/ready
+
+### Automation Engine Health
+GET {{base_url}}/api/v1/automation/health
+Authorization: Bearer {{token}}
+
+###############################################################################
+# AUTH
+###############################################################################
+
+### Login
+# @name login
+POST {{base_url}}/api/v1/auth/login
+Content-Type: application/json
+
+{
+    "email": "admin@bgts.com.tr",
+    "password": "Bgts2024!"
+}
+
+### Get Current User
+GET {{base_url}}/api/v1/auth/me
+Authorization: Bearer {{token}}
+
+###############################################################################
+# DATASETS — Catalog
+###############################################################################
+
+### List Datasets
+GET {{base_url}}/api/v1/datasets
+Authorization: Bearer {{token}}
+
+### Create Dataset
+POST {{base_url}}/api/v1/datasets
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+    "name": "Garanti BBVA Müşteri Verileri",
+    "description": "Bireysel bankacılık müşteri demografik bilgileri ve hesap özetleri. TCKN, IBAN, telefon ve adres verileri içerir."
+}
+
+### Get Dataset
+GET {{base_url}}/api/v1/datasets/{{dataset_id}}
+Authorization: Bearer {{token}}
+
+### Create Dataset Version
+POST {{base_url}}/api/v1/datasets/{{dataset_id}}/versions
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+    "snapshot": {
+        "columns": [
+            { "name": "tckn", "type": "string", "pii": true },
+            { "name": "ad", "type": "string" },
+            { "name": "soyad", "type": "string" },
+            { "name": "iban", "type": "string", "pii": true },
+            { "name": "bakiye", "type": "decimal" },
+            { "name": "hesap_turu", "type": "enum", "values": ["vadesiz", "vadeli", "yatirim"] }
+        ]
+    },
+    "profile": { "row_count": 50000, "null_ratio": 0.02 },
+    "pii_flags": ["tckn", "iban"]
+}
+
+### List Dataset Versions
+GET {{base_url}}/api/v1/datasets/{{dataset_id}}/versions
+Authorization: Bearer {{token}}
+
+### Get Schema for Version
+GET {{base_url}}/api/v1/datasets/{{dataset_id}}/versions/{{version_id}}/schema
+Authorization: Bearer {{token}}
+
+###############################################################################
+# RULES
+###############################################################################
+
+### List Rule Sets
+GET {{base_url}}/api/v1/datasets/{{dataset_id}}/rule-sets
+Authorization: Bearer {{token}}
+
+### Create Rule Set
+POST {{base_url}}/api/v1/datasets/{{dataset_id}}/rule-sets
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+    "name": "KVKK Uyumlu Müşteri Kuralları",
+    "rules_body": {
+        "tckn": { "type": "tckn", "unique": true, "algorithm": "mod11" },
+        "iban": { "type": "iban", "country": "TR", "bank_code": "0062" },
+        "bakiye": { "min": 0, "max": 5000000, "distribution": "lognormal" },
+        "ad": { "type": "turkish_first_name" },
+        "soyad": { "type": "turkish_last_name" }
+    },
+    "version": 1
+}
+
+### Get Rule Set
+GET {{base_url}}/api/v1/datasets/{{dataset_id}}/rule-sets/{{rule_set_id}}
+Authorization: Bearer {{token}}
+
+###############################################################################
+# GENERATION JOBS
+###############################################################################
+
+### List Jobs
+GET {{base_url}}/api/v1/jobs?limit=20
+Authorization: Bearer {{token}}
+
+### Enqueue Job
+POST {{base_url}}/api/v1/jobs
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+    "dataset_version_id": "{{version_id}}",
+    "rule_set_id": "{{rule_set_id}}"
+}
+
+### Get Job
+GET {{base_url}}/api/v1/jobs/{{job_id}}
+Authorization: Bearer {{token}}
+
+### Get Job Events
+GET {{base_url}}/api/v1/jobs/{{job_id}}/events
+Authorization: Bearer {{token}}
+
+### Get Job Artifacts
+GET {{base_url}}/api/v1/jobs/{{job_id}}/artifacts
+Authorization: Bearer {{token}}
+
+### Download Artifact
+GET {{base_url}}/api/v1/artifacts/{{artifact_id}}/download
+Authorization: Bearer {{token}}
+
+###############################################################################
+# TSPM — Projects
+###############################################################################
+
+### List TSPM Projects
+GET {{base_url}}/api/v1/tspm/projects
+Authorization: Bearer {{token}}
+
+### Create TSPM Project
+POST {{base_url}}/api/v1/tspm/projects
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+    "name": "İnternet Bankacılığı Regresyon",
+    "description": "Garanti BBVA İnternet Şubesi regresyon test senaryoları. EFT, havale, fatura ödeme ve hesap yönetimi modülleri."
+}
+
+### Project Dashboard
+GET {{base_url}}/api/v1/tspm/projects/{{project_id}}/dashboard
+Authorization: Bearer {{token}}
+
+###############################################################################
+# TSPM — Scenarios
+###############################################################################
+
+### List Scenarios
+GET {{base_url}}/api/v1/tspm/projects/{{project_id}}/scenarios
+Authorization: Bearer {{token}}
+
+### Create Scenario
+POST {{base_url}}/api/v1/tspm/projects/{{project_id}}/scenarios
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+    "title": "EFT ile Para Transferi — Başarılı Senaryo",
+    "description": "Vadesiz hesaptan başka banka hesabına EFT ile para transferi",
+    "status": "draft",
+    "steps": [
+        { "order": 0, "keyword": "Given", "text": "Kullanıcı internet bankacılığına giriş yapmıştır" },
+        { "order": 1, "keyword": "And", "text": "Vadesiz hesap bakiyesi 5000 TL üzerindedir" },
+        { "order": 2, "keyword": "When", "text": "EFT menüsünden transfer işlemi başlatır" },
+        { "order": 3, "keyword": "And", "text": "Alıcı IBAN olarak TR330006100519786457841326 girer" },
+        { "order": 4, "keyword": "And", "text": "Tutar olarak 1500.00 TL girer" },
+        { "order": 5, "keyword": "Then", "text": "Transfer başarılı mesajı görüntülenir" }
+    ]
+}
+
+### Get Scenario
+GET {{base_url}}/api/v1/tspm/projects/{{project_id}}/scenarios/{{scenario_id}}
+Authorization: Bearer {{token}}
+
+### Update Scenario
+PUT {{base_url}}/api/v1/tspm/projects/{{project_id}}/scenarios/{{scenario_id}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+    "title": "EFT ile Para Transferi — Güncellenmiş",
+    "status": "review"
+}
+
+### Generate BDD Scenarios (AI)
+POST {{base_url}}/api/v1/tspm/projects/{{project_id}}/scenarios/generate-bdd
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+    "analysis_text": "İnternet bankacılığı fatura ödeme modülü: Kullanıcı elektrik, su, doğalgaz, telefon ve internet faturalarını ödeyebilir. Otomatik ödeme talimatı verebilir. Fatura sorgulama yapabilir.",
+    "extra_instructions": "Her fatura tipi için ayrı senaryo üret. Negatif senaryoları da dahil et."
+}
+
+### Save BDD Scenarios
+POST {{base_url}}/api/v1/tspm/projects/{{project_id}}/scenarios/save-bdd
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+    "scenarios": [
+        {
+            "title": "Elektrik Faturası Ödeme",
+            "description": "Başarılı elektrik faturası ödeme",
+            "gherkin": "Feature: Fatura Ödeme\n  Scenario: Elektrik faturası öde",
+            "steps": [
+                { "keyword": "Given", "text": "Kullanıcı giriş yapmıştır" },
+                { "keyword": "When", "text": "Fatura ödeme menüsüne gider" },
+                { "keyword": "Then", "text": "Ödeme başarılı olur" }
+            ]
+        }
+    ]
+}
+
+### List Scenario Versions
+GET {{base_url}}/api/v1/tspm/projects/{{project_id}}/scenarios/{{scenario_id}}/versions
+Authorization: Bearer {{token}}
+
+### Diff Versions
+GET {{base_url}}/api/v1/tspm/projects/{{project_id}}/scenarios/{{scenario_id}}/versions/1/diff/2
+Authorization: Bearer {{token}}
+
+### Get Expanded Scenario (with data)
+GET {{base_url}}/api/v1/tspm/projects/{{project_id}}/scenarios/{{scenario_id}}/expanded
+Authorization: Bearer {{token}}
+
+###############################################################################
+# TSPM — Requirements & Coverage
+###############################################################################
+
+### Create Requirement
+POST {{base_url}}/api/v1/tspm/projects/{{project_id}}/requirements
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+    "external_id": "REQ-IB-042",
+    "title": "EFT Transfer Limit Kontrolü",
+    "description": "Bireysel müşteriler için günlük EFT limiti 500.000 TL olmalıdır",
+    "priority": "high",
+    "source": "BDDK Düzenleme 2026/03"
+}
+
+### List Requirements
+GET {{base_url}}/api/v1/tspm/projects/{{project_id}}/requirements
+Authorization: Bearer {{token}}
+
+### Link Scenario to Requirement
+POST {{base_url}}/api/v1/tspm/projects/{{project_id}}/scenarios/{{scenario_id}}/requirements
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+    "requirement_ids": ["{{requirement_id}}"]
+}
+
+### Coverage Matrix
+GET {{base_url}}/api/v1/tspm/projects/{{project_id}}/coverage-matrix
+Authorization: Bearer {{token}}
+
+### Coverage Gaps
+GET {{base_url}}/api/v1/tspm/projects/{{project_id}}/coverage-gaps
+Authorization: Bearer {{token}}
+
+###############################################################################
+# TSPM — Executions
+###############################################################################
+
+### List Executions
+GET {{base_url}}/api/v1/tspm/projects/{{project_id}}/executions
+Authorization: Bearer {{token}}
+
+### Create Execution
+POST {{base_url}}/api/v1/tspm/projects/{{project_id}}/executions
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+    "name": "Sprint 14 — Haftalık Regresyon",
+    "scenario_ids": ["{{scenario_id}}"]
+}
+
+### Get Execution Detail
+GET {{base_url}}/api/v1/tspm/projects/{{project_id}}/executions/{{execution_id}}
+Authorization: Bearer {{token}}
+
+### Update Result Status
+PATCH {{base_url}}/api/v1/tspm/projects/{{project_id}}/executions/{{execution_id}}/results/{{result_id}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+    "status": "passed"
+}
+
+### Re-run Execution
+POST {{base_url}}/api/v1/tspm/projects/{{project_id}}/executions/{{execution_id}}
+Authorization: Bearer {{token}}
+
+### Execution Trends (30 days)
+GET {{base_url}}/api/v1/tspm/projects/{{project_id}}/execution-trends?days=30
+Authorization: Bearer {{token}}
+
+### Execution Stats
+GET {{base_url}}/api/v1/tspm/projects/{{project_id}}/execution-stats
+Authorization: Bearer {{token}}
+
+### Flaky Tests
+GET {{base_url}}/api/v1/tspm/projects/{{project_id}}/flaky-tests
+Authorization: Bearer {{token}}
+
+###############################################################################
+# TSPM — Flows
+###############################################################################
+
+### List Flows
+GET {{base_url}}/api/v1/tspm/projects/{{project_id}}/flows
+Authorization: Bearer {{token}}
+
+### Create Flow
+POST {{base_url}}/api/v1/tspm/projects/{{project_id}}/flows
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+    "name": "EFT Uçtan Uca Akışı",
+    "description": "Giriş → Hesap Seçimi → EFT Formu → Onay → Dekont"
+}
+
+### Update Flow Graph
+PUT {{base_url}}/api/v1/tspm/projects/{{project_id}}/flows/{{flow_id}}/graph
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+    "nodes": [
+        { "id": "n1", "label": "Giriş", "type": "start" },
+        { "id": "n2", "label": "EFT Formu", "type": "step" },
+        { "id": "n3", "label": "Onay", "type": "decision" },
+        { "id": "n4", "label": "Dekont", "type": "end" }
+    ],
+    "edges": [
+        { "source": "n1", "target": "n2" },
+        { "source": "n2", "target": "n3" },
+        { "source": "n3", "target": "n4" }
+    ]
+}
+
+###############################################################################
+# TSPM — Regression Sets
+###############################################################################
+
+### List Regression Sets
+GET {{base_url}}/api/v1/tspm/projects/{{project_id}}/regression-sets
+Authorization: Bearer {{token}}
+
+### Create Regression Set
+POST {{base_url}}/api/v1/tspm/projects/{{project_id}}/regression-sets
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+    "name": "Para Transferi Regresyon Seti",
+    "description": "EFT, havale ve FAST transfer senaryoları"
+}
+
+### Add Scenarios to Set
+POST {{base_url}}/api/v1/tspm/projects/{{project_id}}/regression-sets/{{regression_set_id}}/add
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+    "scenario_ids": ["{{scenario_id}}"]
+}
+
+### AI Suggest Regression Sets
+POST {{base_url}}/api/v1/tspm/projects/{{project_id}}/regression-sets/suggest
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+    "extra_instructions": "Kritik bankacılık işlemlerini öncelikle grupla"
+}
+
+###############################################################################
+# TSPM — Schedules
+###############################################################################
+
+### Create Schedule
+POST {{base_url}}/api/v1/tspm/projects/{{project_id}}/schedules
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+    "name": "Günlük Gece Regresyon",
+    "cron_expression": "0 2 * * *",
+    "regression_set_id": "{{regression_set_id}}",
+    "scenario_ids": [],
+    "is_active": true
+}
+
+### List Schedules
+GET {{base_url}}/api/v1/tspm/projects/{{project_id}}/schedules
+Authorization: Bearer {{token}}
+
+### Trigger Schedule
+POST {{base_url}}/api/v1/tspm/projects/{{project_id}}/schedules/{{schedule_id}}/trigger
+Authorization: Bearer {{token}}
+
+###############################################################################
+# TSPM — Approvals
+###############################################################################
+
+### List Approvals
+GET {{base_url}}/api/v1/tspm/projects/{{project_id}}/approvals
+Authorization: Bearer {{token}}
+
+### Decide Approval
+POST {{base_url}}/api/v1/tspm/projects/{{project_id}}/approvals/{{approval_id}}/decide
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+    "decision": "approved"
+}
+
+###############################################################################
+# TSPM — Test Data
+###############################################################################
+
+### Create Test Data
+POST {{base_url}}/api/v1/tspm/projects/{{project_id}}/test-data
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+    "name": "EFT Transfer Test Verileri",
+    "description": "Farklı tutarlar ve IBAN'lar ile test verileri",
+    "columns": ["alici_iban", "transfer_tutari", "aciklama", "beklenen_sonuc"],
+    "rows": [
+        { "alici_iban": "TR330006100519786457841326", "transfer_tutari": "1500.00", "aciklama": "Kira ödemesi", "beklenen_sonuc": "basarili" },
+        { "alici_iban": "TR180006200019800006672315", "transfer_tutari": "25000.50", "aciklama": "Fatura ödemesi", "beklenen_sonuc": "basarili" },
+        { "alici_iban": "TR00INVALIDIBAN", "transfer_tutari": "100.00", "aciklama": "Geçersiz IBAN", "beklenen_sonuc": "hata" }
+    ]
+}
+
+### List Test Data
+GET {{base_url}}/api/v1/tspm/projects/{{project_id}}/test-data
+Authorization: Bearer {{token}}
+
+###############################################################################
+# TSPM — Integrations
+###############################################################################
+
+### Create Integration
+POST {{base_url}}/api/v1/tspm/projects/{{project_id}}/integrations
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+    "provider": "jira",
+    "config": {
+        "base_url": "https://bgts.atlassian.net",
+        "project_key": "IB"
+    },
+    "is_active": true
+}
+
+### List Integrations
+GET {{base_url}}/api/v1/tspm/projects/{{project_id}}/integrations
+Authorization: Bearer {{token}}
+
+### Sync Integration
+POST {{base_url}}/api/v1/tspm/projects/{{project_id}}/integrations/{{integration_id}}/sync
+Authorization: Bearer {{token}}
+
+###############################################################################
+# TSPM — API Testing
+###############################################################################
+
+### Create API Collection
+POST {{base_url}}/api/v1/tspm/projects/{{project_id}}/api-tests/collections
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+    "name": "EFT API Testleri",
+    "description": "EFT para transfer API fonksiyonel testleri",
+    "base_url": "https://api-test.garantibbva.com.tr",
+    "headers": { "Content-Type": "application/json" }
+}
+
+### List API Collections
+GET {{base_url}}/api/v1/tspm/projects/{{project_id}}/api-tests/collections
+Authorization: Bearer {{token}}
+
+### Run API Collection
+POST {{base_url}}/api/v1/tspm/projects/{{project_id}}/api-tests/collections/{{collection_id}}/run
+Authorization: Bearer {{token}}
+
+### List API Test Runs
+GET {{base_url}}/api/v1/tspm/projects/{{project_id}}/api-tests/runs
+Authorization: Bearer {{token}}
+
+###############################################################################
+# TSPM — Members
+###############################################################################
+
+### List Project Members
+GET {{base_url}}/api/v1/tspm/projects/{{project_id}}/members
+Authorization: Bearer {{token}}
+
+### Add Member
+POST {{base_url}}/api/v1/tspm/projects/{{project_id}}/members
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+    "user_id": "{{member_user_id}}",
+    "role": "tester"
+}

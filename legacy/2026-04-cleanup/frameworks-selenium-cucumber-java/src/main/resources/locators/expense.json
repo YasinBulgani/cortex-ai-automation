@@ -1,0 +1,97 @@
+[
+  {
+    "key": "anaSayfaMasrafUcNoktaButon",
+    "type": "xpath",
+    "value": "//div[contains(@class,'score-card') and .//span[contains(text(),'Masraf') or contains(text(),'masraf')]]//span[contains(@data-key,'tooltip')]"
+  },
+  {
+    "key": "anaSayfaMasraflarımButon",
+    "type": "xpath",
+    "value": "//a[contains(normalize-space(.),'Masraflarım')]"
+  },
+  {
+    "key": "anaSayfaMasrafTalepEtButon",
+    "type": "xpath",
+    "value": "//a[contains(normalize-space(.),'Masraf Talep') or (contains(@href,'Expense') and contains(@href,'request'))]"
+  },
+  {
+    "key": "masraflarımSayfasıBaslık",
+    "type": "xpath",
+    "value": "//h1[contains(normalize-space(.),'Masraf')] | //div[contains(@class,'page-title') and contains(normalize-space(.),'Masraf')]"
+  },
+  {
+    "key": "masrafTalepSayfasıKategoriSelectBox",
+    "type": "xpath",
+    "value": "//div[contains(@id,'s2id') and ancestor::*[contains(@class,'category') or preceding-sibling::*[contains(text(),'Kategori')]]]"
+  },
+  {
+    "key": "masrafTalepSayfasıKategoriFiltreInput",
+    "type": "xpath",
+    "value": "//input[contains(@id,'s2id_autogen') and contains(@class,'select2-input')]"
+  },
+  {
+    "key": "masrafTalepSayfasıTutarInput",
+    "type": "xpath",
+    "value": "//input[@id='Amount' or @name='Amount' or @id='ExpenseAmount']"
+  },
+  {
+    "key": "masrafTalepSayfasıAciklamaInput",
+    "type": "xpath",
+    "value": "//textarea[@id='Description' or @name='Description']"
+  },
+  {
+    "key": "masrafTalepSayfasıDosyaYuklemeInput",
+    "type": "xpath",
+    "value": "//input[@type='file']"
+  },
+  {
+    "key": "masrafTalepSayfasıKaydetButon",
+    "type": "xpath",
+    "value": "//button[contains(normalize-space(text()),'Kaydet')] | //a[contains(@onclick,'validate')]"
+  },
+  {
+    "key": "masrafTalepSayfasıBasariliText",
+    "type": "xpath",
+    "value": "//h4[contains(@class,'ui-pnotify-title') and contains(normalize-space(.),'başarılı')]"
+  },
+  {
+    "key": "masrafTalepSayfasıZorunluAlanUyarı",
+    "type": "xpath",
+    "value": "//div[contains(normalize-space(.),'gerekli alan')] | //div[contains(@class,'validation')]"
+  },
+  {
+    "key": "masraflarımSayfasıAramaInput",
+    "type": "id",
+    "value": "SearchInput"
+  },
+  {
+    "key": "masraflarımSayfasıAramaButon",
+    "type": "id",
+    "value": "txtSearchBtn"
+  },
+  {
+    "key": "masraflarımSayfasıIlkMasrafText",
+    "type": "xpath",
+    "value": "//h1[contains(@class,'card-description')]"
+  },
+  {
+    "key": "masraflarımSayfasıIlkMasrafUcNoktaButon",
+    "type": "xpath",
+    "value": "(//div[@id='advencescard'][1])//em"
+  },
+  {
+    "key": "masraflarımSayfasıSilButon",
+    "type": "xpath",
+    "value": "//a[contains(@onclick,'postDelete')]"
+  },
+  {
+    "key": "masraflarımSayfasıSilmeOnayButon",
+    "type": "xpath",
+    "value": "//button[@class='confirm']"
+  },
+  {
+    "key": "masraflarımSayfasıSilmeBasariliText",
+    "type": "xpath",
+    "value": "//div[contains(normalize-space(text()),'Başarıyla Silindi')]"
+  }
+]

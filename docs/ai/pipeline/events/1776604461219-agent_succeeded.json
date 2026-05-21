@@ -1,0 +1,1 @@
+{"ts": 1776604461219, "type": "agent_succeeded", "item_id": "GAP-001", "role": "a11y_auditor", "model": "qwen2.5:14b", "latency_s": 73.55302715301514, "decision": "approve", "confidence": 1.0}

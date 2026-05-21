@@ -1,0 +1,9 @@
+{
+  "name": "BDD Kalite Düşük — Then eksik (regression guard)",
+  "type": "gherkin",
+  "description": "Then adımı eksik senaryo — scorer bunu düşük puanlamalı. Regresyon testi: generator bu kalitede çıktı üretirse gate kırılır.",
+  "expected_min_score": 0,
+  "expected_max_score": 45,
+  "prompt_input": "Kullanıcı projeye senaryo ekleyebilir.",
+  "output": "Feature: Senaryo Ekleme\n\n  Scenario: Yeni senaryo oluştur\n    Given kullanıcı giriş yapmış\n    When kullanıcı Yeni Senaryo butonuna tıklar\n    And başlık alanına yazar\n\n  Scenario: Senaryo kaydet\n    Given form dolu\n    When kaydet tıklanır\n"
+}

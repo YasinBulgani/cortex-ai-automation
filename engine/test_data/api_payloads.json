@@ -1,0 +1,195 @@
+{
+  "payloads": {
+    "upload_csv": {
+      "method": "POST",
+      "endpoint": "/api/v1/data/upload",
+      "content_type": "multipart/form-data",
+      "fields": {
+        "file": "@sample_customers.csv",
+        "file_type": "csv",
+        "encoding": "utf-8",
+        "delimiter": ",",
+        "has_header": true,
+        "description": "Müşteri test verisi yükleme"
+      }
+    },
+    "analyze_dataset": {
+      "method": "POST",
+      "endpoint": "/api/v1/data/analyze",
+      "content_type": "application/json",
+      "body": {
+        "dataset_id": "ds-001",
+        "analysis_type": "full",
+        "options": {
+          "check_nulls": true,
+          "check_duplicates": true,
+          "check_outliers": true,
+          "generate_statistics": true,
+          "correlation_matrix": true
+        }
+      }
+    },
+    "generate_synthetic": {
+      "method": "POST",
+      "endpoint": "/api/v1/synthetic/generate",
+      "content_type": "application/json",
+      "body": {
+        "config_name": "turkish_banking",
+        "record_count": 1000,
+        "output_format": "csv",
+        "modules": {
+          "customers": {
+            "enabled": true,
+            "fields": {
+              "tckn": {"type": "tckn", "unique": true},
+              "ad": {"type": "turkish_first_name"},
+              "soyad": {"type": "turkish_last_name"},
+              "dogum_tarihi": {"type": "date", "min": "1950-01-01", "max": "2005-12-31"},
+              "telefon": {"type": "turkish_phone"},
+              "email": {"type": "email"},
+              "segment": {"type": "choice", "values": ["Bireysel", "Premium", "Kurumsal"]},
+              "risk_skoru": {"type": "integer", "min": 0, "max": 100}
+            }
+          },
+          "accounts": {
+            "enabled": true,
+            "fields": {
+              "iban": {"type": "turkish_iban", "unique": true},
+              "hesap_turu": {"type": "choice", "values": ["Vadesiz TL", "Vadeli TL", "Vadesiz USD", "Vadesiz EUR", "Altın Hesabı"]},
+              "para_birimi": {"type": "choice", "values": ["TRY", "USD", "EUR", "XAU"]},
+              "bakiye": {"type": "decimal", "min": 0, "max": 5000000, "precision": 2}
+            }
+          },
+          "transactions": {
+            "enabled": true,
+            "fields": {
+              "islem_turu": {"type": "choice", "values": ["EFT", "Havale", "Para Çekme", "Para Yatırma", "Fatura Ödeme", "Kart Ödeme"]},
+              "tutar": {"type": "decimal", "min": 1, "max": 500000, "precision": 2},
+              "kanal": {"type": "choice", "values": ["Mobil", "İnternet", "ATM", "Şube"]},
+              "aciklama": {"type": "turkish_text", "max_length": 140}
+            }
+          }
+        },
+        "seed": 42
+      }
+    },
+    "create_project": {
+      "method": "POST",
+      "endpoint": "/api/v1/projects",
+      "content_type": "application/json",
+      "body": {
+        "name": "Yeni Test Projesi",
+        "description": "API üzerinden oluşturulan test projesi",
+        "tags": ["api-test", "otomasyon"],
+        "environment": "dev",
+        "priority": "medium"
+      }
+    },
+    "create_scenario": {
+      "method": "POST",
+      "endpoint": "/api/v1/scenarios",
+      "content_type": "application/json",
+      "body": {
+        "project_id": "prj-001",
+        "title": "API ile Oluşturulan Test Senaryosu",
+        "description": "Otomasyon tarafından üretilen senaryo",
+        "preconditions": ["Test ortamı hazır olmalı"],
+        "steps": [
+          {"step": 1, "action": "Sayfayı aç", "expected": "Sayfa yüklenir"},
+          {"step": 2, "action": "İşlemi gerçekleştir", "expected": "İşlem başarılı olur"}
+        ],
+        "expected_results": "İşlem başarıyla tamamlanır",
+        "priority": "P2",
+        "type": "functional",
+        "tags": ["api-test"]
+      }
+    },
+    "approval_approve": {
+      "method": "PUT",
+      "endpoint": "/api/v1/scenarios/{scenario_id}/approve",
+      "content_type": "application/json",
+      "body": {
+        "status": "approved",
+        "reviewer_comment": "Senaryo incelendi ve onaylandı. Üretime alınabilir.",
+        "reviewed_by": "usr-002"
+      }
+    },
+    "approval_reject": {
+      "method": "PUT",
+      "endpoint": "/api/v1/scenarios/{scenario_id}/reject",
+      "content_type": "application/json",
+      "body": {
+        "status": "rejected",
+        "reviewer_comment": "Senaryo eksik adımlar içeriyor. Lütfen ön koşulları ve beklenen sonuçları güncelleyiniz.",
+        "reviewed_by": "usr-002",
+        "rejection_reason": "incomplete_steps"
+      }
+    },
+    "import_file": {
+      "method": "POST",
+      "endpoint": "/api/v1/import",
+      "content_type": "multipart/form-data",
+      "fields": {
+        "file": "@test_scenarios.xlsx",
+        "file_type": "xlsx",
+        "import_type": "scenarios",
+        "project_id": "prj-001",
+        "overwrite_existing": false,
+        "validate_only": false
+      }
+    },
+    "run_tests": {
+      "method": "POST",
+      "endpoint": "/api/v1/tests/run",
+      "content_type": "application/json",
+      "body": {
+        "project_id": "prj-001",
+        "scenario_ids": ["scn-001", "scn-002", "scn-016"],
+        "environment": "staging",
+        "browser": "chromium",
+        "headless": true,
+        "parallel": 3,
+        "timeout_ms": 60000,
+        "retry_failed": true,
+        "max_retries": 2,
+        "tags_filter": ["smoke", "kritik"],
+        "generate_report": true,
+        "report_format": "allure",
+        "notify_on_complete": {
+          "email": ["lider@bgts.com"],
+          "slack_channel": "#test-results"
+        }
+      }
+    },
+    "monkey_test_config": {
+      "method": "POST",
+      "endpoint": "/api/v1/tests/monkey",
+      "content_type": "application/json",
+      "body": {
+        "target_url": "https://staging.bgts.com",
+        "duration_seconds": 300,
+        "actions_per_second": 2,
+        "seed": 12345,
+        "allowed_actions": ["click", "type", "scroll", "navigate", "resize"],
+        "excluded_selectors": ["button.logout", "a[href*='delete']", ".danger-zone"],
+        "input_data": {
+          "text_inputs": ["Test Verisi", "12345", "test@example.com", "+90 532 111 22 33"],
+          "numeric_inputs": [0, 1, 100, 999999, -1]
+        },
+        "viewport_sizes": [
+          {"width": 1920, "height": 1080},
+          {"width": 1366, "height": 768},
+          {"width": 375, "height": 812},
+          {"width": 768, "height": 1024}
+        ],
+        "error_thresholds": {
+          "max_js_errors": 10,
+          "max_console_errors": 20,
+          "max_network_errors": 5
+        },
+        "screenshot_on_error": true,
+        "report_format": "html"
+      }
+    }
+  }
+}

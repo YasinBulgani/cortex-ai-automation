@@ -1,0 +1,20 @@
+[
+  {
+    "scenario_id": "SCN-004",
+    "reason": "Concurrency testi için manuel kalma gereklidir.",
+    "regulation": "BDDK|KVKK",
+    "risk_level": "critical"
+  },
+  {
+    "scenario_id": "SCN-007",
+    "reason": "Concurrency testi için manuel kalma gereklidir.",
+    "regulation": "BDDK|KVKK",
+    "risk_level": "critical"
+  },
+  {
+    "scenario_id": "SCN-010",
+    "reason": "Concurrency testi için manuel kalma gereklidir.",
+    "regulation": "BDDK|KVKK",
+    "risk_level": "critical"
+  }
+]

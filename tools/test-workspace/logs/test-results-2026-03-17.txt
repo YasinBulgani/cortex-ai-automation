@@ -1,0 +1,60 @@
+[2026-03-17 13:30:46] 
+============================================================
+[2026-03-17 13:30:46] 🚀 TEST OTOMASYON DÖNGÜSÜ BAŞLATILIYOR
+[2026-03-17 13:30:46] ============================================================
+
+[2026-03-17 13:30:46] 📝 Ollama ile test kodu oluşturuluyor...
+[2026-03-17 13:31:37] ✅ Test kodu başarıyla oluşturuldu
+[2026-03-17 13:31:37] 📁 Test dosyası kaydedildi: /Users/yasin_bulgan/test-automation-workspace/tests/test_generated.py
+[2026-03-17 13:31:37] 🧪 Testler çalıştırılıyor...
+[2026-03-17 13:31:37] ❌ Pytest yüklü değil. 'pip install pytest' çalıştır
+[2026-03-17 13:31:37] 🔍 Sonuçlar analiz ediliyor...
+[2026-03-17 13:31:50] ✅ Analiz tamamlandı: {'analysis': "Test sonuçlarında başarısız bir test bulundu ve hata mesajı 'Pytest not installed' görüldü. Bu, test edilecek projede Pytest yok olduğunu gösterir.", 'root_cause': 'Pytest yüklenmemiş olması', 'solution': 'Projeye Pytest yüklenmesi gerekir. Pytest yüklenebilir veya yüklenmeme özelliğe sahip bir paket yöneticisi kullanılabilir.', 'code_improvement': "Pytest'i projenize ekleyerek bu sorun çözülecektir.\nÖrneğin, python -m pip install pytest"}
+[2026-03-17 13:31:50] 📊 Günlük rapor oluşturuluyor...
+[2026-03-17 13:31:50] ✅ Rapor kaydedildi: /Users/yasin_bulgan/test-automation-workspace/reports/daily-report-2026-03-17-133150.md
+[2026-03-17 13:31:50] ✅ Geçmiş güncellendi
+[2026-03-17 13:31:50] 
+============================================================
+[2026-03-17 13:31:50] ✅ DÖNGÜ BAŞARIYLA TAMAMLANDI
+[2026-03-17 13:31:50] ============================================================
+
+[2026-03-17 13:33:02] 
+============================================================
+[2026-03-17 13:33:02] 🚀 TEST OTOMASYON DÖNGÜSÜ BAŞLATILIYOR
+[2026-03-17 13:33:02] ============================================================
+
+[2026-03-17 13:33:02] 📝 Ollama ile test kodu oluşturuluyor...
+[2026-03-17 13:33:29] ✅ Test kodu başarıyla oluşturuldu
+[2026-03-17 13:33:29] 📁 Test dosyası kaydedildi: /Users/yasin_bulgan/test-automation-workspace/tests/test_generated.py
+[2026-03-17 13:33:29] 🧪 Testler çalıştırılıyor...
+[2026-03-17 13:33:29] ❌ Pytest yüklü değil. 'pip install pytest' çalıştır
+[2026-03-17 13:33:29] 🔍 Sonuçlar analiz ediliyor...
+[2026-03-17 13:33:46] ✅ Analiz tamamlandı: {'analysis': "Test sonuçlarında görülmüştü ki bir başarısız test oldu ve hata mesajı 'Pytest not installed' oldu. Bu durumda, testler yapıldığında yazılımdan bir python test araç seti (önde geleni pytest olarak) kurulmadığı için sırasıyla hata alındı.", 'root_cause': 'Pytest kurulmadığı için test sırasında hata alındı.', 'solution': 'Pytest kurulması gerekmektedir. Python komut satırından (terminal) aşağıdaki komutu çalıştırın: `pip install pytest`', 'code_improvement': 'Pytest kurulduğunda, test kodunuzda aşağıdaki satırı yazmanız gerekmektedir: `def test_function_name():` örneğin `def test_example():`'}
+[2026-03-17 13:33:46] 📊 Günlük rapor oluşturuluyor...
+[2026-03-17 13:33:46] ✅ Rapor kaydedildi: /Users/yasin_bulgan/test-automation-workspace/reports/daily-report-2026-03-17-133346.md
+[2026-03-17 13:33:46] ✅ Geçmiş güncellendi
+[2026-03-17 13:33:46] 
+============================================================
+[2026-03-17 13:33:46] ✅ DÖNGÜ BAŞARIYLA TAMAMLANDI
+[2026-03-17 13:33:46] ============================================================
+
+[2026-03-17 14:11:40] 
+============================================================
+[2026-03-17 14:11:40] 🚀 TEST OTOMASYON DÖNGÜSÜ BAŞLATILIYOR
+[2026-03-17 14:11:40] ============================================================
+
+[2026-03-17 14:11:40] 📝 Ollama ile test kodu oluşturuluyor...
+[2026-03-17 14:12:27] ✅ Test kodu başarıyla oluşturuldu
+[2026-03-17 14:12:27] 📁 Test dosyası kaydedildi: /Users/yasin_bulgan/test-automation-workspace/tests/test_generated.py
+[2026-03-17 14:12:27] 🧪 Testler çalıştırılıyor...
+[2026-03-17 14:12:27] ❌ Pytest yüklü değil. 'pip install pytest' çalıştır
+[2026-03-17 14:12:27] 🔍 Sonuçlar analiz ediliyor...
+[2026-03-17 14:12:43] ✅ Analiz tamamlandı: {'analysis': 'Test sonuçlarında sadece başarısız bir test bulundu, başarılı testler sıfırdır. Bu, pytest kullanılmadığını gösterir.', 'root_cause': 'Pytest yüklenmedi ve testler çalıştırıldığında hata mesajı verdi.', 'solution': "Pytest'i yükleyerek çözülebilir. Python paket yöneticisinizden (örneğin, pip veya conda) pytest'i kurabilirsiniz.", 'code_improvement': "Kod değişiklikleri yapılmadan, yükleme sorununu çözülebilir. Aşağıdaki komutlar örneğiyle Python paket yöneticisinizden pytest'i kurabilirsiniz:\n\n- pip: `pip install pytest`\n- conda: `conda install pytest`"}
+[2026-03-17 14:12:43] 📊 Günlük rapor oluşturuluyor...
+[2026-03-17 14:12:43] ✅ Rapor kaydedildi: /Users/yasin_bulgan/test-automation-workspace/reports/daily-report-2026-03-17-141243.md
+[2026-03-17 14:12:43] ✅ Geçmiş güncellendi
+[2026-03-17 14:12:43] 
+============================================================
+[2026-03-17 14:12:43] ✅ DÖNGÜ BAŞARIYLA TAMAMLANDI
+[2026-03-17 14:12:43] ============================================================
+

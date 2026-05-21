@@ -1,0 +1,28 @@
+# BGTS AI Test Engine — PII Tespit Desenleri
+# LLM Gateway, bu desenleri kullanarak hassas bilgileri maskeler.
+
+patterns:
+  - name: tc_kimlik
+    regex: '\b\d{11}\b'
+    replacement: '[TC_KIMLIK]'
+    description: TC Kimlik numarası (11 haneli)
+
+  - name: iban
+    regex: '\b[Tt][Rr]\d{2}\s?\d{4}\s?\d{4}\s?\d{4}\s?\d{4}\s?\d{4}\s?\d{2}\b'
+    replacement: '[IBAN]'
+    description: Türkiye IBAN numarası
+
+  - name: email
+    regex: '\b[\w.+-]+@[\w-]+\.[\w.-]+\b'
+    replacement: '[EMAIL]'
+    description: E-posta adresi
+
+  - name: telefon
+    regex: '\b05\d{2}[\s-]?\d{3}[\s-]?\d{2}[\s-]?\d{2}\b'
+    replacement: '[TELEFON]'
+    description: Türkiye cep telefonu numarası
+
+  - name: kredi_karti
+    regex: '\b(?:4\d{3}|5[1-5]\d{2}|6011|3[47]\d{2})[\s-]?\d{4}[\s-]?\d{4}[\s-]?\d{4}\b'
+    replacement: '[KREDI_KARTI]'
+    description: Kredi kartı numarası (Visa, MC, Amex)

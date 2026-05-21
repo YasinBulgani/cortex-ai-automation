@@ -1,0 +1,2 @@
+'izinlerimSayfasıTalepEdilenIzınSilButon' adlı butona/elemana tıklanıyor
+Element anahtarı: izinlerimSayfasıTalepEdilenIzınSilButon

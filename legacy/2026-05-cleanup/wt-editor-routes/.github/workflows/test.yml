@@ -1,0 +1,324 @@
+name: TestwrightAI Test Pipeline
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+  schedule:
+    - cron: '0 6 * * 1-5'  # Hafta ici her gun 06:00 UTC
+  workflow_dispatch:
+    inputs:
+      test_scope:
+        description: 'Test kapsamı (all, unit, integration, performance)'
+        required: false
+        default: 'all'
+
+env:
+  PYTHON_VERSION: "3.11"
+  TESTING: "true"
+
+jobs:
+  # ────────────────────────────────────────────────────────
+  # STAGE 1: Lint & Static Analysis
+  # ────────────────────────────────────────────────────────
+  lint:
+    name: "1. Lint & Static Analysis"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: "pip"
+
+      - name: Install lint tools
+        run: |
+          pip install --upgrade pip
+          pip install ruff mypy bandit
+
+      - name: Ruff lint
+        run: ruff check . --output-format=github
+
+      - name: Ruff format check
+        run: ruff format --check .
+        continue-on-error: true
+
+      - name: Type check with mypy
+        run: mypy app/ --ignore-missing-imports --no-strict
+        continue-on-error: true
+
+      - name: Security scan with bandit
+        run: bandit -r app/ -ll -f json -o bandit-report.json
+        continue-on-error: true
+
+      - name: Upload bandit report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bandit-security-report
+          path: bandit-report.json
+          retention-days: 30
+
+  # ────────────────────────────────────────────────────────
+  # STAGE 2: Unit Tests
+  # ────────────────────────────────────────────────────────
+  unit-tests:
+    name: "2. Unit Tests"
+    runs-on: ubuntu-latest
+    needs: lint
+    strategy:
+      fail-fast: false
+      matrix:
+        test-group:
+          - "tests/test_schema_analyzer.py tests/test_column_classifier.py tests/test_rule_engine.py"
+          - "tests/test_pii_detector.py tests/test_synthetic_generator.py tests/test_scenario_generator.py"
+          - "tests/test_api.py tests/test_enhancements.py"
+          - "tests/test_llm_service.py tests/test_qa_engine.py"
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: test_user
+          POSTGRES_PASSWORD: test_password
+          POSTGRES_DB: synthetic_bank_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest pytest-cov pytest-asyncio pytest-html pytest-xdist
+
+      - name: Run unit tests
+        env:
+          DATABASE_URL: postgresql://test_user:test_password@localhost:5432/synthetic_bank_test
+        run: |
+          pytest ${{ matrix.test-group }} \
+            -v \
+            --tb=short \
+            --cov=app \
+            --cov-report=xml:coverage-${{ strategy.job-index }}.xml \
+            --junitxml=junit-${{ strategy.job-index }}.xml \
+            --html=report-${{ strategy.job-index }}.html \
+            --self-contained-html \
+            -x \
+            2>&1 || true
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: unit-test-results-${{ strategy.job-index }}
+          path: |
+            junit-*.xml
+            report-*.html
+            coverage-*.xml
+          retention-days: 30
+
+  # ────────────────────────────────────────────────────────
+  # STAGE 3: Integration Tests
+  # ────────────────────────────────────────────────────────
+  integration-tests:
+    name: "3. Integration Tests"
+    runs-on: ubuntu-latest
+    needs: unit-tests
+    if: ${{ github.event.inputs.test_scope == 'all' || github.event.inputs.test_scope == 'integration' || github.event.inputs.test_scope == '' }}
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: test_user
+          POSTGRES_PASSWORD: test_password
+          POSTGRES_DB: synthetic_bank_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest pytest-cov pytest-asyncio pytest-html
+
+      - name: Run integration tests
+        env:
+          DATABASE_URL: postgresql://test_user:test_password@localhost:5432/synthetic_bank_test
+        run: |
+          pytest tests/test_integration.py \
+            -v \
+            --tb=long \
+            --cov=app \
+            --cov-report=xml:coverage-integration.xml \
+            --junitxml=junit-integration.xml \
+            --html=report-integration.html \
+            --self-contained-html
+
+      - name: Upload integration results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: integration-test-results
+          path: |
+            junit-integration.xml
+            report-integration.html
+            coverage-integration.xml
+          retention-days: 30
+
+  # ────────────────────────────────────────────────────────
+  # STAGE 4: Performance Tests
+  # ────────────────────────────────────────────────────────
+  performance-tests:
+    name: "4. Performance Tests"
+    runs-on: ubuntu-latest
+    needs: integration-tests
+    if: ${{ github.event.inputs.test_scope == 'all' || github.event.inputs.test_scope == 'performance' || github.event.inputs.test_scope == '' }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest pytest-cov pytest-html pytest-benchmark
+
+      - name: Run performance tests
+        run: |
+          pytest tests/test_performance.py \
+            -v \
+            --tb=short \
+            --junitxml=junit-performance.xml \
+            --html=report-performance.html \
+            --self-contained-html \
+            -m "not slow" \
+            2>&1 || true
+
+      - name: Upload performance results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: performance-test-results
+          path: |
+            junit-performance.xml
+            report-performance.html
+          retention-days: 30
+
+  # ────────────────────────────────────────────────────────
+  # STAGE 5: Coverage Report
+  # ────────────────────────────────────────────────────────
+  coverage-report:
+    name: "5. Coverage Report"
+    runs-on: ubuntu-latest
+    needs: [unit-tests, integration-tests]
+    if: always()
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download all coverage artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: '*-test-results*'
+          merge-multiple: true
+
+      - name: Upload combined coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          files: coverage-*.xml
+          flags: unittests,integration
+          name: testwright-ai-coverage
+          fail_ci_if_error: false
+
+      - name: Generate coverage summary
+        run: |
+          echo "## Test Coverage Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Coverage raporlari artifact olarak yuklenmustur." >> $GITHUB_STEP_SUMMARY
+
+  # ────────────────────────────────────────────────────────
+  # STAGE 6: Docker Build
+  # ────────────────────────────────────────────────────────
+  docker-build:
+    name: "6. Docker Build"
+    runs-on: ubuntu-latest
+    needs: [integration-tests]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: false
+          tags: testwright-ai:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ────────────────────────────────────────────────────────
+  # STAGE 7: Pipeline Summary
+  # ────────────────────────────────────────────────────────
+  summary:
+    name: "7. Pipeline Summary"
+    runs-on: ubuntu-latest
+    needs: [lint, unit-tests, integration-tests, performance-tests, docker-build]
+    if: always()
+
+    steps:
+      - name: Generate pipeline report
+        run: |
+          echo "# TestwrightAI Test Pipeline Raporu" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Asama | Durum |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Lint & Static Analysis | ${{ needs.lint.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Unit Tests | ${{ needs.unit-tests.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Integration Tests | ${{ needs.integration-tests.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Performance Tests | ${{ needs.performance-tests.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Docker Build | ${{ needs.docker-build.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Commit: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "Branch: ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "Tarih: $(date -u +'%Y-%m-%d %H:%M:%S UTC')" >> $GITHUB_STEP_SUMMARY

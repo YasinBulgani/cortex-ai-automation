@@ -1,0 +1,37 @@
+{
+  "paribu": {
+    "homepage": {
+      "cookieNotice": "[data-testid='cookie-notice'], .cookie-banner, .cookie-notice, [class*='cookie']",
+      "cookieAcceptButton": "button:has-text('Kabul Et'), button:has-text('Accept'), [data-testid='accept-cookies']",
+      "marketsLink": "a:has-text('Piyasalar'), a[href*='markets'], nav a:has-text('Piyasalar')",
+      "loginLink": "a:has-text('Giriş yap'), a:has-text('Giriş'), a[href*='login'], button:has-text('Giriş yap')"
+    },
+    "markets": {
+      "fanFilter": "button:has-text('FAN'), [data-filter='FAN'], .filter-fan, button[name='FAN']",
+      "timeFilter12Hours": "button:has-text('12 Saat'), [data-time='12h'], select[name='timeFilter'] option[value='12h'], button:has-text('12h')",
+      "cryptocurrencyList": "[data-testid='crypto-item'], .crypto-item, tr[class*='crypto'], .market-row, .crypto-list-item, table tbody tr, [role='row']",
+      "sortByPrice": "button:has-text('Fiyat'), [data-sort='price'], select[name='sort'], button[aria-label*='Fiyat'], th:has-text('Fiyat')",
+      "sortDescending": "button:has-text('Azalan'), [data-order='desc'], button[aria-label*='Azalan'], [aria-sort='descending']"
+    },
+    "cryptocurrencyDetail": {
+      "unitPriceInput": "input[name='unitPrice'], [data-testid='unit-price'], #unitPrice",
+      "quantityInput": "input[name='quantity'], [data-testid='quantity'], #quantity",
+      "totalPriceDisplay": "[data-testid='total-price'], .total-price, #totalPrice",
+      "currentPriceButton": "button:has-text('Güncel Fiyat'), [data-action='current-price']"
+    },
+    "login": {
+      "countryCodeInput": "input[name='countryCode'], select[name='countryCode'], [data-testid='country-code'], input[placeholder*='ülke'], select.country-code, input[type='tel'][placeholder*='+']",
+      "mobileNumberInput": "input[name='mobile'], input[name='phone'], input[type='tel'], [data-testid='mobile-number'], input[placeholder*='telefon'], input[placeholder*='numara'], input[aria-label*='telefon'], textbox[name='Cep telefonu numaranız']",
+      "passwordInput": "input[type='password'], input[name='password'], [data-testid='password'], input[placeholder*='şifre'], input[placeholder*='Şifre'], textbox[name='Parola']",
+      "loginButton": "button[type='submit'], button:has-text('Giriş'), button:has-text('Giriş yap'), button:has-text('Giriş Yap'), [data-testid='login-button'], button[class*='login'], button[name='Giriş yap']",
+      "errorMessage": "[data-testid='error-message'], .error-message, .alert-danger, [class*='error'], [role='alert']"
+    },
+    "orderPanel": {
+      "pendingBuyOrders": "[data-testid='pending-buy-orders'], .pending-buy-orders",
+      "pendingSellOrders": "[data-testid='pending-sell-orders'], .pending-sell-orders",
+      "buyTab": "[data-testid='buy-tab'], .tab-buy, button:has-text('Alış')",
+      "sellTab": "[data-testid='sell-tab'], .tab-sell, button:has-text('Satış')"
+    }
+  }
+}
+

@@ -1,0 +1,187 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { apiFetch } from "@/lib/api";
+import { PageHeader } from "@/components/nexus/PageHeader";
+
+type Profile = {
+  id: string;
+  email: string;
+  full_name: string | null;
+  phone: string | null;
+  department: string | null;
+  roles: string[];
+  created_at: string | null;
+};
+
+const inputCls = "w-full rounded-xl border border-slate-700 bg-slate-900 px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500/50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors";
+
+export default function ProfilePage() {
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [dept, setDept] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [msg, setMsg] = useState<{ text: string; ok: boolean } | null>(null);
+  const [pwOpen, setPwOpen] = useState(false);
+  const [curPw, setCurPw] = useState("");
+  const [newPw, setNewPw] = useState("");
+  const [pwMsg, setPwMsg] = useState<{ text: string; ok: boolean } | null>(null);
+
+  useEffect(() => {
+    apiFetch<Profile>("/api/v1/auth/profile").then((p) => {
+      setProfile(p);
+      setName(p.full_name || "");
+      setPhone(p.phone || "");
+      setDept(p.department || "");
+    });
+  }, []);
+
+  async function handleSave(e: React.FormEvent) {
+    e.preventDefault();
+    setSaving(true);
+    setMsg(null);
+    try {
+      const updated = await apiFetch<Profile>("/api/v1/auth/profile", {
+        method: "PUT",
+        json: { full_name: name, phone, department: dept },
+      });
+      setProfile(updated);
+      setMsg({ text: "Profil güncellendi", ok: true });
+    } catch {
+      setMsg({ text: "Güncelleme başarısız", ok: false });
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handlePasswordChange(e: React.FormEvent) {
+    e.preventDefault();
+    setPwMsg(null);
+    try {
+      await apiFetch("/api/v1/auth/password", {
+        method: "PUT",
+        json: { current_password: curPw, new_password: newPw },
+      });
+      setPwMsg({ text: "Şifre değiştirildi", ok: true });
+      setCurPw("");
+      setNewPw("");
+      setPwOpen(false);
+    } catch {
+      setPwMsg({ text: "Şifre değiştirilemedi", ok: false });
+    }
+  }
+
+  if (!profile) {
+    return (
+      <div className="flex min-h-[40vh] items-center justify-center p-8">
+        <div className="flex flex-col items-center gap-3">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-slate-700 border-t-blue-500" />
+          <p className="text-sm text-slate-400">Yükleniyor...</p>
+        </div>
+      </div>
+    );
+  }
+
+  const initials = (name || profile.email).split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase();
+
+  return (
+    <div className="min-h-screen bg-slate-950 p-6 flex flex-col gap-6" data-testid="profile-page">
+      <PageHeader
+        icon={
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+          </svg>
+        }
+        title="Profil"
+        description="Hesap bilgilerinizi görüntüleyin ve düzenleyin."
+        data-testid="profile-heading"
+      />
+
+      <div className="mx-auto w-full max-w-2xl rounded-xl border border-slate-800 bg-slate-900/40 p-6">
+        <div className="flex items-center gap-4 border-b border-slate-800 pb-6 mb-6">
+          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-blue-600 text-xl font-bold text-white">
+            {initials}
+          </div>
+          <div>
+            <h2 className="text-lg font-semibold text-white">{name || profile.email}</h2>
+            <p className="text-sm text-slate-400">{profile.roles.join(", ") || "Kullanıcı"}</p>
+          </div>
+        </div>
+
+        <form onSubmit={handleSave} className="grid gap-4 sm:grid-cols-2">
+          <div className="flex flex-col gap-1.5">
+            <label className="text-sm font-medium text-slate-300">Ad Soyad</label>
+            <input value={name} onChange={(e) => setName(e.target.value)} className={inputCls} data-testid="profile-input-name" />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <label className="text-sm font-medium text-slate-300">E-posta</label>
+            <input value={profile.email} disabled className={inputCls} data-testid="profile-input-email" />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <label className="text-sm font-medium text-slate-300">Telefon</label>
+            <input value={phone} onChange={(e) => setPhone(e.target.value)} className={inputCls} data-testid="profile-input-phone" />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <label className="text-sm font-medium text-slate-300">Departman</label>
+            <input value={dept} onChange={(e) => setDept(e.target.value)} className={inputCls} data-testid="profile-input-department" />
+          </div>
+
+          <div className="sm:col-span-2 flex flex-wrap gap-3 border-t border-slate-800 pt-5 mt-1">
+            <button
+              type="submit"
+              disabled={saving}
+              data-testid="profile-btn-save"
+              className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-500 rounded-xl transition-colors disabled:opacity-50"
+            >
+              {saving ? "Kaydediliyor…" : "Kaydet"}
+            </button>
+            <button
+              type="button"
+              onClick={() => setPwOpen(!pwOpen)}
+              data-testid="profile-btn-password"
+              className="px-4 py-2 text-sm font-medium text-slate-300 border border-slate-700 hover:border-slate-500 hover:text-white rounded-xl transition-colors"
+            >
+              Şifre Değiştir
+            </button>
+          </div>
+        </form>
+
+        {msg && (
+          <p className={`mt-3 text-sm ${msg.ok ? "text-emerald-400" : "text-red-400"}`} data-testid="profile-alert-msg">
+            {msg.text}
+          </p>
+        )}
+      </div>
+
+      {pwOpen && (
+        <div className="mx-auto w-full max-w-2xl rounded-xl border border-slate-800 bg-slate-900/40 p-6">
+          <h3 className="text-sm font-semibold text-white mb-4">Şifre Değiştir</h3>
+          <form onSubmit={handlePasswordChange} className="flex flex-col gap-4">
+            <div className="flex flex-col gap-1.5">
+              <label className="text-sm font-medium text-slate-300">Mevcut Şifre</label>
+              <input type="password" value={curPw} onChange={(e) => setCurPw(e.target.value)} required className={inputCls} data-testid="profile-input-current-pw" />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <label className="text-sm font-medium text-slate-300">Yeni Şifre</label>
+              <input type="password" value={newPw} onChange={(e) => setNewPw(e.target.value)} required minLength={6} className={inputCls} data-testid="profile-input-new-pw" />
+            </div>
+            <div className="flex gap-3">
+              <button type="submit" data-testid="profile-btn-change-pw" className="px-4 py-2 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-500 rounded-xl transition-colors">
+                Değiştir
+              </button>
+              <button type="button" onClick={() => setPwOpen(false)} className="px-4 py-2 text-sm text-slate-400 border border-slate-700 hover:border-slate-500 hover:text-white rounded-xl transition-colors">
+                İptal
+              </button>
+            </div>
+          </form>
+          {pwMsg && (
+            <p className={`mt-2 text-sm ${pwMsg.ok ? "text-emerald-400" : "text-red-400"}`}>
+              {pwMsg.text}
+            </p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}

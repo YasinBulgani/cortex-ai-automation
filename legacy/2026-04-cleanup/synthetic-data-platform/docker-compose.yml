@@ -1,0 +1,24 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: synth_bank_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: synth_user
+      POSTGRES_PASSWORD: synth_pass
+      POSTGRES_DB: synth_bank
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U synth_user -d synth_bank"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  pgdata:
+    driver: local

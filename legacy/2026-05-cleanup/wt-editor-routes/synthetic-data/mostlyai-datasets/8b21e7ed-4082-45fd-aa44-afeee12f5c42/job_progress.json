@@ -1,0 +1,84 @@
+{
+  "id": "8b21e7ed-4082-45fd-aa44-afeee12f5c42",
+  "startDate": "2026-03-25T11:29:57.342177Z",
+  "endDate": "2026-03-25T11:30:00.907573Z",
+  "progress": {
+    "value": 4,
+    "max": 4
+  },
+  "status": "DONE",
+  "steps": [
+    {
+      "id": "72d6072b-774e-4aa3-8471-51e89b177e6f",
+      "modelLabel": "data:tabular",
+      "computeName": "SDK",
+      "restarts": 0,
+      "taskType": "GENERATE",
+      "stepCode": "GENERATE_DATA_TABULAR",
+      "startDate": "2026-03-25T11:29:57.342177Z",
+      "endDate": "2026-03-25T11:29:57.418004Z",
+      "computeResources": null,
+      "messages": null,
+      "errorMessage": null,
+      "progress": {
+        "value": 1,
+        "max": 1
+      },
+      "status": "DONE"
+    },
+    {
+      "id": "09df653c-f90c-458a-b0e8-d3a285db9c4e",
+      "modelLabel": "data:tabular",
+      "computeName": "SDK",
+      "restarts": 0,
+      "taskType": "GENERATE",
+      "stepCode": "CREATE_DATA_REPORT_TABULAR",
+      "startDate": "2026-03-25T11:29:57.431137Z",
+      "endDate": "2026-03-25T11:30:00.825576Z",
+      "computeResources": null,
+      "messages": null,
+      "errorMessage": null,
+      "progress": {
+        "value": 1,
+        "max": 1
+      },
+      "status": "DONE"
+    },
+    {
+      "id": "f6376e42-7423-4b32-aaf2-8ff64cbadfff",
+      "modelLabel": null,
+      "computeName": "SDK",
+      "restarts": 0,
+      "taskType": "GENERATE",
+      "stepCode": "FINALIZE_GENERATION",
+      "startDate": "2026-03-25T11:30:00.832024Z",
+      "endDate": "2026-03-25T11:30:00.905603Z",
+      "computeResources": null,
+      "messages": null,
+      "errorMessage": null,
+      "progress": {
+        "value": 1,
+        "max": 1
+      },
+      "status": "DONE"
+    },
+    {
+      "id": "3b8fa9ef-a864-48b2-a8b7-0e17f2e2bf2e",
+      "modelLabel": null,
+      "computeName": "SDK",
+      "restarts": 0,
+      "taskType": "GENERATE",
+      "stepCode": "DELIVER_DATA",
+      "startDate": "2026-03-25T11:30:00.907573Z",
+      "endDate": "2026-03-25T11:30:00.907573Z",
+      "computeResources": null,
+      "messages": null,
+      "errorMessage": null,
+      "progress": {
+        "value": 1,
+        "max": 1
+      },
+      "status": "DONE"
+    }
+  ]
+}

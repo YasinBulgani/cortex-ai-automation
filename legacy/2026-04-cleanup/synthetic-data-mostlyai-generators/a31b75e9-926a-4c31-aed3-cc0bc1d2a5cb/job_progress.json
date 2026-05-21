@@ -1,0 +1,289 @@
+{
+  "id": "a31b75e9-926a-4c31-aed3-cc0bc1d2a5cb",
+  "startDate": "2026-03-25T08:25:26.860166Z",
+  "endDate": "2026-03-25T08:25:35.417130Z",
+  "progress": {
+    "value": 6,
+    "max": 6
+  },
+  "status": "DONE",
+  "steps": [
+    {
+      "id": "37810f56-fdb7-4708-b7fb-a3077876c44f",
+      "modelLabel": "data:tabular",
+      "computeName": "SDK",
+      "restarts": 0,
+      "taskType": "TRAIN_TABULAR",
+      "stepCode": "PULL_TRAINING_DATA",
+      "startDate": "2026-03-25T08:25:26.860166Z",
+      "endDate": "2026-03-25T08:25:26.895308Z",
+      "computeResources": null,
+      "messages": null,
+      "errorMessage": null,
+      "progress": {
+        "value": 1,
+        "max": 1
+      },
+      "status": "DONE"
+    },
+    {
+      "id": "b94f148d-287b-4d63-9436-96a4462ebb03",
+      "modelLabel": "data:tabular",
+      "computeName": "SDK",
+      "restarts": 0,
+      "taskType": "TRAIN_TABULAR",
+      "stepCode": "ANALYZE_TRAINING_DATA",
+      "startDate": "2026-03-25T08:25:26.896073Z",
+      "endDate": "2026-03-25T08:25:33.645309Z",
+      "computeResources": null,
+      "messages": null,
+      "errorMessage": null,
+      "progress": {
+        "value": 1,
+        "max": 1
+      },
+      "status": "DONE"
+    },
+    {
+      "id": "47cd7b4c-3505-42fb-8126-e3aac355bdb7",
+      "modelLabel": "data:tabular",
+      "computeName": "SDK",
+      "restarts": 0,
+      "taskType": "TRAIN_TABULAR",
+      "stepCode": "ENCODE_TRAINING_DATA",
+      "startDate": "2026-03-25T08:25:33.648603Z",
+      "endDate": "2026-03-25T08:25:33.713670Z",
+      "computeResources": null,
+      "messages": null,
+      "errorMessage": null,
+      "progress": {
+        "value": 1,
+        "max": 1
+      },
+      "status": "DONE"
+    },
+    {
+      "id": "fb257939-dc42-4458-9da4-3935fb181c75",
+      "modelLabel": "data:tabular",
+      "computeName": "SDK",
+      "restarts": 0,
+      "taskType": "TRAIN_TABULAR",
+      "stepCode": "TRAIN_MODEL",
+      "startDate": "2026-03-25T08:25:33.715715Z",
+      "endDate": "2026-03-25T08:25:34.732631Z",
+      "computeResources": null,
+      "messages": [
+        {
+          "epoch": 1.0,
+          "is_checkpoint": 1,
+          "steps": 1,
+          "samples": 8,
+          "trn_loss": 24.7119,
+          "val_loss": 31.0805,
+          "total_time": 0.1,
+          "learn_rate": 0.0005,
+          "dp_eps": null,
+          "dp_delta": null
+        },
+        {
+          "epoch": 2.0,
+          "is_checkpoint": 1,
+          "steps": 2,
+          "samples": 14,
+          "trn_loss": 26.29,
+          "val_loss": 30.8759,
+          "total_time": 0.1,
+          "learn_rate": 0.0005,
+          "dp_eps": null,
+          "dp_delta": null
+        },
+        {
+          "epoch": 3.0,
+          "is_checkpoint": 0,
+          "steps": 3,
+          "samples": 22,
+          "trn_loss": 26.2202,
+          "val_loss": 31.2977,
+          "total_time": 0.1,
+          "learn_rate": 0.0005,
+          "dp_eps": null,
+          "dp_delta": null
+        },
+        {
+          "epoch": 4.0,
+          "is_checkpoint": 1,
+          "steps": 4,
+          "samples": 28,
+          "trn_loss": 25.2556,
+          "val_loss": 30.2029,
+          "total_time": 0.1,
+          "learn_rate": 0.0005,
+          "dp_eps": null,
+          "dp_delta": null
+        },
+        {
+          "epoch": 5.0,
+          "is_checkpoint": 0,
+          "steps": 5,
+          "samples": 36,
+          "trn_loss": 24.9848,
+          "val_loss": 30.6181,
+          "total_time": 0.1,
+          "learn_rate": 0.0005,
+          "dp_eps": null,
+          "dp_delta": null
+        },
+        {
+          "epoch": 6.0,
+          "is_checkpoint": 0,
+          "steps": 6,
+          "samples": 42,
+          "trn_loss": 24.2527,
+          "val_loss": 30.3865,
+          "total_time": 0.1,
+          "learn_rate": 0.0005,
+          "dp_eps": null,
+          "dp_delta": null
+        },
+        {
+          "epoch": 7.0,
+          "is_checkpoint": 0,
+          "steps": 7,
+          "samples": 50,
+          "trn_loss": 25.6431,
+          "val_loss": 30.6374,
+          "total_time": 0.2,
+          "learn_rate": 0.0005,
+          "dp_eps": null,
+          "dp_delta": null
+        },
+        {
+          "epoch": 8.0,
+          "is_checkpoint": 0,
+          "steps": 8,
+          "samples": 56,
+          "trn_loss": 23.6746,
+          "val_loss": 30.881,
+          "total_time": 0.2,
+          "learn_rate": 0.00025,
+          "dp_eps": null,
+          "dp_delta": null
+        },
+        {
+          "epoch": 9.0,
+          "is_checkpoint": 1,
+          "steps": 9,
+          "samples": 64,
+          "trn_loss": 24.9069,
+          "val_loss": 30.2005,
+          "total_time": 0.2,
+          "learn_rate": 0.00025,
+          "dp_eps": null,
+          "dp_delta": null
+        },
+        {
+          "epoch": 10.0,
+          "is_checkpoint": 0,
+          "steps": 10,
+          "samples": 70,
+          "trn_loss": 23.5797,
+          "val_loss": 30.9352,
+          "total_time": 0.2,
+          "learn_rate": 0.00025,
+          "dp_eps": null,
+          "dp_delta": null
+        },
+        {
+          "epoch": 11.0,
+          "is_checkpoint": 0,
+          "steps": 11,
+          "samples": 78,
+          "trn_loss": 24.6133,
+          "val_loss": 30.7238,
+          "total_time": 0.2,
+          "learn_rate": 0.000125,
+          "dp_eps": null,
+          "dp_delta": null
+        },
+        {
+          "epoch": 12.0,
+          "is_checkpoint": 0,
+          "steps": 12,
+          "samples": 84,
+          "trn_loss": 23.7571,
+          "val_loss": 30.6561,
+          "total_time": 0.2,
+          "learn_rate": 0.000125,
+          "dp_eps": null,
+          "dp_delta": null
+        },
+        {
+          "epoch": 13.0,
+          "is_checkpoint": 0,
+          "steps": 13,
+          "samples": 92,
+          "trn_loss": 23.907,
+          "val_loss": 30.9817,
+          "total_time": 0.2,
+          "learn_rate": 0.000125,
+          "dp_eps": null,
+          "dp_delta": null
+        },
+        {
+          "epoch": 14.0,
+          "is_checkpoint": 0,
+          "steps": 14,
+          "samples": 98,
+          "trn_loss": 25.2442,
+          "val_loss": 30.7674,
+          "total_time": 0.3,
+          "learn_rate": 0.000063,
+          "dp_eps": null,
+          "dp_delta": null
+        }
+      ],
+      "errorMessage": null,
+      "progress": {
+        "value": 1,
+        "max": 1
+      },
+      "status": "DONE"
+    },
+    {
+      "id": "735c25f8-da52-470c-9d19-749a3d6b80b7",
+      "modelLabel": "data:tabular",
+      "computeName": "SDK",
+      "restarts": 0,
+      "taskType": "TRAIN_TABULAR",
+      "stepCode": "GENERATE_MODEL_REPORT_DATA",
+      "startDate": "2026-03-25T08:25:35.324562Z",
+      "endDate": "2026-03-25T08:25:35.364929Z",
+      "computeResources": null,
+      "messages": null,
+      "errorMessage": null,
+      "progress": {
+        "value": 1,
+        "max": 1
+      },
+      "status": "DONE"
+    },
+    {
+      "id": "7fb13ca6-5b33-47cc-bea6-cd08520dbd14",
+      "modelLabel": "data:tabular",
+      "computeName": "SDK",
+      "restarts": 0,
+      "taskType": "TRAIN_TABULAR",
+      "stepCode": "CREATE_MODEL_REPORT",
+      "startDate": "2026-03-25T08:25:35.377320Z",
+      "endDate": "2026-03-25T08:25:35.413980Z",
+      "computeResources": null,
+      "messages": null,
+      "errorMessage": null,
+      "progress": {
+        "value": 1,
+        "max": 1
+      },
+      "status": "DONE"
+    }
+  ]
+}

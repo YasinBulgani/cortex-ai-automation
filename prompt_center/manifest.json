@@ -1,0 +1,119 @@
+{
+  "task_prompts": {
+    "analyze_document": {
+      "sections": [
+        "policies/base_identity.md",
+        "policies/global_guardrails.md",
+        "policies/json_rules.md",
+        "policies/test_design_rules.md",
+        "tasks/analyze_document.md"
+      ]
+    },
+    "generate_test_cases": {
+      "sections": [
+        "policies/base_identity.md",
+        "policies/global_guardrails.md",
+        "policies/json_rules.md",
+        "policies/test_design_rules.md",
+        "tasks/generate_test_cases.md"
+      ]
+    },
+    "generate_gherkin": {
+      "sections": [
+        "policies/base_identity.md",
+        "policies/global_guardrails.md",
+        "policies/test_design_rules.md",
+        "tasks/generate_gherkin.md"
+      ]
+    },
+    "generate_java_steps": {
+      "sections": [
+        "policies/base_identity.md",
+        "policies/global_guardrails.md",
+        "policies/automation_rules.md",
+        "tasks/generate_java_steps.md"
+      ]
+    },
+    "generate_playwright": {
+      "sections": [
+        "policies/base_identity.md",
+        "policies/global_guardrails.md",
+        "policies/automation_rules.md",
+        "tasks/generate_playwright.md"
+      ]
+    },
+    "suggest_regression": {
+      "sections": [
+        "policies/base_identity.md",
+        "policies/global_guardrails.md",
+        "policies/json_rules.md",
+        "policies/test_design_rules.md",
+        "tasks/suggest_regression.md"
+      ]
+    },
+    "debug_test": {
+      "sections": [
+        "policies/base_identity.md",
+        "policies/global_guardrails.md",
+        "policies/json_rules.md",
+        "policies/automation_rules.md",
+        "tasks/debug_test.md"
+      ]
+    },
+    "chat": {
+      "sections": [
+        "policies/base_identity.md",
+        "policies/global_guardrails.md",
+        "policies/test_design_rules.md",
+        "tasks/chat.md"
+      ]
+    },
+    "nexus_code_analyze": {
+      "sections": [
+        "policies/base_identity.md",
+        "policies/global_guardrails.md",
+        "policies/test_design_rules.md",
+        "policies/automation_rules.md",
+        "tasks/nexus_code_analyze.md"
+      ]
+    }
+  },
+  "engine_prompts": {
+    "bdd_generator": {
+      "sections": [
+        "policies/base_identity.md",
+        "policies/global_guardrails.md",
+        "policies/test_design_rules.md",
+        "engine/bdd_generator.md"
+      ]
+    },
+    "test_generator": {
+      "sections": [
+        "policies/base_identity.md",
+        "policies/global_guardrails.md",
+        "policies/automation_rules.md",
+        "engine/test_generator.md"
+      ]
+    },
+    "self_healer": {
+      "sections": [
+        "policies/global_guardrails.md",
+        "policies/automation_rules.md",
+        "engine/self_healer.md"
+      ]
+    },
+    "assertion_analyzer": {
+      "sections": [
+        "policies/global_guardrails.md",
+        "policies/test_design_rules.md",
+        "engine/assertion_analyzer.md"
+      ]
+    },
+    "security_analyzer": {
+      "sections": [
+        "policies/global_guardrails.md",
+        "engine/security_analyzer.md"
+      ]
+    }
+  }
+}

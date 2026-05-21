@@ -1,0 +1,3 @@
+✅ BAŞARILI
+'izinTalepEtSayfasıSınavİzniBilgilendirmeFormuButon' adlı butona/elemana tıklanıyor
+'izinTalepEtSayfasıSınavİzniBilgilendirmeFormuButon' adlı elemana başarıyla tıklandı. İşlem tamamlandı.

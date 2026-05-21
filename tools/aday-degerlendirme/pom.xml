@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.bgts.tools</groupId>
+    <artifactId>aday-degerlendirme</artifactId>
+    <version>1.0.0</version>
+    <packaging>jar</packaging>
+
+    <name>Aday Değerlendirme Aracı</name>
+    <description>
+        Mülakat oturumu yönetimi: ses kaydı, oturum loglama ve opsiyonel LLM değerlendirmesi.
+        Sistem gereksinimi: ffmpeg (ses kaydı için)
+    </description>
+
+    <properties>
+        <java.version>17</java.version>
+        <maven.compiler.source>${java.version}</maven.compiler.source>
+        <maven.compiler.target>${java.version}</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <main.class>Main</main.class>
+    </properties>
+
+    <!-- Sadece standart Java kütüphaneleri kullanılıyor, ek bağımlılık yok -->
+    <dependencies/>
+
+    <build>
+        <!-- Kaynak dosyaları src/ altında (Maven default src/main/java yerine) -->
+        <sourceDirectory>src</sourceDirectory>
+
+        <plugins>
+            <!-- Derleme -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.11.0</version>
+                <configuration>
+                    <source>${java.version}</source>
+                    <target>${java.version}</target>
+                    <encoding>UTF-8</encoding>
+                    <excludes>
+                        <exclude>**/*.class</exclude>
+                    </excludes>
+                </configuration>
+            </plugin>
+
+            <!-- Çalıştırılabilir JAR (tüm bağımlılıkları içeren) -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <version>3.3.0</version>
+                <configuration>
+                    <archive>
+                        <manifest>
+                            <mainClass>${main.class}</mainClass>
+                        </manifest>
+                    </archive>
+                    <finalName>aday-degerlendirme</finalName>
+                </configuration>
+            </plugin>
+
+            <!-- mvn exec:java ile doğrudan çalıştırma -->
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <version>3.1.0</version>
+                <configuration>
+                    <mainClass>${main.class}</mainClass>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>

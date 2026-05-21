@@ -1,0 +1,12 @@
+❌ HATA
+'izinlerimSayfasıİzinTalepEtButon' adlı butona/elemana tıklanıyor
+Hata: 'izinlerimSayfasıİzinTalepEtButon' adlı elemana tıklanamadı. Element bulunamadı veya tıklanamaz durumda.
+element click intercepted: Element <a name="AddOrUpdate" class="button is-primary" onclick="employeeLeaveCustom.loadCreate(false);" data-permitted="True" title="İzin Talep Et">...</a> is not clickable at point (1255, 155). Other element would receive the click: <div class="loading-indicator-helper"></div>
+  (Session info: chrome=146.0.7680.165)
+Build info: version: '4.41.0', revision: '9fc754f'
+System info: os.name: 'Mac OS X', os.arch: 'aarch64', os.version: '26.3', java.version: '25.0.2'
+Driver info: org.openqa.selenium.chrome.ChromeDriver
+Command: [a0f1381252a3ec782f77a463953aaf85, clickElement {id=f.75B230428AF35464F552C38C82DFFA8D.d.E63AA365D7F870F2511FBEB727E759B0.e.78}]
+Capabilities {acceptInsecureCerts: false, browserName: chrome, browserVersion: 146.0.7680.165, chrome: {chromedriverVersion: 146.0.7680.165 (4b989da09e1..., userDataDir: /var/folders/vn/073d6r0116z...}, fedcm:accounts: true, goog:chromeOptions: {debuggerAddress: localhost:59513}, goog:processID: 2612, networkConnectionEnabled: false, pageLoadStrategy: normal, platformName: mac, proxy: Proxy(), se:cdp: ws://localhost:59513/devtoo..., se:cdpVersion: 146.0.7680.165, setWindowRect: true, strictFileInteractability: false, timeouts: {implicit: 0, pageLoad: 300000, script: 30000}, unhandledPromptBehavior: dismiss and notify, webauthn:extension:credBlob: true, webauthn:extension:largeBlob: true, webauthn:extension:minPinLength: true, webauthn:extension:prf: true, webauthn:virtualAuthenticators: true}
+Element: [[ChromeDriver: chrome on mac (a0f1381252a3ec782f77a463953aaf85)] -> xpath: //a[@name='AddOrUpdate']]
+Session ID: a0f1381252a3ec782f77a463953aaf85

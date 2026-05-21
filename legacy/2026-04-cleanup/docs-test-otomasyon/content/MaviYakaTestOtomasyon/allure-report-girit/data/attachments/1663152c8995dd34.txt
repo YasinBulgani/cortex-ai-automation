@@ -1,0 +1,3 @@
+✅ BAŞARILI
+'izinlerimSayfasıTalepEdilenIzınUcNoktaButon' adlı butona/elemana tıklanıyor
+'izinlerimSayfasıTalepEdilenIzınUcNoktaButon' adlı elemana başarıyla tıklandı. İşlem tamamlandı.

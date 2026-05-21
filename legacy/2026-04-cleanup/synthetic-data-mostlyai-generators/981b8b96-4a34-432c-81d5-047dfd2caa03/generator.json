@@ -1,0 +1,162 @@
+{
+  "id": "981b8b96-4a34-432c-81d5-047dfd2caa03",
+  "name": "bank_marketing",
+  "description": null,
+  "trainingStatus": "FAILED",
+  "trainingTime": null,
+  "usage": null,
+  "metadata": null,
+  "accuracy": null,
+  "tables": [
+    {
+      "id": "5a091a1f-2872-472a-87ea-c180e6207b80",
+      "sourceConnectorId": "6b816c88-ab1b-41f0-8dfc-f17d743efc4e",
+      "location": "/Users/yasin_bulgan/mostlyai/connectors/6b816c88-ab1b-41f0-8dfc-f17d743efc4e/data.parquet",
+      "name": "data",
+      "primaryKey": null,
+      "columns": [
+        {
+          "id": "1e187ea6-25f7-4197-9931-219ad8eb9c10",
+          "name": "age",
+          "included": true,
+          "modelEncodingType": "TABULAR_NUMERIC_AUTO",
+          "valueRange": null
+        },
+        {
+          "id": "a704cc16-0b3a-409d-b49a-91a47d1cbf7a",
+          "name": "job",
+          "included": true,
+          "modelEncodingType": "TABULAR_CATEGORICAL",
+          "valueRange": null
+        },
+        {
+          "id": "c023ab4a-54df-4b90-aa26-6894d910b27c",
+          "name": "marital",
+          "included": true,
+          "modelEncodingType": "TABULAR_CATEGORICAL",
+          "valueRange": null
+        },
+        {
+          "id": "25311e60-a9a0-451d-9ab1-0649d0935e47",
+          "name": "education",
+          "included": true,
+          "modelEncodingType": "TABULAR_CATEGORICAL",
+          "valueRange": null
+        },
+        {
+          "id": "e5dea73a-5261-430c-bcf1-24444fe42dde",
+          "name": "default",
+          "included": true,
+          "modelEncodingType": "TABULAR_CATEGORICAL",
+          "valueRange": null
+        },
+        {
+          "id": "ea7eeac0-b03d-49fb-b907-fbc532ccea84",
+          "name": "balance",
+          "included": true,
+          "modelEncodingType": "TABULAR_NUMERIC_AUTO",
+          "valueRange": null
+        },
+        {
+          "id": "83726189-cd1a-4d29-8ec8-aecdbf5a26c0",
+          "name": "housing",
+          "included": true,
+          "modelEncodingType": "TABULAR_CATEGORICAL",
+          "valueRange": null
+        },
+        {
+          "id": "f0b68ad5-3040-4286-a771-d9e81e03a134",
+          "name": "loan",
+          "included": true,
+          "modelEncodingType": "TABULAR_CATEGORICAL",
+          "valueRange": null
+        },
+        {
+          "id": "2b68984f-c466-4fd7-858d-9f5106f47ed2",
+          "name": "contact",
+          "included": true,
+          "modelEncodingType": "TABULAR_CATEGORICAL",
+          "valueRange": null
+        },
+        {
+          "id": "dca35ecf-c908-4df1-8492-2a62b87b1cdb",
+          "name": "day",
+          "included": true,
+          "modelEncodingType": "TABULAR_NUMERIC_AUTO",
+          "valueRange": null
+        },
+        {
+          "id": "1f7b96d9-501b-49ed-8d4f-474e4967861a",
+          "name": "month",
+          "included": true,
+          "modelEncodingType": "TABULAR_DATETIME",
+          "valueRange": null
+        },
+        {
+          "id": "92838d58-dc61-4103-89a4-d24eea2c3a10",
+          "name": "duration",
+          "included": true,
+          "modelEncodingType": "TABULAR_NUMERIC_AUTO",
+          "valueRange": null
+        },
+        {
+          "id": "41d22a1d-b21d-4ce6-ac15-7c9159253634",
+          "name": "campaign",
+          "included": true,
+          "modelEncodingType": "TABULAR_NUMERIC_AUTO",
+          "valueRange": null
+        },
+        {
+          "id": "e9787350-6153-45ad-b03c-1630250b4e1e",
+          "name": "pdays",
+          "included": true,
+          "modelEncodingType": "TABULAR_NUMERIC_AUTO",
+          "valueRange": null
+        },
+        {
+          "id": "e62f9c34-3c61-48bf-aebc-df6ae9a29c84",
+          "name": "previous",
+          "included": true,
+          "modelEncodingType": "TABULAR_NUMERIC_AUTO",
+          "valueRange": null
+        },
+        {
+          "id": "d740da7a-343d-4d18-8dd9-e6fb3d7b1df5",
+          "name": "poutcome",
+          "included": true,
+          "modelEncodingType": "TABULAR_CATEGORICAL",
+          "valueRange": null
+        },
+        {
+          "id": "961a73bb-0530-4922-929f-45c03b91506f",
+          "name": "deposit",
+          "included": true,
+          "modelEncodingType": "TABULAR_CATEGORICAL",
+          "valueRange": null
+        }
+      ],
+      "foreignKeys": null,
+      "tabularModelMetrics": null,
+      "languageModelMetrics": null,
+      "tabularModelConfiguration": {
+        "model": "MOSTLY_AI/Medium",
+        "maxSampleSize": null,
+        "batchSize": null,
+        "gradientAccumulationSteps": null,
+        "maxTrainingTime": 14400.0,
+        "maxEpochs": 100.0,
+        "maxSequenceWindow": 100,
+        "enableFlexibleGeneration": true,
+        "valueProtection": true,
+        "rareCategoryReplacementMethod": "CONSTANT",
+        "differentialPrivacy": null,
+        "compute": null,
+        "enableModelReport": true
+      },
+      "languageModelConfiguration": null,
+      "totalRows": null
+    }
+  ],
+  "constraints": null,
+  "randomState": null
+}

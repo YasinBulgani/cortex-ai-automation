@@ -1,0 +1,72 @@
+[
+  {
+    "key": "onayBekleyenlerMenuButon",
+    "type": "xpath",
+    "value": "//a[contains(normalize-space(.),'Onay Bekleyen') or contains(@href,'Approval') or contains(@href,'approval')]"
+  },
+  {
+    "key": "onayBekleyenlerSayfasıBaslık",
+    "type": "xpath",
+    "value": "//h1[contains(normalize-space(.),'Onay')] | //div[contains(@class,'page-title') and contains(normalize-space(.),'Onay')]"
+  },
+  {
+    "key": "onayBekleyenlerIlkTalepSatırı",
+    "type": "xpath",
+    "value": "(//div[contains(@class,'card') or contains(@class,'list-item')])[1]"
+  },
+  {
+    "key": "onayBekleyenlerIlkTalepDetayButon",
+    "type": "xpath",
+    "value": "(//a[contains(@onclick,'detail') or contains(@href,'Detail') or contains(normalize-space(.),'Detay')])[1]"
+  },
+  {
+    "key": "talepDetayOnaylaButon",
+    "type": "xpath",
+    "value": "//a[contains(normalize-space(.),'Onayla') or contains(@onclick,'approve')] | //button[contains(normalize-space(.),'Onayla')]"
+  },
+  {
+    "key": "talepDetayOnayOnayButon",
+    "type": "xpath",
+    "value": "//button[@class='confirm' or contains(normalize-space(.),'Evet')]"
+  },
+  {
+    "key": "talepOnayBasariliText",
+    "type": "xpath",
+    "value": "//h4[contains(@class,'ui-pnotify-title') and contains(normalize-space(.),'başarılı')]"
+  },
+  {
+    "key": "talepDetayReddetButon",
+    "type": "xpath",
+    "value": "//a[contains(normalize-space(.),'Reddet') or contains(@onclick,'reject')] | //button[contains(normalize-space(.),'Reddet')]"
+  },
+  {
+    "key": "talepDetayRedNedeniInput",
+    "type": "xpath",
+    "value": "//textarea[@id='RejectReason' or @name='RejectReason' or @id='Description']"
+  },
+  {
+    "key": "talepDetayRedOnayButon",
+    "type": "xpath",
+    "value": "//button[@class='confirm' or contains(normalize-space(.),'Evet')]"
+  },
+  {
+    "key": "talepRedBasariliText",
+    "type": "xpath",
+    "value": "//h4[contains(@class,'ui-pnotify-title') and contains(normalize-space(.),'başarılı')]"
+  },
+  {
+    "key": "onayGecmisiMenuButon",
+    "type": "xpath",
+    "value": "//a[contains(normalize-space(.),'Onay Geçmişi') or contains(normalize-space(.),'Geçmiş')]"
+  },
+  {
+    "key": "onayGecmisiSayfasıBaslık",
+    "type": "xpath",
+    "value": "//h1[contains(normalize-space(.),'Geçmiş')] | //div[contains(@class,'page-title') and contains(normalize-space(.),'Geçmiş')]"
+  },
+  {
+    "key": "onayGecmisiIlkKayıtSatırı",
+    "type": "xpath",
+    "value": "(//div[contains(@class,'card') or contains(@class,'list-item') or //tr])[1]"
+  }
+]

@@ -1,0 +1,3 @@
+✅ BAŞARILI
+'anaSayfaIzinlerimButon' adlı butona/elemana tıklanıyor
+'anaSayfaIzinlerimButon' adlı elemana başarıyla tıklandı. İşlem tamamlandı.

@@ -1,0 +1,47 @@
+### AI Gateway — provider routing + model health
+# Internal endpoint'ler için X-Internal-Key gerekir.
+
+### Provider listesi
+GET {{aiGateway}}/providers
+X-Internal-Key: {{gatewayInternalKey}}
+
+###
+
+### Provider health (her birinin durumu)
+GET {{aiGateway}}/providers/status
+X-Internal-Key: {{gatewayInternalKey}}
+
+###
+
+### Available models
+GET {{aiGateway}}/models
+X-Internal-Key: {{gatewayInternalKey}}
+
+###
+
+### Quick chat completion (test)
+POST {{aiGateway}}/v1/chat/completions
+Content-Type: application/json
+X-Internal-Key: {{gatewayInternalKey}}
+
+{
+  "model": "ollama/llama3.2:3b",
+  "messages": [
+    { "role": "user", "content": "Say hello in Turkish in one short sentence." }
+  ],
+  "max_tokens": 50
+}
+
+###
+
+### Embedding test
+POST {{aiGateway}}/v1/embeddings
+Content-Type: application/json
+X-Internal-Key: {{gatewayInternalKey}}
+
+{
+  "model": "ollama/nomic-embed-text",
+  "input": "Test cümlesi"
+}
+
+###

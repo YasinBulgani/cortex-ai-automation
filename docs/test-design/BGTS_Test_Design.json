@@ -1,0 +1,1458 @@
+{
+  "metadata": {
+    "document_version": "1.0",
+    "date": "2026-04-03",
+    "prepared_by": "Analysis to Test Design Agent",
+    "source_analysis": [
+      "docs/product.md",
+      "docs/architecture.md",
+      "PROGRESS.md",
+      "backend/app/domains/tspm/models.py",
+      "backend/app/domains/tspm/schemas.py",
+      "backend/app/domains/tspm/router.py",
+      "backend/app/domains/auth/router.py",
+      "backend/app/domains/auth/schemas.py",
+      "backend/app/domains/auth/permissions.py"
+    ],
+    "statistics": {
+      "total_test_cases": 75,
+      "total_test_sets": 16,
+      "total_business_rules": 17,
+      "extended_coverage": {
+        "e2e_ui_scenarios": 59,
+        "security_scenarios": 33,
+        "performance_scenarios": 28,
+        "rbac_combinations": 180,
+        "api_contract_tests": 45,
+        "cross_cutting_tests": 42,
+        "gherkin_feature_files": 7,
+        "grand_total": 462
+      },
+      "type_distribution": {
+        "positive": 42,
+        "negative": 16,
+        "boundary": 16,
+        "exception": 1
+      },
+      "priority_distribution": {
+        "critical": 10,
+        "high": 35,
+        "medium": 25,
+        "low": 5
+      }
+    }
+  },
+  "business_rules": [
+    {
+      "id": "BR-001",
+      "title": "Kimlik Doğrulama ve Yetkilendirme",
+      "rules": [
+        "JWT tabanlı token ile oturum açma",
+        "Hatalı bilgide HTTP 401 döner",
+        "Devre dışı hesap HTTP 403 alır",
+        "Başarılı login audit log kaydı oluşturur",
+        "3 rol: admin, operator, viewer",
+        "viewer yalnızca project.read ve scenario.read iznine sahip"
+      ]
+    },
+    {
+      "id": "BR-002",
+      "title": "Proje Yönetimi",
+      "rules": [
+        "name alanı zorunlu (min 1 karakter)",
+        "Oluşturma tarihine göre ters sırada listelenir",
+        "Silindiğinde cascade ile bağlı varlıklar silinir",
+        "Projeler arşivlenebilir"
+      ]
+    },
+    {
+      "id": "BR-003",
+      "title": "Senaryo Yönetimi",
+      "rules": [
+        "title alanı zorunlu (min 1 karakter)",
+        "Varsayılan status: draft",
+        "Güncelleme öncesi mevcut durum version tablosuna kaydedilir",
+        "Her güncelleme current_version'ı 1 artırır",
+        "q parametresi ile başlıkta arama (ilike)",
+        "Toplu silme (bulk-delete) desteklenir",
+        "Senaryo yalnızca ait olduğu proje üzerinden erişilebilir"
+      ]
+    },
+    {
+      "id": "BR-004",
+      "title": "BDD Senaryo Üretimi",
+      "rules": [
+        "analysis_text minimum 10 karakter",
+        "LLM ile Gherkin formatında senaryo üretimi",
+        "Toplu kaydetme desteklenir",
+        "Kaydedilen senaryolar draft statusünde"
+      ]
+    },
+    {
+      "id": "BR-005",
+      "title": "Onay Kuyruğu",
+      "rules": [
+        "Statusler: pending, approved, rejected",
+        "Karar verildiğinde decided_at kaydedilir",
+        "Yalnızca projeye ait onaylar işlenebilir"
+      ]
+    },
+    {
+      "id": "BR-006",
+      "title": "İçe Aktarma",
+      "rules": [
+        "filename zorunlu",
+        "Varsayılan status: completed",
+        "Ham payload JSONB alanında saklanır"
+      ]
+    },
+    {
+      "id": "BR-007",
+      "title": "Test Koşuları",
+      "rules": [
+        "scenario_ids listesi kabul edilir",
+        "Yeni koşu running statusünde başlar",
+        "Her senaryo için pending sonuç kaydı oluşturulur",
+        "ExecutionMetrics otomatik oluşturulur",
+        "Sonuç statusü güncellenebilir",
+        "Re-run mevcut koşudan yeni koşu oluşturur"
+      ]
+    },
+    {
+      "id": "BR-008",
+      "title": "Koşu Analitikleri",
+      "rules": [
+        "Son 30 güne göre trend verileri",
+        "Flaky test tespiti: son 10 koşuda passed/failed geçişi",
+        "Genel istatistikler hesaplanır"
+      ]
+    },
+    {
+      "id": "BR-009",
+      "title": "Akış Editörü",
+      "rules": [
+        "name alanı zorunlu (min 1 karakter)",
+        "nodes ve edges JSON formatında",
+        "Graph update ile güncelleme"
+      ]
+    },
+    {
+      "id": "BR-010",
+      "title": "Regresyon Setleri",
+      "rules": [
+        "name alanı zorunlu (min 1 karakter)",
+        "Senaryo ekleme merge (idempotent)",
+        "AI önerisi için en az 1 senaryo gerekli",
+        "AI önerileri toplu kabul edilebilir"
+      ]
+    },
+    {
+      "id": "BR-011",
+      "title": "Gereksinimler ve Kapsam",
+      "rules": [
+        "external_id ve title zorunlu",
+        "Senaryo-Gereksinim N:N ilişki",
+        "Aynı bağlantı tekrar eklenemez",
+        "Coverage matrix kapsama yüzdesi hesaplar",
+        "Coverage gaps bağlantısız gereksinimleri listeler"
+      ]
+    },
+    {
+      "id": "BR-012",
+      "title": "Zamanlamalar",
+      "rules": [
+        "name ve cron_expression zorunlu",
+        "Tetiklemede önce scenario_ids, yoksa regression_set_id kullanılır",
+        "Senaryo bulunamazsa 400 döner",
+        "Tetikleme sonrası last_run_at güncellenir"
+      ]
+    },
+    {
+      "id": "BR-013",
+      "title": "Test Verisi Yönetimi",
+      "rules": [
+        "name zorunlu (min 1 karakter)",
+        "Parametrik eşleştirme ile yer tutucu değiştirme",
+        "Her veri satırı için adımlar genişletilir"
+      ]
+    },
+    {
+      "id": "BR-014",
+      "title": "Entegrasyonlar",
+      "rules": [
+        "provider alanı zorunlu (min 1 karakter)",
+        "Sync last_sync_at günceller"
+      ]
+    },
+    {
+      "id": "BR-015",
+      "title": "API Testi",
+      "rules": [
+        "Koleksiyon name zorunlu",
+        "Request koleksiyona bağlı; koleksiyon projeye ait olmalı",
+        "Tüm request'ler sırayla çalıştırılır; timeout 30sn",
+        "Response body ilk 2000 karakter",
+        "Hata durumunda passed: false döner"
+      ]
+    },
+    {
+      "id": "BR-016",
+      "title": "Proje Üyeleri",
+      "rules": [
+        "user_id ve role gerekli; varsayılan rol viewer",
+        "Silme projeye ait olmalı"
+      ]
+    },
+    {
+      "id": "BR-017",
+      "title": "Senaryo Versiyonlama",
+      "rules": [
+        "Her güncelleme önceki durumu version olarak saklar",
+        "İki versiyon karşılaştırılabilir (diff)"
+      ]
+    }
+  ],
+  "actors": [
+    {
+      "name": "Admin",
+      "description": "Platform yöneticisi",
+      "permissions": ["admin.* (tüm izinler)"]
+    },
+    {
+      "name": "Operator",
+      "description": "Test lideri / Kalite mühendisi",
+      "permissions": ["Proje CRUD", "Senaryo CRUD", "Onay karar", "Koşu", "Import", "Akış", "Gereksinim", "Zamanlama", "Entegrasyon", "API test", "Test verisi"]
+    },
+    {
+      "name": "Viewer",
+      "description": "Gözlemci / Dış paydaş",
+      "permissions": ["project.read", "scenario.read"]
+    },
+    {
+      "name": "Sistem (AI/LLM)",
+      "description": "Otonom BDD üretici, regresyon önericisi",
+      "permissions": ["Senaryo taslağı üretme", "Regresyon seti önerme"]
+    },
+    {
+      "name": "n8n Workflow",
+      "description": "Harici otomasyon",
+      "permissions": ["Webhook callback ile import/durum güncelleme"]
+    }
+  ],
+  "preconditions": [
+    {"id": "PC-001", "description": "PostgreSQL ve Redis servisleri çalışır durumda"},
+    {"id": "PC-002", "description": "Backend (FastAPI :8000) ayakta"},
+    {"id": "PC-003", "description": "Frontend (Next.js :3000) ayakta"},
+    {"id": "PC-004", "description": "Admin kullanıcı seed edilmiş (admin@example.com / admin123)"},
+    {"id": "PC-005", "description": "Geçerli JWT token alınmış"},
+    {"id": "PC-006", "description": "En az 1 proje oluşturulmuş"},
+    {"id": "PC-007", "description": "Projede en az 1 senaryo mevcut"},
+    {"id": "PC-008", "description": "Projede en az 1 gereksinim mevcut"}
+  ],
+  "test_sets": [
+    {
+      "id": "TS-01",
+      "name": "Kimlik Doğrulama ve Oturum Yönetimi",
+      "test_cases": [
+        {
+          "id": "TC-0101",
+          "title": "Geçerli e-posta ve parola ile başarılı oturum açma",
+          "preconditions": ["PC-001", "PC-002", "PC-004"],
+          "steps": [
+            "POST /api/v1/auth/login endpoint'ine {email: 'admin@example.com', password: 'admin123'} gönder",
+            "Yanıt kodunu kontrol et",
+            "Yanıt body'sini kontrol et"
+          ],
+          "expected_result": "HTTP 200; access_token ve token_type: 'bearer' döner",
+          "priority": "critical",
+          "type": "positive",
+          "related_requirements": ["BR-001"]
+        },
+        {
+          "id": "TC-0102",
+          "title": "Yanlış parola ile oturum açma denemesi reddedilir",
+          "preconditions": ["PC-001", "PC-002", "PC-004"],
+          "steps": [
+            "POST /api/v1/auth/login endpoint'ine {email: 'admin@example.com', password: 'wrongpass'} gönder",
+            "Yanıt kodunu kontrol et",
+            "Hata mesajını kontrol et"
+          ],
+          "expected_result": "HTTP 401; 'E-posta veya parola hatalı' mesajı döner",
+          "priority": "critical",
+          "type": "negative",
+          "related_requirements": ["BR-001"]
+        },
+        {
+          "id": "TC-0103",
+          "title": "Kayıtlı olmayan e-posta ile oturum açma denemesi reddedilir",
+          "preconditions": ["PC-001", "PC-002"],
+          "steps": [
+            "POST /api/v1/auth/login endpoint'ine {email: 'nonexistent@test.com', password: 'admin123'} gönder",
+            "Yanıt kodunu kontrol et"
+          ],
+          "expected_result": "HTTP 401; 'E-posta veya parola hatalı' mesajı döner",
+          "priority": "high",
+          "type": "negative",
+          "related_requirements": ["BR-001"]
+        },
+        {
+          "id": "TC-0104",
+          "title": "Devre dışı bırakılmış hesap login yapamaz",
+          "preconditions": ["PC-001", "PC-002"],
+          "steps": [
+            "Devre dışı kullanıcı bilgileri ile POST /api/v1/auth/login gönder",
+            "Yanıt kodunu kontrol et"
+          ],
+          "expected_result": "HTTP 403; 'Hesap devre dışı' mesajı döner",
+          "priority": "high",
+          "type": "negative",
+          "related_requirements": ["BR-001"]
+        },
+        {
+          "id": "TC-0105",
+          "title": "E-posta alanı boş bırakıldığında doğrulama hatası",
+          "preconditions": ["PC-001", "PC-002"],
+          "steps": [
+            "POST /api/v1/auth/login endpoint'ine {email: '', password: 'admin123'} gönder",
+            "Yanıt kodunu kontrol et"
+          ],
+          "expected_result": "HTTP 422; Pydantic validation error döner",
+          "priority": "medium",
+          "type": "boundary",
+          "related_requirements": ["BR-001"]
+        },
+        {
+          "id": "TC-0106",
+          "title": "Parola alanı boş bırakıldığında doğrulama hatası",
+          "preconditions": ["PC-001", "PC-002"],
+          "steps": [
+            "POST /api/v1/auth/login endpoint'ine {email: 'admin@example.com', password: ''} gönder",
+            "Yanıt kodunu kontrol et"
+          ],
+          "expected_result": "HTTP 422; Pydantic validation error (min_length=1)",
+          "priority": "medium",
+          "type": "boundary",
+          "related_requirements": ["BR-001"]
+        },
+        {
+          "id": "TC-0107",
+          "title": "Geçersiz e-posta formatı doğrulama hatası verir",
+          "preconditions": ["PC-001", "PC-002"],
+          "steps": [
+            "POST /api/v1/auth/login endpoint'ine {email: 'not-an-email', password: 'admin123'} gönder",
+            "Yanıt kodunu kontrol et"
+          ],
+          "expected_result": "HTTP 422; EmailStr validation error",
+          "priority": "medium",
+          "type": "boundary",
+          "related_requirements": ["BR-001"]
+        },
+        {
+          "id": "TC-0108",
+          "title": "Geçerli token ile kullanıcı bilgileri alınabilir",
+          "preconditions": ["PC-005"],
+          "steps": [
+            "Geçerli JWT token ile GET /api/v1/auth/me çağır",
+            "Yanıt body'sinde id, email, roles, permissions alanlarını kontrol et"
+          ],
+          "expected_result": "HTTP 200; kullanıcı bilgileri ve roller doğru döner",
+          "priority": "high",
+          "type": "positive",
+          "related_requirements": ["BR-001"]
+        },
+        {
+          "id": "TC-0109",
+          "title": "Token olmadan korumalı endpoint'e erişim reddedilir",
+          "preconditions": ["PC-002"],
+          "steps": [
+            "Authorization header olmadan GET /api/v1/tspm/projects çağır",
+            "Yanıt kodunu kontrol et"
+          ],
+          "expected_result": "HTTP 401 veya 403; erişim reddedilir",
+          "priority": "critical",
+          "type": "negative",
+          "related_requirements": ["BR-001"]
+        },
+        {
+          "id": "TC-0110",
+          "title": "Başarılı login işlemi audit log tablosuna yazılır",
+          "preconditions": ["PC-001", "PC-002", "PC-004"],
+          "steps": [
+            "Başarılı login yap",
+            "Veritabanında audit_logs tablosunu kontrol et",
+            "action=auth.login, resource_type=user kaydını doğrula"
+          ],
+          "expected_result": "Audit log kaydı oluşturulmuş; actor_user_id doğru",
+          "priority": "medium",
+          "type": "positive",
+          "related_requirements": ["BR-001"]
+        }
+      ]
+    },
+    {
+      "id": "TS-02",
+      "name": "Proje Yönetimi",
+      "test_cases": [
+        {
+          "id": "TC-0201",
+          "title": "Geçerli bilgilerle yeni proje oluşturma",
+          "preconditions": ["PC-005"],
+          "steps": [
+            "POST /api/v1/tspm/projects endpoint'ine {name: 'Test Projesi', description: 'Açıklama'} gönder",
+            "Yanıt kodunu ve body'yi kontrol et"
+          ],
+          "expected_result": "HTTP 201; id, name, description, archived: false döner",
+          "priority": "critical",
+          "type": "positive",
+          "related_requirements": ["BR-002"]
+        },
+        {
+          "id": "TC-0202",
+          "title": "İsim alanı boş bırakıldığında proje oluşturulamaz",
+          "preconditions": ["PC-005"],
+          "steps": [
+            "POST /api/v1/tspm/projects endpoint'ine {name: ''} gönder",
+            "Yanıt kodunu kontrol et"
+          ],
+          "expected_result": "HTTP 422; min_length validation error",
+          "priority": "high",
+          "type": "boundary",
+          "related_requirements": ["BR-002"]
+        },
+        {
+          "id": "TC-0203",
+          "title": "Minimum uzunlukta (1 karakter) proje ismi kabul edilir",
+          "preconditions": ["PC-005"],
+          "steps": [
+            "POST /api/v1/tspm/projects endpoint'ine {name: 'A'} gönder",
+            "Yanıt kodunu kontrol et"
+          ],
+          "expected_result": "HTTP 201; proje başarıyla oluşturulur",
+          "priority": "medium",
+          "type": "boundary",
+          "related_requirements": ["BR-002"]
+        },
+        {
+          "id": "TC-0204",
+          "title": "200 karakterden uzun proje ismi ile oluşturma",
+          "preconditions": ["PC-005"],
+          "steps": [
+            "201 karakter uzunluğunda isimle POST /api/v1/tspm/projects gönder",
+            "Yanıt kodunu kontrol et"
+          ],
+          "expected_result": "HTTP 422 veya DB hatası (String(200) limiti)",
+          "priority": "low",
+          "type": "boundary",
+          "related_requirements": ["BR-002"]
+        },
+        {
+          "id": "TC-0205",
+          "title": "Projeler oluşturma tarihine göre ters sırada listelenir",
+          "preconditions": ["PC-005"],
+          "steps": [
+            "Sırayla 2 proje oluştur",
+            "GET /api/v1/tspm/projects çağır",
+            "Listenin sırasını kontrol et"
+          ],
+          "expected_result": "En son oluşturulan proje listenin başında",
+          "priority": "medium",
+          "type": "positive",
+          "related_requirements": ["BR-002"]
+        },
+        {
+          "id": "TC-0206",
+          "title": "Var olmayan proje ID ile dashboard erişimi 404 döner",
+          "preconditions": ["PC-005"],
+          "steps": [
+            "GET /api/v1/tspm/projects/nonexistent-uuid/dashboard çağır",
+            "Yanıt kodunu kontrol et"
+          ],
+          "expected_result": "HTTP 404; 'Proje bulunamadı' mesajı",
+          "priority": "high",
+          "type": "negative",
+          "related_requirements": ["BR-002"]
+        }
+      ]
+    },
+    {
+      "id": "TS-03",
+      "name": "Senaryo Yönetimi",
+      "test_cases": [
+        {
+          "id": "TC-0301",
+          "title": "Geçerli bilgilerle yeni senaryo oluşturma",
+          "preconditions": ["PC-005", "PC-006"],
+          "steps": [
+            "POST /api/v1/tspm/projects/{id}/scenarios ile geçerli senaryo verisi gönder",
+            "Yanıt kodunu ve body'yi kontrol et"
+          ],
+          "expected_result": "HTTP 201; id, title, status: 'draft', current_version: 1 döner",
+          "priority": "critical",
+          "type": "positive",
+          "related_requirements": ["BR-003"]
+        },
+        {
+          "id": "TC-0302",
+          "title": "Boş başlıkla senaryo oluşturulamaz",
+          "preconditions": ["PC-005", "PC-006"],
+          "steps": [
+            "POST .../scenarios ile {title: ''} gönder"
+          ],
+          "expected_result": "HTTP 422; min_length validation error",
+          "priority": "high",
+          "type": "boundary",
+          "related_requirements": ["BR-003"]
+        },
+        {
+          "id": "TC-0303",
+          "title": "Senaryo güncellendiğinde versiyon numarası artar ve eski durum saklanır",
+          "preconditions": ["PC-005", "PC-006", "PC-007"],
+          "steps": [
+            "Mevcut senaryonun current_version değerini not al",
+            "PUT ile senaryo başlığını güncelle",
+            "Yanıttaki current_version değerini kontrol et",
+            "GET .../versions ile versiyon listesini çek"
+          ],
+          "expected_result": "current_version 2 olur; eski başlık version tablosunda saklanır",
+          "priority": "critical",
+          "type": "positive",
+          "related_requirements": ["BR-003", "BR-017"]
+        },
+        {
+          "id": "TC-0304",
+          "title": "Bir projenin senaryosuna farklı proje ID ile erişilemez",
+          "preconditions": ["PC-005"],
+          "steps": [
+            "Proje-A'nın senaryo ID'sini al",
+            "GET /api/v1/tspm/projects/{ProjeB_id}/scenarios/{senaryoA_id} çağır"
+          ],
+          "expected_result": "HTTP 404; 'Senaryo bulunamadı'",
+          "priority": "high",
+          "type": "negative",
+          "related_requirements": ["BR-003"]
+        },
+        {
+          "id": "TC-0305",
+          "title": "Senaryolar başlık ile aranabilir",
+          "preconditions": ["PC-005", "PC-006"],
+          "steps": [
+            "Farklı başlıklarda senaryolar oluştur",
+            "GET .../scenarios?q=Login çağır",
+            "Sonuçları kontrol et"
+          ],
+          "expected_result": "Yalnızca başlığında 'Login' geçen senaryolar döner",
+          "priority": "medium",
+          "type": "positive",
+          "related_requirements": ["BR-003"]
+        },
+        {
+          "id": "TC-0306",
+          "title": "Birden fazla senaryo toplu silinebilir",
+          "preconditions": ["PC-005", "PC-006"],
+          "steps": [
+            "3 senaryo oluştur",
+            "POST .../bulk-delete ile 2 tanesinin ID'sini gönder",
+            "Senaryo listesini kontrol et"
+          ],
+          "expected_result": "HTTP 204; silinen senaryolar listede görünmez, silinmeyen kalır",
+          "priority": "high",
+          "type": "positive",
+          "related_requirements": ["BR-003"]
+        },
+        {
+          "id": "TC-0307",
+          "title": "Toplu silmede farklı projeye ait ID'ler yok sayılır",
+          "preconditions": ["PC-005"],
+          "steps": [
+            "Proje-A altında Proje-B'nin senaryo ID'sini ekle",
+            "Toplu silme isteği gönder",
+            "Proje-B senaryosunun hâlâ mevcut olduğunu doğrula"
+          ],
+          "expected_result": "Proje-B'nin senaryosu silinmez",
+          "priority": "high",
+          "type": "negative",
+          "related_requirements": ["BR-003"]
+        },
+        {
+          "id": "TC-0308",
+          "title": "İki versiyon arasındaki farklar doğru raporlanır",
+          "preconditions": ["PC-005", "PC-006", "PC-007"],
+          "steps": [
+            "Senaryo oluştur (v1)",
+            "Başlığı güncelle (v2)",
+            "GET .../versions/1/diff/2 çağır"
+          ],
+          "expected_result": "title_changed: true; her iki versiyon snapshot'ı döner",
+          "priority": "medium",
+          "type": "positive",
+          "related_requirements": ["BR-017"]
+        },
+        {
+          "id": "TC-0309",
+          "title": "Var olmayan versiyon numarası ile karşılaştırma 404 döner",
+          "preconditions": ["PC-005", "PC-006", "PC-007"],
+          "steps": [
+            "GET .../versions/1/diff/999 çağır"
+          ],
+          "expected_result": "HTTP 404; 'Versiyon bulunamadı'",
+          "priority": "medium",
+          "type": "negative",
+          "related_requirements": ["BR-017"]
+        }
+      ]
+    },
+    {
+      "id": "TS-04",
+      "name": "BDD Senaryo Üretimi",
+      "test_cases": [
+        {
+          "id": "TC-0401",
+          "title": "Geçerli analiz dokümanından BDD senaryoları üretilir",
+          "preconditions": ["PC-005", "PC-006"],
+          "steps": [
+            "POST .../generate-bdd ile geçerli analiz metni gönder",
+            "Yanıtı kontrol et"
+          ],
+          "expected_result": "HTTP 200; scenarios listesinde Gherkin formatında senaryolar döner",
+          "priority": "high",
+          "type": "positive",
+          "related_requirements": ["BR-004"]
+        },
+        {
+          "id": "TC-0402",
+          "title": "10 karakterden kısa analiz metni reddedilir",
+          "preconditions": ["PC-005", "PC-006"],
+          "steps": [
+            "POST .../generate-bdd ile {analysis_text: 'Kısa'} gönder (5 karakter)"
+          ],
+          "expected_result": "HTTP 422; min_length validation error",
+          "priority": "medium",
+          "type": "boundary",
+          "related_requirements": ["BR-004"]
+        },
+        {
+          "id": "TC-0403",
+          "title": "Tam 10 karakterlik analiz metni kabul edilir",
+          "preconditions": ["PC-005", "PC-006"],
+          "steps": [
+            "POST .../generate-bdd ile {analysis_text: '1234567890'} gönder"
+          ],
+          "expected_result": "HTTP 200; üretim başarılı",
+          "priority": "low",
+          "type": "boundary",
+          "related_requirements": ["BR-004"]
+        },
+        {
+          "id": "TC-0404",
+          "title": "AI tarafından üretilen BDD senaryoları veritabanına kaydedilir",
+          "preconditions": ["PC-005", "PC-006"],
+          "steps": [
+            "BDD üretim yanıtındaki senaryoları POST .../save-bdd ile gönder",
+            "Senaryo listesini kontrol et"
+          ],
+          "expected_result": "HTTP 201; tüm senaryolar draft statusünde kaydedilir",
+          "priority": "high",
+          "type": "positive",
+          "related_requirements": ["BR-004"]
+        }
+      ]
+    },
+    {
+      "id": "TS-05",
+      "name": "Onay Kuyruğu",
+      "test_cases": [
+        {
+          "id": "TC-0501",
+          "title": "Projeye ait onaylar listelenir",
+          "preconditions": ["PC-005", "PC-006"],
+          "steps": [
+            "GET /api/v1/tspm/projects/{id}/approvals çağır",
+            "Yanıtı kontrol et"
+          ],
+          "expected_result": "HTTP 200; onay listesi döner",
+          "priority": "high",
+          "type": "positive",
+          "related_requirements": ["BR-005"]
+        },
+        {
+          "id": "TC-0502",
+          "title": "Bekleyen onay 'approved' olarak işaretlenir",
+          "preconditions": ["PC-005", "PC-006"],
+          "steps": [
+            "POST .../approvals/{aid}/decide ile {decision: 'approved'} gönder",
+            "Onayın statusünü kontrol et"
+          ],
+          "expected_result": "Onay statusü approved olur; decided_at dolu",
+          "priority": "critical",
+          "type": "positive",
+          "related_requirements": ["BR-005"]
+        },
+        {
+          "id": "TC-0503",
+          "title": "Bekleyen onay 'rejected' olarak işaretlenir",
+          "preconditions": ["PC-005", "PC-006"],
+          "steps": [
+            "POST .../decide ile {decision: 'rejected'} gönder"
+          ],
+          "expected_result": "Onay statusü rejected olur; decided_at dolu",
+          "priority": "high",
+          "type": "positive",
+          "related_requirements": ["BR-005"]
+        },
+        {
+          "id": "TC-0504",
+          "title": "Var olmayan onay ID'si ile karar 404 döner",
+          "preconditions": ["PC-005", "PC-006"],
+          "steps": [
+            "POST .../approvals/nonexistent/decide çağır"
+          ],
+          "expected_result": "HTTP 404; 'Onay bulunamadı'",
+          "priority": "medium",
+          "type": "negative",
+          "related_requirements": ["BR-005"]
+        }
+      ]
+    },
+    {
+      "id": "TS-06",
+      "name": "Test Koşuları (Execution)",
+      "test_cases": [
+        {
+          "id": "TC-0601",
+          "title": "Senaryo ID'leri ile yeni test koşusu oluşturma",
+          "preconditions": ["PC-005", "PC-006", "PC-007"],
+          "steps": [
+            "POST .../executions ile scenario_ids listesi gönder",
+            "Yanıtı kontrol et"
+          ],
+          "expected_result": "HTTP 201; status: 'running', scenario_total doğru, passed/failed: 0",
+          "priority": "critical",
+          "type": "positive",
+          "related_requirements": ["BR-007"]
+        },
+        {
+          "id": "TC-0602",
+          "title": "Koşu detayında tüm senaryo sonuçları listelenir",
+          "preconditions": ["PC-005"],
+          "steps": [
+            "GET .../executions/{runId} çağır",
+            "results listesini kontrol et"
+          ],
+          "expected_result": "Her senaryo için pending statusünde sonuç kaydı var",
+          "priority": "high",
+          "type": "positive",
+          "related_requirements": ["BR-007"]
+        },
+        {
+          "id": "TC-0603",
+          "title": "Bireysel senaryo sonucu passed/failed olarak güncellenebilir",
+          "preconditions": ["PC-005"],
+          "steps": [
+            "PATCH .../results/{resultId} ile {status: 'passed'} gönder",
+            "Koşu detayını tekrar çek"
+          ],
+          "expected_result": "Sonuç statusü passed olarak güncellenir",
+          "priority": "critical",
+          "type": "positive",
+          "related_requirements": ["BR-007"]
+        },
+        {
+          "id": "TC-0604",
+          "title": "Mevcut koşu yeniden çalıştırılabilir",
+          "preconditions": ["PC-005"],
+          "steps": [
+            "POST .../executions/{runId} (re-run)",
+            "Yeni koşunun adını ve senaryo sayısını kontrol et"
+          ],
+          "expected_result": "HTTP 201; koşu adı '<eski ad> (re-run)', aynı senaryo sayısı",
+          "priority": "high",
+          "type": "positive",
+          "related_requirements": ["BR-007"]
+        },
+        {
+          "id": "TC-0605",
+          "title": "Var olmayan koşu ID'si ile re-run 404 döner",
+          "preconditions": ["PC-005", "PC-006"],
+          "steps": [
+            "POST .../executions/nonexistent-id"
+          ],
+          "expected_result": "HTTP 404; 'Koşu bulunamadı'",
+          "priority": "medium",
+          "type": "negative",
+          "related_requirements": ["BR-007"]
+        },
+        {
+          "id": "TC-0606",
+          "title": "Boş senaryo listesi ile koşu oluşturma",
+          "preconditions": ["PC-005", "PC-006"],
+          "steps": [
+            "POST .../executions ile {scenario_ids: []} gönder"
+          ],
+          "expected_result": "HTTP 201; scenario_total: 0",
+          "priority": "medium",
+          "type": "boundary",
+          "related_requirements": ["BR-007"]
+        }
+      ]
+    },
+    {
+      "id": "TS-07",
+      "name": "Koşu Analitikleri",
+      "test_cases": [
+        {
+          "id": "TC-0701",
+          "title": "Son 30 günlük koşu trend verileri döner",
+          "preconditions": ["PC-005", "PC-006"],
+          "steps": [
+            "GET .../execution-trends?days=30 çağır",
+            "data_points listesini kontrol et"
+          ],
+          "expected_result": "HTTP 200; tarih bazında total, passed, failed, pass_rate döner",
+          "priority": "medium",
+          "type": "positive",
+          "related_requirements": ["BR-008"]
+        },
+        {
+          "id": "TC-0702",
+          "title": "Passed-Failed arası geçiş yapan senaryolar flaky olarak raporlanır",
+          "preconditions": ["PC-005", "PC-006"],
+          "steps": [
+            "Senaryo-A'yı koşu-1'de passed, koşu-2'de failed yap",
+            "GET .../flaky-tests çağır"
+          ],
+          "expected_result": "Senaryo-A flip_count >= 1 ile flaky listesinde",
+          "priority": "medium",
+          "type": "positive",
+          "related_requirements": ["BR-008"]
+        },
+        {
+          "id": "TC-0703",
+          "title": "Genel koşu istatistikleri doğru hesaplanır",
+          "preconditions": ["PC-005", "PC-006"],
+          "steps": [
+            "GET .../execution-stats çağır",
+            "total_executions, avg_pass_rate kontrol et"
+          ],
+          "expected_result": "HTTP 200; doğru istatistikler",
+          "priority": "medium",
+          "type": "positive",
+          "related_requirements": ["BR-008"]
+        }
+      ]
+    },
+    {
+      "id": "TS-08",
+      "name": "Akış Editörü (Flows)",
+      "test_cases": [
+        {
+          "id": "TC-0801",
+          "title": "Geçerli isimle yeni akış oluşturulur",
+          "preconditions": ["PC-005", "PC-006"],
+          "steps": [
+            "POST .../flows ile {name: 'Login Akışı'} gönder"
+          ],
+          "expected_result": "HTTP 201; id, name, description döner",
+          "priority": "high",
+          "type": "positive",
+          "related_requirements": ["BR-009"]
+        },
+        {
+          "id": "TC-0802",
+          "title": "Akışın nodes ve edges verisi güncellenir",
+          "preconditions": ["PC-005", "PC-006"],
+          "steps": [
+            "PUT .../flows/{fid}/graph ile nodes/edges gönder",
+            "GET .../flows/{fid} ile detay çek"
+          ],
+          "expected_result": "Güncel nodes ve edges döner",
+          "priority": "high",
+          "type": "positive",
+          "related_requirements": ["BR-009"]
+        },
+        {
+          "id": "TC-0803",
+          "title": "Boş isimle akış oluşturulamaz",
+          "preconditions": ["PC-005", "PC-006"],
+          "steps": [
+            "POST .../flows ile {name: ''} gönder"
+          ],
+          "expected_result": "HTTP 422; validation error",
+          "priority": "medium",
+          "type": "boundary",
+          "related_requirements": ["BR-009"]
+        }
+      ]
+    },
+    {
+      "id": "TS-09",
+      "name": "Regresyon Setleri",
+      "test_cases": [
+        {
+          "id": "TC-0901",
+          "title": "Geçerli isimle regresyon seti oluşturulur",
+          "preconditions": ["PC-005", "PC-006"],
+          "steps": [
+            "POST .../regression-sets ile {name: 'Smoke Seti'} gönder"
+          ],
+          "expected_result": "HTTP 201; scenario_count: 0",
+          "priority": "high",
+          "type": "positive",
+          "related_requirements": ["BR-010"]
+        },
+        {
+          "id": "TC-0902",
+          "title": "Regresyon setine senaryolar eklenir",
+          "preconditions": ["PC-005", "PC-006"],
+          "steps": [
+            "POST .../regression-sets/{setId}/add ile scenario_ids gönder",
+            "Set detayını kontrol et"
+          ],
+          "expected_result": "Set'te senaryolar eklenir; tekrar eklenmez (idempotent)",
+          "priority": "high",
+          "type": "positive",
+          "related_requirements": ["BR-010"]
+        },
+        {
+          "id": "TC-0903",
+          "title": "Zaten eklenen senaryo ID'si tekrar eklendiğinde duplicate oluşmaz",
+          "preconditions": ["PC-005", "PC-006"],
+          "steps": [
+            "Aynı senaryo ID'lerini tekrar ekle",
+            "Set detayındaki sayıyı kontrol et"
+          ],
+          "expected_result": "Senaryo sayısı değişmez",
+          "priority": "medium",
+          "type": "boundary",
+          "related_requirements": ["BR-010"]
+        },
+        {
+          "id": "TC-0904",
+          "title": "AI projeden regresyon setleri önerir",
+          "preconditions": ["PC-005", "PC-006", "PC-007"],
+          "steps": [
+            "POST .../regression-sets/suggest çağır"
+          ],
+          "expected_result": "HTTP 200; sets listesinde en az 1 öneri",
+          "priority": "medium",
+          "type": "positive",
+          "related_requirements": ["BR-010"]
+        },
+        {
+          "id": "TC-0905",
+          "title": "Senaryosu olmayan projede AI önerisi 400 döner",
+          "preconditions": ["PC-005"],
+          "steps": [
+            "Senaryo olmayan projede POST .../regression-sets/suggest çağır"
+          ],
+          "expected_result": "HTTP 400; 'Öneri yapılabilmesi için projede en az bir senaryo olmalı.'",
+          "priority": "medium",
+          "type": "negative",
+          "related_requirements": ["BR-010"]
+        },
+        {
+          "id": "TC-0906",
+          "title": "AI önerilerinden seçilen setler toplu oluşturulur",
+          "preconditions": ["PC-005", "PC-006"],
+          "steps": [
+            "POST .../regression-sets/accept-suggestions ile önerilen setleri gönder",
+            "Set listesini kontrol et"
+          ],
+          "expected_result": "HTTP 201; tüm önerilen setler oluşturulur",
+          "priority": "high",
+          "type": "positive",
+          "related_requirements": ["BR-010"]
+        }
+      ]
+    },
+    {
+      "id": "TS-10",
+      "name": "Gereksinimler ve Kapsam Matrisi",
+      "test_cases": [
+        {
+          "id": "TC-1001",
+          "title": "Geçerli bilgilerle gereksinim oluşturulur",
+          "preconditions": ["PC-005", "PC-006"],
+          "steps": [
+            "POST .../requirements ile geçerli veri gönder"
+          ],
+          "expected_result": "HTTP 201; gereksinim bilgileri ve scenario_count: 0 döner",
+          "priority": "high",
+          "type": "positive",
+          "related_requirements": ["BR-011"]
+        },
+        {
+          "id": "TC-1002",
+          "title": "Senaryo ile gereksinim başarılı şekilde ilişkilendirilir",
+          "preconditions": ["PC-005", "PC-006", "PC-007", "PC-008"],
+          "steps": [
+            "POST .../scenarios/{sid}/requirements ile requirement_ids gönder",
+            "Gereksinim listesinde scenario_count kontrol et"
+          ],
+          "expected_result": "scenario_count 1 olur",
+          "priority": "high",
+          "type": "positive",
+          "related_requirements": ["BR-011"]
+        },
+        {
+          "id": "TC-1003",
+          "title": "Aynı senaryo-gereksinim bağlantısı tekrar eklendiğinde duplicate oluşmaz",
+          "preconditions": ["PC-005", "PC-006", "PC-007", "PC-008"],
+          "steps": [
+            "Aynı bağlantıyı tekrar gönder",
+            "scenario_count kontrol et"
+          ],
+          "expected_result": "scenario_count hâlâ 1",
+          "priority": "medium",
+          "type": "boundary",
+          "related_requirements": ["BR-011"]
+        },
+        {
+          "id": "TC-1004",
+          "title": "Kapsam matrisi doğru hesaplanır",
+          "preconditions": ["PC-005", "PC-006"],
+          "steps": [
+            "GET .../coverage-matrix çağır",
+            "total_requirements, covered_count, coverage_percent kontrol et"
+          ],
+          "expected_result": "Doğru hesaplama yapılır",
+          "priority": "high",
+          "type": "positive",
+          "related_requirements": ["BR-011"]
+        },
+        {
+          "id": "TC-1005",
+          "title": "Senaryo kapsamında olmayan gereksinimler listelenir",
+          "preconditions": ["PC-005", "PC-006"],
+          "steps": [
+            "GET .../coverage-gaps çağır"
+          ],
+          "expected_result": "Bağlanmamış gereksinimler döner",
+          "priority": "high",
+          "type": "positive",
+          "related_requirements": ["BR-011"]
+        },
+        {
+          "id": "TC-1006",
+          "title": "Gereksinim silindiğinde senaryo bağlantıları da temizlenir",
+          "preconditions": ["PC-005", "PC-006", "PC-008"],
+          "steps": [
+            "DELETE .../requirements/{reqId}",
+            "Coverage matrix kontrol et"
+          ],
+          "expected_result": "HTTP 204; gereksinim ve bağlantıları silinir",
+          "priority": "high",
+          "type": "positive",
+          "related_requirements": ["BR-011"]
+        },
+        {
+          "id": "TC-1007",
+          "title": "external_id boş bırakılamaz",
+          "preconditions": ["PC-005", "PC-006"],
+          "steps": [
+            "POST .../requirements ile {external_id: '', title: 'Test'} gönder"
+          ],
+          "expected_result": "HTTP 422; validation error",
+          "priority": "medium",
+          "type": "boundary",
+          "related_requirements": ["BR-011"]
+        }
+      ]
+    },
+    {
+      "id": "TS-11",
+      "name": "Zamanlamalar (Schedules)",
+      "test_cases": [
+        {
+          "id": "TC-1101",
+          "title": "Cron ifadesi ile zamanlama oluşturulur",
+          "preconditions": ["PC-005", "PC-006"],
+          "steps": [
+            "POST .../schedules ile geçerli cron ve scenario_ids gönder"
+          ],
+          "expected_result": "HTTP 201; zamanlama bilgileri döner",
+          "priority": "high",
+          "type": "positive",
+          "related_requirements": ["BR-012"]
+        },
+        {
+          "id": "TC-1102",
+          "title": "Zamanlama manuel olarak tetiklendiğinde koşu oluşturulur",
+          "preconditions": ["PC-005", "PC-006"],
+          "steps": [
+            "POST .../schedules/{schedId}/trigger çağır",
+            "Yeni koşuyu kontrol et"
+          ],
+          "expected_result": "HTTP 201; koşu adı 'Scheduled: <name>', last_run_at güncellenir",
+          "priority": "high",
+          "type": "positive",
+          "related_requirements": ["BR-012"]
+        },
+        {
+          "id": "TC-1103",
+          "title": "Senaryo ataması olmayan zamanlama tetiklendiğinde 400 döner",
+          "preconditions": ["PC-005", "PC-006"],
+          "steps": [
+            "POST .../schedules/{schedId}/trigger çağır"
+          ],
+          "expected_result": "HTTP 400; 'Zamanlamada senaryo bulunamadı'",
+          "priority": "high",
+          "type": "negative",
+          "related_requirements": ["BR-012"]
+        },
+        {
+          "id": "TC-1104",
+          "title": "Zamanlama tetiklendiğinde scenario_ids boşsa regression set'ten çekilir",
+          "preconditions": ["PC-005", "PC-006"],
+          "steps": [
+            "Zamanlama tetikle",
+            "Koşudaki senaryo sayısını doğrula"
+          ],
+          "expected_result": "Regression set'teki senaryolar ile koşu oluşturulur",
+          "priority": "medium",
+          "type": "positive",
+          "related_requirements": ["BR-012"]
+        },
+        {
+          "id": "TC-1105",
+          "title": "Boş cron ifadesi ile zamanlama oluşturulamaz",
+          "preconditions": ["PC-005", "PC-006"],
+          "steps": [
+            "POST .../schedules ile {name: 'Test', cron_expression: ''} gönder"
+          ],
+          "expected_result": "HTTP 422; validation error",
+          "priority": "medium",
+          "type": "boundary",
+          "related_requirements": ["BR-012"]
+        }
+      ]
+    },
+    {
+      "id": "TS-12",
+      "name": "Test Verisi Yönetimi",
+      "test_cases": [
+        {
+          "id": "TC-1201",
+          "title": "Kolonlar ve satırlarla test veri seti oluşturulur",
+          "preconditions": ["PC-005", "PC-006"],
+          "steps": [
+            "POST .../test-data ile name, columns, rows gönder"
+          ],
+          "expected_result": "HTTP 201; veri seti bilgileri döner",
+          "priority": "high",
+          "type": "positive",
+          "related_requirements": ["BR-013"]
+        },
+        {
+          "id": "TC-1202",
+          "title": "Senaryo adımlarına test verisi parametreleri bağlanır",
+          "preconditions": ["PC-005", "PC-006", "PC-007"],
+          "steps": [
+            "POST .../scenarios/{sid}/bind-data ile data_set_id ve parameter_mapping gönder"
+          ],
+          "expected_result": "HTTP 201; binding kaydı oluşturulur",
+          "priority": "high",
+          "type": "positive",
+          "related_requirements": ["BR-013"]
+        },
+        {
+          "id": "TC-1203",
+          "title": "Veri satırları ile senaryo adımları genişletilir",
+          "preconditions": ["PC-005", "PC-006", "PC-007"],
+          "steps": [
+            "GET .../scenarios/{sid}/expanded çağır",
+            "expanded_rows listesini kontrol et"
+          ],
+          "expected_result": "Her veri satırı için adımlar genişletilmiş; yer tutucular değiştirilmiş",
+          "priority": "high",
+          "type": "positive",
+          "related_requirements": ["BR-013"]
+        },
+        {
+          "id": "TC-1204",
+          "title": "Var olmayan veri seti ID'si ile bağlama 404 döner",
+          "preconditions": ["PC-005", "PC-006", "PC-007"],
+          "steps": [
+            "POST .../scenarios/{sid}/bind-data ile {data_set_id: 'nonexistent'} gönder"
+          ],
+          "expected_result": "HTTP 404; 'Veri seti bulunamadı'",
+          "priority": "medium",
+          "type": "negative",
+          "related_requirements": ["BR-013"]
+        }
+      ]
+    },
+    {
+      "id": "TS-13",
+      "name": "Entegrasyonlar",
+      "test_cases": [
+        {
+          "id": "TC-1301",
+          "title": "Yeni entegrasyon kaydı oluşturulur",
+          "preconditions": ["PC-005", "PC-006"],
+          "steps": [
+            "POST .../integrations ile provider ve config gönder"
+          ],
+          "expected_result": "HTTP 201; entegrasyon bilgileri döner",
+          "priority": "medium",
+          "type": "positive",
+          "related_requirements": ["BR-014"]
+        },
+        {
+          "id": "TC-1302",
+          "title": "Entegrasyon sync işlemi last_sync_at günceller",
+          "preconditions": ["PC-005", "PC-006"],
+          "steps": [
+            "POST .../integrations/{intgId}/sync çağır",
+            "last_sync_at kontrol et"
+          ],
+          "expected_result": "HTTP 200; last_sync_at güncellenir",
+          "priority": "medium",
+          "type": "positive",
+          "related_requirements": ["BR-014"]
+        },
+        {
+          "id": "TC-1303",
+          "title": "Provider alanı boş bırakılamaz",
+          "preconditions": ["PC-005", "PC-006"],
+          "steps": [
+            "POST .../integrations ile {provider: ''} gönder"
+          ],
+          "expected_result": "HTTP 422; validation error",
+          "priority": "low",
+          "type": "boundary",
+          "related_requirements": ["BR-014"]
+        }
+      ]
+    },
+    {
+      "id": "TS-14",
+      "name": "API Testi",
+      "test_cases": [
+        {
+          "id": "TC-1401",
+          "title": "API test koleksiyonu oluşturulur",
+          "preconditions": ["PC-005", "PC-006"],
+          "steps": [
+            "POST .../api-tests/collections ile name ve base_url gönder"
+          ],
+          "expected_result": "HTTP 201; request_count: 0",
+          "priority": "high",
+          "type": "positive",
+          "related_requirements": ["BR-015"]
+        },
+        {
+          "id": "TC-1402",
+          "title": "Koleksiyona HTTP request eklenir",
+          "preconditions": ["PC-005", "PC-006"],
+          "steps": [
+            "POST .../collections/{colId}/requests ile request detayları gönder"
+          ],
+          "expected_result": "HTTP 201; request bilgileri döner",
+          "priority": "high",
+          "type": "positive",
+          "related_requirements": ["BR-015"]
+        },
+        {
+          "id": "TC-1403",
+          "title": "Koleksiyondaki tüm request'ler sırayla çalıştırılır",
+          "preconditions": ["PC-005", "PC-006"],
+          "steps": [
+            "POST .../collections/{colId}/run çağır",
+            "results listesini kontrol et"
+          ],
+          "expected_result": "HTTP 200; her request için status_code, duration_ms, passed döner",
+          "priority": "high",
+          "type": "positive",
+          "related_requirements": ["BR-015"]
+        },
+        {
+          "id": "TC-1404",
+          "title": "Erişilemeyen base_url ile request hatası döner",
+          "preconditions": ["PC-005", "PC-006"],
+          "steps": [
+            "Erişilemeyen URL'li koleksiyonu çalıştır",
+            "Results'daki passed ve error kontrol et"
+          ],
+          "expected_result": "passed: false, error alanı dolu, status_code: 0",
+          "priority": "medium",
+          "type": "exception",
+          "related_requirements": ["BR-015"]
+        }
+      ]
+    },
+    {
+      "id": "TS-15",
+      "name": "Proje Üyeleri",
+      "test_cases": [
+        {
+          "id": "TC-1501",
+          "title": "Projeye yeni üye eklenir",
+          "preconditions": ["PC-005", "PC-006"],
+          "steps": [
+            "POST .../members ile user_id ve role gönder"
+          ],
+          "expected_result": "HTTP 201; role: 'operator'",
+          "priority": "high",
+          "type": "positive",
+          "related_requirements": ["BR-016"]
+        },
+        {
+          "id": "TC-1502",
+          "title": "Proje üyesi kaldırılır",
+          "preconditions": ["PC-005", "PC-006"],
+          "steps": [
+            "DELETE .../members/{memberId}",
+            "Üye listesini kontrol et"
+          ],
+          "expected_result": "HTTP 204; üye listede görünmez",
+          "priority": "high",
+          "type": "positive",
+          "related_requirements": ["BR-016"]
+        },
+        {
+          "id": "TC-1503",
+          "title": "Rol belirtilmezse varsayılan viewer atanır",
+          "preconditions": ["PC-005", "PC-006"],
+          "steps": [
+            "POST .../members ile {user_id: 'someId'} gönder (rol belirtilmez)"
+          ],
+          "expected_result": "HTTP 201; role: 'viewer'",
+          "priority": "medium",
+          "type": "positive",
+          "related_requirements": ["BR-016"]
+        }
+      ]
+    },
+    {
+      "id": "TS-16",
+      "name": "Dashboard",
+      "test_cases": [
+        {
+          "id": "TC-1601",
+          "title": "Proje dashboard'u doğru istatistikleri döner",
+          "preconditions": ["PC-005", "PC-006"],
+          "steps": [
+            "GET /api/v1/tspm/projects/{id}/dashboard çağır",
+            "Tüm sayaçları kontrol et"
+          ],
+          "expected_result": "HTTP 200; tüm sayaçlar doğru hesaplanmış",
+          "priority": "high",
+          "type": "positive",
+          "related_requirements": ["BR-002", "BR-008"]
+        },
+        {
+          "id": "TC-1602",
+          "title": "Hiç verisi olmayan proje dashboard'u sıfır değerler döner",
+          "preconditions": ["PC-005"],
+          "steps": [
+            "Yeni boş proje oluştur",
+            "GET .../dashboard çağır"
+          ],
+          "expected_result": "Tüm sayaçlar 0; latest_run_pass_rate: null",
+          "priority": "medium",
+          "type": "boundary",
+          "related_requirements": ["BR-002"]
+        }
+      ]
+    }
+  ],
+  "traceability_matrix": [
+    {"requirement": "BR-001", "test_cases": ["TC-0101", "TC-0102", "TC-0103", "TC-0104", "TC-0105", "TC-0106", "TC-0107", "TC-0108", "TC-0109", "TC-0110"], "coverage": "full"},
+    {"requirement": "BR-002", "test_cases": ["TC-0201", "TC-0202", "TC-0203", "TC-0204", "TC-0205", "TC-0206", "TC-1601", "TC-1602"], "coverage": "full"},
+    {"requirement": "BR-003", "test_cases": ["TC-0301", "TC-0302", "TC-0303", "TC-0304", "TC-0305", "TC-0306", "TC-0307"], "coverage": "full"},
+    {"requirement": "BR-004", "test_cases": ["TC-0401", "TC-0402", "TC-0403", "TC-0404"], "coverage": "full"},
+    {"requirement": "BR-005", "test_cases": ["TC-0501", "TC-0502", "TC-0503", "TC-0504"], "coverage": "full"},
+    {"requirement": "BR-006", "test_cases": [], "coverage": "partial"},
+    {"requirement": "BR-007", "test_cases": ["TC-0601", "TC-0602", "TC-0603", "TC-0604", "TC-0605", "TC-0606"], "coverage": "full"},
+    {"requirement": "BR-008", "test_cases": ["TC-0701", "TC-0702", "TC-0703", "TC-1601", "TC-1602"], "coverage": "full"},
+    {"requirement": "BR-009", "test_cases": ["TC-0801", "TC-0802", "TC-0803"], "coverage": "full"},
+    {"requirement": "BR-010", "test_cases": ["TC-0901", "TC-0902", "TC-0903", "TC-0904", "TC-0905", "TC-0906"], "coverage": "full"},
+    {"requirement": "BR-011", "test_cases": ["TC-1001", "TC-1002", "TC-1003", "TC-1004", "TC-1005", "TC-1006", "TC-1007"], "coverage": "full"},
+    {"requirement": "BR-012", "test_cases": ["TC-1101", "TC-1102", "TC-1103", "TC-1104", "TC-1105"], "coverage": "full"},
+    {"requirement": "BR-013", "test_cases": ["TC-1201", "TC-1202", "TC-1203", "TC-1204"], "coverage": "full"},
+    {"requirement": "BR-014", "test_cases": ["TC-1301", "TC-1302", "TC-1303"], "coverage": "full"},
+    {"requirement": "BR-015", "test_cases": ["TC-1401", "TC-1402", "TC-1403", "TC-1404"], "coverage": "full"},
+    {"requirement": "BR-016", "test_cases": ["TC-1501", "TC-1502", "TC-1503"], "coverage": "full"},
+    {"requirement": "BR-017", "test_cases": ["TC-0303", "TC-0308", "TC-0309"], "coverage": "full"}
+  ],
+  "bdd_features": [
+    {
+      "feature": "Kimlik Doğrulama",
+      "description": "Kullanıcılar JWT tabanlı token ile oturum açar ve korumalı kaynaklara erişir.",
+      "scenarios": [
+        {"title": "Başarılı Login", "given": "admin kullanıcısı mevcut", "when": "geçerli e-posta ve parola ile login isteği gönderilir", "then": "HTTP 200 ve access_token döner; audit log kaydı oluşturulur"},
+        {"title": "Hatalı Parola ile Login", "given": "admin kullanıcısı mevcut", "when": "yanlış parola ile login isteği gönderilir", "then": "HTTP 401 ve 'E-posta veya parola hatalı' mesajı döner"},
+        {"title": "Devre Dışı Hesap Login", "given": "devre dışı bırakılmış kullanıcı mevcut", "when": "o kullanıcının bilgileriyle login isteği gönderilir", "then": "HTTP 403 ve 'Hesap devre dışı' mesajı döner"}
+      ]
+    },
+    {
+      "feature": "Proje Yönetimi",
+      "description": "Test ekipleri projelerini oluşturur, listeler ve yönetir.",
+      "scenarios": [
+        {"title": "Yeni Proje Oluşturma", "given": "kullanıcı oturum açmış", "when": "geçerli isim ve açıklama ile proje oluşturma isteği gönderilir", "then": "HTTP 201 ve proje bilgileri döner; archived=false"},
+        {"title": "Boş İsimle Proje Oluşturma", "given": "kullanıcı oturum açmış", "when": "isim alanı boş bırakılarak proje oluşturma isteği gönderilir", "then": "HTTP 422 validation hatası döner"}
+      ]
+    },
+    {
+      "feature": "Senaryo Yönetimi",
+      "description": "Senaryolar oluşturulur, güncellenir, versiyonlanır ve toplu işlem yapılır.",
+      "scenarios": [
+        {"title": "Senaryo Oluşturma ve Varsayılan Status", "given": "proje mevcut", "when": "yeni senaryo oluşturulur", "then": "senaryo draft statusünde ve version=1 olarak kaydedilir"},
+        {"title": "Senaryo Güncelleme ile Otomatik Versiyonlama", "given": "proje ve senaryo mevcut", "when": "senaryo başlığı güncellenir", "then": "mevcut durum version tablosuna kaydedilir ve current_version 1 artırılır"},
+        {"title": "Toplu Senaryo Silme", "given": "projede birden fazla senaryo mevcut", "when": "seçilen senaryo ID'leri ile toplu silme isteği gönderilir", "then": "yalnızca bu projeye ait seçili senaryolar silinir"}
+      ]
+    },
+    {
+      "feature": "BDD Senaryo Üretimi",
+      "description": "Analiz dokümanından AI ile BDD senaryoları üretilir ve kaydedilir.",
+      "scenarios": [
+        {"title": "Analiz Metninden BDD Üretimi", "given": "proje mevcut ve LLM servisi erişilebilir", "when": "analiz metni ile BDD üretim isteği gönderilir", "then": "Gherkin formatında senaryo listesi döner"},
+        {"title": "Üretilen Senaryoları Kaydetme", "given": "BDD senaryoları üretilmiş", "when": "kaydetme isteği gönderilir", "then": "tüm senaryolar draft statusünde kaydedilir"}
+      ]
+    },
+    {
+      "feature": "Onay Kuyruğu",
+      "description": "AI taslakları onay kuyruğundan geçirilerek senaryo havuzuna yazılır.",
+      "scenarios": [
+        {"title": "Onay Kabul", "given": "pending statusünde onay mevcut", "when": "'approved' kararı verilir", "then": "onay statusü approved olur ve decided_at kaydedilir"}
+      ]
+    },
+    {
+      "feature": "Test Koşuları",
+      "description": "Senaryolar koşulara eklenir, çalıştırılır ve sonuçları takip edilir.",
+      "scenarios": [
+        {"title": "Yeni Koşu Oluşturma", "given": "projede senaryolar mevcut", "when": "senaryo ID'leri ile koşu oluşturma isteği gönderilir", "then": "koşu running statusünde başlar; her senaryo için pending sonuç kaydı oluşturulur"},
+        {"title": "Koşu Re-run", "given": "tamamlanmış koşu mevcut", "when": "re-run isteği gönderilir", "then": "aynı senaryolarla yeni koşu oluşturulur; adına (re-run) eklenir"}
+      ]
+    },
+    {
+      "feature": "Gereksinimler ve Kapsam",
+      "description": "Gereksinimler senaryolara bağlanarak kapsam matrisi hesaplanır.",
+      "scenarios": [
+        {"title": "Kapsam Matrisi Hesaplama", "given": "projede gereksinimler ve senaryo bağlantıları mevcut", "when": "kapsam matrisi istenir", "then": "her gereksinim için bağlı senaryolar ve kapsama yüzdesi döner"},
+        {"title": "Kapsam Boşluklarını Tespit", "given": "bazı gereksinimler senaryoya bağlı değil", "when": "coverage-gaps istenir", "then": "bağlantısız gereksinimler listelenir"}
+      ]
+    },
+    {
+      "feature": "Regresyon Setleri",
+      "description": "Senaryolar regresyon setlerine gruplanır; AI öneri yapar.",
+      "scenarios": [
+        {"title": "AI Regresyon Seti Önerisi", "given": "projede senaryolar mevcut", "when": "AI öneri isteği gönderilir", "then": "kategorize edilmiş set önerileri döner"}
+      ]
+    },
+    {
+      "feature": "Zamanlamalar",
+      "description": "Cron ifadesi ile periyodik koşular zamanlanır.",
+      "scenarios": [
+        {"title": "Zamanlama Tetikleme", "given": "zamanlama ve senaryoları mevcut", "when": "zamanlama tetiklendiğinde", "then": "ilgili senaryolarla yeni koşu oluşturulur ve last_run_at güncellenir"}
+      ]
+    },
+    {
+      "feature": "Test Verisi Yönetimi",
+      "description": "Veri setleri senaryolara parametrik olarak bağlanır.",
+      "scenarios": [
+        {"title": "Parametre Genişletme", "given": "senaryo adımlarında yer tutucular var ve veri seti bağlanmış", "when": "expanded senaryo istenir", "then": "her veri satırı için adımlar genişletilmiş döner"}
+      ]
+    }
+  ]
+}

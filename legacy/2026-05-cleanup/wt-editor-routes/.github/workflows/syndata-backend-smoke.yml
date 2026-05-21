@@ -1,0 +1,62 @@
+name: Syndata Backend Smoke
+
+on:
+  push:
+    paths:
+      - "backend/**"
+      - ".github/workflows/syndata-backend-smoke.yml"
+  pull_request:
+    paths:
+      - "backend/**"
+      - ".github/workflows/syndata-backend-smoke.yml"
+  workflow_dispatch:
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: twai_user
+          POSTGRES_PASSWORD: twai_pass
+          POSTGRES_DB: syndata_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U twai_user -d syndata_db"
+          --health-interval 3s
+          --health-timeout 5s
+          --health-retries 15
+
+    env:
+      DATABASE_URL: postgresql+psycopg2://twai_user:twai_pass@127.0.0.1:5432/syndata_db
+      REDIS_URL: redis://127.0.0.1:6379/0
+      JWT_SECRET: ci-test-secret-not-for-production-min-32b
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: backend/requirements-dev.txt
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-dev.txt
+
+      - name: Migrate and seed
+        run: |
+          alembic upgrade head
+          python scripts/seed.py
+
+      - name: Pytest smoke
+        run: pytest tests/test_smoke.py -v --tb=short

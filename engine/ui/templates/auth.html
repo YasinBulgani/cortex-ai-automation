@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Giriş Yap - AI Web Otomasyon Platformu</title>
+    <style>
+        :root {
+            --bg1: #0d1117;
+            --bg2: #161b22;
+            --text: #e6edf3;
+            --text2: #c9d1d9;
+            --text3: #8b949e;
+            --border: #30363d;
+            --accent: #388bfd;
+            --accent-hover: #58a6ff;
+            --green: #3fb950;
+            --red: #f85149;
+            --font-main: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: var(--font-main);
+            background: linear-gradient(135deg, #0d1117 0%, #161b22 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text);
+            overflow: hidden;
+        }
+
+        /* ── Background Blobs ── */
+        .blob {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(80px);
+            opacity: 0.6;
+            z-index: 0;
+            animation: float 10s infinite alternate ease-in-out;
+        }
+        .blob.green {
+            width: 400px; height: 400px;
+            background: rgba(63, 185, 80, 0.15);
+            top: -100px; right: -50px;
+        }
+        .blob.blue {
+            width: 500px; height: 500px;
+            background: rgba(56, 139, 253, 0.12);
+            bottom: -150px; left: -100px;
+            animation-duration: 12s;
+        }
+
+        @keyframes float {
+            0% { transform: translateY(0) scale(1); }
+            100% { transform: translateY(30px) scale(1.05); }
+        }
+
+        /* ── Auth Container ── */
+        .auth-container {
+            position: relative;
+            z-index: 10;
+            width: 100%;
+            max-width: 440px;
+            background: rgba(22, 27, 34, 0.9);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid #30363d;
+            border-radius: 24px;
+            padding: 40px;
+            box-shadow: 0 25px 50px -12px rgba(1, 4, 9, 0.5);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .auth-header {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+        .auth-header h2 {
+            font-size: 28px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            color: var(--text);
+            margin-bottom: 8px;
+        }
+        .auth-header p {
+            color: var(--text2);
+            font-size: 14px;
+            line-height: 1.5;
+        }
+        
+        /* ── Form Toggle ── */
+        .auth-toggle {
+            display: flex;
+            background: rgba(0,0,0,0.3);
+            border-radius: 12px;
+            padding: 4px;
+            margin-bottom: 32px;
+            position: relative;
+        }
+        .auth-toggle button {
+            flex: 1;
+            padding: 10px 0;
+            border: none;
+            background: transparent;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text2);
+            cursor: pointer;
+            border-radius: 8px;
+            transition: all 0.3s;
+            position: relative;
+            z-index: 2;
+        }
+        .auth-toggle button.active {
+            color: #ffffff;
+        }
+        .toggle-slider {
+            position: absolute;
+            top: 4px; left: 4px;
+            width: calc(50% - 4px);
+            height: calc(100% - 8px);
+            background: var(--accent);
+            border-radius: 8px;
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 1;
+            box-shadow: 0 2px 8px rgba(56,139,253,0.3);
+        }
+
+        /* ── Input Fields ── */
+        .form-group {
+            margin-bottom: 20px;
+            position: relative;
+        }
+        .form-group label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: var(--text2);
+        }
+        .form-group input {
+            width: 100%;
+            padding: 12px 16px;
+            background: rgba(28, 33, 40, 0.8);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            font-family: var(--font-main);
+            font-size: 14px;
+            color: var(--text);
+            outline: none;
+            transition: all 0.2s;
+        }
+        .form-group input:focus {
+            background: #1c2128;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(56, 139, 253, 0.15);
+        }
+
+        .btn-submit {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            background: var(--accent);
+            color: white;
+            font-size: 15px;
+            font-weight: 600;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-top: 10px;
+            box-shadow: 0 4px 12px rgba(56, 139, 253, 0.3);
+        }
+        .btn-submit:hover {
+            transform: translateY(-1px);
+            background: var(--accent-hover);
+            box-shadow: 0 6px 16px rgba(56, 139, 253, 0.4);
+        }
+        .btn-submit:active {
+            transform: translateY(1px);
+            box-shadow: none;
+        }
+        
+        /* ── Animation container ── */
+        .form-wrapper {
+            position: relative;
+            overflow: hidden;
+        }
+        .form-slide {
+            width: 100%;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        #register-form {
+            position: absolute;
+            top: 0;
+            left: 100%;
+            opacity: 0;
+            visibility: hidden;
+        }
+        
+        /* Toast */
+        .toast-container {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            z-index: 100;
+        }
+        .toast {
+            background: var(--bg2);
+            color: var(--text);
+            padding: 14px 20px;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 500;
+            box-shadow: 0 10px 15px -3px rgba(1,4,9,0.5), 0 0 0 1px rgba(48,54,61,0.5);
+            border: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            animation: slideIn 0.3s ease forwards;
+        }
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        .toast.success { border-left: 4px solid var(--green); }
+        .toast.error { border-left: 4px solid var(--red); }
+    </style>
+</head>
+<body>
+
+    <div class="blob green"></div>
+    <div class="blob blue"></div>
+
+    <div class="toast-container" id="toastBox"></div>
+
+    <div class="auth-container">
+        <div class="auth-header">
+            <h2>Hoş Geldiniz</h2>
+            <p>Yapay zeka destekli test otomasyon paneline erişmek için giriş yapın veya kayıt olun.</p>
+        </div>
+
+        <div class="auth-toggle">
+            <div class="toggle-slider" id="toggleSlider"></div>
+            <button class="active" id="btnShowLogin" onclick="switchTab('login')">Giriş Yap</button>
+            <button id="btnShowRegister" onclick="switchTab('register')">Kayıt Ol</button>
+        </div>
+
+        <div class="form-wrapper" id="formWrapper">
+            <!-- LOGIN FORM -->
+            <form id="login-form" class="form-slide" onsubmit="handleLogin(event)">
+                <div class="form-group">
+                    <label>E-Posta Adresi</label>
+                    <input type="email" id="login-email" placeholder="ornek@sirket.com" required>
+                </div>
+                <div class="form-group">
+                    <label>Şifre</label>
+                    <input type="password" id="login-password" placeholder="••••••••" required>
+                </div>
+                <button type="submit" class="btn-submit" id="submitLogin">Sisteme Gir 🚀</button>
+            </form>
+
+            <!-- REGISTER FORM -->
+            <form id="register-form" class="form-slide" onsubmit="handleRegister(event)">
+                <div class="form-group">
+                    <label>E-Posta Adresi</label>
+                    <input type="email" id="reg-email" placeholder="ornek@sirket.com" required>
+                </div>
+                <div class="form-group">
+                    <label>Şifre Seçin</label>
+                    <input type="password" id="reg-password" placeholder="Güçlü bir şifre girin" required>
+                </div>
+                <button type="submit" class="btn-submit" id="submitReg">Hesabımı Oluştur ✨</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const slider = document.getElementById('toggleSlider');
+        const loginForm = document.getElementById('login-form');
+        const registerForm = document.getElementById('register-form');
+        const btnLogin = document.getElementById('btnShowLogin');
+        const btnReg = document.getElementById('btnShowRegister');
+
+        function switchTab(tab) {
+            if (tab === 'login') {
+                slider.style.transform = 'translateX(0)';
+                btnLogin.classList.add('active');
+                btnReg.classList.remove('active');
+                
+                loginForm.style.transform = 'translateX(0)';
+                loginForm.style.opacity = '1';
+                loginForm.style.visibility = 'visible';
+                
+                registerForm.style.transform = 'translateX(100%)';
+                registerForm.style.opacity = '0';
+                registerForm.style.visibility = 'hidden';
+            } else {
+                slider.style.transform = 'translateX(100%)';
+                btnReg.classList.add('active');
+                btnLogin.classList.remove('active');
+                
+                loginForm.style.transform = 'translateX(-100%)';
+                loginForm.style.opacity = '0';
+                loginForm.style.visibility = 'hidden';
+                
+                registerForm.style.transform = 'translateX(0)';
+                registerForm.style.opacity = '1';
+                registerForm.style.visibility = 'visible';
+                registerForm.style.left = '0';
+            }
+        }
+
+        function showToast(msg, type='success') {
+            const box = document.getElementById('toastBox');
+            const t = document.createElement('div');
+            t.className = `toast ${type}`;
+            t.innerHTML = `${type === 'success' ? '✅' : '⚠️'} ${msg}`;
+            box.appendChild(t);
+            setTimeout(() => t.remove(), 4000);
+        }
+
+        async function handleLogin(e) {
+            e.preventDefault();
+            const email = document.getElementById('login-email').value;
+            const pass = document.getElementById('login-password').value;
+            const btn = document.getElementById('submitLogin');
+            btn.textContent = 'Giriş Yapılıyor...';
+            btn.disabled = true;
+
+            try {
+                const res = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({email: email, password: pass})
+                });
+                const data = await res.json();
+                
+                if(data.success) {
+                    window.location.href = '/';
+                } else {
+                    showToast(data.error || 'Giriş başarısız', 'error');
+                }
+            } catch(e) {
+                showToast('Ağ hatası oluştu', 'error');
+            } finally {
+                btn.textContent = 'Sisteme Gir 🚀';
+                btn.disabled = false;
+            }
+        }
+
+        async function handleRegister(e) {
+            e.preventDefault();
+            const email = document.getElementById('reg-email').value;
+            const pass = document.getElementById('reg-password').value;
+            const btn = document.getElementById('submitReg');
+            btn.textContent = 'Oluşturuluyor...';
+            btn.disabled = true;
+
+            try {
+                const res = await fetch('/api/auth/register', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({email: email, password: pass})
+                });
+                const data = await res.json();
+                
+                if(data.success) {
+                    showToast(data.message, 'success');
+                    document.getElementById('reg-email').value = '';
+                    document.getElementById('reg-password').value = '';
+                    setTimeout(() => switchTab('login'), 2500);
+                } else {
+                    showToast(data.error || 'Kayıt başarısız', 'error');
+                }
+            } catch(e) {
+                showToast('Ağ hatası oluştu', 'error');
+            } finally {
+                btn.textContent = 'Hesabımı Oluştur ✨';
+                btn.disabled = false;
+            }
+        }
+    </script>
+</body>
+</html>

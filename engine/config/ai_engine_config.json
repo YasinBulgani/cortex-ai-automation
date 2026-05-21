@@ -1,0 +1,103 @@
+{
+  "ai_engine": {
+    "version": "1.0",
+    "description": "BGTS AI Test Engine konfigürasyonu",
+
+    "llm_providers": {
+      "openai": {
+        "model": "gpt-4o",
+        "temperature": 0.2,
+        "max_tokens": 4000,
+        "fallback_model": "gpt-4o-mini"
+      },
+      "anthropic": {
+        "model": "claude-sonnet-4-20250514",
+        "temperature": 0.2,
+        "max_tokens": 4000
+      },
+      "local": {
+        "model": "llama3.1",
+        "base_url": "http://localhost:11434/v1",
+        "temperature": 0.2
+      }
+    },
+
+    "self_healing": {
+      "enabled": true,
+      "confidence_threshold": 0.85,
+      "auto_apply": true,
+      "categories": {
+        "selector": { "enabled": true, "auto_apply": true },
+        "timing": { "enabled": true, "auto_apply": true },
+        "runtime": { "enabled": true, "auto_apply": false },
+        "test_data": { "enabled": true, "auto_apply": true },
+        "visual": { "enabled": true, "auto_apply": false },
+        "flow_change": { "enabled": false, "auto_apply": false }
+      },
+      "max_retry": 3,
+      "history_retention_days": 90
+    },
+
+    "test_prioritizer": {
+      "enabled": true,
+      "risk_threshold": 0.30,
+      "always_run_tags": ["@smoke", "@critical", "@P0"],
+      "weights": {
+        "file_impact": 0.30,
+        "failure_rate": 0.25,
+        "criticality": 0.20,
+        "recency": 0.10,
+        "complexity": 0.10,
+        "dependency": 0.05
+      }
+    },
+
+    "bdd_generator": {
+      "enabled": true,
+      "output_dir": "features/generated",
+      "reuse_existing_steps": true,
+      "include_negative_cases": true,
+      "include_boundary_cases": true,
+      "max_scenarios_per_feature": 15,
+      "default_tags": ["@ai-generated"]
+    },
+
+    "coverage_analyzer": {
+      "enabled": true,
+      "target_coverage_pct": 85,
+      "scan_directories": ["e2e", "api-tests", "engine/tests"],
+      "auto_suggest": true
+    },
+
+    "feedback_loop": {
+      "enabled": true,
+      "history_retention_runs": 200,
+      "flaky_threshold": 0.30,
+      "chronic_fail_threshold": 3,
+      "auto_quarantine": true,
+      "quarantine_flaky_rate": 0.40
+    },
+
+    "security": {
+      "enabled": true,
+      "scan_frequency": "weekly",
+      "zap_integration": false,
+      "header_analysis": true,
+      "form_analysis": true
+    },
+
+    "performance": {
+      "enabled": true,
+      "threshold_tolerance_factor": 1.2,
+      "regression_threshold_pct": 20,
+      "history_retention": 500
+    },
+
+    "locator_generator": {
+      "enabled": true,
+      "stability_priority": ["data-testid", "role", "label", "id", "placeholder", "text"],
+      "naming_convention": "{screen}-{element_type}-{identifier}",
+      "audit_on_ci": true
+    }
+  }
+}

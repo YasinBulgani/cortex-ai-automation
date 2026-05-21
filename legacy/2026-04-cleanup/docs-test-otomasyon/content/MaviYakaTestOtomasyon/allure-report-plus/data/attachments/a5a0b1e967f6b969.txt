@@ -1,0 +1,3 @@
+✅ BAŞARILI
+'anaSayfaIzinUcNoktaButon' adlı butona/elemana tıklanıyor
+'anaSayfaIzinUcNoktaButon' adlı elemana başarıyla tıklandı. İşlem tamamlandı.

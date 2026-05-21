@@ -1,0 +1,229 @@
+{
+  "id": "65e8c5c7-9d53-4f50-a20c-caef65818724",
+  "startDate": "2026-03-25T12:02:01.398589Z",
+  "endDate": "2026-03-25T12:02:24.632196Z",
+  "progress": {
+    "value": 6,
+    "max": 6
+  },
+  "status": "DONE",
+  "steps": [
+    {
+      "id": "ba8e17a3-a3eb-455d-a1c8-2c4ad46f1ed4",
+      "modelLabel": "data:tabular",
+      "computeName": "SDK",
+      "restarts": 0,
+      "taskType": "TRAIN_TABULAR",
+      "stepCode": "PULL_TRAINING_DATA",
+      "startDate": "2026-03-25T12:02:01.398589Z",
+      "endDate": "2026-03-25T12:02:01.434442Z",
+      "computeResources": null,
+      "messages": null,
+      "errorMessage": null,
+      "progress": {
+        "value": 1,
+        "max": 1
+      },
+      "status": "DONE"
+    },
+    {
+      "id": "1f29209a-afac-4bb6-8cdf-50762ad70a0a",
+      "modelLabel": "data:tabular",
+      "computeName": "SDK",
+      "restarts": 0,
+      "taskType": "TRAIN_TABULAR",
+      "stepCode": "ANALYZE_TRAINING_DATA",
+      "startDate": "2026-03-25T12:02:01.435316Z",
+      "endDate": "2026-03-25T12:02:13.453817Z",
+      "computeResources": null,
+      "messages": null,
+      "errorMessage": null,
+      "progress": {
+        "value": 1,
+        "max": 1
+      },
+      "status": "DONE"
+    },
+    {
+      "id": "fd4b60a3-045d-4945-903d-1e7d98d9db8d",
+      "modelLabel": "data:tabular",
+      "computeName": "SDK",
+      "restarts": 0,
+      "taskType": "TRAIN_TABULAR",
+      "stepCode": "ENCODE_TRAINING_DATA",
+      "startDate": "2026-03-25T12:02:13.461788Z",
+      "endDate": "2026-03-25T12:02:13.521156Z",
+      "computeResources": null,
+      "messages": null,
+      "errorMessage": null,
+      "progress": {
+        "value": 1,
+        "max": 1
+      },
+      "status": "DONE"
+    },
+    {
+      "id": "e374a5af-345b-4f0b-ad2a-43e72fcf232e",
+      "modelLabel": "data:tabular",
+      "computeName": "SDK",
+      "restarts": 0,
+      "taskType": "TRAIN_TABULAR",
+      "stepCode": "TRAIN_MODEL",
+      "startDate": "2026-03-25T12:02:13.522456Z",
+      "endDate": "2026-03-25T12:02:16.199819Z",
+      "computeResources": null,
+      "messages": [
+        {
+          "epoch": 0.03,
+          "is_checkpoint": 0,
+          "steps": 1,
+          "samples": 8,
+          "trn_loss": 34.9387,
+          "val_loss": null,
+          "total_time": 0.1,
+          "learn_rate": 0.0005,
+          "dp_eps": null,
+          "dp_delta": null
+        },
+        {
+          "epoch": 1.0,
+          "is_checkpoint": 1,
+          "steps": 30,
+          "samples": 240,
+          "trn_loss": 35.5965,
+          "val_loss": 37.1434,
+          "total_time": 0.3,
+          "learn_rate": 0.0005,
+          "dp_eps": null,
+          "dp_delta": null
+        },
+        {
+          "epoch": 2.0,
+          "is_checkpoint": 1,
+          "steps": 60,
+          "samples": 473,
+          "trn_loss": 34.9812,
+          "val_loss": 37.0302,
+          "total_time": 0.5,
+          "learn_rate": 0.0005,
+          "dp_eps": null,
+          "dp_delta": null
+        },
+        {
+          "epoch": 3.0,
+          "is_checkpoint": 1,
+          "steps": 90,
+          "samples": 706,
+          "trn_loss": 34.67,
+          "val_loss": 36.9955,
+          "total_time": 0.6,
+          "learn_rate": 0.0005,
+          "dp_eps": null,
+          "dp_delta": null
+        },
+        {
+          "epoch": 4.0,
+          "is_checkpoint": 0,
+          "steps": 120,
+          "samples": 939,
+          "trn_loss": 34.3652,
+          "val_loss": 37.35,
+          "total_time": 0.8,
+          "learn_rate": 0.0005,
+          "dp_eps": null,
+          "dp_delta": null
+        },
+        {
+          "epoch": 5.0,
+          "is_checkpoint": 0,
+          "steps": 150,
+          "samples": 1172,
+          "trn_loss": 34.1875,
+          "val_loss": 37.2392,
+          "total_time": 1.0,
+          "learn_rate": 0.0005,
+          "dp_eps": null,
+          "dp_delta": null
+        },
+        {
+          "epoch": 6.0,
+          "is_checkpoint": 0,
+          "steps": 180,
+          "samples": 1405,
+          "trn_loss": 33.8015,
+          "val_loss": 37.3301,
+          "total_time": 1.1,
+          "learn_rate": 0.0005,
+          "dp_eps": null,
+          "dp_delta": null
+        },
+        {
+          "epoch": 7.0,
+          "is_checkpoint": 0,
+          "steps": 210,
+          "samples": 1638,
+          "trn_loss": 33.6626,
+          "val_loss": 37.4564,
+          "total_time": 1.4,
+          "learn_rate": 0.00025,
+          "dp_eps": null,
+          "dp_delta": null
+        },
+        {
+          "epoch": 8.0,
+          "is_checkpoint": 0,
+          "steps": 240,
+          "samples": 1871,
+          "trn_loss": 33.4322,
+          "val_loss": 37.5018,
+          "total_time": 1.5,
+          "learn_rate": 0.00025,
+          "dp_eps": null,
+          "dp_delta": null
+        }
+      ],
+      "errorMessage": null,
+      "progress": {
+        "value": 1,
+        "max": 1
+      },
+      "status": "DONE"
+    },
+    {
+      "id": "c55cd009-2bfa-41ff-a217-6b2a2bfc53fc",
+      "modelLabel": "data:tabular",
+      "computeName": "SDK",
+      "restarts": 0,
+      "taskType": "TRAIN_TABULAR",
+      "stepCode": "GENERATE_MODEL_REPORT_DATA",
+      "startDate": "2026-03-25T12:02:16.782214Z",
+      "endDate": "2026-03-25T12:02:16.842676Z",
+      "computeResources": null,
+      "messages": null,
+      "errorMessage": null,
+      "progress": {
+        "value": 1,
+        "max": 1
+      },
+      "status": "DONE"
+    },
+    {
+      "id": "6b34b41f-840e-433b-90d5-eb673b8484a2",
+      "modelLabel": "data:tabular",
+      "computeName": "SDK",
+      "restarts": 0,
+      "taskType": "TRAIN_TABULAR",
+      "stepCode": "CREATE_MODEL_REPORT",
+      "startDate": "2026-03-25T12:02:16.851266Z",
+      "endDate": "2026-03-25T12:02:24.626960Z",
+      "computeResources": null,
+      "messages": null,
+      "errorMessage": null,
+      "progress": {
+        "value": 1,
+        "max": 1
+      },
+      "status": "DONE"
+    }
+  ]
+}

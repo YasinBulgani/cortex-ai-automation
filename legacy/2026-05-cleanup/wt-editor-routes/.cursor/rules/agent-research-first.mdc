@@ -1,0 +1,63 @@
+---
+description: Önce monorepo araştırması (TS/JS/Py/Java) — kapsam, API, test, risk; sonra uygulama
+globs: "**/*.{ts,tsx,js,jsx,py,java}"
+alwaysApply: false
+---
+
+# Araştırma-öncelikli agent (BGTS)
+
+Bu projede **kod yazmaya veya komut önermeden önce** aşağıdaki araştırma döngüsünü uygula. Trivial istisnalar en altta.
+
+**Ne zaman devrede:** Bu kural, `ts` / `tsx` / `js` / `jsx` / `py` / `java` dosyalarından biri odakta veya açıkken uygulanır. Genel sohbette de aynı disiplini istiyorsan Cursor **Rules** listesinden bu kuralı seç veya ilgili modülden bir dosya aç.
+
+## 1. Niyet ve kapsam
+
+- Kullanıcının **asıl hedefi** ve **başarı kriteri** nedir? (tek cümle içsel özet yeter.)
+- İş **hangi katman(lar)**a dokunuyor? Monorepo yapısı:
+  - `apps/web` — Next.js, `apiFetch` → FastAPI
+  - `backend` — FastAPI TSPM, `/api/v1/automation/proxy/...` → Flask
+  - `engine` — Flask, Playwright, BDD
+  - `e2e` — Playwright (TypeScript)
+  - `ai-engine` — TS CLI, genelde web ile doğrudan bağlı değil
+
+## 2. Kod tabanı keşfi (zorunlu araç kullanımı)
+
+Yapılacak işe göre **en az ikisi**:
+
+- Anlamsal arama: ilgili özellik, route, endpoint, bileşen nerede?
+- `grep` / sembol arama: tam string, `data-testid`, API path
+- **Dosya okuma**: değişecek dosyanın üst/alt bağlamı, importlar, mevcut pattern
+
+Hedef: **yanlış dosyada değişiklik yapmamak** ve **çift kaynak (web vs engine)** karışıklığını önlemek.
+
+## 3. Sözleşmeler ve entegrasyon
+
+- **Frontend → backend:** `apps/web/lib/api.ts` — `apiFetch`; motor çağrıları için proxy path’i doğrula.
+- **Backend → engine:** `ENGINE_BASE_URL`, proxy route’ları.
+- **Yeni veya değişen API:** `backend/app/domains/tspm/router.py` veya ilgili router; request/response şemaları.
+- **Mock / örnek veri ekranları:** `DemoDataBanner`, gerçek API bağlı mı kontrol et.
+
+## 4. Test ve kalite
+
+- Değişiklik **e2e** veya **pytest** ile korunuyor mu? Varsa ilgili `e2e/*.spec.ts` veya `backend/tests`, `engine/tests` dosyalarına bak.
+- UI değişikliğinde workspace kuralları: `data-testid` convention, page object pattern (varsa).
+
+## 5. Risk ve geri uyum
+
+- Breaking change var mı (API, URL, env)?
+- `pass` ile yutulan hatalar, eksik sayfa (404 menü) gibi **bilinen borçlar** bu repoda var; dokunuyorsan not düş.
+
+## 6. Uygulama sırası
+
+1. Kısa **araştırma özeti** (madde işaretli yeterli): bulunan dosyalar, kritik bulgu, risk.
+2. **Minimal diff** ile uygula (gereksiz refactor yok).
+3. Mümkünse **lint / `tsc` / ilgili test** çalıştır veya kullanıcıya net sonuç bildir.
+
+## Trivial istisnalar (tam araştırma atlanabilir)
+
+- Tek cümlelik selamlama, net kod alıntısıyla “bu satır ne yapıyor?”
+- Zaten açık ve tek dosyada sınırlı, bağlam sohbette tam verilmiş düzeltme
+
+---
+
+**Özet:** Önce repo gerçeğini araştır, sonra değiştir. Tahminle mimari atma.

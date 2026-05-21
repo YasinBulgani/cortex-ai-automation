@@ -1,0 +1,2 @@
+'izinTalepEtSayfasıDosyaYüklemeAlanıInput' adlı eleman üzerinde işlem yapılıyor (/Users/yasin_bulgan/test-automation/Test Otomasyon/MaviYakaTestOtomasyon/src/test/resources/testFile/Test_Pdf.pdf)
+Element: izinTalepEtSayfasıDosyaYüklemeAlanıInput, Dosya yolu: /Users/yasin_bulgan/test-automation/Test Otomasyon/MaviYakaTestOtomasyon/src/test/resources/testFile/Test_Pdf.pdf

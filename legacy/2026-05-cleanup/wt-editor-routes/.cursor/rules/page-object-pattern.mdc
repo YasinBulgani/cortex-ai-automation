@@ -1,0 +1,69 @@
+---
+description: Page Object Model pattern for E2E tests and Engine automation
+globs: "{e2e/pages/**/*.ts,engine/pages/**/*.py}"
+alwaysApply: false
+---
+
+# Page Object Pattern
+
+## TypeScript (Playwright E2E)
+
+All page objects extend `BasePage` from `e2e/pages/base.page.ts`.
+
+```typescript
+import { type Locator, expect } from "@playwright/test";
+import { BasePage } from "./base.page";
+
+export class MyPage extends BasePage {
+  readonly url = "/my-page";
+
+  // Locators as getters — use testId(), role(), label(), text() helpers
+  get submitButton(): Locator {
+    return this.testId("my-page-btn-submit");
+  }
+  get emailInput(): Locator {
+    return this.label("E-posta");
+  }
+
+  // Actions return void (async)
+  async fillEmail(email: string) {
+    await this.emailInput.fill(email);
+  }
+  async submit() {
+    await this.submitButton.click();
+  }
+
+  // Assertions use expect
+  async assertPageLoaded() {
+    await expect(this.submitButton).toBeVisible();
+  }
+}
+```
+
+## Python (Engine BDD)
+
+All page objects extend `BasePage` from `engine/pages/base_page.py`.
+
+```python
+from pages.base_page import BasePage
+from playwright.sync_api import Page, expect
+
+class MyPage(BasePage):
+    SUBMIT_BTN = '[data-testid="my-page-btn-submit"]'
+
+    def __init__(self, page: Page, base_url: str = ""):
+        super().__init__(page)
+        self._base_url = base_url
+
+    def submit(self):
+        self.page.locator(self.SUBMIT_BTN).click()
+        return self
+```
+
+## Rules
+
+1. One file per screen, components in `components/` subfolder
+2. Locators: prefer `data-testid` > `getByRole` > `getByLabel` > CSS
+3. Actions: one method per user interaction
+4. Assertions: separate methods, never inline in test files
+5. Use `e2e/fixtures/pages.fixture.ts` for DI injection in tests

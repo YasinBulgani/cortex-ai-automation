@@ -1,0 +1,104 @@
+name: pipeline-knowledge-curator
+
+# Rol 23 (Knowledge Curator) — haftalık (Pazar 23:00 UTC).
+# Retrospective'leri tarar, pattern özetlerini çıkarır, AI agent'ın
+# tamamlayacağı bir draft dokümanı commit eder.
+
+on:
+  schedule:
+    - cron: '0 23 * * 0'   # Pazar 23:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  curate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout test
+        uses: actions/checkout@v4
+        with:
+          ref: test
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install jq
+        run: sudo apt-get update && sudo apt-get install -y jq
+
+      - name: Run knowledge curator (draft)
+        id: curate
+        run: |
+          chmod +x scripts/pipeline/knowledge-curator.sh
+          ./scripts/pipeline/knowledge-curator.sh
+
+          YEAR=$(date +%G)
+          WEEK=$(date +%V)
+          echo "year=$YEAR" >> "$GITHUB_OUTPUT"
+          echo "week=$WEEK" >> "$GITHUB_OUTPUT"
+
+      - name: Generate metrics section
+        run: |
+          if [[ -f scripts/pipeline/metrics.py ]]; then
+            chmod +x scripts/pipeline/metrics.py
+            python3 scripts/pipeline/metrics.py --format markdown > docs/ai/knowledge-updates/metrics-${{ steps.curate.outputs.year }}-W${{ steps.curate.outputs.week }}.md || true
+          fi
+
+      - name: Detect changes
+        id: changes
+        run: |
+          git add -A
+          if git diff --cached --quiet; then
+            echo "has_changes=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_changes=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Commit + PR
+        if: steps.changes.outputs.has_changes == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          YEAR="${{ steps.curate.outputs.year }}"
+          WEEK="${{ steps.curate.outputs.week }}"
+          BRANCH="knowledge/week-$YEAR-W$WEEK"
+
+          git config user.name "knowledge-curator[bot]"
+          git config user.email "knowledge-curator@users.noreply.github.com"
+
+          git checkout -b "$BRANCH"
+          git commit -m "docs: knowledge digest $YEAR-W$WEEK (DRAFT) [pipeline: knowledge_curator]"
+          git push -u origin "$BRANCH"
+
+          gh pr create \
+            --base test \
+            --head "$BRANCH" \
+            --title "docs: bilgi digest $YEAR-W$WEEK (DRAFT)" \
+            --body "$(cat <<EOF
+          ## Knowledge Curator — Week $YEAR-W$WEEK
+
+          Haftalık scheduled tarafından oluşturulan taslak.
+
+          ### Durum
+          **DRAFT** — AI agent bu taslağı doldurmak zorunda.
+
+          ### Agent prompt
+          \`\`\`
+          Sen pipeline'da knowledge_curator rolünü oynuyorsun.
+          OKU: docs/ai/pipeline/roles/23-knowledge-curator.md
+          Taslak: docs/ai/knowledge-updates/$YEAR-W$WEEK.md
+
+          YAP: taslaktaki <!-- agent --> işaretli bölümleri doldur,
+               GROUNDING.md'yi güncelle, gerekirse ADR oluştur.
+          \`\`\`
+
+          ---
+          [pipeline: knowledge_curator]
+          EOF
+          )" \
+            --draft

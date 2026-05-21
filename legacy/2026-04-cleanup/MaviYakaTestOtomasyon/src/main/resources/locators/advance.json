@@ -1,0 +1,97 @@
+[
+  {
+    "key": "anaSayfaAvansUcNoktaButon",
+    "type": "xpath",
+    "value": "//div[@id='advance']//span[contains(@data-key,'tooltip')]"
+  },
+  {
+    "key": "anaSayfaAvansTalepEtButon",
+    "type": "xpath",
+    "value": "(//a[@href='/TrendyolAdvance/Advances?linkType=1&request=true'])[2]"
+  },
+  {
+    "key": "avansTalepEtSayfasıTutarInputZorunlulukKontrol",
+    "type": "class",
+    "value": "input required customError"
+  },
+  {
+    "key": "avansTalepEtSayfasıTalepEtButon",
+    "type": "xpath",
+    "value": "//button[contains(normalize-space(text()),'Kaydet')]"
+  },
+  {
+    "key": "avansTalepEtSayfasıTutarInput",
+    "type": "id",
+    "value": "Amount"
+  },
+  {
+    "key": "avanslarımSayfasıAvansOnayTaahhütnamesiCheckBox",
+    "type": "xpath",
+    "value": "//a[contains(normalize-space(text()),'onay taahhütnamesi')]1"
+  },
+  {
+    "key": "avanslarımSayfasıAvansOnayTaahhütnamesiIsaretlenmedıUyarı",
+    "type": "xpath",
+    "value": "//h4[normalize-space(text())='Uyarı']"
+  },
+  {
+    "key": "anaSayfaAvansLarımButon",
+    "type": "xpath",
+    "value": "(//a[@id='scoreCardPrId' and normalize-space(text())='Avanslarım' ])[2]"
+  },
+  {
+    "key": "avanslarımSayfasıAramaInput",
+    "type": "id",
+    "value": "SearchInput"
+  },
+  {
+    "key": "avanslarımSayfasıAramaButon",
+    "type": "id",
+    "value": "txtSearchBtn"
+  },
+  {
+    "key": "avanslarımSayfasıAvansTutarıFiltrelemeKontrolüTutarDegeri",
+    "type": "xpath",
+    "value": "(//div[@class='grid-currency'])[1]//label[1]"
+  },
+  {
+    "key": "avanslarımSayfasıFiltreTemizleAlanı",
+    "type": "id",
+    "value": "clearFilter"
+  },
+  {
+    "key": "avanslarımSayfasıTarihFiltrelemeInput",
+    "type": "id",
+    "value": "FilterRequestedDate"
+  },
+  {
+    "key": "avanslarımSayfasıTarihFiltrelemeDateTimePicker",
+    "type": "xpath",
+    "value": "//td[contains(@class,'active')]"
+  },
+  {
+    "key": "avanslarımSayfasıTarihFiltrelemeKontrolüTarihDegeri",
+    "type": "xpath",
+    "value": "//time"
+  },
+  {
+    "key": "avanslarımSayfasıListeGörünümüButon",
+    "type": "xpath",
+    "value": "//span[contains(@class, 'list_view')]"
+  },
+  {
+    "key": "avanslarımSayfasıAvanslarListeGorunumundeKontrol",
+    "type": "xpath",
+    "value": "//div[contains(@class, 'list-cardpanel')]"
+  },
+  {
+    "key": "avanslarımSayfasıKutuGörünümüButon",
+    "type": "xpath",
+    "value": "//span[contains(@class, 'tile_view')]"
+  },
+  {
+    "key": "avansOnayTaahhütnamesiKontrolText",
+    "type": "xpath",
+    "value": "//div[@class='column is-full agreement-text']/p"
+  }
+]

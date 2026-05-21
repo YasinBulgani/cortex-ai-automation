@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TestwrightAI Test Raporu</title>
+</head>
+<body style="margin:0;padding:0;background-color:#0f172a;font-family:'Segoe UI',Helvetica,Arial,sans-serif;color:#e2e8f0;">
+
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#0f172a;">
+  <tr>
+    <td align="center" style="padding:24px 16px;">
+
+      <!-- Container -->
+      <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background-color:#1e293b;border-radius:12px;border:1px solid #334155;overflow:hidden;">
+
+        <!-- Header -->
+        <tr>
+          <td style="background:linear-gradient(135deg,#1e293b,#0f172a);padding:28px 32px;border-bottom:1px solid #334155;">
+            <h1 style="margin:0;font-size:22px;color:#f8fafc;">TestwrightAI Test Raporu</h1>
+            <p style="margin:6px 0 0;color:#94a3b8;font-size:13px;">{{ tarih }} &mdash; Ortam: {{ ortam }} &mdash; {{ hostname }}</p>
+          </td>
+        </tr>
+
+        <!-- Verdict Banner -->
+        <tr>
+          <td style="padding:0;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+              <tr>
+                <td style="background-color:{{ karar }}=='BAŞARILI' ? '#14532d' : '#450a0a';padding:16px 32px;text-align:center;font-size:18px;font-weight:700;color:{{ karar }}=='BAŞARILI' ? '#86efac' : '#fca5a5';">
+                  {{ karar }}
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+        <!-- Summary Table -->
+        <tr>
+          <td style="padding:24px 32px;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
+              <tr>
+                <td style="padding:12px 16px;border:1px solid #334155;text-align:center;width:20%;">
+                  <div style="font-size:28px;font-weight:800;color:#3b82f6;">{{ toplam }}</div>
+                  <div style="font-size:11px;color:#94a3b8;text-transform:uppercase;margin-top:4px;">Toplam</div>
+                </td>
+                <td style="padding:12px 16px;border:1px solid #334155;text-align:center;width:20%;">
+                  <div style="font-size:28px;font-weight:800;color:#22c55e;">{{ basarili }}</div>
+                  <div style="font-size:11px;color:#94a3b8;text-transform:uppercase;margin-top:4px;">Başarılı</div>
+                </td>
+                <td style="padding:12px 16px;border:1px solid #334155;text-align:center;width:20%;">
+                  <div style="font-size:28px;font-weight:800;color:#ef4444;">{{ basarisiz }}</div>
+                  <div style="font-size:11px;color:#94a3b8;text-transform:uppercase;margin-top:4px;">Başarısız</div>
+                </td>
+                <td style="padding:12px 16px;border:1px solid #334155;text-align:center;width:20%;">
+                  <div style="font-size:28px;font-weight:800;color:#eab308;">{{ atlanan }}</div>
+                  <div style="font-size:11px;color:#94a3b8;text-transform:uppercase;margin-top:4px;">Atlanan</div>
+                </td>
+                <td style="padding:12px 16px;border:1px solid #334155;text-align:center;width:20%;">
+                  <div style="font-size:28px;font-weight:800;color:#a78bfa;">{{ sure }}s</div>
+                  <div style="font-size:11px;color:#94a3b8;text-transform:uppercase;margin-top:4px;">Süre</div>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+        <!-- Pass/Fail Bar -->
+        <tr>
+          <td style="padding:0 32px 24px;">
+            <p style="margin:0 0 8px;font-size:12px;color:#94a3b8;">Başarı Oranı: <strong style="color:#f1f5f9;">%{{ basari_orani }}</strong></p>
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-radius:6px;overflow:hidden;">
+              <tr>
+                <td style="background-color:#22c55e;height:14px;width:{{ bar_green }}%;border-radius:6px 0 0 6px;"></td>
+                <td style="background-color:#ef4444;height:14px;width:{{ bar_red }}%;border-radius:0 6px 6px 0;"></td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+        <!-- Top Failures -->
+        <tr>
+          <td style="padding:0 32px 24px;">
+            <h3 style="margin:0 0 12px;font-size:14px;color:#94a3b8;text-transform:uppercase;letter-spacing:0.05em;">
+              En Kritik Hatalar
+            </h3>
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #334155;border-radius:8px;overflow:hidden;">
+              <tr>
+                <td style="padding:12px 16px;">
+                  <ol style="margin:0;padding-left:20px;font-size:13px;color:#fca5a5;line-height:1.8;">
+                    {{ failure_list }}
+                  </ol>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+        <!-- Footer -->
+        <tr>
+          <td style="padding:20px 32px;border-top:1px solid #334155;text-align:center;font-size:12px;color:#475569;">
+            TestwrightAI Test Otomasyon Altyapısı &copy; {{ year }}
+            <br>
+            <span style="font-size:11px;">Bu rapor otomatik olarak oluşturulmuştur.</span>
+          </td>
+        </tr>
+
+      </table>
+    </td>
+  </tr>
+</table>
+
+</body>
+</html>

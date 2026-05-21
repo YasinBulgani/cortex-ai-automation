@@ -1,0 +1,953 @@
+{
+  "login": {
+    "url_pattern": "/login",
+    "description": "Giriş sayfası",
+    "elements": {
+      "page_container": {
+        "css": "[data-testid='login-page']",
+        "xpath": "//div[@data-testid='login-page']",
+        "test_id": "login-page",
+        "description": "Giriş sayfası ana kapsayıcı",
+        "wait_strategy": "visible"
+      },
+      "logo": {
+        "css": "[data-testid='login-logo']",
+        "xpath": "//*[@data-testid='login-logo']",
+        "test_id": "login-logo",
+        "description": "BGTEST logosu",
+        "wait_strategy": "visible"
+      },
+      "subtitle": {
+        "css": "[data-testid='login-subtitle']",
+        "xpath": "//p[@data-testid='login-subtitle']",
+        "test_id": "login-subtitle",
+        "description": "Alt başlık metni (Test Intelligence Platform)",
+        "wait_strategy": "visible"
+      },
+      "heading": {
+        "css": "[data-testid='login-heading']",
+        "xpath": "//h1[@data-testid='login-heading']",
+        "test_id": "login-heading",
+        "description": "Giriş Yap başlığı",
+        "wait_strategy": "visible"
+      },
+      "form": {
+        "css": "[data-testid='login-form']",
+        "xpath": "//form[@data-testid='login-form']",
+        "test_id": "login-form",
+        "description": "Giriş formu",
+        "wait_strategy": "visible"
+      },
+      "email_input": {
+        "css": "[data-testid='login-input-email']",
+        "xpath": "//input[@data-testid='login-input-email']",
+        "test_id": "login-input-email",
+        "description": "E-posta giriş alanı",
+        "wait_strategy": "visible"
+      },
+      "password_input": {
+        "css": "[data-testid='login-input-password']",
+        "xpath": "//input[@data-testid='login-input-password']",
+        "test_id": "login-input-password",
+        "description": "Şifre giriş alanı",
+        "wait_strategy": "visible"
+      },
+      "remember_checkbox": {
+        "css": "[data-testid='login-check-remember']",
+        "xpath": "//input[@data-testid='login-check-remember']",
+        "test_id": "login-check-remember",
+        "description": "Beni hatırla onay kutusu",
+        "wait_strategy": "visible"
+      },
+      "forgot_button": {
+        "css": "[data-testid='login-btn-forgot']",
+        "xpath": "//button[@data-testid='login-btn-forgot']",
+        "test_id": "login-btn-forgot",
+        "description": "Şifremi unuttum bağlantısı",
+        "wait_strategy": "visible"
+      },
+      "error_alert": {
+        "css": "[data-testid='login-alert-error']",
+        "xpath": "//p[@data-testid='login-alert-error']",
+        "test_id": "login-alert-error",
+        "description": "Hata mesajı alanı",
+        "wait_strategy": "attached"
+      },
+      "submit_button": {
+        "css": "[data-testid='login-btn-submit']",
+        "xpath": "//button[@data-testid='login-btn-submit']",
+        "test_id": "login-btn-submit",
+        "description": "Giriş Yap butonu",
+        "wait_strategy": "visible"
+      },
+      "register_text": {
+        "css": "[data-testid='login-text-register']",
+        "xpath": "//p[@data-testid='login-text-register']",
+        "test_id": "login-text-register",
+        "description": "Hesap oluşturma bilgi metni",
+        "wait_strategy": "visible"
+      },
+      "footer": {
+        "css": "[data-testid='login-footer']",
+        "xpath": "//p[@data-testid='login-footer']",
+        "test_id": "login-footer",
+        "description": "Telif hakkı alt bilgisi",
+        "wait_strategy": "visible"
+      }
+    }
+  },
+
+  "dashboard": {
+    "url_pattern": "/p/{projectId}",
+    "description": "Proje özet paneli (dashboard)",
+    "elements": {
+      "page_container": {
+        "css": "[data-testid='dashboard-page']",
+        "xpath": "//div[@data-testid='dashboard-page']",
+        "test_id": "dashboard-page",
+        "description": "Dashboard ana kapsayıcı",
+        "wait_strategy": "visible"
+      },
+      "heading": {
+        "css": "[data-testid='dashboard-heading']",
+        "xpath": "//h1[@data-testid='dashboard-heading']",
+        "test_id": "dashboard-heading",
+        "description": "Proje özeti başlığı",
+        "wait_strategy": "visible"
+      },
+      "stats_grid": {
+        "css": "[data-testid='dashboard-stats']",
+        "xpath": "//div[@data-testid='dashboard-stats']",
+        "test_id": "dashboard-stats",
+        "description": "İstatistik kartları grid alanı",
+        "wait_strategy": "visible"
+      },
+      "stat_scenario_count": {
+        "css": "[data-testid='dashboard-stat-scenario-count']",
+        "xpath": "//a[@data-testid='dashboard-stat-scenario-count']",
+        "test_id": "dashboard-stat-scenario-count",
+        "description": "Senaryo sayisi istatistik karti",
+        "wait_strategy": "visible"
+      },
+      "stat_execution_count": {
+        "css": "[data-testid='dashboard-stat-execution-count']",
+        "xpath": "//a[@data-testid='dashboard-stat-execution-count']",
+        "test_id": "dashboard-stat-execution-count",
+        "description": "Kosu sayisi istatistik karti",
+        "wait_strategy": "visible"
+      },
+      "stat_pass_rate": {
+        "css": "[data-testid='dashboard-stat-pass-rate']",
+        "xpath": "//a[@data-testid='dashboard-stat-pass-rate']",
+        "test_id": "dashboard-stat-pass-rate",
+        "description": "Basari orani istatistik karti",
+        "wait_strategy": "visible"
+      },
+      "stat_pending_approvals": {
+        "css": "[data-testid='dashboard-stat-pending-approvals']",
+        "xpath": "//a[@data-testid='dashboard-stat-pending-approvals']",
+        "test_id": "dashboard-stat-pending-approvals",
+        "description": "Bekleyen onay sayisi istatistik karti",
+        "wait_strategy": "visible"
+      },
+      "stat_import_count": {
+        "css": "[data-testid='dashboard-stat-import-count']",
+        "xpath": "//a[@data-testid='dashboard-stat-import-count']",
+        "test_id": "dashboard-stat-import-count",
+        "description": "Ice aktarma sayisi istatistik karti",
+        "wait_strategy": "visible"
+      },
+      "stat_ai_run_count": {
+        "css": "[data-testid='dashboard-stat-ai-run-count']",
+        "xpath": "//a[@data-testid='dashboard-stat-ai-run-count']",
+        "test_id": "dashboard-stat-ai-run-count",
+        "description": "AI calisma sayisi istatistik karti",
+        "wait_strategy": "visible"
+      },
+      "activity_list": {
+        "css": "[data-testid='activity-list']",
+        "xpath": "//div[@data-testid='activity-list']",
+        "test_id": "activity-list",
+        "description": "Son aktivite listesi",
+        "wait_strategy": "attached"
+      },
+      "quick_actions": {
+        "css": "[data-testid='quick-actions']",
+        "xpath": "//div[@data-testid='quick-actions']",
+        "test_id": "quick-actions",
+        "description": "Hızlı işlem butonları",
+        "wait_strategy": "attached"
+      }
+    }
+  },
+
+  "projects_list": {
+    "url_pattern": "/projects",
+    "description": "Projeler listesi sayfası",
+    "elements": {
+      "page_container": {
+        "css": "[data-testid='projects-page']",
+        "xpath": "//div[@data-testid='projects-page']",
+        "test_id": "projects-page",
+        "description": "Projeler sayfası ana kapsayıcı",
+        "wait_strategy": "visible"
+      },
+      "heading": {
+        "css": "[data-testid='projects-heading']",
+        "xpath": "//h1[@data-testid='projects-heading']",
+        "test_id": "projects-heading",
+        "description": "Projeler başlığı",
+        "wait_strategy": "visible"
+      },
+      "form": {
+        "css": "[data-testid='projects-form']",
+        "xpath": "//form[@data-testid='projects-form']",
+        "test_id": "projects-form",
+        "description": "Proje oluşturma formu",
+        "wait_strategy": "visible"
+      },
+      "name_input": {
+        "css": "[data-testid='projects-input-name']",
+        "xpath": "//input[@data-testid='projects-input-name']",
+        "test_id": "projects-input-name",
+        "description": "Proje adı giriş alanı",
+        "wait_strategy": "visible"
+      },
+      "description_input": {
+        "css": "[data-testid='projects-input-desc']",
+        "xpath": "//input[@data-testid='projects-input-desc']",
+        "test_id": "projects-input-desc",
+        "description": "Proje açıklama giriş alanı",
+        "wait_strategy": "visible"
+      },
+      "create_button": {
+        "css": "[data-testid='projects-btn-create']",
+        "xpath": "//button[@data-testid='projects-btn-create']",
+        "test_id": "projects-btn-create",
+        "description": "Proje oluştur butonu",
+        "wait_strategy": "visible"
+      },
+      "error_alert": {
+        "css": "[data-testid='projects-alert-error']",
+        "xpath": "//p[@data-testid='projects-alert-error']",
+        "test_id": "projects-alert-error",
+        "description": "Hata mesajı alanı",
+        "wait_strategy": "attached"
+      },
+      "grid": {
+        "css": "[data-testid='projects-grid']",
+        "xpath": "//div[@data-testid='projects-grid']",
+        "test_id": "projects-grid",
+        "description": "Proje kartları grid alanı",
+        "wait_strategy": "visible"
+      },
+      "empty_state": {
+        "css": "[data-testid='projects-empty']",
+        "xpath": "//p[@data-testid='projects-empty']",
+        "test_id": "projects-empty",
+        "description": "Proje yok bilgi mesajı",
+        "wait_strategy": "attached"
+      }
+    }
+  },
+
+  "project_detail": {
+    "url_pattern": "/p/{projectId}",
+    "description": "Proje detay sayfası (dashboard ile aynı URL)",
+    "elements": {
+      "page_container": {
+        "css": "[data-testid='dashboard-page']",
+        "xpath": "//div[@data-testid='dashboard-page']",
+        "test_id": "dashboard-page",
+        "description": "Proje detay ana kapsayıcı",
+        "wait_strategy": "visible"
+      },
+      "heading": {
+        "css": "[data-testid='dashboard-heading']",
+        "xpath": "//h1[@data-testid='dashboard-heading']",
+        "test_id": "dashboard-heading",
+        "description": "Proje detay başlığı",
+        "wait_strategy": "visible"
+      },
+      "stats_grid": {
+        "css": "[data-testid='dashboard-stats']",
+        "xpath": "//div[@data-testid='dashboard-stats']",
+        "test_id": "dashboard-stats",
+        "description": "Proje istatistik kartları",
+        "wait_strategy": "visible"
+      }
+    }
+  },
+
+  "scenarios_list": {
+    "url_pattern": "/p/{projectId}/scenarios",
+    "description": "Senaryo listesi sayfası",
+    "elements": {
+      "page_container": {
+        "css": "[data-testid='scenarios-page']",
+        "xpath": "//div[@data-testid='scenarios-page']",
+        "test_id": "scenarios-page",
+        "description": "Senaryolar sayfası ana kapsayıcı",
+        "wait_strategy": "visible"
+      },
+      "heading": {
+        "css": "[data-testid='scenarios-heading']",
+        "xpath": "//h1[@data-testid='scenarios-heading']",
+        "test_id": "scenarios-heading",
+        "description": "Senaryolar başlığı",
+        "wait_strategy": "visible"
+      },
+      "new_button": {
+        "css": "[data-testid='scenarios-btn-new']",
+        "xpath": "//button[@data-testid='scenarios-btn-new']",
+        "test_id": "scenarios-btn-new",
+        "description": "Yeni senaryo oluştur butonu",
+        "wait_strategy": "visible"
+      },
+      "ai_generate_button": {
+        "css": "[data-testid='scenarios-btn-ai-generate']",
+        "xpath": "//button[@data-testid='scenarios-btn-ai-generate']",
+        "test_id": "scenarios-btn-ai-generate",
+        "description": "AI ile senaryo üret butonu",
+        "wait_strategy": "visible"
+      },
+      "search_input": {
+        "css": "[data-testid='scenarios-input-search']",
+        "xpath": "//input[@data-testid='scenarios-input-search']",
+        "test_id": "scenarios-input-search",
+        "description": "Senaryo arama kutusu",
+        "wait_strategy": "visible"
+      },
+      "bulk_delete_button": {
+        "css": "[data-testid='scenarios-btn-bulk-delete']",
+        "xpath": "//button[@data-testid='scenarios-btn-bulk-delete']",
+        "test_id": "scenarios-btn-bulk-delete",
+        "description": "Toplu silme butonu",
+        "wait_strategy": "visible"
+      },
+      "table": {
+        "css": "[data-testid='scenarios-table']",
+        "xpath": "//table[@data-testid='scenarios-table']",
+        "test_id": "scenarios-table",
+        "description": "Senaryo listesi tablosu",
+        "wait_strategy": "visible"
+      },
+      "empty_state": {
+        "css": "[data-testid='scenarios-empty']",
+        "xpath": "//p[@data-testid='scenarios-empty']",
+        "test_id": "scenarios-empty",
+        "description": "Senaryo yok bilgi mesajı",
+        "wait_strategy": "attached"
+      },
+      "priority_filter": {
+        "css": "[data-testid='priority-filter']",
+        "xpath": "//*[@data-testid='priority-filter']",
+        "test_id": "priority-filter",
+        "description": "Öncelik filtresi (P0-P3)",
+        "wait_strategy": "visible"
+      },
+      "status_filter": {
+        "css": "[data-testid='status-filter']",
+        "xpath": "//*[@data-testid='status-filter']",
+        "test_id": "status-filter",
+        "description": "Durum filtresi (taslak/onaylı/reddedildi)",
+        "wait_strategy": "visible"
+      },
+      "type_filter": {
+        "css": "[data-testid='type-filter']",
+        "xpath": "//*[@data-testid='type-filter']",
+        "test_id": "type-filter",
+        "description": "Tür filtresi (fonksiyonel/regresyon/smoke)",
+        "wait_strategy": "visible"
+      }
+    }
+  },
+
+  "scenario_create": {
+    "url_pattern": "/p/{projectId}/scenarios/new",
+    "description": "Yeni senaryo oluşturma sayfası",
+    "elements": {
+      "page_container": {
+        "css": "[data-testid='new-scenario-page']",
+        "xpath": "//div[@data-testid='new-scenario-page']",
+        "test_id": "new-scenario-page",
+        "description": "Yeni senaryo sayfası ana kapsayıcı",
+        "wait_strategy": "visible"
+      },
+      "heading": {
+        "css": "[data-testid='new-scenario-heading']",
+        "xpath": "//h1[@data-testid='new-scenario-heading']",
+        "test_id": "new-scenario-heading",
+        "description": "Yeni senaryo başlığı",
+        "wait_strategy": "visible"
+      },
+      "form": {
+        "css": "[data-testid='scenario-form']",
+        "xpath": "//form[@data-testid='scenario-form']",
+        "test_id": "scenario-form",
+        "description": "Senaryo oluşturma formu",
+        "wait_strategy": "visible"
+      },
+      "title_input": {
+        "css": "[data-testid='scenario-form-input-title']",
+        "xpath": "//input[@data-testid='scenario-form-input-title']",
+        "test_id": "scenario-form-input-title",
+        "description": "Senaryo başlık giriş alanı",
+        "wait_strategy": "visible"
+      },
+      "error_message": {
+        "css": "[data-testid='scenario-form-error']",
+        "xpath": "//p[@data-testid='scenario-form-error']",
+        "test_id": "scenario-form-error",
+        "description": "Form hata mesajı",
+        "wait_strategy": "attached"
+      },
+      "save_button": {
+        "css": "[data-testid='scenario-form-btn-save']",
+        "xpath": "//button[@data-testid='scenario-form-btn-save']",
+        "test_id": "scenario-form-btn-save",
+        "description": "Kaydet butonu",
+        "wait_strategy": "visible"
+      }
+    }
+  },
+
+  "scenario_detail": {
+    "url_pattern": "/p/{projectId}/scenarios/{id}",
+    "description": "Senaryo detay sayfası",
+    "elements": {
+      "page_container": {
+        "css": "[data-testid='scenario-detail-page']",
+        "xpath": "//div[@data-testid='scenario-detail-page']",
+        "test_id": "scenario-detail-page",
+        "description": "Senaryo detay ana kapsayıcı",
+        "wait_strategy": "visible"
+      },
+      "title": {
+        "css": "[data-testid='scenario-detail-title']",
+        "xpath": "//*[@data-testid='scenario-detail-title']",
+        "test_id": "scenario-detail-title",
+        "description": "Senaryo başlığı",
+        "wait_strategy": "visible"
+      },
+      "edit_button": {
+        "css": "[data-testid='scenario-detail-btn-edit']",
+        "xpath": "//button[@data-testid='scenario-detail-btn-edit']",
+        "test_id": "scenario-detail-btn-edit",
+        "description": "Düzenle butonu",
+        "wait_strategy": "visible"
+      },
+      "delete_button": {
+        "css": "[data-testid='scenario-detail-btn-delete']",
+        "xpath": "//button[@data-testid='scenario-detail-btn-delete']",
+        "test_id": "scenario-detail-btn-delete",
+        "description": "Sil butonu",
+        "wait_strategy": "visible"
+      },
+      "steps_list": {
+        "css": "[data-testid='scenario-detail-steps']",
+        "xpath": "//div[@data-testid='scenario-detail-steps']",
+        "test_id": "scenario-detail-steps",
+        "description": "Test adımları listesi",
+        "wait_strategy": "visible"
+      },
+      "status_badge": {
+        "css": "[data-testid='scenario-detail-status']",
+        "xpath": "//*[@data-testid='scenario-detail-status']",
+        "test_id": "scenario-detail-status",
+        "description": "Senaryo durum etiketi",
+        "wait_strategy": "visible"
+      }
+    }
+  },
+
+  "approvals": {
+    "url_pattern": "/p/{projectId}/approvals",
+    "description": "Onay kuyruğu sayfası",
+    "elements": {
+      "page_container": {
+        "css": "[data-testid='approvals-page']",
+        "xpath": "//div[@data-testid='approvals-page']",
+        "test_id": "approvals-page",
+        "description": "Onaylar sayfası ana kapsayıcı",
+        "wait_strategy": "visible"
+      },
+      "heading": {
+        "css": "[data-testid='approvals-heading']",
+        "xpath": "//h1[@data-testid='approvals-heading']",
+        "test_id": "approvals-heading",
+        "description": "Onay kuyruğu başlığı",
+        "wait_strategy": "visible"
+      },
+      "approve_button": {
+        "css": "[data-testid='approvals-btn-approve']",
+        "xpath": "//button[@data-testid='approvals-btn-approve']",
+        "test_id": "approvals-btn-approve",
+        "description": "Onayla butonu",
+        "wait_strategy": "visible"
+      },
+      "reject_button": {
+        "css": "[data-testid='approvals-btn-reject']",
+        "xpath": "//button[@data-testid='approvals-btn-reject']",
+        "test_id": "approvals-btn-reject",
+        "description": "Reddet butonu",
+        "wait_strategy": "visible"
+      },
+      "approval_list": {
+        "css": ".space-y-2, [data-testid='approvals-page'] > div",
+        "xpath": "//div[@data-testid='approvals-page']//div[contains(@class, 'space-y')]",
+        "test_id": "approvals-list",
+        "description": "Onay listesi kapsayıcı",
+        "wait_strategy": "visible"
+      },
+      "split_view": {
+        "css": "[data-testid='approvals-split-view']",
+        "xpath": "//div[@data-testid='approvals-split-view']",
+        "test_id": "approvals-split-view",
+        "description": "Karşılaştırma (split) görünümü",
+        "wait_strategy": "attached"
+      }
+    }
+  },
+
+  "import": {
+    "url_pattern": "/p/{projectId}/import",
+    "description": "İçe aktarma sayfası",
+    "elements": {
+      "page_container": {
+        "css": "[data-testid='import-page']",
+        "xpath": "//div[@data-testid='import-page']",
+        "test_id": "import-page",
+        "description": "İçe aktarma sayfası ana kapsayıcı",
+        "wait_strategy": "visible"
+      },
+      "heading": {
+        "css": "[data-testid='import-heading']",
+        "xpath": "//h1[@data-testid='import-heading']",
+        "test_id": "import-heading",
+        "description": "İçe aktarma başlığı",
+        "wait_strategy": "visible"
+      },
+      "form": {
+        "css": "[data-testid='import-form']",
+        "xpath": "//form[@data-testid='import-form']",
+        "test_id": "import-form",
+        "description": "İçe aktarma formu",
+        "wait_strategy": "visible"
+      },
+      "filename_input": {
+        "css": "[data-testid='import-input-filename']",
+        "xpath": "//input[@data-testid='import-input-filename']",
+        "test_id": "import-input-filename",
+        "description": "Dosya adı giriş alanı",
+        "wait_strategy": "visible"
+      },
+      "error_alert": {
+        "css": "[data-testid='import-alert-error']",
+        "xpath": "//p[@data-testid='import-alert-error']",
+        "test_id": "import-alert-error",
+        "description": "Hata mesajı alanı",
+        "wait_strategy": "attached"
+      },
+      "upload_button": {
+        "css": "[data-testid='import-btn-upload']",
+        "xpath": "//button[@data-testid='import-btn-upload']",
+        "test_id": "import-btn-upload",
+        "description": "İçe aktarmayı başlat butonu",
+        "wait_strategy": "visible"
+      },
+      "result_section": {
+        "css": "[data-testid='import-result']",
+        "xpath": "//section[@data-testid='import-result']",
+        "test_id": "import-result",
+        "description": "İçe aktarma sonuç alanı",
+        "wait_strategy": "attached"
+      },
+      "file_input": {
+        "css": "input[type='file']",
+        "xpath": "//input[@type='file']",
+        "test_id": "import-file-input",
+        "description": "Dosya yükleme alanı",
+        "wait_strategy": "attached"
+      },
+      "source_type_select": {
+        "css": "[data-testid='import-select-source']",
+        "xpath": "//*[@data-testid='import-select-source']",
+        "test_id": "import-select-source",
+        "description": "Kaynak tipi seçim menüsü",
+        "wait_strategy": "visible"
+      },
+      "cancel_button": {
+        "css": "[data-testid='import-btn-cancel']",
+        "xpath": "//button[@data-testid='import-btn-cancel']",
+        "test_id": "import-btn-cancel",
+        "description": "İçe aktarmayı iptal butonu",
+        "wait_strategy": "attached"
+      },
+      "status_text": {
+        "css": "[data-testid='import-status']",
+        "xpath": "//*[@data-testid='import-status']",
+        "test_id": "import-status",
+        "description": "İçe aktarma durum bilgisi",
+        "wait_strategy": "attached"
+      },
+      "log_output": {
+        "css": "[data-testid='import-log']",
+        "xpath": "//*[@data-testid='import-log']",
+        "test_id": "import-log",
+        "description": "İçe aktarma log çıktısı",
+        "wait_strategy": "attached"
+      }
+    }
+  },
+
+  "executions": {
+    "url_pattern": "/p/{projectId}/executions",
+    "description": "Test koşuları sayfası",
+    "elements": {
+      "page_container": {
+        "css": "[data-testid='executions-page']",
+        "xpath": "//div[@data-testid='executions-page']",
+        "test_id": "executions-page",
+        "description": "Koşular sayfası ana kapsayıcı",
+        "wait_strategy": "visible"
+      },
+      "heading": {
+        "css": "[data-testid='executions-heading']",
+        "xpath": "//h1[@data-testid='executions-heading']",
+        "test_id": "executions-heading",
+        "description": "Koşular başlığı",
+        "wait_strategy": "visible"
+      },
+      "new_button": {
+        "css": "[data-testid='executions-btn-new']",
+        "xpath": "//button[@data-testid='executions-btn-new']",
+        "test_id": "executions-btn-new",
+        "description": "Yeni koşu başlat butonu",
+        "wait_strategy": "visible"
+      },
+      "table": {
+        "css": "[data-testid='executions-table']",
+        "xpath": "//table[@data-testid='executions-table']",
+        "test_id": "executions-table",
+        "description": "Koşu geçmişi tablosu",
+        "wait_strategy": "visible"
+      }
+    }
+  },
+
+  "flows": {
+    "url_pattern": "/p/{projectId}/flows",
+    "description": "Test akışları sayfası",
+    "elements": {
+      "page_container": {
+        "css": "[data-testid='flows-page']",
+        "xpath": "//div[@data-testid='flows-page']",
+        "test_id": "flows-page",
+        "description": "Akışlar sayfası ana kapsayıcı",
+        "wait_strategy": "visible"
+      },
+      "heading": {
+        "css": "[data-testid='flows-heading']",
+        "xpath": "//h1[@data-testid='flows-heading']",
+        "test_id": "flows-heading",
+        "description": "Akışlar başlığı",
+        "wait_strategy": "visible"
+      },
+      "form": {
+        "css": "[data-testid='flows-form']",
+        "xpath": "//form[@data-testid='flows-form']",
+        "test_id": "flows-form",
+        "description": "Akış oluşturma formu",
+        "wait_strategy": "visible"
+      },
+      "name_input": {
+        "css": "[data-testid='flows-input-name']",
+        "xpath": "//input[@data-testid='flows-input-name']",
+        "test_id": "flows-input-name",
+        "description": "Akış adı giriş alanı",
+        "wait_strategy": "visible"
+      },
+      "create_button": {
+        "css": "[data-testid='flows-btn-create']",
+        "xpath": "//button[@data-testid='flows-btn-create']",
+        "test_id": "flows-btn-create",
+        "description": "Akış oluştur butonu",
+        "wait_strategy": "visible"
+      },
+      "grid": {
+        "css": "[data-testid='flows-grid']",
+        "xpath": "//div[@data-testid='flows-grid']",
+        "test_id": "flows-grid",
+        "description": "Akış kartları grid alanı",
+        "wait_strategy": "visible"
+      }
+    }
+  },
+
+  "regression": {
+    "url_pattern": "/p/{projectId}/regression",
+    "description": "Regresyon setleri sayfası",
+    "elements": {
+      "page_container": {
+        "css": "[data-testid='regression-page']",
+        "xpath": "//div[@data-testid='regression-page']",
+        "test_id": "regression-page",
+        "description": "Regresyon sayfası ana kapsayıcı",
+        "wait_strategy": "visible"
+      },
+      "heading": {
+        "css": "[data-testid='regression-heading']",
+        "xpath": "//h1[@data-testid='regression-heading']",
+        "test_id": "regression-heading",
+        "description": "Regresyon setleri başlığı",
+        "wait_strategy": "visible"
+      },
+      "form": {
+        "css": "[data-testid='regression-form']",
+        "xpath": "//form[@data-testid='regression-form']",
+        "test_id": "regression-form",
+        "description": "Regresyon seti oluşturma formu",
+        "wait_strategy": "visible"
+      },
+      "name_input": {
+        "css": "[data-testid='regression-input-name']",
+        "xpath": "//input[@data-testid='regression-input-name']",
+        "test_id": "regression-input-name",
+        "description": "Set adı giriş alanı",
+        "wait_strategy": "visible"
+      },
+      "create_button": {
+        "css": "[data-testid='regression-btn-create']",
+        "xpath": "//button[@data-testid='regression-btn-create']",
+        "test_id": "regression-btn-create",
+        "description": "Set oluştur butonu",
+        "wait_strategy": "visible"
+      },
+      "suggest_button": {
+        "css": "[data-testid='regression-btn-suggest']",
+        "xpath": "//button[@data-testid='regression-btn-suggest']",
+        "test_id": "regression-btn-suggest",
+        "description": "AI önerisi butonu",
+        "wait_strategy": "visible"
+      }
+    }
+  },
+
+  "profile": {
+    "url_pattern": "/profile",
+    "description": "Kullanıcı profil sayfası",
+    "elements": {
+      "page_container": {
+        "css": "[data-testid='profile-page']",
+        "xpath": "//div[@data-testid='profile-page']",
+        "test_id": "profile-page",
+        "description": "Profil sayfası ana kapsayıcı",
+        "wait_strategy": "visible"
+      },
+      "heading": {
+        "css": "[data-testid='profile-heading']",
+        "xpath": "//h1[@data-testid='profile-heading']",
+        "test_id": "profile-heading",
+        "description": "Profil başlığı",
+        "wait_strategy": "visible"
+      },
+      "name_display": {
+        "css": "[data-testid='profile-name']",
+        "xpath": "//*[@data-testid='profile-name']",
+        "test_id": "profile-name",
+        "description": "Kullanıcı adı görüntüleme",
+        "wait_strategy": "visible"
+      },
+      "email_display": {
+        "css": "[data-testid='profile-email']",
+        "xpath": "//*[@data-testid='profile-email']",
+        "test_id": "profile-email",
+        "description": "E-posta görüntüleme",
+        "wait_strategy": "visible"
+      },
+      "save_button": {
+        "css": "[data-testid='profile-btn-save']",
+        "xpath": "//button[@data-testid='profile-btn-save']",
+        "test_id": "profile-btn-save",
+        "description": "Profil kaydet butonu",
+        "wait_strategy": "visible"
+      }
+    }
+  },
+
+  "common_navigation": {
+    "url_pattern": "*",
+    "description": "Tüm sayfalarda ortak navigasyon elemanları",
+    "elements": {
+      "sidebar": {
+        "css": "[data-testid='sidebar']",
+        "xpath": "//aside[@data-testid='sidebar']",
+        "test_id": "sidebar",
+        "description": "Sol kenar çubuğu",
+        "wait_strategy": "visible"
+      },
+      "sidebar_logo": {
+        "css": "[data-testid='sidebar-logo']",
+        "xpath": "//a[@data-testid='sidebar-logo']",
+        "test_id": "sidebar-logo",
+        "description": "Kenar çubuğu logosu (projeler'e yönlendirir)",
+        "wait_strategy": "visible"
+      },
+      "sidebar_nav": {
+        "css": "[data-testid='sidebar-nav']",
+        "xpath": "//nav[@data-testid='sidebar-nav']",
+        "test_id": "sidebar-nav",
+        "description": "Kenar çubuğu navigasyon alanı",
+        "wait_strategy": "visible"
+      },
+      "sidebar_link_projects": {
+        "css": "[data-testid='sidebar-link-projects']",
+        "xpath": "//a[@data-testid='sidebar-link-projects']",
+        "test_id": "sidebar-link-projects",
+        "description": "Projeler menü bağlantısı",
+        "wait_strategy": "visible"
+      },
+      "sidebar_link_scenarios": {
+        "css": "[data-testid='sidebar-link-scenarios']",
+        "xpath": "//a[@data-testid='sidebar-link-scenarios']",
+        "test_id": "sidebar-link-scenarios",
+        "description": "Senaryolar menü bağlantısı",
+        "wait_strategy": "visible"
+      },
+      "sidebar_link_requirements": {
+        "css": "[data-testid='sidebar-link-requirements']",
+        "xpath": "//a[@data-testid='sidebar-link-requirements']",
+        "test_id": "sidebar-link-requirements",
+        "description": "Gereksinimler menü bağlantısı",
+        "wait_strategy": "visible"
+      },
+      "sidebar_link_coverage": {
+        "css": "[data-testid='sidebar-link-coverage']",
+        "xpath": "//a[@data-testid='sidebar-link-coverage']",
+        "test_id": "sidebar-link-coverage",
+        "description": "Kapsam Matrisi menü bağlantısı",
+        "wait_strategy": "visible"
+      },
+      "sidebar_link_executions": {
+        "css": "[data-testid='sidebar-link-executions']",
+        "xpath": "//a[@data-testid='sidebar-link-executions']",
+        "test_id": "sidebar-link-executions",
+        "description": "Koşular menü bağlantısı",
+        "wait_strategy": "visible"
+      },
+      "sidebar_link_analytics": {
+        "css": "[data-testid='sidebar-link-analytics']",
+        "xpath": "//a[@data-testid='sidebar-link-analytics']",
+        "test_id": "sidebar-link-analytics",
+        "description": "Analitik menü bağlantısı",
+        "wait_strategy": "visible"
+      },
+      "sidebar_link_schedules": {
+        "css": "[data-testid='sidebar-link-schedules']",
+        "xpath": "//a[@data-testid='sidebar-link-schedules']",
+        "test_id": "sidebar-link-schedules",
+        "description": "Zamanlayıcı menü bağlantısı",
+        "wait_strategy": "visible"
+      },
+      "sidebar_link_flows": {
+        "css": "[data-testid='sidebar-link-flows']",
+        "xpath": "//a[@data-testid='sidebar-link-flows']",
+        "test_id": "sidebar-link-flows",
+        "description": "Akışlar menü bağlantısı",
+        "wait_strategy": "visible"
+      },
+      "sidebar_link_regression": {
+        "css": "[data-testid='sidebar-link-regression']",
+        "xpath": "//a[@data-testid='sidebar-link-regression']",
+        "test_id": "sidebar-link-regression",
+        "description": "Regresyon menü bağlantısı",
+        "wait_strategy": "visible"
+      },
+      "sidebar_link_approvals": {
+        "css": "[data-testid='sidebar-link-approvals']",
+        "xpath": "//a[@data-testid='sidebar-link-approvals']",
+        "test_id": "sidebar-link-approvals",
+        "description": "Onaylar menü bağlantısı",
+        "wait_strategy": "visible"
+      },
+      "sidebar_link_import": {
+        "css": "[data-testid='sidebar-link-import']",
+        "xpath": "//a[@data-testid='sidebar-link-import']",
+        "test_id": "sidebar-link-import",
+        "description": "İçe aktar menü bağlantısı",
+        "wait_strategy": "visible"
+      },
+      "sidebar_link_api_tests": {
+        "css": "[data-testid='sidebar-link-api-tests']",
+        "xpath": "//a[@data-testid='sidebar-link-api-tests']",
+        "test_id": "sidebar-link-api-tests",
+        "description": "API Testleri menü bağlantısı",
+        "wait_strategy": "visible"
+      },
+      "sidebar_link_test_data": {
+        "css": "[data-testid='sidebar-link-test-data']",
+        "xpath": "//a[@data-testid='sidebar-link-test-data']",
+        "test_id": "sidebar-link-test-data",
+        "description": "Test Verileri menü bağlantısı",
+        "wait_strategy": "visible"
+      },
+      "sidebar_link_integrations": {
+        "css": "[data-testid='sidebar-link-integrations']",
+        "xpath": "//a[@data-testid='sidebar-link-integrations']",
+        "test_id": "sidebar-link-integrations",
+        "description": "Entegrasyonlar menü bağlantısı",
+        "wait_strategy": "visible"
+      },
+      "header": {
+        "css": "[data-testid='header']",
+        "xpath": "//header[@data-testid='header']",
+        "test_id": "header",
+        "description": "Üst başlık çubuğu",
+        "wait_strategy": "visible"
+      },
+      "user_menu_button": {
+        "css": "[data-testid='header-btn-user-menu']",
+        "xpath": "//button[@data-testid='header-btn-user-menu']",
+        "test_id": "header-btn-user-menu",
+        "description": "Kullanıcı menüsü butonu",
+        "wait_strategy": "visible"
+      },
+      "user_menu_profile": {
+        "css": "[data-testid='user-menu-link-profile']",
+        "xpath": "//a[@data-testid='user-menu-link-profile']",
+        "test_id": "user-menu-link-profile",
+        "description": "Profil menü bağlantısı",
+        "wait_strategy": "visible"
+      },
+      "user_menu_info": {
+        "css": "[data-testid='user-menu-link-info']",
+        "xpath": "//a[@data-testid='user-menu-link-info']",
+        "test_id": "user-menu-link-info",
+        "description": "Bilgiler menü bağlantısı",
+        "wait_strategy": "visible"
+      },
+      "user_menu_logout": {
+        "css": "[data-testid='user-menu-link-logout']",
+        "xpath": "//a[@data-testid='user-menu-link-logout']",
+        "test_id": "user-menu-link-logout",
+        "description": "Çıkış Yap menü bağlantısı",
+        "wait_strategy": "visible"
+      },
+      "notification_bell": {
+        "css": "button[aria-label='Bildirimler']",
+        "xpath": "//button[@aria-label='Bildirimler']",
+        "test_id": "notification-bell",
+        "description": "Bildirim zili butonu",
+        "wait_strategy": "visible"
+      },
+      "breadcrumb": {
+        "css": "[data-testid='breadcrumb']",
+        "xpath": "//nav[@data-testid='breadcrumb']",
+        "test_id": "breadcrumb",
+        "description": "Breadcrumb navigasyon yolu",
+        "wait_strategy": "attached"
+      }
+    }
+  }
+}

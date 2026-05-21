@@ -1,0 +1,51 @@
+# Nexus QA Backend — FastAPI + PostgreSQL + Redis/RQ + AI Gateway
+fastapi>=0.110.0
+uvicorn[standard]>=0.29.0
+sqlalchemy>=2.0.0
+psycopg2-binary>=2.9.0
+alembic>=1.13.0
+pydantic>=2.6.0
+pydantic-settings>=2.2.0
+eval-type-backport>=0.2.0
+python-multipart>=0.0.9
+bcrypt>=4.1.0
+cryptography>=42.0.0
+PyJWT>=2.8.0
+email-validator>=2.1.0
+python-dotenv>=1.0.0
+redis>=5.0.0
+rq>=1.16.0
+faker>=24.0.0
+pyyaml>=6.0.0
+openai>=1.30.0
+anthropic>=0.34.0
+tiktoken>=0.7.0
+httpx>=0.27.0
+tenacity>=8.3.0            # Retry logic with exponential backoff
+apscheduler>=3.10.0
+croniter>=2.0.0
+websockets>=12.0
+slowapi>=0.1.9
+
+# Nexus QA — AI-Powered API Testing
+prance>=23.6.0            # OpenAPI/Swagger $ref resolving
+openapi-spec-validator>=0.7.0  # OpenAPI spec validation
+jsonschema>=4.21.0        # JSON Schema contract validation
+deepdiff>=7.0             # Response diff & regression detection
+genson>=1.3.0             # JSON → JSON Schema inference
+
+# Nexus QA Faz 2 — Doküman Parse
+pdfplumber>=0.10.0        # PDF metin + tablo çıkarma
+python-docx>=1.1.0        # DOCX parse
+
+# Monitoring & Observability
+sentry-sdk[fastapi]>=2.0.0                 # Hata izleme (Sentry)
+prometheus-fastapi-instrumentator>=0.9.1   # /metrics endpoint (Prometheus)
+
+# DSL Semantic Search — embedding index için matmul/cosine hesaplama
+numpy>=1.26.0,<3.0                         # embedding_index.py module-level import
+
+# DSL Reranker (OPSİYONEL) — cross-encoder ile retrieval sonrası rerank.
+# AI_MODEL_RERANKER_ENABLED=false ise bu paket gerekmez; kurulu değilse
+# reranker pass-through yapar. Production'da rerank açılacaksa yorum kaldırın.
+# sentence-transformers>=3.0,<4.0

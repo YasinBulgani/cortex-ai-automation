@@ -1,0 +1,52 @@
+[
+  {
+    "scenario_id": "SCN-001",
+    "scenario_title": "Kullanıcı bilgilerini güncelleme (Happy Path)",
+    "decision": "API|UI",
+    "tool": "pytest+httpx|Playwright",
+    "reason": "Geçerli JWT ile kullanıcı bilgilerini güncellemek için API testi önce, UI testi sonra yapılmalıdır.",
+    "automation_effort": "medium",
+    "roi_score": 8.5,
+    "priority": "immediate"
+  },
+  {
+    "scenario_id": "SCN-002",
+    "scenario_title": "Geçersiz JWT ile kullanıcı bilgilerini güncellemeye deneme",
+    "decision": "API|UI",
+    "tool": "pytest+httpx|Playwright",
+    "reason": "Geçersiz JWT ile kullanıcı bilgilerini güncellemek için API testi önce, UI testi sonra yapılmalıdır.",
+    "automation_effort": "medium",
+    "roi_score": 8.5,
+    "priority": "immediate"
+  },
+  {
+    "scenario_id": "SCN-003",
+    "scenario_title": "Kullanıcı silme (Happy Path)",
+    "decision": "API|UI",
+    "tool": "pytest+httpx|Playwright",
+    "reason": "Geçerli JWT ile kullanıcı silmek için API testi önce, UI testi sonra yapılmalıdır.",
+    "automation_effort": "medium",
+    "roi_score": 8.5,
+    "priority": "immediate"
+  },
+  {
+    "scenario_id": "SCN-004",
+    "scenario_title": "Geçersiz JWT ile kullanıcı silmeye deneme",
+    "decision": "API|UI",
+    "tool": "pytest+httpx|Playwright",
+    "reason": "Geçersiz JWT ile kullanıcı silmek için API testi önce, UI testi sonra yapılmalıdır.",
+    "automation_effort": "medium",
+    "roi_score": 8.5,
+    "priority": "immediate"
+  },
+  {
+    "scenario_id": "SCN-005",
+    "scenario_title": "Kullanıcı silme işlemi sırasında birden fazla istek gönderme (Concurrency)",
+    "decision": "MANUEL",
+    "tool": "",
+    "reason": "Bu senaryo için regülasyon gereği manuel test uygulanmalıdır.",
+    "automation_effort": "high",
+    "roi_score": 0,
+    "priority": "backlog"
+  }
+]

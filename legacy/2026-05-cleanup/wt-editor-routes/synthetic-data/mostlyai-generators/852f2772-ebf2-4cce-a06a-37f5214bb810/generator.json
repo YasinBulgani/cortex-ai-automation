@@ -1,0 +1,197 @@
+{
+  "id": "852f2772-ebf2-4cce-a06a-37f5214bb810",
+  "name": "pg_bgts_banking_cards_1774510622",
+  "description": null,
+  "trainingStatus": "DONE",
+  "trainingTime": null,
+  "usage": null,
+  "metadata": null,
+  "accuracy": 0.5932501,
+  "tables": [
+    {
+      "id": "d6b8083f-091b-4f78-b0f4-732c2178c9ad",
+      "sourceConnectorId": "71901190-9c88-4fc5-af73-333ca7c6cb2a",
+      "location": "/Users/yasin_bulgan/mostlyai/connectors/71901190-9c88-4fc5-af73-333ca7c6cb2a/data.parquet",
+      "name": "data",
+      "primaryKey": "card_id",
+      "columns": [
+        {
+          "id": "f6a35077-2e27-42d7-82e3-3bcf1a9128df",
+          "name": "limit_amount",
+          "included": true,
+          "modelEncodingType": "TABULAR_NUMERIC_BINNED",
+          "valueRange": {
+            "min": "7688.49",
+            "max": "190297.09",
+            "values": null,
+            "has_null": false
+          }
+        },
+        {
+          "id": "46f3da09-75b1-4cc2-93b7-bd03f17f65ae",
+          "name": "used_amount",
+          "included": true,
+          "modelEncodingType": "TABULAR_NUMERIC_BINNED",
+          "valueRange": {
+            "min": "537.28",
+            "max": "116272.82",
+            "values": null,
+            "has_null": false
+          }
+        },
+        {
+          "id": "e3b830f7-0286-4251-bb1b-71d0421c1d49",
+          "name": "card_id",
+          "included": true,
+          "modelEncodingType": "TABULAR_CATEGORICAL",
+          "valueRange": null
+        },
+        {
+          "id": "eba0d349-a52f-49ec-ab72-2663de2a3942",
+          "name": "customer_id",
+          "included": true,
+          "modelEncodingType": "TABULAR_CHARACTER",
+          "valueRange": {
+            "min": null,
+            "max": null,
+            "values": null,
+            "has_null": false
+          }
+        },
+        {
+          "id": "fced3636-eafb-4480-8766-d92de86b1194",
+          "name": "account_id",
+          "included": true,
+          "modelEncodingType": "TABULAR_CHARACTER",
+          "valueRange": {
+            "min": null,
+            "max": null,
+            "values": null,
+            "has_null": false
+          }
+        },
+        {
+          "id": "cc49c87b-1a0a-4990-aefe-f0147b937aef",
+          "name": "card_type",
+          "included": true,
+          "modelEncodingType": "TABULAR_CATEGORICAL",
+          "valueRange": {
+            "min": null,
+            "max": null,
+            "values": [
+              "Mastercard",
+              "Troy",
+              "Visa"
+            ],
+            "has_null": false
+          }
+        },
+        {
+          "id": "ceab9e0c-b418-478c-b298-07e629a309e6",
+          "name": "card_number",
+          "included": true,
+          "modelEncodingType": "TABULAR_CHARACTER",
+          "valueRange": {
+            "min": null,
+            "max": null,
+            "values": null,
+            "has_null": false
+          }
+        },
+        {
+          "id": "b5a662d7-12ab-4a1f-97ce-13707e2485c3",
+          "name": "expiry",
+          "included": true,
+          "modelEncodingType": "TABULAR_DATETIME",
+          "valueRange": {
+            "min": null,
+            "max": null,
+            "values": null,
+            "has_null": false
+          }
+        },
+        {
+          "id": "9d565124-77cb-41dd-bf1a-dab20287daf1",
+          "name": "status",
+          "included": true,
+          "modelEncodingType": "TABULAR_CATEGORICAL",
+          "valueRange": {
+            "min": null,
+            "max": null,
+            "values": [
+              "Aktif",
+              "Bloke",
+              "Kapalı"
+            ],
+            "has_null": false
+          }
+        },
+        {
+          "id": "cc1a2a10-de02-4bd7-bed5-1461cbd3797e",
+          "name": "issued_date",
+          "included": true,
+          "modelEncodingType": "TABULAR_DATETIME",
+          "valueRange": {
+            "min": null,
+            "max": null,
+            "values": null,
+            "has_null": false
+          }
+        }
+      ],
+      "foreignKeys": null,
+      "tabularModelMetrics": {
+        "accuracy": {
+          "overall": 0.5932501,
+          "univariate": 0.7881489,
+          "bivariate": 0.5859272,
+          "trivariate": 0.4056743,
+          "coherence": null,
+          "overallMax": 0.799885,
+          "univariateMax": 0.9285611,
+          "bivariateMax": 0.8181039,
+          "trivariateMax": 0.65299,
+          "coherenceMax": null
+        },
+        "distances": {
+          "imsTraining": 0.0,
+          "imsHoldout": 0.0,
+          "imsTrnHol": 0.0,
+          "dcrTraining": 0.337,
+          "dcrHoldout": 0.353,
+          "dcrTrnHol": 0.232,
+          "dcrShare": 0.712,
+          "nndrTraining": 0.841645222993,
+          "nndrHoldout": 0.887203691951,
+          "nndrTrnHol": 0.64139932741
+        },
+        "similarity": {
+          "cosineSimilarityTrainingSynthetic": 0.2729136,
+          "cosineSimilarityTrainingHoldout": 0.8524055,
+          "discriminatorAUCTrainingSynthetic": 1.0,
+          "discriminatorAUCTrainingHoldout": 0.446
+        }
+      },
+      "languageModelMetrics": null,
+      "tabularModelConfiguration": {
+        "model": "MOSTLY_AI/Medium",
+        "maxSampleSize": null,
+        "batchSize": null,
+        "gradientAccumulationSteps": null,
+        "maxTrainingTime": 14400.0,
+        "maxEpochs": 100.0,
+        "maxSequenceWindow": 100,
+        "enableFlexibleGeneration": true,
+        "valueProtection": true,
+        "rareCategoryReplacementMethod": "CONSTANT",
+        "differentialPrivacy": null,
+        "compute": null,
+        "enableModelReport": true
+      },
+      "languageModelConfiguration": null,
+      "totalRows": 300
+    }
+  ],
+  "constraints": null,
+  "randomState": null
+}

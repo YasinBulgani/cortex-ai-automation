@@ -1,0 +1,110 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Pipeline State v2",
+  "description": "25-rollü agent pipeline state. Yalnızca scripts/pipeline/stage.sh yazar.",
+  "type": "object",
+  "required": ["version", "updated_at", "items"],
+  "properties": {
+    "version": { "type": "string", "const": "2.0" },
+    "updated_at": { "type": "string", "format": "date-time" },
+    "next_ids": {
+      "type": "object",
+      "properties": {
+        "GAP": { "type": "integer" },
+        "FEAT": { "type": "integer" },
+        "BUG": { "type": "integer" }
+      }
+    },
+    "items": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/item" }
+    }
+  },
+  "definitions": {
+    "stageSlug": {
+      "enum": [
+        "analyzer", "validator", "proposer", "approver", "product_validator",
+        "designer", "architect",
+        "frontend", "backend", "data_engineer", "devops",
+        "code_reviewer", "integrator",
+        "qa", "security_reviewer", "a11y_auditor", "performance_tester",
+        "promoter", "release_manager", "observer", "retrospective",
+        "rejected", "done"
+      ]
+    },
+    "scopeFlags": {
+      "type": "object",
+      "description": "Hangi aşamaların relevant olduğunu belirler. false → auto-skip.",
+      "properties": {
+        "fe": { "type": "boolean", "default": true, "description": "Frontend değişikliği var mı?" },
+        "be": { "type": "boolean", "default": true, "description": "Backend değişikliği var mı?" },
+        "data": { "type": "boolean", "default": false, "description": "DB migration / data backfill var mı?" },
+        "infra": { "type": "boolean", "default": false, "description": "Docker/CI/k8s değişikliği var mı?" },
+        "perf_sensitive": { "type": "boolean", "default": false, "description": "Yük/perf testi gerekli mi?" }
+      }
+    },
+    "item": {
+      "type": "object",
+      "required": ["id", "type", "title", "current_stage", "status", "stages"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^(GAP|FEAT|BUG)-[0-9]{3,}$" },
+        "type": { "enum": ["GAP", "FEAT", "BUG"] },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "priority": { "enum": ["low", "medium", "high", "critical"] },
+        "created_at": { "type": "string", "format": "date-time" },
+        "current_stage": { "$ref": "#/definitions/stageSlug" },
+        "status": { "enum": ["waiting", "in_progress", "blocked", "done", "rejected", "feedback_loop"] },
+        "scope": { "$ref": "#/definitions/scopeFlags" },
+        "assigned_to": { "type": ["string", "null"] },
+        "needs_human": { "type": "boolean", "default": false },
+        "feedback_loops": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["from_stage", "to_stage", "reason", "at"],
+            "properties": {
+              "from_stage": { "type": "string" },
+              "to_stage": { "type": "string" },
+              "reason": { "type": "string" },
+              "at": { "type": "string", "format": "date-time" }
+            }
+          }
+        },
+        "stages": {
+          "type": "object",
+          "description": "Her aşama için durum. Eksik olanlar henüz açılmamış.",
+          "additionalProperties": { "$ref": "#/definitions/stageEntry" }
+        }
+      }
+    },
+    "stageEntry": {
+      "type": "object",
+      "required": ["status"],
+      "properties": {
+        "status": { "enum": ["waiting", "in_progress", "done", "rejected", "skipped"] },
+        "branch": { "type": ["string", "null"] },
+        "pr_number": { "type": ["integer", "null"] },
+        "artifact": { "type": ["string", "null"] },
+        "commit": { "type": ["string", "null"] },
+        "agent_id": { "type": ["string", "null"] },
+        "started_at": { "type": ["string", "null"], "format": "date-time" },
+        "completed_at": { "type": ["string", "null"], "format": "date-time" },
+        "handoff_notes": { "type": ["string", "null"] },
+        "approval": {
+          "type": "object",
+          "properties": {
+            "decision": { "enum": ["approve", "reject", "revise"] },
+            "reasoning": { "type": "string" },
+            "confidence": { "type": "number", "minimum": 0, "maximum": 1 }
+          }
+        },
+        "metrics": {
+          "type": "object",
+          "description": "Observer/QA/performance için sayısal metrikler",
+          "additionalProperties": true
+        }
+      }
+    }
+  }
+}

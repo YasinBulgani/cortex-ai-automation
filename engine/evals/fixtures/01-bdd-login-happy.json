@@ -1,0 +1,8 @@
+{
+  "name": "BDD Login — Happy Path",
+  "type": "gherkin",
+  "description": "Kullanıcı girişi temel akışı için BDD generator çıktısı",
+  "expected_min_score": 70,
+  "prompt_input": "Kullanıcı email ve şifre ile giriş yapabiliyor. Başarılı girişte /projects sayfasına yönlendiriliyor.",
+  "output": "@smoke @login\nFeature: Kullanıcı Girişi\n  Kullanıcılar sisteme email ve şifre ile giriş yapabilmeli\n\n  Background:\n    Given sistem ayakta ve erişilebilir\n\n  Scenario: Geçerli credentials ile başarılı giriş\n    Given kullanıcı login sayfasındadır\n    When kullanıcı \"test@example.com\" e-postasını girer\n    And kullanıcı \"Secret123!\" şifresini girer\n    And kullanıcı Giriş butonuna tıklar\n    Then kullanıcı /projects sayfasına yönlendirilmeli\n    And profil menüsü görünür olmalı\n\n  Scenario: Hatalı şifre ile giriş başarısız olmalı\n    Given kullanıcı login sayfasındadır\n    When kullanıcı \"test@example.com\" e-postasını girer\n    And kullanıcı \"yanlışşifre\" şifresini girer\n    And kullanıcı Giriş butonuna tıklar\n    Then hata mesajı görüntülenmeli\n    And kullanıcı login sayfasında kalmalı\n\n  Scenario Outline: Çeşitli geçersiz e-posta formatları reddedilmeli\n    Given kullanıcı login sayfasındadır\n    When kullanıcı \"<geçersiz_email>\" e-postasını girer\n    And kullanıcı herhangi bir şifre girer\n    And kullanıcı Giriş butonuna tıklar\n    Then form doğrulama hatası gösterilmeli\n\n    Examples:\n      | geçersiz_email |\n      | düz-metin      |\n      | @domain.com    |\n      | test@          |\n"
+}

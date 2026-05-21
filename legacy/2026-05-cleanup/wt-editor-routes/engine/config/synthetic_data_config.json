@@ -1,0 +1,82 @@
+{
+  "synthetic_data": {
+    "version": "2.0",
+    "engine": "bgts-syndata",
+    "locale": "tr_TR",
+
+    "generators": [
+      {
+        "name": "customer_generator",
+        "type": "llm_enhanced",
+        "schema": {
+          "tc_kimlik": { "type": "tc_identity", "faker": "tr_TR.ssn" },
+          "ad": { "type": "first_name", "faker": "tr_TR.first_name" },
+          "soyad": { "type": "last_name", "faker": "tr_TR.last_name" },
+          "email": { "type": "email", "pattern": "{ad}.{soyad}@{domain}" },
+          "telefon": { "type": "phone", "faker": "tr_TR.phone_number" },
+          "dogum_tarihi": { "type": "date", "range": ["1950-01-01", "2005-12-31"] },
+          "adres": { "type": "address", "faker": "tr_TR.address" },
+          "meslek": { "type": "llm_generate", "prompt": "Gerçekçi Türkçe meslek adı üret" },
+          "gelir": { "type": "distribution", "dist": "lognormal", "mean": 25000, "std": 15000 }
+        },
+        "pii_masking": {
+          "enabled": true,
+          "fields": ["tc_kimlik", "ad", "soyad", "email", "telefon"],
+          "method": "consistent_hash"
+        },
+        "referential_integrity": {
+          "hesap": { "fk": "musteri_id", "cardinality": "1:N", "range": [1, 5] },
+          "islem": { "fk": "hesap_id", "cardinality": "1:N", "range": [10, 500] }
+        }
+      },
+      {
+        "name": "transaction_generator",
+        "type": "pattern_based",
+        "patterns": [
+          {
+            "name": "normal_spending",
+            "weight": 0.85,
+            "amount": { "dist": "lognormal", "mean": 250, "std": 500 },
+            "frequency": { "dist": "poisson", "lambda": 3 }
+          },
+          {
+            "name": "salary_deposit",
+            "weight": 0.08,
+            "amount": { "dist": "normal", "mean": 25000, "std": 5000 },
+            "frequency": { "type": "monthly", "day_range": [1, 5] }
+          },
+          {
+            "name": "suspicious_activity",
+            "weight": 0.02,
+            "amount": { "dist": "uniform", "min": 50000, "max": 500000 },
+            "frequency": { "dist": "burst", "count": [5, 20], "window_hours": 2 }
+          }
+        ]
+      },
+      {
+        "name": "test_scenario_generator",
+        "type": "rule_based",
+        "scenarios": [
+          { "name": "login_valid", "data": { "email": "test@bgts.com", "password": "Test123!" } },
+          { "name": "login_invalid", "data": { "email": "wrong@bgts.com", "password": "bad" } },
+          { "name": "login_locked", "data": { "email": "locked@bgts.com", "attempts": 5 } },
+          { "name": "project_crud", "data": { "name": "Test Projesi", "description": "AI tarafından üretildi" } },
+          { "name": "scenario_import", "data": { "file": "test_import.xlsx", "format": "excel" } }
+        ]
+      }
+    ],
+
+    "output": {
+      "formats": ["csv", "json", "sql"],
+      "default_row_count": 1000,
+      "seed": 42
+    },
+
+    "privacy": {
+      "pii_detection": true,
+      "auto_mask": true,
+      "supported_methods": ["consistent_hash", "faker_replace", "noise_injection", "k_anonymity"],
+      "compliance": ["KVKK", "GDPR"]
+    }
+  }
+}

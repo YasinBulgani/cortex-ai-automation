@@ -1,0 +1,48 @@
+services:
+  ai-gateway:
+    environment:
+      OLLAMA_BASE_URL: "${OLLAMA_BASE_URL:-http://host.docker.internal:11434}"
+      OLLAMA_MODEL: "${OLLAMA_MODEL:-llama3.1:8b}"
+      OLLAMA_ENABLED: "${OLLAMA_ENABLED:-true}"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  backend:
+    environment:
+      AI_GATEWAY_BASE_URL: "${AI_GATEWAY_BASE_URL:-http://ai-gateway:8080}"
+      GATEWAY_INTERNAL_KEY: "${GATEWAY_INTERNAL_KEY:-nexusqa-gateway-internal-key-change-me}"
+      AI_LOCAL_ONLY: "${AI_LOCAL_ONLY:-true}"
+      AI_BACKGROUND_ENABLED: "${AI_BACKGROUND_ENABLED:-true}"
+      AI_BACKGROUND_INTERVAL_SECONDS: "${AI_BACKGROUND_INTERVAL_SECONDS:-900}"
+      AI_BACKGROUND_START_DELAY_SECONDS: "${AI_BACKGROUND_START_DELAY_SECONDS:-60}"
+      AI_BACKGROUND_TARGETS: "${AI_BACKGROUND_TARGETS:-backend=http://backend:8000/health,engine=http://engine:5001/health,ai_gateway=http://ai-gateway:8080/ai/health}"
+      AI_BACKGROUND_REPORT_PATH: "${AI_BACKGROUND_REPORT_PATH:-/app/data/ai-ops/latest.md}"
+      NEXUS_AUTOPILOT_ENABLED: "${NEXUS_AUTOPILOT_ENABLED:-true}"
+      NEXUS_AUTOPILOT_BACKGROUND_MODE: "${NEXUS_AUTOPILOT_BACKGROUND_MODE:-observe}"
+      NEXUS_AUTOPILOT_INTERVAL_SECONDS: "${NEXUS_AUTOPILOT_INTERVAL_SECONDS:-900}"
+      NEXUS_AUTOPILOT_START_DELAY_SECONDS: "${NEXUS_AUTOPILOT_START_DELAY_SECONDS:-15}"
+      NEXUS_AUTOPILOT_APPLY_SAFE_ACTIONS: "${NEXUS_AUTOPILOT_APPLY_SAFE_ACTIONS:-true}"
+    volumes:
+      - backend_ai_reports:/app/data/ai-ops
+
+  open-webui:
+    image: ghcr.io/open-webui/open-webui:main
+    container_name: twai_open_webui
+    restart: unless-stopped
+    profiles:
+      - ui
+    ports:
+      - "3001:8080"
+    environment:
+      OLLAMA_BASE_URL: "${OPEN_WEBUI_OLLAMA_BASE_URL:-http://host.docker.internal:11434}"
+      WEBUI_NAME: "TestwrightAI Local AI"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - open_webui_data:/app/backend/data
+
+volumes:
+  backend_ai_reports:
+    driver: local
+  open_webui_data:
+    driver: local

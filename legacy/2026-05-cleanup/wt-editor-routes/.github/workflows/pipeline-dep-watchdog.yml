@@ -1,0 +1,115 @@
+name: pipeline-dep-watchdog
+
+# Rol 24 (Dependency Watchdog) — günlük CVE + dep güncellemesi taraması.
+# Bulgular için BUG item'ları açar, scan raporunu PR olarak test'e gönderir.
+
+on:
+  schedule:
+    - cron: '17 2 * * *'   # Günlük 02:17 UTC
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Dry-run (item açma)'
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout test
+        uses: actions/checkout@v4
+        with:
+          ref: test
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install scanners
+        run: |
+          python -m pip install --upgrade pip
+          pip install pip-audit
+          sudo apt-get update && sudo apt-get install -y jq
+
+      - name: Set up Node (for npm audit)
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install npm deps (for audit to work)
+        working-directory: apps/web
+        run: npm ci --ignore-scripts || npm install --ignore-scripts
+        continue-on-error: true
+
+      - name: Run dependency watchdog
+        id: scan
+        run: |
+          chmod +x scripts/pipeline/dep-watchdog.sh
+          if [[ "${{ inputs.dry_run || 'false' }}" == "true" ]]; then
+            ./scripts/pipeline/dep-watchdog.sh --dry-run
+          else
+            ./scripts/pipeline/dep-watchdog.sh
+          fi
+
+      - name: Detect changes
+        id: changes
+        run: |
+          git add -A
+          if git diff --cached --quiet; then
+            echo "has_changes=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_changes=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Commit + PR
+        if: steps.changes.outputs.has_changes == 'true' && inputs.dry_run != true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          DATE=$(date +%Y-%m-%d)
+          BRANCH="dep-watchdog/$DATE"
+          git config user.name "dep-watchdog[bot]"
+          git config user.email "dep-watchdog@users.noreply.github.com"
+
+          git checkout -b "$BRANCH"
+          git commit -m "deps: $DATE CVE tarama + pipeline BUG items [pipeline: dependency_watchdog]"
+          git push -u origin "$BRANCH"
+
+          gh pr create \
+            --base test \
+            --head "$BRANCH" \
+            --title "deps: $DATE CVE + dep scan raporu" \
+            --body "$(cat <<EOF
+          ## Dependency Watchdog — $DATE
+
+          Günlük scheduled scan tarafından oluşturuldu.
+
+          ### Değişenler
+          - docs/ai/dep-scans/$DATE.md — scan raporu
+          - docs/ai/pipeline/state.json — yeni BUG item'ları (varsa)
+          - docs/ai/pipeline/items/BUG-*/ — yeni item klasörleri
+
+          ### Sonraki adım
+          Pipeline otomatik olarak analyzer aşamasında bekleyen item'lar için orchestrator'ı tetikler.
+          \`make pipeline-status\` ile yeni item'ları görebilirsin.
+
+          ---
+          [pipeline: dependency_watchdog]
+          EOF
+          )"
+
+      - name: Upload scan artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: dep-scan-${{ github.run_id }}
+          path: |
+            docs/ai/dep-scans/
+          retention-days: 90

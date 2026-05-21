@@ -1,0 +1,1793 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ title }}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
+  <style>
+    :root {
+      --bg: #f5f6f8;
+      --bg2: #ffffff;
+      --bg3: #f0f1f4;
+      --bg4: #e8eaed;
+      --text: #111827;
+      --text2: #374151;
+      --text3: #6b7280;
+      --border: #e2e4e8;
+      --accent: #2563eb;
+      --accent2: #7c3aed;
+      --green: #16a34a;
+      --red: #dc2626;
+      --yellow: #d97706;
+      --orange: #ea580c;
+      --font: 'Inter', -apple-system, sans-serif;
+      --mono: 'JetBrains Mono', monospace;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { height: 100%; background: var(--bg); color: var(--text); font-family: var(--font); }
+
+    /* ── Mesh Background ── (disabled in light theme) */
+    .mesh-bg { display: none; }
+    .mesh-ball { display: none; }
+
+    /* ── Layout ────────────────────────────────────────────── */
+    .app { position: relative; z-index: 1; min-height: 100vh; display: flex; flex-direction: column; }
+
+    /* ── Header ────────────────────────────────────────────── */
+    .header {
+      padding: 20px 40px; display: flex; align-items: center; gap: 16px;
+      border-bottom: 1px solid var(--border);
+      background: var(--bg2);
+    }
+    .logo-icon {
+      width: 42px; height: 42px; border-radius: 12px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px; font-weight: 800; color: #fff;
+    }
+    .logo-text h1 { font-size: 18px; font-weight: 700; letter-spacing: -0.3px; }
+    .logo-text p { font-size: 11px; color: var(--text3); font-weight: 500; }
+    .header-spacer { flex: 1; }
+    .version-badge {
+      font-size: 10px; font-weight: 700; color: var(--accent);
+      background: rgba(56,139,253,0.1); border: 1px solid rgba(56,139,253,0.2);
+      padding: 3px 10px; border-radius: 20px; letter-spacing: 0.5px;
+    }
+
+    /* ── Main Content ─────────────────────────────────────── */
+    .content { flex: 1; padding: 32px 40px; max-width: 1200px; margin: 0 auto; width: 100%; }
+
+    /* ── Cards ─────────────────────────────────────────────── */
+    .card {
+      background: var(--bg2); border: 1px solid var(--border); border-radius: 12px;
+      padding: 24px; margin-bottom: 24px; box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .card:hover { border-color: var(--accent); box-shadow: 0 6px 16px rgba(37,99,235,0.1); }
+    .card-title {
+      font-size: 15px; font-weight: 700; margin-bottom: 16px;
+      display: flex; align-items: center; gap: 10px;
+    }
+    .card-title .icon { font-size: 20px; }
+
+    /* ── Upload Zone ───────────────────────────────────────── */
+    .upload-zone {
+      border: 2px dashed var(--border); border-radius: 16px;
+      padding: 48px; text-align: center; cursor: pointer;
+      transition: all 0.3s; position: relative; overflow: hidden;
+    }
+    .upload-zone:hover, .upload-zone.dragover {
+      border-color: var(--accent); background: rgba(56,139,253,0.04);
+    }
+    .upload-zone .icon { font-size: 48px; margin-bottom: 12px; opacity: 0.6; }
+    .upload-zone h3 { font-size: 16px; font-weight: 600; margin-bottom: 6px; }
+    .upload-zone p { font-size: 13px; color: var(--text3); }
+    .upload-zone input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+
+    /* ── Stats Row ─────────────────────────────────────────── */
+    .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+    .stat-card {
+      background: var(--bg2); border: 1px solid var(--border); border-radius: 10px;
+      padding: 20px; text-align: center; transition: all 0.2s; box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    }
+    .stat-card:hover { transform: translateY(-2px); border-color: var(--accent); }
+    .stat-card .num { font-size: 32px; font-weight: 800; color: var(--text); }
+    .stat-card .label { font-size: 11px; color: var(--text3); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 4px; }
+
+    /* ── Schema Columns ────────────────────────────────────── */
+    .columns-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
+    .col-card {
+      background: var(--bg4); border: 1px solid var(--border); border-radius: 12px;
+      padding: 14px 16px; transition: all 0.2s;
+    }
+    .col-card:hover { border-color: var(--accent2); }
+    .col-card.pii { border-left: 3px solid var(--red); }
+    .col-name { font-size: 13px; font-weight: 700; font-family: var(--mono); color: var(--accent); }
+    .col-type { font-size: 10px; color: var(--text3); font-weight: 600; text-transform: uppercase; margin-top: 2px; }
+    .col-classification {
+      display: inline-flex; align-items: center; gap: 4px;
+      font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 20px;
+      margin-top: 6px; letter-spacing: 0.3px;
+    }
+    .col-classification.pii-tag { background: rgba(248,81,73,0.12); color: var(--red); border: 1px solid rgba(248,81,73,0.2); }
+    .col-classification.safe-tag { background: rgba(63,185,80,0.12); color: var(--green); border: 1px solid rgba(63,185,80,0.2); }
+    .col-stats { font-size: 10px; color: var(--text3); margin-top: 6px; line-height: 1.6; }
+    .col-edit-row { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); }
+    .rule-select { width: 100%; padding: 4px 8px; font-size: 11px; background: var(--bg3); color: var(--text); border: 1px solid var(--border); border-radius: 4px; }
+    .rule-input { width: 100%; padding: 4px 8px; font-size: 11px; background: var(--bg3); color: var(--text); border: 1px solid var(--border); border-radius: 4px; font-family: var(--mono); }
+    .rule-label { font-size: 10px; color: var(--text3); font-weight: 600; margin-bottom: 2px; }
+
+    /* ── Scenarios ──────────────────────────────────────────── */
+    .scenarios-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
+    .scenario-card {
+      background: var(--bg2); border: 1px solid var(--border); border-radius: 10px;
+      padding: 18px; cursor: pointer; transition: all 0.2s; text-align: center; box-shadow: 0 2px 6px rgba(0,0,0,0.03);
+    }
+    .scenario-card:hover, .scenario-card.active { border-color: var(--accent); background: var(--bg3); transform: translateY(-2px); box-shadow: 0 6px 16px rgba(37,99,235,0.08); }
+    .scenario-card .sc-icon { font-size: 32px; margin-bottom: 8px; }
+    .scenario-card .sc-name { font-size: 14px; font-weight: 700; color: var(--text); }
+    .scenario-card .sc-desc { font-size: 11px; color: var(--text3); margin-top: 4px; line-height: 1.5; }
+
+    /* ── Controls ───────────────────────────────────────────── */
+    .controls-row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-bottom: 20px; }
+    .input-styled {
+      background: var(--bg4); border: 1px solid var(--border); color: var(--text);
+      padding: 10px 14px; border-radius: 10px; font-family: var(--font); font-size: 13px;
+      outline: none; transition: border 0.2s;
+    }
+    .input-styled:focus { border-color: var(--accent); }
+    .btn {
+      padding: 10px 20px; border: none; border-radius: 10px; font-family: var(--font);
+      font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s;
+      display: inline-flex; align-items: center; gap: 8px;
+    }
+    .btn-primary { background: linear-gradient(135deg, var(--accent), #5b6abf); color: #fff; }
+    .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(56,139,253,0.3); }
+    .btn-green { background: linear-gradient(135deg, #238636, #3fb950); color: #fff; }
+    .btn-green:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(35,134,54,0.3); }
+    .btn-ghost { background: var(--bg4); border: 1px solid var(--border); color: var(--text2); }
+    .btn-ghost:hover { border-color: var(--accent); color: var(--text); }
+
+    /* ── Preview Table ─────────────────────────────────────── */
+    .preview-wrap { overflow-x: auto; border-radius: 12px; border: 1px solid var(--border); }
+    .preview-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    .preview-table th {
+      background: var(--bg3); color: var(--text3); font-weight: 700;
+      text-transform: uppercase; font-size: 10px; letter-spacing: 0.5px;
+      padding: 12px 14px; text-align: left; position: sticky; top: 0;
+    }
+    .preview-table td {
+      padding: 10px 14px; color: var(--text2); border-bottom: 1px solid rgba(48,54,61,0.3);
+      white-space: nowrap; max-width: 200px; overflow: hidden; text-overflow: ellipsis;
+      font-family: var(--mono); font-size: 11px;
+    }
+    .preview-table tr:hover td { background: rgba(56,139,253,0.03); }
+
+    /* ── Toast ──────────────────────────────────────────────── */
+    .toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; }
+    .toast {
+      padding: 12px 20px; border-radius: 12px; font-size: 13px; font-weight: 600;
+      color: #fff; box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+      animation: slideUp 0.3s ease; display: flex; align-items: center; gap: 8px;
+    }
+    .toast.ok { background: linear-gradient(135deg, #059669, #10b981); }
+    .toast.err { background: linear-gradient(135deg, #dc2626, #ef4444); }
+    @keyframes slideUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+
+    /* ── Loading Spinner ───────────────────────────────────── */
+    .spinner { display: inline-block; width: 20px; height: 20px; border: 2.5px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.7s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-overlay {
+      position: absolute; inset: 0; background: rgba(10,14,23,0.7);
+      display: none; align-items: center; justify-content: center;
+      flex-direction: column; gap: 12px; border-radius: 16px; z-index: 10;
+    }
+    .loading-overlay.active { display: flex; }
+
+    /* ── Sections ───────────────────────────────────────────── */
+    .section { display: none; }
+    .section.active { display: block; animation: fadeIn 0.3s ease; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+
+    /* ── PII Summary ───────────────────────────────────────── */
+    .pii-banner {
+      background: rgba(248,81,73,0.08); border: 1px solid rgba(248,81,73,0.2);
+      border-radius: 12px; padding: 14px 18px; margin-bottom: 16px;
+      display: flex; align-items: center; gap: 12px;
+    }
+    .pii-banner .pii-icon { font-size: 24px; }
+    .pii-banner .pii-text { font-size: 13px; color: var(--text2); }
+    .pii-banner strong { color: var(--red); }
+
+    /* ── Responsive ────────────────────────────────────────── */
+    @media (max-width: 800px) {
+      .stats-row { grid-template-columns: repeat(2, 1fr); }
+      .scenarios-grid { grid-template-columns: 1fr; }
+      .content { padding: 20px; }
+      .header { padding: 16px 20px; }
+    }
+
+    /* ── Diagram Section ────────────────────────────────────── */
+    .diagram-toolbar {
+      display: flex; align-items: center; gap: 12px; margin-bottom: 16px; flex-wrap: wrap;
+    }
+    .diagram-toolbar h3 { font-size: 15px; font-weight: 700; flex: 1; }
+    #diagram-svg-wrap {
+      width: 100%; height: 560px; border-radius: 10px;
+      border: 1px solid var(--border); background: var(--bg3);
+      overflow: hidden; position: relative;
+    }
+    #diagram-svg { width: 100%; height: 100%; }
+    /* node rect */
+    .d-node rect {
+      fill: var(--bg2); stroke: var(--border2); stroke-width: 1.5px;
+      rx: 8; ry: 8; cursor: pointer; transition: stroke 0.2s;
+    }
+    .d-node rect:hover { stroke: var(--accent); stroke-width: 2px; }
+    .d-node.selected rect { stroke: var(--accent2); stroke-width: 2.5px; fill: #f5f3ff; }
+    .d-node .node-title { fill: var(--text); font-size: 13px; font-weight: 700; font-family: var(--font); }
+    .d-node .node-sub { fill: var(--text3); font-size: 10px; font-family: var(--font); }
+    .d-node .node-icon { font-size: 18px; }
+    /* edge */
+    .d-link { fill: none; stroke-width: 1.8px; }
+    .d-link.high { stroke: #3fb950; }
+    .d-link.mid  { stroke: #d29922; }
+    .d-link.low  { stroke: #f85149; }
+    .d-link-label { font-size: 10px; fill: var(--text3); font-family: var(--mono); pointer-events: none; }
+    /* tooltip */
+    #d-tooltip {
+      position: absolute; background: var(--bg2); border: 1px solid var(--border);
+      border-radius: 8px; padding: 10px 14px; font-size: 12px; color: var(--text2);
+      pointer-events: none; display: none; z-index: 20; max-width: 260px; line-height: 1.6;
+      box-shadow: var(--shadow);
+    }
+    #d-tooltip strong { color: var(--accent); }
+    /* detail panel */
+    #diagram-detail {
+      margin-top: 16px; background: var(--bg2); border: 1px solid var(--border);
+      border-radius: 14px; padding: 20px; display: none;
+    }
+    #diagram-detail h4 { font-size: 14px; font-weight: 700; margin-bottom: 14px; }
+    .d-col-row {
+      display: flex; align-items: center; gap: 10px; padding: 7px 0;
+      border-bottom: 1px solid rgba(48,54,61,0.3); font-size: 12px;
+    }
+    .d-col-row:last-child { border-bottom: none; }
+    .d-col-name { font-family: var(--mono); color: var(--accent); min-width: 160px; font-weight: 600; }
+    .d-col-type { color: var(--text3); font-size: 10px; min-width: 70px; }
+    .d-col-cls { font-size: 10px; padding: 2px 8px; border-radius: 20px; font-weight: 700; }
+    .d-col-cls.pii-cls { background: rgba(248,81,73,0.12); color: var(--red); border: 1px solid rgba(248,81,73,0.2); }
+    .d-col-cls.safe-cls { background: rgba(63,185,80,0.12); color: var(--green); border: 1px solid rgba(63,185,80,0.2); }
+    /* nav diagram button */
+    .nav-diagram-btn {
+      display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px;
+      background: rgba(163,113,247,0.1); border: 1px solid rgba(163,113,247,0.25);
+      color: var(--accent2); border-radius: 10px; font-size: 13px; font-weight: 600;
+      cursor: pointer; transition: all 0.2s; margin-bottom: 20px;
+    }
+    .nav-diagram-btn:hover { background: rgba(163,113,247,0.2); transform: translateY(-1px); }
+    /* empty diagram */
+    .diagram-empty {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      height: 100%; gap: 12px; color: var(--text3); font-size: 13px;
+    }
+    .diagram-empty .big-icon { font-size: 56px; opacity: 0.4; }
+    .flow-node {
+      background: var(--bg3);
+      border: 1px solid rgba(163,113,247,0.3);
+      border-radius: 8px;
+      padding: 10px;
+      min-width: 120px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+    }
+
+    /* ── Data Search Card ───────────────────────────────────── */
+    .data-search-card {
+      background: linear-gradient(135deg, rgba(15,20,30,0.9), rgba(22,28,40,0.85));
+      border: 1px solid rgba(163,113,247,0.35);
+      border-radius: 20px; padding: 28px 32px; margin-bottom: 28px;
+      backdrop-filter: blur(14px); position: relative; overflow: hidden;
+      box-shadow: 0 0 40px rgba(163,113,247,0.06);
+    }
+    .data-search-card::before {
+      content: ''; position: absolute; inset: 0;
+      background: linear-gradient(135deg, rgba(163,113,247,0.04), rgba(56,139,253,0.04));
+      pointer-events: none;
+    }
+    .search-card-title {
+      font-size: 16px; font-weight: 800; letter-spacing: -0.3px;
+      background: linear-gradient(135deg, #c084fc, #818cf8);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      margin-bottom: 6px; display: flex; align-items: center; gap: 10px;
+    }
+    .search-card-sub {
+      font-size: 12px; color: var(--text3); margin-bottom: 18px;
+    }
+    .search-input-wrap {
+      display: flex; gap: 10px; align-items: center;
+    }
+    .search-input-main {
+      flex: 1; background: rgba(10,14,23,0.7); border: 1.5px solid rgba(163,113,247,0.3);
+      color: var(--text); padding: 13px 18px; border-radius: 12px;
+      font-family: var(--font); font-size: 14px; outline: none; transition: border 0.2s;
+    }
+    .search-input-main:focus { border-color: rgba(163,113,247,0.7); }
+    .search-input-main::placeholder { color: var(--text3); }
+    .btn-search {
+      background: linear-gradient(135deg, #a855f7, #6366f1); color: #fff;
+      padding: 13px 22px; border: none; border-radius: 12px; font-family: var(--font);
+      font-size: 13px; font-weight: 700; cursor: pointer; transition: all 0.2s;
+      display: inline-flex; align-items: center; gap: 8px; white-space: nowrap;
+    }
+    .btn-search:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(168,85,247,0.35); }
+    .btn-search:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+    .quick-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+    .quick-chip {
+      background: rgba(99,102,241,0.1); border: 1px solid rgba(99,102,241,0.25);
+      color: #a5b4fc; padding: 5px 14px; border-radius: 20px; font-size: 11px;
+      font-weight: 600; cursor: pointer; transition: all 0.18s; white-space: nowrap;
+    }
+    .quick-chip:hover { background: rgba(99,102,241,0.2); border-color: rgba(99,102,241,0.5); color: #c7d2fe; transform: translateY(-1px); }
+
+    /* ── Explain Result Panel ────────────────────────────────── */
+    .explain-result {
+      margin-top: 22px; border-top: 1px solid rgba(163,113,247,0.18); padding-top: 20px;
+      display: none; animation: fadeIn 0.35s ease;
+    }
+    .explain-result.visible { display: block; }
+    .explain-header {
+      display: flex; align-items: center; gap: 12px; margin-bottom: 16px; flex-wrap: wrap;
+    }
+    .explain-interp {
+      font-size: 13px; font-weight: 700; color: var(--text);
+      background: rgba(99,102,241,0.12); border: 1px solid rgba(99,102,241,0.25);
+      padding: 6px 14px; border-radius: 20px;
+    }
+    .confidence-badge {
+      font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px;
+      padding: 4px 10px; border-radius: 20px;
+    }
+    .conf-high { background: rgba(63,185,80,0.12); color: var(--green); border: 1px solid rgba(63,185,80,0.25); }
+    .conf-medium { background: rgba(210,153,34,0.12); color: var(--yellow); border: 1px solid rgba(210,153,34,0.25); }
+    .conf-low { background: rgba(248,81,73,0.12); color: var(--red); border: 1px solid rgba(248,81,73,0.25); }
+    .explain-body { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    @media (max-width: 700px) { .explain-body { grid-template-columns: 1fr; } }
+    .explain-block h5 {
+      font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.6px;
+      color: var(--text3); margin-bottom: 10px;
+    }
+    .table-suggest {
+      background: rgba(56,139,253,0.06); border: 1px solid rgba(56,139,253,0.2);
+      border-radius: 12px; padding: 14px 16px; display: flex; align-items: center; gap: 12px;
+    }
+    .table-suggest .ts-icon { font-size: 26px; }
+    .table-suggest .ts-name { font-size: 14px; font-weight: 700; color: var(--accent); }
+    .table-suggest .ts-desc { font-size: 11px; color: var(--text3); margin-top: 2px; }
+    .step-list { list-style: none; display: flex; flex-direction: column; gap: 9px; }
+    .step-item {
+      display: flex; align-items: flex-start; gap: 10px;
+      font-size: 12px; color: var(--text2); line-height: 1.55;
+    }
+    .step-num {
+      min-width: 22px; height: 22px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent2), var(--accent));
+      color: #fff; font-size: 10px; font-weight: 800;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px;
+    }
+    .step-item strong { color: var(--text); }
+    .filters-block {
+      background: rgba(240,136,62,0.06); border: 1px solid rgba(240,136,62,0.2);
+      border-radius: 10px; padding: 12px 14px; margin-top: 10px;
+    }
+    .filter-tag {
+      display: inline-flex; align-items: center; gap: 5px;
+      background: rgba(240,136,62,0.1); color: var(--orange);
+      border: 1px solid rgba(240,136,62,0.2); border-radius: 20px;
+      font-size: 10px; font-weight: 700; padding: 3px 10px; margin: 3px 3px 3px 0;
+    }
+    .alt-tables { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+    .alt-table-btn {
+      background: rgba(56,139,253,0.06); border: 1px solid rgba(56,139,253,0.2);
+      color: var(--text2); padding: 5px 12px; border-radius: 8px;
+      font-size: 11px; font-weight: 600; cursor: pointer; transition: all 0.18s;
+    }
+    .alt-table-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .search-spinner {
+      display: none; width: 18px; height: 18px; border: 2.5px solid rgba(255,255,255,0.3);
+      border-top-color: #fff; border-radius: 50%; animation: spin 0.7s linear infinite;
+    }
+  </style>
+</head>
+<body>
+
+<div class="mesh-bg">
+  <div class="mesh-ball ball-1"></div>
+  <div class="mesh-ball ball-2"></div>
+  <div class="mesh-ball ball-3"></div>
+</div>
+
+<div class="app">
+  <!-- Header -->
+  <header class="header">
+    <div class="logo-icon">SD</div>
+    <div class="logo-text">
+      <h1>TestwrightAI Synthetic Data</h1>
+      <p>AI-Powered Banking Data Platform</p>
+    </div>
+    <div class="header-spacer"></div>
+    <span class="version-badge">v{{ version }}</span>
+  </header>
+
+  <div class="content">
+    <!-- ─── Data Search Card ──────────────────────────── -->
+    <div class="data-search-card" id="data-search-card">
+      <div class="search-card-title">🔍 Ne tür veri istiyorsunuz?</div>
+      <div class="search-card-sub">Türkçe olarak açıklayın — sistem nasıl üreteceğinizi adım adım göstersin.</div>
+      <div class="search-input-wrap">
+        <input
+          type="text"
+          id="search-prompt-input"
+          class="search-input-main"
+          placeholder="Örn: 2000 adet yüksek riskli ve gecikmesi olan müşteri istiyorum..."
+          onkeypress="if(event.key==='Enter') runExplain()"
+        />
+        <button class="btn-search" id="btn-search" onclick="runExplain()">
+          <div class="search-spinner" id="search-spinner"></div>
+          <span id="search-btn-label">✨ Analiz Et</span>
+        </button>
+      </div>
+      <div class="quick-chips">
+        <span class="quick-chip" onclick="setChip('500 yüksek riskli müşteri')">⚠️ Yüksek riskli müşteriler</span>
+        <span class="quick-chip" onclick="setChip('1000 fraud içeren şüpheli işlem')">🚨 Fraud işlemler</span>
+        <span class="quick-chip" onclick="setChip('300 yeni kayıt olan müşteri')">🆕 Yeni müşteriler</span>
+        <span class="quick-chip" onclick="setChip('2000 premium vip müşteri yüksek bakiye')">💎 VIP müşteriler</span>
+        <span class="quick-chip" onclick="setChip('1500 kurumsal şirket hesabı')">🏢 Kurumsal hesaplar</span>
+        <span class="quick-chip" onclick="setChip('5000 kredi kartı işlemi')">💳 Kredi kartı işlemleri</span>
+      </div>
+
+      <!-- Result Panel -->
+      <div class="explain-result" id="explain-result">
+        <div class="explain-header">
+          <span class="explain-interp" id="explain-interp"></span>
+          <span class="confidence-badge" id="explain-conf"></span>
+        </div>
+        <div class="explain-body">
+          <!-- Left: Table + Alt tables -->
+          <div class="explain-block">
+            <h5>📋 Önerilen Tablo</h5>
+            <div class="table-suggest" id="explain-table-box">
+              <div class="ts-icon" id="explain-table-icon"></div>
+              <div>
+                <div class="ts-name" id="explain-table-name"></div>
+                <div class="ts-desc" id="explain-table-desc"></div>
+              </div>
+            </div>
+            <div style="margin-top:14px">
+              <h5>🔀 Alternatif Tablolar</h5>
+              <div class="alt-tables" id="explain-alt-tables"></div>
+            </div>
+            <div class="filters-block" id="explain-filters-block" style="display:none; margin-top:14px">
+              <h5 style="margin-bottom:8px">🎯 Önerilen Filtreler</h5>
+              <div id="explain-filters"></div>
+            </div>
+          </div>
+          <!-- Right: Steps -->
+          <div class="explain-block">
+            <h5>📌 Nasıl Üretilir — Adım Adım</h5>
+            <ol class="step-list" id="explain-steps"></ol>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── Diagram Nav Button ────────────────────── -->
+    <button class="nav-diagram-btn" onclick="showSection('section-diagram'); loadDiagram()">
+      🕸️ İlişki Diyagramı — Tablo Bağlantılarını Görüntüle
+    </button>
+
+
+    <!-- ─── Section 1: Upload ──────────────────────── -->
+    <div id="section-upload" class="section active">
+      <div class="card">
+        <div class="card-title"><span class="icon">📤</span> Veri Kaynağı Yükle</div>
+        <div class="upload-zone" id="upload-zone"
+             ondragover="event.preventDefault(); this.classList.add('dragover')"
+             ondragleave="this.classList.remove('dragover')"
+             ondrop="handleDrop(event)">
+          <input type="file" accept=".csv,.json" onchange="handleUpload(this.files[0])" />
+          <div class="icon">📁</div>
+          <h3>CSV veya JSON dosyanızı sürükleyin</h3>
+          <p>veya tıklayarak seçin — Şema otomatik analiz edilecek</p>
+        </div>
+      </div>
+
+      <!-- Hazır Bankacılık Veritabanları -->
+      <div style="margin-top: 40px; margin-bottom: 20px;">
+        <h3 style="font-size: 16px; font-weight: 700; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+          <span>🏦</span> Hazır Bankacılık Veritabanları
+        </h3>
+        <p style="font-size: 13px; color: var(--text3); margin-bottom: 16px;">
+          Arka planda üretilip SQL veritabanına entegre edilmiş 145.000+ satırlık bankacılık verisi. Sentezlemek için bir tablo seçin.
+        </p>
+        <div class="scenarios-grid" id="ready-schemas-grid"></div>
+      </div>
+
+      <div class="stats-row" id="home-stats" style="display:none">
+        <div class="stat-card"><div class="num" id="stat-projects">0</div><div class="label">Projeler</div></div>
+        <div class="stat-card"><div class="num" id="stat-schemas">0</div><div class="label">Şemalar</div></div>
+        <div class="stat-card"><div class="num" id="stat-generations">0</div><div class="label">Üretimler</div></div>
+        <div class="stat-card"><div class="num" id="stat-rows">0</div><div class="label">Toplam Satır</div></div>
+      </div>
+    </div>
+
+    <!-- Onboarding Guide -->
+    <div id="onboarding-card" class="card" style="margin-bottom: 24px; border-left: 4px solid var(--accent2); background: rgba(163,113,247,0.05); padding: 16px;">
+      <div style="display:flex; gap:16px; align-items:center;">
+        <div style="font-size:32px;">💡</div>
+        <div style="flex:1">
+          <h4 style="margin:0; color:var(--accent2); font-size:15px;">Nasıl Veri Üretirim?</h4>
+          <div style="font-size:12px; color:var(--text2); margin-top:6px; display:flex; flex-wrap:wrap; gap:16px;">
+            <span><strong>1. Başla:</strong> Aşağıdan bir şablon seçin veya CSV yükleyin.</span>
+            <span><strong>2. İncele:</strong> Tablo yapısını ve semantik açıklamaları kontrol edin.</span>
+            <span><strong>3. İlişkiler:</strong> 'İlişki Diyagramı' ile tüm DB ağacını görün.</span>
+            <span><strong>4. Üret:</strong> Sayfa sonundaki butona basın.</span>
+          </div>
+        </div>
+        <button class="btn btn-ghost" onclick="document.getElementById('onboarding-card').remove()" style="padding:4px 8px;">✕</button>
+      </div>
+    </div>
+
+    <!-- Step-by-Step Guide (Help Card) -->
+    <div id="onboarding-card" class="card" style="margin-bottom: 24px; border-left: 4px solid var(--accent2); background: rgba(163,113,247,0.05); padding: 16px;">
+      <div style="display:flex; gap:16px; align-items:center;">
+        <div style="font-size:32px;">💡</div>
+        <div style="flex:1">
+          <h4 style="margin:0; color:var(--accent2); font-size:16px;">Nasıl Veri Üretirim?</h4>
+          <div style="font-size:12px; color:var(--text2); margin-top:6px; display:flex; flex-wrap:wrap; gap:16px;">
+            <span><strong>1. Seçim:</strong> Alttaki "Hazır Şablonlar"dan birini seçin veya dosya yükleyin.</span>
+            <span><strong>2. İnceleme:</strong> Tablo ilişkilerini görmek için "İlişki Diyagramı"na tıklayın.</span>
+            <span><strong>3. Özelleştirme:</strong> Kolon kurallarını ve senaryoyu ayarlayın.</span>
+            <span><strong>4. Üret:</strong> Sayfanın sonundaki "Veri Üret" butonuna basın.</span>
+          </div>
+        </div>
+        <button class="btn btn-ghost" onclick="document.getElementById('onboarding-card').remove()" style="padding:4px 8px;">✕</button>
+      </div>
+    </div>
+
+    <!-- ─── Section 2: Schema Analysis ─────────────── -->
+    <div id="section-schema" class="section">
+      <div class="card" style="position:relative">
+        <div class="loading-overlay" id="analyze-loading">
+          <div class="spinner"></div>
+          <div style="color:var(--text3); font-size:13px">Şema analiz ediliyor...</div>
+        </div>
+
+        <div class="card-title">
+          <button class="btn btn-ghost" style="padding: 6px 12px; font-size: 12px; margin-right: 12px;" onclick="showSection('section-upload')">⬅️ Geri</button>
+          <span class="icon">🔍</span> Şema Analizi — <span id="schema-table-name">-</span>
+          <div id="schema-table-desc" style="font-size:12px; color:var(--text3); font-weight:400; margin-top:4px; font-style:italic;"></div>
+        </div>
+
+        <div class="stats-row" id="schema-stats" style="display:none">
+          <div class="stat-card"><div class="num" id="col-count">0</div><div class="label">Kolon</div></div>
+          <div class="stat-card"><div class="num" id="row-count">0</div><div class="label">Kaynak Satır</div></div>
+          <div class="stat-card"><div class="num" id="pii-count">0</div><div class="label">PII Alan</div></div>
+          <div class="stat-card"><div class="num" id="rule-count">0</div><div class="label">Kural</div></div>
+        </div>
+
+        <div id="pii-banner" class="pii-banner" style="display:none">
+          <span class="pii-icon">🛡️</span>
+          <div class="pii-text">
+            <strong id="pii-fields-text">0 PII alanı</strong> tespit edildi.
+            Sentetik veri bu alanlar için gerçekçi ama tamamen sahte veriler üretecektir.
+          </div>
+        </div>
+
+        <div class="columns-grid" id="columns-grid"></div>
+        
+        <div style="margin-top: 20px; text-align: right;">
+          <button class="btn btn-primary" onclick="saveRules()"><span class="icon">💾</span> Kuralları Kaydet</button>
+        </div>
+      </div>
+
+      <!-- Generation Controls -->
+      <div class="card" id="gen-controls" style="display:none">
+        <div class="card-title"><span class="icon">⚡</span> Veri Üretimi</div>
+
+        <h4 style="font-size:13px; color:var(--text2); margin-bottom:12px">📦 Senaryo Seçin</h4>
+        <div class="scenarios-grid" id="scenarios-grid"></div>
+
+        <div class="controls-row" style="margin-top:20px">
+          <label style="font-size:12px; color:var(--text3); font-weight:600">SATIR SAYISI</label>
+          <input type="number" id="gen-row-count" value="1000" min="10" max="100000" class="input-styled" style="width:120px" />
+          <label style="font-size:12px; color:var(--text3); font-weight:600">FORMAT</label>
+          <select id="gen-format" class="input-styled" style="width:120px">
+            <option value="json">JSON</option>
+            <option value="csv">CSV</option>
+            <option value="sql">SQL</option>
+          </select>
+          </select>
+          <div style="flex:1"></div>
+          <button class="btn btn-primary" onclick="generateData()">⚡ Üret</button>
+          <button class="btn btn-green" onclick="exportData('csv')">📥 CSV İndir</button>
+          <button class="btn btn-ghost" onclick="exportData('sql')">💾 SQL İndir</button>
+        </div>
+      </div>
+
+      <!-- AI Prompt Box -->
+      <div class="card" id="ai-query-card" style="display:none; border-color: rgba(163,113,247,0.4); background: linear-gradient(180deg, var(--bg2) 0%, rgba(163,113,247,0.02) 100%);">
+        <div class="card-title" style="color: var(--accent2)"><span class="icon">✨</span> AI Asistan ile Veri Sentezle</div>
+        <p style="font-size: 13px; color: var(--text3); margin-bottom: 12px;">Ne tür bir bankacılık verisine ihtiyacınız var? Sistemin yapısını öğrendikçe daha karmaşık senaryoları anlayabilir.</p>
+        <div style="display: flex; gap: 10px;">
+          <input type="text" id="ai-prompt-input" class="input-styled" style="flex:1; border-color: rgba(163,113,247,0.3);" placeholder="Örn: Bana 500 tane yüksek riskli ve gecikmesi olan müşteri getir..." onkeypress="if(event.key === 'Enter') generateFromAI()">
+          <button class="btn" style="background: linear-gradient(135deg, var(--accent2), #7b42f6); color: #fff;" onclick="generateFromAI()"><span class="icon">🪄</span> Sorgula ve Üret</button>
+        </div>
+      </div>
+      <!-- AI Workflow Visualizer -->
+      <div class="card" id="ai-workflow-card" style="display:none; border-top: 1px solid rgba(163,113,247,0.2); padding-top: 15px; background: rgba(163,113,247,0.01);">
+        <div style="font-size:11px; color:var(--accent2); margin-bottom:10px; text-transform:uppercase; font-weight:bold; letter-spacing:1px;">🧬 Üretim Akış Şeması (n8n Style)</div>
+        <div id="flow-container" style="display:flex; align-items:center; gap:10px; overflow-x:auto; padding-bottom:10px;">
+          <!-- Workflow nodes will be injected here -->
+        </div>
+      </div>
+
+      <!-- Preview Table -->
+      <div class="card" id="preview-card" style="display:none">
+        <div class="card-title">
+          <span class="icon">📊</span> Önizleme
+          <span style="flex:1"></span>
+          <span id="preview-info" style="font-size:12px; color:var(--text3)"></span>
+        </div>
+        <div class="preview-wrap">
+          <table class="preview-table" id="preview-table">
+            <thead id="preview-thead"></thead>
+            <tbody id="preview-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    
+    <!-- ─── Section 4: Auto Generation ────────────── -->
+    <div id="section-auto-gen" class="section">
+      <div class="card">
+        <div class="card-title"><span class="icon">🤖</span> Otomatik Üretim & Zamanlama</div>
+        <p style="font-size:13px; color:var(--text3); margin-bottom:20px;">Arkaplanda sürekli çalışan veri üretim senaryoları tanımlayın.</p>
+        
+        <div style="background:var(--bg3); border:1px solid var(--border); border-radius:12px; padding:20px; margin-bottom:24px;">
+          <h4 style="font-size:14px; font-weight:700; margin-bottom:16px;">Yeni Zamanlı İş Ekle</h4>
+          <div class="controls-row" style="margin-bottom:0">
+            <div style="flex:1">
+              <label style="font-size:10px; color:var(--text3); font-weight:700; margin-bottom:4px; display:block;">TABLO SEÇİMİ</label>
+              <select id="auto-schema-select" class="input-styled" style="width:100%"><option>Yükleniyor...</option></select>
+            </div>
+            <div>
+              <label style="font-size:10px; color:var(--text3); font-weight:700; margin-bottom:4px; display:block;">SATIR (HER ÇALIŞMA)</label>
+              <input type="number" id="auto-count" value="100" class="input-styled" style="width:120px" />
+            </div>
+            <div>
+              <label style="font-size:10px; color:var(--text3); font-weight:700; margin-bottom:4px; display:block;">PERİYOT (DAKİKA)</label>
+              <input type="number" id="auto-interval" value="60" class="input-styled" style="width:120px" />
+            </div>
+            <div style="align-self:flex-end;">
+              <button class="btn btn-primary" onclick="createAutoJob()">Zamanla</button>
+            </div>
+          </div>
+        </div>
+
+        <h4 style="font-size:14px; font-weight:700; margin-bottom:16px;">Aktif İşler</h4>
+        <div class="preview-wrap">
+          <table class="preview-table">
+            <thead>
+              <tr>
+                <th>Job ID</th>
+                <th>Etiket</th>
+                <th>Satır / Periyot</th>
+                <th>Son Çalışma</th>
+                <th>Çalışma Sayısı</th>
+                <th>İşlemler</th>
+              </tr>
+            </thead>
+            <tbody id="jobs-tbody">
+              <tr><td colspan="6" style="text-align:center;">Aktif iş bulunmuyor.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    
+    <!-- ─── Section 5: Learning Center ────────────── -->
+    <div id="section-learning" class="section">
+      <div class="card">
+        <div class="card-title">
+          <span class="icon">🧠</span> Sürekli Öğrenme Merkezi
+          <span class="version-badge" style="margin-left:8px; background:rgba(163,113,247,0.1); color:var(--accent2); border-color:rgba(163,113,247,0.2)">Model Drift Analytics</span>
+        </div>
+        <p style="font-size:13px; color:var(--text3); margin-bottom:20px;">
+          Motor, geçmiş üretim istatistiklerini izleyerek mevcut üretim kurallarının gerçek verilerden sapmasını (drift) tespit eder ve düzeltme önerir.
+        </p>
+
+        <div style="display:flex; gap:12px; margin-bottom:24px; align-items:center;">
+          <select id="learn-schema-select" class="input-styled" style="width:250px"><option>Şema Seçin...</option></select>
+          <button class="btn btn-primary" onclick="analyzeSchemaLearning()"><span class="icon">🔍</span> Analiz Et</button>
+        </div>
+
+        <div id="learning-results" style="display:none;">
+          <div class="stats-row" style="margin-bottom:16px;">
+            <div class="stat-card" style="border-color:rgba(163,113,247,0.3);"><div class="num" id="learn-confidence" style="background:linear-gradient(135deg, var(--accent2), #5b6abf); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;">%0</div><div class="label">Güven Skoru</div></div>
+            <div class="stat-card"><div class="num" id="learn-samples">0</div><div class="label">İncelenen Satır</div></div>
+            <div class="stat-card"><div class="num" id="learn-insights">0</div><div class="label">Tespitler</div></div>
+            <div class="stat-card" style="border-color:rgba(240,136,62,0.3);"><div class="num" id="learn-suggestions" style="color:var(--orange); -webkit-text-fill-color: initial;">0</div><div class="label">Önerilen Değişiklik</div></div>
+          </div>
+          
+          <div id="learning-suggestions-container" style="display:grid; gap:16px;"></div>
+          
+          <div style="margin-top:24px; text-align:right;">
+             <button id="btn-apply-suggestions" class="btn btn-green" onclick="applyLearningSuggestions()" style="display:none;"><span class="icon">✨</span> Önerileri Uygula</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── Section 3: Relationship Diagram ──────── -->
+    <div id="section-diagram" class="section">
+      <div class="card">
+        <div class="diagram-toolbar">
+          <h3>🕸️ İlişki Diyagramı</h3>
+          <select id="db-select" class="input-styled" style="padding:6px 10px; font-size:12px; background:var(--bg3); color:var(--text); border-color:var(--border); border-radius:6px; outline:none; max-width:260px;" onchange="handleDBSelectChange()">
+            <option value="internal">İç Şemalar (banking_core)</option>
+            <option value="internet_banking_real.db">Gerçek Banka Verisi (UCI)</option>
+            <option value="massive_bank.db">Devasa Simüle Banka (110 Tablo)</option>
+          </select>
+          <span style="font-size:12px;color:var(--text3); margin-left: 10px;" id="diagram-info">—</span>
+          <span style="flex:1"></span>
+          <button class="btn btn-ghost" id="btn-layout-toggle" onclick="toggleDiagramLayout()" style="padding:6px 14px;font-size:12px">📐 Hiyerarşik</button>
+        </div>
+
+        <div id="diagram-svg-wrap">
+          <div id="d-tooltip"></div>
+          <svg id="diagram-svg">
+            <defs>
+              <marker id="arrow-high" markerWidth="8" markerHeight="8" refX="8" refY="3" orient="auto">
+                <path d="M0,0 L0,6 L8,3 z" fill="#3fb950"/>
+              </marker>
+              <marker id="arrow-mid" markerWidth="8" markerHeight="8" refX="8" refY="3" orient="auto">
+                <path d="M0,0 L0,6 L8,3 z" fill="#d29922"/>
+              </marker>
+              <marker id="arrow-low" markerWidth="8" markerHeight="8" refX="8" refY="3" orient="auto">
+                <path d="M0,0 L0,6 L8,3 z" fill="#f85149"/>
+              </marker>
+            </defs>
+            <g id="diagram-g"></g>
+          </svg>
+          <div class="diagram-empty" id="diagram-empty" style="display:none">
+            <div class="big-icon">🕸️</div>
+            <div>Henüz analiz edilmiş şema bulunmuyor.</div>
+            <div style="font-size:11px">Önce bir CSV veya veritabanı tablosu yükleyin.</div>
+          </div>
+        </div>
+
+        <div id="diagram-detail">
+          <h4 id="detail-title">Kolon Detayları</h4>
+          <div id="detail-columns"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast-container" id="toast-container"></div>
+
+<script>
+/* ── State ──────────────────────────────────────────────── */
+let currentSchema = null;
+let currentSchemaId = null;
+let currentProjectId = null;
+let selectedScenario = 'default';
+
+/* ── Upload ─────────────────────────────────────────────── */
+function handleDrop(e) {
+  e.preventDefault();
+  e.target.closest('.upload-zone')?.classList.remove('dragover');
+  const file = e.dataTransfer.files[0];
+  if (file) handleUpload(file);
+}
+
+async function handleUpload(file) {
+  if (!file) return;
+  toast('📤 Dosya analiz ediliyor: ' + file.name, 'ok');
+  
+  // Hide onboarding on active work
+  const ob = document.getElementById('onboarding-card');
+  if(ob) ob.style.display = 'none';
+
+  showSection('section-schema');
+  document.getElementById('analyze-loading').classList.add('active');
+
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('project_name', file.name.replace(/\.[^.]+$/, ''));
+
+  try {
+    const res = await fetch('/api/schemas/analyze', { method: 'POST', body: formData });
+    const data = await res.json();
+
+    if (data.error) throw new Error(data.error);
+
+    currentSchema = data.schema;
+    currentSchemaId = data.schema_id;
+    currentProjectId = data.project_id;
+
+    renderSchemaAnalysis(data);
+    toast('✅ Şema başarıyla analiz edildi!', 'ok');
+  } catch (e) {
+    toast('❌ Hata: ' + e.message, 'err');
+  } finally {
+    document.getElementById('analyze-loading').classList.remove('active');
+  }
+}
+
+/* ── Ready Schemas ──────────────────────────────────────── */
+async function loadReadySchemas() {
+  try {
+    const res = await fetch('/api/schemas/all');
+    const schemas = await res.json();
+    const grid = document.getElementById('ready-schemas-grid');
+    
+    if (schemas.length === 0) {
+      grid.innerHTML = '<div style="color:var(--text3); font-size:13px; grid-column: 1/-1;">Henüz hazır veritabanı bulunmuyor.</div>';
+      return;
+    }
+
+    grid.innerHTML = schemas.map(s => {
+      let icon = '📊';
+      if(s.table_name === 'musteriler') icon = '👥';
+      if(s.table_name === 'hesaplar') icon = '💳';
+      if(s.table_name === 'islemler') icon = '💸';
+      if(s.table_name === 'kredi_kartlari') icon = '💳';
+
+      return `
+      <div class="scenario-card" onclick="selectReadySchema('${s.id}')">
+        <div class="sc-icon">${icon}</div>
+        <div class="sc-name" style="text-transform: capitalize;">${s.table_name}</div>
+        <div class="sc-desc">${s.row_count.toLocaleString()} Kayıt · ${s.columns_count} Kolon</div>
+      </div>
+      `;
+    }).join('');
+  } catch(e) { console.error(e); }
+}
+
+async function selectReadySchema(id) {
+  showSection('section-schema');
+  document.getElementById('analyze-loading').classList.add('active');
+  try {
+    const res = await fetch('/api/schemas/' + id);
+    const data = await res.json();
+    
+    currentSchema = data;
+    currentSchemaId = data.id;
+    
+    const piiCount = data.columns.filter(c => c.pii).length;
+    
+    renderSchemaAnalysis({
+      schema: data, 
+      rules: data.rules, 
+      pii_summary: { pii_columns: piiCount, pii_fields: data.columns.filter(c=>c.pii).map(c=>c.name) }
+    });
+    
+    toast('✅ Bankacılık Tablosu Yüklendi', 'ok');
+  } catch(e) {
+    toast('❌ Hata: ' + e.message, 'err');
+    showSection('section-upload');
+  } finally {
+    document.getElementById('analyze-loading').classList.remove('active');
+  }
+}
+
+// Sayfa yüklendiğinde hazır şemaları getir
+document.addEventListener('DOMContentLoaded', () => {
+  loadReadySchemas();
+});
+
+/* ── Render Schema ──────────────────────────────────────── */
+function renderSchemaAnalysis(data) {
+  // data can be { schema: {...}, rules: [...], ... } OR the schema object itself
+  const schema = data.schema || data;
+  const rules = data.rules || [];
+  const pii = data.pii_summary || {};
+
+  if (!schema || !schema.columns) {
+    console.warn("Invalid schema data for rendering", data);
+    return;
+  }
+
+  document.getElementById('schema-table-name').textContent = schema.table_name || 'Bilinmeyen Tablo';
+  document.getElementById('schema-table-desc').textContent = schema.table_description || 'Analiz ediliyor...';
+  document.getElementById('col-count').textContent = schema.columns.length;
+  document.getElementById('row-count').textContent = (schema.row_count || 0).toLocaleString();
+  document.getElementById('pii-count').textContent = pii.pii_columns || 0;
+  document.getElementById('rule-count').textContent = rules.length;
+  document.getElementById('schema-stats').style.display = '';
+
+  // PII Banner
+  if (pii.pii_columns > 0) {
+    document.getElementById('pii-banner').style.display = '';
+    document.getElementById('pii-fields-text').textContent =
+      pii.pii_columns + ' PII alanı (' + (pii.pii_fields || []).join(', ') + ')';
+  } else {
+    document.getElementById('pii-banner').style.display = 'none';
+  }
+
+  // Columns grid
+  const grid = document.getElementById('columns-grid');
+  grid.innerHTML = schema.columns.map(c => {
+    const isPii = c.pii;
+    const cls = c.classification || 'unknown';
+    const stats = c.stats || {};
+    const rule = rules.find(r => r.column_name === c.name) || {};
+    
+    const rule_type = rule.rule_type || (dtypeToDefaultRule(c.dtype, cls));
+    const rule_config = JSON.stringify(rule.rule_config || statsToDefaultConfig(c.dtype, cls, stats));
+
+    return `
+    <div class="col-card ${isPii ? 'pii' : ''}" data-col="${c.name}">
+      <div class="col-name">${c.name}</div>
+      <div class="col-desc" style="font-size:11px; color:var(--text3); margin-bottom:10px; font-style:italic;">${c.description || ''}</div>
+      <div class="col-type">${c.dtype}</div>
+      <span class="col-classification ${isPii ? 'pii-tag' : 'safe-tag'}">${isPii ? '🔒 ' : ''}${cls}</span>
+      
+      <div class="col-edit-row">
+        <div>
+          <div class="rule-label">VERİ TİPİ</div>
+          <select class="rule-select col-dtype-input">
+            <option value="string" ${c.dtype === 'string' ? 'selected' : ''}>String</option>
+            <option value="int" ${c.dtype === 'int' ? 'selected' : ''}>Integer</option>
+            <option value="float" ${c.dtype === 'float' ? 'selected' : ''}>Float</option>
+            <option value="datetime" ${c.dtype === 'datetime' ? 'selected' : ''}>DateTime</option>
+            <option value="boolean" ${c.dtype === 'boolean' ? 'selected' : ''}>Boolean</option>
+          </select>
+        </div>
+        <div>
+          <div class="rule-label">ÜRETİM KURALI</div>
+          <select class="rule-select col-rule-type-input">
+            <option value="faker" ${rule_type === 'faker' ? 'selected' : ''}>Faker (Sahte)</option>
+            <option value="range" ${rule_type === 'range' ? 'selected' : ''}>Range (Aralık)</option>
+            <option value="enum" ${rule_type === 'enum' ? 'selected' : ''}>Enum (Liste)</option>
+            <option value="sequential" ${rule_type === 'sequential' ? 'selected' : ''}>Sequential (Artan)</option>
+            <option value="date_range" ${rule_type === 'date_range' ? 'selected' : ''}>Date Range</option>
+          </select>
+        </div>
+        <div>
+          <div class="rule-label">KONFİGÜRASYON (JSON)</div>
+          <input type="text" class="rule-input col-rule-config-input" value='${rule_config.replace(/'/g, "&apos;")}' />
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+
+  // Show controls
+  document.getElementById('gen-controls').style.display = '';
+  document.getElementById('ai-query-card').style.display = '';
+  loadScenarios();
+}
+
+/* ── Scenarios ──────────────────────────────────────────── */
+async function loadScenarios() {
+  try {
+    const res = await fetch('/api/generate/scenarios');
+    const scenarios = await res.json();
+    const grid = document.getElementById('scenarios-grid');
+    grid.innerHTML = scenarios.map(s => `
+      <div class="scenario-card ${s.key === selectedScenario ? 'active' : ''}"
+           onclick="selectScenario('${s.key}')">
+        <div class="sc-icon">${s.icon}</div>
+        <div class="sc-name">${s.name}</div>
+        <div class="sc-desc">${s.description}</div>
+      </div>
+    `).join('');
+  } catch(e) { console.error(e); }
+}
+
+function selectScenario(key) {
+  selectedScenario = key;
+  document.querySelectorAll('.scenario-card').forEach(c => c.classList.remove('active'));
+  event.currentTarget.classList.add('active');
+}
+
+/* ── Save Rules ─────────────────────────────────────────── */
+async function saveRules() {
+  if (!currentSchemaId) return toast('Önce şema analiz edin', 'err');
+  
+  const cards = document.querySelectorAll('.col-card[data-col]');
+  const rules = [];
+  
+  cards.forEach(card => {
+    const name = card.getAttribute('data-col');
+    const rule_type = card.querySelector('.col-rule-type-input').value;
+    const config_str = card.querySelector('.col-rule-config-input').value;
+    
+    let config = {};
+    try {
+      config = JSON.parse(config_str);
+    } catch(e) {
+      console.warn(`Invalid JSON for ${name}:`, config_str);
+    }
+    
+    rules.push({
+      column_name: name,
+      rule_type: rule_type,
+      rule_config: config
+    });
+  });
+
+  try {
+    const res = await fetch(`/api/schemas/${currentSchemaId}/rules`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(rules)
+    });
+    
+    if (res.ok) {
+      toast('✅ Kurallar kaydedildi', 'ok');
+      const data = await res.json();
+      document.getElementById('rule-count').textContent = data.updated_count;
+    } else {
+      toast('❌ Kaydetme hatası', 'err');
+    }
+  } catch(e) {
+    toast('❌ Bağlantı hatası', 'err');
+  }
+}
+
+function dtypeToDefaultRule(dtype, cls) {
+  if (cls === 'id') return 'sequential';
+  if (cls === 'currency' || dtype === 'int' || dtype === 'float') return 'range';
+  if (cls === 'enum') return 'enum';
+  if (cls === 'datetime' || dtype === 'datetime') return 'date_range';
+  return 'faker';
+}
+
+function statsToDefaultConfig(dtype, cls, stats) {
+  if (cls === 'id') return { start: 1, step: 1 };
+  if (cls === 'currency' || dtype === 'int' || dtype === 'float') {
+    return { min: stats.min || 0, max: stats.max || 1000, mean: stats.mean || 500 };
+  }
+  if (cls === 'enum' && stats.top_values) {
+    return { values: Object.keys(stats.top_values), weights: Object.values(stats.top_values) };
+  }
+  if (cls === 'tc_kimlik') return { provider: 'ssn' };
+  if (cls === 'iban') return { provider: 'iban' };
+  if (cls === 'email') return { provider: 'email' };
+  if (cls === 'name') return { provider: 'name' };
+  if (cls === 'phone') return { provider: 'phone_number' };
+  
+  return { provider: 'word' };
+}
+
+/* ── Generate ───────────────────────────────────────────── */
+async function generateData() {
+  if (!currentSchemaId) return toast('Önce bir dosya yükleyin', 'err');
+  
+  const rowCount = parseInt(document.getElementById('gen-row-count').value) || 1000;
+  const format = document.getElementById('gen-format').value;
+
+  toast('⚡ Veri üretiliyor...', 'ok');
+
+  try {
+    const res = await fetch('/api/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        schema_id: currentSchemaId,
+        row_count: rowCount,
+        scenario: selectedScenario,
+        format: 'json', // always get preview as JSON
+      })
+    });
+
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+
+    renderPreview(data);
+    toast(`✅ ${data.row_count.toLocaleString()} satır üretildi (${data.duration_ms}ms)`, 'ok');
+  } catch (e) {
+    toast('❌ ' + e.message, 'err');
+  }
+}
+
+async function generateFromAI() {
+  const prompt = document.getElementById('ai-prompt-input').value;
+  if (!prompt) return toast('Lütfen bir doğal dil komutu girin', 'err');
+  if (!currentSchemaId) return toast('Önce bir tablo seçmelisiniz', 'err');
+
+  toast('🧠 AI cümlenizi yorumluyor ve öğreniyor...', 'ok');
+  
+  try {
+    const res = await fetch('/api/generate/ai-query', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        schema_id: currentSchemaId,
+        prompt: prompt
+      })
+    });
+
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+
+    renderWorkflow(prompt, data);
+    renderPreview(data);
+    toast(`✨ AI Yorumladı: "${data.ai_interpretation}" | ${data.row_count.toLocaleString()} satır üretildi`, 'ok');
+  } catch (e) {
+    toast('❌ ' + e.message, 'err');
+  }
+}
+
+function renderWorkflow(prompt, data) {
+  const card = document.getElementById('ai-workflow-card');
+  const container = document.getElementById('flow-container');
+  card.style.display = 'block';
+
+  const nodes = [
+    { id: 'start', label: 'User Request', icon: '📝', meta: prompt },
+    { id: 'nlp', label: 'NLP / Intent', icon: '🧠', meta: data.ai_interpretation || 'Semantic Analysis' },
+    { id: 'rules', label: 'Rule Engine', icon: '⚖️', meta: 'Banking Constraints Applied' },
+    { id: 'gen', label: 'Synthesizer', icon: '🧬', meta: `${data.row_count} Rows Generated` },
+    { id: 'rel', label: 'Relational Builder', icon: '🔗', meta: 'FK Integrity Preserved' },
+    { id: 'end', label: 'Output Ready', icon: '📊', meta: 'Preview Rendered' }
+  ];
+
+  container.innerHTML = nodes.map((n, i) => `
+    <div class="flow-node">
+      <div style="font-size:18px">${n.icon}</div>
+      <div style="font-weight:bold; font-size:11px">${n.label}</div>
+      <div style="font-size:9px; color:var(--text3); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100px;">${n.meta}</div>
+    </div>
+    ${i < nodes.length - 1 ? '<div style="color:var(--accent2); font-weight:bold;">→</div>' : ''}
+  `).join('');
+}
+
+function renderPreview(data) {
+  const card = document.getElementById('preview-card');
+  card.style.display = '';
+  
+  document.getElementById('preview-info').textContent = 
+    `${data.row_count.toLocaleString()} satır · ${data.scenario} · ${data.duration_ms}ms`;
+
+  const thead = document.getElementById('preview-thead');
+  const tbody = document.getElementById('preview-tbody');
+  const cols = data.columns || [];
+  const preview = data.preview || [];
+
+  thead.innerHTML = '<tr>' + cols.map(c => `<th>${c}</th>`).join('') + '</tr>';
+  tbody.innerHTML = preview.map(row => 
+    '<tr>' + cols.map(c => `<td>${row[c] ?? ''}</td>`).join('') + '</tr>'
+  ).join('');
+}
+
+/* ── Export ──────────────────────────────────────────────── */
+async function exportData(format) {
+  if (!currentSchemaId) return toast('Önce veri üretin', 'err');
+  
+  const rowCount = parseInt(document.getElementById('gen-row-count').value) || 1000;
+
+  try {
+    const res = await fetch('/api/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        schema_id: currentSchemaId,
+        row_count: rowCount,
+        scenario: selectedScenario,
+        format: format,
+      })
+    });
+
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `synthetic_data.${format}`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast(`📥 ${format.toUpperCase()} dosyası indirildi`, 'ok');
+  } catch(e) {
+    toast('❌ İndirme hatası', 'err');
+  }
+}
+
+/* ── Auto Generation (Jobs) ─────────────────────────────── */
+async function loadAutoJobs() {
+  try {
+    // Fill schema dropdown
+    const schemasRes = await fetch('/api/schemas/all');
+    const schemas = await schemasRes.json();
+    const select = document.getElementById('auto-schema-select');
+    select.innerHTML = schemas.map(s => `<option value="${s.id}">${s.table_name} (${s.row_count} satır)</option>`).join('');
+
+    // Load jobs
+    const jobsRes = await fetch('/api/generate/jobs');
+    const data = await jobsRes.json();
+    const tbody = document.getElementById('jobs-tbody');
+    
+    if(!data.jobs || data.jobs.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">Aktif iş bulunmuyor.</td></tr>';
+      return;
+    }
+    
+    tbody.innerHTML = data.jobs.map(j => `
+      <tr>
+        <td style="font-family:var(--mono); color:var(--accent); font-weight:700;">${j.job_id}</td>
+        <td>${j.label}</td>
+        <td>${j.row_count} satır / ${j.interval_minutes} dk</td>
+        <td>${j.last_run ? new Date(j.last_run).toLocaleString() : 'Hiç çalışmadı'}</td>
+        <td>${j.run_count}</td>
+        <td>
+          <button class="btn btn-ghost" style="padding:4px 8px; font-size:11px;" onclick="runAutoJob('${j.job_id}')">▶️ Çalıştır</button>
+          <button class="btn btn-ghost" style="padding:4px 8px; font-size:11px; color:var(--red);" onclick="deleteAutoJob('${j.job_id}')">🗑️ Sil</button>
+        </td>
+      </tr>
+    `).join('');
+  } catch(e) { console.error('Jobs load error:', e); }
+}
+
+async function createAutoJob() {
+  const schema_id = document.getElementById('auto-schema-select').value;
+  const count = parseInt(document.getElementById('auto-count').value) || 100;
+  const interval = parseInt(document.getElementById('auto-interval').value) || 60;
+  
+  if(!schema_id) return toast('Şema seçiniz', 'err');
+  
+  try {
+    const res = await fetch('/api/generate/jobs', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ schema_id: schema_id, row_count: count, interval_minutes: interval })
+    });
+    const data = await res.json();
+    if(res.ok) {
+      toast('✅ İş zamanlandı: ' + data.job.job_id, 'ok');
+      loadAutoJobs();
+    } else throw new Error(data.detail);
+  } catch(e) { toast('❌ Hata: ' + e.message, 'err'); }
+}
+
+async function runAutoJob(job_id) {
+  toast('⏳ İş tetikleniyor...', 'ok');
+  try {
+    const res = await fetch(`/api/generate/jobs/${job_id}/run`, { method: 'POST' });
+    const data = await res.json();
+    if(res.ok) {
+      toast(`✅ Tetiklendi: ${data.result_summary.row_count} satır üretildi`, 'ok');
+      loadAutoJobs();
+    } else throw new Error(data.detail);
+  } catch(e) { toast('❌ Hata: ' + e.message, 'err'); }
+}
+
+async function deleteAutoJob(job_id) {
+  try {
+    const res = await fetch(`/api/generate/jobs/${job_id}`, { method: 'DELETE' });
+    if(res.ok) {
+      toast('🗑️ İş silindi', 'ok');
+      loadAutoJobs();
+    }
+  } catch(e) { toast('❌ Silme hatası', 'err'); }
+}
+
+/* ── Learning Center ────────────────────────────────────── */
+let currentLearningSuggestions = [];
+let targetLearningSchema = null;
+
+async function loadLearningSchemas() {
+  try {
+    const res = await fetch('/api/schemas/all');
+    const schemas = await res.json();
+    const select = document.getElementById('learn-schema-select');
+    select.innerHTML = schemas.map(s => `<option value="${s.id}">${s.table_name}</option>`).join('');
+  } catch(e) { console.error(e); }
+}
+
+async function analyzeSchemaLearning() {
+  const schema_id = document.getElementById('learn-schema-select').value;
+  if(!schema_id) return toast('Lütfen şema seçin', 'err');
+  
+  targetLearningSchema = schema_id;
+  toast('🧠 AI geçmiş üretimleri analiz ediyor...', 'ok');
+  
+  try {
+    const res = await fetch(`/api/learn/${schema_id}`);
+    const data = await res.json();
+    
+    document.getElementById('learning-results').style.display = 'block';
+    document.getElementById('learn-confidence').textContent = `%${Math.round(data.confidence * 100)}`;
+    document.getElementById('learn-samples').textContent = data.sample_rows.toLocaleString();
+    document.getElementById('learn-insights').textContent = data.insights.length;
+    document.getElementById('learn-suggestions').textContent = data.suggestions.length;
+    
+    currentLearningSuggestions = data.suggestions;
+    const btnApply = document.getElementById('btn-apply-suggestions');
+    const container = document.getElementById('learning-suggestions-container');
+    
+    if(data.suggestions.length > 0) {
+      btnApply.style.display = 'inline-flex';
+      container.innerHTML = data.suggestions.map(s => `
+        <div style="background:var(--bg4); border:1px solid rgba(240,136,62,0.3); border-left:4px solid var(--orange); border-radius:12px; padding:16px;">
+          <div style="display:flex; justify-content:space-between; margin-bottom:12px;">
+            <div style="font-family:var(--mono); color:var(--accent); font-weight:700;">${s.column}</div>
+            <div style="font-size:10px; color:var(--orange); font-weight:700; background:rgba(240,136,62,0.1); padding:2px 8px; border-radius:12px;">Drift: %${s.drift_pct}</div>
+          </div>
+          <div style="font-size:12px; color:var(--text2); margin-bottom:12px;">💡 ${s.reason}</div>
+          
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; font-family:var(--mono); font-size:11px;">
+            <div style="background:rgba(248,81,73,0.05); padding:10px; border-radius:8px; border:1px solid rgba(248,81,73,0.2);">
+              <div style="color:var(--text3); font-weight:700; margin-bottom:6px; font-family:var(--font); font-size:10px;">MEVCUT KURAL</div>
+              ${JSON.stringify(s.current_config).replace(/\"/g, '')}
+            </div>
+            <div style="background:rgba(63,185,80,0.05); padding:10px; border-radius:8px; border:1px solid rgba(63,185,80,0.2);">
+              <div style="color:var(--green); font-weight:700; margin-bottom:6px; font-family:var(--font); font-size:10px;">ÖNERİLEN KURAL</div>
+              ${JSON.stringify(s.suggested_config).replace(/\"/g, '')}
+            </div>
+          </div>
+        </div>
+      `).join('');
+    } else {
+      btnApply.style.display = 'none';
+      container.innerHTML = '<div style="color:var(--text3); font-size:13px; text-align:center; padding:20px;">Harika! Mevcut kurallarınız gerçek veri dağılımıyla tam uyumlu. Sapma (drift) tespit edilmedi.</div>';
+    }
+    
+    toast('✅ Analiz tamamlandı', 'ok');
+  } catch(e) { toast('❌ Analiz hatası: ' + e.message, 'err'); }
+}
+
+async function applyLearningSuggestions() {
+  if(!targetLearningSchema || currentLearningSuggestions.length === 0) return;
+  
+  try {
+    const res = await fetch(`/api/learn/apply`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ schema_id: targetLearningSchema, suggestions: currentLearningSuggestions })
+    });
+    
+    if(res.ok) {
+      toast('✨ Kurallar başarıyla güncellendi!', 'ok');
+      analyzeSchemaLearning(); // Re-analyze to show clear state
+    }
+  } catch(e) { toast('❌ Uygulama hatası', 'err'); }
+}
+
+/* ── Relationship Diagram ───────────────────────────────── */
+let diagramSimulation = null;
+let diagramLayout = 'force'; // 'force' | 'tree'
+let allDiagramData = { nodes: [], edges: [] };
+
+function handleDBSelectChange() {
+  const val = document.getElementById('db-select').value;
+  if(val === 'internal') {
+    loadDiagram('internal');
+  } else {
+    connectToDB(val);
+  }
+}
+
+async function connectToDB(path) {
+  if(!path) return;
+  
+  const emptyEl = document.getElementById('diagram-empty');
+  const infoEl = document.getElementById('diagram-info');
+  
+  infoEl.innerHTML = '<span class="spinner" style="width:12px;height:12px"></span> Bağlanılıyor...';
+  try {
+    const res = await fetch('/api/schemas/connect-db', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ db_path: path })
+    });
+    
+    if(!res.ok) {
+      const err = await res.json();
+      throw new Error(err.detail || 'Bilinmeyen Hata');
+    }
+    
+    const data = await res.json();
+    if (!data.nodes || data.nodes.length === 0) {
+      emptyEl.style.display = 'flex';
+      document.getElementById('diagram-g').innerHTML = '';
+      infoEl.textContent = 'Tablo bulunamadı';
+      return;
+    }
+    emptyEl.style.display = 'none';
+    infoEl.textContent = `${data.nodes.length} tablo · ${data.edges.length} ilişki`;
+    
+    // Normalize data for d3 preview
+    data.edges = data.edges.map(e => ({
+      source: e.from, target: e.to, 
+      from_column: e.label || '', to_column: 'id', confidence: 1.0
+    }));
+    Object.freeze(data);
+    renderDiagram(data);
+    toast('✅ Veritabanına bağlanıldı ve ağaç çizildi', 'ok');
+  } catch(e) {
+    infoEl.textContent = '—';
+    toast('❌ Bağlantı hatası: ' + e.message, 'err');
+  }
+}
+
+async function loadDiagram(mode = 'internal') {
+  const wrap = document.getElementById('diagram-svg-wrap');
+  const emptyEl = document.getElementById('diagram-empty');
+  const infoEl = document.getElementById('diagram-info');
+
+  if(mode === 'internal') {
+    try {
+      const res = await fetch('/api/schemas/graph');
+      const data = await res.json();
+
+      if (!data.nodes || data.nodes.length === 0) {
+        emptyEl.style.display = 'flex';
+        document.getElementById('diagram-g').innerHTML = '';
+        infoEl.textContent = 'Şema bulunamadı';
+        return;
+      }
+      emptyEl.style.display = 'none';
+      infoEl.textContent = `${data.nodes.length} tablo · ${data.edges.length} ilişki`;
+      allDiagramData = data;
+      renderDiagram(data);
+    } catch(e) {
+      toast('❌ Diyagram yüklenemedi: ' + e.message, 'err');
+    }
+  }
+}
+
+function renderDiagram(data) {
+  const svg = d3.select('#diagram-svg');
+  const g = d3.select('#diagram-g');
+  g.selectAll('*').remove();
+
+  const W = document.getElementById('diagram-svg-wrap').clientWidth || 900;
+  const H = document.getElementById('diagram-svg-wrap').clientHeight || 560;
+  svg.attr('viewBox', `0 0 ${W} ${H}`);
+
+  // node dimensions
+  const NW = 180, NH = 58;
+
+  // zoom + pan
+  const zoom = d3.zoom().scaleExtent([0.3, 2.5]).on('zoom', e => g.attr('transform', e.transform));
+  svg.call(zoom);
+
+  const tooltip = document.getElementById('d-tooltip');
+
+  // deep copy nodes so d3 can mutate
+  const nodes = data.nodes.map(n => ({ ...n }));
+  const nodeById = Object.fromEntries(nodes.map(n => [n.id, n]));
+
+  const links = data.edges
+    .filter(e => nodeById[e.source] && nodeById[e.target])
+    .map(e => ({ ...e })); // Keep source/target as IDs
+
+  if (diagramSimulation) diagramSimulation.stop();
+
+  if (diagramLayout === 'tree' && links.length > 0) {
+    // Hierarchical tree layout
+    renderTreeLayout(g, nodes, links, nodeById, W, H, NW, NH, tooltip);
+  } else {
+    // Force-directed layout
+    diagramSimulation = d3.forceSimulation(nodes)
+      .force('link', d3.forceLink(links).id(d => d.id).distance(250).strength(1))
+      .force('charge', d3.forceManyBody().strength(-800))
+      .force('center', d3.forceCenter(W / 2, H / 2))
+      .force('collide', d3.forceCollide(120));
+
+    const link = g.selectAll('.d-link')
+      .data(links).enter().append('line')
+      .attr('class', d => 'd-link ' + confidenceClass(d.confidence))
+      .attr('marker-end', d => `url(#arrow-${confidenceClass(d.confidence)})`);
+
+    const linkLabel = g.selectAll('.d-link-label')
+      .data(links).enter().append('text')
+      .attr('class', 'd-link-label')
+      .text(d => `${d.from_column} → ${d.to_column}`);
+
+    const node = g.selectAll('.d-node')
+      .data(nodes).enter().append('g')
+      .attr('class', 'd-node')
+      .call(d3.drag()
+        .on('start', (event, d) => { if (!event.active) diagramSimulation.alphaTarget(0.3).restart(); d.fx = d.x; d.fy = d.y; })
+        .on('drag',  (event, d) => { d.fx = event.x; d.fy = event.y; })
+        .on('end',   (event, d) => { if (!event.active) diagramSimulation.alphaTarget(0); d.fx = null; d.fy = null; })
+      )
+      .on('click', (_, d) => showNodeDetail(d))
+      .on('mouseover', (event, d) => {
+        const rel = links.filter(l => l.source.id === d.id || l.target.id === d.id);
+        let html = `<strong>${d.label}</strong><br>${d.row_count.toLocaleString()} satır · ${d.columns.length} kolon`;
+        if (rel.length) {
+          html += '<br><br><strong style="color:var(--text2)">Bağlantılar:</strong>';
+          rel.forEach(r => { html += `<br>• ${r.from_column} → ${r.target.label}.${r.to_column} <span style="color:${confidenceColor(r.confidence)}">(${Math.round(r.confidence*100)}%)</span>`; });
+        }
+        tooltip.innerHTML = html;
+        tooltip.style.display = 'block';
+        positionTooltip(event);
+      })
+      .on('mousemove', positionTooltip)
+      .on('mouseout', () => { tooltip.style.display = 'none'; });
+
+    drawNodeRects(node, NW, NH);
+
+    diagramSimulation.on('tick', () => {
+      link.attr('x1', d => d.source.x).attr('y1', d => d.source.y)
+          .attr('x2', d => d.target.x - NW/2 * Math.sign(d.target.x - d.source.x))
+          .attr('y2', d => d.target.y);
+      linkLabel.attr('x', d => (d.source.x + d.target.x) / 2).attr('y', d => (d.source.y + d.target.y) / 2 - 6);
+      node.attr('transform', d => `translate(${d.x - NW/2},${d.y - NH/2})`);
+    });
+  }
+}
+
+function renderTreeLayout(g, nodes, links, nodeById, W, H, NW, NH, tooltip) {
+  // Build hierarchy from first root (node with no incoming edges)
+  const targetIds = new Set(links.map(l => l.target.id));
+  const roots = nodes.filter(n => !targetIds.has(n.id));
+  const root = roots[0] || nodes[0];
+
+  // Build tree data structure
+  function buildTree(nodeId, visited = new Set()) {
+    if (visited.has(nodeId)) return null;
+    visited.add(nodeId);
+    const n = nodeById[nodeId];
+    const children = links.filter(l => l.source.id === nodeId).map(l => buildTree(l.target.id, visited)).filter(Boolean);
+    return { ...n, children: children.length ? children : undefined };
+  }
+
+  const treeData = d3.hierarchy(buildTree(root.id));
+  const treeLayout = d3.tree().nodeSize([NW + 40, NH + 80]);
+  treeLayout(treeData);
+
+  // Center
+  const descendants = treeData.descendants();
+  const minX = d3.min(descendants, d => d.x);
+  const maxX = d3.max(descendants, d => d.x);
+  const offsetX = W / 2 - (minX + maxX) / 2;
+  const offsetY = 60;
+
+  // Draw links
+  g.selectAll('.d-link').data(treeData.links()).enter().append('path')
+    .attr('class', d => {
+      const edge = links.find(l => l.source.id === d.source.data.id && l.target.id === d.target.data.id);
+      return 'd-link ' + (edge ? confidenceClass(edge.confidence) : 'high');
+    })
+    .attr('marker-end', d => {
+      const edge = links.find(l => l.source.id === d.source.data.id && l.target.id === d.target.data.id);
+      return `url(#arrow-${edge ? confidenceClass(edge.confidence) : 'high'})`;
+    })
+    .attr('d', d => `M${d.source.x + offsetX},${d.source.y + offsetY + NH/2} C${d.source.x + offsetX},${(d.source.y + d.target.y)/2 + offsetY} ${d.target.x + offsetX},${(d.source.y + d.target.y)/2 + offsetY} ${d.target.x + offsetX},${d.target.y + offsetY - NH/2}`);
+
+  // Link labels
+  g.selectAll('.d-link-label').data(treeData.links()).enter().append('text')
+    .attr('class', 'd-link-label')
+    .attr('x', d => (d.source.x + d.target.x) / 2 + offsetX)
+    .attr('y', d => (d.source.y + d.target.y) / 2 + offsetY)
+    .text(d => {
+      const edge = links.find(l => l.source.id === d.source.data.id && l.target.id === d.target.data.id);
+      return edge ? `${edge.from_column} → ${edge.to_column}` : '';
+    });
+
+  // Draw nodes
+  const node = g.selectAll('.d-node').data(descendants).enter().append('g')
+    .attr('class', 'd-node')
+    .attr('transform', d => `translate(${d.x + offsetX - NW/2},${d.y + offsetY - NH/2})`)
+    .on('click', (_, d) => showNodeDetail(d.data))
+    .on('mouseover', (event, d) => {
+      tooltip.innerHTML = `<strong>${d.data.label}</strong><br>${d.data.row_count.toLocaleString()} satır · ${d.data.columns.length} kolon`;
+      tooltip.style.display = 'block';
+      positionTooltip(event);
+    })
+    .on('mousemove', positionTooltip)
+    .on('mouseout', () => { tooltip.style.display = 'none'; });
+
+  drawNodeRects(node, NW, NH);
+}
+
+function drawNodeRects(node, NW, NH) {
+  node.append('rect').attr('width', NW).attr('height', NH);
+  node.append('text').attr('class', 'node-icon').attr('x', 16).attr('y', 26)
+    .text(d => tableIcon(d.id || d.label));
+  node.append('text').attr('class', 'node-title').attr('x', 40).attr('y', 22)
+    .text(d => (d.label || d.id).length > 18 ? (d.label||d.id).slice(0,17)+'…' : (d.label||d.id));
+  node.append('text').attr('class', 'node-sub').attr('x', 40).attr('y', 38)
+    .text(d => `${(d.row_count||0).toLocaleString()} satır · ${(d.columns||[]).length} kolon`);
+}
+
+function showNodeDetail(nodeData) {
+  const panel = document.getElementById('diagram-detail');
+  const title = document.getElementById('detail-title');
+  const colsEl = document.getElementById('detail-columns');
+
+  panel.style.display = 'block';
+  title.innerHTML = `<span style="font-size:20px; vertical-align:middle; margin-right:8px">${tableIcon(nodeData.id)}</span> ${nodeData.label || nodeData.id} — Kolonlar <span style="font-size:12px; font-weight:400; color:var(--text3); margin-left:10px">${(nodeData.row_count || 0).toLocaleString()} satır</span>`;
+  
+  d3.selectAll('.d-node').classed('selected', d => (d.id || d.data?.id) === nodeData.id);
+
+  // İlişki Listesi (Lineage) - Improved Logic
+  const rels = (allDiagramData.edges || []).filter(e => {
+    const sId = e.source.id || e.source;
+    const tId = e.target.id || e.target;
+    return sId === nodeData.id || tId === nodeData.id;
+  });
+
+  let relsHtml = '';
+  if (rels.length > 0) {
+    relsHtml = `
+      <div style="margin-bottom:15px; padding:10px; background:rgba(0,0,0,0.2); border-radius:8px; border-left:3px solid var(--accent1);">
+        <div style="font-size:11px; color:var(--accent1); margin-bottom:5px; font-weight:bold; text-transform:uppercase;">🔗 Veri İlişkileri & Sahiplik</div>
+        ${rels.map(r => {
+          const sId = r.source.id || r.source;
+          const tId = r.target.id || r.target;
+          const isOut = sId === nodeData.id;
+          const otherId = isOut ? tId : sId;
+          const type = isOut ? 'Referans Veriyor (Child)' : 'Sahip Olduğu / Bağlı (Parent)';
+          return `<div style="font-size:12px; margin-bottom:6px; display:flex; flex-direction:column; gap:2px;">
+            <div style="display:flex; justify-content:space-between;">
+              <span style="color:var(--text2)">${isOut ? '→ <strong>' + otherId + '</strong>' : '← <strong>' + otherId + '</strong>'}</span>
+              <span style="font-size:10px; color:var(--text3)">${type}</span>
+            </div>
+            <div style="font-size:10px; color:rgba(255,255,255,0.4); font-family:var(--mono);">[${r.from_column} == ${r.to_column || 'id'}]</div>
+          </div>`;
+        }).join('')}
+      </div>
+    `;
+  }
+
+  const cols = nodeData.columns || [];
+  if (!cols.length) { 
+    colsEl.innerHTML = relsHtml + '<div style="color:var(--text3);font-size:13px;padding:20px;text-align:center">Bu tablo için kolon bilgisi bulunamadı.</div>'; 
+  } else {
+    colsEl.innerHTML = relsHtml + cols.map(c => `
+      <div class="d-col-row">
+        <div>
+          <div class="d-col-name">${c.name}</div>
+          <div style="font-size:10px; color:var(--text3);">${c.description || ''}</div>
+        </div>
+        <span class="d-col-type">${c.dtype || '—'}</span>
+        <span class="d-col-cls ${c.pii ? 'pii-cls' : 'safe-cls'}">${c.pii ? '🔒 ' : ''}${c.classification || 'normal'}</span>
+        ${c.sample_values?.length ? `<span style="color:var(--text3);font-size:10px;font-family:var(--mono);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:300px;margin-left:auto">${c.sample_values.slice(0,3).join(', ')}</span>` : ''}
+      </div>
+    `).join('');
+  }
+  
+  // Yumuşak kaydırma
+  panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function toggleDiagramLayout() {
+  diagramLayout = diagramLayout === 'force' ? 'tree' : 'force';
+  document.getElementById('btn-layout-toggle').textContent =
+    diagramLayout === 'force' ? '📐 Hiyerarşik Görünüm' : '🔀 Force Görünüm';
+  loadDiagram();
+}
+
+function confidenceClass(c) { return c >= 0.85 ? 'high' : c >= 0.65 ? 'mid' : 'low'; }
+function confidenceColor(c) { return c >= 0.85 ? '#3fb950' : c >= 0.65 ? '#d29922' : '#f85149'; }
+function tableIcon(name) {
+  const n = (name||'').toLowerCase();
+  if (n.includes('musteri') || n.includes('customer')) return '👤';
+  if (n.includes('hesap') || n.includes('account')) return '💳';
+  if (n.includes('islem') || n.includes('transaction')) return '💸';
+  if (n.includes('kredi') || n.includes('loan') || n.includes('credit')) return '🏦';
+  if (n.includes('kart') || n.includes('card')) return '💳';
+  return '📊';
+}
+function positionTooltip(event) {
+  const wrap = document.getElementById('diagram-svg-wrap');
+  const rect = wrap.getBoundingClientRect();
+  const t = document.getElementById('d-tooltip');
+  let x = event.clientX - rect.left + 14;
+  let y = event.clientY - rect.top - 10;
+  if (x + 270 > rect.width) x = event.clientX - rect.left - 280;
+  t.style.left = x + 'px'; t.style.top = y + 'px';
+}
+
+/* ── Utils ──────────────────────────────────────────────── */
+function showSection(id) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function toast(msg, type = 'ok') {
+  c.appendChild(t);
+  setTimeout(() => { t.style.opacity = '0'; setTimeout(() => t.remove(), 300); }, 4000);
+}
+
+/* ── Data Search (Explain) ──────────────────────────────── */
+async function runExplain() {
+  const inputEl = document.getElementById('search-prompt-input');
+  const btn = document.getElementById('btn-search');
+  const spinner = document.getElementById('search-spinner');
+  const label = document.getElementById('search-btn-label');
+  const resultPanel = document.getElementById('explain-result');
+  
+  const prompt = inputEl.value.trim();
+  if (!prompt) return;
+  
+  // UI Loading State
+  btn.disabled = true;
+  spinner.style.display = 'inline-block';
+  label.textContent = 'Analiz...';
+  resultPanel.classList.remove('visible');
+  
+  try {
+    const res = await fetch('/api/generate/explain', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt })
+    });
+    
+    if (!res.ok) throw new Error('Sunucu hatası');
+    const data = await res.json();
+    
+    // Render Results
+    document.getElementById('explain-interp').textContent = data.interpretation;
+    
+    const confBadge = document.getElementById('explain-conf');
+    confBadge.className = 'confidence-badge';
+    if (data.confidence === 'high') { confBadge.textContent = 'YÜKSEK EŞLEŞME'; confBadge.classList.add('conf-high'); }
+    else if (data.confidence === 'medium') { confBadge.textContent = 'ORTA EŞLEŞME'; confBadge.classList.add('conf-medium'); }
+    else { confBadge.textContent = 'DÜŞÜK EŞLEŞME'; confBadge.classList.add('conf-low'); }
+    
+    // Table info
+    document.getElementById('explain-table-icon').textContent = data.table_info.icon;
+    document.getElementById('explain-table-name').textContent = data.table_info.label;
+    document.getElementById('explain-table-desc').textContent = data.table_info.desc;
+    
+    // Alt tables
+    document.getElementById('explain-alt-tables').innerHTML = data.alternative_tables.map(t => 
+      `<button class="alt-table-btn" onclick="selectReadySchema('${t.key}')">${t.icon} ${t.label}</button>`
+    ).join('');
+    
+    // Steps
+    document.getElementById('explain-steps').innerHTML = data.steps.map((st, i) => 
+      `<li class="step-item"><div class="step-num">${i+1}</div><div>${st.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')}</div></li>`
+    ).join('');
+    
+    // Filters
+    const fBlock = document.getElementById('explain-filters-block');
+    const fList = document.getElementById('explain-filters');
+    if (Object.keys(data.filters).length > 0) {
+      fBlock.style.display = 'block';
+      fList.innerHTML = Object.entries(data.filters).map(([k, v]) => 
+        `<span class="filter-tag">${k}: <strong>${v}</strong></span>`
+      ).join('');
+    } else {
+      fBlock.style.display = 'none';
+    }
+    
+    // Show panel
+    resultPanel.classList.add('visible');
+    
+    // Make main table box clickable to auto-load
+    document.getElementById('explain-table-box').style.cursor = 'pointer';
+    document.getElementById('explain-table-box').onclick = () => selectReadySchema(data.recommended_table);
+    
+  } catch (err) {
+    toast('❌ Analiz edilemedi: ' + err.message, 'err');
+  } finally {
+    btn.disabled = false;
+    spinner.style.display = 'none';
+    label.textContent = '✨ Analiz Et';
+  }
+}
+
+function setChip(text) {
+  const input = document.getElementById('search-prompt-input');
+  input.value = text;
+  runExplain();
+}
+</script>
+</body>
+</html>

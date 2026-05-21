@@ -1,0 +1,279 @@
+[
+  {
+    "id": "SCN-001",
+    "module": "User",
+    "title": "Geçerli kimlik bilgileriyle kullanıcı giriş yapma",
+    "type": "positive",
+    "description": "Kullanıcı geçerli bir e-posta ve şifre ile sistemde giriş yapabilir.",
+    "preconditions": [
+      "Kullanıcı kayıtlı ve etkin"
+    ],
+    "steps": [
+      {
+        "order": 1,
+        "action": "POST /api/v1/auth/login — email: user@test.com, password: UserPass1!",
+        "expected": "200 OK + JWT token döner"
+      }
+    ],
+    "expected_result": "Kullanıcı başarılı bir şekilde giriş yapar ve JWT token alır.",
+    "priority": "P0",
+    "depends_on": [],
+    "tags": [
+      "login",
+      "positive"
+    ],
+    "related_endpoint": "POST /api/v1/auth/login"
+  },
+  {
+    "id": "SCN-002",
+    "module": "User",
+    "title": "Geçersiz şifre ile giriş denemesi",
+    "type": "negative",
+    "description": "Kullanıcı geçersiz bir şifre ile giriş yapamaz.",
+    "preconditions": [
+      "Kullanıcı kayıtlı ve etkin"
+    ],
+    "steps": [
+      {
+        "order": 1,
+        "action": "POST /api/v1/auth/login — email: user@test.com, password: wrongPass!",
+        "expected": "401 Unauthorized"
+      }
+    ],
+    "expected_result": "Sistem kullanıcıya 'Unauthorized' hatası döner.",
+    "priority": "P0",
+    "depends_on": [],
+    "tags": [
+      "login",
+      "negative"
+    ],
+    "related_endpoint": "POST /api/v1/auth/login"
+  },
+  {
+    "id": "SCN-003",
+    "module": "User",
+    "title": "Boş e-posta ile giriş denemesi",
+    "type": "edge_case",
+    "description": "Kullanıcı boş bir e-posta alanını dolduramaz.",
+    "preconditions": [
+      "Kullanıcı kayıtlı ve etkin"
+    ],
+    "steps": [
+      {
+        "order": 1,
+        "action": "POST /api/v1/auth/login — email: '', password: UserPass1!",
+        "expected": "422 Validation Error"
+      }
+    ],
+    "expected_result": "Sistem kullanıcıya 'Validation Error' hatası döner.",
+    "priority": "P1",
+    "depends_on": [],
+    "tags": [
+      "login",
+      "edge_case"
+    ],
+    "related_endpoint": "POST /api/v1/auth/login"
+  },
+  {
+    "id": "SCN-004",
+    "module": "User",
+    "title": "Çok fazla istek yapma (Concurrency)",
+    "type": "concurrency",
+    "description": "Kullanıcı çok hızlı bir şekilde birden fazla giriş denemesi yapamaz.",
+    "preconditions": [
+      "Kullanıcı kayıtlı ve etkin"
+    ],
+    "steps": [
+      {
+        "order": 1,
+        "action": "POST /api/v1/auth/login — email: user@test.com, password: UserPass1!",
+        "expected": "200 OK + JWT token döner"
+      },
+      {
+        "order": 2,
+        "action": "POST /api/v1/auth/login — email: user@test.com, password: UserPass1!",
+        "expected": "429 Too Many Requests"
+      }
+    ],
+    "expected_result": "İlk giriş başarılı olurken ikinci giriş 'Too Many Requests' hatası döner.",
+    "priority": "P0",
+    "depends_on": [],
+    "tags": [
+      "login",
+      "concurrency"
+    ],
+    "related_endpoint": "POST /api/v1/auth/login"
+  },
+  {
+    "id": "SCN-005",
+    "module": "User",
+    "title": "Geçerli kimlik bilgileriyle kullanıcı logout yapma",
+    "type": "positive",
+    "description": "Kullanıcı geçerli bir JWT token ile sistemden çıkış yapabilir.",
+    "preconditions": [
+      "Kullanıcı giriş yaptı"
+    ],
+    "steps": [
+      {
+        "order": 1,
+        "action": "POST /api/v1/auth/logout — Authorization: Bearer valid_token",
+        "expected": "204 No Content"
+      }
+    ],
+    "expected_result": "Sistem kullanıcıdan çıkış yapar ve JWT token geçersiz hale gelir.",
+    "priority": "P0",
+    "depends_on": [
+      "SCN-001"
+    ],
+    "tags": [
+      "logout",
+      "positive"
+    ],
+    "related_endpoint": "POST /api/v1/auth/logout"
+  },
+  {
+    "id": "SCN-006",
+    "module": "User",
+    "title": "Geçersiz JWT token ile logout denemesi",
+    "type": "negative",
+    "description": "Kullanıcı geçersiz bir JWT token ile sistemden çıkış yapamaz.",
+    "preconditions": [
+      "Kullanıcı giriş yaptı"
+    ],
+    "steps": [
+      {
+        "order": 1,
+        "action": "POST /api/v1/auth/logout — Authorization: Bearer invalid_token",
+        "expected": "401 Unauthorized"
+      }
+    ],
+    "expected_result": "Sistem kullanıcıya 'Unauthorized' hatası döner.",
+    "priority": "P0",
+    "depends_on": [
+      "SCN-005"
+    ],
+    "tags": [
+      "logout",
+      "negative"
+    ],
+    "related_endpoint": "POST /api/v1/auth/logout"
+  },
+  {
+    "id": "SCN-007",
+    "module": "User",
+    "title": "Çok fazla logout isteği (Concurrency)",
+    "type": "concurrency",
+    "description": "Kullanıcı çok hızlı bir şekilde birden fazla çıkış denemesi yapamaz.",
+    "preconditions": [
+      "Kullanıcı giriş yaptı"
+    ],
+    "steps": [
+      {
+        "order": 1,
+        "action": "POST /api/v1/auth/logout — Authorization: Bearer valid_token",
+        "expected": "204 No Content"
+      },
+      {
+        "order": 2,
+        "action": "POST /api/v1/auth/logout — Authorization: Bearer valid_token",
+        "expected": "429 Too Many Requests"
+      }
+    ],
+    "expected_result": "İlk çıkış başarılı olurken ikinci logout 'Too Many Requests' hatası döner.",
+    "priority": "P0",
+    "depends_on": [
+      "SCN-005"
+    ],
+    "tags": [
+      "logout",
+      "concurrency"
+    ],
+    "related_endpoint": "POST /api/v1/auth/logout"
+  },
+  {
+    "id": "SCN-008",
+    "module": "User",
+    "title": "Geçerli kimlik bilgileriyle kullanıcı token yenileme",
+    "type": "positive",
+    "description": "Kullanıcı geçerli bir JWT token ile sistemde token yenileyebilir.",
+    "preconditions": [
+      "Kullanıcı giriş yaptı"
+    ],
+    "steps": [
+      {
+        "order": 1,
+        "action": "POST /api/v1/auth/refresh — Authorization: Bearer valid_token",
+        "expected": "200 OK + new JWT token"
+      }
+    ],
+    "expected_result": "Sistem kullanıcıya yeni bir JWT token döner.",
+    "priority": "P0",
+    "depends_on": [
+      "SCN-001"
+    ],
+    "tags": [
+      "token-refresh",
+      "positive"
+    ],
+    "related_endpoint": "POST /api/v1/auth/refresh"
+  },
+  {
+    "id": "SCN-009",
+    "module": "User",
+    "title": "Geçersiz JWT token ile token yenileme denemesi",
+    "type": "negative",
+    "description": "Kullanıcı geçersiz bir JWT token ile sistemde token yenileyemeyebilir.",
+    "preconditions": [
+      "Kullanıcı giriş yaptı"
+    ],
+    "steps": [
+      {
+        "order": 1,
+        "action": "POST /api/v1/auth/refresh — Authorization: Bearer invalid_token",
+        "expected": "401 Unauthorized"
+      }
+    ],
+    "expected_result": "Sistem kullanıcıya 'Unauthorized' hatası döner.",
+    "priority": "P0",
+    "depends_on": [
+      "SCN-008"
+    ],
+    "tags": [
+      "token-refresh",
+      "negative"
+    ],
+    "related_endpoint": "POST /api/v1/auth/refresh"
+  },
+  {
+    "id": "SCN-010",
+    "module": "User",
+    "title": "Çok fazla token yenileme isteği (Concurrency)",
+    "type": "concurrency",
+    "description": "Kullanıcı çok hızlı bir şekilde birden fazla token yenileme denemesi yapamaz.",
+    "preconditions": [
+      "Kullanıcı giriş yaptı"
+    ],
+    "steps": [
+      {
+        "order": 1,
+        "action": "POST /api/v1/auth/refresh — Authorization: Bearer valid_token",
+        "expected": "200 OK + new JWT token"
+      },
+      {
+        "order": 2,
+        "action": "POST /api/v1/auth/refresh — Authorization: Bearer valid_token",
+        "expected": "429 Too Many Requests"
+      }
+    ],
+    "expected_result": "İlk token yenileme başarılı olurken ikinci yenileme 'Too Many Requests' hatası döner.",
+    "priority": "P0",
+    "depends_on": [
+      "SCN-008"
+    ],
+    "tags": [
+      "token-refresh",
+      "concurrency"
+    ],
+    "related_endpoint": "POST /api/v1/auth/refresh"
+  }
+]

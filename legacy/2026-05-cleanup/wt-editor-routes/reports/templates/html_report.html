@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TestwrightAI Test Raporu</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <style>
+    :root {
+      --bg-primary: #0f172a;
+      --bg-card: #1e293b;
+      --border: #334155;
+      --text-primary: #f1f5f9;
+      --text-secondary: #94a3b8;
+      --green: #22c55e;
+      --red: #ef4444;
+      --yellow: #eab308;
+      --blue: #3b82f6;
+      --purple: #a78bfa;
+    }
+    * { box-sizing: border-box; }
+    body {
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+      margin: 0;
+      min-height: 100vh;
+    }
+
+    .topbar {
+      background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 1.5rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+    .topbar h1 { font-size: 1.5rem; font-weight: 700; }
+    .topbar .meta { color: var(--text-secondary); font-size: 0.85rem; }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 1fr 260px;
+      gap: 1.5rem;
+      padding: 1.5rem 2rem;
+      max-width: 1440px;
+      margin: 0 auto;
+    }
+    @media (max-width: 900px) {
+      .layout { grid-template-columns: 1fr; }
+    }
+
+    /* Summary Cards */
+    .summary-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+    .card-stat {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.25rem;
+      text-align: center;
+    }
+    .card-stat .num {
+      font-size: 2rem;
+      font-weight: 800;
+      line-height: 1;
+    }
+    .card-stat .label {
+      color: var(--text-secondary);
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-top: 0.5rem;
+    }
+    .card-stat.toplam .num { color: var(--blue); }
+    .card-stat.basarili .num { color: var(--green); }
+    .card-stat.basarisiz .num { color: var(--red); }
+    .card-stat.atlanan .num { color: var(--yellow); }
+    .card-stat.sure .num { color: var(--purple); font-size: 1.5rem; }
+    .card-stat.oran .num { color: #2dd4bf; }
+
+    /* Pie Chart */
+    .chart-container {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 1.5rem;
+    }
+    .chart-legend {
+      display: flex;
+      gap: 1.5rem;
+      justify-content: center;
+      margin-top: 0.75rem;
+      font-size: 0.8rem;
+    }
+    .chart-legend span::before {
+      content: '';
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      margin-right: 4px;
+    }
+    .chart-legend .leg-pass::before { background: var(--green); }
+    .chart-legend .leg-fail::before { background: var(--red); }
+
+    /* Filter */
+    .filter-bar {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+    }
+    .filter-btn {
+      padding: 0.4rem 1rem;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--bg-card);
+      color: var(--text-secondary);
+      cursor: pointer;
+      font-size: 0.8rem;
+      transition: all 0.2s;
+    }
+    .filter-btn:hover, .filter-btn.active {
+      border-color: var(--blue);
+      color: var(--text-primary);
+      background: rgba(59,130,246,0.1);
+    }
+
+    /* Failure Table */
+    .fail-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+    }
+    .fail-table th {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      padding: 0.75rem 1rem;
+      text-align: left;
+      color: var(--text-secondary);
+      font-weight: 600;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+    }
+    .fail-table td {
+      border: 1px solid var(--border);
+      padding: 0.65rem 1rem;
+      vertical-align: top;
+    }
+    .failure-row { cursor: pointer; transition: background 0.15s; }
+    .failure-row:hover { background: rgba(59,130,246,0.08); }
+    .detail-row td {
+      background: #0c1222;
+      padding: 1rem;
+    }
+    .detail-row pre {
+      white-space: pre-wrap;
+      word-break: break-word;
+      font-size: 0.78rem;
+      color: #fca5a5;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+    .test-name { color: var(--text-primary); font-weight: 500; }
+    .fail-type { color: var(--yellow); }
+    .fail-msg { color: #fca5a5; }
+    .empty-msg { text-align: center; color: var(--green); padding: 2rem !important; }
+
+    /* Sidebar */
+    .sidebar {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+    .sidebar-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.25rem;
+    }
+    .sidebar-card h3 {
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+      margin-bottom: 0.75rem;
+      letter-spacing: 0.05em;
+    }
+    .env-table { width: 100%; font-size: 0.8rem; }
+    .env-label { color: var(--text-secondary); padding: 0.3rem 0; }
+    .env-value { color: var(--text-primary); padding: 0.3rem 0; text-align: right; word-break: break-all; }
+
+    footer {
+      text-align: center;
+      padding: 2rem;
+      color: #475569;
+      font-size: 0.8rem;
+      border-top: 1px solid var(--border);
+      margin-top: 2rem;
+    }
+  </style>
+</head>
+<body>
+
+<div class="topbar">
+  <div>
+    <h1>TestwrightAI Test Raporu</h1>
+    <div class="meta">{{ report_title }} &mdash; {{ timestamp }}</div>
+  </div>
+  <div style="font-size:0.8rem;color:var(--text-secondary)">
+    Başarı Oranı: <strong style="color:var(--green);font-size:1.1rem">%{{ success_rate }}</strong>
+  </div>
+</div>
+
+<div class="layout">
+  <main>
+    <!-- Summary Cards -->
+    <div class="summary-cards">
+      <div class="card-stat toplam">
+        <div class="num">{{ total }}</div>
+        <div class="label">Toplam Test</div>
+      </div>
+      <div class="card-stat basarili">
+        <div class="num">{{ passed }}</div>
+        <div class="label">Başarılı</div>
+      </div>
+      <div class="card-stat basarisiz">
+        <div class="num">{{ failed }}</div>
+        <div class="label">Başarısız</div>
+      </div>
+      <div class="card-stat atlanan">
+        <div class="num">{{ skipped }}</div>
+        <div class="label">Atlanan</div>
+      </div>
+      <div class="card-stat sure">
+        <div class="num">{{ duration }}s</div>
+        <div class="label">Toplam Süre</div>
+      </div>
+      <div class="card-stat oran">
+        <div class="num">%{{ success_rate }}</div>
+        <div class="label">Başarı Oranı</div>
+      </div>
+    </div>
+
+    <!-- Pie Chart -->
+    <div class="chart-container">
+      <svg width="180" height="180" viewBox="0 0 36 36">
+        <circle cx="18" cy="18" r="15.9" fill="none" stroke="#334155" stroke-width="3.5"/>
+        <circle cx="18" cy="18" r="15.9" fill="none"
+                stroke="#22c55e" stroke-width="3.5"
+                stroke-dasharray="{{ pass_pct }} {{ fail_pct }}"
+                stroke-dashoffset="25"
+                stroke-linecap="round"/>
+        <circle cx="18" cy="18" r="15.9" fill="none"
+                stroke="#ef4444" stroke-width="3.5"
+                stroke-dasharray="{{ fail_pct }} {{ pass_pct }}"
+                stroke-dashoffset="25"
+                stroke-linecap="round"
+                transform="rotate({{ pass_pct }}deg 18 18)"
+                style="transform-origin:center;transform:rotate(calc({{ pass_pct }} * 3.6deg))"/>
+        <text x="18" y="19.5" text-anchor="middle" fill="#f1f5f9" font-size="5" font-weight="700">%{{ success_rate }}</text>
+      </svg>
+    </div>
+    <div class="chart-legend">
+      <span class="leg-pass">Başarılı (%{{ pass_pct }})</span>
+      <span class="leg-fail">Başarısız (%{{ fail_pct }})</span>
+    </div>
+
+    <!-- Filter -->
+    <div class="filter-bar" style="margin-top:1.5rem">
+      <button class="filter-btn active" onclick="filterRows('all')">Tümü</button>
+      <button class="filter-btn" onclick="filterRows('failure')">Başarısız</button>
+    </div>
+
+    <!-- Failures Table -->
+    <table class="fail-table">
+      <thead>
+        <tr>
+          <th style="width:40px">#</th>
+          <th>Test Adı</th>
+          <th style="width:140px">Hata Tipi</th>
+          <th>Hata Mesajı</th>
+        </tr>
+      </thead>
+      <tbody id="failureBody">
+        {{ failure_rows }}
+      </tbody>
+    </table>
+  </main>
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-card">
+      <h3>Ortam Bilgisi</h3>
+      <table class="env-table">
+        {{ env_rows }}
+      </table>
+    </div>
+
+    <div class="sidebar-card">
+      <h3>Ekran Görüntüleri</h3>
+      <p style="color:var(--text-secondary);font-size:0.8rem">
+        Başarısız testlerin ekran görüntüleri <code>engine/screenshots/</code> klasöründe bulunur.
+      </p>
+    </div>
+
+    <div class="sidebar-card">
+      <h3>Allure Raporu</h3>
+      <p style="color:var(--text-secondary);font-size:0.8rem">
+        Detaylı rapor için:<br>
+        <code>allure open engine/allure-report</code>
+      </p>
+    </div>
+  </aside>
+</div>
+
+<footer>
+  TestwrightAI Test Otomasyon Altyapısı &copy; {{ year }} &mdash; Tüm hakları saklıdır.
+</footer>
+
+<script>
+function toggleDetail(row) {
+  var next = row.nextElementSibling;
+  if (next && next.classList.contains('detail-row')) {
+    next.style.display = next.style.display === 'none' ? 'table-row' : 'none';
+  }
+}
+function filterRows(type) {
+  document.querySelectorAll('.filter-btn').forEach(function(b){b.classList.remove('active')});
+  event.target.classList.add('active');
+  var rows = document.querySelectorAll('#failureBody tr');
+  rows.forEach(function(r) {
+    if (type === 'all') { r.style.display = ''; }
+    else if (type === 'failure') {
+      if (r.classList.contains('failure-row') || r.classList.contains('detail-row')) {
+        r.style.display = '';
+      } else {
+        r.style.display = 'none';
+      }
+    }
+  });
+}
+</script>
+</body>
+</html>

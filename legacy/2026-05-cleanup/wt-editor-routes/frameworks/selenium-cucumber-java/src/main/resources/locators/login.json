@@ -1,0 +1,32 @@
+[
+  {
+    "key": "GirisAlanıInput",
+    "type": "name",
+    "value": "UserName"
+  },
+  {
+    "key": "SifreAlanıInput",
+    "type": "name",
+    "value": "Password"
+  },
+  {
+    "key": "GirisYapButon",
+    "type": "id",
+    "value": "btnLogin"
+  },
+  {
+    "key": "AnaSayfaKullanıcıAdıText",
+    "type": "xpath",
+    "value": "//a[@id='cart']//span[contains(@class,'username-text')][1]"
+  },
+  {
+    "key": "girisHataMesajıText",
+    "type": "xpath",
+    "value": "//div[contains(@class,'validation-summary-errors') or contains(@class,'alert-danger') or contains(@class,'error')]"
+  },
+  {
+    "key": "cikisYapButon",
+    "type": "xpath",
+    "value": "//a[contains(@href,'Logout') or contains(@href,'logout') or contains(normalize-space(.),'Çıkış')]"
+  }
+]

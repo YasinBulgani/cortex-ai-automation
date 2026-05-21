@@ -1,0 +1,104 @@
+# Self-heal kalite eval suitesi — kırık locator → yeni locator (Dalga 1).
+#
+# CI'da deterministic (fixture). Nightly'de EVAL_RUN_LLM=1 ile trend.
+# Acceptable set stratejisi: tek bir "doğru" locator yerine N-tane geçerli
+# alternatif kabul edilir (data-testid tercihli, role fallback).
+
+name: self_heal
+adapter: self_heal
+description: >
+  Kırılmış locator + accessibility tree → yeni Playwright locator üretimi
+  kalite regresyonu. Acceptable-set match kullanır (birden fazla geçerli
+  cevap olabilir).
+
+scorers:
+  - locator_contains_any
+
+thresholds:
+  min_case_pass_rate: 1.0
+  mean:
+    locator_contains_any: 1.0
+
+cases:
+  - id: heal-001
+    description: Submit butonu — data-testid bozulmuş, rol+name alternatifi
+    tags: [positive, button]
+    inputs:
+      failed_locator: "[data-testid='login-submit-old']"
+      accessibility_tree: |
+        role: button, name: "Giriş", testid: "login-btn-submit"
+      _fixture:
+        new_locator: "[data-testid='login-btn-submit']"
+        strategy: "llm_assisted"
+        confidence: 0.85
+    expected:
+      acceptable_locators:
+        - "[data-testid='login-btn-submit']"
+        - "role=button[name='Giriş']"
+        - "getByRole('button', {name: 'Giriş'})"
+
+  - id: heal-002
+    description: Bakiye label'ı — data-testid değişimi
+    tags: [positive, label, banking]
+    inputs:
+      failed_locator: ".balance-value"
+      accessibility_tree: |
+        role: text, name: "1.234,56 TL", testid: "account-label-balance"
+      _fixture:
+        new_locator: "[data-testid='account-label-balance']"
+        strategy: "llm_assisted"
+        confidence: 0.8
+    expected:
+      acceptable_locators:
+        - "[data-testid='account-label-balance']"
+        - "getByTestId('account-label-balance')"
+
+  - id: heal-003
+    description: Form input — label ile eşleşme
+    tags: [positive, input]
+    inputs:
+      failed_locator: "#email"
+      accessibility_tree: |
+        role: textbox, name: "E-posta", testid: "register-input-email"
+      _fixture:
+        new_locator: "[data-testid='register-input-email']"
+        strategy: "llm_assisted"
+        confidence: 0.85
+    expected:
+      acceptable_locators:
+        - "[data-testid='register-input-email']"
+        - "role=textbox[name='E-posta']"
+        - "getByLabel('E-posta')"
+
+  - id: heal-004
+    description: Menu link — locator_fingerprints cache hit simülasyonu
+    tags: [cached]
+    inputs:
+      failed_locator: "nav > a.settings"
+      accessibility_tree: |
+        role: link, name: "Ayarlar", testid: "nav-link-settings"
+      _fixture:
+        new_locator: "[data-testid='nav-link-settings']"
+        strategy: "fingerprint_cache"
+        confidence: 0.9
+    expected:
+      acceptable_locators:
+        - "[data-testid='nav-link-settings']"
+
+  - id: heal-005
+    description: Dialog confirm — rol + name yeterli (testid yok)
+    tags: [fallback, dialog]
+    inputs:
+      failed_locator: ".modal-btn-yes"
+      accessibility_tree: |
+        role: dialog
+        role: button, name: "Evet"
+        role: button, name: "Hayır"
+      _fixture:
+        new_locator: "role=button[name='Evet']"
+        strategy: "llm_assisted"
+        confidence: 0.7
+    expected:
+      acceptable_locators:
+        - "role=button[name='Evet']"
+        - "getByRole('button', {name: 'Evet'})"

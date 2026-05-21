@@ -1,0 +1,227 @@
+{
+  "version": "1.0",
+  "description": "İşlem (transaction) tablosu kural seti — bankacılık sentetik veri üretimi",
+  "exported_at": "2026-03-28T00:00:00",
+  "total_rules": 13,
+  "rules": [
+    {
+      "rule_id": "txn-001",
+      "column_name": "islem_id",
+      "rule_type": "UNIQUE",
+      "definition": {
+        "unique": true,
+        "observed_distinct_ratio": 1.0
+      },
+      "confidence": 0.95,
+      "is_active": true,
+      "description": "İşlem ID'si benzersiz olmalı",
+      "source": "manual"
+    },
+    {
+      "rule_id": "txn-002",
+      "column_name": "islem_tipi",
+      "rule_type": "ENUM",
+      "definition": {
+        "values": ["havale", "eft", "virman", "atm_cekme", "atm_yatirma", "pos", "transfer", "odeme", "faiz", "komisyon"],
+        "frequencies": {
+          "havale": 0.15,
+          "eft": 0.18,
+          "virman": 0.08,
+          "atm_cekme": 0.12,
+          "atm_yatirma": 0.05,
+          "pos": 0.22,
+          "transfer": 0.07,
+          "odeme": 0.06,
+          "faiz": 0.04,
+          "komisyon": 0.03
+        },
+        "allow_null": false,
+        "distinct_count": 10
+      },
+      "confidence": 0.92,
+      "is_active": true,
+      "description": "İşlem tipi: havale, eft, virman, atm, pos, transfer, odeme, faiz, komisyon",
+      "source": "manual"
+    },
+    {
+      "rule_id": "txn-003",
+      "column_name": "tutar",
+      "rule_type": "RANGE",
+      "definition": {
+        "min": 0.01,
+        "max": 999999999.99,
+        "mean": 2850.0,
+        "std": 15000.0,
+        "median": 350.0
+      },
+      "confidence": 0.88,
+      "is_active": true,
+      "description": "İşlem tutarı [0.01 — 999.999.999.99] TL aralığında",
+      "source": "manual"
+    },
+    {
+      "rule_id": "txn-004",
+      "column_name": "tutar",
+      "rule_type": "DISTRIBUTION",
+      "definition": {
+        "distribution": "lognormal",
+        "params": {
+          "mean": 2850.0,
+          "std": 15000.0,
+          "median": 350.0
+        }
+      },
+      "confidence": 0.80,
+      "is_active": true,
+      "description": "İşlem tutarı dağılımı: lognormal (çoğu işlem düşük tutarlı)",
+      "source": "manual"
+    },
+    {
+      "rule_id": "txn-005",
+      "column_name": "islem_tarihi",
+      "rule_type": "RANGE",
+      "definition": {
+        "min_date": "2020-01-01",
+        "max_date": "2026-03-28",
+        "data_type": "datetime",
+        "format": "%Y-%m-%d %H:%M:%S"
+      },
+      "confidence": 0.85,
+      "is_active": true,
+      "description": "İşlem tarihi [2020 — bugün] aralığında",
+      "source": "manual"
+    },
+    {
+      "rule_id": "txn-006",
+      "column_name": "islem_tarihi",
+      "rule_type": "NOT_NULL",
+      "definition": {
+        "nullable": false,
+        "observed_null_ratio": 0.0
+      },
+      "confidence": 0.95,
+      "is_active": true,
+      "description": "İşlem tarihi zorunlu alan",
+      "source": "manual"
+    },
+    {
+      "rule_id": "txn-007",
+      "column_name": "kanal",
+      "rule_type": "ENUM",
+      "definition": {
+        "values": ["internet", "mobil", "sube", "atm", "telefon", "pos", "api"],
+        "frequencies": {
+          "internet": 0.25,
+          "mobil": 0.30,
+          "sube": 0.10,
+          "atm": 0.15,
+          "telefon": 0.03,
+          "pos": 0.12,
+          "api": 0.05
+        },
+        "allow_null": false,
+        "distinct_count": 7
+      },
+      "confidence": 0.90,
+      "is_active": true,
+      "description": "İşlem kanalı: internet, mobil, sube, atm, telefon, pos, api",
+      "source": "manual"
+    },
+    {
+      "rule_id": "txn-008",
+      "column_name": "para_birimi",
+      "rule_type": "ENUM",
+      "definition": {
+        "values": ["TRY", "USD", "EUR", "GBP"],
+        "frequencies": {
+          "TRY": 0.85,
+          "USD": 0.08,
+          "EUR": 0.05,
+          "GBP": 0.02
+        },
+        "allow_null": false,
+        "distinct_count": 4
+      },
+      "confidence": 0.93,
+      "is_active": true,
+      "description": "İşlem para birimi: TRY, USD, EUR, GBP",
+      "source": "manual"
+    },
+    {
+      "rule_id": "txn-009",
+      "column_name": "hesap_no",
+      "rule_type": "NOT_NULL",
+      "definition": {
+        "nullable": false,
+        "observed_null_ratio": 0.0
+      },
+      "confidence": 0.95,
+      "is_active": true,
+      "description": "Hesap numarası zorunlu alan (her işlem bir hesaba ait)",
+      "source": "manual"
+    },
+    {
+      "rule_id": "txn-010",
+      "column_name": "islem_tarihi",
+      "rule_type": "DEPENDENCY",
+      "definition": {
+        "depends_on": "acilis_tarihi",
+        "operator": ">",
+        "dependency_type": "temporal",
+        "referenced_table": "hesaplar"
+      },
+      "confidence": 0.88,
+      "is_active": true,
+      "description": "İşlem tarihi hesap açılış tarihinden sonra olmalı",
+      "source": "manual"
+    },
+    {
+      "rule_id": "txn-011",
+      "column_name": "referans_no",
+      "rule_type": "UNIQUE",
+      "definition": {
+        "unique": true,
+        "observed_distinct_ratio": 1.0
+      },
+      "confidence": 0.92,
+      "is_active": true,
+      "description": "İşlem referans numarası benzersiz olmalı",
+      "source": "manual"
+    },
+    {
+      "rule_id": "txn-012",
+      "column_name": "aciklama",
+      "rule_type": "LENGTH",
+      "definition": {
+        "min_length": 0,
+        "max_length": 500,
+        "avg_length": 35.0
+      },
+      "confidence": 0.78,
+      "is_active": true,
+      "description": "İşlem açıklaması [0 — 500] karakter aralığında",
+      "source": "manual"
+    },
+    {
+      "rule_id": "txn-013",
+      "column_name": "tutar",
+      "rule_type": "CONDITIONAL",
+      "definition": {
+        "condition": {
+          "column": "islem_tipi",
+          "operator": "in",
+          "value": ["faiz", "komisyon"]
+        },
+        "then": {
+          "column": "tutar",
+          "operator": "<",
+          "value": 10000
+        }
+      },
+      "confidence": 0.72,
+      "is_active": true,
+      "description": "Faiz/komisyon işlemleri genellikle 10.000 TL altında",
+      "source": "manual"
+    }
+  ]
+}

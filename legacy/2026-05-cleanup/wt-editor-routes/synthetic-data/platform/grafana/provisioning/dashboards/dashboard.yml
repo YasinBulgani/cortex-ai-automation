@@ -1,0 +1,17 @@
+# Grafana Dashboard Provider Yapılandırması
+#
+# Otomatik olarak dashboard dosyalarını yükler.
+# Grafana başlangıcında bu dosya yüklenir.
+
+apiVersion: 1
+
+providers:
+  - name: 'SyntheticBankData Dashboards'
+    orgId: 1
+    folder: 'SyntheticBankData'
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 10
+    allowUiUpdates: true
+    options:
+      path: /var/lib/grafana/dashboards

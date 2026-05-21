@@ -1,0 +1,258 @@
+{
+  "id": "8f5c838c-ad07-41b9-aa25-8494d23ef918",
+  "name": "loan_approval",
+  "description": null,
+  "trainingStatus": "DONE",
+  "trainingTime": null,
+  "usage": null,
+  "metadata": null,
+  "accuracy": 0.861116,
+  "tables": [
+    {
+      "id": "6582bc06-84ee-494d-9265-4b68ddafa334",
+      "sourceConnectorId": "4177f460-ac16-4dbf-bf29-90924a20f19a",
+      "location": "/Users/yasin_bulgan/mostlyai/connectors/4177f460-ac16-4dbf-bf29-90924a20f19a/data.parquet",
+      "name": "data",
+      "primaryKey": "Loan_ID",
+      "columns": [
+        {
+          "id": "47f2dd17-a35a-4cc8-a531-0131e91ff399",
+          "name": "Loan_ID",
+          "included": true,
+          "modelEncodingType": "TABULAR_CATEGORICAL",
+          "valueRange": null
+        },
+        {
+          "id": "40477fc3-e336-46b5-b38c-d5d76bc3b497",
+          "name": "Gender",
+          "included": true,
+          "modelEncodingType": "TABULAR_CATEGORICAL",
+          "valueRange": {
+            "min": null,
+            "max": null,
+            "values": [
+              "Female",
+              "Male"
+            ],
+            "has_null": false
+          }
+        },
+        {
+          "id": "cf6975f4-4f77-4d8e-81ab-cf567d25c37d",
+          "name": "Married",
+          "included": true,
+          "modelEncodingType": "TABULAR_CATEGORICAL",
+          "valueRange": {
+            "min": null,
+            "max": null,
+            "values": [
+              "No",
+              "Yes"
+            ],
+            "has_null": false
+          }
+        },
+        {
+          "id": "71e40b06-a7cc-4918-a81d-a0234e5286c3",
+          "name": "Dependents",
+          "included": true,
+          "modelEncodingType": "TABULAR_NUMERIC_DISCRETE",
+          "valueRange": {
+            "min": null,
+            "max": null,
+            "values": [
+              "0",
+              "1",
+              "2",
+              "3",
+              "4"
+            ],
+            "has_null": false
+          }
+        },
+        {
+          "id": "cc5ba22f-8d5c-4d3d-9a49-4f7d72fa6e9b",
+          "name": "Education",
+          "included": true,
+          "modelEncodingType": "TABULAR_CATEGORICAL",
+          "valueRange": {
+            "min": null,
+            "max": null,
+            "values": [
+              "Graduate",
+              "Not Graduate"
+            ],
+            "has_null": false
+          }
+        },
+        {
+          "id": "9c86c559-b987-4949-a0c8-86d906fbdc1b",
+          "name": "Self_Employed",
+          "included": true,
+          "modelEncodingType": "TABULAR_CATEGORICAL",
+          "valueRange": {
+            "min": null,
+            "max": null,
+            "values": [
+              "No",
+              "Yes"
+            ],
+            "has_null": false
+          }
+        },
+        {
+          "id": "4f1a062c-6f41-4e69-aede-421dc19b187c",
+          "name": "ApplicantIncome",
+          "included": true,
+          "modelEncodingType": "TABULAR_NUMERIC_BINNED",
+          "valueRange": {
+            "min": "1733.0",
+            "max": "14490.0",
+            "values": null,
+            "has_null": false
+          }
+        },
+        {
+          "id": "d1caee42-5c35-4f4b-820c-315773039276",
+          "name": "CoapplicantIncome",
+          "included": true,
+          "modelEncodingType": "TABULAR_NUMERIC_BINNED",
+          "valueRange": {
+            "min": "122.0",
+            "max": "7891.0",
+            "values": null,
+            "has_null": false
+          }
+        },
+        {
+          "id": "ccf9c325-94d6-4bac-a003-4f02134232df",
+          "name": "LoanAmount",
+          "included": true,
+          "modelEncodingType": "TABULAR_NUMERIC_DIGIT",
+          "valueRange": {
+            "min": null,
+            "max": null,
+            "values": null,
+            "has_null": false
+          }
+        },
+        {
+          "id": "ed79c0fa-a5e5-41a4-a37a-c898db54933b",
+          "name": "Loan_Amount_Term",
+          "included": true,
+          "modelEncodingType": "TABULAR_NUMERIC_DISCRETE",
+          "valueRange": {
+            "min": null,
+            "max": null,
+            "values": [
+              "120",
+              "180",
+              "240",
+              "360"
+            ],
+            "has_null": false
+          }
+        },
+        {
+          "id": "d5f17231-bee8-411f-90ef-b0d03de89846",
+          "name": "Credit_History",
+          "included": true,
+          "modelEncodingType": "TABULAR_NUMERIC_DISCRETE",
+          "valueRange": {
+            "min": null,
+            "max": null,
+            "values": [
+              "0",
+              "1"
+            ],
+            "has_null": false
+          }
+        },
+        {
+          "id": "df605750-2a5f-4c19-bee0-7db2c5101ee5",
+          "name": "Property_Area",
+          "included": true,
+          "modelEncodingType": "TABULAR_CATEGORICAL",
+          "valueRange": {
+            "min": null,
+            "max": null,
+            "values": [
+              "Rural",
+              "Semiurban",
+              "Urban"
+            ],
+            "has_null": false
+          }
+        },
+        {
+          "id": "1a861445-0235-4af8-a6a6-f9c00a215fd1",
+          "name": "Loan_Status",
+          "included": true,
+          "modelEncodingType": "TABULAR_CATEGORICAL",
+          "valueRange": {
+            "min": null,
+            "max": null,
+            "values": [
+              "N",
+              "Y"
+            ],
+            "has_null": false
+          }
+        }
+      ],
+      "foreignKeys": null,
+      "tabularModelMetrics": {
+        "accuracy": {
+          "overall": 0.861116,
+          "univariate": 0.9463883,
+          "bivariate": 0.8767173,
+          "trivariate": 0.7602425,
+          "coherence": null,
+          "overallMax": 0.8687772,
+          "univariateMax": 0.9463225,
+          "bivariateMax": 0.8804,
+          "trivariateMax": 0.7796091,
+          "coherenceMax": null
+        },
+        "distances": {
+          "imsTraining": 0.0,
+          "imsHoldout": 0.0,
+          "imsTrnHol": 0.0,
+          "dcrTraining": 0.096,
+          "dcrHoldout": 0.098,
+          "dcrTrnHol": 0.001,
+          "dcrShare": 0.678,
+          "nndrTraining": 0.266699804386,
+          "nndrHoldout": 0.345432135697,
+          "nndrTrnHol": 0.199931123402
+        },
+        "similarity": {
+          "cosineSimilarityTrainingSynthetic": 0.9691578,
+          "cosineSimilarityTrainingHoldout": 0.9794096,
+          "discriminatorAUCTrainingSynthetic": 0.601,
+          "discriminatorAUCTrainingHoldout": 0.527
+        }
+      },
+      "languageModelMetrics": null,
+      "tabularModelConfiguration": {
+        "model": "MOSTLY_AI/Medium",
+        "maxSampleSize": null,
+        "batchSize": null,
+        "gradientAccumulationSteps": null,
+        "maxTrainingTime": 14400.0,
+        "maxEpochs": 100.0,
+        "maxSequenceWindow": 100,
+        "enableFlexibleGeneration": true,
+        "valueProtection": true,
+        "rareCategoryReplacementMethod": "CONSTANT",
+        "differentialPrivacy": null,
+        "compute": null,
+        "enableModelReport": true
+      },
+      "languageModelConfiguration": null,
+      "totalRows": 300
+    }
+  ],
+  "constraints": null,
+  "randomState": null
+}

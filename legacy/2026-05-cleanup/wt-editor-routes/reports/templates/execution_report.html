@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Test Execution Raporu — {{ title }}</title>
+<style>
+  :root {
+    --bg: #0f172a; --surface: #1e293b; --border: #334155;
+    --fg: #e2e8f0; --muted: #94a3b8; --dim: #64748b;
+    --green: #22c55e; --green-bg: #052e16; --green-border: #14532d;
+    --red: #ef4444; --red-bg: #3b0a0a; --red-border: #450a0a;
+    --blue: #60a5fa; --purple: #a78bfa; --yellow: #facc15;
+    --amber: #f59e0b; --amber-bg: #451a03;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--fg); line-height: 1.6; }
+
+  header { background: linear-gradient(135deg, var(--surface) 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); padding: 28px 32px; }
+  header h1 { font-size: 1.5rem; color: #f8fafc; letter-spacing: -0.025em; }
+  header .meta { color: var(--muted); font-size: 0.85rem; margin-top: 6px; display: flex; gap: 16px; flex-wrap: wrap; }
+
+  .container { max-width: 1200px; margin: 0 auto; padding: 24px 32px; }
+
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 16px; margin-bottom: 28px; }
+  .stat { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 22px; text-align: center; }
+  .stat .num { font-size: 2.25rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .stat .label { color: var(--muted); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; margin-top: 4px; }
+  .stat.passed .num { color: var(--green); }
+  .stat.failed .num { color: var(--red); }
+  .stat.total .num { color: var(--blue); }
+  .stat.rate .num { color: var(--purple); }
+  .stat.duration .num { color: var(--amber); font-size: 1.5rem; }
+  .stat.skipped .num { color: var(--yellow); }
+
+  .progress-bar { height: 8px; background: var(--border); border-radius: 99px; overflow: hidden; margin: 4px 0 24px; }
+  .progress-fill { height: 100%; border-radius: 99px; transition: width 0.5s ease; }
+  .progress-fill.good { background: linear-gradient(90deg, var(--green), #4ade80); }
+  .progress-fill.warn { background: linear-gradient(90deg, var(--amber), var(--yellow)); }
+  .progress-fill.bad { background: linear-gradient(90deg, var(--red), #f87171); }
+
+  .section { margin-bottom: 32px; }
+  .section h2 { font-size: 1.15rem; color: #f1f5f9; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; margin-bottom: 12px; }
+  .card-header { padding: 14px 20px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid var(--border); cursor: pointer; }
+  .card-header:hover { background: rgba(255,255,255,0.02); }
+
+  .badge { padding: 3px 10px; border-radius: 99px; font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.03em; }
+  .badge.passed { background: var(--green-border); color: #86efac; }
+  .badge.failed { background: var(--red-border); color: #fca5a5; }
+  .badge.skipped { background: var(--amber-bg); color: #fde68a; }
+
+  .card-header h3 { font-size: 0.92rem; color: #f1f5f9; flex: 1; }
+  .card-header .duration { color: var(--dim); font-size: 0.78rem; font-variant-numeric: tabular-nums; }
+
+  .steps { padding: 12px 20px; display: flex; flex-direction: column; gap: 4px; }
+  .step { display: flex; gap: 10px; font-size: 0.82rem; padding: 6px 10px; border-radius: 6px; align-items: flex-start; }
+  .step.pass { background: var(--green-bg); color: #86efac; }
+  .step.fail { background: var(--red-bg); color: #fca5a5; }
+  .step-icon { min-width: 18px; font-weight: 700; }
+  .step-text { flex: 1; }
+
+  .card-meta { padding: 10px 20px 14px; color: var(--dim); font-size: 0.78rem; display: flex; gap: 16px; flex-wrap: wrap; }
+
+  .tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.7rem; background: rgba(96,165,250,0.15); color: var(--blue); margin-right: 4px; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+  th { text-align: left; padding: 10px 14px; background: rgba(255,255,255,0.03); border-bottom: 1px solid var(--border); color: var(--muted); font-weight: 600; font-size: 0.75rem; text-transform: uppercase; }
+  td { padding: 10px 14px; border-bottom: 1px solid rgba(51,65,85,0.5); }
+
+  .coverage-bar { display: flex; align-items: center; gap: 8px; }
+  .coverage-fill { height: 6px; border-radius: 3px; background: var(--green); }
+  .coverage-track { flex: 1; height: 6px; border-radius: 3px; background: var(--border); overflow: hidden; }
+
+  .rca-card { background: var(--red-bg); border: 1px solid rgba(239,68,68,0.3); border-radius: 10px; padding: 16px 20px; margin-bottom: 10px; }
+  .rca-card h4 { color: #fca5a5; font-size: 0.88rem; margin-bottom: 8px; }
+  .rca-card .detail { color: #fca5a5; font-size: 0.8rem; opacity: 0.85; }
+
+  footer { text-align: center; padding: 32px; color: var(--dim); font-size: 0.78rem; border-top: 1px solid var(--border); margin-top: 24px; }
+
+  @media (max-width: 768px) {
+    .container { padding: 16px; }
+    .stats { grid-template-columns: repeat(2, 1fr); }
+    header { padding: 20px 16px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Test Execution Raporu</h1>
+  <div class="meta">
+    <span>{{ title }}</span>
+    <span>{{ date }}</span>
+    <span>{{ environment }}</span>
+    <span>Süre: {{ duration }}</span>
+  </div>
+</header>
+
+<div class="container">
+
+  <!-- Summary Stats -->
+  <div class="stats">
+    <div class="stat total"><div class="num">{{ total }}</div><div class="label">Toplam</div></div>
+    <div class="stat passed"><div class="num">{{ passed }}</div><div class="label">Başarılı</div></div>
+    <div class="stat failed"><div class="num">{{ failed }}</div><div class="label">Başarısız</div></div>
+    <div class="stat skipped"><div class="num">{{ skipped }}</div><div class="label">Atlanan</div></div>
+    <div class="stat rate"><div class="num">{{ pass_rate }}%</div><div class="label">Başarı Oranı</div></div>
+    <div class="stat duration"><div class="num">{{ duration }}</div><div class="label">Toplam Süre</div></div>
+  </div>
+
+  <div class="progress-bar">
+    <div class="progress-fill {{ rate_class }}" style="width: {{ pass_rate }}%"></div>
+  </div>
+
+  <!-- Severity Breakdown -->
+  <div class="section">
+    <h2>Önem Seviyesine Göre Dağılım</h2>
+    <table>
+      <thead>
+        <tr><th>Seviye</th><th>Toplam</th><th>Başarılı</th><th>Başarısız</th><th>Oran</th></tr>
+      </thead>
+      <tbody>
+        <!-- {{ severity_rows }} -->
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Test Results -->
+  <div class="section">
+    <h2>Test Sonuçları</h2>
+    <!-- {{ result_cards }} -->
+  </div>
+
+  <!-- Failed Tests - Root Cause -->
+  <div class="section">
+    <h2>Başarısız Testler — Kök Neden Analizi</h2>
+    <!-- {{ rca_cards }} -->
+  </div>
+
+  <!-- Coverage Summary -->
+  <div class="section">
+    <h2>Kapsam Özeti</h2>
+    <table>
+      <thead>
+        <tr><th>Modül</th><th>Kapsam</th><th>Oran</th></tr>
+      </thead>
+      <tbody>
+        <!-- {{ coverage_rows }} -->
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Trend -->
+  <div class="section">
+    <h2>Trend (Son 10 Çalıştırma)</h2>
+    <table>
+      <thead>
+        <tr><th>Run</th><th>Tarih</th><th>Toplam</th><th>Başarılı</th><th>Oran</th><th>Delta</th></tr>
+      </thead>
+      <tbody>
+        <!-- {{ trend_rows }} -->
+      </tbody>
+    </table>
+  </div>
+
+</div>
+
+<footer>
+  TestwrightAI Test Platformu — Execution Raporu | {{ date }} | {{ project_name }}
+</footer>
+
+</body>
+</html>

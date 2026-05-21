@@ -1,0 +1,597 @@
+{
+    "columns": {
+        "checking_account": {
+            "value_protection": true,
+            "encoding_type": "TABULAR_CATEGORICAL",
+            "no_of_rare_categories": 0,
+            "codes": {
+                "_RARE_": 0,
+                "A11": 1,
+                "A12": 2,
+                "A13": 3,
+                "A14": 4
+            },
+            "cardinalities": {
+                "cat": 5
+            },
+            "argn_processor": "tgt",
+            "argn_table": "t0",
+            "argn_column": "c0"
+        },
+        "duration": {
+            "encoding_type": "TABULAR_NUMERIC_DIGIT",
+            "cardinalities": {
+                "E1": 8,
+                "E0": 10
+            },
+            "has_nan": false,
+            "has_neg": false,
+            "min_digits": {
+                "E18": 0,
+                "E17": 0,
+                "E16": 0,
+                "E15": 0,
+                "E14": 0,
+                "E13": 0,
+                "E12": 0,
+                "E11": 0,
+                "E10": 0,
+                "E9": 0,
+                "E8": 0,
+                "E7": 0,
+                "E6": 0,
+                "E5": 0,
+                "E4": 0,
+                "E3": 0,
+                "E2": 0,
+                "E1": 0,
+                "E0": 0,
+                "E-1": 0,
+                "E-2": 0,
+                "E-3": 0,
+                "E-4": 0,
+                "E-5": 0,
+                "E-6": 0,
+                "E-7": 0,
+                "E-8": 0
+            },
+            "max_digits": {
+                "E18": 0,
+                "E17": 0,
+                "E16": 0,
+                "E15": 0,
+                "E14": 0,
+                "E13": 0,
+                "E12": 0,
+                "E11": 0,
+                "E10": 0,
+                "E9": 0,
+                "E8": 0,
+                "E7": 0,
+                "E6": 0,
+                "E5": 0,
+                "E4": 0,
+                "E3": 0,
+                "E2": 0,
+                "E1": 7,
+                "E0": 9,
+                "E-1": 0,
+                "E-2": 0,
+                "E-3": 0,
+                "E-4": 0,
+                "E-5": 0,
+                "E-6": 0,
+                "E-7": 0,
+                "E-8": 0
+            },
+            "max_decimal": 1,
+            "min_decimal": 0,
+            "min": 6.0,
+            "max": 71.0,
+            "argn_processor": "tgt",
+            "argn_table": "t1",
+            "argn_column": "c1"
+        },
+        "credit_history": {
+            "value_protection": true,
+            "encoding_type": "TABULAR_CATEGORICAL",
+            "no_of_rare_categories": 0,
+            "codes": {
+                "_RARE_": 0,
+                "A30": 1,
+                "A31": 2,
+                "A32": 3,
+                "A33": 4,
+                "A34": 5
+            },
+            "cardinalities": {
+                "cat": 6
+            },
+            "argn_processor": "tgt",
+            "argn_table": "t2",
+            "argn_column": "c2"
+        },
+        "purpose": {
+            "value_protection": true,
+            "encoding_type": "TABULAR_CATEGORICAL",
+            "no_of_rare_categories": 0,
+            "codes": {
+                "_RARE_": 0,
+                "business": 1,
+                "car": 2,
+                "education": 3,
+                "furniture/equipment": 4,
+                "other": 5,
+                "radio/TV": 6,
+                "repairs": 7
+            },
+            "cardinalities": {
+                "cat": 8
+            },
+            "argn_processor": "tgt",
+            "argn_table": "t3",
+            "argn_column": "c3"
+        },
+        "credit_amount": {
+            "encoding_type": "TABULAR_NUMERIC_BINNED",
+            "cardinalities": {
+                "bin": 103
+            },
+            "codes": {
+                "<<UNK>>": 0,
+                "<<MIN>>": 1,
+                "<<MAX>>": 2
+            },
+            "min_decimal": 0,
+            "bins": [
+                867.0,
+                965.0,
+                1329.0,
+                1735.0,
+                1944.0,
+                2199.0,
+                2470.0,
+                2480.0,
+                2654.0,
+                2990.0,
+                3090.0,
+                3103.0,
+                3219.0,
+                3253.0,
+                3503.0,
+                3564.0,
+                3857.0,
+                3907.0,
+                3997.0,
+                4002.0,
+                4399.0,
+                4584.0,
+                4585.0,
+                4685.0,
+                4720.0,
+                4778.0,
+                4986.0,
+                5096.0,
+                5134.0,
+                5239.0,
+                5316.0,
+                5825.0,
+                6028.0,
+                6360.0,
+                6579.0,
+                6619.0,
+                6940.0,
+                7024.0,
+                7287.0,
+                7490.0,
+                7520.0,
+                7803.0,
+                7846.0,
+                8021.0,
+                8163.0,
+                8264.0,
+                8404.0,
+                8513.0,
+                8565.0,
+                8691.0,
+                8819.0,
+                9193.0,
+                9217.0,
+                9259.0,
+                9334.0,
+                9514.0,
+                9658.0,
+                9841.0,
+                9895.0,
+                10219.0,
+                10250.0,
+                10305.0,
+                10823.0,
+                10899.0,
+                11043.0,
+                11227.0,
+                11324.0,
+                11447.0,
+                11586.0,
+                11624.0,
+                11888.0,
+                12054.0,
+                12340.0,
+                12472.0,
+                13098.0,
+                13524.0,
+                13752.0,
+                13824.0,
+                13921.0,
+                14299.0,
+                14380.0,
+                14586.0,
+                14655.0,
+                14790.0,
+                14835.0,
+                14885.0,
+                15162.0,
+                15493.0,
+                15608.0,
+                15724.0,
+                15890.0,
+                16061.0,
+                16186.0,
+                16501.0,
+                16654.0,
+                16728.0,
+                16986.0,
+                17096.0,
+                17319.0,
+                17687.0,
+                17742.0
+            ],
+            "argn_processor": "tgt",
+            "argn_table": "t4",
+            "argn_column": "c4"
+        },
+        "savings_account": {
+            "value_protection": true,
+            "encoding_type": "TABULAR_CATEGORICAL",
+            "no_of_rare_categories": 0,
+            "codes": {
+                "_RARE_": 0,
+                "A61": 1,
+                "A62": 2,
+                "A63": 3,
+                "A64": 4,
+                "A65": 5
+            },
+            "cardinalities": {
+                "cat": 6
+            },
+            "argn_processor": "tgt",
+            "argn_table": "t5",
+            "argn_column": "c5"
+        },
+        "employment": {
+            "value_protection": true,
+            "encoding_type": "TABULAR_CATEGORICAL",
+            "no_of_rare_categories": 0,
+            "codes": {
+                "_RARE_": 0,
+                "A71": 1,
+                "A72": 2,
+                "A73": 3,
+                "A74": 4,
+                "A75": 5
+            },
+            "cardinalities": {
+                "cat": 6
+            },
+            "argn_processor": "tgt",
+            "argn_table": "t6",
+            "argn_column": "c6"
+        },
+        "installment_rate": {
+            "encoding_type": "TABULAR_NUMERIC_DISCRETE",
+            "cardinalities": {
+                "cat": 5
+            },
+            "codes": {
+                "_RARE_": 0,
+                "1": 1,
+                "2": 2,
+                "3": 3,
+                "4": 4
+            },
+            "min_decimal": 0,
+            "argn_processor": "tgt",
+            "argn_table": "t7",
+            "argn_column": "c7"
+        },
+        "personal_status": {
+            "value_protection": true,
+            "encoding_type": "TABULAR_CATEGORICAL",
+            "no_of_rare_categories": 0,
+            "codes": {
+                "_RARE_": 0,
+                "A91": 1,
+                "A92": 2,
+                "A93": 3,
+                "A94": 4
+            },
+            "cardinalities": {
+                "cat": 5
+            },
+            "argn_processor": "tgt",
+            "argn_table": "t8",
+            "argn_column": "c8"
+        },
+        "other_debtors": {
+            "value_protection": true,
+            "encoding_type": "TABULAR_CATEGORICAL",
+            "no_of_rare_categories": 0,
+            "codes": {
+                "_RARE_": 0,
+                "A101": 1,
+                "A102": 2,
+                "A103": 3
+            },
+            "cardinalities": {
+                "cat": 4
+            },
+            "argn_processor": "tgt",
+            "argn_table": "t9",
+            "argn_column": "c9"
+        },
+        "residence_since": {
+            "encoding_type": "TABULAR_NUMERIC_DISCRETE",
+            "cardinalities": {
+                "cat": 6
+            },
+            "codes": {
+                "_RARE_": 0,
+                "1": 1,
+                "2": 2,
+                "3": 3,
+                "4": 4,
+                "5": 5
+            },
+            "min_decimal": 0,
+            "argn_processor": "tgt",
+            "argn_table": "t10",
+            "argn_column": "c10"
+        },
+        "property": {
+            "value_protection": true,
+            "encoding_type": "TABULAR_CATEGORICAL",
+            "no_of_rare_categories": 0,
+            "codes": {
+                "_RARE_": 0,
+                "A121": 1,
+                "A122": 2,
+                "A123": 3,
+                "A124": 4
+            },
+            "cardinalities": {
+                "cat": 5
+            },
+            "argn_processor": "tgt",
+            "argn_table": "t11",
+            "argn_column": "c11"
+        },
+        "age": {
+            "encoding_type": "TABULAR_NUMERIC_DIGIT",
+            "cardinalities": {
+                "E1": 7,
+                "E0": 10
+            },
+            "has_nan": false,
+            "has_neg": false,
+            "min_digits": {
+                "E18": 0,
+                "E17": 0,
+                "E16": 0,
+                "E15": 0,
+                "E14": 0,
+                "E13": 0,
+                "E12": 0,
+                "E11": 0,
+                "E10": 0,
+                "E9": 0,
+                "E8": 0,
+                "E7": 0,
+                "E6": 0,
+                "E5": 0,
+                "E4": 0,
+                "E3": 0,
+                "E2": 0,
+                "E1": 1,
+                "E0": 0,
+                "E-1": 0,
+                "E-2": 0,
+                "E-3": 0,
+                "E-4": 0,
+                "E-5": 0,
+                "E-6": 0,
+                "E-7": 0,
+                "E-8": 0
+            },
+            "max_digits": {
+                "E18": 0,
+                "E17": 0,
+                "E16": 0,
+                "E15": 0,
+                "E14": 0,
+                "E13": 0,
+                "E12": 0,
+                "E11": 0,
+                "E10": 0,
+                "E9": 0,
+                "E8": 0,
+                "E7": 0,
+                "E6": 0,
+                "E5": 0,
+                "E4": 0,
+                "E3": 0,
+                "E2": 0,
+                "E1": 7,
+                "E0": 9,
+                "E-1": 0,
+                "E-2": 0,
+                "E-3": 0,
+                "E-4": 0,
+                "E-5": 0,
+                "E-6": 0,
+                "E-7": 0,
+                "E-8": 0
+            },
+            "max_decimal": 1,
+            "min_decimal": 0,
+            "min": 20.0,
+            "max": 75.0,
+            "argn_processor": "tgt",
+            "argn_table": "t12",
+            "argn_column": "c12"
+        },
+        "other_installments": {
+            "value_protection": true,
+            "encoding_type": "TABULAR_CATEGORICAL",
+            "no_of_rare_categories": 0,
+            "codes": {
+                "_RARE_": 0,
+                "A141": 1,
+                "A142": 2,
+                "A143": 3
+            },
+            "cardinalities": {
+                "cat": 4
+            },
+            "argn_processor": "tgt",
+            "argn_table": "t13",
+            "argn_column": "c13"
+        },
+        "housing": {
+            "value_protection": true,
+            "encoding_type": "TABULAR_CATEGORICAL",
+            "no_of_rare_categories": 0,
+            "codes": {
+                "_RARE_": 0,
+                "free": 1,
+                "own": 2,
+                "rent": 3
+            },
+            "cardinalities": {
+                "cat": 4
+            },
+            "argn_processor": "tgt",
+            "argn_table": "t14",
+            "argn_column": "c14"
+        },
+        "existing_credits": {
+            "encoding_type": "TABULAR_NUMERIC_DISCRETE",
+            "cardinalities": {
+                "cat": 5
+            },
+            "codes": {
+                "_RARE_": 0,
+                "1": 1,
+                "2": 2,
+                "3": 3,
+                "4": 4
+            },
+            "min_decimal": 0,
+            "argn_processor": "tgt",
+            "argn_table": "t15",
+            "argn_column": "c15"
+        },
+        "job": {
+            "value_protection": true,
+            "encoding_type": "TABULAR_CATEGORICAL",
+            "no_of_rare_categories": 0,
+            "codes": {
+                "_RARE_": 0,
+                "highly skilled": 1,
+                "skilled": 2,
+                "unskilled resident": 3
+            },
+            "cardinalities": {
+                "cat": 4
+            },
+            "argn_processor": "tgt",
+            "argn_table": "t16",
+            "argn_column": "c16"
+        },
+        "liable_people": {
+            "encoding_type": "TABULAR_NUMERIC_DISCRETE",
+            "cardinalities": {
+                "cat": 4
+            },
+            "codes": {
+                "_RARE_": 0,
+                "0": 1,
+                "1": 2,
+                "2": 3
+            },
+            "min_decimal": 0,
+            "argn_processor": "tgt",
+            "argn_table": "t17",
+            "argn_column": "c17"
+        },
+        "telephone": {
+            "value_protection": true,
+            "encoding_type": "TABULAR_CATEGORICAL",
+            "no_of_rare_categories": 0,
+            "codes": {
+                "_RARE_": 0,
+                "no": 1,
+                "yes": 2
+            },
+            "cardinalities": {
+                "cat": 3
+            },
+            "argn_processor": "tgt",
+            "argn_table": "t18",
+            "argn_column": "c18"
+        },
+        "foreign_worker": {
+            "value_protection": true,
+            "encoding_type": "TABULAR_CATEGORICAL",
+            "no_of_rare_categories": 0,
+            "codes": {
+                "_RARE_": 0,
+                "no": 1,
+                "yes": 2
+            },
+            "cardinalities": {
+                "cat": 3
+            },
+            "argn_processor": "tgt",
+            "argn_table": "t19",
+            "argn_column": "c19"
+        },
+        "risk": {
+            "value_protection": true,
+            "encoding_type": "TABULAR_CATEGORICAL",
+            "no_of_rare_categories": 0,
+            "codes": {
+                "_RARE_": 0,
+                "bad": 1,
+                "good": 2
+            },
+            "cardinalities": {
+                "cat": 3
+            },
+            "argn_processor": "tgt",
+            "argn_table": "t20",
+            "argn_column": "c20"
+        }
+    },
+    "no_of_training_records": 241,
+    "no_of_validation_records": 59,
+    "seq_len": {
+        "min": 1,
+        "max": 1,
+        "median": 1,
+        "value_protection": true
+    },
+    "is_sequential": false,
+    "keys": {},
+    "value_protection_epsilon_spent": null
+}

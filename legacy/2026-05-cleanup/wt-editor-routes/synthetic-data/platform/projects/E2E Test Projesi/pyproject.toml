@@ -1,0 +1,43 @@
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "E2E Test Projesi"
+version = "0.1.0"
+description = "Test Otomasyon Projesi"
+readme = "README.md"
+requires-python = ">=3.9"
+authors = [
+    {name = "Test Takımı", email = "test@example.com"}
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "pytest-asyncio>=0.21.0",
+    "pytest-playwright>=0.3.0",
+    "pytest-html>=3.2.0",
+    "pytest-xdist>=3.0.0",
+]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+python_files = ["test_*.py", "*_test.py"]
+markers = [
+    "asyncio: async testler",
+    "slow: yavaş testler",
+    "integration: entegrasyon testleri",
+    "smoke: smoke testleri",
+    "critical: kritik testler",
+]
+addopts = "-v --strict-markers --tb=short"
+
+[tool.black]
+line-length = 100
+target-version = ["py39", "py310", "py311"]
+
+[tool.isort]
+profile = "black"
+line_length = 100

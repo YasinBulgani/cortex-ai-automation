@@ -1,0 +1,112 @@
+{
+  "name": "TSPM Import → Extract → Generate → Approval",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "tspm-import",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "webhook-import",
+      "name": "Webhook Import",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300],
+      "webhookId": "tspm-import"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "run_id",
+              "name": "run_id",
+              "value": "={{ $json.body.run_id }}",
+              "type": "string"
+            },
+            {
+              "id": "import_id",
+              "name": "import_id",
+              "value": "={{ $json.body.import_id }}",
+              "type": "string"
+            },
+            {
+              "id": "api_base",
+              "name": "api_base",
+              "value": "http://host.docker.internal:8000",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "set-ctx",
+      "name": "Context",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [480, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.api_base }}/api/v1/tspm/webhooks/n8n/import-status",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ import_id: $json.import_id, status: 'extracting', log: 'n8n: extract aşaması' }) }}"
+      },
+      "id": "http-import-status",
+      "name": "Callback Import Status",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [720, 200]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.api_base }}/api/v1/tspm/webhooks/n8n/ai-run",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ run_id: $json.run_id, status: 'awaiting_user', steps: [{ phase: 'generate', ok: true }], output_summary: 'Taslak onay kuyruğu için hazır' }) }}"
+      },
+      "id": "http-ai-run",
+      "name": "Callback AI Run",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [720, 400]
+    }
+  ],
+  "connections": {
+    "Webhook Import": {
+      "main": [[{ "node": "Context", "type": "main", "index": 0 }]]
+    },
+    "Context": {
+      "main": [
+        [
+          { "node": "Callback Import Status", "type": "main", "index": 0 },
+          { "node": "Callback AI Run", "type": "main", "index": 0 }
+        ]
+      ]
+    }
+  },
+  "settings": { "executionOrder": "v1" },
+  "meta": { "templateCredsSetupCompleted": false }
+}

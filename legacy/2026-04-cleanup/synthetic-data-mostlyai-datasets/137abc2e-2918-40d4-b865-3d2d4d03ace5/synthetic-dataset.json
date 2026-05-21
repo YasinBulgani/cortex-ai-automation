@@ -1,0 +1,69 @@
+{
+  "id": "137abc2e-2918-40d4-b865-3d2d4d03ace5",
+  "generatorId": "852f2772-ebf2-4cce-a06a-37f5214bb810",
+  "metadata": null,
+  "name": "pg_bgts_banking_cards_1774510622",
+  "description": null,
+  "generationStatus": "DONE",
+  "generationTime": null,
+  "tables": [
+    {
+      "id": "fdfb180a-4810-4d89-aba5-f30658ead080",
+      "name": "data",
+      "configuration": {
+        "sampleSize": 200,
+        "sampleSeedConnectorId": null,
+        "sampleSeedDict": null,
+        "sampleSeedData": null,
+        "samplingTemperature": 1.0,
+        "samplingTopP": 1.0,
+        "rebalancing": null,
+        "imputation": null,
+        "fairness": null,
+        "enableDataReport": true
+      },
+      "tabularModelMetrics": {
+        "accuracy": {
+          "overall": 0.5932501,
+          "univariate": 0.7881489,
+          "bivariate": 0.5859272,
+          "trivariate": 0.4056743,
+          "coherence": null,
+          "overallMax": 0.799885,
+          "univariateMax": 0.9285611,
+          "bivariateMax": 0.8181039,
+          "trivariateMax": 0.65299,
+          "coherenceMax": null
+        },
+        "distances": {
+          "imsTraining": 0.0,
+          "imsHoldout": 0.0,
+          "imsTrnHol": 0.0,
+          "dcrTraining": 0.337,
+          "dcrHoldout": 0.353,
+          "dcrTrnHol": 0.232,
+          "dcrShare": 0.712,
+          "nndrTraining": 0.841645222993,
+          "nndrHoldout": 0.887203691951,
+          "nndrTrnHol": 0.64139932741
+        },
+        "similarity": {
+          "cosineSimilarityTrainingSynthetic": 0.2729136,
+          "cosineSimilarityTrainingHoldout": 0.8524055,
+          "discriminatorAUCTrainingSynthetic": 1.0,
+          "discriminatorAUCTrainingHoldout": 0.446
+        }
+      },
+      "languageModelMetrics": null,
+      "foreignKeys": null,
+      "totalRows": 200,
+      "totalDatapoints": null,
+      "sourceTableTotalRows": 300
+    }
+  ],
+  "delivery": null,
+  "accuracy": null,
+  "usage": null,
+  "compute": null,
+  "randomState": null
+}

@@ -1,0 +1,165 @@
+{
+  "version": "2.0",
+  "updated_at": "2026-04-19T13:27:37Z",
+  "next_ids": {
+    "GAP": 2,
+    "FEAT": 1,
+    "BUG": 1
+  },
+  "items": [
+    {
+      "id": "GAP-001",
+      "type": "GAP",
+      "title": "Sidebar navigasyonunda klavye kullanıcıları menüye erişemiyor (WCAG 2.1 AA ihlali)",
+      "priority": "medium",
+      "created_at": "2026-04-19T12:54:48Z",
+      "current_stage": "done",
+      "status": "done",
+      "needs_human": false,
+      "feedback_loops": [],
+      "scope": {
+        "fe": true,
+        "be": false,
+        "data": false,
+        "infra": false,
+        "perf_sensitive": false
+      },
+      "stages": {
+        "analyzer": {
+          "status": "done",
+          "completed_at": "2026-04-19T12:55:46Z",
+          "artifact": "docs/ai/pipeline/items/GAP-001/gap-analysis.md",
+          "handoff_notes": "agent=hf model=llama3.1:8b latency=49.6s"
+        },
+        "validator": {
+          "status": "done",
+          "completed_at": "2026-04-19T12:56:18Z",
+          "handoff_notes": "agent=hf model=llama3.1:8b latency=31.6s",
+          "approval": {
+            "decision": "approve",
+            "reasoning": "Bulunan ihlal WCAG 2.1 AA standardına göre bir ihlaldir ve kullanıcı deneyimi için kritik bir risk oluşturuyor.",
+            "confidence": 0.90
+          }
+        },
+        "proposer": {
+          "status": "done",
+          "completed_at": "2026-04-19T12:59:18Z",
+          "artifact": "docs/ai/pipeline/items/GAP-001/proposal.md",
+          "handoff_notes": "agent=hf model=qwen2.5:14b latency=179.9s"
+        },
+        "approver": {
+          "status": "done",
+          "completed_at": "2026-04-19T13:00:25Z",
+          "handoff_notes": "agent=hf model=qwen2.5:14b latency=66.1s"
+        },
+        "product_validator": {
+          "status": "done",
+          "completed_at": "2026-04-19T13:02:15Z",
+          "handoff_notes": "agent=hf model=qwen2.5:14b latency=176.5s",
+          "approval": {
+            "decision": "approve",
+            "reasoning": "Önerilen seçenek, kısa ve uzun vadeli bakımları dikkate alır ve gelecekteki a11y iyileştirmelerini destekleyecektir.",
+            "confidence": 0.90
+          }
+        },
+        "architect": {
+          "status": "done",
+          "completed_at": "2026-04-19T13:08:31Z",
+          "artifact": "docs/ai/pipeline/items/GAP-001/arch-ADR.md",
+          "handoff_notes": "agent=hf model=qwen2.5:14b latency=375.8s"
+        },
+        "designer": {
+          "status": "done",
+          "completed_at": "2026-04-19T13:05:07Z",
+          "artifact": "docs/ai/pipeline/items/GAP-001/design.md",
+          "handoff_notes": "agent=hf model=qwen2.5:14b latency=171.9s"
+        },
+        "backend": {
+          "status": "skipped",
+          "completed_at": "2026-04-19T13:08:31Z",
+          "handoff_notes": "auto-skipped by scope"
+        },
+        "data_engineer": {
+          "status": "skipped",
+          "completed_at": "2026-04-19T13:08:31Z",
+          "handoff_notes": "auto-skipped by scope"
+        },
+        "devops": {
+          "status": "skipped",
+          "completed_at": "2026-04-19T13:08:32Z",
+          "handoff_notes": "auto-skipped by scope"
+        },
+        "frontend": {
+          "status": "done",
+          "completed_at": "2026-04-19T13:10:08Z",
+          "handoff_notes": "agent=hf model=qwen2.5-coder:7b latency=95.8s"
+        },
+        "code_reviewer": {
+          "status": "done",
+          "completed_at": "2026-04-19T13:11:39Z",
+          "handoff_notes": "agent=hf model=qwen2.5:14b latency=90.6s",
+          "approval": {
+            "decision": "approve",
+            "reasoning": "A11y-first approach with clear focus and keyboard navigation, proper use of aria attributes for accessibility.",
+            "confidence": 0.92
+          }
+        },
+        "integrator": {
+          "status": "done",
+          "completed_at": "2026-04-19T13:13:07Z",
+          "handoff_notes": "agent=hf model=qwen2.5:14b latency=87.6s"
+        },
+        "a11y_auditor": {
+          "status": "done",
+          "completed_at": "2026-04-19T13:14:21Z",
+          "artifact": "docs/ai/pipeline/items/GAP-001/a11y-report.md",
+          "handoff_notes": "agent=hf model=qwen2.5:14b latency=73.6s",
+          "approval": {
+            "decision": "approve",
+            "reasoning": "All checks passed, no critical issues",
+            "confidence": 1.00
+          }
+        },
+        "performance_tester": {
+          "status": "skipped",
+          "completed_at": "2026-04-19T13:13:07Z",
+          "handoff_notes": "auto-skipped by scope"
+        },
+        "qa": {
+          "status": "done",
+          "completed_at": "2026-04-19T13:17:27Z",
+          "artifact": "docs/ai/pipeline/items/GAP-001/test-report.md",
+          "handoff_notes": "agent=hf model=qwen2.5:14b latency=259.8s"
+        },
+        "security_reviewer": {
+          "status": "done",
+          "completed_at": "2026-04-19T13:19:42Z",
+          "artifact": "docs/ai/pipeline/items/GAP-001/security-review.md",
+          "handoff_notes": "agent=hf model=qwen2.5:14b latency=321.0s"
+        },
+        "promoter": {
+          "status": "done",
+          "completed_at": "2026-04-19T13:21:17Z",
+          "handoff_notes": "agent=hf model=qwen2.5:14b latency=94.8s"
+        },
+        "release_manager": {
+          "status": "done",
+          "completed_at": "2026-04-19T13:22:32Z",
+          "handoff_notes": "agent=hf model=llama3.1:8b latency=74.7s"
+        },
+        "observer": {
+          "status": "done",
+          "completed_at": "2026-04-19T13:24:02Z",
+          "artifact": "docs/ai/pipeline/items/GAP-001/observer-report.md",
+          "handoff_notes": "agent=hf model=llama3.1:8b latency=90.5s"
+        },
+        "retrospective": {
+          "status": "done",
+          "completed_at": "2026-04-19T13:27:37Z",
+          "artifact": "docs/ai/pipeline/items/GAP-001/retro.md",
+          "handoff_notes": "agent=hf model=qwen2.5:14b latency=213.9s"
+        }
+      }
+    }
+  ]
+}

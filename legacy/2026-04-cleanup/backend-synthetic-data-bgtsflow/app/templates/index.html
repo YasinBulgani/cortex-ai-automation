@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ title }}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0a0e17;
+      --bg2: rgba(15, 20, 30, 0.85);
+      --bg3: rgba(22, 28, 40, 0.7);
+      --bg4: rgba(30, 38, 55, 0.6);
+      --text: #e6edf3;
+      --text2: #8b949e;
+      --text3: #6e7681;
+      --border: rgba(48, 54, 65, 0.5);
+      --accent: #388bfd;
+      --accent2: #a371f7;
+      --green: #3fb950;
+      --red: #f85149;
+      --yellow: #d29922;
+      --orange: #f0883e;
+      --font: 'Inter', -apple-system, sans-serif;
+      --mono: 'JetBrains Mono', monospace;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { height: 100%; background: var(--bg); color: var(--text); font-family: var(--font); }
+
+    /* ── Mesh Background ──────────────────────────────────── */
+    .mesh-bg { position: fixed; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; }
+    .mesh-ball { position: absolute; border-radius: 50%; filter: blur(100px); animation: float 25s infinite alternate ease-in-out; }
+    .ball-1 { width: 50vw; height: 50vw; background: rgba(56,139,253,0.08); top: -20%; left: -15%; }
+    .ball-2 { width: 40vw; height: 40vw; background: rgba(163,113,247,0.08); bottom: -15%; right: -10%; animation-delay: -8s; }
+    .ball-3 { width: 35vw; height: 35vw; background: rgba(63,185,80,0.05); top: 40%; left: 50%; animation-delay: -15s; }
+    @keyframes float { from { transform: translate(0,0) scale(1); } to { transform: translate(80px,40px) scale(1.15); } }
+
+    /* ── Layout ────────────────────────────────────────────── */
+    .app { position: relative; z-index: 1; min-height: 100vh; display: flex; flex-direction: column; }
+
+    /* ── Header ────────────────────────────────────────────── */
+    .header {
+      padding: 20px 40px; display: flex; align-items: center; gap: 16px;
+      border-bottom: 1px solid var(--border);
+      background: rgba(10,14,23,0.6); backdrop-filter: blur(12px);
+    }
+    .logo-icon {
+      width: 42px; height: 42px; border-radius: 12px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px; font-weight: 800; color: #fff;
+    }
+    .logo-text h1 { font-size: 18px; font-weight: 700; letter-spacing: -0.3px; }
+    .logo-text p { font-size: 11px; color: var(--text3); font-weight: 500; }
+    .header-spacer { flex: 1; }
+    .version-badge {
+      font-size: 10px; font-weight: 700; color: var(--accent);
+      background: rgba(56,139,253,0.1); border: 1px solid rgba(56,139,253,0.2);
+      padding: 3px 10px; border-radius: 20px; letter-spacing: 0.5px;
+    }
+
+    /* ── Main Content ─────────────────────────────────────── */
+    .content { flex: 1; padding: 32px 40px; max-width: 1200px; margin: 0 auto; width: 100%; }
+
+    /* ── Cards ─────────────────────────────────────────────── */
+    .card {
+      background: var(--bg2); border: 1px solid var(--border); border-radius: 16px;
+      padding: 24px; margin-bottom: 24px;
+      backdrop-filter: blur(10px); transition: border-color 0.2s;
+    }
+    .card:hover { border-color: rgba(56,139,253,0.3); }
+    .card-title {
+      font-size: 15px; font-weight: 700; margin-bottom: 16px;
+      display: flex; align-items: center; gap: 10px;
+    }
+    .card-title .icon { font-size: 20px; }
+
+    /* ── Upload Zone ───────────────────────────────────────── */
+    .upload-zone {
+      border: 2px dashed var(--border); border-radius: 16px;
+      padding: 48px; text-align: center; cursor: pointer;
+      transition: all 0.3s; position: relative; overflow: hidden;
+    }
+    .upload-zone:hover, .upload-zone.dragover {
+      border-color: var(--accent); background: rgba(56,139,253,0.04);
+    }
+    .upload-zone .icon { font-size: 48px; margin-bottom: 12px; opacity: 0.6; }
+    .upload-zone h3 { font-size: 16px; font-weight: 600; margin-bottom: 6px; }
+    .upload-zone p { font-size: 13px; color: var(--text3); }
+    .upload-zone input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+
+    /* ── Stats Row ─────────────────────────────────────────── */
+    .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+    .stat-card {
+      background: var(--bg3); border: 1px solid var(--border); border-radius: 14px;
+      padding: 20px; text-align: center; transition: all 0.2s;
+    }
+    .stat-card:hover { transform: translateY(-3px); border-color: rgba(56,139,253,0.3); }
+    .stat-card .num { font-size: 32px; font-weight: 800; background: linear-gradient(135deg, var(--accent), var(--accent2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .stat-card .label { font-size: 11px; color: var(--text3); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 4px; }
+
+    /* ── Schema Columns ────────────────────────────────────── */
+    .columns-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
+    .col-card {
+      background: var(--bg4); border: 1px solid var(--border); border-radius: 12px;
+      padding: 14px 16px; transition: all 0.2s;
+    }
+    .col-card:hover { border-color: var(--accent2); }
+    .col-card.pii { border-left: 3px solid var(--red); }
+    .col-name { font-size: 13px; font-weight: 700; font-family: var(--mono); color: var(--accent); }
+    .col-type { font-size: 10px; color: var(--text3); font-weight: 600; text-transform: uppercase; margin-top: 2px; }
+    .col-classification {
+      display: inline-flex; align-items: center; gap: 4px;
+      font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 20px;
+      margin-top: 6px; letter-spacing: 0.3px;
+    }
+    .col-classification.pii-tag { background: rgba(248,81,73,0.12); color: var(--red); border: 1px solid rgba(248,81,73,0.2); }
+    .col-classification.safe-tag { background: rgba(63,185,80,0.12); color: var(--green); border: 1px solid rgba(63,185,80,0.2); }
+    .col-stats { font-size: 10px; color: var(--text3); margin-top: 6px; line-height: 1.6; }
+
+    /* ── Scenarios ──────────────────────────────────────────── */
+    .scenarios-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
+    .scenario-card {
+      background: var(--bg4); border: 2px solid var(--border); border-radius: 14px;
+      padding: 18px; cursor: pointer; transition: all 0.2s; text-align: center;
+    }
+    .scenario-card:hover, .scenario-card.active { border-color: var(--accent); background: rgba(56,139,253,0.05); transform: translateY(-2px); }
+    .scenario-card .sc-icon { font-size: 32px; margin-bottom: 8px; }
+    .scenario-card .sc-name { font-size: 14px; font-weight: 700; }
+    .scenario-card .sc-desc { font-size: 11px; color: var(--text3); margin-top: 4px; line-height: 1.5; }
+
+    /* ── Controls ───────────────────────────────────────────── */
+    .controls-row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-bottom: 20px; }
+    .input-styled {
+      background: var(--bg4); border: 1px solid var(--border); color: var(--text);
+      padding: 10px 14px; border-radius: 10px; font-family: var(--font); font-size: 13px;
+      outline: none; transition: border 0.2s;
+    }
+    .input-styled:focus { border-color: var(--accent); }
+    .btn {
+      padding: 10px 20px; border: none; border-radius: 10px; font-family: var(--font);
+      font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s;
+      display: inline-flex; align-items: center; gap: 8px;
+    }
+    .btn-primary { background: linear-gradient(135deg, var(--accent), #5b6abf); color: #fff; }
+    .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(56,139,253,0.3); }
+    .btn-green { background: linear-gradient(135deg, #238636, #3fb950); color: #fff; }
+    .btn-green:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(35,134,54,0.3); }
+    .btn-ghost { background: var(--bg4); border: 1px solid var(--border); color: var(--text2); }
+    .btn-ghost:hover { border-color: var(--accent); color: var(--text); }
+
+    /* ── Preview Table ─────────────────────────────────────── */
+    .preview-wrap { overflow-x: auto; border-radius: 12px; border: 1px solid var(--border); }
+    .preview-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    .preview-table th {
+      background: var(--bg3); color: var(--text3); font-weight: 700;
+      text-transform: uppercase; font-size: 10px; letter-spacing: 0.5px;
+      padding: 12px 14px; text-align: left; position: sticky; top: 0;
+    }
+    .preview-table td {
+      padding: 10px 14px; color: var(--text2); border-bottom: 1px solid rgba(48,54,61,0.3);
+      white-space: nowrap; max-width: 200px; overflow: hidden; text-overflow: ellipsis;
+      font-family: var(--mono); font-size: 11px;
+    }
+    .preview-table tr:hover td { background: rgba(56,139,253,0.03); }
+
+    /* ── Toast ──────────────────────────────────────────────── */
+    .toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; }
+    .toast {
+      padding: 12px 20px; border-radius: 12px; font-size: 13px; font-weight: 600;
+      color: #fff; box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+      animation: slideUp 0.3s ease; display: flex; align-items: center; gap: 8px;
+    }
+    .toast.ok { background: linear-gradient(135deg, #059669, #10b981); }
+    .toast.err { background: linear-gradient(135deg, #dc2626, #ef4444); }
+    @keyframes slideUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+
+    /* ── Loading Spinner ───────────────────────────────────── */
+    .spinner { display: inline-block; width: 20px; height: 20px; border: 2.5px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.7s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-overlay {
+      position: absolute; inset: 0; background: rgba(10,14,23,0.7);
+      display: none; align-items: center; justify-content: center;
+      flex-direction: column; gap: 12px; border-radius: 16px; z-index: 10;
+    }
+    .loading-overlay.active { display: flex; }
+
+    /* ── Sections ───────────────────────────────────────────── */
+    .section { display: none; }
+    .section.active { display: block; animation: fadeIn 0.3s ease; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+
+    /* ── PII Summary ───────────────────────────────────────── */
+    .pii-banner {
+      background: rgba(248,81,73,0.08); border: 1px solid rgba(248,81,73,0.2);
+      border-radius: 12px; padding: 14px 18px; margin-bottom: 16px;
+      display: flex; align-items: center; gap: 12px;
+    }
+    .pii-banner .pii-icon { font-size: 24px; }
+    .pii-banner .pii-text { font-size: 13px; color: var(--text2); }
+    .pii-banner strong { color: var(--red); }
+
+    /* ── Responsive ────────────────────────────────────────── */
+    @media (max-width: 800px) {
+      .stats-row { grid-template-columns: repeat(2, 1fr); }
+      .scenarios-grid { grid-template-columns: 1fr; }
+      .content { padding: 20px; }
+      .header { padding: 16px 20px; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="mesh-bg">
+  <div class="mesh-ball ball-1"></div>
+  <div class="mesh-ball ball-2"></div>
+  <div class="mesh-ball ball-3"></div>
+</div>
+
+<div class="app">
+  <!-- Header -->
+  <header class="header">
+    <div class="logo-icon">SD</div>
+    <div class="logo-text">
+      <h1>TestwrightAI Synthetic Data</h1>
+      <p>AI-Powered Banking Data Platform</p>
+    </div>
+    <div class="header-spacer"></div>
+    <span class="version-badge">v{{ version }}</span>
+  </header>
+
+  <div class="content">
+    <!-- ─── Section 1: Upload ──────────────────────── -->
+    <div id="section-upload" class="section active">
+      <div class="card">
+        <div class="card-title"><span class="icon">📤</span> Veri Kaynağı Yükle</div>
+        <div class="upload-zone" id="upload-zone"
+             ondragover="event.preventDefault(); this.classList.add('dragover')"
+             ondragleave="this.classList.remove('dragover')"
+             ondrop="handleDrop(event)">
+          <input type="file" accept=".csv,.json" onchange="handleUpload(this.files[0])" />
+          <div class="icon">📁</div>
+          <h3>CSV veya JSON dosyanızı sürükleyin</h3>
+          <p>veya tıklayarak seçin — Şema otomatik analiz edilecek</p>
+        </div>
+      </div>
+
+      <!-- Hazır Bankacılık Veritabanları -->
+      <div style="margin-top: 40px; margin-bottom: 20px;">
+        <h3 style="font-size: 16px; font-weight: 700; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+          <span>🏦</span> Hazır Bankacılık Veritabanları
+        </h3>
+        <p style="font-size: 13px; color: var(--text3); margin-bottom: 16px;">
+          Arka planda üretilip SQL veritabanına entegre edilmiş 145.000+ satırlık bankacılık verisi. Sentezlemek için bir tablo seçin.
+        </p>
+        <div class="scenarios-grid" id="ready-schemas-grid"></div>
+      </div>
+
+      <div class="stats-row" id="home-stats" style="display:none">
+        <div class="stat-card"><div class="num" id="stat-projects">0</div><div class="label">Projeler</div></div>
+        <div class="stat-card"><div class="num" id="stat-schemas">0</div><div class="label">Şemalar</div></div>
+        <div class="stat-card"><div class="num" id="stat-generations">0</div><div class="label">Üretimler</div></div>
+        <div class="stat-card"><div class="num" id="stat-rows">0</div><div class="label">Toplam Satır</div></div>
+      </div>
+    </div>
+
+    <!-- ─── Section 2: Schema Analysis ─────────────── -->
+    <div id="section-schema" class="section">
+      <div class="card" style="position:relative">
+        <div class="loading-overlay" id="analyze-loading">
+          <div class="spinner"></div>
+          <div style="color:var(--text3); font-size:13px">Şema analiz ediliyor...</div>
+        </div>
+
+        <div class="card-title">
+          <button class="btn btn-ghost" style="padding: 6px 12px; font-size: 12px; margin-right: 12px;" onclick="showSection('section-upload')">⬅️ Geri</button>
+          <span class="icon">🔍</span> Şema Analizi — <span id="schema-table-name">-</span>
+        </div>
+
+        <div class="stats-row" id="schema-stats" style="display:none">
+          <div class="stat-card"><div class="num" id="col-count">0</div><div class="label">Kolon</div></div>
+          <div class="stat-card"><div class="num" id="row-count">0</div><div class="label">Kaynak Satır</div></div>
+          <div class="stat-card"><div class="num" id="pii-count">0</div><div class="label">PII Alan</div></div>
+          <div class="stat-card"><div class="num" id="rule-count">0</div><div class="label">Kural</div></div>
+        </div>
+
+        <div id="pii-banner" class="pii-banner" style="display:none">
+          <span class="pii-icon">🛡️</span>
+          <div class="pii-text">
+            <strong id="pii-fields-text">0 PII alanı</strong> tespit edildi.
+            Sentetik veri bu alanlar için gerçekçi ama tamamen sahte veriler üretecektir.
+          </div>
+        </div>
+
+        <div class="columns-grid" id="columns-grid"></div>
+      </div>
+
+      <!-- Generation Controls -->
+      <div class="card" id="gen-controls" style="display:none">
+        <div class="card-title"><span class="icon">⚡</span> Veri Üretimi</div>
+
+        <h4 style="font-size:13px; color:var(--text2); margin-bottom:12px">📦 Senaryo Seçin</h4>
+        <div class="scenarios-grid" id="scenarios-grid"></div>
+
+        <div class="controls-row" style="margin-top:20px">
+          <label style="font-size:12px; color:var(--text3); font-weight:600">SATIR SAYISI</label>
+          <input type="number" id="gen-row-count" value="1000" min="10" max="100000" class="input-styled" style="width:120px" />
+          <label style="font-size:12px; color:var(--text3); font-weight:600">FORMAT</label>
+          <select id="gen-format" class="input-styled" style="width:120px">
+            <option value="json">JSON</option>
+            <option value="csv">CSV</option>
+            <option value="sql">SQL</option>
+          </select>
+          </select>
+          <div style="flex:1"></div>
+          <button class="btn btn-primary" onclick="generateData()">⚡ Üret</button>
+          <button class="btn btn-green" onclick="exportData('csv')">📥 CSV İndir</button>
+          <button class="btn btn-ghost" onclick="exportData('sql')">💾 SQL İndir</button>
+        </div>
+      </div>
+
+      <!-- AI Prompt Box -->
+      <div class="card" id="ai-query-card" style="display:none; border-color: rgba(163,113,247,0.4); background: linear-gradient(180deg, var(--bg2) 0%, rgba(163,113,247,0.02) 100%);">
+        <div class="card-title" style="color: var(--accent2)"><span class="icon">✨</span> AI Asistan ile Veri Sentezle</div>
+        <p style="font-size: 13px; color: var(--text3); margin-bottom: 12px;">Ne tür bir bankacılık verisine ihtiyacınız var? Sistemin yapısını öğrendikçe daha karmaşık senaryoları anlayabilir.</p>
+        <div style="display: flex; gap: 10px;">
+          <input type="text" id="ai-prompt-input" class="input-styled" style="flex:1; border-color: rgba(163,113,247,0.3);" placeholder="Örn: Bana 500 tane yüksek riskli ve gecikmesi olan müşteri getir..." onkeypress="if(event.key === 'Enter') generateFromAI()">
+          <button class="btn" style="background: linear-gradient(135deg, var(--accent2), #7b42f6); color: #fff;" onclick="generateFromAI()"><span class="icon">🪄</span> Sorgula ve Üret</button>
+        </div>
+      </div>
+
+      <!-- Preview Table -->
+      <div class="card" id="preview-card" style="display:none">
+        <div class="card-title">
+          <span class="icon">📊</span> Önizleme
+          <span style="flex:1"></span>
+          <span id="preview-info" style="font-size:12px; color:var(--text3)"></span>
+        </div>
+        <div class="preview-wrap">
+          <table class="preview-table" id="preview-table">
+            <thead id="preview-thead"></thead>
+            <tbody id="preview-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast-container" id="toast-container"></div>
+
+<script>
+/* ── State ──────────────────────────────────────────────── */
+let currentSchema = null;
+let currentSchemaId = null;
+let currentProjectId = null;
+let selectedScenario = 'default';
+
+/* ── Upload ─────────────────────────────────────────────── */
+function handleDrop(e) {
+  e.preventDefault();
+  e.target.closest('.upload-zone')?.classList.remove('dragover');
+  const file = e.dataTransfer.files[0];
+  if (file) handleUpload(file);
+}
+
+async function handleUpload(file) {
+  if (!file) return;
+  toast('📤 Dosya analiz ediliyor: ' + file.name, 'ok');
+  
+  showSection('section-schema');
+  document.getElementById('analyze-loading').classList.add('active');
+
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('project_name', file.name.replace(/\.[^.]+$/, ''));
+
+  try {
+    const res = await fetch('/api/schemas/analyze', { method: 'POST', body: formData });
+    const data = await res.json();
+
+    if (data.error) throw new Error(data.error);
+
+    currentSchema = data.schema;
+    currentSchemaId = data.schema_id;
+    currentProjectId = data.project_id;
+
+    renderSchemaAnalysis(data);
+    toast('✅ Şema başarıyla analiz edildi!', 'ok');
+  } catch (e) {
+    toast('❌ Hata: ' + e.message, 'err');
+  } finally {
+    document.getElementById('analyze-loading').classList.remove('active');
+  }
+}
+
+/* ── Ready Schemas ──────────────────────────────────────── */
+async function loadReadySchemas() {
+  try {
+    const res = await fetch('/api/schemas/all');
+    const schemas = await res.json();
+    const grid = document.getElementById('ready-schemas-grid');
+    
+    if (schemas.length === 0) {
+      grid.innerHTML = '<div style="color:var(--text3); font-size:13px; grid-column: 1/-1;">Henüz hazır veritabanı bulunmuyor.</div>';
+      return;
+    }
+
+    grid.innerHTML = schemas.map(s => {
+      let icon = '📊';
+      if(s.table_name === 'musteriler') icon = '👥';
+      if(s.table_name === 'hesaplar') icon = '💳';
+      if(s.table_name === 'islemler') icon = '💸';
+      if(s.table_name === 'kredi_kartlari') icon = '💳';
+
+      return `
+      <div class="scenario-card" onclick="selectReadySchema('${s.id}')">
+        <div class="sc-icon">${icon}</div>
+        <div class="sc-name" style="text-transform: capitalize;">${s.table_name}</div>
+        <div class="sc-desc">${s.row_count.toLocaleString()} Kayıt · ${s.columns_count} Kolon</div>
+      </div>
+      `;
+    }).join('');
+  } catch(e) { console.error(e); }
+}
+
+async function selectReadySchema(id) {
+  showSection('section-schema');
+  document.getElementById('analyze-loading').classList.add('active');
+  try {
+    const res = await fetch('/api/schemas/' + id);
+    const data = await res.json();
+    
+    currentSchema = data;
+    currentSchemaId = data.id;
+    
+    const piiCount = data.columns.filter(c => c.pii).length;
+    
+    renderSchemaAnalysis({
+      schema: data, 
+      rules: data.rules, 
+      pii_summary: { pii_columns: piiCount, pii_fields: data.columns.filter(c=>c.pii).map(c=>c.name) }
+    });
+    
+    toast('✅ Bankacılık Tablosu Yüklendi', 'ok');
+  } catch(e) {
+    toast('❌ Hata: ' + e.message, 'err');
+    showSection('section-upload');
+  } finally {
+    document.getElementById('analyze-loading').classList.remove('active');
+  }
+}
+
+// Sayfa yüklendiğinde hazır şemaları getir
+document.addEventListener('DOMContentLoaded', () => {
+  loadReadySchemas();
+});
+
+/* ── Render Schema ──────────────────────────────────────── */
+function renderSchemaAnalysis(data) {
+  const schema = data.schema;
+  const rules = data.rules;
+  const pii = data.pii_summary || {};
+
+  document.getElementById('schema-table-name').textContent = schema.table_name;
+  document.getElementById('col-count').textContent = schema.columns.length;
+  document.getElementById('row-count').textContent = schema.row_count.toLocaleString();
+  document.getElementById('pii-count').textContent = pii.pii_columns || 0;
+  document.getElementById('rule-count').textContent = rules.length;
+  document.getElementById('schema-stats').style.display = '';
+
+  // PII Banner
+  if (pii.pii_columns > 0) {
+    document.getElementById('pii-banner').style.display = '';
+    document.getElementById('pii-fields-text').textContent =
+      pii.pii_columns + ' PII alanı (' + (pii.pii_fields || []).join(', ') + ')';
+  }
+
+  // Columns grid
+  const grid = document.getElementById('columns-grid');
+  grid.innerHTML = schema.columns.map(c => {
+    const isPii = c.pii;
+    const cls = c.classification || 'unknown';
+    const stats = c.stats || {};
+    let statsHtml = '';
+    if (stats.min !== undefined) statsHtml = `Min: ${stats.min} | Max: ${stats.max} | Ort: ${stats.mean}`;
+    else if (stats.min_length !== undefined) statsHtml = `Uzunluk: ${stats.min_length}-${stats.max_length}`;
+    else if (stats.top_values) statsHtml = Object.keys(stats.top_values).slice(0,3).join(', ');
+
+    return `<div class="col-card ${isPii ? 'pii' : ''}">
+      <div class="col-name">${c.name}</div>
+      <div class="col-type">${c.dtype}</div>
+      <span class="col-classification ${isPii ? 'pii-tag' : 'safe-tag'}">${isPii ? '🔒 ' : ''}${cls}</span>
+      ${statsHtml ? `<div class="col-stats">${statsHtml}</div>` : ''}
+    </div>`;
+  }).join('');
+
+  // Show controls
+  document.getElementById('gen-controls').style.display = '';
+  document.getElementById('ai-query-card').style.display = '';
+  loadScenarios();
+}
+
+/* ── Scenarios ──────────────────────────────────────────── */
+async function loadScenarios() {
+  try {
+    const res = await fetch('/api/generate/scenarios');
+    const scenarios = await res.json();
+    const grid = document.getElementById('scenarios-grid');
+    grid.innerHTML = scenarios.map(s => `
+      <div class="scenario-card ${s.key === selectedScenario ? 'active' : ''}"
+           onclick="selectScenario('${s.key}')">
+        <div class="sc-icon">${s.icon}</div>
+        <div class="sc-name">${s.name}</div>
+        <div class="sc-desc">${s.description}</div>
+      </div>
+    `).join('');
+  } catch(e) { console.error(e); }
+}
+
+function selectScenario(key) {
+  selectedScenario = key;
+  document.querySelectorAll('.scenario-card').forEach(c => c.classList.remove('active'));
+  event.currentTarget.classList.add('active');
+}
+
+/* ── Generate ───────────────────────────────────────────── */
+async function generateData() {
+  if (!currentSchemaId) return toast('Önce bir dosya yükleyin', 'err');
+  
+  const rowCount = parseInt(document.getElementById('gen-row-count').value) || 1000;
+  const format = document.getElementById('gen-format').value;
+
+  toast('⚡ Veri üretiliyor...', 'ok');
+
+  try {
+    const res = await fetch('/api/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        schema_id: currentSchemaId,
+        row_count: rowCount,
+        scenario: selectedScenario,
+        format: 'json', // always get preview as JSON
+      })
+    });
+
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+
+    renderPreview(data);
+    toast(`✅ ${data.row_count.toLocaleString()} satır üretildi (${data.duration_ms}ms)`, 'ok');
+  } catch (e) {
+    toast('❌ ' + e.message, 'err');
+  }
+}
+
+async function generateFromAI() {
+  const prompt = document.getElementById('ai-prompt-input').value;
+  if (!prompt) return toast('Lütfen bir doğal dil komutu girin', 'err');
+  if (!currentSchemaId) return toast('Önce bir tablo seçmelisiniz', 'err');
+
+  toast('🧠 AI cümlenizi yorumluyor ve öğreniyor...', 'ok');
+  
+  try {
+    const res = await fetch('/api/generate/ai-query', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        schema_id: currentSchemaId,
+        prompt: prompt
+      })
+    });
+
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+
+    renderPreview(data);
+    toast(`✨ AI Yorumladı: "${data.ai_interpretation}" | ${data.row_count.toLocaleString()} satır üretildi`, 'ok');
+  } catch (e) {
+    toast('❌ ' + e.message, 'err');
+  }
+}
+
+function renderPreview(data) {
+  const card = document.getElementById('preview-card');
+  card.style.display = '';
+  
+  document.getElementById('preview-info').textContent = 
+    `${data.row_count.toLocaleString()} satır · ${data.scenario} · ${data.duration_ms}ms`;
+
+  const thead = document.getElementById('preview-thead');
+  const tbody = document.getElementById('preview-tbody');
+  const cols = data.columns || [];
+  const preview = data.preview || [];
+
+  thead.innerHTML = '<tr>' + cols.map(c => `<th>${c}</th>`).join('') + '</tr>';
+  tbody.innerHTML = preview.map(row => 
+    '<tr>' + cols.map(c => `<td>${row[c] ?? ''}</td>`).join('') + '</tr>'
+  ).join('');
+}
+
+/* ── Export ──────────────────────────────────────────────── */
+async function exportData(format) {
+  if (!currentSchemaId) return toast('Önce veri üretin', 'err');
+  
+  const rowCount = parseInt(document.getElementById('gen-row-count').value) || 1000;
+
+  try {
+    const res = await fetch('/api/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        schema_id: currentSchemaId,
+        row_count: rowCount,
+        scenario: selectedScenario,
+        format: format,
+      })
+    });
+
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `synthetic_data.${format}`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast(`📥 ${format.toUpperCase()} dosyası indirildi`, 'ok');
+  } catch(e) {
+    toast('❌ İndirme hatası', 'err');
+  }
+}
+
+/* ── Utils ──────────────────────────────────────────────── */
+function showSection(id) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function toast(msg, type = 'ok') {
+  const c = document.getElementById('toast-container');
+  const t = document.createElement('div');
+  t.className = 'toast ' + type;
+  t.innerHTML = `<span>${msg}</span>`;
+  c.appendChild(t);
+  setTimeout(() => { t.style.opacity = '0'; setTimeout(() => t.remove(), 300); }, 4000);
+}
+</script>
+</body>
+</html>

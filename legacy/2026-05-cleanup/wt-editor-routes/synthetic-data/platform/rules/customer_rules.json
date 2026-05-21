@@ -1,0 +1,196 @@
+{
+  "version": "1.0",
+  "description": "Müşteri tablosu kural seti — bankacılık sentetik veri üretimi",
+  "exported_at": "2026-03-28T00:00:00",
+  "total_rules": 12,
+  "rules": [
+    {
+      "rule_id": "cust-001",
+      "column_name": "musteri_no",
+      "rule_type": "UNIQUE",
+      "definition": {
+        "unique": true,
+        "observed_distinct_ratio": 1.0
+      },
+      "confidence": 0.95,
+      "is_active": true,
+      "description": "Müşteri numarası benzersiz olmalı",
+      "source": "manual"
+    },
+    {
+      "rule_id": "cust-002",
+      "column_name": "musteri_no",
+      "rule_type": "REGEX",
+      "definition": {
+        "pattern": "^MUS\\d{8}$",
+        "semantic_type": "customer_id",
+        "match_ratio": 1.0
+      },
+      "confidence": 0.93,
+      "is_active": true,
+      "description": "Müşteri numarası formatı: MUS + 8 hane",
+      "source": "manual"
+    },
+    {
+      "rule_id": "cust-003",
+      "column_name": "tckn",
+      "rule_type": "REGEX",
+      "definition": {
+        "pattern": "^\\d{11}$",
+        "semantic_type": "national_id",
+        "match_ratio": 1.0
+      },
+      "confidence": 0.95,
+      "is_active": true,
+      "description": "TCKN formatı — 11 haneli sayı",
+      "source": "manual"
+    },
+    {
+      "rule_id": "cust-004",
+      "column_name": "tckn",
+      "rule_type": "NOT_NULL",
+      "definition": {
+        "nullable": false,
+        "observed_null_ratio": 0.0
+      },
+      "confidence": 0.95,
+      "is_active": true,
+      "description": "TCKN zorunlu alan",
+      "source": "manual"
+    },
+    {
+      "rule_id": "cust-005",
+      "column_name": "ad_soyad",
+      "rule_type": "NOT_NULL",
+      "definition": {
+        "nullable": false,
+        "observed_null_ratio": 0.0
+      },
+      "confidence": 0.92,
+      "is_active": true,
+      "description": "Ad soyad zorunlu alan",
+      "source": "manual"
+    },
+    {
+      "rule_id": "cust-006",
+      "column_name": "ad_soyad",
+      "rule_type": "LENGTH",
+      "definition": {
+        "min_length": 3,
+        "max_length": 100,
+        "avg_length": 18.5
+      },
+      "confidence": 0.85,
+      "is_active": true,
+      "description": "Ad soyad uzunluk kuralı [3 — 100] karakter",
+      "source": "manual"
+    },
+    {
+      "rule_id": "cust-007",
+      "column_name": "yas",
+      "rule_type": "RANGE",
+      "definition": {
+        "min": 18,
+        "max": 90,
+        "mean": 38.5,
+        "std": 12.2,
+        "data_type": "integer"
+      },
+      "confidence": 0.90,
+      "is_active": true,
+      "description": "Müşteri yaşı [18 — 90] aralığında",
+      "source": "manual"
+    },
+    {
+      "rule_id": "cust-008",
+      "column_name": "yas",
+      "rule_type": "DISTRIBUTION",
+      "definition": {
+        "distribution": "normal",
+        "params": {
+          "mean": 38.5,
+          "std": 12.2
+        }
+      },
+      "confidence": 0.82,
+      "is_active": true,
+      "description": "Yaş dağılımı: normal (μ=38.5, σ=12.2)",
+      "source": "manual"
+    },
+    {
+      "rule_id": "cust-009",
+      "column_name": "segment",
+      "rule_type": "ENUM",
+      "definition": {
+        "values": ["bireysel", "ticari", "kurumsal", "kobi", "premium"],
+        "frequencies": {
+          "bireysel": 0.55,
+          "ticari": 0.15,
+          "kurumsal": 0.10,
+          "kobi": 0.12,
+          "premium": 0.08
+        },
+        "allow_null": false,
+        "distinct_count": 5
+      },
+      "confidence": 0.92,
+      "is_active": true,
+      "description": "Müşteri segmenti: bireysel, ticari, kurumsal, kobi, premium",
+      "source": "manual"
+    },
+    {
+      "rule_id": "cust-010",
+      "column_name": "telefon",
+      "rule_type": "REGEX",
+      "definition": {
+        "pattern": "^(\\+90|0)?[5][0-9]{9}$",
+        "semantic_type": "phone",
+        "match_ratio": 0.98
+      },
+      "confidence": 0.90,
+      "is_active": true,
+      "description": "Türk cep telefonu formatı (+90 5xx xxx xx xx)",
+      "source": "manual"
+    },
+    {
+      "rule_id": "cust-011",
+      "column_name": "email",
+      "rule_type": "REGEX",
+      "definition": {
+        "pattern": "^[a-zA-Z0-9._%+\\-]+@[a-zA-Z0-9.\\-]+\\.[a-zA-Z]{2,}$",
+        "semantic_type": "email",
+        "match_ratio": 0.99
+      },
+      "confidence": 0.91,
+      "is_active": true,
+      "description": "Email formatı doğrulama",
+      "source": "manual"
+    },
+    {
+      "rule_id": "cust-012",
+      "column_name": "sehir",
+      "rule_type": "ENUM",
+      "definition": {
+        "values": ["Istanbul", "Ankara", "Izmir", "Bursa", "Antalya", "Adana", "Konya", "Gaziantep", "Mersin", "Kayseri"],
+        "frequencies": {
+          "Istanbul": 0.28,
+          "Ankara": 0.12,
+          "Izmir": 0.10,
+          "Bursa": 0.06,
+          "Antalya": 0.05,
+          "Adana": 0.04,
+          "Konya": 0.04,
+          "Gaziantep": 0.04,
+          "Mersin": 0.03,
+          "Kayseri": 0.03
+        },
+        "allow_null": true,
+        "distinct_count": 81
+      },
+      "confidence": 0.75,
+      "is_active": true,
+      "description": "Şehir dağılımı (81 il, nüfus orantılı)",
+      "source": "manual"
+    }
+  ]
+}

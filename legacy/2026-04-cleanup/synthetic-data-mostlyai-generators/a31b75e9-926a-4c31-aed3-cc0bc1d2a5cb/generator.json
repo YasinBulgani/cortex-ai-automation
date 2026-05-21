@@ -1,0 +1,296 @@
+{
+  "id": "a31b75e9-926a-4c31-aed3-cc0bc1d2a5cb",
+  "name": "test_123",
+  "description": null,
+  "trainingStatus": "DONE",
+  "trainingTime": null,
+  "usage": null,
+  "metadata": null,
+  "accuracy": null,
+  "tables": [
+    {
+      "id": "75f493fe-7f32-474e-830e-93da92ed8c53",
+      "sourceConnectorId": "9c18acd2-7a77-49d7-b229-04c9ce544530",
+      "location": "/Users/yasin_bulgan/mostlyai/connectors/9c18acd2-7a77-49d7-b229-04c9ce544530/data.parquet",
+      "name": "data",
+      "primaryKey": "customer_id",
+      "columns": [
+        {
+          "id": "acda582d-ad51-45c8-95a5-db9ee3267f67",
+          "name": "customer_id",
+          "included": true,
+          "modelEncodingType": "TABULAR_NUMERIC_AUTO",
+          "valueRange": null
+        },
+        {
+          "id": "a7e44bda-98dd-4317-bc59-0de5a5e4f5a8",
+          "name": "name",
+          "included": true,
+          "modelEncodingType": "TABULAR_CATEGORICAL",
+          "valueRange": {
+            "min": null,
+            "max": null,
+            "values": [],
+            "has_null": false
+          }
+        },
+        {
+          "id": "c5b6f3b8-41e4-45a7-98de-054d70d81a6b",
+          "name": "surname",
+          "included": true,
+          "modelEncodingType": "TABULAR_CATEGORICAL",
+          "valueRange": {
+            "min": null,
+            "max": null,
+            "values": [
+              "Öztürk"
+            ],
+            "has_null": false
+          }
+        },
+        {
+          "id": "6e8f6d19-c52e-4608-a874-71fe31927e07",
+          "name": "tckn",
+          "included": true,
+          "modelEncodingType": "TABULAR_NUMERIC_BINNED",
+          "valueRange": {
+            "min": "23680286152.0",
+            "max": "63071600481.0",
+            "values": null,
+            "has_null": false
+          }
+        },
+        {
+          "id": "a6827c19-69f8-40f3-8887-99f5a1384f98",
+          "name": "birth_date",
+          "included": true,
+          "modelEncodingType": "TABULAR_DATETIME",
+          "valueRange": {
+            "min": null,
+            "max": null,
+            "values": null,
+            "has_null": false
+          }
+        },
+        {
+          "id": "bee440a6-c4a7-4de6-8de9-cdf02f168444",
+          "name": "age",
+          "included": true,
+          "modelEncodingType": "TABULAR_NUMERIC_DIGIT",
+          "valueRange": {
+            "min": null,
+            "max": null,
+            "values": null,
+            "has_null": false
+          }
+        },
+        {
+          "id": "cc8316ab-578b-41c1-9262-6e17c0eb831d",
+          "name": "phone",
+          "included": true,
+          "modelEncodingType": "TABULAR_NUMERIC_BINNED",
+          "valueRange": {
+            "min": "5487014344.0",
+            "max": "5611392961.0",
+            "values": null,
+            "has_null": false
+          }
+        },
+        {
+          "id": "9520b1c9-eec3-4e1f-bc2c-75533334b4eb",
+          "name": "email",
+          "included": true,
+          "modelEncodingType": "TABULAR_CATEGORICAL",
+          "valueRange": {
+            "min": null,
+            "max": null,
+            "values": [],
+            "has_null": false
+          }
+        },
+        {
+          "id": "b5fc39b7-8ca7-498d-8c75-a65fe09b83bd",
+          "name": "city",
+          "included": true,
+          "modelEncodingType": "TABULAR_CATEGORICAL",
+          "valueRange": {
+            "min": null,
+            "max": null,
+            "values": [
+              "Ankara"
+            ],
+            "has_null": false
+          }
+        },
+        {
+          "id": "7e7d6e67-f11c-4269-b78c-4b608135ccae",
+          "name": "district",
+          "included": true,
+          "modelEncodingType": "TABULAR_CATEGORICAL",
+          "valueRange": {
+            "min": null,
+            "max": null,
+            "values": [
+              "Bornova",
+              "Kadıköy"
+            ],
+            "has_null": false
+          }
+        },
+        {
+          "id": "8a716fd6-3e86-40d7-b76a-fb392d6a5c8b",
+          "name": "address",
+          "included": true,
+          "modelEncodingType": "TABULAR_CATEGORICAL",
+          "valueRange": {
+            "min": null,
+            "max": null,
+            "values": [],
+            "has_null": false
+          }
+        },
+        {
+          "id": "882cabae-567d-4a95-afee-c50bb1a826c8",
+          "name": "iban",
+          "included": true,
+          "modelEncodingType": "TABULAR_CATEGORICAL",
+          "valueRange": {
+            "min": null,
+            "max": null,
+            "values": [],
+            "has_null": false
+          }
+        },
+        {
+          "id": "a1119b91-a04d-4178-b2d4-e61c43ff843f",
+          "name": "account_type",
+          "included": true,
+          "modelEncodingType": "TABULAR_CATEGORICAL",
+          "valueRange": {
+            "min": null,
+            "max": null,
+            "values": [
+              "Vadeli",
+              "Vadesiz"
+            ],
+            "has_null": false
+          }
+        },
+        {
+          "id": "bd276c2b-b38e-4077-ba98-93cb4b50b3b4",
+          "name": "balance",
+          "included": true,
+          "modelEncodingType": "TABULAR_NUMERIC_BINNED",
+          "valueRange": {
+            "min": "202982.68",
+            "max": "388246.66",
+            "values": null,
+            "has_null": false
+          }
+        },
+        {
+          "id": "57bfb177-56c4-48f1-b81e-672df009b448",
+          "name": "currency",
+          "included": true,
+          "modelEncodingType": "TABULAR_CATEGORICAL",
+          "valueRange": {
+            "min": null,
+            "max": null,
+            "values": [
+              "TRY"
+            ],
+            "has_null": false
+          }
+        },
+        {
+          "id": "c2d51246-ca77-4d08-99b9-eb0903e88eff",
+          "name": "credit_score",
+          "included": true,
+          "modelEncodingType": "TABULAR_NUMERIC_BINNED",
+          "valueRange": {
+            "min": "1261.0",
+            "max": "1512.0",
+            "values": null,
+            "has_null": false
+          }
+        },
+        {
+          "id": "989ff570-2018-41ac-9f7c-db7896a28c76",
+          "name": "customer_segment",
+          "included": true,
+          "modelEncodingType": "TABULAR_CATEGORICAL",
+          "valueRange": {
+            "min": null,
+            "max": null,
+            "values": [
+              "Bireysel",
+              "Premium"
+            ],
+            "has_null": false
+          }
+        },
+        {
+          "id": "6ede2ed3-0c5f-4c67-83ab-abf143e34579",
+          "name": "last_transaction_date",
+          "included": true,
+          "modelEncodingType": "TABULAR_DATETIME",
+          "valueRange": {
+            "min": null,
+            "max": null,
+            "values": null,
+            "has_null": false
+          }
+        },
+        {
+          "id": "dbf48105-8983-41c0-93d9-fad29e14ad78",
+          "name": "active_flag",
+          "included": true,
+          "modelEncodingType": "TABULAR_NUMERIC_DIGIT",
+          "valueRange": {
+            "min": null,
+            "max": null,
+            "values": null,
+            "has_null": false
+          }
+        },
+        {
+          "id": "e12318a5-18ba-4137-ab14-e80d01bc47ff",
+          "name": "risk_level",
+          "included": true,
+          "modelEncodingType": "TABULAR_CATEGORICAL",
+          "valueRange": {
+            "min": null,
+            "max": null,
+            "values": [
+              "High",
+              "Low"
+            ],
+            "has_null": false
+          }
+        }
+      ],
+      "foreignKeys": null,
+      "tabularModelMetrics": null,
+      "languageModelMetrics": null,
+      "tabularModelConfiguration": {
+        "model": "MOSTLY_AI/Medium",
+        "maxSampleSize": null,
+        "batchSize": null,
+        "gradientAccumulationSteps": null,
+        "maxTrainingTime": 14400.0,
+        "maxEpochs": 100.0,
+        "maxSequenceWindow": 100,
+        "enableFlexibleGeneration": true,
+        "valueProtection": true,
+        "rareCategoryReplacementMethod": "CONSTANT",
+        "differentialPrivacy": null,
+        "compute": null,
+        "enableModelReport": true
+      },
+      "languageModelConfiguration": null,
+      "totalRows": 20
+    }
+  ],
+  "constraints": null,
+  "randomState": null
+}

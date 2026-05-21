@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Pipeline Conductor — Canlı Dashboard</title>
+<link rel="stylesheet" href="/static/style.css" />
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+</head>
+<body>
+
+<header class="top-bar">
+  <div class="brand">
+    <span class="logo">◉</span>
+    <span class="title">Pipeline Conductor</span>
+    <span class="subtitle">25 rollü agent orkestrasyonu · HuggingFace</span>
+  </div>
+  <div class="status-group">
+    <div class="chip" id="hf-chip" title="HuggingFace durumu">
+      <span class="chip-dot" id="hf-dot"></span>
+      <span class="chip-label" id="hf-label">HF: kontrol…</span>
+    </div>
+    <div class="chip" id="sse-chip" title="Canlı bağlantı">
+      <span class="chip-dot pulse" id="sse-dot"></span>
+      <span class="chip-label" id="sse-label">SSE: bağlanıyor</span>
+    </div>
+    <div class="chip" id="run-chip">
+      <span class="chip-dot" id="run-dot"></span>
+      <span class="chip-label" id="run-label">Idle</span>
+    </div>
+  </div>
+</header>
+
+<main class="layout">
+
+  <!-- ════ SOL: Item listesi + controls ════ -->
+  <section class="panel panel-left">
+
+    <div class="panel-header">
+      <h2>Items</h2>
+      <div class="kpi-row">
+        <div class="kpi" id="kpi-total"><span class="kpi-val">—</span><span class="kpi-label">Toplam</span></div>
+        <div class="kpi" id="kpi-inprog"><span class="kpi-val">—</span><span class="kpi-label">Aktif</span></div>
+        <div class="kpi" id="kpi-waiting"><span class="kpi-val">—</span><span class="kpi-label">Bekleyen</span></div>
+        <div class="kpi" id="kpi-done"><span class="kpi-val">—</span><span class="kpi-label">Done</span></div>
+        <div class="kpi kpi-warn" id="kpi-human"><span class="kpi-val">—</span><span class="kpi-label">⚠</span></div>
+      </div>
+    </div>
+
+    <div class="controls">
+      <h3>Paralel koşumu başlat</h3>
+      <div class="control-row">
+        <label>Mode:
+          <select id="run-mode">
+            <option value="once">once</option>
+            <option value="watch">watch (daemon)</option>
+          </select>
+        </label>
+        <label>Concurrent:
+          <input type="number" id="run-concurrent" min="1" max="10" value="3" />
+        </label>
+        <label>Filter rol:
+          <input type="text" id="run-filter-role" placeholder="analyzer,validator" />
+        </label>
+      </div>
+      <div class="button-row">
+        <button id="btn-start" class="btn btn-primary">▶ Başlat</button>
+        <button id="btn-stop" class="btn btn-danger" disabled>■ Durdur</button>
+        <button id="btn-refresh" class="btn">⟳ Yenile</button>
+      </div>
+    </div>
+
+    <div class="item-list-wrap">
+      <h3>Items</h3>
+      <table class="items-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Title</th>
+            <th>Stage</th>
+            <th>Status</th>
+            <th>Scope</th>
+          </tr>
+        </thead>
+        <tbody id="items-tbody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ════ ORTA: Pipeline graph + detail ════ -->
+  <section class="panel panel-center">
+
+    <div class="panel-header">
+      <h2>Pipeline Graph</h2>
+      <div id="selected-item-label" class="muted">—</div>
+    </div>
+
+    <div class="graph-wrap">
+      <div class="mermaid" id="pipeline-graph">
+        %%{init:{'theme':'dark'}}%%
+        flowchart TD
+          A[Analyzer] --> V[Validator]
+          V --> P[Proposer]
+          P --> AP[Approver]
+          P --> PV[Product Val]
+          AP --> DS[Designer]
+          AP --> AR[Architect]
+          PV --> DS
+          PV --> AR
+          DS --> FE[Frontend]
+          DS --> BE[Backend]
+          AR --> FE
+          AR --> BE
+          AR --> DA[Data]
+          AR --> DV[DevOps]
+          FE --> CR[Code Review]
+          BE --> CR
+          DA --> CR
+          DV --> CR
+          CR --> IN[Integrator]
+          IN --> QA[QA]
+          IN --> SE[Security]
+          IN --> A11[A11y]
+          IN --> PF[Perf]
+          QA --> PR[Promoter]
+          SE --> PR
+          A11 --> PR
+          PF --> PR
+          PR --> RM[Release]
+          RM --> OB[Observer]
+          OB --> RT[Retro]
+      </div>
+    </div>
+
+    <div class="detail-wrap">
+      <h3>Item detay</h3>
+      <div id="item-detail" class="detail-content muted">
+        Bir item seçin (soldan)
+      </div>
+    </div>
+  </section>
+
+  <!-- ════ SAĞ: Live log + metrics ════ -->
+  <aside class="panel panel-right">
+
+    <div class="panel-header">
+      <h2>Canlı Log</h2>
+      <button id="btn-clear-log" class="btn btn-sm">Temizle</button>
+    </div>
+
+    <div id="log-stream" class="log-stream"></div>
+
+    <div class="panel-header panel-header-sep">
+      <h3>Metrics</h3>
+    </div>
+    <div id="metrics-summary" class="metrics-summary">Yükleniyor…</div>
+
+    <div class="panel-header panel-header-sep">
+      <h3>Waiting Heatmap</h3>
+    </div>
+    <div id="heatmap" class="heatmap"></div>
+
+  </aside>
+
+</main>
+
+<footer class="bottom-bar">
+  <span class="muted">docs/ai/pipeline/state.json · auto-refresh via SSE</span>
+  <span id="last-update" class="muted">—</span>
+</footer>
+
+<script src="/static/dashboard.js"></script>
+</body>
+</html>

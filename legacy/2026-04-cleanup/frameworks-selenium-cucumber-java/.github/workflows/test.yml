@@ -1,0 +1,90 @@
+name: Test Otomasyon
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'NexusQATestOtomasyon/**'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'NexusQATestOtomasyon/**'
+  workflow_dispatch:
+    inputs:
+      domains:
+        description: 'Çalıştırılacak domainler (virgülle ayır, boş = hepsi)'
+        required: false
+        default: ''
+      environment:
+        description: 'Ortam (test/prod)'
+        required: false
+        default: 'test'
+      feature:
+        description: 'Tek feature çalıştır (ör: absence.feature, boş = hepsi)'
+        required: false
+        default: ''
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Setup Chrome
+        uses: browser-actions/setup-chrome@v1
+        with:
+          chrome-version: 'stable'
+
+      - name: Run Tests
+        working-directory: NexusQATestOtomasyon
+        run: |
+          MAVEN_OPTS="-Xmx1024m"
+          CMD="mvn test -Dheadless=true -Ddata.env=${{ github.event.inputs.environment || 'test' }}"
+
+          if [ -n "${{ github.event.inputs.domains }}" ]; then
+            CMD="$CMD -Ddomains=${{ github.event.inputs.domains }}"
+          fi
+
+          if [ -n "${{ github.event.inputs.feature }}" ]; then
+            CMD="$CMD -Dcucumber.features=src/test/resources/features/${{ github.event.inputs.feature }}"
+          fi
+
+          echo "Running: $CMD"
+          $CMD || true
+
+      - name: Upload Allure Results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: allure-results
+          path: NexusQATestOtomasyon/target/allure-results*/
+          retention-days: 30
+
+      - name: Upload Test Reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports
+          path: |
+            NexusQATestOtomasyon/rapor/
+            NexusQATestOtomasyon/target/cucumber-report/
+            NexusQATestOtomasyon/target/masterthought-report/
+            NexusQATestOtomasyon/allure-report-*/
+          retention-days: 30
+
+      - name: Upload Screenshots
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: failure-screenshots
+          path: NexusQATestOtomasyon/screenshot/
+          retention-days: 7

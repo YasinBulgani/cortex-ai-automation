@@ -1,0 +1,258 @@
+name: pipeline-orchestrator
+
+# PR label değişimlerinde pipeline aşamasını işler.
+# Label konvansiyonu: `pipeline:<role>` veya `pipeline:stage:<role>`
+# Örnek: pipeline:analyzer, pipeline:ready-for-qa, pipeline:needs-security-review
+
+on:
+  pull_request:
+    types: [labeled, unlabeled, opened, synchronize, reopened]
+
+concurrency:
+  group: pipeline-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+jobs:
+  # ─── İş 1: Label parse + state inspect ─────────────────────────────────────
+  parse-label:
+    if: github.event.action == 'labeled' || github.event.action == 'unlabeled'
+    runs-on: ubuntu-latest
+    outputs:
+      role: ${{ steps.parse.outputs.role }}
+      item_id: ${{ steps.parse.outputs.item_id }}
+      action_suggested: ${{ steps.parse.outputs.action_suggested }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install jq
+        run: sudo apt-get update && sudo apt-get install -y jq
+
+      - name: Parse label + branch
+        id: parse
+        shell: bash
+        env:
+          LABEL: ${{ github.event.label.name }}
+          BRANCH: ${{ github.event.pull_request.head.ref }}
+          ACTION: ${{ github.event.action }}
+        run: |
+          set -euo pipefail
+          echo "Label event: $ACTION '$LABEL' on branch '$BRANCH'"
+
+          # Extract role from label pipeline:<role>
+          role=""
+          if [[ "$LABEL" =~ ^pipeline:(analyzer|validator|proposer|approver|product_validator|designer|architect|frontend|backend|data_engineer|devops|code_reviewer|integrator|qa|security_reviewer|a11y_auditor|performance_tester|promoter|release_manager|observer|retrospective)$ ]]; then
+            role="${BASH_REMATCH[1]}"
+          fi
+
+          # Extract item_id from branch name (various prefixes)
+          item_id=""
+          if [[ "$BRANCH" =~ (GAP|FEAT|BUG)-[0-9]{3,} ]]; then
+            item_id="${BASH_REMATCH[0]}"
+          fi
+
+          echo "role=$role" >> "$GITHUB_OUTPUT"
+          echo "item_id=$item_id" >> "$GITHUB_OUTPUT"
+
+          # Suggest action
+          action=""
+          if [[ -n "$role" && -n "$item_id" && -f "docs/ai/pipeline/state.json" ]]; then
+            stage_status=$(jq -r --arg id "$item_id" --arg r "$role" \
+              '.items[] | select(.id==$id) | .stages[$r].status // "absent"' \
+              docs/ai/pipeline/state.json 2>/dev/null || echo "absent")
+            case "$stage_status" in
+              waiting)
+                action="Agent claim: \`./scripts/pipeline/stage.sh claim $item_id $role\`"
+                ;;
+              in_progress)
+                action="In progress — complete with \`./scripts/pipeline/stage.sh complete $item_id $role [flags]\`"
+                ;;
+              done)
+                action="Already done — run \`./scripts/pipeline/stage.sh status $item_id\` to see next"
+                ;;
+              absent)
+                action="Stage $role not yet open for $item_id. Run \`stage.sh run-check $item_id\`"
+                ;;
+            esac
+          fi
+          echo "action_suggested=$action" >> "$GITHUB_OUTPUT"
+
+  # ─── İş 2: PR'a yorum bırak (agent'lara pointer) ───────────────────────────
+  comment-suggested-action:
+    needs: parse-label
+    if: needs.parse-label.outputs.role != '' && needs.parse-label.outputs.item_id != ''
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install jq
+        run: sudo apt-get update && sudo apt-get install -y jq
+
+      - name: Build status snapshot
+        id: snapshot
+        shell: bash
+        env:
+          ITEM_ID: ${{ needs.parse-label.outputs.item_id }}
+        run: |
+          set -euo pipefail
+          if [[ -f "docs/ai/pipeline/state.json" ]]; then
+            summary=$(jq -r --arg id "$ITEM_ID" '
+              .items[] | select(.id==$id) |
+              "**Current stage:** \(.current_stage)\n**Status:** \(.status)\n**Needs human:** \(.needs_human)\n\n### Stages:\n" +
+              (.stages | to_entries | map("- \(.key): \(.value.status)") | join("\n"))
+            ' docs/ai/pipeline/state.json 2>/dev/null || echo "Item not found in state.")
+          else
+            summary="(no state.json in base branch)"
+          fi
+          # Escape for multi-line output
+          {
+            echo 'summary<<EOF'
+            echo "$summary"
+            echo 'EOF'
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Comment on PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const role = '${{ needs.parse-label.outputs.role }}';
+            const itemId = '${{ needs.parse-label.outputs.item_id }}';
+            const action = `${{ needs.parse-label.outputs.action_suggested }}`;
+            const summary = `${{ steps.snapshot.outputs.summary }}`;
+
+            const body = [
+              `## 🤖 Pipeline Conductor — \`${itemId}\` @ \`${role}\``,
+              '',
+              summary,
+              '',
+              '### Suggested action',
+              action || '_(no action computed)_',
+              '',
+              '### Agent prompt (copy-paste in a new Cursor agent tab)',
+              '```',
+              `Sen pipeline'da ${role} rolünü oynuyorsun. Item: ${itemId}.`,
+              '',
+              'OKU:',
+              '- .cursor/rules/pipeline-conductor.mdc',
+              '- .cursor/rules/concurrent-git-hygiene.mdc',
+              `- docs/ai/pipeline/roles/ (slug: ${role})`,
+              `- docs/ai/pipeline/items/${itemId}/ (önceki artifact\'ler)`,
+              '',
+              'YAP:',
+              '- Rol kartının Input→Work→Output akışını uygula',
+              '- Artifact\'i yaz, branch\'te commit at',
+              `- ./scripts/pipeline/stage.sh complete ${itemId} ${role} [flags]`,
+              '',
+              'DÖN: kısa özet',
+              '```',
+              '',
+              '_Auto-generated by `pipeline-orchestrator` workflow._'
+            ].join('\n');
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body
+            });
+
+  # ─── İş 3: PR diff'i + state uyum kontrolü (commit'lere göre) ───────────────
+  validate-pr:
+    if: github.event.action == 'opened' || github.event.action == 'synchronize' || github.event.action == 'reopened'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install jq
+        run: sudo apt-get update && sudo apt-get install -y jq
+
+      - name: Detect item + role from branch
+        id: detect
+        shell: bash
+        env:
+          BRANCH: ${{ github.event.pull_request.head.ref }}
+        run: |
+          set -euo pipefail
+          item_id=""
+          role=""
+          if [[ "$BRANCH" =~ (GAP|FEAT|BUG)-[0-9]{3,} ]]; then
+            item_id="${BASH_REMATCH[0]}"
+          fi
+          # Map branch prefix → role
+          case "$BRANCH" in
+            analyze/*)    role=analyzer ;;
+            propose/*)    role=proposer ;;
+            design/*)     role=designer ;;
+            arch/*)       role=architect ;;
+            feat/fe-*)    role=frontend ;;
+            feat/be-*)    role=backend ;;
+            feat/data-*)  role=data_engineer ;;
+            feat/infra-*) role=devops ;;
+            integrate/*)  role=integrator ;;
+            qa/*)         role=qa ;;
+            sec/*)        role=security_reviewer ;;
+            a11y/*)       role=a11y_auditor ;;
+            perf/*)       role=performance_tester ;;
+            retro/*)      role=retrospective ;;
+          esac
+          echo "item_id=$item_id" >> "$GITHUB_OUTPUT"
+          echo "role=$role" >> "$GITHUB_OUTPUT"
+
+      - name: Validate commit message convention
+        if: steps.detect.outputs.role != ''
+        shell: bash
+        env:
+          ROLE: ${{ steps.detect.outputs.role }}
+          ITEM_ID: ${{ steps.detect.outputs.item_id }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          echo "Checking commits for [pipeline: $ROLE $ITEM_ID] tag..."
+          missing=0
+          while read -r sha; do
+            msg=$(git log -1 --pretty=%B "$sha")
+            if ! grep -qE "\[pipeline: ${ROLE}( ${ITEM_ID})?\]" <<< "$msg"; then
+              echo "::warning::Commit $sha missing [pipeline: $ROLE $ITEM_ID] tag"
+              missing=$((missing+1))
+            fi
+          done < <(git log --format=%H "$BASE_SHA..$HEAD_SHA")
+          if [[ $missing -gt 0 ]]; then
+            echo "::warning::$missing commits missing pipeline tag (non-blocking)"
+          fi
+
+      - name: Auto-label PR based on branch
+        if: steps.detect.outputs.role != ''
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const role = '${{ steps.detect.outputs.role }}';
+            const label = `pipeline:${role}`;
+            const current = await github.rest.issues.listLabelsOnIssue({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number
+            });
+            const hasLabel = current.data.some(l => l.name === label);
+            if (!hasLabel) {
+              try {
+                await github.rest.issues.addLabels({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: context.issue.number,
+                  labels: [label]
+                });
+                console.log(`Added label: ${label}`);
+              } catch (e) {
+                console.log(`Couldn't add label (may not exist yet): ${e.message}`);
+              }
+            }

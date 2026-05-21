@@ -1,0 +1,23 @@
+# Pipeline Conductor — Python dependencies
+#
+# Kurulum:
+#   pip install -r scripts/pipeline/requirements.txt
+#
+# Virtual env önerilir:
+#   python3 -m venv .venv-pipeline
+#   source .venv-pipeline/bin/activate
+#   pip install -r scripts/pipeline/requirements.txt
+
+# ─── Core ─────────────────────────────────────────────────────────────────────
+huggingface_hub>=0.24.0         # LLM inference
+fastapi>=0.110.0                # Dashboard API
+uvicorn[standard]>=0.27.0       # ASGI server
+sse-starlette>=2.0.0            # Server-Sent Events helper (opsiyonel, fastapi'nin yerleşiği yeterli)
+
+# ─── Existing engine deps (peer) ──────────────────────────────────────────────
+# Bu script'ler engine/ altındaki settings'e göre çalıştırılabilir,
+# engine/requirements.txt'teki python-dotenv, pydantic gibi paketler varsayılır.
+python-dotenv>=1.0.0
+
+# ─── Optional — dep-watchdog ──────────────────────────────────────────────────
+pip-audit>=2.7.0                # Python dependency CVE scan

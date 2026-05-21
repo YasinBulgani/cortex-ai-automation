@@ -1,0 +1,206 @@
+{
+  "id": "f08c6fb8-4284-45a5-99d8-b8c27206bc67",
+  "name": "banking_full_accounts_1774438162",
+  "description": null,
+  "trainingStatus": "DONE",
+  "trainingTime": null,
+  "usage": null,
+  "metadata": null,
+  "accuracy": 0.7345101,
+  "tables": [
+    {
+      "id": "eaf6e0be-94ab-4bf0-b8ef-0b63d68f1714",
+      "sourceConnectorId": "fdfe3c9a-bfb8-472d-940a-1caa1c25464d",
+      "location": "/Users/yasin_bulgan/mostlyai/connectors/fdfe3c9a-bfb8-472d-940a-1caa1c25464d/data.parquet",
+      "name": "data",
+      "primaryKey": "account_id",
+      "columns": [
+        {
+          "id": "56b14c90-569e-478a-bab4-9c0500efa559",
+          "name": "balance",
+          "included": true,
+          "modelEncodingType": "TABULAR_NUMERIC_BINNED",
+          "valueRange": {
+            "min": "12075.1",
+            "max": "487658.92",
+            "values": null,
+            "has_null": false
+          }
+        },
+        {
+          "id": "6e96f40d-5dcc-41e5-b67a-31cc464c418e",
+          "name": "interest_rate",
+          "included": true,
+          "modelEncodingType": "TABULAR_NUMERIC_BINNED",
+          "valueRange": {
+            "min": "0.0157",
+            "max": "0.2445",
+            "values": null,
+            "has_null": false
+          }
+        },
+        {
+          "id": "9dc24972-aad9-4193-8092-659dd32949e1",
+          "name": "account_id",
+          "included": true,
+          "modelEncodingType": "TABULAR_CATEGORICAL",
+          "valueRange": null
+        },
+        {
+          "id": "45b12d48-3d26-4209-96fb-d16ea76eb31b",
+          "name": "customer_id",
+          "included": true,
+          "modelEncodingType": "TABULAR_CHARACTER",
+          "valueRange": {
+            "min": null,
+            "max": null,
+            "values": null,
+            "has_null": false
+          }
+        },
+        {
+          "id": "ec26cea6-1775-485d-b5e6-abd7d78422a7",
+          "name": "account_type",
+          "included": true,
+          "modelEncodingType": "TABULAR_CATEGORICAL",
+          "valueRange": {
+            "min": null,
+            "max": null,
+            "values": [
+              "Döviz",
+              "Tasarruf",
+              "Vadeli",
+              "Vadesiz"
+            ],
+            "has_null": false
+          }
+        },
+        {
+          "id": "a46a4ed0-1a49-4d2d-8f30-e6748dc2f543",
+          "name": "currency",
+          "included": true,
+          "modelEncodingType": "TABULAR_CATEGORICAL",
+          "valueRange": {
+            "min": null,
+            "max": null,
+            "values": [
+              "EUR",
+              "TRY",
+              "USD"
+            ],
+            "has_null": false
+          }
+        },
+        {
+          "id": "ceed1997-ba09-411a-a12b-2e3162775d1f",
+          "name": "opened_date",
+          "included": true,
+          "modelEncodingType": "TABULAR_DATETIME",
+          "valueRange": {
+            "min": null,
+            "max": null,
+            "values": null,
+            "has_null": false
+          }
+        },
+        {
+          "id": "73615e70-f2c2-4e5c-b39f-1747e6d4413d",
+          "name": "status",
+          "included": true,
+          "modelEncodingType": "TABULAR_CATEGORICAL",
+          "valueRange": {
+            "min": null,
+            "max": null,
+            "values": [
+              "Aktif"
+            ],
+            "has_null": false
+          }
+        },
+        {
+          "id": "3128560d-e07d-4f52-a5fd-a72a33400a03",
+          "name": "branch_code",
+          "included": true,
+          "modelEncodingType": "TABULAR_CATEGORICAL",
+          "valueRange": {
+            "min": null,
+            "max": null,
+            "values": [
+              "ANK-001",
+              "BRS-001",
+              "IST-001",
+              "IST-002",
+              "IZM-001"
+            ],
+            "has_null": false
+          }
+        },
+        {
+          "id": "4d427401-92c9-4e28-bba8-d8c415bcbca5",
+          "name": "iban",
+          "included": true,
+          "modelEncodingType": "TABULAR_CHARACTER",
+          "valueRange": {
+            "min": null,
+            "max": null,
+            "values": null,
+            "has_null": false
+          }
+        }
+      ],
+      "foreignKeys": null,
+      "tabularModelMetrics": {
+        "accuracy": {
+          "overall": 0.7345101,
+          "univariate": 0.8833322,
+          "bivariate": 0.7402775,
+          "trivariate": 0.5799206,
+          "coherence": null,
+          "overallMax": 0.8401208,
+          "univariateMax": 0.9395,
+          "bivariateMax": 0.8513383,
+          "trivariateMax": 0.7295242,
+          "coherenceMax": null
+        },
+        "distances": {
+          "imsTraining": 0.0,
+          "imsHoldout": 0.0,
+          "imsTrnHol": 0.0,
+          "dcrTraining": 0.116,
+          "dcrHoldout": 0.155,
+          "dcrTrnHol": 0.139,
+          "dcrShare": 0.712,
+          "nndrTraining": 0.577868955467,
+          "nndrHoldout": 0.642391891882,
+          "nndrTrnHol": 0.468214710641
+        },
+        "similarity": {
+          "cosineSimilarityTrainingSynthetic": 0.8138241,
+          "cosineSimilarityTrainingHoldout": 0.9675573,
+          "discriminatorAUCTrainingSynthetic": 1.0,
+          "discriminatorAUCTrainingHoldout": 0.495
+        }
+      },
+      "languageModelMetrics": null,
+      "tabularModelConfiguration": {
+        "model": "MOSTLY_AI/Medium",
+        "maxSampleSize": null,
+        "batchSize": null,
+        "gradientAccumulationSteps": null,
+        "maxTrainingTime": 14400.0,
+        "maxEpochs": 100.0,
+        "maxSequenceWindow": 100,
+        "enableFlexibleGeneration": true,
+        "valueProtection": true,
+        "rareCategoryReplacementMethod": "CONSTANT",
+        "differentialPrivacy": null,
+        "compute": null,
+        "enableModelReport": true
+      },
+      "languageModelConfiguration": null,
+      "totalRows": 300
+    }
+  ],
+  "constraints": null,
+  "randomState": null
+}

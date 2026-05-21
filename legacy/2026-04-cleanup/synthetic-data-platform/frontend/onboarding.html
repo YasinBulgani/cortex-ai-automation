@@ -1,0 +1,900 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title data-i18n="wizard.welcome_title">Onboarding - Sentetik Banka Verisi Platformu</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #333;
+        }
+
+        .wizard-container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            width: 100%;
+            max-width: 800px;
+            overflow: hidden;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 4px;
+            background: #e0e0e0;
+            position: relative;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .wizard-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem;
+            text-align: center;
+        }
+
+        .wizard-header h1 {
+            font-size: 1.8rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .wizard-header p {
+            font-size: 1rem;
+            opacity: 0.9;
+        }
+
+        .step-indicators {
+            display: flex;
+            justify-content: space-between;
+            padding: 2rem;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .step-indicator {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            flex: 1;
+            position: relative;
+        }
+
+        .step-indicator:not(:last-child)::after {
+            content: '';
+            position: absolute;
+            top: 24px;
+            left: 50%;
+            width: 100%;
+            height: 2px;
+            background: #e0e0e0;
+            z-index: -1;
+        }
+
+        .step-indicator.active:not(:last-child)::after {
+            background: #667eea;
+        }
+
+        .step-number {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: #e0e0e0;
+            border: 3px solid white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: #666;
+            margin-bottom: 0.5rem;
+            transition: all 0.3s;
+        }
+
+        .step-indicator.active .step-number {
+            background: #667eea;
+            color: white;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .step-indicator.completed .step-number {
+            background: #28a745;
+            color: white;
+        }
+
+        .step-name {
+            font-size: 0.85rem;
+            color: #666;
+            text-align: center;
+        }
+
+        .step-indicator.active .step-name {
+            color: #667eea;
+            font-weight: bold;
+        }
+
+        .wizard-content {
+            padding: 3rem 2rem;
+            min-height: 400px;
+        }
+
+        .step-content {
+            display: none;
+        }
+
+        .step-content.active {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .step-content h2 {
+            color: #667eea;
+            margin-bottom: 1rem;
+            font-size: 1.5rem;
+        }
+
+        .step-content p {
+            color: #555;
+            margin-bottom: 1rem;
+            line-height: 1.6;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #333;
+            font-weight: 500;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 0.75rem;
+            border: 2px solid #e0e0e0;
+            border-radius: 4px;
+            font-size: 1rem;
+            font-family: inherit;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        .checkbox-group,
+        .radio-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .checkbox-item,
+        .radio-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            cursor: pointer;
+        }
+
+        .checkbox-item input,
+        .radio-item input {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+
+        .file-upload {
+            border: 2px dashed #667eea;
+            border-radius: 8px;
+            padding: 2rem;
+            text-align: center;
+            cursor: pointer;
+            transition: background 0.3s;
+            background: #f8f9ff;
+        }
+
+        .file-upload:hover {
+            background: #f0f2ff;
+        }
+
+        .file-upload.dragover {
+            background: #e8ebff;
+            border-color: #764ba2;
+        }
+
+        .file-upload p {
+            color: #667eea;
+            margin: 0.5rem 0;
+        }
+
+        .file-upload small {
+            color: #999;
+            display: block;
+        }
+
+        .info-box {
+            background: #d1ecf1;
+            border-left: 4px solid #17a2b8;
+            padding: 1rem;
+            border-radius: 4px;
+            margin-bottom: 1.5rem;
+            color: #0c5460;
+        }
+
+        .warning-box {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 1rem;
+            border-radius: 4px;
+            margin-bottom: 1.5rem;
+            color: #856404;
+        }
+
+        .wizard-footer {
+            display: flex;
+            justify-content: space-between;
+            padding: 2rem;
+            background: #f8f9fa;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        .button {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 4px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 600;
+        }
+
+        .button-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .button-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .button-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .button-secondary {
+            background: white;
+            color: #667eea;
+            border: 2px solid #667eea;
+        }
+
+        .button-secondary:hover {
+            background: #f8f9ff;
+        }
+
+        .button-secondary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .success-message {
+            background: #d4edda;
+            border-left: 4px solid #28a745;
+            padding: 1rem;
+            border-radius: 4px;
+            color: #155724;
+            margin-bottom: 1rem;
+            display: none;
+        }
+
+        .success-message.show {
+            display: block;
+        }
+
+        .checklist {
+            list-style: none;
+            margin: 1rem 0;
+        }
+
+        .checklist li {
+            padding: 0.75rem 0;
+            padding-left: 2rem;
+            position: relative;
+            color: #555;
+        }
+
+        .checklist li::before {
+            content: '✓';
+            position: absolute;
+            left: 0;
+            color: #28a745;
+            font-weight: bold;
+            font-size: 1.2rem;
+        }
+
+        .completion-icon {
+            text-align: center;
+            margin: 2rem 0;
+        }
+
+        .completion-icon svg {
+            width: 80px;
+            height: 80px;
+            color: #28a745;
+        }
+
+        .completion-text {
+            text-align: center;
+            color: #555;
+        }
+
+        .completion-text h3 {
+            color: #28a745;
+            margin-bottom: 1rem;
+            font-size: 1.3rem;
+        }
+
+        @media (max-width: 768px) {
+            .wizard-container {
+                margin: 1rem;
+                max-width: 100%;
+            }
+
+            .wizard-header h1 {
+                font-size: 1.3rem;
+            }
+
+            .step-indicators {
+                flex-wrap: wrap;
+                gap: 1rem;
+            }
+
+            .step-indicator:not(:last-child)::after {
+                display: none;
+            }
+
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+
+            .wizard-content {
+                padding: 2rem 1rem;
+                min-height: 300px;
+            }
+
+            .wizard-footer {
+                flex-direction: column;
+                gap: 1rem;
+            }
+
+            .button {
+                width: 100%;
+            }
+        }
+
+        .language-selector {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            z-index: 10;
+        }
+
+        .language-selector select {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 4px;
+            background: white;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+
+        .field-error {
+            color: #dc3545;
+            font-size: 0.85rem;
+            margin-top: 0.25rem;
+            display: none;
+        }
+
+        .form-group input.error,
+        .form-group select.error,
+        .form-group textarea.error {
+            border-color: #dc3545;
+        }
+
+        .form-group input.error ~ .field-error,
+        .form-group select.error ~ .field-error,
+        .form-group textarea.error ~ .field-error {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="language-selector">
+        <select id="languageSelect" onchange="changeLanguage(this.value)">
+            <option value="tr" selected>Türkçe</option>
+            <option value="en">English</option>
+        </select>
+    </div>
+
+    <div class="wizard-container">
+        <div class="progress-bar">
+            <div class="progress-fill" id="progressFill"></div>
+        </div>
+
+        <div class="wizard-header">
+            <h1 data-i18n="wizard.welcome_title">Sentetik Banka Verisi Platformu'na Hoş Geldiniz</h1>
+            <p data-i18n="wizard.welcome_description">Bu sihirbaz size başlamak için rehberlik edecektir</p>
+        </div>
+
+        <div class="step-indicators">
+            <div class="step-indicator active" data-step="1">
+                <div class="step-number">1</div>
+                <div class="step-name" data-i18n="wizard.steps.welcome">Hoş Geldiniz</div>
+            </div>
+            <div class="step-indicator" data-step="2">
+                <div class="step-number">2</div>
+                <div class="step-name" data-i18n="wizard.steps.database">Veritabanı</div>
+            </div>
+            <div class="step-indicator" data-step="3">
+                <div class="step-number">3</div>
+                <div class="step-name" data-i18n="wizard.steps.dataset">Veri Seti</div>
+            </div>
+            <div class="step-indicator" data-step="4">
+                <div class="step-number">4</div>
+                <div class="step-name" data-i18n="wizard.steps.configuration">Yapılandırma</div>
+            </div>
+            <div class="step-indicator" data-step="5">
+                <div class="step-number">5</div>
+                <div class="step-name" data-i18n="wizard.steps.generation">Oluşturma</div>
+            </div>
+        </div>
+
+        <div class="wizard-content">
+            <!-- Step 1: Welcome -->
+            <div class="step-content active" data-step="1">
+                <h2 data-i18n="wizard.steps.welcome">Hoş Geldiniz</h2>
+                <p data-i18n="wizard.welcome_description">Bu sihirbaz size sentetik banka verisi oluşturma sürecinde rehberlik edecektir.</p>
+
+                <div class="info-box">
+                    <strong>Bilgi:</strong> Bu sihirbazı tamamladıktan sonra, platformun tüm özelliklerine erişebileceksiniz.
+                </div>
+
+                <h3>Başlamadan Önce Bilmeniz Gerekenler:</h3>
+                <ul class="checklist">
+                    <li>Bir şema dosyası (JSON, CSV, SQL veya Excel)</li>
+                    <li>Veritabanı bağlantı bilgileri (isteğe bağlı)</li>
+                    <li>Oluşturmak istediğiniz satır sayısı</li>
+                    <li>Tercih edilen çıktı formatı</li>
+                </ul>
+
+                <p style="margin-top: 2rem; color: #666;">Başlamaya hazır mısınız? "İleri" düğmesine tıklayın.</p>
+            </div>
+
+            <!-- Step 2: Database Connection -->
+            <div class="step-content" data-step="2">
+                <h2 data-i18n="wizard.steps.database">Veritabanı Bağlantısı</h2>
+                <p data-i18n="wizard.database_description">Veritabanı bağlantı bilgilerinizi girin (opsiyonel). Daha sonra yapılandırabilirsiniz.</p>
+
+                <div class="info-box">
+                    <strong>Bilgi:</strong> Bu adım opsiyoneldir. Atlayabilir ve daha sonra ayarlayabilirsiniz.
+                </div>
+
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="useDatabase" onchange="toggleDatabaseForm()">
+                        Veritabanı bağlantısı yapılandır
+                    </label>
+                </div>
+
+                <div id="databaseForm" style="display: none;">
+                    <div class="form-group">
+                        <label for="dbType" data-i18n="headers.type">Veritabanı Türü</label>
+                        <select id="dbType" required>
+                            <option value="">Seçin...</option>
+                            <option value="postgresql">PostgreSQL</option>
+                            <option value="mysql">MySQL</option>
+                            <option value="sqlserver">SQL Server</option>
+                            <option value="oracle">Oracle</option>
+                            <option value="mongodb">MongoDB</option>
+                        </select>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="dbHost" data-i18n="forms.labels.database_host">Sunucu</label>
+                            <input type="text" id="dbHost" placeholder="localhost">
+                            <div class="field-error" data-i18n="errors.required_field"></div>
+                        </div>
+                        <div class="form-group">
+                            <label for="dbPort" data-i18n="forms.labels.database_port">Port</label>
+                            <input type="number" id="dbPort" placeholder="5432">
+                            <div class="field-error" data-i18n="errors.required_field"></div>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="dbName" data-i18n="forms.labels.database_name">Veritabanı Adı</label>
+                            <input type="text" id="dbName" required>
+                            <div class="field-error" data-i18n="errors.required_field"></div>
+                        </div>
+                        <div class="form-group">
+                            <label for="dbUser" data-i18n="forms.labels.database_user">Kullanıcı</label>
+                            <input type="text" id="dbUser" required>
+                            <div class="field-error" data-i18n="errors.required_field"></div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="dbPassword" data-i18n="forms.labels.database_password">Şifre</label>
+                        <input type="password" id="dbPassword">
+                    </div>
+
+                    <button type="button" class="button button-secondary" onclick="testConnection()" style="margin-top: 1rem;">
+                        <span data-i18n="buttons.test_connection">Bağlantı Testini Yap</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Step 3: Dataset Upload -->
+            <div class="step-content" data-step="3">
+                <h2 data-i18n="wizard.steps.dataset">İlk Veri Seti</h2>
+                <p data-i18n="wizard.dataset_description">Şema dosyanızı yükleyin veya yeni bir veri seti oluşturun.</p>
+
+                <div class="form-group">
+                    <label data-i18n="forms.labels.schema_file">Şema Dosyası</label>
+                    <div class="file-upload" id="fileUpload" ondrop="handleDrop(event)" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" onclick="document.getElementById('schemaFile').click()">
+                        <p data-i18n="messages.loading">Dosyayı buraya sürükleyip bırakın</p>
+                        <small data-i18n="help_text.data_format">Desteklenen: JSON, CSV, SQL, Excel</small>
+                        <input type="file" id="schemaFile" accept=".json,.csv,.sql,.xlsx,.xls" style="display: none;" onchange="handleFileSelect(event)">
+                    </div>
+                </div>
+
+                <div id="fileInfo" style="display: none; margin-top: 1rem;">
+                    <div class="info-box">
+                        <strong>Seçilen Dosya:</strong> <span id="fileName"></span>
+                    </div>
+                </div>
+
+                <h3 style="margin-top: 2rem;">veya</h3>
+
+                <div class="form-group">
+                    <label data-i18n="headers.name">Yeni Veri Seti Adı</label>
+                    <input type="text" id="datasetName" placeholder="Müşteri Verileri">
+                </div>
+            </div>
+
+            <!-- Step 4: Configuration -->
+            <div class="step-content" data-step="4">
+                <h2 data-i18n="wizard.steps.configuration">Veri Oluşturma Yapılandırması</h2>
+                <p data-i18n="wizard.configuration_description">Veri oluşturma parametrelerini ayarlayın.</p>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="rowCount" data-i18n="forms.labels.row_count">Satır Sayısı</label>
+                        <input type="number" id="rowCount" value="1000" min="1" max="1000000">
+                        <small data-i18n="forms.help_text.row_count">Maksimum: 1.000.000</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="seed" data-i18n="forms.labels.seed">Seed Değeri (İsteğe bağlı)</label>
+                        <input type="text" id="seed" placeholder="Rastgele">
+                        <small data-i18n="forms.help_text.seed">Aynı seed ile aynı verileri yeniden oluşturabilirsiniz</small>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="locale" data-i18n="forms.labels.locale">Locale</label>
+                        <select id="locale">
+                            <option value="tr">Türkçe (TR)</option>
+                            <option value="en">English (EN)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="outputFormat" data-i18n="forms.labels.data_format">Çıktı Formatı</label>
+                        <select id="outputFormat">
+                            <option value="csv">CSV</option>
+                            <option value="json">JSON</option>
+                            <option value="excel">Excel</option>
+                            <option value="parquet">Parquet</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label data-i18n="navigation.rules">Kurallar</label>
+                    <div class="checkbox-group">
+                        <label class="checkbox-item">
+                            <input type="checkbox" id="applyRules" checked>
+                            <span data-i18n="messages.loading">Varsayılan kuralları uygula</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 5: Generation -->
+            <div class="step-content" data-step="5">
+                <h2 data-i18n="wizard.steps.generation">Veri Oluşturma</h2>
+                <p data-i18n="wizard.generation_description">Veriler oluşturuluyor, lütfen bekleyin...</p>
+
+                <div id="generationProgress" style="text-align: center; display: none;">
+                    <div style="width: 100%; height: 30px; background: #e0e0e0; border-radius: 15px; overflow: hidden; margin: 2rem 0;">
+                        <div id="genProgressBar" style="width: 0%; height: 100%; background: linear-gradient(90deg, #667eea 0%, #764ba2 100%); transition: width 0.3s;"></div>
+                    </div>
+                    <p id="genStatus" data-i18n="messages.loading">Başlanıyor...</p>
+                    <p id="genStats" style="color: #999; font-size: 0.9rem;"></p>
+                </div>
+
+                <div id="completionView" style="display: none;">
+                    <div class="completion-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg>
+                    </div>
+                    <div class="completion-text">
+                        <h3 data-i18n="success.data_generated">Veriler başarıyla oluşturuldu!</h3>
+                        <p id="completionMessage" style="margin-bottom: 1rem;"></p>
+                        <ul class="checklist">
+                            <li data-i18n="headers.count">Oluşturulan satırlar</li>
+                            <li>Dosya başarıyla oluşturuldu</li>
+                            <li data-i18n="navigation.export">İndir veya dışa aktar</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="wizard-footer">
+            <button id="prevBtn" class="button button-secondary" onclick="previousStep()" style="display: none;">
+                <span data-i18n="buttons.back">Geri</span>
+            </button>
+            <div></div>
+            <button id="nextBtn" class="button button-primary" onclick="nextStep()">
+                <span data-i18n="buttons.next">İleri</span>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        let currentStep = 1;
+        const totalSteps = 5;
+        let wizardData = {
+            useDatabase: false,
+            schemaFile: null,
+            rowCount: 1000,
+            locale: 'tr',
+            outputFormat: 'csv'
+        };
+
+        function updateProgress() {
+            const progress = (currentStep / totalSteps) * 100;
+            document.getElementById('progressFill').style.width = progress + '%';
+        }
+
+        function updateStepIndicators() {
+            document.querySelectorAll('.step-indicator').forEach((indicator, index) => {
+                const stepNum = index + 1;
+                indicator.classList.remove('active', 'completed');
+
+                if (stepNum === currentStep) {
+                    indicator.classList.add('active');
+                } else if (stepNum < currentStep) {
+                    indicator.classList.add('completed');
+                }
+            });
+        }
+
+        function showStep(stepNum) {
+            document.querySelectorAll('.step-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            document.querySelector(`.step-content[data-step="${stepNum}"]`).classList.add('active');
+
+            // Update buttons
+            const prevBtn = document.getElementById('prevBtn');
+            const nextBtn = document.getElementById('nextBtn');
+
+            prevBtn.style.display = stepNum > 1 ? 'block' : 'none';
+
+            if (stepNum === totalSteps) {
+                nextBtn.textContent = 'Tamamla';
+                nextBtn.onclick = () => completeWizard();
+            } else {
+                nextBtn.textContent = stepNum === 1 ? 'İleri' : 'İleri';
+                nextBtn.onclick = () => nextStep();
+            }
+
+            updateProgress();
+            updateStepIndicators();
+        }
+
+        function nextStep() {
+            if (currentStep < totalSteps) {
+                // Validate current step
+                if (!validateStep(currentStep)) {
+                    return;
+                }
+
+                // Store data for step 5
+                if (currentStep === 4) {
+                    wizardData.rowCount = parseInt(document.getElementById('rowCount').value);
+                    wizardData.locale = document.getElementById('locale').value;
+                    wizardData.outputFormat = document.getElementById('outputFormat').value;
+                    startGeneration();
+                }
+
+                currentStep++;
+                showStep(currentStep);
+            }
+        }
+
+        function previousStep() {
+            if (currentStep > 1) {
+                currentStep--;
+                showStep(currentStep);
+            }
+        }
+
+        function validateStep(stepNum) {
+            if (stepNum === 3) {
+                const schemaFile = document.getElementById('schemaFile').files.length > 0;
+                const datasetName = document.getElementById('datasetName').value.trim();
+                if (!schemaFile && !datasetName) {
+                    alert('Lütfen bir şema dosyası yükleyin veya veri seti adı girin');
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        function toggleDatabaseForm() {
+            const useDb = document.getElementById('useDatabase').checked;
+            document.getElementById('databaseForm').style.display = useDb ? 'block' : 'none';
+            wizardData.useDatabase = useDb;
+        }
+
+        function handleDragOver(event) {
+            event.preventDefault();
+            event.stopPropagation();
+            document.getElementById('fileUpload').classList.add('dragover');
+        }
+
+        function handleDragLeave(event) {
+            event.preventDefault();
+            event.stopPropagation();
+            document.getElementById('fileUpload').classList.remove('dragover');
+        }
+
+        function handleDrop(event) {
+            event.preventDefault();
+            event.stopPropagation();
+            document.getElementById('fileUpload').classList.remove('dragover');
+
+            const files = event.dataTransfer.files;
+            if (files.length > 0) {
+                handleFileSelect({ target: { files } });
+            }
+        }
+
+        function handleFileSelect(event) {
+            const files = event.target.files;
+            if (files.length > 0) {
+                const file = files[0];
+                wizardData.schemaFile = file;
+                document.getElementById('fileName').textContent = file.name;
+                document.getElementById('fileInfo').style.display = 'block';
+            }
+        }
+
+        function testConnection() {
+            const dbType = document.getElementById('dbType').value;
+            const dbHost = document.getElementById('dbHost').value;
+            const dbPort = document.getElementById('dbPort').value;
+            const dbName = document.getElementById('dbName').value;
+            const dbUser = document.getElementById('dbUser').value;
+
+            if (!dbType || !dbHost || !dbPort || !dbName || !dbUser) {
+                alert('Lütfen tüm gerekli alanları doldurun');
+                return;
+            }
+
+            // Simulate connection test
+            alert('Bağlantı testi başarılı!');
+        }
+
+        function startGeneration() {
+            const progressDiv = document.getElementById('generationProgress');
+            const completionDiv = document.getElementById('completionView');
+            progressDiv.style.display = 'block';
+            completionDiv.style.display = 'none';
+
+            // Simulate generation process
+            let progress = 0;
+            const interval = setInterval(() => {
+                progress += Math.random() * 30;
+                if (progress > 100) progress = 100;
+
+                document.getElementById('genProgressBar').style.width = progress + '%';
+                document.getElementById('genStats').textContent =
+                    `${Math.floor(progress * wizardData.rowCount / 100)} / ${wizardData.rowCount} satır oluşturuldu`;
+
+                if (progress === 100) {
+                    clearInterval(interval);
+                    setTimeout(() => {
+                        document.getElementById('genStatus').textContent = 'Tamamlandı!';
+                        setTimeout(() => {
+                            progressDiv.style.display = 'none';
+                            completionDiv.style.display = 'block';
+                            document.getElementById('completionMessage').textContent =
+                                `${wizardData.rowCount} satır veri başarıyla ${wizardData.outputFormat.toUpperCase()} formatında oluşturuldu.`;
+                        }, 500);
+                    }, 1000);
+                }
+            }, 500);
+        }
+
+        function completeWizard() {
+            alert('Onboarding tamamlandı! Artık platforma tam erişim sağlanmıştır.');
+            // Redirect to dashboard
+            window.location.href = '/dashboard';
+        }
+
+        function changeLanguage(lang) {
+            localStorage.setItem('language', lang);
+            location.reload();
+        }
+
+        // Initialize
+        showStep(1);
+    </script>
+</body>
+</html>

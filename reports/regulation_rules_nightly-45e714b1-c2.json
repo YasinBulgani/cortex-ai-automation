@@ -1,0 +1,79 @@
+{
+  "rules": [
+    {
+      "rule_id": "BDDK-001",
+      "regulation": "BDDK|KVKK",
+      "title": "Kullanıcı Bilgileri Güncelleme",
+      "description": "Kullanıcı bilgilerini güncellemek için geçerli JWT kullanılması gereklidir.",
+      "applies_to": [
+        "SCN-001"
+      ],
+      "related_endpoint": "PUT /users/{user_id}",
+      "related_table": "User",
+      "validation": {
+        "type": "exists",
+        "field": "JWT token",
+        "condition": "valid JWT token",
+        "error_message": "Geçersiz JWT token"
+      },
+      "severity": "mandatory",
+      "test_evidence_required": true
+    },
+    {
+      "rule_id": "BDDK-002",
+      "regulation": "BDDK|KVKK",
+      "title": "Kullanıcı Silme",
+      "description": "Kullanıcı silmek için geçerli JWT kullanılması gereklidir.",
+      "applies_to": [
+        "SCN-003"
+      ],
+      "related_endpoint": "DELETE /users/{user_id}",
+      "related_table": "User",
+      "validation": {
+        "type": "exists",
+        "field": "JWT token",
+        "condition": "valid JWT token",
+        "error_message": "Geçersiz JWT token"
+      },
+      "severity": "mandatory",
+      "test_evidence_required": true
+    },
+    {
+      "rule_id": "KVKK-001",
+      "regulation": "KVKK",
+      "title": "Kullanıcı Verilerinin Gizliliği",
+      "description": "Kullanıcı verilerinin gizliliğini sağlamak için gerekli önlemler alınmalıdır.",
+      "applies_to": [
+        "SCN-001",
+        "SCN-003"
+      ],
+      "related_endpoint": "PUT /users/{user_id}",
+      "related_table": "User",
+      "validation": {
+        "type": "regex",
+        "field": "kullanıcı adı",
+        "condition": "kullanıcı adı 3 karakterden uzun olmalıdır.",
+        "error_message": "Kullanıcı adı 3 karakterden kısa"
+      },
+      "severity": "mandatory",
+      "test_evidence_required": true
+    }
+  ],
+  "manual_keys": [
+    {
+      "scenario_id": "SCN-005",
+      "reason": "Concurrency testi için manuel kalma gereklidir.",
+      "regulation": "BDDK|KVKK",
+      "risk_level": "critical"
+    }
+  ],
+  "compliance_summary": {
+    "total_rules": 3,
+    "mandatory": 2,
+    "scenarios_with_regulation": 4,
+    "applicable_regulations": [
+      "BDDK",
+      "KVKK"
+    ]
+  }
+}

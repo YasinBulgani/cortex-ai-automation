@@ -1,0 +1,38 @@
+{
+  "id": "274fd30d-f742-435d-9b10-f58ec8af72af",
+  "generatorId": "981b8b96-4a34-432c-81d5-047dfd2caa03",
+  "metadata": null,
+  "name": "bank_marketing",
+  "description": null,
+  "generationStatus": "NEW",
+  "generationTime": null,
+  "tables": [
+    {
+      "id": "c70868ed-f217-4997-96aa-2c2745ce6c75",
+      "name": "data",
+      "configuration": {
+        "sampleSize": 1,
+        "sampleSeedConnectorId": null,
+        "sampleSeedDict": null,
+        "sampleSeedData": null,
+        "samplingTemperature": 1.0,
+        "samplingTopP": 1.0,
+        "rebalancing": null,
+        "imputation": null,
+        "fairness": null,
+        "enableDataReport": true
+      },
+      "tabularModelMetrics": null,
+      "languageModelMetrics": null,
+      "foreignKeys": null,
+      "totalRows": null,
+      "totalDatapoints": null,
+      "sourceTableTotalRows": null
+    }
+  ],
+  "delivery": null,
+  "accuracy": null,
+  "usage": null,
+  "compute": null,
+  "randomState": null
+}

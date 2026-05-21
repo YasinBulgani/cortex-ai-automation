@@ -1,0 +1,557 @@
+###############################################################################
+# TestwrightAI Engine API — VS Code REST Client (.http)
+# Flask Automation Engine on port 5001
+# Test koşturma, BDD, AI, görsel regresyon, erişilebilirlik, kaydedici
+###############################################################################
+
+@engine_url = http://localhost:5001
+
+###############################################################################
+# HEALTH & SETTINGS
+###############################################################################
+
+### Health Check
+GET {{engine_url}}/api/health
+
+### Get Settings
+GET {{engine_url}}/api/settings
+
+### Save Settings
+POST {{engine_url}}/api/settings
+Content-Type: application/json
+
+{
+    "BASE_URL": "https://test.garantibbva.com.tr",
+    "BROWSER": "chromium",
+    "HEADLESS": "true",
+    "OPENAI_MODEL": "gpt-4o"
+}
+
+### Get Run Stats
+GET {{engine_url}}/api/stats
+
+### Get Comprehensive Reports
+GET {{engine_url}}/api/reports/comprehensive
+
+### System Status
+GET {{engine_url}}/api/projects/status
+
+### Export Data (ZIP)
+GET {{engine_url}}/api/export
+
+###############################################################################
+# AUTH (Engine)
+###############################################################################
+
+### Register
+POST {{engine_url}}/api/auth/register
+Content-Type: application/json
+
+{
+    "email": "ahmet.yilmaz@bgts.com.tr",
+    "password": "Test1234!"
+}
+
+### Login
+POST {{engine_url}}/api/auth/login
+Content-Type: application/json
+
+{
+    "email": "test@test.com",
+    "password": "test"
+}
+
+### Logout
+POST {{engine_url}}/api/auth/logout
+
+###############################################################################
+# FEATURES — BDD .feature dosya yönetimi
+###############################################################################
+
+### List Features
+GET {{engine_url}}/api/features
+
+### Get Feature
+GET {{engine_url}}/api/features/login.feature
+
+### Save Feature
+PUT {{engine_url}}/api/features/banking/login.feature
+Content-Type: application/json
+
+{
+    "content": "Feature: Internet Bankaciligi Giris\n  BDDK regülasyonlarina uygun giris senaryolari\n\n  Scenario: Basarili giris\n    Given Kullanici giris sayfasindadir\n    When TCKN olarak \"12345678901\" girer\n    And Sifre olarak \"Test1234!\" girer\n    And Giris butonuna tiklar\n    Then Ana sayfa goruntulenir\n\n  Scenario: Hatali sifre ile giris\n    Given Kullanici giris sayfasindadir\n    When TCKN olarak \"12345678901\" girer\n    And Sifre olarak \"yanlis_sifre\" girer\n    And Giris butonuna tiklar\n    Then \"Hatali kullanici adi veya sifre\" mesaji goruntulenir"
+}
+
+### Create Folder
+POST {{engine_url}}/api/features/folder
+Content-Type: application/json
+
+{
+    "path": "banking/eft"
+}
+
+### Delete Feature
+DELETE {{engine_url}}/api/features/banking/login.feature
+
+### Delete Folder
+DELETE {{engine_url}}/api/features/folder
+Content-Type: application/json
+
+{
+    "path": "banking/eft"
+}
+
+###############################################################################
+# RUNNER — Test Koşturma
+###############################################################################
+
+### Run Tests (pytest)
+# @name runTests
+POST {{engine_url}}/api/run
+Content-Type: application/json
+
+{
+    "markers": "not ai",
+    "features_list": ["banking/login.feature"]
+}
+
+### Stream Run Output (SSE)
+# Postman/REST Client SSE desteklemez — curl kullanın:
+# curl -N http://localhost:5001/api/run/<run_id>/stream
+GET {{engine_url}}/api/run/{{run_id}}/stream
+Accept: text/event-stream
+
+### Run Maven Tests
+POST {{engine_url}}/api/run-maven
+Content-Type: application/json
+
+{
+    "maven_path": "/path/to/NexusQATestOtomasyon"
+}
+
+### Create Project (Runner Legacy)
+POST {{engine_url}}/api/projects/create
+Content-Type: application/json
+
+{
+    "name": "MobilBankacilik",
+    "platform": "mobile"
+}
+
+### List Projects (Runner Legacy)
+GET {{engine_url}}/api/projects/list
+
+### List Project Files
+GET {{engine_url}}/api/projects/files/MobilBankacilik
+
+### Read Project File
+GET {{engine_url}}/api/projects/read-file?project=MobilBankacilik&path=features/init.feature
+
+### Setup Everything
+POST {{engine_url}}/api/projects/setup
+
+### Start Services
+POST {{engine_url}}/api/projects/start-services
+
+###############################################################################
+# PROJECTS — Yönetim
+###############################################################################
+
+### List Projects
+GET {{engine_url}}/api/projects
+
+### Create Project
+POST {{engine_url}}/api/projects/create
+Content-Type: application/json
+
+{
+    "name": "internet-bankaciligi-regresyon"
+}
+
+### Open Project
+POST {{engine_url}}/api/projects/open
+Content-Type: application/json
+
+{
+    "name": "internet-bankaciligi-regresyon"
+}
+
+### Get Project Details
+GET {{engine_url}}/api/projects/main
+
+### Delete Project
+DELETE {{engine_url}}/api/projects/internet-bankaciligi-regresyon/delete
+
+###############################################################################
+# LOCATORS — Element Yönetimi
+###############################################################################
+
+### Get Locators
+GET {{engine_url}}/api/locators
+
+### Save Locator
+POST {{engine_url}}/api/locators
+Content-Type: application/json
+
+{
+    "name": "login_tckn_input",
+    "locator_value": "#tckn-input",
+    "page_url": "https://test.garantibbva.com.tr/login"
+}
+
+### Delete Locator
+DELETE {{engine_url}}/api/locators/1
+
+### AI Discover Page Elements
+POST {{engine_url}}/api/discover
+Content-Type: application/json
+
+{
+    "url": "https://test.garantibbva.com.tr/login"
+}
+
+###############################################################################
+# AI — Yapay Zeka Destekli Özellikler
+###############################################################################
+
+### Generate Feature from Requirement
+POST {{engine_url}}/api/generate-feature
+Content-Type: application/json
+
+{
+    "requirements": "İnternet bankacılığı EFT modülü: Kullanıcı vadesiz hesabından başka banka hesabına EFT yapabilmeli. IBAN doğrulaması yapılmalı. Günlük limit kontrolü olmalı.",
+    "url": "https://test.garantibbva.com.tr/eft",
+    "tech": "playwright-python"
+}
+
+### Analyze API Request/Response
+POST {{engine_url}}/api/analyze-api-request
+Content-Type: application/json
+
+{
+    "request": {
+        "method": "POST",
+        "url": "/api/v1/eft/transfer",
+        "headers": { "Content-Type": "application/json" },
+        "body": {
+            "sender_iban": "TR330006100519786457841326",
+            "receiver_iban": "TR180006200019800006672315",
+            "amount": 1500.00
+        }
+    },
+    "response": {
+        "status": 200,
+        "body": {
+            "transaction_id": "TXN20260403001",
+            "status": "completed",
+            "fee": 5.50
+        }
+    }
+}
+
+### Security Scan
+POST {{engine_url}}/api/security-scan
+Content-Type: application/json
+
+{
+    "url": "https://test.garantibbva.com.tr"
+}
+
+### Inspector (Playwright Codegen → BDD)
+POST {{engine_url}}/api/inspect
+Content-Type: application/json
+
+{
+    "url": "https://test.garantibbva.com.tr/login"
+}
+
+###############################################################################
+# VISUAL REGRESSION — Görsel Regresyon Testleri
+###############################################################################
+
+### List Baselines
+GET {{engine_url}}/api/visual/baselines?domain=default
+
+### Get Baseline
+GET {{engine_url}}/api/visual/baselines/garanti/login_page
+
+### Delete Baseline
+DELETE {{engine_url}}/api/visual/baselines/garanti/login_page
+
+### Compare Visual (URL)
+POST {{engine_url}}/api/visual/compare
+Content-Type: application/json
+
+{
+    "test_name": "login_page",
+    "domain": "garanti",
+    "url": "https://test.garantibbva.com.tr/login",
+    "threshold": 0.95,
+    "ignore_regions": [{ "x": 0, "y": 0, "w": 200, "h": 50 }]
+}
+
+### Batch Visual Compare
+POST {{engine_url}}/api/visual/batch
+Content-Type: application/json
+
+{
+    "domain": "garanti",
+    "test_cases": [
+        { "test_name": "login_page", "url": "https://test.garantibbva.com.tr/login" },
+        { "test_name": "dashboard", "url": "https://test.garantibbva.com.tr/dashboard" },
+        { "test_name": "eft_page", "url": "https://test.garantibbva.com.tr/eft" }
+    ],
+    "threshold": 0.92
+}
+
+###############################################################################
+# ACCESSIBILITY — WCAG 2.1 Erişilebilirlik Testleri
+###############################################################################
+
+### Test URL for Accessibility
+POST {{engine_url}}/api/a11y/test
+Content-Type: application/json
+
+{
+    "url": "https://test.garantibbva.com.tr/login",
+    "wcag_level": "AA",
+    "use_axe": false,
+    "wait_ms": 2000
+}
+
+### Batch A11y Test
+POST {{engine_url}}/api/a11y/test/batch
+Content-Type: application/json
+
+{
+    "urls": [
+        "https://test.garantibbva.com.tr/login",
+        "https://test.garantibbva.com.tr/dashboard",
+        "https://test.garantibbva.com.tr/eft"
+    ],
+    "wcag_level": "AA"
+}
+
+### Generate A11y Report
+POST {{engine_url}}/api/a11y/report
+Content-Type: application/json
+
+{
+    "url": "https://test.garantibbva.com.tr/login",
+    "wcag_level": "AA",
+    "include_warnings": true
+}
+
+### Get WCAG Rules
+GET {{engine_url}}/api/a11y/rules
+
+### Get A11y Config
+GET {{engine_url}}/api/a11y/config
+
+### Update A11y Config
+PUT {{engine_url}}/api/a11y/config
+Content-Type: application/json
+
+{
+    "wcag_level": "AAA",
+    "headless": true,
+    "timeout": 30000
+}
+
+###############################################################################
+# RECORDER — Test Kaydedici
+###############################################################################
+
+### Start Recording
+# @name startRecording
+POST {{engine_url}}/api/recorder/start
+Content-Type: application/json
+
+{
+    "name": "EFT Transfer Kaydi",
+    "domain": "garanti",
+    "base_url": "https://test.garantibbva.com.tr"
+}
+
+### Add Action to Session
+POST {{engine_url}}/api/recorder/{{session_id}}/action
+Content-Type: application/json
+
+{
+    "action_type": "click",
+    "selector": "#eft-menu-button",
+    "selector_type": "css",
+    "element_name": "eft_menu_btn",
+    "element_info": { "tag": "button", "id": "eft-menu-button" }
+}
+
+### Get Actions
+GET {{engine_url}}/api/recorder/{{session_id}}/actions
+
+### Stop Recording
+POST {{engine_url}}/api/recorder/{{session_id}}/stop
+
+### List Recorded Sessions
+GET {{engine_url}}/api/recorder/sessions?domain=garanti
+
+### Generate Code from Session
+POST {{engine_url}}/api/recorder/generate
+Content-Type: application/json
+
+{
+    "session_path": "/path/to/session.json",
+    "format": "cucumber",
+    "feature_title": "EFT Transfer Senaryosu"
+}
+
+### Generate & Download Code
+POST {{engine_url}}/api/recorder/generate/download
+Content-Type: application/json
+
+{
+    "session_path": "/path/to/session.json",
+    "format": "playwright"
+}
+
+### List Locators by Domain
+GET {{engine_url}}/api/recorder/locators/garanti
+
+### Get Locator File
+GET {{engine_url}}/api/recorder/locators/garanti/eft_page_locators.json
+
+###############################################################################
+# MANUAL TESTS
+###############################################################################
+
+### List Manual Tests
+GET {{engine_url}}/api/manual-tests
+
+### Create Manual Test
+POST {{engine_url}}/api/manual-tests
+Content-Type: application/json
+
+{
+    "title": "Havale İşlemi Doğrulama"
+}
+
+### Add Step to Manual Test
+POST {{engine_url}}/api/manual-tests/1/steps
+Content-Type: application/json
+
+{
+    "action": "Havale menüsüne tıkla ve alıcı IBAN gir",
+    "expected": "IBAN doğrulama başarılı mesajı görüntülenir"
+}
+
+### Update Manual Test Status
+PUT {{engine_url}}/api/manual-tests/1
+Content-Type: application/json
+
+{
+    "status": "passed"
+}
+
+### Delete Manual Test
+DELETE {{engine_url}}/api/manual-tests/1
+
+### Update Step Status
+PUT {{engine_url}}/api/manual-test-steps/1
+Content-Type: application/json
+
+{
+    "status": "passed"
+}
+
+###############################################################################
+# REGRESSION SETS (Engine)
+###############################################################################
+
+### List Regression Sets
+GET {{engine_url}}/api/regression-sets
+
+### Create Regression Set
+POST {{engine_url}}/api/regression-sets
+Content-Type: application/json
+
+{
+    "name": "Kritik Bankacılık Akışları"
+}
+
+### Add Feature to Set
+POST {{engine_url}}/api/regression-sets/1/features
+Content-Type: application/json
+
+{
+    "feature_name": "banking/login.feature"
+}
+
+### Delete Regression Set
+DELETE {{engine_url}}/api/regression-sets/1
+
+### Remove Feature from Set
+DELETE {{engine_url}}/api/regression-sets/1/features/banking%2Flogin.feature
+
+###############################################################################
+# LIFECYCLE
+###############################################################################
+
+### Process Analyst Document
+POST {{engine_url}}/api/lifecycle/process-analyst
+Content-Type: application/json
+
+{
+    "text": "Müşteri internet bankacılığı üzerinden döviz alım-satım işlemi yapabilmelidir. Sistem güncel kur bilgisini göstermeli, işlem sonrasında hesap bakiyesi güncellenmeli."
+}
+
+### Save Flow
+POST {{engine_url}}/api/lifecycle/save
+
+###############################################################################
+# DATASIM — Sentetik Veri Simülasyonu
+###############################################################################
+
+### List Dataset Catalog
+GET {{engine_url}}/api/datasim/datasets
+
+### Load Dataset
+POST {{engine_url}}/api/datasim/datasets/load
+Content-Type: application/json
+
+{
+    "id": "banking_transactions",
+    "sample_rows": 50
+}
+
+### Check Mostly AI Install
+GET {{engine_url}}/api/datasim/check-install
+
+### SQLite/PG Catalog
+GET {{engine_url}}/api/datasim/sqlite/catalog
+
+### Get DB Tables
+POST {{engine_url}}/api/datasim/sqlite/tables
+Content-Type: application/json
+
+{
+    "id": "banking_full"
+}
+
+### Preview Table Data
+POST {{engine_url}}/api/datasim/sqlite/preview
+Content-Type: application/json
+
+{
+    "id": "banking_full",
+    "table": "customers",
+    "limit": 20
+}
+
+### Proxy HTTP Request
+POST {{engine_url}}/api/request
+Content-Type: application/json
+
+{
+    "url": "https://jsonplaceholder.typicode.com/posts/1",
+    "method": "GET",
+    "headers": []
+}

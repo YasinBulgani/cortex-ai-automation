@@ -1,0 +1,16 @@
+{
+  "advanceAmount": "100,00",
+  "expectedCurrency": "100,00",
+  "advanceCommitment": "Talebim üzerine tarafıma ödenen avans tutarının talep tarihindeki aya ilişkin ücret hak edişimden kesilmesine rıza gösterdiğimi, 100.00 ₺ işbu avans tutarının ücretimden kesilmesine herhangi bir itirazımın bulunmadığını ve kesintiye muvafakat ettiğimi, herhangi bir sebeple işten ayrılmam ve söz konusu avans tutarının bir kısmının ve/veya tamamının yukarıda belirtilen şekilde hak edişlerimden mahsup edilememesi halinde, söz konusu tutarının fesih halinde -hak kazanılması durumunda- ödenebilecek kıdem tazminatı, ihbar tazminatı, yıllık izin ücreti, prim ve her türlü işçilik alacaklarından da takas ve mahsup edilmesini, herhangi bir şekilde kesinti yapılamaması halinde avans tutarını nakden ve defaten Şirketinize ödeyeceğimi kabul ve beyan ederim.",
+  "dateFilterValue": "22/01/2026 - 22/01/2026",
+  "dateControlValue": "22 Ocak 2026",
+  "absenceTypeYearlyLeave": "Yıllık İzin",
+  "absenceTypeMarriageLeave": "Evlilik İzni",
+  "absenceTypeDeathLeaveFirstDegree": "Vefat İzni 1. Derece",
+  "absenceTypeDeathLeaveSecondDegree": "Vefat İzni 2. Derece",
+  "absenceTypeExamLeave": "Sınav İzni",
+  "absenceTypeMedicalReportLeave": "Sağlık Raporu İzni",
+  "absenceTypeCompanionLeave": "Refakatçi İzni",
+  "absenceTypeRelocationLeave": "Taşınma İzni",
+  "absenceTypeUnpaidLeave": "Ücretsiz İzin"
+}

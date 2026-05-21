@@ -1,0 +1,1334 @@
+# TEST OTOMASYON ANALİZ DOKÜMANI
+
+---
+
+| | |
+|---|---|
+| **Proje Adı** | OrangeHRM - İnsan Kaynakları Yönetim Sistemi |
+| **Doküman Tipi** | Test Otomasyon Analiz Dokümanı |
+| **Hedef Uygulama** | OrangeHRM Open Source Demo v5.x |
+| **Uygulama Adresi** | https://opensource-demo.orangehrmlive.com |
+| **Hazırlayan** | AI Test Otomasyon Motoru |
+| **Tarih** | 01.04.2026 |
+| **Versiyon** | 1.0 |
+
+---
+
+## 1. AMAÇ VE KAPSAM
+
+### 1.1 Dokümanın Amacı
+
+Bu doküman, OrangeHRM İnsan Kaynakları Yönetim Sistemi üzerinde gerçekleştirilecek test otomasyon çalışmalarının planlanması, kapsamının belirlenmesi ve yürütülmesi için hazırlanmıştır. Doküman; uygulama yapısının analizi, test senaryolarının tanımlanması, risk değerlendirmesi, veri stratejisi ve otomasyon yaklaşımını kapsamaktadır.
+
+### 1.2 Kapsam
+
+- Uygulamanın tüm modüllerinin fonksiyonel analizi
+- Sayfa bazlı element envanterinin çıkarılması
+- Pozitif, negatif ve sınır değer test senaryolarının belirlenmesi
+- Uçtan uca iş akışlarının tanımlanması
+- Risk bazlı önceliklendirme
+- Test verisi stratejisinin oluşturulması
+- Veritabanı şeması tasarımı
+- Güvenlik test noktalarının belirlenmesi
+
+### 1.3 Hedef Kitle
+
+- Test Otomasyon Mühendisleri
+- QA Yöneticileri
+- Yazılım Geliştirme Ekibi
+- Proje Yöneticileri
+
+---
+
+## 2. UYGULAMA PROFİLİ
+
+### 2.1 Genel Bilgiler
+
+| Özellik | Değer |
+|---------|-------|
+| Uygulama Adı | OrangeHRM Open Source |
+| Uygulama Türü | İnsan Kaynakları Yönetim Sistemi (İKYS) |
+| Ön Yüz Teknolojisi | Vue.js 3 (Tek Sayfa Uygulama - SPA) |
+| Arka Yüz Teknolojisi | Symfony PHP (REST API) |
+| Veritabanı | MySQL / MariaDB |
+| Kimlik Doğrulama | Oturum tabanlı (Session-Cookie) |
+| Çoklu Dil Desteği | Evet (i18n) |
+
+### 2.2 Demo Erişim Bilgileri
+
+| Parametre | Değer |
+|-----------|-------|
+| Kullanıcı Adı | `Admin` |
+| Şifre | `admin123` |
+| Rol | Yönetici (Admin) |
+
+### 2.3 Kullanıcı Rolleri
+
+| Rol | Açıklama | Yetki Seviyesi |
+|-----|----------|----------------|
+| **Admin (Yönetici)** | Tüm modüllere tam erişim, kullanıcı yönetimi, sistem ayarları | Tam yetki |
+| **ESS (Çalışan Self Servis)** | Kendi profili, izin başvurusu, zaman çizelgesi | Kısıtlı yetki |
+
+---
+
+## 3. MODÜL ANALİZİ
+
+### 3.1 Modül Genel Görünümü
+
+OrangeHRM sistemi 12 ana modülden oluşmaktadır:
+
+| No | Modül Adı | Açıklama | Sayfa Sayısı | CRUD Yoğunluğu |
+|----|-----------|----------|:---:|----------------|
+| 1 | Admin | Kullanıcı yönetimi, iş yapısı, organizasyon ayarları | 17 | Yüksek |
+| 2 | PIM | Personel bilgi yönetimi | 18 | Çok Yüksek |
+| 3 | İzin (Leave) | İzin talep, onay, bakiye ve takvim yönetimi | 11 | Yüksek |
+| 4 | Zaman (Time) | Zaman çizelgesi, katılım takibi, proje yönetimi | 7 | Orta |
+| 5 | İşe Alım (Recruitment) | Pozisyon ilanı, aday takibi, mülakat planlama | 4 | Yüksek |
+| 6 | Performans | KPI tanımlama, performans değerlendirme | 5 | Orta |
+| 7 | Gösterge Paneli (Dashboard) | Özet bilgiler, widget'lar | 1 | Salt Okunur |
+| 8 | Dizin (Directory) | Çalışan arama dizini | 1 | Salt Okunur |
+| 9 | Bilgilerim (My Info) | Çalışanın kendi profil bilgileri | 1 | Güncelleme |
+| 10 | Talepler (Claim) | Masraf ve talep yönetimi | 2 | Orta |
+| 11 | Buzz | Kurum içi sosyal paylaşım alanı | 1 | Orta |
+| 12 | Bakım (Maintenance) | Veri temizleme ve sistem bakım işlemleri | 2 | Yalnızca Yönetici |
+
+---
+
+## 4. SAYFA HARİTASI
+
+### 4.1 Admin Modülü
+
+| Sayfa | URL Yolu | İşlev | İşlemler |
+|-------|----------|-------|----------|
+| Kullanıcı Yönetimi | `/admin/viewSystemUsers` | Sistem kullanıcılarını listeleme, ekleme, düzenleme, silme | Listeleme, Ekleme, Düzenleme, Silme |
+| İş Unvanları | `/admin/viewJobTitleList` | Unvan tanımları | Listeleme, Ekleme, Düzenleme, Silme |
+| Ücret Dereceleri | `/admin/viewPayGrades` | Maaş kademeleri | Listeleme, Ekleme, Düzenleme, Silme |
+| Vardiyalar | `/admin/workShift` | Çalışma vardiyası tanımları | Listeleme, Ekleme, Düzenleme, Silme |
+| İstihdam Durumları | `/admin/employmentStatus` | Çalışma durumu tanımları | Listeleme, Ekleme, Düzenleme, Silme |
+| İş Kategorileri | `/admin/jobCategory` | Kategori tanımları | Listeleme, Ekleme, Düzenleme, Silme |
+| Organizasyon Bilgileri | `/admin/viewOrganizationGeneralInformation` | Şirket genel bilgileri | Görüntüleme, Güncelleme |
+| Lokasyonlar | `/admin/viewLocations` | Şube ve ofis lokasyonları | Listeleme, Ekleme, Düzenleme, Silme |
+| Uyruklar | `/admin/nationality` | Uyruk tanımları | Listeleme, Ekleme, Düzenleme, Silme |
+| Yetenekler | `/admin/viewSkills` | Yetenek havuzu | Listeleme, Ekleme, Düzenleme, Silme |
+| Eğitim Seviyeleri | `/admin/viewEducation` | Eğitim derece tanımları | Listeleme, Ekleme, Düzenleme, Silme |
+| Lisanslar | `/admin/viewLicenses` | Sertifika ve lisans tanımları | Listeleme, Ekleme, Düzenleme, Silme |
+| Diller | `/admin/viewLanguages` | Dil tanımları | Listeleme, Ekleme, Düzenleme, Silme |
+| Üyelikler | `/admin/membership` | Dernek ve kuruluş üyelikleri | Listeleme, Ekleme, Düzenleme, Silme |
+| E-posta Ayarları | `/admin/listMailConfiguration` | SMTP yapılandırması | Görüntüleme, Güncelleme |
+| Bildirim Abonelikleri | `/admin/viewEmailNotification` | E-posta bildirim tercihleri | Görüntüleme, Güncelleme |
+| Yerelleştirme | `/admin/localization` | Dil ve tarih formatı ayarları | Görüntüleme, Güncelleme |
+
+### 4.2 PIM (Personel Bilgi Yönetimi) Modülü
+
+| Sayfa | URL Yolu | İşlev | İşlemler |
+|-------|----------|-------|----------|
+| Çalışan Listesi | `/pim/viewEmployeeList` | Tüm çalışanları listeleme ve arama | Listeleme, Arama, Filtreleme |
+| Çalışan Ekleme | `/pim/addEmployee` | Yeni çalışan kaydı oluşturma | Ekleme |
+| Kişisel Bilgiler | `/pim/viewPersonalDetails/empNumber/{id}` | Ad, soyad, uyruk, medeni durum, cinsiyet | Görüntüleme, Güncelleme |
+| İletişim Bilgileri | `/pim/contactDetails/empNumber/{id}` | Adres, telefon, e-posta | Görüntüleme, Güncelleme |
+| Acil Durum Kişileri | `/pim/viewEmergencyContacts/empNumber/{id}` | Acil durumda aranacak kişiler | Listeleme, Ekleme, Düzenleme, Silme |
+| Bakmakla Yükümlüler | `/pim/viewDependents/empNumber/{id}` | Eş, çocuk vb. bağımlı kişiler | Listeleme, Ekleme, Düzenleme, Silme |
+| Göç ve Vize Bilgileri | `/pim/viewImmigration/empNumber/{id}` | Pasaport ve vize bilgileri | Listeleme, Ekleme, Düzenleme, Silme |
+| İş Bilgileri | `/pim/viewJobDetails/empNumber/{id}` | Unvan, departman, başlangıç tarihi | Görüntüleme, Güncelleme |
+| Maaş Bilgileri | `/pim/viewSalaryList/empNumber/{id}` | Maaş bileşenleri ve detayları | Listeleme, Ekleme, Düzenleme, Silme |
+| Vergi Muafiyetleri | `/pim/viewUsTaxExemptions/empNumber/{id}` | Vergi bilgileri | Görüntüleme, Güncelleme |
+| Bağlı Yönetici | `/pim/viewReportToDetails/empNumber/{id}` | Raporlama hiyerarşisi | Listeleme, Ekleme, Düzenleme, Silme |
+| Yetkinlikler | `/pim/viewQualifications/empNumber/{id}` | Eğitim, sertifika, dil, yetenek | Listeleme, Ekleme, Düzenleme, Silme |
+| Özel Alanlar | `/pim/defineCustomField` | Kullanıcı tanımlı ek alanlar | Listeleme, Ekleme, Düzenleme, Silme |
+| CSV Veri Aktarımı | `/pim/viewDataImport` | Toplu çalışan verisi yükleme | İçe Aktarma |
+| İşten Ayrılma Nedenleri | `/pim/terminationReason` | Ayrılma neden tanımları | Listeleme, Ekleme, Düzenleme, Silme |
+
+### 4.3 İzin Modülü
+
+| Sayfa | URL Yolu | İşlev | İşlemler |
+|-------|----------|-------|----------|
+| İzin Başvurusu | `/leave/applyLeave` | Yeni izin talebi oluşturma | Ekleme |
+| İzinlerim | `/leave/viewMyLeaveList` | Kendi izin geçmişini görüntüleme | Listeleme |
+| İzin Listesi (Yönetici) | `/leave/viewLeaveList` | Tüm izin taleplerini yönetme | Listeleme, Onaylama, Reddetme |
+| İzin Atama | `/leave/assignLeave` | Başka çalışan adına izin girişi | Ekleme |
+| İzin Hakları | `/leave/viewLeaveEntitlements` | İzin gün haklarını yönetme | Listeleme, Ekleme, Düzenleme, Silme |
+| İzin Haklarım | `/leave/viewMyLeaveEntitlements` | Kendi izin bakiyesi | Listeleme |
+| İzin Takvimi | `/leave/viewLeaveCalendar` | Takvim görünümünde izinler | Görüntüleme |
+| Resmi Tatiller | `/leave/viewHolidayList` | Tatil günü tanımları | Listeleme, Ekleme, Düzenleme, Silme |
+| İzin Dönemi | `/leave/defineLeavePeriod` | Yıllık izin dönemi ayarları | Görüntüleme, Güncelleme |
+| İzin Türleri | `/leave/leaveTypeList` | İzin türü tanımları | Listeleme, Ekleme, Düzenleme, Silme |
+| Çalışma Haftası | `/leave/defineWorkWeek` | Haftalık çalışma günleri | Görüntüleme, Güncelleme |
+
+### 4.4 Zaman Modülü
+
+| Sayfa | URL Yolu | İşlev | İşlemler |
+|-------|----------|-------|----------|
+| Zaman Çizelgem | `/time/viewMyTimesheet` | Kendi haftalık çalışma saatleri | Listeleme, Ekleme, Güncelleme |
+| Çalışan Zaman Çizelgeleri | `/time/viewEmployeeTimesheet` | Ekip zaman çizelgeleri | Listeleme, Onaylama |
+| Katılım Kayıtlarım | `/time/viewMyAttendanceRecord` | Kendi giriş/çıkış kayıtları | Listeleme |
+| Giriş/Çıkış Kaydı | `/time/punchIn` | Mesai giriş ve çıkış bildirimi | Ekleme |
+| Çalışan Katılım Kayıtları | `/time/viewAttendanceRecord` | Tüm çalışan katılım raporları | Listeleme |
+| Müşteriler | `/time/viewCustomers` | Proje müşteri tanımları | Listeleme, Ekleme, Düzenleme, Silme |
+| Projeler | `/time/viewProjects` | Proje tanımları ve atamaları | Listeleme, Ekleme, Düzenleme, Silme |
+
+### 4.5 İşe Alım Modülü
+
+| Sayfa | URL Yolu | İşlev | İşlemler |
+|-------|----------|-------|----------|
+| Açık Pozisyonlar | `/recruitment/viewJobVacancy` | İş ilanı yönetimi | Listeleme, Ekleme, Düzenleme, Silme |
+| Adaylar | `/recruitment/viewCandidates` | Aday havuzu yönetimi | Listeleme, Ekleme, Düzenleme, Silme |
+| Aday Ekleme | `/recruitment/addCandidate` | Yeni aday kaydı | Ekleme |
+| Mülakat Planlama | (pozisyon detayı içinde) | Mülakat takvimi ve değerlendirme | Ekleme, Güncelleme |
+
+### 4.6 Performans Modülü
+
+| Sayfa | URL Yolu | İşlev | İşlemler |
+|-------|----------|-------|----------|
+| KPI Yönetimi | `/performance/searchKpi` | Anahtar performans göstergeleri | Listeleme, Ekleme, Düzenleme, Silme |
+| Takipçiler | `/performance/viewMyTrackers` | Performans takip listeleri | Listeleme |
+| Takipçi Günlükleri | `/performance/viewMyTrackerLogs` | Takip kayıtları | Listeleme, Ekleme, Düzenleme, Silme |
+| Değerlendirmelerim | `/performance/myReviews` | Kendi performans sonuçları | Listeleme |
+| Çalışan Değerlendirmeleri | `/performance/searchEvaluatePerformanceReview` | Ekip değerlendirme yönetimi | Listeleme, Ekleme, Düzenleme, Silme |
+
+### 4.7 Diğer Modüller
+
+| Modül | URL Yolu | İşlev |
+|-------|----------|-------|
+| Gösterge Paneli | `/dashboard/index` | Hızlı erişim, izindeki çalışanlar, çalışma süresi, organizasyon şeması |
+| Dizin | `/directory/viewDirectory` | Çalışan arama (isim, departman, lokasyon) |
+| Bilgilerim | `/pim/viewPersonalDetails/empNumber/{kendi_id}` | Kişisel profil düzenleme |
+| Talepler | `/claim/viewAssignClaim` | Masraf talebi oluşturma ve onay akışı |
+| Buzz | `/buzz/viewBuzz` | Kurum içi sosyal paylaşım, beğeni, yorum |
+| Bakım | `/maintenance/purgeEmployee` | Eski veri temizleme (yalnızca yönetici) |
+
+---
+
+## 5. ELEMENT ENVANTERİ
+
+### 5.1 Giriş Sayfası Elementleri
+
+| Element Adı | Tür | CSS Seçici | Açıklama |
+|-------------|-----|-----------|----------|
+| Kullanıcı Adı Alanı | Metin Girişi | `input[name="username"]` | Kullanıcı adı girişi |
+| Şifre Alanı | Şifre Girişi | `input[name="password"]` | Şifre girişi |
+| Giriş Butonu | Buton | `button[type="submit"]` | Oturum açma |
+| Şifremi Unuttum Bağlantısı | Bağlantı | `.orangehrm-login-forgot-header` | Şifre sıfırlama |
+| Hata Mesajı | Uyarı | `.oxd-alert--error` | Geçersiz giriş bildirimi |
+| Logo | Görsel | `.orangehrm-login-branding img` | Uygulama logosu |
+
+### 5.2 Ortak Arayüz Elementleri (Tüm Sayfalarda)
+
+| Element Adı | Tür | CSS Seçici | Açıklama |
+|-------------|-----|-----------|----------|
+| Sol Menü Paneli | Gezinme | `.oxd-sidepanel` | Ana modül menüsü |
+| Menü Öğesi | Bağlantı | `.oxd-main-menu-item` | Her bir modül bağlantısı |
+| Menü Öğe Metni | Metin | `.oxd-main-menu-item span` | Modül adı |
+| Üst Çubuk | Panel | `.oxd-topbar` | Sayfa üst bilgi çubuğu |
+| Kullanıcı Açılır Menüsü | Açılır Menü | `.oxd-userdropdown` | Profil ve çıkış menüsü |
+| Çıkış Seçeneği | Bağlantı | `.oxd-userdropdown-link` | Oturumu sonlandırma |
+| Sayfa Yolu | Gezinme | `.oxd-topbar-header-breadcrumb` | Sayfa konumu gösterimi |
+| Sayfa Başlığı | Başlık | `.oxd-topbar-header-breadcrumb h6` | Aktif sayfa adı |
+| Yükleniyor Göstergesi | Animasyon | `.oxd-loading-spinner` | İşlem devam ediyor göstergesi |
+
+### 5.3 Bildirim Mesajları
+
+| Element Adı | Tür | CSS Seçici | Tetiklenme Durumu |
+|-------------|-----|-----------|-------------------|
+| Başarılı İşlem | Bildirim | `.oxd-toast--success` | Kayıt başarıyla tamamlandığında |
+| Hata Bildirimi | Bildirim | `.oxd-toast--error` | İşlem başarısız olduğunda |
+| Uyarı Bildirimi | Bildirim | `.oxd-toast--warn` | Dikkat gerektiren durumlarda |
+
+### 5.4 Tablo Elementleri
+
+| Element Adı | Tür | CSS Seçici | Açıklama |
+|-------------|-----|-----------|----------|
+| Veri Tablosu | Tablo | `.oxd-table` | Listeleme tablosu |
+| Tablo Başlık Satırı | Satır | `.oxd-table-header` | Sütun başlıkları |
+| Tablo Veri Satırı | Satır | `.oxd-table-row` | Veri satırı |
+| Tablo Hücresi | Hücre | `.oxd-table-cell` | Tekil hücre |
+| Toplu Seçim Kutusu | Onay Kutusu | `.oxd-table-row .oxd-checkbox-input` | Satır seçimi |
+| Düzenle Simgesi | Buton | `.oxd-table-cell-actions .bi-pencil-fill` | Kayıt düzenleme |
+| Sil Simgesi | Buton | `.oxd-table-cell-actions .bi-trash` | Kayıt silme |
+| Sayfalama | Gezinme | `.oxd-table-pager` | Sayfa geçişi |
+| Kayıt Bulunamadı | Metin | `.oxd-table-body .oxd-text--span` | Boş sonuç bildirimi |
+
+### 5.5 Form Elementleri
+
+| Element Adı | Tür | CSS Seçici | Açıklama |
+|-------------|-----|-----------|----------|
+| Form Alanı | Konteyner | `.oxd-form` | Form kapsayıcı |
+| Metin Girişi | Girdi | `.oxd-input` | Serbest metin alanı |
+| Çok Satırlı Metin | Girdi | `.oxd-textarea` | Uzun metin alanı |
+| Açılır Liste | Seçim | `.oxd-select-text` | Tek seçimli liste |
+| Açılır Liste Seçenekleri | Liste | `.oxd-select-dropdown .oxd-select-option` | Liste öğeleri |
+| Otomatik Tamamlama | Girdi | `.oxd-autocomplete-text-input input` | Yazarak arama |
+| Otomatik Tamamlama Sonuçları | Liste | `.oxd-autocomplete-dropdown .oxd-autocomplete-option` | Arama sonuçları |
+| Tarih Seçici | Girdi | `.oxd-date-input` | Tarih girişi |
+| Takvim Paneli | Panel | `.oxd-calendar-wrapper` | Tarih seçim takvimi |
+| Aç/Kapat Düğmesi | Anahtar | `.oxd-switch-input` | Açma/kapama kontrolü |
+| Radyo Düğmesi | Seçim | `.oxd-radio-input` | Tekli seçim |
+| Onay Kutusu | Seçim | `.oxd-checkbox-input` | Çoklu seçim |
+| Dosya Yükleme | Girdi | `.oxd-file-input` | Dosya ekleme |
+| Kaydet Butonu | Buton | `button[type="submit"]` | Formu kaydetme |
+| İptal Butonu | Buton | `button[type="button"]` | İşlemi iptal etme |
+| Zorunlu Alan Hatası | Hata | `.oxd-input-field-error-message` | Doğrulama hatası |
+| Alan Etiketi | Etiket | `.oxd-input-group label` | Alan açıklaması |
+
+### 5.6 Onay Diyaloğu Elementleri
+
+| Element Adı | Tür | CSS Seçici | Açıklama |
+|-------------|-----|-----------|----------|
+| Diyalog Arka Planı | Kaplama | `.oxd-dialog-sheet` | Arka plan karartması |
+| Diyalog Kutusu | Panel | `.oxd-dialog-card` | İçerik alanı |
+| Diyalog Başlığı | Başlık | `.oxd-dialog-card-header h6` | Onay sorusu |
+| Silmeyi Onayla | Buton | `.oxd-dialog-card .oxd-button--label-danger` | Silme onayı |
+| İptal Et | Buton | `.oxd-dialog-card .oxd-button--ghost` | İşlemi vazgeçme |
+
+---
+
+## 6. TEST SENARYOLARI
+
+### 6.1 Kimlik Doğrulama Senaryoları
+
+#### GIRIS-001: Geçerli Bilgilerle Sisteme Giriş
+
+| Özellik | Değer |
+|---------|-------|
+| **Senaryo Kodu** | GIRIS-001 |
+| **Modül** | Kimlik Doğrulama |
+| **Senaryo Adı** | Geçerli kullanıcı bilgileriyle sisteme giriş |
+| **Tür** | Pozitif |
+| **Öncelik** | P0 |
+
+**Ön Koşullar:** Kullanıcı giriş sayfasında olmalıdır.
+
+**Adımlar:**
+1. Kullanıcı adı alanına "Admin" yazılır
+2. Şifre alanına "admin123" yazılır
+3. Giriş butonuna tıklanır
+
+**Beklenen Sonuç:** Gösterge paneli sayfası açılır. URL `/dashboard/index` içermelidir.
+
+---
+
+#### GIRIS-002: Yanlış Şifre ile Giriş Denemesi
+
+| Özellik | Değer |
+|---------|-------|
+| **Senaryo Kodu** | GIRIS-002 |
+| **Modül** | Kimlik Doğrulama |
+| **Senaryo Adı** | Geçersiz şifre ile giriş denemesi |
+| **Tür** | Negatif |
+| **Öncelik** | P0 |
+
+**Ön Koşullar:** Kullanıcı giriş sayfasında olmalıdır.
+
+**Adımlar:**
+1. Kullanıcı adı alanına "Admin" yazılır
+2. Şifre alanına "yanlis_sifre" yazılır
+3. Giriş butonuna tıklanır
+
+**Beklenen Sonuç:** "Invalid credentials" hata mesajı görüntülenir. Kullanıcı giriş sayfasında kalır.
+
+---
+
+#### GIRIS-003: Boş Alan Doğrulaması
+
+| Özellik | Değer |
+|---------|-------|
+| **Senaryo Kodu** | GIRIS-003 |
+| **Modül** | Kimlik Doğrulama |
+| **Senaryo Adı** | Boş alanlarla giriş denemesi |
+| **Tür** | Negatif |
+| **Öncelik** | P0 |
+
+**Ön Koşullar:** Kullanıcı giriş sayfasında olmalıdır.
+
+**Adımlar:**
+1. Hiçbir alana değer girilmeden giriş butonuna tıklanır
+
+**Beklenen Sonuç:** Her iki alan altında "Required" doğrulama mesajı görüntülenir.
+
+---
+
+#### GIRIS-004: Sistemden Çıkış
+
+| Özellik | Değer |
+|---------|-------|
+| **Senaryo Kodu** | GIRIS-004 |
+| **Modül** | Kimlik Doğrulama |
+| **Senaryo Adı** | Başarılı oturum kapatma |
+| **Tür** | Pozitif |
+| **Öncelik** | P0 |
+
+**Ön Koşullar:** Kullanıcı sisteme giriş yapmış olmalıdır.
+
+**Adımlar:**
+1. Sağ üst köşedeki kullanıcı açılır menüsüne tıklanır
+2. "Logout" seçeneğine tıklanır
+
+**Beklenen Sonuç:** Giriş sayfasına yönlendirilir.
+
+---
+
+### 6.2 Personel Bilgi Yönetimi (PIM) Senaryoları
+
+#### PIM-001: Yeni Çalışan Ekleme
+
+| Özellik | Değer |
+|---------|-------|
+| **Senaryo Kodu** | PIM-001 |
+| **Modül** | PIM |
+| **Senaryo Adı** | Yeni çalışan kaydı oluşturma |
+| **Tür** | Pozitif |
+| **Öncelik** | P0 |
+
+**Ön Koşullar:** Yönetici olarak giriş yapılmış olmalıdır.
+
+**Adımlar:**
+1. PIM > Çalışan Ekle sayfasına gidilir
+2. Ad alanına "Ahmet" yazılır
+3. Soyad alanına "Yılmaz" yazılır
+4. Çalışan numarası otomatik atanır ve kontrol edilir
+5. Kaydet butonuna tıklanır
+
+**Beklenen Sonuç:** "Successfully Saved" bildirimi görüntülenir. Çalışanın kişisel bilgiler sayfasına yönlendirilir.
+
+---
+
+#### PIM-002: Çalışan Ekleme (Giriş Bilgileriyle Birlikte)
+
+| Özellik | Değer |
+|---------|-------|
+| **Senaryo Kodu** | PIM-002 |
+| **Modül** | PIM |
+| **Senaryo Adı** | Çalışan ekleme sırasında sistem kullanıcısı oluşturma |
+| **Tür** | Pozitif |
+| **Öncelik** | P0 |
+
+**Ön Koşullar:** Yönetici olarak giriş yapılmış olmalıdır.
+
+**Adımlar:**
+1. PIM > Çalışan Ekle sayfasına gidilir
+2. Ad alanına "Fatma" yazılır
+3. Soyad alanına "Kaya" yazılır
+4. "Giriş Bilgilerini Oluştur" anahtarı açılır
+5. Kullanıcı adı alanına "fatma.kaya" yazılır
+6. Şifre alanına "Fatma@1234" yazılır
+7. Şifre tekrar alanına "Fatma@1234" yazılır
+8. Durum olarak "Etkin" seçilir
+9. Kaydet butonuna tıklanır
+
+**Beklenen Sonuç:** "Successfully Saved" bildirimi görüntülenir.
+
+---
+
+#### PIM-003: Çalışan Arama
+
+| Özellik | Değer |
+|---------|-------|
+| **Senaryo Kodu** | PIM-003 |
+| **Modül** | PIM |
+| **Senaryo Adı** | İsme göre çalışan arama |
+| **Tür** | Pozitif |
+| **Öncelik** | P0 |
+
+**Ön Koşullar:** Sistemde en az bir çalışan kaydı bulunmalıdır.
+
+**Adımlar:**
+1. PIM > Çalışan Listesi sayfasına gidilir
+2. Çalışan Adı alanına "Ahmet" yazılır
+3. Ara butonuna tıklanır
+
+**Beklenen Sonuç:** Tabloda "Ahmet" içeren kayıtlar listelenir. "Kayıt Bulundu" bilgisi görüntülenir.
+
+---
+
+#### PIM-004: Çalışan Silme
+
+| Özellik | Değer |
+|---------|-------|
+| **Senaryo Kodu** | PIM-004 |
+| **Modül** | PIM |
+| **Senaryo Adı** | Çalışan kaydını silme |
+| **Tür** | Pozitif |
+| **Öncelik** | P0 |
+
+**Ön Koşullar:** Silinecek çalışan kaydı mevcut olmalıdır.
+
+**Adımlar:**
+1. PIM > Çalışan Listesi sayfasına gidilir
+2. Hedef çalışanın satırındaki çöp kutusu simgesine tıklanır
+3. Onay diyaloğunda "Evet, Sil" butonuna tıklanır
+
+**Beklenen Sonuç:** "Successfully Deleted" bildirimi görüntülenir. Çalışan listeden kaldırılır.
+
+---
+
+#### PIM-005: Çalışan Bilgilerini Güncelleme
+
+| Özellik | Değer |
+|---------|-------|
+| **Senaryo Kodu** | PIM-005 |
+| **Modül** | PIM |
+| **Senaryo Adı** | Kişisel bilgileri güncelleme |
+| **Tür** | Pozitif |
+| **Öncelik** | P1 |
+
+**Ön Koşullar:** Düzenlenecek çalışan kaydı mevcut olmalıdır.
+
+**Adımlar:**
+1. Çalışanın Kişisel Bilgiler sayfasına gidilir
+2. Uyruk alanından "Turkish" seçilir
+3. Medeni Durum alanından "Married" seçilir
+4. Doğum Tarihi alanına "15.05.1990" girilir
+5. Cinsiyet olarak "Male" seçilir
+6. Kaydet butonuna tıklanır
+
+**Beklenen Sonuç:** "Successfully Updated" bildirimi görüntülenir.
+
+---
+
+#### PIM-006: Toplu Çalışan Silme
+
+| Özellik | Değer |
+|---------|-------|
+| **Senaryo Kodu** | PIM-006 |
+| **Modül** | PIM |
+| **Senaryo Adı** | Birden fazla çalışanı toplu silme |
+| **Tür** | Pozitif |
+| **Öncelik** | P1 |
+
+**Ön Koşullar:** Birden fazla çalışan kaydı mevcut olmalıdır.
+
+**Adımlar:**
+1. PIM > Çalışan Listesi sayfasına gidilir
+2. İlk 3 çalışanın onay kutusu işaretlenir
+3. "Seçilenleri Sil" butonuna tıklanır
+4. Onay diyaloğunda "Evet, Sil" butonuna tıklanır
+
+**Beklenen Sonuç:** "Successfully Deleted" bildirimi görüntülenir. Seçilen çalışanlar listeden kaldırılır.
+
+---
+
+### 6.3 İzin Yönetimi Senaryoları
+
+#### IZIN-001: İzin Başvurusu
+
+| Özellik | Değer |
+|---------|-------|
+| **Senaryo Kodu** | IZIN-001 |
+| **Modül** | İzin |
+| **Senaryo Adı** | Yıllık izin başvurusu oluşturma |
+| **Tür** | Pozitif |
+| **Öncelik** | P1 |
+
+**Ön Koşullar:** Çalışanın yıllık izin hakkı bulunmalıdır.
+
+**Adımlar:**
+1. İzin > Başvuru sayfasına gidilir
+2. İzin Türü olarak "CAN - Yıllık İzin" seçilir
+3. Başlangıç Tarihi olarak "01.05.2026" girilir
+4. Bitiş Tarihi olarak "03.05.2026" girilir
+5. Açıklama alanına "Tatil" yazılır
+6. Başvur butonuna tıklanır
+
+**Beklenen Sonuç:** "Successfully Saved" bildirimi görüntülenir.
+
+---
+
+#### IZIN-002: İzin Onaylama
+
+| Özellik | Değer |
+|---------|-------|
+| **Senaryo Kodu** | IZIN-002 |
+| **Modül** | İzin |
+| **Senaryo Adı** | Yönetici tarafından izin talebini onaylama |
+| **Tür** | Pozitif |
+| **Öncelik** | P1 |
+
+**Ön Koşullar:** Bekleyen bir izin talebi mevcut olmalıdır.
+
+**Adımlar:**
+1. Yönetici olarak İzin > İzin Listesi sayfasına gidilir
+2. Bekleyen talebin "Onayla" butonuna tıklanır
+
+**Beklenen Sonuç:** İzin durumu "Onaylandı" olarak güncellenir.
+
+---
+
+#### IZIN-003: İzin Reddetme
+
+| Özellik | Değer |
+|---------|-------|
+| **Senaryo Kodu** | IZIN-003 |
+| **Modül** | İzin |
+| **Senaryo Adı** | Yönetici tarafından izin talebini reddetme |
+| **Tür** | Pozitif |
+| **Öncelik** | P1 |
+
+**Ön Koşullar:** Bekleyen bir izin talebi mevcut olmalıdır.
+
+**Adımlar:**
+1. Yönetici olarak İzin > İzin Listesi sayfasına gidilir
+2. Bekleyen talebin "Reddet" butonuna tıklanır
+
+**Beklenen Sonuç:** İzin durumu "Reddedildi" olarak güncellenir.
+
+---
+
+#### IZIN-004: İzin Hakkı Atama
+
+| Özellik | Değer |
+|---------|-------|
+| **Senaryo Kodu** | IZIN-004 |
+| **Modül** | İzin |
+| **Senaryo Adı** | Çalışana izin hakkı tanımlama |
+| **Tür** | Pozitif |
+| **Öncelik** | P1 |
+
+**Ön Koşullar:** Çalışan kaydı ve izin türü tanımlı olmalıdır.
+
+**Adımlar:**
+1. İzin > Haklar > Hak Ekle sayfasına gidilir
+2. Çalışan Adı alanına ilgili çalışan seçilir
+3. İzin Türü olarak "CAN - Yıllık İzin" seçilir
+4. Hak alanına "15" girilir
+5. Kaydet butonuna tıklanır
+
+**Beklenen Sonuç:** "Successfully Saved" bildirimi görüntülenir.
+
+---
+
+### 6.4 İşe Alım Senaryoları
+
+#### ISE-001: Pozisyon İlanı Oluşturma
+
+| Özellik | Değer |
+|---------|-------|
+| **Senaryo Kodu** | ISE-001 |
+| **Modül** | İşe Alım |
+| **Senaryo Adı** | Yeni açık pozisyon oluşturma |
+| **Tür** | Pozitif |
+| **Öncelik** | P1 |
+
+**Ön Koşullar:** İş unvanları tanımlı olmalıdır.
+
+**Adımlar:**
+1. İşe Alım > Açık Pozisyonlar sayfasına gidilir
+2. "Ekle" butonuna tıklanır
+3. Pozisyon Adı alanına "Kıdemli Test Mühendisi" yazılır
+4. İş Unvanı olarak "QA Engineer" seçilir
+5. İşe Alan Yönetici alanına "Admin" girilir
+6. Kaydet butonuna tıklanır
+
+**Beklenen Sonuç:** "Successfully Saved" bildirimi görüntülenir.
+
+---
+
+#### ISE-002: Aday Ekleme
+
+| Özellik | Değer |
+|---------|-------|
+| **Senaryo Kodu** | ISE-002 |
+| **Modül** | İşe Alım |
+| **Senaryo Adı** | Yeni aday kaydı oluşturma |
+| **Tür** | Pozitif |
+| **Öncelik** | P1 |
+
+**Ön Koşullar:** En az bir açık pozisyon tanımlı olmalıdır.
+
+**Adımlar:**
+1. İşe Alım > Adaylar sayfasına gidilir
+2. "Ekle" butonuna tıklanır
+3. Ad alanına "Ali" yazılır
+4. Soyad alanına "Demir" yazılır
+5. E-posta alanına "ali.demir@test.com" yazılır
+6. Pozisyon olarak "Kıdemli Test Mühendisi" seçilir
+7. Özgeçmiş dosyası yüklenir
+8. Kaydet butonuna tıklanır
+
+**Beklenen Sonuç:** "Successfully Saved" bildirimi görüntülenir.
+
+---
+
+### 6.5 Yönetim Senaryoları
+
+#### YON-001: Yeni Kullanıcı Oluşturma
+
+| Özellik | Değer |
+|---------|-------|
+| **Senaryo Kodu** | YON-001 |
+| **Modül** | Admin |
+| **Senaryo Adı** | Yeni sistem kullanıcısı oluşturma |
+| **Tür** | Pozitif |
+| **Öncelik** | P1 |
+
+**Ön Koşullar:** Çalışan kaydı mevcut olmalıdır.
+
+**Adımlar:**
+1. Admin > Kullanıcı Yönetimi sayfasına gidilir
+2. "Ekle" butonuna tıklanır
+3. Kullanıcı Rolü olarak "ESS" seçilir
+4. Çalışan Adı alanına "Ahmet Yılmaz" girilir
+5. Durum olarak "Etkin" seçilir
+6. Kullanıcı Adı alanına "ahmet.yilmaz" yazılır
+7. Şifre alanına "Test@1234" yazılır
+8. Şifre Tekrar alanına "Test@1234" yazılır
+9. Kaydet butonuna tıklanır
+
+**Beklenen Sonuç:** "Successfully Saved" bildirimi görüntülenir.
+
+---
+
+#### YON-002: Kullanıcı Rolü Değiştirme
+
+| Özellik | Değer |
+|---------|-------|
+| **Senaryo Kodu** | YON-002 |
+| **Modül** | Admin |
+| **Senaryo Adı** | Kullanıcı rolünü yükseltme |
+| **Tür** | Pozitif |
+| **Öncelik** | P1 |
+
+**Ön Koşullar:** Değiştirilecek kullanıcı mevcut olmalıdır.
+
+**Adımlar:**
+1. Admin > Kullanıcı Yönetimi sayfasına gidilir
+2. "ahmet.yilmaz" kullanıcısının düzenle simgesine tıklanır
+3. Kullanıcı Rolü "Admin" olarak değiştirilir
+4. Kaydet butonuna tıklanır
+
+**Beklenen Sonuç:** "Successfully Updated" bildirimi görüntülenir.
+
+---
+
+### 6.6 Performans Senaryoları
+
+#### PERF-001: KPI Tanımlama
+
+| Özellik | Değer |
+|---------|-------|
+| **Senaryo Kodu** | PERF-001 |
+| **Modül** | Performans |
+| **Senaryo Adı** | Yeni anahtar performans göstergesi tanımlama |
+| **Tür** | Pozitif |
+| **Öncelik** | P2 |
+
+**Ön Koşullar:** İş unvanları tanımlı olmalıdır.
+
+**Adımlar:**
+1. Performans > Yapılandırma > KPI'lar sayfasına gidilir
+2. "Ekle" butonuna tıklanır
+3. KPI adı alanına "Kod İnceleme Kalitesi" yazılır
+4. İş Unvanı olarak "Yazılım Mühendisi" seçilir
+5. Minimum Puan alanına "0" girilir
+6. Maksimum Puan alanına "100" girilir
+7. Kaydet butonuna tıklanır
+
+**Beklenen Sonuç:** "Successfully Saved" bildirimi görüntülenir.
+
+---
+
+### 6.7 Uçtan Uca İş Akışları
+
+#### UU-001: Tam İşe Alım Süreci
+
+| Özellik | Değer |
+|---------|-------|
+| **Senaryo Kodu** | UU-001 |
+| **Modül** | İşe Alım, PIM, Admin |
+| **Senaryo Adı** | Pozisyon açma, aday değerlendirme ve işe alma akışı |
+| **Tür** | Uçtan Uca |
+| **Öncelik** | P2 |
+
+**Ön Koşullar:** Yönetici olarak giriş yapılmış olmalıdır.
+
+| Adım | Modül | İşlem | Beklenen Sonuç |
+|:---:|-------|-------|----------------|
+| 1 | İşe Alım | "Arka Uç Geliştirici" pozisyonu oluşturulur | Pozisyon başarıyla kaydedilir |
+| 2 | İşe Alım | "Mehmet Öz" adayı bu pozisyona eklenir | Aday kaydı oluşturulur |
+| 3 | İşe Alım | Adayın durumu "Ön Eleme Geçti" yapılır | Durum güncellenir |
+| 4 | İşe Alım | Mülakat tarihi ve mülakatçı atanır | Mülakat planlanır |
+| 5 | İşe Alım | Mülakat sonucu "Başarılı" olarak işaretlenir | Değerlendirme kaydedilir |
+| 6 | İşe Alım | Adaya iş teklifi yapılır | Teklif durumu güncellenir |
+| 7 | İşe Alım | Aday "İşe Alındı" durumuna alınır | Durum güncellenir |
+| 8 | PIM | Yeni çalışan kaydı doğrulanır | Çalışan listede görünür |
+
+---
+
+#### UU-002: Tam İzin Döngüsü
+
+| Özellik | Değer |
+|---------|-------|
+| **Senaryo Kodu** | UU-002 |
+| **Modül** | İzin |
+| **Senaryo Adı** | İzin tanımlama, hak atama, başvuru, onay ve bakiye kontrol akışı |
+| **Tür** | Uçtan Uca |
+| **Öncelik** | P2 |
+
+| Adım | Rol | İşlem | Beklenen Sonuç |
+|:---:|-----|-------|----------------|
+| 1 | Yönetici | "Özel İzin" türünde yeni izin tanımlanır | İzin türü oluşturulur |
+| 2 | Yönetici | Çalışana 5 gün "Özel İzin" hakkı atanır | Hak tanımlanır |
+| 3 | Çalışan | 2 günlük "Özel İzin" başvurusu yapılır | Talep oluşturulur |
+| 4 | Yönetici | İzin talebi onaylanır | Durum "Onaylandı" olur |
+| 5 | Çalışan | Kalan izin bakiyesi kontrol edilir | Bakiye 3 gün olmalıdır |
+
+---
+
+#### UU-003: Çalışan Yaşam Döngüsü
+
+| Özellik | Değer |
+|---------|-------|
+| **Senaryo Kodu** | UU-003 |
+| **Modül** | PIM, Admin, İzin, Performans |
+| **Senaryo Adı** | İşe giriş, bilgi girişi, performans değerlendirme ve işten çıkış akışı |
+| **Tür** | Uçtan Uca |
+| **Öncelik** | P2 |
+
+| Adım | Modül | İşlem | Beklenen Sonuç |
+|:---:|-------|-------|----------------|
+| 1 | PIM | Yeni çalışan "Test Kullanıcı" eklenir | Kayıt oluşturulur |
+| 2 | PIM | Kişisel, iletişim ve iş bilgileri girilir | Bilgiler kaydedilir |
+| 3 | Admin | ESS kullanıcı hesabı oluşturulur | Kullanıcı aktif edilir |
+| 4 | İzin | İzin hakları atanır | Haklar tanımlanır |
+| 5 | Performans | KPI ve takipçi atanır | Performans kaydı oluşur |
+| 6 | PIM | Çalışan işten çıkarılır | İşten ayrılma kaydedilir |
+| 7 | PIM | Çalışan geçmiş listesinde doğrulanır | Geçmiş listede görünür |
+
+---
+
+## 7. RİSK MATRİSİ VE ÖNCELİKLENDİRME
+
+### 7.1 Modül Bazlı Risk Değerlendirmesi
+
+| Modül | Karmaşıklık (1-10) | Değişim Sıklığı (1-10) | İş Etkisi (1-10) | Risk Skoru | Öncelik |
+|-------|:---:|:---:|:---:|:---:|:---:|
+| Giriş / Kimlik Doğrulama | 3 | 2 | 10 | 9.0 | P0 - Kritik |
+| PIM (Personel Yönetimi) | 9 | 8 | 10 | 9.0 | P0 - Kritik |
+| İzin Yönetimi | 8 | 6 | 9 | 8.0 | P1 - Yüksek |
+| Admin - Kullanıcı Yönetimi | 5 | 3 | 10 | 8.0 | P1 - Yüksek |
+| İşe Alım | 7 | 5 | 8 | 7.0 | P1 - Yüksek |
+| Zaman Yönetimi | 6 | 5 | 6 | 6.0 | P2 - Orta |
+| Performans | 5 | 3 | 6 | 5.0 | P2 - Orta |
+| Bakım | 3 | 2 | 8 | 5.0 | P2 - Orta |
+| Talepler | 4 | 3 | 5 | 4.0 | P3 - Düşük |
+| Gösterge Paneli | 3 | 2 | 3 | 3.0 | P3 - Düşük |
+| Dizin | 2 | 1 | 3 | 2.0 | P3 - Düşük |
+| Buzz | 2 | 2 | 2 | 2.0 | P4 - Çok Düşük |
+
+> **Risk Skoru Hesaplama Formülü:** (Karmaşıklık x 0.3) + (Değişim Sıklığı x 0.3) + (İş Etkisi x 0.4)
+
+### 7.2 Sprint Bazlı Planlama
+
+| Sprint | Öncelik | Kapsam | Senaryo Sayısı | Toplam Birikim |
+|:---:|---------|--------|:---:|:---:|
+| Sprint 1 | P0 - Kritik | Giriş/çıkış testleri, PIM temel CRUD işlemleri | 10 | 10 |
+| Sprint 2 | P1 - Yüksek | İzin yönetimi, kullanıcı yönetimi, işe alım | 8 | 18 |
+| Sprint 3 | P2 - Orta | Zaman, performans, bakım modülleri | 6 | 24 |
+| Sprint 4 | P3/P4 - Düşük | Gösterge paneli, dizin, talepler, Buzz | 5 | 29 |
+| Sprint 5 | Uçtan Uca | Çapraz modül iş akışları | 5 | 34 |
+
+### 7.3 Test Piramidi Dağılımı
+
+```
+            ╱ Uçtan Uca ╲            →  5 senaryo  (%15)
+           ╱  Arayüz     ╲           → 20 senaryo  (%55)
+          ╱  Entegrasyon   ╲          →  5 senaryo  (%15)
+         ╱   API Testleri   ╲         →  5 senaryo  (%15)
+        ╱─────────────────────╲
+              Toplam: ~35 senaryo
+```
+
+---
+
+## 8. VERİ GEREKSİNİMLERİ VE TEST VERİSİ STRATEJİSİ
+
+### 8.1 Modül Bazlı Veri İhtiyaçları
+
+| Modül | Gerekli Test Verisi | Üretim Yöntemi |
+|-------|-------------------|----------------|
+| Kimlik Doğrulama | Kullanıcı adı ve şifre kombinasyonları (geçerli ve geçersiz) | Sabit veri ve veritabanı hazırlığı |
+| PIM | Çalışan profilleri (ad, soyad, numara, doğum tarihi, uyruk) | Yapay veri üretimi |
+| İzin | İzin türleri, tatil günleri, izin hakları | Veritabanı hazırlığı |
+| İşe Alım | Aday profilleri, pozisyon bilgileri, özgeçmiş dosyaları | Yapay veri ve dosya |
+| Admin | Kullanıcı hesapları, roller, organizasyon yapısı | Veritabanı hazırlığı |
+| Zaman | Proje ve müşteri bilgileri, çalışma saatleri | Yapay veri üretimi |
+| Performans | KPI tanımları, değerlendirme kriterleri | Veritabanı hazırlığı |
+
+### 8.2 Yapay Veri Profilleri
+
+#### Çalışan Profili
+
+| Alan | Üretim Kuralı | Örnek Değer |
+|------|--------------|-------------|
+| Ad | Türkçe rastgele isim | Ahmet, Fatma, Mehmet |
+| Soyad | Türkçe rastgele soyisim | Yılmaz, Kaya, Demir |
+| Çalışan Numarası | 4 haneli otomatik artan sayı | 0001, 0002, 0003 |
+| Uyruk | Belirlenen listeden rastgele seçim | Turkish, German, American |
+| Medeni Durum | Rastgele seçim | Single, Married |
+| Doğum Tarihi | 22-60 yaş aralığında rastgele tarih | 15.05.1990 |
+| Cinsiyet | Rastgele seçim | Male, Female |
+| E-posta | Otomatik oluşturma | ahmet.yilmaz@test.com |
+| Telefon | Türkiye formatında rastgele numara | +90 532 XXX XX XX |
+| Adres | Türkçe rastgele adres | İstanbul, Kadıköy... |
+
+#### Aday Profili
+
+| Alan | Üretim Kuralı | Örnek Değer |
+|------|--------------|-------------|
+| Ad | Rastgele isim | Ali |
+| Soyad | Rastgele soyisim | Demir |
+| E-posta | Otomatik oluşturma | ali.demir@test.com |
+| Telefon | Rastgele telefon numarası | +90 555 XXX XX XX |
+| Pozisyon | Veritabanından mevcut pozisyon | Kıdemli Test Mühendisi |
+| Özgeçmiş | Örnek PDF dosyası | ornek_cv.pdf |
+| Anahtar Kelimeler | 3 rastgele yetenek | Python, Selenium, API |
+
+#### İzin Talebi
+
+| Alan | Üretim Kuralı | Örnek Değer |
+|------|--------------|-------------|
+| İzin Türü | Veritabanından mevcut türler | CAN - Yıllık İzin |
+| Başlangıç Tarihi | 7-30 gün sonrası | 01.05.2026 |
+| Bitiş Tarihi | Başlangıçtan 1-5 gün sonrası | 03.05.2026 |
+| Süre | Otomatik hesaplama | 3 gün |
+| Açıklama | Rastgele cümle | Aile ziyareti |
+
+### 8.3 Test Verisi Yaşam Döngüsü
+
+| Aşama | İşlem | Açıklama |
+|-------|-------|----------|
+| **Hazırlık (Test Öncesi)** | Veritabanı hazırlık betiği çalıştırılır | Temel tanım verileri yüklenir |
+| | Yapay veri üretilir | Dinamik test verileri oluşturulur |
+| | Dosya hazırlıkları yapılır | Özgeçmiş, fotoğraf gibi dosyalar hazırlanır |
+| **Çalışma (Test Sırası)** | API ile hızlı veri oluşturma | Arayüz atlanarak hızlı kurulum yapılır |
+| | Her test kendi verisini oluşturur | Testler arası bağımsızlık sağlanır |
+| | Test kimliği öneki kullanılır | Veriler kolayca tanımlanabilir |
+| **Temizlik (Test Sonrası)** | Oluşturulan veriler temizlenir | Ortam kirliliği önlenir |
+| | Veritabanı başlangıç durumuna getirilir | Tekrarlanabilirlik sağlanır |
+| | Oturum ve çerez temizliği yapılır | Güvenlik sağlanır |
+
+---
+
+## 9. VERİTABANI ŞEMASI
+
+### 9.1 Tablo Yapısı Özeti
+
+| Tablo Adı | Açıklama | İlişkiler |
+|-----------|----------|-----------|
+| `uygulama_sayfalari` | Uygulama sayfa haritası | Elementler ile bire çok |
+| `sayfa_elementleri` | Sayfa üzerindeki arayüz öğeleri | Sayfalar ile çoka bir |
+| `test_senaryolari` | Test senaryosu tanımları | Adımlar ile bire çok |
+| `test_adimlari` | Senaryo adım detayları | Senaryolar ile çoka bir |
+| `risk_matrisi` | Modül bazlı risk değerlendirmesi | Bağımsız |
+| `veri_gereksinimleri` | Senaryo bazlı veri ihtiyaçları | Senaryolar ile çoka bir |
+| `is_akislari` | Uçtan uca iş akışı tanımları | Adımlar ile bire çok |
+| `is_akisi_adimlari` | İş akışı adım detayları | Akışlar ile çoka bir |
+| `otomasyon_ilerlemesi` | Sprint bazlı ilerleme takibi | Bağımsız |
+| `api_uc_noktalari` | API uç nokta haritası | Bağımsız |
+
+### 9.2 Tablo Detayları
+
+```sql
+-- ================================================
+-- Test Otomasyon Analiz Veritabanı Şeması
+-- Hedef: OrangeHRM Test Otomasyon Projesi
+-- ================================================
+
+-- 1. Uygulama Sayfaları
+CREATE TABLE uygulama_sayfalari (
+    id                INTEGER PRIMARY KEY AUTOINCREMENT,
+    modul_adi         TEXT NOT NULL,
+    sayfa_adi         TEXT NOT NULL,
+    url_yolu          TEXT NOT NULL,
+    sayfa_tipi        TEXT NOT NULL,
+    crud_islemleri    TEXT,
+    yetkilendirme     BOOLEAN DEFAULT 1,
+    gerekli_rol       TEXT DEFAULT 'Admin',
+    element_sayisi    INTEGER DEFAULT 0,
+    son_tarama_tarihi TIMESTAMP,
+    olusturma_tarihi  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 2. Sayfa Elementleri
+CREATE TABLE sayfa_elementleri (
+    id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+    sayfa_id            INTEGER NOT NULL,
+    element_adi         TEXT NOT NULL,
+    element_turu        TEXT NOT NULL,
+    secici_stratejisi   TEXT NOT NULL,
+    secici_degeri       TEXT NOT NULL,
+    zorunlu_mu          BOOLEAN DEFAULT 0,
+    etkilesimli_mi      BOOLEAN DEFAULT 1,
+    veri_tipi           TEXT,
+    dogrulama_kurallari TEXT,
+    ust_element_id      INTEGER,
+    siralama            INTEGER DEFAULT 0,
+    kesfeden            TEXT DEFAULT 'manuel',
+    guven_skoru         REAL DEFAULT 1.0,
+    son_dogrulama       TIMESTAMP,
+    olusturma_tarihi    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (sayfa_id) REFERENCES uygulama_sayfalari(id) ON DELETE CASCADE,
+    FOREIGN KEY (ust_element_id) REFERENCES sayfa_elementleri(id)
+);
+
+-- 3. Test Senaryoları
+CREATE TABLE test_senaryolari (
+    id                     INTEGER PRIMARY KEY AUTOINCREMENT,
+    senaryo_kodu           TEXT UNIQUE NOT NULL,
+    modul_adi              TEXT NOT NULL,
+    ozellik_adi            TEXT NOT NULL,
+    senaryo_adi            TEXT NOT NULL,
+    senaryo_turu           TEXT NOT NULL,
+    oncelik                TEXT NOT NULL,
+    gherkin_icerigi        TEXT,
+    tahmini_sure_saniye    INTEGER,
+    otomasyon_durumu       TEXT DEFAULT 'baslanmadi',
+    otomasyon_karmasikligi TEXT,
+    etiketler              TEXT,
+    on_kosullar            TEXT,
+    olusturan              TEXT DEFAULT 'yapay_zeka_motoru',
+    olusturma_tarihi       TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    guncelleme_tarihi      TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 4. Test Adımları
+CREATE TABLE test_adimlari (
+    id                INTEGER PRIMARY KEY AUTOINCREMENT,
+    senaryo_id        INTEGER NOT NULL,
+    adim_sirasi       INTEGER NOT NULL,
+    adim_tipi         TEXT NOT NULL,
+    adim_metni        TEXT NOT NULL,
+    hedef_element_id  INTEGER,
+    eylem_turu        TEXT,
+    girdi_verisi      TEXT,
+    beklenen_sonuc    TEXT,
+    ekran_goruntusu   BOOLEAN DEFAULT 0,
+    FOREIGN KEY (senaryo_id) REFERENCES test_senaryolari(id) ON DELETE CASCADE,
+    FOREIGN KEY (hedef_element_id) REFERENCES sayfa_elementleri(id)
+);
+
+-- 5. Risk Matrisi
+CREATE TABLE risk_matrisi (
+    id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+    modul_adi           TEXT NOT NULL UNIQUE,
+    karmasiklik_skoru   INTEGER NOT NULL,
+    degisim_sikligi     INTEGER NOT NULL,
+    is_etkisi           INTEGER NOT NULL,
+    risk_skoru          REAL GENERATED ALWAYS AS (
+        (karmasiklik_skoru * 0.3) + (degisim_sikligi * 0.3) + (is_etkisi * 0.4)
+    ) STORED,
+    oncelik             TEXT,
+    sprint_atamasi      INTEGER,
+    notlar              TEXT,
+    guncelleme_tarihi   TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 6. Veri Gereksinimleri
+CREATE TABLE veri_gereksinimleri (
+    id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+    senaryo_id          INTEGER NOT NULL,
+    veri_alani          TEXT NOT NULL,
+    veri_tipi           TEXT NOT NULL,
+    uretim_stratejisi   TEXT NOT NULL,
+    yapay_metod         TEXT,
+    sabit_deger         TEXT,
+    kisitlamalar        TEXT,
+    benzersiz_mi        BOOLEAN DEFAULT 0,
+    kisisel_veri_mi     BOOLEAN DEFAULT 0,
+    FOREIGN KEY (senaryo_id) REFERENCES test_senaryolari(id) ON DELETE CASCADE
+);
+
+-- 7. İş Akışı Tanımları
+CREATE TABLE is_akislari (
+    id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+    akis_kodu           TEXT UNIQUE NOT NULL,
+    akis_adi            TEXT NOT NULL,
+    aciklama            TEXT,
+    ilgili_moduller     TEXT NOT NULL,
+    toplam_adim         INTEGER,
+    tahmini_sure_saniye INTEGER,
+    olusturma_tarihi    TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 8. İş Akışı Adımları
+CREATE TABLE is_akisi_adimlari (
+    id                INTEGER PRIMARY KEY AUTOINCREMENT,
+    akis_id           INTEGER NOT NULL,
+    adim_sirasi       INTEGER NOT NULL,
+    senaryo_id        INTEGER,
+    modul_adi         TEXT NOT NULL,
+    adim_aciklamasi   TEXT NOT NULL,
+    bagli_adim_id     INTEGER,
+    FOREIGN KEY (akis_id) REFERENCES is_akislari(id) ON DELETE CASCADE,
+    FOREIGN KEY (senaryo_id) REFERENCES test_senaryolari(id),
+    FOREIGN KEY (bagli_adim_id) REFERENCES is_akisi_adimlari(id)
+);
+
+-- 9. Otomasyon İlerleme Takibi
+CREATE TABLE otomasyon_ilerlemesi (
+    id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+    sprint_numarasi     INTEGER NOT NULL,
+    modul_adi           TEXT NOT NULL,
+    toplam_senaryo      INTEGER DEFAULT 0,
+    otomatik_sayisi     INTEGER DEFAULT 0,
+    engellenen_sayisi   INTEGER DEFAULT 0,
+    basari_orani        REAL DEFAULT 0.0,
+    kapsam_yuzdesi      REAL GENERATED ALWAYS AS (
+        CASE WHEN toplam_senaryo > 0
+             THEN (otomatik_sayisi * 100.0 / toplam_senaryo)
+             ELSE 0 END
+    ) STORED,
+    kayit_tarihi        TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 10. API Uç Noktaları
+CREATE TABLE api_uc_noktalari (
+    id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+    modul_adi           TEXT NOT NULL,
+    uc_nokta_yolu       TEXT NOT NULL,
+    http_metodu         TEXT NOT NULL,
+    aciklama            TEXT,
+    istek_semasi        TEXT,
+    yanit_semasi        TEXT,
+    yetkilendirme       BOOLEAN DEFAULT 1,
+    kullanan_sayfalar   TEXT,
+    kesfeden            TEXT DEFAULT 'ag_yakalama',
+    olusturma_tarihi    TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- ================================================
+-- DİZİNLER
+-- ================================================
+CREATE INDEX idx_sayfalar_modul ON uygulama_sayfalari(modul_adi);
+CREATE INDEX idx_elementler_sayfa ON sayfa_elementleri(sayfa_id);
+CREATE INDEX idx_elementler_tur ON sayfa_elementleri(element_turu);
+CREATE INDEX idx_senaryolar_modul ON test_senaryolari(modul_adi);
+CREATE INDEX idx_senaryolar_oncelik ON test_senaryolari(oncelik);
+CREATE INDEX idx_senaryolar_durum ON test_senaryolari(otomasyon_durumu);
+CREATE INDEX idx_adimlar_senaryo ON test_adimlari(senaryo_id);
+CREATE INDEX idx_veri_senaryo ON veri_gereksinimleri(senaryo_id);
+CREATE INDEX idx_akis_adimlari ON is_akisi_adimlari(akis_id);
+CREATE INDEX idx_ilerleme_sprint ON otomasyon_ilerlemesi(sprint_numarasi);
+CREATE INDEX idx_api_modul ON api_uc_noktalari(modul_adi);
+
+-- ================================================
+-- GÖRÜNÜMLER
+-- ================================================
+
+-- Modül bazlı test kapsamı özeti
+CREATE VIEW v_modul_kapsami AS
+SELECT
+    ts.modul_adi,
+    COUNT(*) AS toplam_senaryo,
+    SUM(CASE WHEN ts.otomasyon_durumu = 'tamamlandi' THEN 1 ELSE 0 END) AS otomatik,
+    SUM(CASE WHEN ts.otomasyon_durumu = 'engellendi' THEN 1 ELSE 0 END) AS engellenen,
+    SUM(CASE WHEN ts.oncelik = 'P0' THEN 1 ELSE 0 END) AS p0_sayisi,
+    SUM(CASE WHEN ts.oncelik = 'P1' THEN 1 ELSE 0 END) AS p1_sayisi,
+    rm.risk_skoru,
+    rm.oncelik AS risk_onceligi
+FROM test_senaryolari ts
+LEFT JOIN risk_matrisi rm ON ts.modul_adi = rm.modul_adi
+GROUP BY ts.modul_adi;
+
+-- Sayfa element dağılımı
+CREATE VIEW v_sayfa_element_ozeti AS
+SELECT
+    us.modul_adi,
+    us.sayfa_adi,
+    us.url_yolu,
+    COUNT(se.id) AS element_sayisi,
+    SUM(CASE WHEN se.element_turu = 'giris' THEN 1 ELSE 0 END) AS giris_sayisi,
+    SUM(CASE WHEN se.element_turu = 'buton' THEN 1 ELSE 0 END) AS buton_sayisi,
+    SUM(CASE WHEN se.element_turu = 'secim' THEN 1 ELSE 0 END) AS secim_sayisi,
+    SUM(CASE WHEN se.zorunlu_mu = 1 THEN 1 ELSE 0 END) AS zorunlu_alan
+FROM uygulama_sayfalari us
+LEFT JOIN sayfa_elementleri se ON us.id = se.sayfa_id
+GROUP BY us.id;
+
+-- Sprint bazlı ilerleme paneli
+CREATE VIEW v_sprint_paneli AS
+SELECT
+    sprint_numarasi,
+    SUM(toplam_senaryo) AS toplam,
+    SUM(otomatik_sayisi) AS otomatik,
+    SUM(engellenen_sayisi) AS engellenen,
+    ROUND(AVG(basari_orani), 2) AS ortalama_basari,
+    ROUND(SUM(otomatik_sayisi) * 100.0 / SUM(toplam_senaryo), 2) AS genel_kapsam
+FROM otomasyon_ilerlemesi
+GROUP BY sprint_numarasi;
+```
+
+---
+
+## 10. GÜVENLİK TEST NOKTALARI
+
+### 10.1 OWASP İlk 10 Kontrol Listesi
+
+| No | Kategori | Test Noktası | Hedef Sayfa | Öncelik |
+|----|----------|-------------|-------------|:---:|
+| 1 | Bozuk Erişim Kontrolü | ESS rolüyle yönetici sayfalarına erişim denemesi | Admin/* | P0 |
+| 2 | Bozuk Erişim Kontrolü | Başka çalışanın profil adresine doğrudan erişim | PIM/Kişisel Bilgiler | P0 |
+| 3 | Bozuk Kimlik Doğrulama | Kaba kuvvet giriş denemesi | Giriş Sayfası | P0 |
+| 4 | Bozuk Kimlik Doğrulama | Oturum sabitleme kontrolü | Giriş > Panel | P1 |
+| 5 | Bozuk Kimlik Doğrulama | Çıkış sonrası geri tuşu ile erişim | Gösterge Paneli | P1 |
+| 6 | Enjeksiyon | SQL enjeksiyonu giriş formunda | Giriş Sayfası | P0 |
+| 7 | Enjeksiyon | XSS çalışan ad alanlarında | PIM/Çalışan Ekle | P1 |
+| 8 | Enjeksiyon | Kalıcı XSS Buzz paylaşımlarında | Buzz | P2 |
+| 9 | Sunucu Tarafı İstek Sahteciliği | Profil fotoğrafı URL değiştirme | PIM/Kişisel Bilgiler | P2 |
+| 10 | Güvenlik Yapılandırma Hatası | Varsayılan kimlik bilgileri kontrolü | Giriş Sayfası | P0 |
+| 11 | Güvensiz Dosya Yükleme | Zararlı dosyayı özgeçmiş olarak yükleme | İşe Alım/Aday Ekle | P1 |
+| 12 | Güvensiz Doğrudan Nesne Referansı | Çalışan numarası değiştirerek başka profil görme | PIM/Kişisel Bilgiler | P0 |
+
+### 10.2 Rol Bazlı Erişim Kontrol Matrisi
+
+| Sayfa / İşlem | Yönetici | Çalışan (ESS) | Yetkisiz Kullanıcı |
+|----------------|:---:|:---:|:---:|
+| Gösterge Paneli | Erişebilir | Erişebilir | 401 Yetkisiz |
+| PIM - Çalışan Listesi | Erişebilir | 403 Yasak | 401 Yetkisiz |
+| PIM - Çalışan Ekle | Erişebilir | 403 Yasak | 401 Yetkisiz |
+| Bilgilerim (Kendi Profilim) | Erişebilir | Erişebilir | 401 Yetkisiz |
+| Bilgilerim (Başkasının Profili) | Erişebilir | 403 Yasak | 401 Yetkisiz |
+| İzin - Başvuru | Erişebilir | Erişebilir | 401 Yetkisiz |
+| İzin - Onaylama | Erişebilir | 403 Yasak | 401 Yetkisiz |
+| Admin - Kullanıcı Yönetimi | Erişebilir | 403 Yasak | 401 Yetkisiz |
+| İşe Alım | Erişebilir | 403 Yasak | 401 Yetkisiz |
+| Bakım | Erişebilir | 403 Yasak | 401 Yetkisiz |
+
+---
+
+## 11. OTOMASYON STRATEJİSİ
+
+### 11.1 Mimari Yapı
+
+```
+┌──────────────────────────────────────────────────────────┐
+│                  Yapay Zeka Test Motoru                    │
+│  ┌───────────┐  ┌──────────────┐  ┌──────────────────┐  │
+│  │  Gherkin   │  │  Yapay Zeka  │  │  Yapay Veri      │  │
+│  │  Üretici   │  │  Motoru      │  │  Üretici         │  │
+│  └─────┬─────┘  └──────┬───────┘  └────────┬─────────┘  │
+│        │               │                    │             │
+│  ┌─────▼───────────────▼────────────────────▼──────────┐ │
+│  │              Test Yürütme Katmanı                    │ │
+│  │  ┌──────────┐  ┌──────────┐  ┌──────────────────┐  │ │
+│  │  │Playwright│  │ pytest   │  │ Allure Raporcu   │  │ │
+│  │  │Tarayıcı  │  │ BDD      │  │                  │  │ │
+│  │  └──────────┘  └──────────┘  └──────────────────┘  │ │
+│  └─────────────────────────────────────────────────────┘ │
+│                                                           │
+│  ┌─────────────────────────────────────────────────────┐ │
+│  │              Analiz Veritabanı Katmanı               │ │
+│  │  sayfalar | elementler | senaryolar | risk | veri    │ │
+│  └─────────────────────────────────────────────────────┘ │
+└──────────────────────────────────────────────────────────┘
+```
+
+### 11.2 Sürekli Entegrasyon Planı
+
+| Aşama | Tetikleyici | Test Kapsamı | Tahmini Süre |
+|-------|------------|-------------|:---:|
+| Duman Testi | Her çekme isteğinde | Giriş + Gösterge Paneli (P0 alt kümesi) | ~2 dakika |
+| Regresyon | Ana dal birleştirmesinde | Tüm P0 ve P1 senaryolar | ~10 dakika |
+| Tam Paket | Zamanlanmış (gece) | Tüm senaryolar ve uçtan uca akışlar | ~30 dakika |
+| Güvenlik Taraması | Haftalık | Güvenlik test senaryoları | ~15 dakika |
+
+### 11.3 Regresyon Paketleri
+
+**Duman Testi (Her dağıtımda - 5 senaryo):**
+- GIRIS-001: Başarılı giriş
+- PIM-001: Çalışan ekleme
+- PIM-003: Çalışan arama
+- IZIN-001: İzin başvurusu
+- YON-001: Kullanıcı oluşturma
+
+**Temel Regresyon (Günlük - 15 senaryo):**
+- Tüm duman testleri
+- GIRIS-002, 003, 004: Giriş kenar durumları
+- PIM-002, 004, 005, 006: PIM tam CRUD
+- IZIN-002, 003, 004: İzin onay ve red
+- ISE-001, 002: İşe alım temel akışlar
+
+**Tam Regresyon (Haftalık - 35 senaryo):**
+- Tüm temel regresyon testleri
+- Zaman modülü testleri
+- Performans modülü testleri
+- Uçtan uca iş akışları
+- Güvenlik testleri
+
+---
+
+## 12. BAŞARI GÖSTERGELERİ
+
+### 12.1 Otomasyon Başarı Ölçütleri
+
+| Gösterge | Hedef Değer | Açıklama |
+|----------|:---:|----------|
+| Test Kapsamı | > %80 | Otomatikleştirilen senaryoların toplam senaryolara oranı |
+| Başarı Oranı | > %95 | Başarılı testlerin toplam çalıştırılan testlere oranı |
+| Yürütme Süresi | < 30 dakika | Tam paket çalışma süresi |
+| Kararsız Test Oranı | < %5 | Tutarsız sonuç veren testlerin oranı |
+| Hata Yakalama Oranı | > %70 | Otomasyon ile bulunan hataların toplam hatalara oranı |
+| Ortalama Düzeltme Süresi | < 4 saat | Kırılan testin düzeltilme süresi |
+| Yapay Zeka Doğruluğu | > %85 | Geçerli yapay zeka senaryolarının toplam üretilenlere oranı |
+
+### 12.2 Sprint Bazlı Hedefler
+
+| Sprint | Senaryo Hedefi | Toplam Birikim | Kapsam Hedefi |
+|:---:|:---:|:---:|:---:|
+| Sprint 1 | 10 (P0) | 10 | %29 |
+| Sprint 2 | 8 (P1) | 18 | %51 |
+| Sprint 3 | 6 (P2) | 24 | %69 |
+| Sprint 4 | 5 (P3/P4) | 29 | %83 |
+| Sprint 5 | 5 (Uçtan Uca) | 34 | %97 |
+
+---
+
+## 13. ÖNERİLEN DOSYA YAPISI
+
+```
+test-automation/
+├── docs/
+│   └── analiz/
+│       ├── OrangeHRM_Test_Analysis_Document.md
+│       └── veritabani/
+│           └── analiz_semasi.sql
+├── features/
+│   └── OrangeHRM/
+│       ├── kimlik_dogrulama/
+│       │   └── giris.feature
+│       ├── pim/
+│       │   ├── calisan_ekle.feature
+│       │   ├── calisan_ara.feature
+│       │   └── calisan_duzenle.feature
+│       ├── izin/
+│       │   ├── izin_basvuru.feature
+│       │   └── izin_yonetim.feature
+│       ├── ise_alim/
+│       │   └── pozisyonlar.feature
+│       ├── admin/
+│       │   └── kullanici_yonetimi.feature
+│       └── uctan_uca/
+│           ├── ise_alim_akisi.feature
+│           └── izin_dongusu.feature
+├── datasets/
+│   └── orangehrm/
+│       ├── calisanlar.csv
+│       ├── adaylar.csv
+│       └── izin_talepleri.csv
+└── tests/
+    └── test_OrangeHRM/
+        ├── test_giris.py
+        ├── test_pim.py
+        ├── test_izin.py
+        └── test_uctan_uca.py
+```
+
+---
+
+**Doküman Sonu**
+
+Bu analiz dokümanı, test otomasyon çalışmalarının planlanması ve yürütülmesi için referans kaynak olarak kullanılacaktır. Proje ilerledikçe güncellenmelidir.
+
+| | |
+|---|---|
+| **Son Güncelleme** | 01.04.2026 |
+| **Sonraki Gözden Geçirme** | Sprint 1 tamamlandığında |
+| **Doküman Sahibi** | QA Otomasyon Ekibi |

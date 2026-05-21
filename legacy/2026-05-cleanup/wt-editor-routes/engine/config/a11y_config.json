@@ -1,0 +1,27 @@
+{
+  "wcag_level": "AA",
+  "browser_type": "chromium",
+  "headless": true,
+  "timeout": 30000,
+  "use_axe": false,
+  "ignore_rules": [],
+  "domains": {
+    "ark":        {"wcag_level": "AA", "ignore_rules": []},
+    "ghz":        {"wcag_level": "AA", "ignore_rules": []},
+    "girit":      {"wcag_level": "AA", "ignore_rules": ["color-contrast-aaa"]},
+    "hrnexusqa": {"wcag_level": "AA", "ignore_rules": []},
+    "pex":        {"wcag_level": "AA", "ignore_rules": []},
+    "plus":       {"wcag_level": "AAA", "ignore_rules": []}
+  },
+  "severity_weights": {
+    "critical": 15,
+    "serious":  10,
+    "moderate":  5,
+    "minor":     2
+  },
+  "report": {
+    "include_warnings": true,
+    "include_passes": true,
+    "language": "tr"
+  }
+}

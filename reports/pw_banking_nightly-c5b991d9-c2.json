@@ -1,0 +1,235 @@
+{
+  "config": {
+    "configFile": "/Users/yasin_bulgan/Desktop/Neurex_QA/playwright.config.ts",
+    "rootDir": "/Users/yasin_bulgan/Desktop/Neurex_QA/e2e",
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": "/Users/yasin_bulgan/Desktop/Neurex_QA/e2e/global-setup.ts",
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {},
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "/Users/yasin_bulgan/Desktop/Neurex_QA/reports/pw_banking_nightly-c5b991d9-c2",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {},
+        "id": "setup",
+        "name": "setup",
+        "testDir": "/Users/yasin_bulgan/Desktop/Neurex_QA/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "/global-setup\\.ts/"
+        ],
+        "timeout": 60000
+      },
+      {
+        "outputDir": "/Users/yasin_bulgan/Desktop/Neurex_QA/reports/pw_banking_nightly-c5b991d9-c2",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {},
+        "id": "teardown",
+        "name": "teardown",
+        "testDir": "/Users/yasin_bulgan/Desktop/Neurex_QA/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "/global-teardown\\.ts/"
+        ],
+        "timeout": 60000
+      },
+      {
+        "outputDir": "/Users/yasin_bulgan/Desktop/Neurex_QA/reports/pw_banking_nightly-c5b991d9-c2",
+        "repeatEach": 1,
+        "retries": 1,
+        "metadata": {},
+        "id": "smoke",
+        "name": "smoke",
+        "testDir": "/Users/yasin_bulgan/Desktop/Neurex_QA/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "smoke.spec.ts",
+          "login.spec.ts"
+        ],
+        "timeout": 45000
+      },
+      {
+        "outputDir": "/Users/yasin_bulgan/Desktop/Neurex_QA/reports/pw_banking_nightly-c5b991d9-c2",
+        "repeatEach": 1,
+        "retries": 1,
+        "metadata": {},
+        "id": "service",
+        "name": "service",
+        "testDir": "/Users/yasin_bulgan/Desktop/Neurex_QA/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "**/login.spec.ts"
+        ],
+        "timeout": 30000
+      },
+      {
+        "outputDir": "/Users/yasin_bulgan/Desktop/Neurex_QA/reports/pw_banking_nightly-c5b991d9-c2",
+        "repeatEach": 1,
+        "retries": 2,
+        "metadata": {},
+        "id": "regression",
+        "name": "regression",
+        "testDir": "/Users/yasin_bulgan/Desktop/Neurex_QA/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "regression.spec.ts",
+          "projects.spec.ts",
+          "scenarios.spec.ts",
+          "approvals.spec.ts",
+          "executions.spec.ts",
+          "flows.spec.ts",
+          "import.spec.ts",
+          "requirements.spec.ts",
+          "schedules.spec.ts",
+          "test-data.spec.ts",
+          "integrations.spec.ts",
+          "bdd-generate.spec.ts",
+          "navigation.spec.ts",
+          "api-tests.spec.ts",
+          "scenario-versions.spec.ts",
+          "reports.spec.ts",
+          "visual-page.spec.ts",
+          "ai-workflows.spec.ts",
+          "ai-quality.spec.ts",
+          "mobile-appium.spec.ts"
+        ],
+        "timeout": 90000
+      },
+      {
+        "outputDir": "/Users/yasin_bulgan/Desktop/Neurex_QA/reports/pw_banking_nightly-c5b991d9-c2",
+        "repeatEach": 1,
+        "retries": 2,
+        "metadata": {},
+        "id": "full",
+        "name": "full",
+        "testDir": "/Users/yasin_bulgan/Desktop/Neurex_QA/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.spec.ts"
+        ],
+        "timeout": 120000
+      },
+      {
+        "outputDir": "/Users/yasin_bulgan/Desktop/Neurex_QA/reports/pw_banking_nightly-c5b991d9-c2",
+        "repeatEach": 1,
+        "retries": 1,
+        "metadata": {},
+        "id": "mobile",
+        "name": "mobile",
+        "testDir": "/Users/yasin_bulgan/Desktop/Neurex_QA/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "smoke.spec.ts",
+          "login.spec.ts"
+        ],
+        "timeout": 60000
+      },
+      {
+        "outputDir": "/Users/yasin_bulgan/Desktop/Neurex_QA/reports/pw_banking_nightly-c5b991d9-c2",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {},
+        "id": "a11y",
+        "name": "a11y",
+        "testDir": "/Users/yasin_bulgan/Desktop/Neurex_QA/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "accessibility.spec.ts"
+        ],
+        "timeout": 60000
+      },
+      {
+        "outputDir": "/Users/yasin_bulgan/Desktop/Neurex_QA/reports/pw_banking_nightly-c5b991d9-c2",
+        "repeatEach": 1,
+        "retries": 1,
+        "metadata": {},
+        "id": "smoke-firefox",
+        "name": "smoke-firefox",
+        "testDir": "/Users/yasin_bulgan/Desktop/Neurex_QA/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "smoke.spec.ts",
+          "login.spec.ts",
+          "navigation.spec.ts"
+        ],
+        "timeout": 60000
+      },
+      {
+        "outputDir": "/Users/yasin_bulgan/Desktop/Neurex_QA/reports/pw_banking_nightly-c5b991d9-c2",
+        "repeatEach": 1,
+        "retries": 1,
+        "metadata": {},
+        "id": "smoke-webkit",
+        "name": "smoke-webkit",
+        "testDir": "/Users/yasin_bulgan/Desktop/Neurex_QA/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "smoke.spec.ts",
+          "login.spec.ts",
+          "navigation.spec.ts"
+        ],
+        "timeout": 60000
+      },
+      {
+        "outputDir": "/Users/yasin_bulgan/Desktop/Neurex_QA/reports/pw_banking_nightly-c5b991d9-c2",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {},
+        "id": "visual",
+        "name": "visual",
+        "testDir": "/Users/yasin_bulgan/Desktop/Neurex_QA/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "visual-regression.spec.ts"
+        ],
+        "timeout": 45000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "json"
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.59.1",
+    "workers": 2,
+    "webServer": null
+  },
+  "suites": [],
+  "errors": [
+    {
+      "message": "Error: browserType.launch: Executable doesn't exist at /Users/yasin_bulgan/Library/Caches/ms-playwright/chromium_headless_shell-1217/chrome-headless-shell-mac-arm64/chrome-headless-shell\n╔════════════════════════════════════════════════════════════╗\n║ Looks like Playwright was just installed or updated.       ║\n║ Please run the following command to download new browsers: ║\n║                                                            ║\n║     npx playwright install                                 ║\n║                                                            ║\n║ <3 Playwright Team                                         ║\n╚════════════════════════════════════════════════════════════╝",
+      "stack": "Error: browserType.launch: Executable doesn't exist at /Users/yasin_bulgan/Library/Caches/ms-playwright/chromium_headless_shell-1217/chrome-headless-shell-mac-arm64/chrome-headless-shell\n╔════════════════════════════════════════════════════════════╗\n║ Looks like Playwright was just installed or updated.       ║\n║ Please run the following command to download new browsers: ║\n║                                                            ║\n║     npx playwright install                                 ║\n║                                                            ║\n║ <3 Playwright Team                                         ║\n╚════════════════════════════════════════════════════════════╝\n    at globalSetup (/Users/yasin_bulgan/Desktop/Neurex_QA/e2e/global-setup.ts:30:34)",
+      "location": {
+        "file": "/Users/yasin_bulgan/Desktop/Neurex_QA/e2e/global-setup.ts",
+        "column": 34,
+        "line": 30
+      },
+      "snippet": "   at global-setup.ts:30\n\n  28 |   const auth = await authRes.json() as { access_token: string; refresh_token?: string | null };\n  29 |\n> 30 |   const browser = await chromium.launch();\n     |                                  ^\n  31 |   const context = await browser.newContext();\n  32 |   const page = await context.newPage();\n  33 |   const app = new URL(appUrl);"
+    }
+  ],
+  "stats": {
+    "startTime": "2026-05-17T23:02:41.581Z",
+    "duration": 4087.032,
+    "expected": 0,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}

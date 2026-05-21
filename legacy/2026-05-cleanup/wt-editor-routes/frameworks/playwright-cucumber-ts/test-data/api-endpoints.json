@@ -1,0 +1,22 @@
+{
+  "baseUrl": "https://dummyjson.com",
+  "endpoints": {
+    "login": "/auth/login",
+    "products": "/auth/products",
+    "productsCategories": "/products/categories",
+    "productById": "/products/{id}",
+    "productUpdate": "/products/{id}",
+    "productDelete": "/products/{id}"
+  },
+  "timeouts": {
+    "default": 30000,
+    "performance": 2000,
+    "short": 5000,
+    "long": 60000
+  },
+  "performanceThresholds": {
+    "maxResponseTime": 2000,
+    "acceptableResponseTime": 1000
+  }
+}
+

@@ -1,0 +1,53 @@
+{
+  "threshold": 0.95,
+  "baselines_dir": "/app/screenshots/baselines",
+  "browser_type": "chromium",
+  "headless": true,
+  "ignore_regions": [],
+  "domains": {
+    "ark": {
+      "threshold": 0.95,
+      "browser_type": "chromium",
+      "headless": true,
+      "ignore_regions": [
+        {"x": 0, "y": 0, "w": 1280, "h": 60, "label": "header"},
+        {"x": 0, "y": 740, "w": 1280, "h": 60, "label": "footer"}
+      ]
+    },
+    "ghz": {
+      "threshold": 0.95,
+      "browser_type": "chromium",
+      "headless": true,
+      "ignore_regions": [
+        {"x": 0, "y": 0, "w": 1280, "h": 60, "label": "header"}
+      ]
+    },
+    "girit": {
+      "threshold": 0.93,
+      "browser_type": "chromium",
+      "headless": true,
+      "ignore_regions": []
+    },
+    "hrnexusqa": {
+      "threshold": 0.95,
+      "browser_type": "chromium",
+      "headless": true,
+      "ignore_regions": [
+        {"x": 0, "y": 0, "w": 1280, "h": 80, "label": "header"},
+        {"x": 0, "y": 720, "w": 1280, "h": 80, "label": "footer"}
+      ]
+    },
+    "pex": {
+      "threshold": 0.95,
+      "browser_type": "chromium",
+      "headless": true,
+      "ignore_regions": []
+    },
+    "plus": {
+      "threshold": 0.95,
+      "browser_type": "chromium",
+      "headless": true,
+      "ignore_regions": []
+    }
+  }
+}
