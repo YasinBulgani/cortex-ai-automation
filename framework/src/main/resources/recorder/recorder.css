@@ -1,0 +1,96 @@
+/* Cortex Recorder - injected toolbar styles */
+#cortex-rec-toolbar {
+  position: fixed !important;
+  right: 16px !important;
+  bottom: 16px !important;
+  z-index: 2147483647 !important;
+  background: #0b0f1a !important;
+  color: #e6ecff !important;
+  border: 1px solid #1f2a4a !important;
+  border-radius: 12px !important;
+  padding: 10px 12px !important;
+  font: 12px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5) !important;
+  display: flex !important;
+  gap: 8px !important;
+  align-items: center !important;
+  user-select: none !important;
+}
+#cortex-rec-toolbar.minimized {
+  padding: 6px 8px !important;
+}
+#cortex-rec-toolbar .dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: #ff4f70;
+  box-shadow: 0 0 8px #ff4f70;
+  animation: cortex-rec-pulse 1.2s infinite;
+}
+#cortex-rec-toolbar.paused .dot { background: #f39c12; box-shadow: 0 0 8px #f39c12; animation: none; }
+@keyframes cortex-rec-pulse { 0%,100% { opacity: 1 } 50% { opacity: 0.4 } }
+#cortex-rec-toolbar .count {
+  background: #131a2c; padding: 2px 8px; border-radius: 999px; font-weight: 600;
+}
+#cortex-rec-toolbar button {
+  background: #131a2c !important;
+  color: #e6ecff !important;
+  border: 1px solid #1f2a4a !important;
+  padding: 5px 10px !important;
+  border-radius: 6px !important;
+  cursor: pointer !important;
+  font: inherit !important;
+  font-weight: 600 !important;
+}
+#cortex-rec-toolbar button:hover { background: #1b2440 !important; border-color: #00d9ff !important; }
+#cortex-rec-toolbar button.danger { background: #ff4f70 !important; color: #0b0f1a !important; border-color: #ff4f70 !important; }
+#cortex-rec-toolbar button.primary { background: linear-gradient(135deg, #00d9ff, #6c5ce7) !important; color: #0b0f1a !important; border-color: transparent !important; }
+#cortex-rec-toolbar.assert-mode button.assert-btn { background: #f39c12 !important; color: #0b0f1a !important; }
+#cortex-rec-toolbar .recent {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 2px !important;
+  margin-left: 8px !important;
+  font-size: 10.5px !important;
+  color: #8b95b7 !important;
+  max-width: 200px !important;
+  overflow: hidden !important;
+}
+#cortex-rec-toolbar .recent-item {
+  background: #131a2c !important;
+  padding: 2px 6px !important;
+  border-radius: 4px !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+#cortex-rec-toolbar .recent-item:first-child {
+  color: #2ecc71 !important;
+}
+
+/* Eleman hover ciktisi (assert mode) */
+.cortex-rec-hover-outline {
+  outline: 2px dashed #00d9ff !important;
+  outline-offset: 2px !important;
+  cursor: crosshair !important;
+}
+.cortex-rec-captured-outline {
+  outline: 2px solid #2ecc71 !important;
+  outline-offset: 2px !important;
+  animation: cortex-rec-flash 0.6s ease-out;
+}
+@keyframes cortex-rec-flash {
+  0% { outline-color: #00d9ff; }
+  100% { outline-color: #2ecc71; }
+}
+
+/* Mini toast */
+#cortex-rec-toast {
+  position: fixed; right: 16px; bottom: 80px;
+  background: #131a2c; color: #e6ecff;
+  padding: 8px 14px; border-radius: 8px;
+  font: 12px sans-serif;
+  border: 1px solid #1f2a4a;
+  z-index: 2147483647;
+  opacity: 0; transition: opacity 0.2s;
+  pointer-events: none;
+}
+#cortex-rec-toast.show { opacity: 1; }

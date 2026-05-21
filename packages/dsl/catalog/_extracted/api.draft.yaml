@@ -1,0 +1,3180 @@
+version: 0.1.0-draft
+category_name: Api (OTOMATIK CIKARILDI)
+notes: Bu dosya extract_steps.py tarafindan uretildi. Lutfen rotuslayip catalog/ altina tasiyın.
+actions:
+- id: api_v1_auth_me_endpoint
+  category: api.http
+  description: (taslak) /api/v1/auth/me endpoint
+  aliases:
+    en:
+    - /api/v1/auth/me endpoint
+  implementations:
+    python:
+      source_file: engine/steps/api/step_common.py
+      function: get_me
+      pattern: /api/v1/auth/me endpoint
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: api_v1_tspm_projects_endpoint
+  category: api.http
+  description: (taslak) /api/v1/tspm/projects endpoint
+  aliases:
+    en:
+    - /api/v1/tspm/projects endpoint
+  implementations:
+    python:
+      source_file: engine/steps/api/step_common.py
+      function: get_projects_anon
+      pattern: /api/v1/tspm/projects endpoint
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: admin_kullanicisi_seed_edilmis
+  category: api.http
+  description: (taslak) admin kullanicisi seed edilmis
+  aliases:
+    en:
+    - admin kullanicisi seed edilmis
+  implementations:
+    python:
+      source_file: engine/steps/api/step_common.py
+      function: admin_seeded
+      pattern: admin kullanicisi seed edilmis
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: ai_regresyon_seti_oneri_istegi_gonderili
+  category: api.http
+  description: (taslak) AI regresyon seti oneri istegi gonderilir
+  aliases:
+    en:
+    - AI regresyon seti oneri istegi gonderilir
+  implementations:
+    python:
+      source_file: engine/steps/api/step_regression.py
+      function: request_ai_suggestion
+      pattern: AI regresyon seti oneri istegi gonderilir
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: ai_regresyon_seti_onerileri_alinmis
+  category: api.http
+  description: (taslak) AI regresyon seti onerileri alinmis
+  aliases:
+    en:
+    - AI regresyon seti onerileri alinmis
+  implementations:
+    python:
+      source_file: engine/steps/api/step_regression.py
+      function: ai_suggestions_received
+      pattern: AI regresyon seti onerileri alinmis
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: akis_detayinda_guncel_nodes_ve_edges_don
+  category: api.http
+  description: (taslak) akis detayinda guncel nodes ve edges donmelidir
+  aliases:
+    en:
+    - akis detayinda guncel nodes ve edges donmelidir
+  implementations:
+    python:
+      source_file: engine/steps/api/step_flows.py
+      function: assert_flow_graph
+      pattern: akis detayinda guncel nodes ve edges donmelidir
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: akisin_nodes_ve_edges_verisi_guncellenir
+  category: api.http
+  description: (taslak) akisin nodes ve edges verisi guncellenir
+  aliases:
+    tr:
+    - akisin nodes ve edges verisi guncellenir
+  implementations:
+    python:
+      source_file: engine/steps/api/step_flows.py
+      function: update_flow_graph
+      pattern: akisin nodes ve edges verisi guncellenir
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: aktif_bir_zamanlama_ve_senaryolari_mevcu
+  category: api.http
+  description: (taslak) aktif bir zamanlama ve senaryolari mevcut
+  aliases:
+    en:
+    - aktif bir zamanlama ve senaryolari mevcut
+  implementations:
+    python:
+      source_file: engine/steps/api/step_schedules.py
+      function: active_schedule
+      pattern: aktif bir zamanlama ve senaryolari mevcut
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: api_analiz_sonu_lar_d_nm_olmal_d_r
+  category: api.http
+  description: (taslak) API analiz sonuçları dönmüş olmalıdır
+  aliases:
+    tr:
+    - API analiz sonuçları dönmüş olmalıdır
+  implementations:
+    python:
+      source_file: engine/steps/bgts_synthetic_steps.py
+      function: assert_api_analysis_success
+      pattern: API analiz sonuçları dönmüş olmalıdır
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: api_d_a_aktarma_ba_ar_l_olmal_d_r
+  category: api.http
+  description: (taslak) API dışa aktarma başarılı olmalıdır
+  aliases:
+    tr:
+    - API dışa aktarma başarılı olmalıdır
+  implementations:
+    python:
+      source_file: engine/steps/bgts_synthetic_steps.py
+      function: assert_api_export_success
+      pattern: API dışa aktarma başarılı olmalıdır
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: api_haz_rl_k_kontrol_yap_l_r
+  category: api.http
+  description: (taslak) API hazırlık kontrolü yapılır
+  aliases:
+    tr:
+    - API hazırlık kontrolü yapılır
+  implementations:
+    python:
+      source_file: engine/steps/bgts_api_steps.py
+      function: api_ready_check
+      pattern: API hazırlık kontrolü yapılır
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: api_ile_bdd_retimi_yap_l_r
+  category: api.http
+  description: (taslak) API ile BDD üretimi yapılır
+  aliases:
+    tr:
+    - API ile BDD üretimi yapılır
+  implementations:
+    python:
+      source_file: engine/steps/bgts_api_steps.py
+      function: api_generate_bdd
+      pattern: API ile BDD üretimi yapılır
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: api_ile_bildirim_listesi_sorgulan_r
+  category: api.http
+  description: (taslak) API ile bildirim listesi sorgulanır
+  aliases:
+    tr:
+    - API ile bildirim listesi sorgulanır
+  implementations:
+    python:
+      source_file: engine/steps/bgts_api_steps.py
+      function: api_list_notifications
+      pattern: API ile bildirim listesi sorgulanır
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: api_ile_dosya_y_klenir
+  category: api.http
+  description: (taslak) API ile dosya yüklenir
+  aliases:
+    tr:
+    - API ile dosya yüklenir
+  implementations:
+    python:
+      source_file: engine/steps/bgts_api_steps.py
+      function: api_upload_file
+      pattern: API ile dosya yüklenir
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: api_ile_entegrasyon_olu_turulur
+  category: api.http
+  description: (taslak) API ile entegrasyon oluşturulur
+  aliases:
+    tr:
+    - API ile entegrasyon oluşturulur
+  implementations:
+    python:
+      source_file: engine/steps/bgts_api_steps.py
+      function: api_create_integration
+      pattern: API ile entegrasyon oluşturulur
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: api_ile_flaky_testler_sorgulan_r
+  category: api.http
+  description: (taslak) API ile flaky testler sorgulanır
+  aliases:
+    tr:
+    - API ile flaky testler sorgulanır
+  implementations:
+    python:
+      source_file: engine/steps/bgts_api_steps.py
+      function: api_flaky_tests
+      pattern: API ile flaky testler sorgulanır
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: api_ile_gereksinim_olu_turulur
+  category: api.http
+  description: (taslak) API ile gereksinim oluşturulur
+  aliases:
+    tr:
+    - API ile gereksinim oluşturulur
+  implementations:
+    python:
+      source_file: engine/steps/bgts_api_steps.py
+      function: api_create_requirement
+      pattern: API ile gereksinim oluşturulur
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: api_ile_ge_erli_kimlik_bilgileriyle_giri
+  category: api.http
+  description: (taslak) API ile geçerli kimlik bilgileriyle giriş yapılır
+  aliases:
+    tr:
+    - API ile geçerli kimlik bilgileriyle giriş yapılır
+  implementations:
+    python:
+      source_file: engine/steps/bgts_api_steps.py
+      function: api_login_valid
+      pattern: API ile geçerli kimlik bilgileriyle giriş yapılır
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: api_ile_ge_ersiz_parola_ile_giri_yap_l_r
+  category: api.http
+  description: (taslak) API ile geçersiz parola ile giriş yapılır
+  aliases:
+    tr:
+    - API ile geçersiz parola ile giriş yapılır
+  implementations:
+    python:
+      source_file: engine/steps/bgts_api_steps.py
+      function: api_login_invalid
+      pattern: API ile geçersiz parola ile giriş yapılır
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: api_ile_kapsam_bo_luklar_sorgulan_r
+  category: api.http
+  description: (taslak) API ile kapsam boşlukları sorgulanır
+  aliases:
+    tr:
+    - API ile kapsam boşlukları sorgulanır
+  implementations:
+    python:
+      source_file: engine/steps/bgts_api_steps.py
+      function: api_coverage_gaps
+      pattern: API ile kapsam boşlukları sorgulanır
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: api_ile_kapsam_matrisi_sorgulan_r
+  category: api.http
+  description: (taslak) API ile kapsam matrisi sorgulanır
+  aliases:
+    tr:
+    - API ile kapsam matrisi sorgulanır
+  implementations:
+    python:
+      source_file: engine/steps/bgts_api_steps.py
+      function: api_coverage_matrix
+      pattern: API ile kapsam matrisi sorgulanır
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: api_ile_koleksiyon_olu_turulur
+  category: api.http
+  description: (taslak) API ile koleksiyon oluşturulur
+  aliases:
+    tr:
+    - API ile koleksiyon oluşturulur
+  implementations:
+    python:
+      source_file: engine/steps/bgts_api_steps.py
+      function: api_create_collection
+      pattern: API ile koleksiyon oluşturulur
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: api_ile_koleksiyon_al_t_r_l_r
+  category: api.http
+  description: (taslak) API ile koleksiyon çalıştırılır
+  aliases:
+    tr:
+    - API ile koleksiyon çalıştırılır
+  implementations:
+    python:
+      source_file: engine/steps/bgts_api_steps.py
+      function: api_run_collection
+      pattern: API ile koleksiyon çalıştırılır
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: api_ile_ko_u_olu_turulur
+  category: api.http
+  description: (taslak) API ile koşu oluşturulur
+  aliases:
+    tr:
+    - API ile koşu oluşturulur
+  implementations:
+    python:
+      source_file: engine/steps/bgts_api_steps.py
+      function: api_create_execution
+      pattern: API ile koşu oluşturulur
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: api_ile_ko_u_trendleri_sorgulan_r
+  category: api.http
+  description: (taslak) API ile koşu trendleri sorgulanır
+  aliases:
+    tr:
+    - API ile koşu trendleri sorgulanır
+  implementations:
+    python:
+      source_file: engine/steps/bgts_api_steps.py
+      function: api_execution_trends
+      pattern: API ile koşu trendleri sorgulanır
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: api_ile_kullan_c_bilgisi_sorgulan_r
+  category: api.http
+  description: (taslak) API ile kullanıcı bilgisi sorgulanır
+  aliases:
+    tr:
+    - API ile kullanıcı bilgisi sorgulanır
+  implementations:
+    python:
+      source_file: engine/steps/bgts_api_steps.py
+      function: api_auth_me
+      pattern: API ile kullanıcı bilgisi sorgulanır
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: api_ile_onay_karar_verilir
+  category: api.http
+  description: (taslak) API ile onay kararı verilir
+  aliases:
+    tr:
+    - API ile onay kararı verilir
+  implementations:
+    python:
+      source_file: engine/steps/bgts_api_steps.py
+      function: api_approval_decide
+      pattern: API ile onay kararı verilir
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: api_ile_onay_listesi_sorgulan_r
+  category: api.http
+  description: (taslak) API ile onay listesi sorgulanır
+  aliases:
+    tr:
+    - API ile onay listesi sorgulanır
+  implementations:
+    python:
+      source_file: engine/steps/bgts_api_steps.py
+      function: api_list_approvals
+      pattern: API ile onay listesi sorgulanır
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: api_ile_pii_tespiti_yap_l_r
+  category: api.http
+  description: (taslak) API ile PII tespiti yapılır
+  aliases:
+    tr:
+    - API ile PII tespiti yapılır
+  implementations:
+    python:
+      source_file: engine/steps/bgts_api_steps.py
+      function: api_detect_pii
+      pattern: API ile PII tespiti yapılır
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: api_ile_proje_dashboard_sorgulan_r
+  category: api.http
+  description: (taslak) API ile proje dashboard sorgulanır
+  aliases:
+    tr:
+    - API ile proje dashboard sorgulanır
+  implementations:
+    python:
+      source_file: engine/steps/bgts_api_steps.py
+      function: api_project_dashboard
+      pattern: API ile proje dashboard sorgulanır
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: api_ile_proje_listesi_sorgulan_r
+  category: api.http
+  description: (taslak) API ile proje listesi sorgulanır
+  aliases:
+    tr:
+    - API ile proje listesi sorgulanır
+  implementations:
+    python:
+      source_file: engine/steps/bgts_api_steps.py
+      function: api_list_projects
+      pattern: API ile proje listesi sorgulanır
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: api_ile_regresyon_seti_olu_turulur
+  category: api.http
+  description: (taslak) API ile regresyon seti oluşturulur
+  aliases:
+    tr:
+    - API ile regresyon seti oluşturulur
+  implementations:
+    python:
+      source_file: engine/steps/bgts_api_steps.py
+      function: api_create_regression_set
+      pattern: API ile regresyon seti oluşturulur
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: api_ile_senaryo_g_ncellenir
+  category: api.http
+  description: (taslak) API ile senaryo güncellenir
+  aliases:
+    tr:
+    - API ile senaryo güncellenir
+  implementations:
+    python:
+      source_file: engine/steps/bgts_api_steps.py
+      function: api_update_scenario
+      pattern: API ile senaryo güncellenir
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: api_ile_senaryo_listesi_sorgulan_r
+  category: api.http
+  description: (taslak) API ile senaryo listesi sorgulanır
+  aliases:
+    tr:
+    - API ile senaryo listesi sorgulanır
+  implementations:
+    python:
+      source_file: engine/steps/bgts_api_steps.py
+      function: api_list_scenarios
+      pattern: API ile senaryo listesi sorgulanır
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: api_ile_senaryolar_toplu_silinir
+  category: api.http
+  description: (taslak) API ile senaryolar toplu silinir
+  aliases:
+    tr:
+    - API ile senaryolar toplu silinir
+  implementations:
+    python:
+      source_file: engine/steps/bgts_api_steps.py
+      function: api_bulk_delete_scenarios
+      pattern: API ile senaryolar toplu silinir
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: api_ile_sentetik_veri_retilir
+  category: api.http
+  description: (taslak) API ile sentetik veri üretilir
+  aliases:
+    tr:
+    - API ile sentetik veri üretilir
+  implementations:
+    python:
+      source_file: engine/steps/bgts_api_steps.py
+      function: api_generate_synthetic
+      pattern: API ile sentetik veri üretilir
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: api_ile_token_olmadan_kullan_c_bilgisi_s
+  category: api.http
+  description: (taslak) API ile token olmadan kullanıcı bilgisi sorgulanır
+  aliases:
+    tr:
+    - API ile token olmadan kullanıcı bilgisi sorgulanır
+  implementations:
+    python:
+      source_file: engine/steps/bgts_api_steps.py
+      function: api_auth_me_no_token
+      pattern: API ile token olmadan kullanıcı bilgisi sorgulanır
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: api_ile_veri_analizi_yap_l_r
+  category: api.http
+  description: (taslak) API ile veri analizi yapılır
+  aliases:
+    tr:
+    - API ile veri analizi yapılır
+  implementations:
+    python:
+      source_file: engine/steps/bgts_api_steps.py
+      function: api_analyze_data
+      pattern: API ile veri analizi yapılır
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: api_ile_yeni_proje_olu_turulur
+  category: api.http
+  description: (taslak) API ile yeni proje oluşturulur
+  aliases:
+    tr:
+    - API ile yeni proje oluşturulur
+  implementations:
+    python:
+      source_file: engine/steps/bgts_api_steps.py
+      function: api_create_project
+      pattern: API ile yeni proje oluşturulur
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: api_ile_yeni_senaryo_olu_turulur
+  category: api.http
+  description: (taslak) API ile yeni senaryo oluşturulur
+  aliases:
+    tr:
+    - API ile yeni senaryo oluşturulur
+  implementations:
+    python:
+      source_file: engine/steps/bgts_api_steps.py
+      function: api_create_scenario
+      pattern: API ile yeni senaryo oluşturulur
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: api_ile_zamanlama_olu_turulur
+  category: api.http
+  description: (taslak) API ile zamanlama oluşturulur
+  aliases:
+    tr:
+    - API ile zamanlama oluşturulur
+  implementations:
+    python:
+      source_file: engine/steps/bgts_api_steps.py
+      function: api_create_schedule
+      pattern: API ile zamanlama oluşturulur
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: api_ile_zamanlama_tetiklenir
+  category: api.http
+  description: (taslak) API ile zamanlama tetiklenir
+  aliases:
+    en:
+    - API ile zamanlama tetiklenir
+  implementations:
+    python:
+      source_file: engine/steps/bgts_api_steps.py
+      function: api_trigger_schedule
+      pattern: API ile zamanlama tetiklenir
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: api_response_status_should_be
+  category: api.http
+  description: (taslak) API response status should be {int}
+  aliases:
+    en:
+    - API response status should be {int}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/web-steps.ts
+      pattern: API response status should be {int}
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: int
+    type: string
+    required: true
+- id: api_sa_l_k_kontrol_yap_l_r
+  category: api.http
+  description: (taslak) API sağlık kontrolü yapılır
+  aliases:
+    tr:
+    - API sağlık kontrolü yapılır
+  implementations:
+    python:
+      source_file: engine/steps/bgts_api_steps.py
+      function: api_health_check
+      pattern: API sağlık kontrolü yapılır
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: api_sentetik_veri_retimi_ba_ar_l_olmal_d
+  category: api.http
+  description: (taslak) API sentetik veri üretimi başarılı olmalıdır
+  aliases:
+    tr:
+    - API sentetik veri üretimi başarılı olmalıdır
+  implementations:
+    python:
+      source_file: engine/steps/bgts_synthetic_steps.py
+      function: assert_api_generation_success
+      pattern: API sentetik veri üretimi başarılı olmalıdır
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: api_yan_t_kodu_olmal_d_r
+  category: api.http
+  description: (taslak) API yanıt kodu {code:d} olmalıdır
+  aliases:
+    tr:
+    - API yanıt kodu {code:d} olmalıdır
+  implementations:
+    python:
+      source_file: engine/steps/bgts_api_steps.py
+      function: assert_status_code
+      pattern: API yanıt kodu {code:d} olmalıdır
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: code
+    type: string
+    required: true
+- id: api_yan_t
+  category: api.http
+  description: '(taslak) API yanıtı '
+  aliases:
+    tr:
+    - 'API yanıtı '
+  implementations:
+    python:
+      source_file: engine/steps/bgts_api_steps.py
+      function: assert_response_has_field
+      pattern: 'API yanıtı '
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: api_yan_t_ba_ar_l_olmal_d_r
+  category: api.http
+  description: (taslak) API yanıtı başarılı olmalıdır
+  aliases:
+    tr:
+    - API yanıtı başarılı olmalıdır
+  implementations:
+    python:
+      source_file: engine/steps/bgts_api_steps.py
+      function: assert_api_success
+      pattern: API yanıtı başarılı olmalıdır
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: api_y_kleme_ba_ar_l_olmal_d_r
+  category: api.http
+  description: (taslak) API yükleme başarılı olmalıdır
+  aliases:
+    tr:
+    - API yükleme başarılı olmalıdır
+  implementations:
+    python:
+      source_file: engine/steps/bgts_synthetic_steps.py
+      function: assert_api_upload_success
+      pattern: API yükleme başarılı olmalıdır
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: asagidaki_analiz_metni_ile_bdd_uretim_is
+  category: api.http
+  description: '(taslak) asagidaki analiz metni ile BDD uretim istegi gonderilir:'
+  aliases:
+    en:
+    - 'asagidaki analiz metni ile BDD uretim istegi gonderilir:'
+  implementations:
+    python:
+      source_file: engine/steps/api/step_bdd_generation.py
+      function: generate_bdd_from_text
+      pattern: 'asagidaki analiz metni ile BDD uretim istegi gonderilir:'
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: asagidaki_yapiyla_test_veri_seti_olustur
+  category: api.http
+  description: '(taslak) asagidaki yapiyla test veri seti olusturulur:'
+  aliases:
+    en:
+    - 'asagidaki yapiyla test veri seti olusturulur:'
+  implementations:
+    python:
+      source_file: engine/steps/api/step_test_data.py
+      function: create_test_data
+      pattern: 'asagidaki yapiyla test veri seti olusturulur:'
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: ayni_baglanti_tekrar_gonderilir
+  category: api.http
+  description: (taslak) ayni baglanti tekrar gonderilir
+  aliases:
+    en:
+    - ayni baglanti tekrar gonderilir
+  implementations:
+    python:
+      source_file: engine/steps/api/step_requirements.py
+      function: re_link
+      pattern: ayni baglanti tekrar gonderilir
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: ayni_senaryo_farkli_kosularda_passed_ve_
+  category: api.http
+  description: (taslak) ayni senaryo farkli kosularda passed ve failed olmus
+  aliases:
+    en:
+    - ayni senaryo farkli kosularda passed ve failed olmus
+  implementations:
+    python:
+      source_file: engine/steps/api/step_analytics.py
+      function: flaky_scenario_setup
+      pattern: ayni senaryo farkli kosularda passed ve failed olmus
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: ayni_senaryo_id
+  category: api.http
+  description: (taslak) ayni senaryo ID
+  aliases:
+    en:
+    - ayni senaryo ID
+  implementations:
+    python:
+      source_file: engine/steps/api/step_regression.py
+      function: re_add_scenarios
+      pattern: ayni senaryo ID
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: backend_servisi_ayakta
+  category: api.http
+  description: (taslak) backend servisi ayakta
+  aliases:
+    en:
+    - backend servisi ayakta
+  implementations:
+    python:
+      source_file: engine/steps/api/step_common.py
+      function: backend_ready
+      pattern: backend servisi ayakta
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: baglanmamis_gereksinimler_listede_gorulm
+  category: api.http
+  description: (taslak) baglanmamis gereksinimler listede gorulmalidir
+  aliases:
+    en:
+    - baglanmamis gereksinimler listede gorulmalidir
+  implementations:
+    python:
+      source_file: engine/steps/api/step_requirements.py
+      function: assert_gaps
+      pattern: baglanmamis gereksinimler listede gorulmalidir
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: baska_bir_kullanici_mevcut
+  category: api.http
+  description: (taslak) baska bir kullanici mevcut
+  aliases:
+    tr:
+    - baska bir kullanici mevcut
+  implementations:
+    python:
+      source_file: engine/steps/api/step_members.py
+      function: other_user_exists
+      pattern: baska bir kullanici mevcut
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: baska_bir_projede_bir_senaryo_olusturulm
+  category: api.http
+  description: (taslak) baska bir projede bir senaryo olusturulmus
+  aliases:
+    en:
+    - baska bir projede bir senaryo olusturulmus
+  implementations:
+    python:
+      source_file: engine/steps/api/step_scenarios.py
+      function: scenario_in_other_project
+      pattern: baska bir projede bir senaryo olusturulmus
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: bdd_senaryolari_basariyla_uretilmis
+  category: api.http
+  description: (taslak) BDD senaryolari basariyla uretilmis
+  aliases:
+    en:
+    - BDD senaryolari basariyla uretilmis
+  implementations:
+    python:
+      source_file: engine/steps/api/step_bdd_generation.py
+      function: bdd_scenarios_generated
+      pattern: BDD senaryolari basariyla uretilmis
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: bir_test_kosusu_olusturulmus
+  category: api.http
+  description: (taslak) bir test kosusu olusturulmus
+  aliases:
+    en:
+    - bir test kosusu olusturulmus
+  implementations:
+    python:
+      source_file: engine/steps/api/step_executions.py
+      function: execution_created
+      pattern: bir test kosusu olusturulmus
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: bir_test_projesi_olusturulmus
+  category: api.http
+  description: (taslak) bir test projesi olusturulmus
+  aliases:
+    en:
+    - bir test projesi olusturulmus
+  implementations:
+    python:
+      source_file: engine/steps/api/step_common.py
+      function: project_created
+      pattern: bir test projesi olusturulmus
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: bos_senaryo_listesi_ile_kosu_olusturulur
+  category: api.http
+  description: (taslak) bos senaryo listesi ile kosu olusturulur
+  aliases:
+    en:
+    - bos senaryo listesi ile kosu olusturulur
+  implementations:
+    python:
+      source_file: engine/steps/api/step_executions.py
+      function: create_empty_execution
+      pattern: bos senaryo listesi ile kosu olusturulur
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: bu_senaryoya_mevcut_proje_uzerinden_eris
+  category: api.http
+  description: (taslak) bu senaryoya mevcut proje uzerinden erisim denenir
+  aliases:
+    en:
+    - bu senaryoya mevcut proje uzerinden erisim denenir
+  implementations:
+    python:
+      source_file: engine/steps/api/step_scenarios.py
+      function: access_cross_project_scenario
+      pattern: bu senaryoya mevcut proje uzerinden erisim denenir
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: devre_disi_birakilmis_bir_kullanici_mevc
+  category: api.http
+  description: (taslak) devre disi birakilmis bir kullanici mevcut
+  aliases:
+    tr:
+    - devre disi birakilmis bir kullanici mevcut
+  implementations:
+    python:
+      source_file: engine/steps/api/step_auth.py
+      function: inactive_user_exists
+      pattern: devre disi birakilmis bir kullanici mevcut
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: devre_disi_kullanicinin_bilgileriyle_log
+  category: api.http
+  description: (taslak) devre disi kullanicinin bilgileriyle login istegi gonderilir
+  aliases:
+    en:
+    - devre disi kullanicinin bilgileriyle login istegi gonderilir
+  implementations:
+    python:
+      source_file: engine/steps/api/step_auth.py
+      function: login_inactive_user
+      pattern: devre disi kullanicinin bilgileriyle login istegi gonderilir
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: diff_sonucunda
+  category: api.http
+  description: '(taslak) diff sonucunda '
+  aliases:
+    en:
+    - 'diff sonucunda '
+  implementations:
+    python:
+      source_file: engine/steps/api/step_scenarios.py
+      function: assert_diff_field_true
+      pattern: 'diff sonucunda '
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: diger_projenin_senaryosu_silinmemis_olma
+  category: api.http
+  description: (taslak) diger projenin senaryosu silinmemis olmalidir
+  aliases:
+    en:
+    - diger projenin senaryosu silinmemis olmalidir
+  implementations:
+    python:
+      source_file: engine/steps/api/step_scenarios.py
+      function: assert_other_scenario_exists
+      pattern: diger projenin senaryosu silinmemis olmalidir
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: engine_ile_ai_feature_retilir
+  category: api.http
+  description: (taslak) Engine ile AI feature üretilir
+  aliases:
+    tr:
+    - Engine ile AI feature üretilir
+  implementations:
+    python:
+      source_file: engine/steps/bgts_api_steps.py
+      function: engine_generate_feature
+      pattern: Engine ile AI feature üretilir
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: engine_ile_eri_ilebilirlik_taramas_yap_l
+  category: api.http
+  description: (taslak) Engine ile erişilebilirlik taraması yapılır
+  aliases:
+    tr:
+    - Engine ile erişilebilirlik taraması yapılır
+  implementations:
+    python:
+      source_file: engine/steps/bgts_api_steps.py
+      function: engine_a11y_scan
+      pattern: Engine ile erişilebilirlik taraması yapılır
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: engine_ile_feature_listesi_sorgulan_r
+  category: api.http
+  description: (taslak) Engine ile feature listesi sorgulanır
+  aliases:
+    tr:
+    - Engine ile feature listesi sorgulanır
+  implementations:
+    python:
+      source_file: engine/steps/bgts_api_steps.py
+      function: engine_list_features
+      pattern: Engine ile feature listesi sorgulanır
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: engine_ile_g_rsel_kar_la_t_rma_yap_l_r
+  category: api.http
+  description: (taslak) Engine ile görsel karşılaştırma yapılır
+  aliases:
+    tr:
+    - Engine ile görsel karşılaştırma yapılır
+  implementations:
+    python:
+      source_file: engine/steps/bgts_api_steps.py
+      function: engine_visual_compare
+      pattern: Engine ile görsel karşılaştırma yapılır
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: engine_ile_regresyon_setleri_sorgulan_r
+  category: api.http
+  description: (taslak) Engine ile regresyon setleri sorgulanır
+  aliases:
+    tr:
+    - Engine ile regresyon setleri sorgulanır
+  implementations:
+    python:
+      source_file: engine/steps/bgts_api_steps.py
+      function: engine_regression_sets
+      pattern: Engine ile regresyon setleri sorgulanır
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: engine_ile_test_ko_usu_ba_lat_l_r
+  category: api.http
+  description: (taslak) Engine ile test koşusu başlatılır
+  aliases:
+    tr:
+    - Engine ile test koşusu başlatılır
+  implementations:
+    python:
+      source_file: engine/steps/bgts_api_steps.py
+      function: engine_run_tests
+      pattern: Engine ile test koşusu başlatılır
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: entegrasyon_sync_istegi_gonderilir
+  category: api.http
+  description: (taslak) entegrasyon sync istegi gonderilir
+  aliases:
+    en:
+    - entegrasyon sync istegi gonderilir
+  implementations:
+    python:
+      source_file: engine/steps/api/step_integrations.py
+      function: sync_integration
+      pattern: entegrasyon sync istegi gonderilir
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: flaky_test_listesi_istenir
+  category: api.http
+  description: (taslak) flaky test listesi istenir
+  aliases:
+    en:
+    - flaky test listesi istenir
+  implementations:
+    python:
+      source_file: engine/steps/api/step_analytics.py
+      function: get_flaky_tests
+      pattern: flaky test listesi istenir
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: genisletilmis_senaryo_istenir
+  category: api.http
+  description: (taslak) genisletilmis senaryo istenir
+  aliases:
+    en:
+    - genisletilmis senaryo istenir
+  implementations:
+    python:
+      source_file: engine/steps/api/step_test_data.py
+      function: get_expanded
+      pattern: genisletilmis senaryo istenir
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: gereksinim_detayinda
+  category: api.http
+  description: '(taslak) gereksinim detayinda '
+  aliases:
+    en:
+    - 'gereksinim detayinda '
+  implementations:
+    python:
+      source_file: engine/steps/api/step_requirements.py
+      function: assert_req_scenario_count
+      pattern: 'gereksinim detayinda '
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: gereksinim_silinir
+  category: api.http
+  description: (taslak) gereksinim silinir
+  aliases:
+    tr:
+    - gereksinim silinir
+  implementations:
+    python:
+      source_file: engine/steps/api/step_requirements.py
+      function: delete_requirement
+      pattern: gereksinim silinir
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: her_senaryo_icin
+  category: api.http
+  description: '(taslak) her senaryo icin '
+  aliases:
+    en:
+    - 'her senaryo icin '
+  implementations:
+    python:
+      source_file: engine/steps/api/step_executions.py
+      function: assert_pending_results
+      pattern: 'her senaryo icin '
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: her_sonuc_kaydinda
+  category: api.http
+  description: '(taslak) her sonuc kaydinda '
+  aliases:
+    en:
+    - 'her sonuc kaydinda '
+  implementations:
+    python:
+      source_file: engine/steps/api/step_executions.py
+      function: assert_result_field
+      pattern: 'her sonuc kaydinda '
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: her_veri_noktasinda
+  category: api.http
+  description: '(taslak) her veri noktasinda '
+  aliases:
+    en:
+    - 'her veri noktasinda '
+  implementations:
+    python:
+      source_file: engine/steps/api/step_analytics.py
+      function: assert_point_fields
+      pattern: 'her veri noktasinda '
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: her_veri_satiri_icin_adimlar_genisletilm
+  category: api.http
+  description: (taslak) her veri satiri icin adimlar genisletilmis donmelidir
+  aliases:
+    en:
+    - her veri satiri icin adimlar genisletilmis donmelidir
+  implementations:
+    python:
+      source_file: engine/steps/api/step_test_data.py
+      function: assert_expanded
+      pattern: her veri satiri icin adimlar genisletilmis donmelidir
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: http_yanit_kodu_401_veya_403_olmalidir
+  category: api.http
+  description: (taslak) HTTP yanit kodu 401 veya 403 olmalidir
+  aliases:
+    en:
+    - HTTP yanit kodu 401 veya 403 olmalidir
+  implementations:
+    python:
+      source_file: engine/steps/api/step_common.py
+      function: assert_unauthorized
+      pattern: HTTP yanit kodu 401 veya 403 olmalidir
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: http_yanit_kodu_olmalidir
+  category: api.http
+  description: (taslak) HTTP yanit kodu {code:d} olmalidir
+  aliases:
+    en:
+    - HTTP yanit kodu {code:d} olmalidir
+  implementations:
+    python:
+      source_file: engine/steps/api/step_common.py
+      function: assert_status_code
+      pattern: HTTP yanit kodu {code:d} olmalidir
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: code
+    type: string
+    required: true
+- id: i_delete_the_first_product
+  category: api.http
+  description: (taslak) I delete the first product
+  aliases:
+    en:
+    - I delete the first product
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/api.steps.ts
+      pattern: I delete the first product
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: i_have_a_valid_access_token
+  category: api.http
+  description: (taslak) I have a valid access token
+  aliases:
+    en:
+    - I have a valid access token
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/api.steps.ts
+      pattern: I have a valid access token
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: i_have_invalid_login_credentials
+  category: api.http
+  description: (taslak) I have invalid login credentials
+  aliases:
+    en:
+    - I have invalid login credentials
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/api.steps.ts
+      pattern: I have invalid login credentials
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: i_have_login_credentials_with_username_a
+  category: api.http
+  description: (taslak) I have login credentials with username {string} and password {string}
+  aliases:
+    en:
+    - I have login credentials with username {string} and password {string}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/api.steps.ts
+      pattern: I have login credentials with username {string} and password {string}
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_have_valid_login_credentials
+  category: api.http
+  description: (taslak) I have valid login credentials
+  aliases:
+    en:
+    - I have valid login credentials
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/api.steps.ts
+      pattern: I have valid login credentials
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: i_perform_a_login_request
+  category: api.http
+  description: (taslak) I perform a login request
+  aliases:
+    en:
+    - I perform a login request
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/api.steps.ts
+      pattern: I perform a login request
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: i_perform_a_login_request_with_delay_par
+  category: api.http
+  description: (taslak) I perform a login request with delay parameter {int}
+  aliases:
+    en:
+    - I perform a login request with delay parameter {int}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/api.steps.ts
+      pattern: I perform a login request with delay parameter {int}
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: int
+    type: string
+    required: true
+- id: i_request_the_products_categories_list
+  category: api.http
+  description: (taslak) I request the products categories list
+  aliases:
+    en:
+    - I request the products categories list
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/api.steps.ts
+      pattern: I request the products categories list
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: i_request_the_products_list_with_limit
+  category: api.http
+  description: (taslak) I request the products list with limit {int}
+  aliases:
+    en:
+    - I request the products list with limit {int}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/api.steps.ts
+      pattern: I request the products list with limit {int}
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: int
+    type: string
+    required: true
+- id: i_store_the_access_token_for_subsequent_
+  category: api.http
+  description: (taslak) I store the access token for subsequent requests
+  aliases:
+    en:
+    - I store the access token for subsequent requests
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/api.steps.ts
+      pattern: I store the access token for subsequent requests
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: i_store_the_first_product_id
+  category: api.http
+  description: (taslak) I store the first product ID
+  aliases:
+    en:
+    - I store the first product ID
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/api.steps.ts
+      pattern: I store the first product ID
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: i_update_the_isdeleted_field_of_the_firs
+  category: api.http
+  description: (taslak) I update the isDeleted field of the first product to true
+  aliases:
+    en:
+    - I update the isDeleted field of the first product to true
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/api.steps.ts
+      pattern: I update the isDeleted field of the first product to true
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: i_update_the_isdeleted_field_of_the_firs_1
+  category: api.http
+  description: (taslak) I update the isDeleted field of the first product to {string}
+  aliases:
+    en:
+    - I update the isDeleted field of the first product to {string}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/api.steps.ts
+      pattern: I update the isDeleted field of the first product to {string}
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_update_the_title_of_the_first_product_
+  category: api.http
+  description: (taslak) I update the title of the first product to {string}
+  aliases:
+    en:
+    - I update the title of the first product to {string}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/api.steps.ts
+      pattern: I update the title of the first product to {string}
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_verify_each_category_endpoint_returns_
+  category: api.http
+  description: (taslak) I verify each category endpoint returns {int} OK
+  aliases:
+    en:
+    - I verify each category endpoint returns {int} OK
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/api.steps.ts
+      pattern: I verify each category endpoint returns {int} OK
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: int
+    type: string
+    required: true
+- id: ilk_2_senaryonun_id
+  category: api.http
+  description: (taslak) ilk 2 senaryonun ID
+  aliases:
+    en:
+    - ilk 2 senaryonun ID
+  implementations:
+    python:
+      source_file: engine/steps/api/step_scenarios.py
+      function: bulk_delete
+      pattern: ilk 2 senaryonun ID
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: ilk_sonuc_kaydinin_statusu
+  category: api.http
+  description: '(taslak) ilk sonuc kaydinin statusu '
+  aliases:
+    en:
+    - 'ilk sonuc kaydinin statusu '
+  implementations:
+    python:
+      source_file: engine/steps/api/step_executions.py
+      function: update_first_result
+      pattern: 'ilk sonuc kaydinin statusu '
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: kapsam_bosluklari_istenir
+  category: api.http
+  description: (taslak) kapsam bosluklari istenir
+  aliases:
+    en:
+    - kapsam bosluklari istenir
+  implementations:
+    python:
+      source_file: engine/steps/api/step_requirements.py
+      function: get_coverage_gaps
+      pattern: kapsam bosluklari istenir
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: kapsam_matrisi_istenir
+  category: api.http
+  description: (taslak) kapsam matrisi istenir
+  aliases:
+    en:
+    - kapsam matrisi istenir
+  implementations:
+    python:
+      source_file: engine/steps/api/step_requirements.py
+      function: get_coverage_matrix
+      pattern: kapsam matrisi istenir
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: kapsam_matrisinde_ilgili_gereksinim_bulu
+  category: api.http
+  description: (taslak) kapsam matrisinde ilgili gereksinim bulunmamalidir
+  aliases:
+    en:
+    - kapsam matrisinde ilgili gereksinim bulunmamalidir
+  implementations:
+    python:
+      source_file: engine/steps/api/step_requirements.py
+      function: assert_req_deleted_from_matrix
+      pattern: kapsam matrisinde ilgili gereksinim bulunmamalidir
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: kaydedilen_tum_senaryolar
+  category: api.http
+  description: '(taslak) kaydedilen tum senaryolar '
+  aliases:
+    en:
+    - 'kaydedilen tum senaryolar '
+  implementations:
+    python:
+      source_file: engine/steps/api/step_bdd_generation.py
+      function: assert_all_draft
+      pattern: 'kaydedilen tum senaryolar '
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: koleksiyon_calistirilir
+  category: api.http
+  description: (taslak) koleksiyon calistirilir
+  aliases:
+    en:
+    - koleksiyon calistirilir
+  implementations:
+    python:
+      source_file: engine/steps/api/step_api_tests.py
+      function: run_collection
+      pattern: koleksiyon calistirilir
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: koleksiyona
+  category: api.http
+  description: '(taslak) koleksiyona '
+  aliases:
+    en:
+    - 'koleksiyona '
+  implementations:
+    python:
+      source_file: engine/steps/api/step_api_tests.py
+      function: add_request
+      pattern: 'koleksiyona '
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: koleksiyonda_en_az_1_request_mevcut
+  category: api.http
+  description: (taslak) koleksiyonda en az 1 request mevcut
+  aliases:
+    en:
+    - koleksiyonda en az 1 request mevcut
+  implementations:
+    python:
+      source_file: engine/steps/api/step_api_tests.py
+      function: collection_has_request
+      pattern: koleksiyonda en az 1 request mevcut
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: koleksiyonda_erisilemez_base_url
+  category: api.http
+  description: (taslak) koleksiyonda erisilemez base_url
+  aliases:
+    en:
+    - koleksiyonda erisilemez base_url
+  implementations:
+    python:
+      source_file: engine/steps/api/step_api_tests.py
+      function: unreachable_collection
+      pattern: koleksiyonda erisilemez base_url
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: kosu_detayi_istenir
+  category: api.http
+  description: (taslak) kosu detayi istenir
+  aliases:
+    en:
+    - kosu detayi istenir
+  implementations:
+    python:
+      source_file: engine/steps/api/step_executions.py
+      function: get_execution_detail
+      pattern: kosu detayi istenir
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: kosu_detayindaki_ilgili_sonuc
+  category: api.http
+  description: '(taslak) kosu detayindaki ilgili sonuc '
+  aliases:
+    en:
+    - 'kosu detayindaki ilgili sonuc '
+  implementations:
+    python:
+      source_file: engine/steps/api/step_executions.py
+      function: assert_result_status
+      pattern: 'kosu detayindaki ilgili sonuc '
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: kosu_istatistikleri_istenir
+  category: api.http
+  description: (taslak) kosu istatistikleri istenir
+  aliases:
+    en:
+    - kosu istatistikleri istenir
+  implementations:
+    python:
+      source_file: engine/steps/api/step_analytics.py
+      function: get_stats
+      pattern: kosu istatistikleri istenir
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: kosu_re_run_istegi_gonderilir
+  category: api.http
+  description: (taslak) kosu re-run istegi gonderilir
+  aliases:
+    en:
+    - kosu re-run istegi gonderilir
+  implementations:
+    python:
+      source_file: engine/steps/api/step_executions.py
+      function: rerun_execution
+      pattern: kosu re-run istegi gonderilir
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: kosu_regression_set
+  category: api.http
+  description: (taslak) kosu regression set
+  aliases:
+    en:
+    - kosu regression set
+  implementations:
+    python:
+      source_file: engine/steps/api/step_schedules.py
+      function: assert_regression_execution
+      pattern: kosu regression set
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: kullanici
+  category: api.http
+  description: '(taslak) kullanici '
+  aliases:
+    tr:
+    - 'kullanici '
+  implementations:
+    python:
+      source_file: engine/steps/api/step_members.py
+      function: add_member
+      pattern: 'kullanici '
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: kullanici_oturum_acmamis
+  category: api.http
+  description: (taslak) kullanici oturum acmamis
+  aliases:
+    tr:
+    - kullanici oturum acmamis
+  implementations:
+    python:
+      source_file: engine/steps/api/step_common.py
+      function: user_not_logged_in
+      pattern: kullanici oturum acmamis
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: kullanici_oturum_acmis
+  category: api.http
+  description: (taslak) kullanici oturum acmis
+  aliases:
+    tr:
+    - kullanici oturum acmis
+  implementations:
+    python:
+      source_file: engine/steps/api/step_common.py
+      function: user_logged_in
+      pattern: kullanici oturum acmis
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: kullanici_rol_belirtilmeden_projeye_ekle
+  category: api.http
+  description: (taslak) kullanici rol belirtilmeden projeye eklenir
+  aliases:
+    tr:
+    - kullanici rol belirtilmeden projeye eklenir
+  implementations:
+    python:
+      source_file: engine/steps/api/step_members.py
+      function: add_member_no_role
+      pattern: kullanici rol belirtilmeden projeye eklenir
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: kullan_c_api_zerinden_csv_dosyas_y_kler
+  category: api.http
+  description: (taslak) kullanıcı API üzerinden CSV dosyası yükler
+  aliases:
+    tr:
+    - kullanıcı API üzerinden CSV dosyası yükler
+  implementations:
+    python:
+      source_file: engine/steps/bgts_synthetic_steps.py
+      function: api_upload_csv
+      pattern: kullanıcı API üzerinden CSV dosyası yükler
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: kullan_c_api_zerinden_pii_taramas_ba_lat
+  category: api.http
+  description: (taslak) kullanıcı API üzerinden PII taraması başlatır
+  aliases:
+    tr:
+    - kullanıcı API üzerinden PII taraması başlatır
+  implementations:
+    python:
+      source_file: engine/steps/bgts_synthetic_steps.py
+      function: api_pii_scan
+      pattern: kullanıcı API üzerinden PII taraması başlatır
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: kullan_c_api_zerinden_veri_analizi_ba_la
+  category: api.http
+  description: (taslak) kullanıcı API üzerinden veri analizi başlatır
+  aliases:
+    tr:
+    - kullanıcı API üzerinden veri analizi başlatır
+  implementations:
+    python:
+      source_file: engine/steps/bgts_synthetic_steps.py
+      function: api_analyze_dataset
+      pattern: kullanıcı API üzerinden veri analizi başlatır
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: kullan_c_api_zerinden_veri_setini
+  category: api.http
+  description: '(taslak) kullanıcı API üzerinden veri setini '
+  aliases:
+    tr:
+    - 'kullanıcı API üzerinden veri setini '
+  implementations:
+    python:
+      source_file: engine/steps/bgts_synthetic_steps.py
+      function: api_export_dataset
+      pattern: 'kullanıcı API üzerinden veri setini '
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: kullan_c_api_zerinden_adet_sentetik_kay_
+  category: api.http
+  description: (taslak) kullanıcı API üzerinden {count:d} adet sentetik kayıt üretir
+  aliases:
+    tr:
+    - kullanıcı API üzerinden {count:d} adet sentetik kayıt üretir
+  implementations:
+    python:
+      source_file: engine/steps/bgts_synthetic_steps.py
+      function: api_generate_synthetic
+      pattern: kullanıcı API üzerinden {count:d} adet sentetik kayıt üretir
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: count
+    type: string
+    required: true
+- id: listenin_ilk_elemani
+  category: api.http
+  description: '(taslak) listenin ilk elemani '
+  aliases:
+    en:
+    - 'listenin ilk elemani '
+  implementations:
+    python:
+      source_file: engine/steps/api/step_projects.py
+      function: assert_first_project
+      pattern: 'listenin ilk elemani '
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: o_senaryonun_id
+  category: api.http
+  description: (taslak) o senaryonun ID
+  aliases:
+    en:
+    - o senaryonun ID
+  implementations:
+    python:
+      source_file: engine/steps/api/step_scenarios.py
+      function: bulk_delete_cross_project
+      pattern: o senaryonun ID
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: onay
+  category: api.http
+  description: '(taslak) onay '
+  aliases:
+    tr:
+    - 'onay '
+  implementations:
+    python:
+      source_file: engine/steps/api/step_approvals.py
+      function: assert_approval_field
+      pattern: 'onay '
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: onay_icin
+  category: api.http
+  description: '(taslak) onay icin '
+  aliases:
+    tr:
+    - 'onay icin '
+  implementations:
+    python:
+      source_file: engine/steps/api/step_approvals.py
+      function: decide_approval
+      pattern: 'onay icin '
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: onay_listesi_istenir
+  category: api.http
+  description: (taslak) onay listesi istenir
+  aliases:
+    tr:
+    - onay listesi istenir
+  implementations:
+    python:
+      source_file: engine/steps/api/step_approvals.py
+      function: list_approvals
+      pattern: onay listesi istenir
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: onay_statusu
+  category: api.http
+  description: '(taslak) onay statusu '
+  aliases:
+    tr:
+    - 'onay statusu '
+  implementations:
+    python:
+      source_file: engine/steps/api/step_approvals.py
+      function: assert_approval_status
+      pattern: 'onay statusu '
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: onerilen_setler_basariyla_olusturulmus_o
+  category: api.http
+  description: (taslak) onerilen setler basariyla olusturulmus olmalidir
+  aliases:
+    en:
+    - onerilen setler basariyla olusturulmus olmalidir
+  implementations:
+    python:
+      source_file: engine/steps/api/step_regression.py
+      function: assert_sets_created
+      pattern: onerilen setler basariyla olusturulmus olmalidir
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: proje_dashboard_istegi_gonderilir
+  category: api.http
+  description: (taslak) proje dashboard istegi gonderilir
+  aliases:
+    en:
+    - proje dashboard istegi gonderilir
+  implementations:
+    python:
+      source_file: engine/steps/api/step_dashboard.py
+      function: get_dashboard
+      pattern: proje dashboard istegi gonderilir
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: proje_listesi_istenir
+  category: api.http
+  description: (taslak) proje listesi istenir
+  aliases:
+    en:
+    - proje listesi istenir
+  implementations:
+    python:
+      source_file: engine/steps/api/step_projects.py
+      function: list_projects
+      pattern: proje listesi istenir
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: projede
+  category: api.http
+  description: '(taslak) projede '
+  aliases:
+    en:
+    - 'projede '
+  implementations:
+    python:
+      source_file: engine/steps/api/step_approvals.py
+      function: pending_approval_exists
+      pattern: 'projede '
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: projede_baglanmamis_gereksinimler_mevcut
+  category: api.http
+  description: (taslak) projede baglanmamis gereksinimler mevcut
+  aliases:
+    en:
+    - projede baglanmamis gereksinimler mevcut
+  implementations:
+    python:
+      source_file: engine/steps/api/step_requirements.py
+      function: unlinked_requirements
+      pattern: projede baglanmamis gereksinimler mevcut
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: projede_bir_akis_olusturulmus
+  category: api.http
+  description: (taslak) projede bir akis olusturulmus
+  aliases:
+    en:
+    - projede bir akis olusturulmus
+  implementations:
+    python:
+      source_file: engine/steps/api/step_flows.py
+      function: flow_created
+      pattern: projede bir akis olusturulmus
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: projede_bir_api_koleksiyonu_olusturulmus
+  category: api.http
+  description: (taslak) projede bir API koleksiyonu olusturulmus
+  aliases:
+    en:
+    - projede bir API koleksiyonu olusturulmus
+  implementations:
+    python:
+      source_file: engine/steps/api/step_api_tests.py
+      function: collection_created
+      pattern: projede bir API koleksiyonu olusturulmus
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: projede_bir_entegrasyon_olusturulmus
+  category: api.http
+  description: (taslak) projede bir entegrasyon olusturulmus
+  aliases:
+    en:
+    - projede bir entegrasyon olusturulmus
+  implementations:
+    python:
+      source_file: engine/steps/api/step_integrations.py
+      function: integration_created
+      pattern: projede bir entegrasyon olusturulmus
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: projede_bir_gereksinim_olusturulmus
+  category: api.http
+  description: (taslak) projede bir gereksinim olusturulmus
+  aliases:
+    en:
+    - projede bir gereksinim olusturulmus
+  implementations:
+    python:
+      source_file: engine/steps/api/step_common.py
+      function: requirement_created
+      pattern: projede bir gereksinim olusturulmus
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: projede_bir_regresyon_seti_olusturulmus
+  category: api.http
+  description: (taslak) projede bir regresyon seti olusturulmus
+  aliases:
+    en:
+    - projede bir regresyon seti olusturulmus
+  implementations:
+    python:
+      source_file: engine/steps/api/step_regression.py
+      function: regression_set_created
+      pattern: projede bir regresyon seti olusturulmus
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: projede_bir_senaryo_mevcut
+  category: api.http
+  description: (taslak) projede bir senaryo mevcut
+  aliases:
+    en:
+    - projede bir senaryo mevcut
+  implementations:
+    python:
+      source_file: engine/steps/api/step_test_data.py
+      function: scenario_exists
+      pattern: projede bir senaryo mevcut
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: projede_bir_senaryo_olusturulmus
+  category: api.http
+  description: (taslak) projede bir senaryo olusturulmus
+  aliases:
+    en:
+    - projede bir senaryo olusturulmus
+  implementations:
+    python:
+      source_file: engine/steps/api/step_common.py
+      function: scenario_created
+      pattern: projede bir senaryo olusturulmus
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: projede_bir_senaryo_ve_veri_seti_olustur
+  category: api.http
+  description: (taslak) projede bir senaryo ve veri seti olusturulmus
+  aliases:
+    en:
+    - projede bir senaryo ve veri seti olusturulmus
+  implementations:
+    python:
+      source_file: engine/steps/api/step_test_data.py
+      function: scenario_and_data
+      pattern: projede bir senaryo ve veri seti olusturulmus
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: projede_bir_uye_mevcut
+  category: api.http
+  description: (taslak) projede bir uye mevcut
+  aliases:
+    en:
+    - projede bir uye mevcut
+  implementations:
+    python:
+      source_file: engine/steps/api/step_members.py
+      function: member_exists
+      pattern: projede bir uye mevcut
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: projede_en_az_1_senaryo_mevcut
+  category: api.http
+  description: (taslak) projede en az 1 senaryo mevcut
+  aliases:
+    en:
+    - projede en az 1 senaryo mevcut
+  implementations:
+    python:
+      source_file: engine/steps/api/step_common.py
+      function: at_least_one_scenario
+      pattern: projede en az 1 senaryo mevcut
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: projede_en_az_senaryo_olusturulmus
+  category: api.http
+  description: (taslak) projede en az {count:d} senaryo olusturulmus
+  aliases:
+    en:
+    - projede en az {count:d} senaryo olusturulmus
+  implementations:
+    python:
+      source_file: engine/steps/api/step_common.py
+      function: multiple_scenarios_created
+      pattern: projede en az {count:d} senaryo olusturulmus
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: count
+    type: string
+    required: true
+- id: projede_hic_senaryo_yok
+  category: api.http
+  description: (taslak) projede hic senaryo yok
+  aliases:
+    en:
+    - projede hic senaryo yok
+  implementations:
+    python:
+      source_file: engine/steps/api/step_common.py
+      function: no_scenarios
+      pattern: projede hic senaryo yok
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: projede_kosu_verileri_mevcut
+  category: api.http
+  description: (taslak) projede kosu verileri mevcut
+  aliases:
+    en:
+    - projede kosu verileri mevcut
+  implementations:
+    python:
+      source_file: engine/steps/api/step_analytics.py
+      function: execution_data_exists
+      pattern: projede kosu verileri mevcut
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: projede_onay_kayitlari_mevcut
+  category: api.http
+  description: (taslak) projede onay kayitlari mevcut
+  aliases:
+    tr:
+    - projede onay kayitlari mevcut
+  implementations:
+    python:
+      source_file: engine/steps/api/step_approvals.py
+      function: approvals_exist
+      pattern: projede onay kayitlari mevcut
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: projede_senaryolar_onaylar_importlar_ve_
+  category: api.http
+  description: (taslak) projede senaryolar, onaylar, importlar ve kosular mevcut
+  aliases:
+    en:
+    - projede senaryolar, onaylar, importlar ve kosular mevcut
+  implementations:
+    python:
+      source_file: engine/steps/api/step_dashboard.py
+      function: populated_project
+      pattern: projede senaryolar, onaylar, importlar ve kosular mevcut
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: projede_gereksinim_olusturulmus
+  category: api.http
+  description: (taslak) projede {count:d} gereksinim olusturulmus
+  aliases:
+    en:
+    - projede {count:d} gereksinim olusturulmus
+  implementations:
+    python:
+      source_file: engine/steps/api/step_requirements.py
+      function: create_requirements
+      pattern: projede {count:d} gereksinim olusturulmus
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: count
+    type: string
+    required: true
+- id: projede_senaryo_olusturulmus
+  category: api.http
+  description: (taslak) projede {count:d} senaryo olusturulmus
+  aliases:
+    en:
+    - projede {count:d} senaryo olusturulmus
+  implementations:
+    python:
+      source_file: engine/steps/api/step_common.py
+      function: exact_scenarios_created
+      pattern: projede {count:d} senaryo olusturulmus
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: count
+    type: string
+    required: true
+- id: regression_set
+  category: api.http
+  description: (taslak) regression set
+  aliases:
+    en:
+    - regression set
+  implementations:
+    python:
+      source_file: engine/steps/api/step_schedules.py
+      function: regression_has_scenarios
+      pattern: regression set
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: regresyon_setinde_senaryo_mevcut
+  category: api.http
+  description: (taslak) regresyon setinde {count:d} senaryo mevcut
+  aliases:
+    en:
+    - regresyon setinde {count:d} senaryo mevcut
+  implementations:
+    python:
+      source_file: engine/steps/api/step_regression.py
+      function: set_has_scenarios
+      pattern: regresyon setinde {count:d} senaryo mevcut
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: count
+    type: string
+    required: true
+- id: secilen_oneriler_kabul_edilir
+  category: api.http
+  description: (taslak) secilen oneriler kabul edilir
+  aliases:
+    en:
+    - secilen oneriler kabul edilir
+  implementations:
+    python:
+      source_file: engine/steps/api/step_regression.py
+      function: accept_suggestions
+      pattern: secilen oneriler kabul edilir
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: senaryo_adimlari
+  category: api.http
+  description: '(taslak) senaryo adimlari '
+  aliases:
+    en:
+    - 'senaryo adimlari '
+  implementations:
+    python:
+      source_file: engine/steps/api/step_test_data.py
+      function: scenario_with_placeholder
+      pattern: 'senaryo adimlari '
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: senaryo_atamasi_olmayan_bir_zamanlama_me
+  category: api.http
+  description: (taslak) senaryo atamasi olmayan bir zamanlama mevcut
+  aliases:
+    en:
+    - senaryo atamasi olmayan bir zamanlama mevcut
+  implementations:
+    python:
+      source_file: engine/steps/api/step_schedules.py
+      function: empty_schedule
+      pattern: senaryo atamasi olmayan bir zamanlama mevcut
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: senaryo_basligi_guncellenmis
+  category: api.http
+  description: (taslak) senaryo basligi guncellenmis
+  aliases:
+    en:
+    - senaryo basligi guncellenmis
+  implementations:
+    python:
+      source_file: engine/steps/api/step_scenarios.py
+      function: scenario_title_updated
+      pattern: senaryo basligi guncellenmis
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: senaryo_id
+  category: api.http
+  description: (taslak) senaryo ID\
+  aliases:
+    en:
+    - senaryo ID\
+  implementations:
+    python:
+      source_file: engine/steps/api/step_executions.py
+      function: create_execution
+      pattern: senaryo ID\
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: senaryo_ile_gereksinim_iliskilendirilir
+  category: api.http
+  description: (taslak) senaryo ile gereksinim iliskilendirilir
+  aliases:
+    en:
+    - senaryo ile gereksinim iliskilendirilir
+  implementations:
+    python:
+      source_file: engine/steps/api/step_requirements.py
+      function: link_scenario_requirement
+      pattern: senaryo ile gereksinim iliskilendirilir
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: senaryo_ile_veri_seti_parametre_eslesimi
+  category: api.http
+  description: (taslak) senaryo ile veri seti parametre eslesimiyle baglanir
+  aliases:
+    en:
+    - senaryo ile veri seti parametre eslesimiyle baglanir
+  implementations:
+    python:
+      source_file: engine/steps/api/step_test_data.py
+      function: bind_data
+      pattern: senaryo ile veri seti parametre eslesimiyle baglanir
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: senaryo_listesinde_yalnizca_silinmeyen_s
+  category: api.http
+  description: (taslak) senaryo listesinde yalnizca silinmeyen senaryo kalmalidir
+  aliases:
+    en:
+    - senaryo listesinde yalnizca silinmeyen senaryo kalmalidir
+  implementations:
+    python:
+      source_file: engine/steps/api/step_scenarios.py
+      function: assert_remaining_scenario
+      pattern: senaryo listesinde yalnizca silinmeyen senaryo kalmalidir
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: senaryo_gereksinim_baglantisi_mevcut
+  category: api.http
+  description: (taslak) senaryo-gereksinim baglantisi mevcut
+  aliases:
+    en:
+    - senaryo-gereksinim baglantisi mevcut
+  implementations:
+    python:
+      source_file: engine/steps/api/step_requirements.py
+      function: link_exists
+      pattern: senaryo-gereksinim baglantisi mevcut
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: senaryolar
+  category: api.http
+  description: '(taslak) senaryolar '
+  aliases:
+    en:
+    - 'senaryolar '
+  implementations:
+    python:
+      source_file: engine/steps/api/step_scenarios.py
+      function: search_scenarios
+      pattern: 'senaryolar '
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: senaryonun_basligi
+  category: api.http
+  description: '(taslak) senaryonun basligi '
+  aliases:
+    en:
+    - 'senaryonun basligi '
+  implementations:
+    python:
+      source_file: engine/steps/api/step_scenarios.py
+      function: update_scenario_title
+      pattern: 'senaryonun basligi '
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: sentetik_veri_api_servisi_al_yor
+  category: api.http
+  description: (taslak) sentetik veri API servisi çalışıyor
+  aliases:
+    tr:
+    - sentetik veri API servisi çalışıyor
+  implementations:
+    python:
+      source_file: engine/steps/bgts_synthetic_steps.py
+      function: synthetic_api_health_check
+      pattern: sentetik veri API servisi çalışıyor
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: set_detayinda_senaryo_bulunmalidir
+  category: api.http
+  description: (taslak) set detayinda {count:d} senaryo bulunmalidir
+  aliases:
+    en:
+    - set detayinda {count:d} senaryo bulunmalidir
+  implementations:
+    python:
+      source_file: engine/steps/api/step_regression.py
+      function: assert_set_count
+      pattern: set detayinda {count:d} senaryo bulunmalidir
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: count
+    type: string
+    required: true
+- id: set_detayindaki_senaryo_sayisi_degismeme
+  category: api.http
+  description: (taslak) set detayindaki senaryo sayisi degismemelidir
+  aliases:
+    en:
+    - set detayindaki senaryo sayisi degismemelidir
+  implementations:
+    python:
+      source_file: engine/steps/api/step_regression.py
+      function: assert_count_unchanged
+      pattern: set detayindaki senaryo sayisi degismemelidir
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: sonuc_listesinde
+  category: api.http
+  description: '(taslak) sonuc listesinde '
+  aliases:
+    en:
+    - 'sonuc listesinde '
+  implementations:
+    python:
+      source_file: engine/steps/api/step_api_tests.py
+      function: assert_error_results
+      pattern: 'sonuc listesinde '
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: sonuc_listesinde_her_request_icin
+  category: api.http
+  description: '(taslak) sonuc listesinde her request icin '
+  aliases:
+    en:
+    - 'sonuc listesinde her request icin '
+  implementations:
+    python:
+      source_file: engine/steps/api/step_api_tests.py
+      function: assert_run_results
+      pattern: 'sonuc listesinde her request icin '
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: sonuc_listesinde_ilgili_senaryo
+  category: api.http
+  description: '(taslak) sonuc listesinde ilgili senaryo '
+  aliases:
+    en:
+    - 'sonuc listesinde ilgili senaryo '
+  implementations:
+    python:
+      source_file: engine/steps/api/step_analytics.py
+      function: assert_flaky
+      pattern: 'sonuc listesinde ilgili senaryo '
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: sonuc_listesinde_yalnizca
+  category: api.http
+  description: '(taslak) sonuc listesinde yalnizca '
+  aliases:
+    en:
+    - 'sonuc listesinde yalnizca '
+  implementations:
+    python:
+      source_file: engine/steps/api/step_scenarios.py
+      function: assert_search_results
+      pattern: 'sonuc listesinde yalnizca '
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: the_delete_response_status_code_should_b
+  category: api.http
+  description: (taslak) the delete response status code should be {int}
+  aliases:
+    en:
+    - the delete response status code should be {int}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/api.steps.ts
+      pattern: the delete response status code should be {int}
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: int
+    type: string
+    required: true
+- id: the_login_response_status_code_should_be
+  category: api.http
+  description: (taslak) the login response status code should be <statusCode>
+  aliases:
+    en:
+    - the login response status code should be <statusCode>
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/api.steps.ts
+      pattern: the login response status code should be <statusCode>
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: the_login_response_status_code_should_be_1
+  category: api.http
+  description: (taslak) the login response status code should be {int}
+  aliases:
+    en:
+    - the login response status code should be {int}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/api.steps.ts
+      pattern: the login response status code should be {int}
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: int
+    type: string
+    required: true
+- id: the_login_response_time_should_be_less_t
+  category: api.http
+  description: (taslak) the login response time should be less than {int} milliseconds
+  aliases:
+    en:
+    - the login response time should be less than {int} milliseconds
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/api.steps.ts
+      pattern: the login response time should be less than {int} milliseconds
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: int
+    type: string
+    required: true
+- id: the_products_array_length_should_match_t
+  category: api.http
+  description: (taslak) the products array length should match the limit {int}
+  aliases:
+    en:
+    - the products array length should match the limit {int}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/api.steps.ts
+      pattern: the products array length should match the limit {int}
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: int
+    type: string
+    required: true
+- id: the_response_should_contain_isdeleted_fi
+  category: api.http
+  description: (taslak) the response should contain isDeleted field as true
+  aliases:
+    en:
+    - the response should contain isDeleted field as true
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/api.steps.ts
+      pattern: the response should contain isDeleted field as true
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: the_response_should_contain_isdeleted_fi_1
+  category: api.http
+  description: (taslak) the response should contain isDeleted field as {string}
+  aliases:
+    en:
+    - the response should contain isDeleted field as {string}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/api.steps.ts
+      pattern: the response should contain isDeleted field as {string}
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: the_response_status_code_should_be
+  category: api.http
+  description: (taslak) the response status code should be {int}
+  aliases:
+    en:
+    - the response status code should be {int}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/api.steps.ts
+      pattern: the response status code should be {int}
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: int
+    type: string
+    required: true
+- id: the_update_response_status_code_should_b
+  category: api.http
+  description: (taslak) the update response status code should be {int}
+  aliases:
+    en:
+    - the update response status code should be {int}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/api.steps.ts
+      pattern: the update response status code should be {int}
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: int
+    type: string
+    required: true
+- id: uretilen_senaryolar_kaydetme_istegi_ile_
+  category: api.http
+  description: (taslak) uretilen senaryolar kaydetme istegi ile gonderilir
+  aliases:
+    en:
+    - uretilen senaryolar kaydetme istegi ile gonderilir
+  implementations:
+    python:
+      source_file: engine/steps/api/step_bdd_generation.py
+      function: save_bdd_scenarios
+      pattern: uretilen senaryolar kaydetme istegi ile gonderilir
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: uye_listesinde_gorulmemelidir
+  category: api.http
+  description: (taslak) uye listesinde gorulmemelidir
+  aliases:
+    en:
+    - uye listesinde gorulmemelidir
+  implementations:
+    python:
+      source_file: engine/steps/api/step_members.py
+      function: assert_member_removed
+      pattern: uye listesinde gorulmemelidir
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: uye_projeden_cikarilir
+  category: api.http
+  description: (taslak) uye projeden cikarilir
+  aliases:
+    en:
+    - uye projeden cikarilir
+  implementations:
+    python:
+      source_file: engine/steps/api/step_members.py
+      function: remove_member
+      pattern: uye projeden cikarilir
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: var_olmayan_kosu_id_ile_re_run_istegi_go
+  category: api.http
+  description: (taslak) var olmayan kosu ID ile re-run istegi gonderilir
+  aliases:
+    en:
+    - var olmayan kosu ID ile re-run istegi gonderilir
+  implementations:
+    python:
+      source_file: engine/steps/api/step_executions.py
+      function: rerun_nonexistent
+      pattern: var olmayan kosu ID ile re-run istegi gonderilir
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: var_olmayan_onay_id_ile_karar_istegi_gon
+  category: api.http
+  description: (taslak) var olmayan onay ID ile karar istegi gonderilir
+  aliases:
+    tr:
+    - var olmayan onay ID ile karar istegi gonderilir
+  implementations:
+    python:
+      source_file: engine/steps/api/step_approvals.py
+      function: decide_nonexistent
+      pattern: var olmayan onay ID ile karar istegi gonderilir
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: var_olmayan_proje_id_ile_dashboard_isteg
+  category: api.http
+  description: (taslak) var olmayan proje ID ile dashboard istegi gonderilir
+  aliases:
+    en:
+    - var olmayan proje ID ile dashboard istegi gonderilir
+  implementations:
+    python:
+      source_file: engine/steps/api/step_projects.py
+      function: get_nonexistent_dashboard
+      pattern: var olmayan proje ID ile dashboard istegi gonderilir
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: var_olmayan_veri_seti_id_ile_baglama_ist
+  category: api.http
+  description: (taslak) var olmayan veri seti ID ile baglama istegi gonderilir
+  aliases:
+    en:
+    - var olmayan veri seti ID ile baglama istegi gonderilir
+  implementations:
+    python:
+      source_file: engine/steps/api/step_test_data.py
+      function: bind_nonexistent
+      pattern: var olmayan veri seti ID ile baglama istegi gonderilir
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: veri_seti_baglanmis
+  category: api.http
+  description: (taslak) veri seti baglanmis
+  aliases:
+    en:
+    - veri seti baglanmis
+  implementations:
+    python:
+      source_file: engine/steps/api/step_test_data.py
+      function: data_bound
+      pattern: veri seti baglanmis
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: veritabaninda
+  category: api.http
+  description: '(taslak) veritabaninda '
+  aliases:
+    en:
+    - 'veritabaninda '
+  implementations:
+    python:
+      source_file: engine/steps/api/step_auth.py
+      function: assert_audit_log
+      pattern: 'veritabaninda '
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: versiyon_listesinde_eski_baslik_versiyon
+  category: api.http
+  description: (taslak) versiyon listesinde eski baslik versiyon 1 olarak saklanmalidir
+  aliases:
+    en:
+    - versiyon listesinde eski baslik versiyon 1 olarak saklanmalidir
+  implementations:
+    python:
+      source_file: engine/steps/api/step_scenarios.py
+      function: assert_version_history
+      pattern: versiyon listesinde eski baslik versiyon 1 olarak saklanmalidir
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: versiyon_ve_versiyon_karsilastirilir
+  category: api.http
+  description: (taslak) versiyon {v1:d} ve versiyon {v2:d} karsilastirilir
+  aliases:
+    en:
+    - versiyon {v1:d} ve versiyon {v2:d} karsilastirilir
+  implementations:
+    python:
+      source_file: engine/steps/api/step_scenarios.py
+      function: compare_versions
+      pattern: versiyon {v1:d} ve versiyon {v2:d} karsilastirilir
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: v1
+    type: string
+    required: true
+  - name: v2
+    type: string
+    required: true
+- id: yanit
+  category: api.http
+  description: '(taslak) yanit '
+  aliases:
+    en:
+    - 'yanit '
+  implementations:
+    python:
+      source_file: engine/steps/api/step_analytics.py
+      function: assert_data_points
+      pattern: 'yanit '
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: yanit_1
+  category: api.http
+  description: (taslak) yanit \
+  aliases:
+    en:
+    - yanit \
+  implementations:
+    python:
+      source_file: engine/steps/api/step_common.py
+      function: assert_field_greater_than_zero
+      pattern: yanit \
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: yanit_hata_mesaji
+  category: api.http
+  description: '(taslak) yanit hata mesaji '
+  aliases:
+    en:
+    - 'yanit hata mesaji '
+  implementations:
+    python:
+      source_file: engine/steps/api/step_common.py
+      function: assert_error_contains
+      pattern: 'yanit hata mesaji '
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: yanit_listesinde_her_onay
+  category: api.http
+  description: '(taslak) yanit listesinde her onay '
+  aliases:
+    tr:
+    - 'yanit listesinde her onay '
+  implementations:
+    python:
+      source_file: engine/steps/api/step_common.py
+      function: assert_list_items_have_fields
+      pattern: 'yanit listesinde her onay '
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: yeni_kosunun_adi
+  category: api.http
+  description: '(taslak) yeni kosunun adi '
+  aliases:
+    en:
+    - 'yeni kosunun adi '
+  implementations:
+    python:
+      source_file: engine/steps/api/step_executions.py
+      function: assert_rerun_name
+      pattern: 'yeni kosunun adi '
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: yeni_kosunun_senaryo_sayisi_orijinal_ile
+  category: api.http
+  description: (taslak) yeni kosunun senaryo sayisi orijinal ile ayni olmalidir
+  aliases:
+    en:
+    - yeni kosunun senaryo sayisi orijinal ile ayni olmalidir
+  implementations:
+    python:
+      source_file: engine/steps/api/step_executions.py
+      function: assert_same_scenario_count
+      pattern: yeni kosunun senaryo sayisi orijinal ile ayni olmalidir
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: yeni_olusturulmus_bos_bir_proje_mevcut
+  category: api.http
+  description: (taslak) yeni olusturulmus bos bir proje mevcut
+  aliases:
+    en:
+    - yeni olusturulmus bos bir proje mevcut
+  implementations:
+    python:
+      source_file: engine/steps/api/step_dashboard.py
+      function: empty_project
+      pattern: yeni olusturulmus bos bir proje mevcut
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: zamanlama
+  category: api.http
+  description: '(taslak) zamanlama '
+  aliases:
+    en:
+    - 'zamanlama '
+  implementations:
+    python:
+      source_file: engine/steps/api/step_schedules.py
+      function: schedule_with_regression
+      pattern: 'zamanlama '
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: zamanlama_bos_cron_ifadesi_ile_olusturma
+  category: api.http
+  description: (taslak) zamanlama bos cron ifadesi ile olusturma istegi gonderilir
+  aliases:
+    en:
+    - zamanlama bos cron ifadesi ile olusturma istegi gonderilir
+  implementations:
+    python:
+      source_file: engine/steps/api/step_schedules.py
+      function: create_empty_cron_schedule
+      pattern: zamanlama bos cron ifadesi ile olusturma istegi gonderilir
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: zamanlama_tetiklenir
+  category: api.http
+  description: (taslak) zamanlama tetiklenir
+  aliases:
+    en:
+    - zamanlama tetiklenir
+  implementations:
+    python:
+      source_file: engine/steps/api/step_schedules.py
+      function: trigger_schedule
+      pattern: zamanlama tetiklenir
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: zamanlamanin
+  category: api.http
+  description: '(taslak) zamanlamanin '
+  aliases:
+    en:
+    - 'zamanlamanin '
+  implementations:
+    python:
+      source_file: engine/steps/api/step_schedules.py
+      function: assert_last_run_updated
+      pattern: 'zamanlamanin '
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: gereksinim_senaryolara_baglanmis
+  category: api.http
+  description: (taslak) {count:d} gereksinim senaryolara baglanmis
+  aliases:
+    en:
+    - '{count:d} gereksinim senaryolara baglanmis'
+  implementations:
+    python:
+      source_file: engine/steps/api/step_requirements.py
+      function: link_requirements
+      pattern: '{count:d} gereksinim senaryolara baglanmis'
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: count
+    type: string
+    required: true
+- id: gunluk_execution_trend_istegi_gonderilir
+  category: api.http
+  description: (taslak) {days:d} gunluk execution trend istegi gonderilir
+  aliases:
+    en:
+    - '{days:d} gunluk execution trend istegi gonderilir'
+  implementations:
+    python:
+      source_file: engine/steps/api/step_analytics.py
+      function: get_trends
+      pattern: '{days:d} gunluk execution trend istegi gonderilir'
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: days
+    type: string
+    required: true
+- id: karakter_uzunlugunda_isim_ile_proje_olus
+  category: api.http
+  description: (taslak) {length:d} karakter uzunlugunda isim ile proje olusturma istegi gonderilir
+  aliases:
+    en:
+    - '{length:d} karakter uzunlugunda isim ile proje olusturma istegi gonderilir'
+  implementations:
+    python:
+      source_file: engine/steps/api/step_projects.py
+      function: create_project_long_name
+      pattern: '{length:d} karakter uzunlugunda isim ile proje olusturma istegi gonderilir'
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: length
+    type: string
+    required: true
+- id: senaryonun_id
+  category: api.http
+  description: (taslak) {count:d} senaryonun ID
+  aliases:
+    en:
+    - '{count:d} senaryonun ID'
+  implementations:
+    python:
+      source_file: engine/steps/api/step_regression.py
+      function: add_scenarios_to_set
+      pattern: '{count:d} senaryonun ID'
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: count
+    type: string
+    required: true

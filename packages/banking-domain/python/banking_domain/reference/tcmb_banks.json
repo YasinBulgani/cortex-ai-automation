@@ -1,0 +1,39 @@
+{
+  "00010": {"name": "Türkiye Cumhuriyet Merkez Bankası A.Ş.", "short": "TCMB", "type": "merkez", "swift": "TCZBTR2A"},
+  "00012": {"name": "Türkiye Halk Bankası A.Ş.", "short": "Halkbank", "type": "kamu", "swift": "TRHBTR2A"},
+  "00015": {"name": "T.C. Ziraat Bankası A.Ş.", "short": "Ziraat Bankası", "type": "kamu", "swift": "TCZBTR2A"},
+  "00017": {"name": "Türkiye İhracat Kredi Bankası A.Ş.", "short": "Türk Eximbank", "type": "kalkınma", "swift": "TIKBTR2A"},
+
+  "00029": {"name": "Turkland Bank A.Ş.", "short": "T-Bank", "type": "özel", "swift": "TLBKTR2A"},
+  "00032": {"name": "Türk Ekonomi Bankası A.Ş.", "short": "TEB", "type": "özel", "swift": "TEBUTRIS"},
+  "00046": {"name": "Akbank T.A.Ş.", "short": "Akbank", "type": "özel", "swift": "AKBKTRIS"},
+  "00059": {"name": "ŞekerBank T.A.Ş.", "short": "Şekerbank", "type": "özel", "swift": "SEKETR2A"},
+  "00062": {"name": "Türkiye Garanti Bankası A.Ş.", "short": "Garanti BBVA", "type": "özel", "swift": "TGBATRIS"},
+  "00064": {"name": "Türkiye İş Bankası A.Ş.", "short": "İş Bankası", "type": "özel", "swift": "ISBKTRIS"},
+  "00067": {"name": "Yapı ve Kredi Bankası A.Ş.", "short": "Yapı Kredi", "type": "özel", "swift": "YAPITRIS"},
+  "00092": {"name": "Anadolubank A.Ş.", "short": "Anadolubank", "type": "özel", "swift": "ANDBTRIS"},
+  "00099": {"name": "Fibabanka A.Ş.", "short": "Fibabanka", "type": "özel", "swift": "FBBATRIS"},
+  "00103": {"name": "Alternatifbank A.Ş.", "short": "Alternatif Bank", "type": "özel", "swift": "ABNKTRIS"},
+  "00108": {"name": "Odea Bank A.Ş.", "short": "Odeabank", "type": "özel", "swift": "ODEBTRIS"},
+  "00111": {"name": "QNB Finansbank A.Ş.", "short": "QNB Finansbank", "type": "özel", "swift": "FNNBTRIS"},
+  "00115": {"name": "Deutsche Bank A.Ş.", "short": "Deutsche Bank", "type": "yabancı", "swift": "DEUTTRIS"},
+  "00121": {"name": "DenizBank A.Ş.", "short": "DenizBank", "type": "özel", "swift": "DENITRIS"},
+  "00124": {"name": "Arap Türk Bankası A.Ş.", "short": "A&T Bank", "type": "özel", "swift": "ARTTTR2A"},
+  "00125": {"name": "Citibank A.Ş.", "short": "Citibank", "type": "yabancı", "swift": "CITITRIX"},
+  "00132": {"name": "HSBC Bank A.Ş.", "short": "HSBC", "type": "yabancı", "swift": "HSBCTRIX"},
+  "00134": {"name": "ING Bank A.Ş.", "short": "ING", "type": "özel", "swift": "INGBTRIS"},
+  "00143": {"name": "Türkiye Ekonomi Bankası A.Ş.", "short": "TEB", "type": "özel", "swift": "TEBUTRIS"},
+  "00146": {"name": "JPMorgan Chase Bank N.A. İstanbul Merkez Şubesi", "short": "JPMorgan", "type": "yabancı", "swift": "CHASTRIS"},
+
+  "00203": {"name": "Albaraka Türk Katılım Bankası A.Ş.", "short": "Albaraka Türk", "type": "katılım", "swift": "BTFHTRIS"},
+  "00205": {"name": "Kuveyt Türk Katılım Bankası A.Ş.", "short": "Kuveyt Türk", "type": "katılım", "swift": "KTEFTRIS"},
+  "00206": {"name": "Türkiye Finans Katılım Bankası A.Ş.", "short": "Türkiye Finans", "type": "katılım", "swift": "AFKBTRIS"},
+  "00209": {"name": "Ziraat Katılım Bankası A.Ş.", "short": "Ziraat Katılım", "type": "katılım", "swift": "ZKBATR2A"},
+  "00210": {"name": "Vakıf Katılım Bankası A.Ş.", "short": "Vakıf Katılım", "type": "katılım", "swift": "VKFATR2A"},
+  "00215": {"name": "Emlak Katılım Bankası A.Ş.", "short": "Emlak Katılım", "type": "katılım", "swift": "EMLKTR2A"},
+
+  "00300": {"name": "Türk Eximbank", "short": "Eximbank", "type": "kalkınma", "swift": "TIKBTR2A"},
+
+  "00800": {"name": "Colendi Bank A.Ş.", "short": "Colendi Bank", "type": "dijital", "swift": "CLDBTR2A"},
+  "00806": {"name": "Enpara.com (QNB)", "short": "Enpara.com", "type": "dijital", "swift": "FNNBTRIS"}
+}

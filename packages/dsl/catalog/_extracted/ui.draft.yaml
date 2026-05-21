@@ -1,0 +1,1283 @@
+version: 0.1.0-draft
+category_name: Ui (OTOMATIK CIKARILDI)
+notes: Bu dosya extract_steps.py tarafindan uretildi. Lutfen rotuslayip catalog/ altina tasiyın.
+actions:
+- id: gereksinim_se_ici_g_r_n_r_olmal_d_r
+  category: ui.select
+  description: (taslak) gereksinim seçici görünür olmalıdır
+  aliases:
+    tr:
+    - gereksinim seçici görünür olmalıdır
+  implementations:
+    python:
+      source_file: engine/steps/bgts_scenario_steps.py
+      function: assert_requirement_selector_visible
+      pattern: gereksinim seçici görünür olmalıdır
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: i_clear_and_enter_p_value_s_into_the_inp
+  category: ui.input
+  description: (taslak) I clear and enter (?P<value>\S+) into the input (?P<key>.+)
+  aliases:
+    en:
+    - I clear and enter (?P<value>\S+) into the input (?P<key>.+)
+  implementations:
+    python:
+      source_file: engine/steps/english_steps.py
+      function: en_clear_and_fill_bare
+      pattern: I clear and enter (?P<value>\S+) into the input (?P<key>.+)
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: i_clear_and_enter_into_the_input
+  category: ui.input
+  description: (taslak) I clear and enter {string} into the input {string}
+  aliases:
+    en:
+    - I clear and enter {string} into the input {string}
+  implementations:
+    java:
+      source_file: frameworks/selenium-cucumber-java/src/test/java/stepdefinitions/InputSteps.java
+      function: clearAndEnterText
+      pattern: I clear and enter {string} into the input {string}
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_clear_the_input
+  category: ui.input
+  description: '(taslak) I clear the input '
+  aliases:
+    en:
+    - 'I clear the input '
+  implementations:
+    python:
+      source_file: engine/steps/english_steps.py
+      function: en_clear
+      pattern: 'I clear the input '
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: i_clear_the_input_field
+  category: ui.input
+  description: (taslak) I clear the input field {string}
+  aliases:
+    en:
+    - I clear the input field {string}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/common-steps.ts
+      pattern: I clear the input field {string}
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_clear_the_input_1
+  category: ui.input
+  description: (taslak) I clear the input {string}
+  aliases:
+    en:
+    - I clear the input {string}
+  implementations:
+    java:
+      source_file: frameworks/selenium-cucumber-java/src/test/java/stepdefinitions/InputSteps.java
+      function: clearTheInputField
+      pattern: I clear the input {string}
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_click_next_page
+  category: ui.click
+  description: (taslak) I click next page
+  aliases:
+    en:
+    - I click next page
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/web-steps.ts
+      pattern: I click next page
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: i_click_on
+  category: ui.click
+  description: '(taslak) I click on '
+  aliases:
+    en:
+    - 'I click on '
+  implementations:
+    python:
+      source_file: engine/steps/english_steps.py
+      function: en_click
+      pattern: 'I click on '
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: i_click_on_p_key
+  category: ui.click
+  description: (taslak) I click on (?P<key>.+)
+  aliases:
+    en:
+    - I click on (?P<key>.+)
+  implementations:
+    python:
+      source_file: engine/steps/english_steps.py
+      function: en_click_bare
+      pattern: I click on (?P<key>.+)
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: i_click_on_a_pending_buy_order_from_the_
+  category: ui.click
+  description: (taslak) I click on a pending buy order from the list
+  aliases:
+    en:
+    - I click on a pending buy order from the list
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/web.steps.ts
+      pattern: I click on a pending buy order from the list
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: i_click_on_a_pending_sell_order_from_the
+  category: ui.click
+  description: (taslak) I click on a pending sell order from the list
+  aliases:
+    en:
+    - I click on a pending sell order from the list
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/web.steps.ts
+      pattern: I click on a pending sell order from the list
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: i_click_on_the_first_selected_cryptocurr
+  category: ui.click
+  description: (taslak) I click on the first selected cryptocurrency
+  aliases:
+    en:
+    - I click on the first selected cryptocurrency
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/web.steps.ts
+      pattern: I click on the first selected cryptocurrency
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: i_click_on_1
+  category: ui.click
+  description: (taslak) I click on {string}
+  aliases:
+    en:
+    - I click on {string}
+  implementations:
+    java:
+      source_file: frameworks/selenium-cucumber-java/src/test/java/stepdefinitions/ClickSteps.java
+      function: clickOnElement
+      pattern: I click on {string}
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/common-steps.ts
+      pattern: I click on {string}
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_click_page
+  category: ui.click
+  description: (taslak) I click page {int}
+  aliases:
+    en:
+    - I click page {int}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/web-steps.ts
+      pattern: I click page {int}
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: int
+    type: string
+    required: true
+- id: i_click_row_with
+  category: ui.click
+  description: (taslak) I click row with {string}
+  aliases:
+    en:
+    - I click row with {string}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/web-steps.ts
+      pattern: I click row with {string}
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_click_the_login_button
+  category: ui.click
+  description: (taslak) I click the Login button
+  aliases:
+    en:
+    - I click the Login button
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/web.steps.ts
+      pattern: I click the Login button
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: i_click_the_button
+  category: ui.click
+  description: (taslak) I click the {string} button
+  aliases:
+    en:
+    - I click the {string} button
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/common-steps.ts
+      pattern: I click the {string} button
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_click_the_button_to_fill_unit_price
+  category: ui.click
+  description: (taslak) I click the {string} button to fill unit price
+  aliases:
+    en:
+    - I click the {string} button to fill unit price
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/web.steps.ts
+      pattern: I click the {string} button to fill unit price
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_click_the_link
+  category: ui.click
+  description: (taslak) I click the {string} link
+  aliases:
+    en:
+    - I click the {string} link
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/common-steps.ts
+      pattern: I click the {string} link
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_click_in_the_modal
+  category: ui.click
+  description: (taslak) I click {string} in the modal
+  aliases:
+    en:
+    - I click {string} in the modal
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/web-steps.ts
+      pattern: I click {string} in the modal
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_double_click_on
+  category: ui.click
+  description: '(taslak) I double click on '
+  aliases:
+    en:
+    - 'I double click on '
+  implementations:
+    python:
+      source_file: engine/steps/english_steps.py
+      function: en_dblclick
+      pattern: 'I double click on '
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: i_double_click_on_1
+  category: ui.click
+  description: (taslak) I double click on {string}
+  aliases:
+    en:
+    - I double click on {string}
+  implementations:
+    java:
+      source_file: frameworks/selenium-cucumber-java/src/test/java/stepdefinitions/ClickSteps.java
+      function: doubleClickOnElement
+      pattern: I double click on {string}
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_enter
+  category: ui.input
+  description: '(taslak) I enter '
+  aliases:
+    en:
+    - 'I enter '
+  implementations:
+    python:
+      source_file: engine/steps/english_steps.py
+      function: en_fill
+      pattern: 'I enter '
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: i_enter_credentials_and_login
+  category: ui.input
+  description: (taslak) I enter credentials and login
+  aliases:
+    en:
+    - I enter credentials and login
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/paribu-steps.ts
+      pattern: I enter credentials and login
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: i_enter_invalid_country_code
+  category: ui.input
+  description: (taslak) I enter invalid country code {string}
+  aliases:
+    en:
+    - I enter invalid country code {string}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/web.steps.ts
+      pattern: I enter invalid country code {string}
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_enter_invalid_mobile_number
+  category: ui.input
+  description: (taslak) I enter invalid mobile number {string}
+  aliases:
+    en:
+    - I enter invalid mobile number {string}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/web.steps.ts
+      pattern: I enter invalid mobile number {string}
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_enter_invalid_password
+  category: ui.input
+  description: (taslak) I enter invalid password {string}
+  aliases:
+    en:
+    - I enter invalid password {string}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/web.steps.ts
+      pattern: I enter invalid password {string}
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_enter_quantity_in_the_buy_sell_panel
+  category: ui.input
+  description: (taslak) I enter quantity {string} in the Buy-Sell panel
+  aliases:
+    en:
+    - I enter quantity {string} in the Buy-Sell panel
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/web.steps.ts
+      pattern: I enter quantity {string} in the Buy-Sell panel
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_enter_the_value_stored_under_into_the_
+  category: ui.input
+  description: (taslak) I enter the value stored under {string} into the input {string}
+  aliases:
+    en:
+    - I enter the value stored under {string} into the input {string}
+  implementations:
+    java:
+      source_file: frameworks/selenium-cucumber-java/src/test/java/stepdefinitions/ScenarioContextSteps.java
+      function: enterValueStoredUnderIntoInput
+      pattern: I enter the value stored under {string} into the input {string}
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_enter_unit_price_in_the_buy_sell_panel
+  category: ui.input
+  description: (taslak) I enter unit price {string} in the Buy-Sell panel
+  aliases:
+    en:
+    - I enter unit price {string} in the Buy-Sell panel
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/web.steps.ts
+      pattern: I enter unit price {string} in the Buy-Sell panel
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_enter_in
+  category: ui.input
+  description: (taslak) I enter {string} in {string}
+  aliases:
+    en:
+    - I enter {string} in {string}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/common-steps.ts
+      pattern: I enter {string} in {string}
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_enter_into_the_input
+  category: ui.input
+  description: (taslak) I enter {string} into the input {string}
+  aliases:
+    en:
+    - I enter {string} into the input {string}
+  implementations:
+    java:
+      source_file: frameworks/selenium-cucumber-java/src/test/java/stepdefinitions/InputSteps.java
+      function: enterTextIntoInput
+      pattern: I enter {string} into the input {string}
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_enter_into_the_input_and_press
+  category: ui.input
+  description: (taslak) I enter {string} into the input {string} and press {string}
+  aliases:
+    en:
+    - I enter {string} into the input {string} and press {string}
+  implementations:
+    java:
+      source_file: frameworks/selenium-cucumber-java/src/test/java/stepdefinitions/InputSteps.java
+      function: enterTextAndPressKey
+      pattern: I enter {string} into the input {string} and press {string}
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_fill_the_form_with
+  category: ui.input
+  description: '(taslak) I fill the form with:'
+  aliases:
+    en:
+    - 'I fill the form with:'
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/web-steps.ts
+      pattern: 'I fill the form with:'
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: i_fill_with
+  category: ui.input
+  description: (taslak) I fill {string} with {string}
+  aliases:
+    en:
+    - I fill {string} with {string}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/common-steps.ts
+      pattern: I fill {string} with {string}
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_hover_over
+  category: ui.hover
+  description: '(taslak) I hover over '
+  aliases:
+    en:
+    - 'I hover over '
+  implementations:
+    python:
+      source_file: engine/steps/english_steps.py
+      function: en_hover
+      pattern: 'I hover over '
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: i_hover_over_1
+  category: ui.hover
+  description: (taslak) I hover over {string}
+  aliases:
+    en:
+    - I hover over {string}
+  implementations:
+    java:
+      source_file: frameworks/selenium-cucumber-java/src/test/java/stepdefinitions/HoverSteps.java
+      function: hoverOver
+      pattern: I hover over {string}
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/common-steps.ts
+      pattern: I hover over {string}
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_press_enter
+  category: ui.input
+  description: (taslak) I press Enter
+  aliases:
+    en:
+    - I press Enter
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/common-steps.ts
+      pattern: I press Enter
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: i_right_click_on
+  category: ui.click
+  description: (taslak) I right click on {string}
+  aliases:
+    en:
+    - I right click on {string}
+  implementations:
+    java:
+      source_file: frameworks/selenium-cucumber-java/src/test/java/stepdefinitions/ClickSteps.java
+      function: rightClickOnElement
+      pattern: I right click on {string}
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_scroll_down_by_pixels
+  category: ui.scroll
+  description: (taslak) I scroll down by {int} pixels
+  aliases:
+    en:
+    - I scroll down by {int} pixels
+  implementations:
+    java:
+      source_file: frameworks/selenium-cucumber-java/src/test/java/stepdefinitions/ScrollSteps.java
+      function: scrollDownByPixels
+      pattern: I scroll down by {int} pixels
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: int
+    type: string
+    required: true
+- id: i_scroll_to
+  category: ui.scroll
+  description: '(taslak) I scroll to '
+  aliases:
+    en:
+    - 'I scroll to '
+  implementations:
+    python:
+      source_file: engine/steps/english_steps.py
+      function: en_scroll_to
+      pattern: 'I scroll to '
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: i_scroll_to_bottom
+  category: ui.scroll
+  description: (taslak) I scroll to bottom
+  aliases:
+    en:
+    - I scroll to bottom
+  implementations:
+    java:
+      source_file: frameworks/selenium-cucumber-java/src/test/java/stepdefinitions/ScrollSteps.java
+      function: scrollToBottom
+      pattern: I scroll to bottom
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: i_scroll_to_the_element
+  category: ui.scroll
+  description: (taslak) I scroll to the element {string}
+  aliases:
+    en:
+    - I scroll to the element {string}
+  implementations:
+    java:
+      source_file: frameworks/selenium-cucumber-java/src/test/java/stepdefinitions/ScrollSteps.java
+      function: scrollToTheElement
+      pattern: I scroll to the element {string}
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_scroll_to_top
+  category: ui.scroll
+  description: (taslak) I scroll to top
+  aliases:
+    en:
+    - I scroll to top
+  implementations:
+    java:
+      source_file: frameworks/selenium-cucumber-java/src/test/java/stepdefinitions/ScrollSteps.java
+      function: scrollToTop
+      pattern: I scroll to top
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: i_scroll_to_1
+  category: ui.scroll
+  description: (taslak) I scroll to {string}
+  aliases:
+    en:
+    - I scroll to {string}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/common-steps.ts
+      pattern: I scroll to {string}
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_scroll_up_by_pixels
+  category: ui.scroll
+  description: (taslak) I scroll up by {int} pixels
+  aliases:
+    en:
+    - I scroll up by {int} pixels
+  implementations:
+    java:
+      source_file: frameworks/selenium-cucumber-java/src/test/java/stepdefinitions/ScrollSteps.java
+      function: scrollUpByPixels
+      pattern: I scroll up by {int} pixels
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: int
+    type: string
+    required: true
+- id: i_select
+  category: ui.select
+  description: '(taslak) I select '
+  aliases:
+    en:
+    - 'I select '
+  implementations:
+    python:
+      source_file: engine/steps/english_steps.py
+      function: en_select
+      pattern: 'I select '
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: i_select_radio_with_value
+  category: ui.select
+  description: (taslak) I select radio {string} with value {string}
+  aliases:
+    en:
+    - I select radio {string} with value {string}
+  implementations:
+    java:
+      source_file: frameworks/selenium-cucumber-java/src/test/java/stepdefinitions/RadioSteps.java
+      function: selectRadioByValue
+      pattern: I select radio {string} with value {string}
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_select_the_filter
+  category: ui.select
+  description: (taslak) I select the {string} filter
+  aliases:
+    en:
+    - I select the {string} filter
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/web.steps.ts
+      pattern: I select the {string} filter
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_select_value_from
+  category: ui.select
+  description: (taslak) I select value {string} from {string}
+  aliases:
+    en:
+    - I select value {string} from {string}
+  implementations:
+    java:
+      source_file: frameworks/selenium-cucumber-java/src/test/java/stepdefinitions/SelectSteps.java
+      function: selectByValue
+      pattern: I select value {string} from {string}
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/common-steps.ts
+      pattern: I select value {string} from {string}
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_select_from
+  category: ui.select
+  description: (taslak) I select {string} from {string}
+  aliases:
+    en:
+    - I select {string} from {string}
+  implementations:
+    java:
+      source_file: frameworks/selenium-cucumber-java/src/test/java/stepdefinitions/SelectSteps.java
+      function: selectByVisibleText
+      pattern: I select {string} from {string}
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/common-steps.ts
+      pattern: I select {string} from {string}
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_select_option_from_dropdown
+  category: ui.select
+  description: (taslak) I select {string} option from dropdown
+  aliases:
+    en:
+    - I select {string} option from dropdown
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/web-steps.ts
+      pattern: I select {string} option from dropdown
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_select_random_coins_with_positive_24h_
+  category: ui.select
+  description: (taslak) I select {int} random coins with positive 24h change
+  aliases:
+    en:
+    - I select {int} random coins with positive 24h change
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/web.steps.ts
+      pattern: I select {int} random coins with positive 24h change
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: int
+    type: string
+    required: true
+- id: i_set_performance_threshold_for_page_loa
+  category: ui.select
+  description: (taslak) I set performance threshold for page load to {int} milliseconds
+  aliases:
+    en:
+    - I set performance threshold for page load to {int} milliseconds
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/performance-steps.ts
+      pattern: I set performance threshold for page load to {int} milliseconds
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: int
+    type: string
+    required: true
+- id: i_type_in
+  category: ui.input
+  description: (taslak) I type {string} in {string}
+  aliases:
+    en:
+    - I type {string} in {string}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/common-steps.ts
+      pattern: I type {string} in {string}
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_upload_the_file_to_the_input
+  category: ui.input
+  description: (taslak) I upload the file {string} to the input {string}
+  aliases:
+    en:
+    - I upload the file {string} to the input {string}
+  implementations:
+    java:
+      source_file: frameworks/selenium-cucumber-java/src/test/java/stepdefinitions/InputSteps.java
+      function: uploadFileToInput
+      pattern: I upload the file {string} to the input {string}
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_verify_radio_is_selected_with_value
+  category: ui.select
+  description: (taslak) I verify radio {string} is selected with value {string}
+  aliases:
+    en:
+    - I verify radio {string} is selected with value {string}
+  implementations:
+    java:
+      source_file: frameworks/selenium-cucumber-java/src/test/java/stepdefinitions/RadioSteps.java
+      function: verifyRadioSelected
+      pattern: I verify radio {string} is selected with value {string}
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_verify_the_selected_option_in_is
+  category: ui.select
+  description: (taslak) I verify the selected option in {string} is {string}
+  aliases:
+    en:
+    - I verify the selected option in {string} is {string}
+  implementations:
+    java:
+      source_file: frameworks/selenium-cucumber-java/src/test/java/stepdefinitions/AssertionSteps.java
+      function: verifySelectedOptionIn
+      pattern: I verify the selected option in {string} is {string}
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_wait_for_element_p_key_to_be_clickable
+  category: ui.click
+  description: (taslak) I wait for element (?P<key>.+) to be clickable
+  aliases:
+    en:
+    - I wait for element (?P<key>.+) to be clickable
+  implementations:
+    python:
+      source_file: engine/steps/english_steps.py
+      function: en_wait_clickable_bare
+      pattern: I wait for element (?P<key>.+) to be clickable
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: i_wait_for_element_to_be_clickable
+  category: ui.click
+  description: (taslak) I wait for element {string} to be clickable
+  aliases:
+    en:
+    - I wait for element {string} to be clickable
+  implementations:
+    java:
+      source_file: frameworks/selenium-cucumber-java/src/test/java/stepdefinitions/WaitSteps.java
+      function: waitForElementClickable
+      pattern: I wait for element {string} to be clickable
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_wait_for_seconds
+  category: ui.select
+  description: (taslak) I wait for {seconds:d} seconds
+  aliases:
+    en:
+    - I wait for {int} seconds
+    - I wait for {seconds:d} seconds
+  implementations:
+    python:
+      source_file: engine/steps/english_steps.py
+      function: en_wait
+      pattern: I wait for {seconds:d} seconds
+    java:
+      source_file: frameworks/selenium-cucumber-java/src/test/java/stepdefinitions/WaitSteps.java
+      function: waitForSeconds
+      pattern: I wait for {int} seconds
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/common-steps.ts
+      pattern: I wait for {int} seconds
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: int
+    type: string
+    required: true
+  - name: seconds
+    type: string
+    required: true
+- id: kullanici_sayfa_basina_scroll_yapar
+  category: ui.scroll
+  description: (taslak) kullanici sayfa basina scroll yapar
+  aliases:
+    tr:
+    - kullanici sayfa basina scroll yapar
+  implementations:
+    python:
+      source_file: engine/steps/scroll_steps.py
+      function: step_scroll_top
+      pattern: kullanici sayfa basina scroll yapar
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: kullanici_sayfa_sonuna_scroll_yapar
+  category: ui.scroll
+  description: (taslak) kullanici sayfa sonuna scroll yapar
+  aliases:
+    tr:
+    - kullanici sayfa sonuna scroll yapar
+  implementations:
+    python:
+      source_file: engine/steps/scroll_steps.py
+      function: step_scroll_bottom
+      pattern: kullanici sayfa sonuna scroll yapar
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: kullanici_sayfayi_asagi_scroll_yapar
+  category: ui.scroll
+  description: (taslak) kullanici sayfayi asagi scroll yapar
+  aliases:
+    tr:
+    - kullanici sayfayi asagi scroll yapar
+  implementations:
+    python:
+      source_file: engine/steps/scroll_steps.py
+      function: step_scroll_down
+      pattern: kullanici sayfayi asagi scroll yapar
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: kullanici_sayfayi_yukari_scroll_yapar
+  category: ui.scroll
+  description: (taslak) kullanici sayfayi yukari scroll yapar
+  aliases:
+    tr:
+    - kullanici sayfayi yukari scroll yapar
+  implementations:
+    python:
+      source_file: engine/steps/scroll_steps.py
+      function: step_scroll_up
+      pattern: kullanici sayfayi yukari scroll yapar
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: kullan_c_enter_tu_una_basar
+  category: ui.input
+  description: (taslak) kullanıcı Enter tuşuna basar
+  aliases:
+    tr:
+    - kullanıcı Enter tuşuna basar
+  implementations:
+    python:
+      source_file: engine/steps/common_steps.py
+      function: press_enter
+      pattern: kullanıcı Enter tuşuna basar
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: kullan_c_se_ili_senaryolar_toplu_siler
+  category: ui.select
+  description: (taslak) kullanıcı seçili senaryoları toplu siler
+  aliases:
+    tr:
+    - kullanıcı seçili senaryoları toplu siler
+  implementations:
+    python:
+      source_file: engine/steps/bgts_scenario_steps.py
+      function: bulk_delete_scenarios
+      pattern: kullanıcı seçili senaryoları toplu siler
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: kullan_c_t_m_senaryolar_se_er
+  category: ui.select
+  description: (taslak) kullanıcı tüm senaryoları seçer
+  aliases:
+    tr:
+    - kullanıcı tüm senaryoları seçer
+  implementations:
+    python:
+      source_file: engine/steps/bgts_scenario_steps.py
+      function: select_all_scenarios
+      pattern: kullanıcı tüm senaryoları seçer
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: page_should_load_within_seconds
+  category: ui.select
+  description: (taslak) page should load within {int} seconds
+  aliases:
+    en:
+    - page should load within {int} seconds
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/web-steps.ts
+      pattern: page should load within {int} seconds
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: int
+    type: string
+    required: true
+- id: the_dom_content_should_load_in_less_than
+  category: ui.select
+  description: (taslak) the DOM content should load in less than {int} milliseconds
+  aliases:
+    en:
+    - the DOM content should load in less than {int} milliseconds
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/performance-steps.ts
+      pattern: the DOM content should load in less than {int} milliseconds
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: int
+    type: string
+    required: true
+- id: the_first_contentful_paint_should_be_les
+  category: ui.select
+  description: (taslak) the first contentful paint should be less than {int} milliseconds
+  aliases:
+    en:
+    - the first contentful paint should be less than {int} milliseconds
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/performance-steps.ts
+      pattern: the first contentful paint should be less than {int} milliseconds
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: int
+    type: string
+    required: true
+- id: the_generated_step_definitions_should_be
+  category: ui.input
+  description: (taslak) the generated step definitions should be valid TypeScript
+  aliases:
+    en:
+    - the generated step definitions should be valid TypeScript
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/recording-steps.ts
+      pattern: the generated step definitions should be valid TypeScript
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: the_largest_contentful_paint_should_be_l
+  category: ui.select
+  description: (taslak) the largest contentful paint should be less than {int} milliseconds
+  aliases:
+    en:
+    - the largest contentful paint should be less than {int} milliseconds
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/performance-steps.ts
+      pattern: the largest contentful paint should be less than {int} milliseconds
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: int
+    type: string
+    required: true
+- id: the_page_load_time_should_be_less_than_m
+  category: ui.select
+  description: (taslak) the page load time should be less than {int} milliseconds
+  aliases:
+    en:
+    - the page load time should be less than {int} milliseconds
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/performance-steps.ts
+      pattern: the page load time should be less than {int} milliseconds
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: int
+    type: string
+    required: true

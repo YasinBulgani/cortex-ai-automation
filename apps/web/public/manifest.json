@@ -1,0 +1,43 @@
+{
+  "name": "Neurex QA",
+  "short_name": "Neurex",
+  "description": "AI-native QA operasyon platformu",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0c0e14",
+  "theme_color": "#6366f1",
+  "orientation": "any",
+  "categories": ["productivity", "developer"],
+  "lang": "tr",
+  "icons": [
+    {
+      "src": "/icon-192.svg",
+      "type": "image/svg+xml",
+      "sizes": "192x192",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.svg",
+      "type": "image/svg+xml",
+      "sizes": "512x512",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Aktivite Monitörü",
+      "url": "/",
+      "description": "Ana panel"
+    },
+    {
+      "name": "Projeler",
+      "url": "/portfolio",
+      "description": "Tüm projeler"
+    },
+    {
+      "name": "Senaryo IDE",
+      "url": "/ide",
+      "description": "Senaryo editörü"
+    }
+  ]
+}

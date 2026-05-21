@@ -1,0 +1,12 @@
+/* Storybook preview frame için minimal stil */
+html, body {
+  margin: 0;
+  font-family: var(--font-sans);
+  background: var(--surface-base);
+  color: var(--fg);
+  font-feature-settings: "tnum", "lnum";
+}
+
+#storybook-root {
+  padding: 1rem;
+}

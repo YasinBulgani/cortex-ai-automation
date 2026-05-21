@@ -1,0 +1,29 @@
+[
+  {
+    "_comment": "Tum cortex senaryolarinda kullanilan ortak locator'lar. ",
+    "_note": "Multi-fallback: ayni key birden fazla entry ile tanimlanabilir, framework sirayla dener."
+  },
+
+  { "key": "pageBody",         "type": "css", "value": "body" },
+  { "key": "loadingSpinner",   "type": "css", "value": ".loading, .spinner, [class*='loading' i], [class*='spinner' i], [aria-busy='true']" },
+
+  { "_comment": "----- Cookie banner / GDPR -----" },
+  { "key": "cookieBanner",     "type": "css", "value": "[class*='cookie' i], [id*='cookie' i], [class*='consent' i]" },
+  { "key": "cookieAcceptButton","type": "css","value": "button[id*='accept' i], button[class*='accept' i]" },
+  { "key": "cookieAcceptButton","type": "xpath","value": "//button[contains(translate(., 'ABCDEFGHIJKLMNOPRSTUVYZÇĞIİÖŞÜ', 'abcdefghijklmnoprstuvyzçğıiöşü'), 'kabul')]" },
+
+  { "_comment": "----- Header / Navigation -----" },
+  { "key": "appLogo",          "type": "css", "value": "header img, [class*='logo' i], a[href='/']" },
+  { "key": "mainNavigation",   "type": "css", "value": "nav[role='navigation'], header nav, [class*='nav-main' i]" },
+  { "key": "userMenu",         "type": "css", "value": "[data-test='user-menu'], [class*='user-menu' i], [aria-label*='user' i] button, .avatar" },
+  { "key": "userMenuButton",   "type": "css", "value": "button[aria-label*='user' i], button[aria-haspopup='true'][class*='user' i]" },
+
+  { "_comment": "----- Toast / Notifications -----" },
+  { "key": "toastNotification","type": "css", "value": "[class*='toast' i], [class*='notification' i], [role='status'], [role='alert']" },
+  { "key": "errorToast",       "type": "css", "value": "[class*='toast' i][class*='error' i], [class*='notification' i][class*='error' i], [class*='alert-danger']" },
+  { "key": "successToast",     "type": "css", "value": "[class*='toast' i][class*='success' i], [class*='alert-success']" },
+
+  { "_comment": "----- Modal -----" },
+  { "key": "modalDialog",      "type": "css", "value": "[role='dialog'], .modal[aria-modal='true'], [class*='modal' i][class*='open' i]" },
+  { "key": "modalCloseButton", "type": "css", "value": "[role='dialog'] button[aria-label*='close' i], .modal button.close, [class*='modal' i] [class*='close' i]" }
+]

@@ -1,0 +1,111 @@
+name: Build Installers
+
+# Tag-triggered cross-platform installer build.
+#  - Mac:     .dmg via hdiutil (runs on macos-latest)
+#  - Windows: .exe via Inno Setup (runs on windows-latest)
+# Output:    GitHub Release with both artifacts attached.
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g. 1.0.0)'
+        required: true
+        default: '1.0.0'
+
+jobs:
+  # ─── macOS DMG ──────────────────────────────────────────────
+  build-macos:
+    name: Build macOS DMG
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve version
+        id: ver
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "version=${{ inputs.version }}" >> $GITHUB_OUTPUT
+          else
+            echo "version=${GITHUB_REF_NAME#v}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Build DMG
+        run: |
+          chmod +x installer/mac/install.sh
+          chmod +x installer/mac/build-dmg.sh
+          chmod +x "installer/mac/Cortex Setup.command"
+          bash installer/mac/build-dmg.sh "${{ steps.ver.outputs.version }}"
+
+      - name: Upload DMG artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: cortex-mac-dmg
+          path: installer/out/*.dmg
+
+  # ─── Windows EXE ────────────────────────────────────────────
+  build-windows:
+    name: Build Windows EXE
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve version
+        id: ver
+        shell: bash
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "version=${{ inputs.version }}" >> $GITHUB_OUTPUT
+          else
+            echo "version=${GITHUB_REF_NAME#v}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Install Inno Setup
+        run: |
+          choco install innosetup -y --no-progress
+          echo "C:\Program Files (x86)\Inno Setup 6" >> $env:GITHUB_PATH
+
+      - name: Build Windows installer
+        shell: cmd
+        run: installer\windows\build.bat ${{ steps.ver.outputs.version }}
+
+      - name: Upload EXE artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: cortex-windows-exe
+          path: installer/out/*.exe
+
+  # ─── Release (only on tag) ──────────────────────────────────
+  release:
+    name: Create GitHub Release
+    needs: [build-macos, build-windows]
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      contents: write
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+
+      - name: Create release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/cortex-mac-dmg/*.dmg
+            dist/cortex-windows-exe/*.exe
+          generate_release_notes: true
+          body: |
+            ## Cortex Otomasyon — ${{ github.ref_name }}
+
+            **Mac**: `Cortex-Otomasyon-Setup-*.dmg`
+              → DMG'yi aç, `Cortex Setup.command` dosyasına çift tıkla.
+
+            **Windows**: `CortexSetup-*-Windows.exe`
+              → EXE'yi çalıştır, sihirbazı takip et.
+
+            Her iki installer da Java/Python/Maven/Playwright'ı **otomatik** kurar.

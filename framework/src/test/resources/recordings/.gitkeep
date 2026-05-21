@@ -1,0 +1,2 @@
+# Recorder ciktilarinin tutulacagi klasor.
+# Recorder.run uzerinden uretilen *.feature dosyalari ve locators/*.json buraya yazilir.

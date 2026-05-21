@@ -1,0 +1,4 @@
+[
+  { "_comment": "Login form validation senaryolari icin locator'lar. Cogu login.json'dan miras alinir." },
+  { "_note": "Bu dosya bos durumdadir cunku validation senaryolari login.json'daki tum key'leri kullanir." }
+]

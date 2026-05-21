@@ -1,0 +1,12 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="Recorder (custom URL)" type="Application" factoryName="Application">
+    <option name="MAIN_CLASS_NAME" value="recorder.RecorderMain" />
+    <module name="template" />
+    <option name="VM_PARAMETERS"
+            value="-Drecorder.url=https://cortex-test.bgtsai.com/ -Drecorder.port=7700 -Drecorder.output.dir=src/test/resources/recordings -Drecorder.browser=chromium -Drecorder.headless=false" />
+    <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+    <method v="2">
+      <option name="Make" enabled="true" />
+    </method>
+  </configuration>
+</component>

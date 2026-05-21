@@ -1,0 +1,163 @@
+import type { Config } from "tailwindcss";
+
+const config: Config = {
+  darkMode: "class",
+  content: [
+    "./app/**/*.{js,ts,jsx,tsx,mdx}",
+    "./components/**/*.{js,ts,jsx,tsx,mdx}",
+  ],
+  theme: {
+    extend: {
+      colors: {
+        surface: {
+          DEFAULT: "var(--surface-base)",
+          base:    "var(--surface-base)",
+          raised:  "var(--surface-raised)",
+          overlay: "var(--surface-overlay)",
+          accent:  "var(--surface-accent)",
+        },
+        fg: {
+          DEFAULT:  "var(--fg)",
+          muted:    "var(--fg-muted)",
+          subtle:   "var(--fg-subtle)",
+          disabled: "var(--fg-disabled)",
+        },
+        bg: "var(--bg)",
+        "bg-subtle": "var(--bg-subtle)",
+        muted: "var(--muted)",
+        "muted-fg": "var(--muted-fg)",
+        border: {
+          DEFAULT: "var(--border)",
+          strong:  "var(--border-strong)",
+          subtle:  "var(--border-subtle)",
+        },
+        brand: {
+          DEFAULT:   "var(--brand-primary)",
+          primary:   "var(--brand-primary)",
+          secondary: "var(--brand-secondary)",
+          soft:      "var(--brand-soft)",
+          fg:        "var(--brand-fg)",
+        },
+        accent: "var(--accent)",
+        "accent-fg": "var(--accent-fg)",
+        "accent-subtle": "var(--accent-subtle)",
+        product: {
+          one:          "var(--product-one)",
+          studio:       "var(--product-studio)",
+          service:      "var(--product-service)",
+          web:          "var(--product-web)",
+          mobile:       "var(--product-mobile)",
+          data:         "var(--product-data)",
+          intelligence: "var(--product-intelligence)",
+          code:         "var(--product-code)",
+        },
+        ai: "var(--ai)",
+        "ai-fg": "var(--ai-fg)",
+        "ai-subtle": "var(--ai-subtle)",
+        success: "var(--success)",
+        "success-fg": "var(--success-fg)",
+        "success-subtle": "var(--success-subtle)",
+        warning: "var(--warning)",
+        "warning-fg": "var(--warning-fg)",
+        "warning-subtle": "var(--warning-subtle)",
+        danger: "var(--danger)",
+        "danger-fg": "var(--danger-fg)",
+        "danger-subtle": "var(--danger-subtle)",
+        info: "var(--info)",
+        "info-fg": "var(--info-fg)",
+        "info-subtle": "var(--info-subtle)",
+      },
+      borderRadius: {
+        xs:   "var(--radius-xs)",
+        sm:   "var(--radius-sm)",
+        DEFAULT: "var(--radius)",
+        md:   "var(--radius-md)",
+        lg:   "var(--radius-lg)",
+        xl:   "var(--radius-xl)",
+        "2xl": "var(--radius-2xl)",
+      },
+      fontFamily: {
+        sans: ["var(--font-sans)", "system-ui", "sans-serif"],
+        mono: ["var(--font-mono)", "ui-monospace", "monospace"],
+      },
+      letterSpacing: {
+        tighter: "var(--tracking-tighter)",
+        tight:   "var(--tracking-tight)",
+        wide:    "var(--tracking-wide)",
+        wider:   "var(--tracking-wider)",
+        widest:  "var(--tracking-widest)",
+      },
+      boxShadow: {
+        xs:        "var(--shadow-xs)",
+        sm:        "var(--shadow-sm)",
+        elevated:  "var(--shadow-elevated)",
+        lg:        "var(--shadow-lg)",
+        xl:        "var(--shadow-xl)",
+        glow:      "var(--shadow-glow)",
+      },
+      zIndex: {
+        base:    "var(--z-base)",
+        raised:  "var(--z-raised)",
+        sticky:  "var(--z-sticky)",
+        overlay: "var(--z-overlay)",
+        modal:   "var(--z-modal)",
+        popover: "var(--z-popover)",
+        toast:   "var(--z-toast)",
+        tooltip: "var(--z-tooltip)",
+      },
+      transitionTimingFunction: {
+        "out-back":   "var(--ease-spring)",
+        "out-expo":   "var(--ease-out)",
+        "in-out-soft":"var(--ease-in-out)",
+      },
+      transitionDuration: {
+        fast:   "var(--duration-fast)",
+        base:   "var(--duration-base)",
+        slow:   "var(--duration-slow)",
+        slower: "var(--duration-slower)",
+      },
+      keyframes: {
+        "fade-in": {
+          from: { opacity: "0" },
+          to: { opacity: "1" },
+        },
+        "slide-in-right": {
+          from: { opacity: "0", transform: "translateX(100%)" },
+          to: { opacity: "1", transform: "translateX(0)" },
+        },
+        "slide-up": {
+          from: { opacity: "0", transform: "translateY(8px)" },
+          to: { opacity: "1", transform: "translateY(0)" },
+        },
+        "slide-down": {
+          from: { opacity: "0", transform: "translateY(-8px)" },
+          to: { opacity: "1", transform: "translateY(0)" },
+        },
+        "scale-in": {
+          from: { opacity: "0", transform: "scale(0.96)" },
+          to: { opacity: "1", transform: "scale(1)" },
+        },
+        "pulse-soft": {
+          "0%, 100%": { opacity: "1" },
+          "50%": { opacity: "0.6" },
+        },
+        shimmer: {
+          "0%": { backgroundPosition: "-200% 0" },
+          "100%": { backgroundPosition: "200% 0" },
+        },
+      },
+      animation: {
+        "slide-in-right": "slide-in-right 220ms var(--ease-out)",
+        "fade-in":    "fade-in 180ms var(--ease-out)",
+        "slide-up":   "slide-up 240ms var(--ease-out)",
+        "slide-down": "slide-down 240ms var(--ease-out)",
+        "scale-in":   "scale-in 180ms var(--ease-out)",
+        "pulse-soft": "pulse-soft 2s ease-in-out infinite",
+        "shimmer":    "shimmer 2s linear infinite",
+      },
+    },
+  },
+  plugins: [],
+};
+
+export default config;

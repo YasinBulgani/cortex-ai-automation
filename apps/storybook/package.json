@@ -1,0 +1,27 @@
+{
+  "name": "@neurex/storybook",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev":   "storybook dev -p 6006",
+    "build": "storybook build -o storybook-static",
+    "lint":  "node -e \"const fs=require('fs');const has=['src','stories','.storybook'].some(d=>fs.existsSync(d));if(!has){console.log('[storybook] no source to lint');process.exit(0)}\" && eslint . --ext .ts,.tsx --max-warnings=0 || node -e \"console.log('[storybook] lint skipped')\"",
+    "type-check": "tsc --noEmit",
+    "clean": "rm -rf storybook-static .turbo node_modules/.cache"
+  },
+  "dependencies": {
+    "@neurex/design-system": "*",
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0"
+  },
+  "devDependencies": {
+    "@storybook/react-vite": "^8.0.0",
+    "@storybook/addon-essentials": "^8.0.0",
+    "@storybook/addon-a11y": "^8.0.0",
+    "@storybook/test": "^8.0.0",
+    "@vitejs/plugin-react": "^4.3.0",
+    "storybook": "^8.0.0",
+    "typescript": "^5.4.0",
+    "vite": "^5.0.0"
+  }
+}

@@ -1,0 +1,89 @@
+# =====================================================
+#  .gitignore — Test Automation Framework
+# =====================================================
+
+# --- Secrets ---
+.env
+.env.local
+.env.*.local
+src/main/resources/password.properties
+src/main/resources/secrets/
+*.key
+*.pem
+
+# --- Node ---
+node_modules/
+dist/
+
+# --- Java ---
+*.class
+target/
+build/
+
+# --- Python ---
+*.py[cod]
+__pycache__/
+*.egg-info/
+.venv/
+venv/
+env/
+.pytest_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# --- Logs / runtime ---
+*.log
+*.log.[0-9]*
+*.log.gz
+logs/*.log
+logs/*.log.[0-9]*
+logs/*.log.gz
+logs/*.tmp
+screenshots/*.png
+screenshots/legacy/
+screenshots/legacy_files/
+!screenshots/.gitkeep
+!screenshots/legacy/.gitkeep
+!screenshots/legacy_files/.gitkeep
+!screenshots/playwright/.gitkeep
+dashboard/runtime/
+dashboard/cache/
+target/playwright-traces/
+target/playwright-videos/
+
+# --- Build artifacts ---
+*.jar
+*.war
+*.exe-build/
+installer-build/
+
+# --- IDE ---
+.idea/
+.vscode/
+*.iml
+nbproject/private/
+
+# --- OS ---
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# --- Reports ---
+TEST*.xml
+target/cucumber-report*
+target/ai_*.txt
+target/ai_*.html
+
+# --- Large media ---
+*.mp4
+*.avi
+*.flv
+*.mov
+*.wmv
+
+# --- Apps ---
+*.app
+
+# --- Python ML model (regenerate with train_model.py) ---
+# python_server/final_model.pkl

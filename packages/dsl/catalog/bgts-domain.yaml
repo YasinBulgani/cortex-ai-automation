@@ -1,0 +1,607 @@
+version: 1.0.0
+category_name: Bgts Actions
+generated_by: packages/dsl/scripts/build_catalog.py
+generated_at: '2026-04-17'
+actions:
+- id: approve_current_draft
+  category: bgts.approval
+  description: 'Eylem: kullanıcı onay taslağını onaylar'
+  aliases:
+    tr:
+    - kullanıcı onay taslağını onaylar
+  implementations:
+    python:
+      source_file: engine/steps/bgts_approval_steps.py
+      function: approve_current_draft
+      pattern: kullanıcı onay taslağını onaylar
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+- id: assert_login_successful
+  category: bgts.auth
+  description: 'Doğrulama: kullanıcı başarıyla giriş yapmış olmalıdır'
+  aliases:
+    tr:
+    - kullanıcı başarıyla giriş yapmış olmalıdır
+  implementations:
+    python:
+      source_file: engine/steps/bgts_login_steps.py
+      function: assert_login_successful
+      pattern: kullanıcı başarıyla giriş yapmış olmalıdır
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+- id: assert_pending_approval_count
+  category: bgts.approval
+  description: 'Doğrulama: bekleyen onay sayısı en az {count:d} olmalıdır'
+  aliases:
+    tr:
+    - bekleyen onay sayısı en az {count:d} olmalıdır
+  implementations:
+    python:
+      source_file: engine/steps/bgts_approval_steps.py
+      function: assert_pending_approval_count
+      pattern: bekleyen onay sayısı en az {count:d} olmalıdır
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+  parameters:
+  - name: count
+    type: int
+    required: true
+- id: assert_project_count
+  category: bgts.project
+  description: 'Doğrulama: proje sayısı en az {count:d} olmalıdır'
+  aliases:
+    tr:
+    - proje sayısı en az {count:d} olmalıdır
+  implementations:
+    python:
+      source_file: engine/steps/bgts_project_steps.py
+      function: assert_project_count
+      pattern: proje sayısı en az {count:d} olmalıdır
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+  parameters:
+  - name: count
+    type: int
+    required: true
+- id: assert_redirected_to_login
+  category: bgts.auth
+  description: 'Doğrulama: kullanıcı giriş sayfasına yönlendirilmelidir'
+  aliases:
+    tr:
+    - kullanıcı giriş sayfasına yönlendirilmelidir
+  implementations:
+    python:
+      source_file: engine/steps/bgts_login_steps.py
+      function: assert_redirected_to_login
+      pattern: kullanıcı giriş sayfasına yönlendirilmelidir
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+- id: assert_regression_check_passed
+  category: bgts.regression
+  description: 'Doğrulama: regresyon kontrolü "{check}" başarılı olmalıdır'
+  aliases:
+    tr:
+    - regresyon kontrolü "{check}" başarılı olmalıdır
+  implementations:
+    python:
+      source_file: engine/steps/bgts_regression_steps.py
+      function: assert_regression_check_passed
+      pattern: regresyon kontrolü "{check}" başarılı olmalıdır
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+  parameters:
+  - name: check
+    type: string
+    required: true
+- id: assert_scenario_count
+  category: bgts.scenario
+  description: 'Doğrulama: senaryo sayısı en az {count:d} olmalıdır'
+  aliases:
+    tr:
+    - senaryo sayısı en az {count:d} olmalıdır
+  implementations:
+    python:
+      source_file: engine/steps/bgts_scenario_steps.py
+      function: assert_scenario_count
+      pattern: senaryo sayısı en az {count:d} olmalıdır
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+  parameters:
+  - name: count
+    type: int
+    required: true
+- id: create_new_project
+  category: bgts.project
+  description: 'Eylem: kullanıcı "{name}" adlı yeni proje oluşturur'
+  aliases:
+    tr:
+    - kullanıcı "{name}" adlı yeni proje oluşturur
+  implementations:
+    python:
+      source_file: engine/steps/bgts_project_steps.py
+      function: create_new_project
+      pattern: kullanıcı "{name}" adlı yeni proje oluşturur
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: name
+    type: string
+    required: true
+- id: create_scenario_2
+  category: bgts.scenario
+  description: 'Eylem: kullanıcı "{title}" başlıklı senaryo oluşturur'
+  aliases:
+    tr:
+    - kullanıcı "{title}" başlıklı senaryo oluşturur
+  implementations:
+    python:
+      source_file: engine/steps/bgts_scenario_steps.py
+      function: create_scenario
+      pattern: kullanıcı "{title}" başlıklı senaryo oluşturur
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: title
+    type: string
+    required: true
+- id: i_generate_test_data_for_the_scenario
+  category: bgts.scenario
+  description: 'Eylem: I generate test data for the scenario'
+  aliases:
+    en:
+    - I generate test data for the scenario
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/ai-steps.ts
+      pattern: I generate test data for the scenario
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+- id: i_have_a_valid_access_token
+  category: bgts.auth
+  description: (Ön koşul) I have a valid access token
+  aliases:
+    tr:
+    - I have a valid access token
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/api.steps.ts
+      pattern: I have a valid access token
+  tags:
+  - auto-extracted
+  - given
+  since: '2026-04-17'
+- id: i_have_invalid_login_credentials
+  category: bgts.auth
+  description: (Ön koşul) I have invalid login credentials
+  aliases:
+    tr:
+    - I have invalid login credentials
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/api.steps.ts
+      pattern: I have invalid login credentials
+  tags:
+  - auto-extracted
+  - given
+  since: '2026-04-17'
+- id: i_have_login_credentials_with_username_a
+  category: bgts.auth
+  description: (Ön koşul) I have login credentials with username {string} and password {string}
+  aliases:
+    tr:
+    - I have login credentials with username {string} and password {string}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/api.steps.ts
+      pattern: I have login credentials with username {string} and password {string}
+  tags:
+  - auto-extracted
+  - given
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_have_valid_login_credentials
+  category: bgts.auth
+  description: (Ön koşul) I have valid login credentials
+  aliases:
+    tr:
+    - I have valid login credentials
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/api.steps.ts
+      pattern: I have valid login credentials
+  tags:
+  - auto-extracted
+  - given
+  since: '2026-04-17'
+- id: i_login_with_and
+  category: bgts.auth
+  description: 'Eylem: I login with {string} and {string}'
+  aliases:
+    tr:
+    - I login with {string} and {string}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/paribu-steps.ts
+      pattern: I login with {string} and {string}
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_login_with_email_and_password_from_tes
+  category: bgts.auth
+  description: 'Eylem: I login with email and password from test data'
+  aliases:
+    tr:
+    - I login with email and password from test data
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/e2e-steps.ts
+      pattern: I login with email and password from test data
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+- id: i_store_the_access_token_for_subsequent
+  category: bgts.auth
+  description: 'Doğrulama: I store the access token for subsequent requests'
+  aliases:
+    en:
+    - I store the access token for subsequent requests
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/api.steps.ts
+      pattern: I store the access token for subsequent requests
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+- id: login_with_credentials
+  category: bgts.auth
+  description: 'Eylem: kullanıcı "{email}" e-postası ve "{password}" parolası ile giriş yapar'
+  aliases:
+    tr:
+    - kullanıcı "{email}" e-postası ve "{password}" parolası ile giriş yapar
+  implementations:
+    python:
+      source_file: engine/steps/bgts_login_steps.py
+      function: login_with_credentials
+      pattern: kullanıcı "{email}" e-postası ve "{password}" parolası ile giriş yapar
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: email
+    type: string
+    required: true
+  - name: password
+    type: string
+    required: true
+- id: navigate_to_regression_module
+  category: bgts.regression
+  description: 'Eylem: kullanıcı regresyon modülü "{module}" sayfasına gider'
+  aliases:
+    tr:
+    - kullanıcı regresyon modülü "{module}" sayfasına gider
+  implementations:
+    python:
+      source_file: engine/steps/bgts_regression_steps.py
+      function: navigate_to_regression_module
+      pattern: kullanıcı regresyon modülü "{module}" sayfasına gider
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: module
+    type: string
+    required: true
+- id: open_approval_item
+  category: bgts.approval
+  description: 'Eylem: kullanıcı "{approval_id}" onay öğesini açar'
+  aliases:
+    tr:
+    - kullanıcı "{approval_id}" onay öğesini açar
+  implementations:
+    python:
+      source_file: engine/steps/bgts_approval_steps.py
+      function: open_approval_item
+      pattern: kullanıcı "{approval_id}" onay öğesini açar
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: approval_id
+    type: string
+    required: true
+- id: open_approval_queue
+  category: bgts.approval
+  description: 'Eylem: kullanıcı onay kuyruğu sayfasını açar'
+  aliases:
+    tr:
+    - kullanıcı onay kuyruğu sayfasını açar
+  implementations:
+    python:
+      source_file: engine/steps/bgts_smoke_steps.py
+      function: open_approval_queue
+      pattern: kullanıcı onay kuyruğu sayfasını açar
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+- id: open_first_approval_item
+  category: bgts.approval
+  description: 'Eylem: kullanıcı ilk onay öğesini açar'
+  aliases:
+    tr:
+    - kullanıcı ilk onay öğesini açar
+  implementations:
+    python:
+      source_file: engine/steps/bgts_approval_steps.py
+      function: open_first_approval_item
+      pattern: kullanıcı ilk onay öğesini açar
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+- id: open_project_list
+  category: bgts.project
+  description: 'Eylem: kullanıcı proje listesi sayfasını açar'
+  aliases:
+    tr:
+    - kullanıcı proje listesi sayfasını açar
+  implementations:
+    python:
+      source_file: engine/steps/bgts_smoke_steps.py
+      function: open_project_list
+      pattern: kullanıcı proje listesi sayfasını açar
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+- id: open_scenario_list
+  category: bgts.scenario
+  description: 'Eylem: kullanıcı senaryo listesi sayfasını açar'
+  aliases:
+    tr:
+    - kullanıcı senaryo listesi sayfasını açar
+  implementations:
+    python:
+      source_file: engine/steps/bgts_smoke_steps.py
+      function: open_scenario_list
+      pattern: kullanıcı senaryo listesi sayfasını açar
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+- id: quick_login
+  category: bgts.auth
+  description: (Ön koşul) kullanıcı hızlı giriş yapmıştır
+  aliases:
+    tr:
+    - kullanıcı hızlı giriş yapmıştır
+  implementations:
+    python:
+      source_file: engine/steps/bgts_smoke_steps.py
+      function: quick_login
+      pattern: kullanıcı hızlı giriş yapmıştır
+  tags:
+  - auto-extracted
+  - given
+  since: '2026-04-17'
+- id: regression_environment_ready
+  category: bgts.regression
+  description: (Ön koşul) regresyon test ortamı hazırdır
+  aliases:
+    tr:
+    - regresyon test ortamı hazırdır
+  implementations:
+    python:
+      source_file: engine/steps/bgts_regression_steps.py
+      function: regression_environment_ready
+      pattern: regresyon test ortamı hazırdır
+  tags:
+  - auto-extracted
+  - given
+  since: '2026-04-17'
+- id: reject_current_draft
+  category: bgts.approval
+  description: 'Eylem: kullanıcı onay taslağını reddeder'
+  aliases:
+    tr:
+    - kullanıcı onay taslağını reddeder
+  implementations:
+    python:
+      source_file: engine/steps/bgts_approval_steps.py
+      function: reject_current_draft
+      pattern: kullanıcı onay taslağını reddeder
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+- id: submit_empty_login_form
+  category: bgts.auth
+  description: 'Eylem: kullanıcı giriş formunu boş bırakıp gönderir'
+  aliases:
+    tr:
+    - kullanıcı giriş formunu boş bırakıp gönderir
+  implementations:
+    python:
+      source_file: engine/steps/bgts_login_steps.py
+      function: submit_empty_login_form
+      pattern: kullanıcı giriş formunu boş bırakıp gönderir
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+- id: user_logged_in_as_admin
+  category: bgts.auth
+  description: (Ön koşul) kullanıcı admin olarak giriş yapmıştır
+  aliases:
+    tr:
+    - kullanıcı admin olarak giriş yapmıştır
+  implementations:
+    python:
+      source_file: engine/steps/bgts_login_steps.py
+      function: user_logged_in_as_admin
+      pattern: kullanıcı admin olarak giriş yapmıştır
+  tags:
+  - auto-extracted
+  - given
+  since: '2026-04-17'
+- id: user_logged_in_with_role
+  category: bgts.auth
+  description: (Ön koşul) kullanıcı "{role}" rolüyle giriş yapmıştır
+  aliases:
+    tr:
+    - kullanıcı "{role}" rolüyle giriş yapmıştır
+  implementations:
+    python:
+      source_file: engine/steps/bgts_login_steps.py
+      function: user_logged_in_with_role
+      pattern: kullanıcı "{role}" rolüyle giriş yapmıştır
+  tags:
+  - auto-extracted
+  - given
+  since: '2026-04-17'
+  parameters:
+  - name: role
+    type: string
+    required: true
+- id: user_on_login_page_waiting
+  category: bgts.auth
+  description: (Ön koşul) kullanıcı giriş sayfasında bekliyor
+  aliases:
+    tr:
+    - kullanıcı giriş sayfasında bekliyor
+  implementations:
+    python:
+      source_file: engine/steps/bgts_login_steps.py
+      function: user_on_login_page_waiting
+      pattern: kullanıcı giriş sayfasında bekliyor
+  tags:
+  - auto-extracted
+  - given
+  since: '2026-04-17'
+- id: user_on_new_scenario_form
+  category: bgts.scenario
+  description: (Ön koşul) kullanıcı yeni senaryo formunda
+  aliases:
+    tr:
+    - kullanıcı yeni senaryo formunda
+  implementations:
+    python:
+      source_file: engine/steps/bgts_scenario_steps.py
+      function: user_on_new_scenario_form
+      pattern: kullanıcı yeni senaryo formunda
+  tags:
+  - auto-extracted
+  - given
+  since: '2026-04-17'
+- id: user_on_project_approval_queue
+  category: bgts.approval
+  description: (Ön koşul) kullanıcı "{project_id}" projesinin onay kuyruğunda
+  aliases:
+    tr:
+    - kullanıcı "{project_id}" projesinin onay kuyruğunda
+  implementations:
+    python:
+      source_file: engine/steps/bgts_approval_steps.py
+      function: user_on_project_approval_queue
+      pattern: kullanıcı "{project_id}" projesinin onay kuyruğunda
+  tags:
+  - auto-extracted
+  - given
+  since: '2026-04-17'
+  parameters:
+  - name: project_id
+    type: string
+    required: true
+- id: user_viewing_approval_queue
+  category: bgts.approval
+  description: (Ön koşul) kullanıcı onay kuyruğunu görüntülüyor
+  aliases:
+    tr:
+    - kullanıcı onay kuyruğunu görüntülüyor
+  implementations:
+    python:
+      source_file: engine/steps/bgts_approval_steps.py
+      function: user_viewing_approval_queue
+      pattern: kullanıcı onay kuyruğunu görüntülüyor
+  tags:
+  - auto-extracted
+  - given
+  since: '2026-04-17'
+- id: user_viewing_project_list
+  category: bgts.project
+  description: (Ön koşul) kullanıcı proje listesini görüntülüyor
+  aliases:
+    tr:
+    - kullanıcı proje listesini görüntülüyor
+  implementations:
+    python:
+      source_file: engine/steps/bgts_project_steps.py
+      function: user_viewing_project_list
+      pattern: kullanıcı proje listesini görüntülüyor
+  tags:
+  - auto-extracted
+  - given
+  since: '2026-04-17'
+- id: user_viewing_scenario_list
+  category: bgts.scenario
+  description: (Ön koşul) kullanıcı senaryo listesini görüntülüyor
+  aliases:
+    tr:
+    - kullanıcı senaryo listesini görüntülüyor
+  implementations:
+    python:
+      source_file: engine/steps/bgts_scenario_steps.py
+      function: user_viewing_scenario_list
+      pattern: kullanıcı senaryo listesini görüntülüyor
+  tags:
+  - auto-extracted
+  - given
+  since: '2026-04-17'
+- id: view_scenario_detail
+  category: bgts.scenario
+  description: 'Eylem: kullanıcı senaryo detayını görüntüler'
+  aliases:
+    tr:
+    - kullanıcı senaryo detayını görüntüler
+  implementations:
+    python:
+      source_file: engine/steps/bgts_scenario_steps.py
+      function: view_scenario_detail
+      pattern: kullanıcı senaryo detayını görüntüler
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'

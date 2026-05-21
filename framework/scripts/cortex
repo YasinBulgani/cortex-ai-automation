@@ -1,0 +1,115 @@
+#!/usr/bin/env bash
+# =============================================================
+#  cortex — single-entry CLI for the Cortex automation framework
+#
+#    cortex smoke               Run smoke suite
+#    cortex regression          Run full regression
+#    cortex parallel [N]        Run regression in N threads (default 4)
+#    cortex tag "@xss or @sqli" Run by tag expression
+#    cortex feature <path>      Run a single feature file
+#    cortex rerun               Re-run only previously failed scenarios
+#    cortex debug <path>        Headed, slow-mo, trace + video
+#    cortex headless            Headless regression
+#    cortex record [url]        Open recorder targeting given URL
+#    cortex lint                Run LocatorLinter
+#    cortex report              Open Allure report (must be installed)
+#    cortex install             Install Playwright browsers
+#    cortex dashboard           Start the Flask dashboard
+#    cortex clean               mvn clean + remove target/
+# =============================================================
+set -euo pipefail
+
+cd "$(dirname "$0")/.."
+
+MVN="./mvnw"
+if [ ! -x "$MVN" ]; then MVN="mvn"; fi
+
+cmd=${1:-help}
+shift || true
+
+case "$cmd" in
+  smoke)
+    $MVN -B test -Psmoke
+    ;;
+  regression)
+    $MVN -B test -Pregression
+    ;;
+  parallel)
+    n=${1:-4}
+    $MVN -B test -Pparallel -Dparallel.threads="$n"
+    ;;
+  tag)
+    [ -z "${1:-}" ] && { echo "Usage: cortex tag \"@expr\""; exit 1; }
+    $MVN -B test -Dcucumber.filter.tags="$1"
+    ;;
+  feature)
+    [ -z "${1:-}" ] && { echo "Usage: cortex feature <path>"; exit 1; }
+    $MVN -B test -Dcucumber.features="$1"
+    ;;
+  rerun)
+    [ ! -s target/failed.txt ] && { echo "No previous failures (target/failed.txt empty/missing)"; exit 0; }
+    $MVN -B test -Dcucumber.features=@target/failed.txt
+    ;;
+  debug)
+    [ -z "${1:-}" ] && { echo "Usage: cortex debug <feature-path>"; exit 1; }
+    $MVN -B test -Pdebug -Dcucumber.features="$1"
+    ;;
+  headless)
+    $MVN -B test -Pregression,parallel,headless
+    ;;
+  record)
+    url=${1:-}
+    if [ -n "$url" ]; then
+      $MVN -B -Precorder compile exec:java -Drecorder.url="$url"
+    else
+      $MVN -B -Precorder compile exec:java
+    fi
+    ;;
+  lint)
+    $MVN -B -q compile exec:java -Dexec.mainClass=utils.LocatorLinter
+    ;;
+  report)
+    $MVN -B allure:serve
+    ;;
+  install)
+    $MVN -B -q compile exec:java \
+      -Dexec.mainClass=com.microsoft.playwright.CLI \
+      -Dexec.args="install --with-deps chromium"
+    ;;
+  dashboard)
+    if [ -f scripts/start-dashboard.sh ]; then
+      bash scripts/start-dashboard.sh
+    else
+      echo "scripts/start-dashboard.sh missing"; exit 1
+    fi
+    ;;
+  clean)
+    $MVN -B clean
+    rm -rf target screenshots/playwright/*
+    ;;
+  help|-h|--help|*)
+    cat <<'USAGE'
+cortex — Cortex automation CLI
+
+Suites:
+  cortex smoke                     run @smoke tagged scenarios
+  cortex regression                full @cortex regression
+  cortex parallel [N]              parallel run (default 4 threads)
+  cortex headless                  parallel + headless
+
+Targeted runs:
+  cortex tag "@security or @xss"   filter by tag expression
+  cortex feature <path>            single feature file
+  cortex rerun                     re-run previous failures
+  cortex debug <path>              slow-mo + trace + video
+
+Tooling:
+  cortex record [url]              IntelliJ-free recorder run
+  cortex lint                      LocatorLinter
+  cortex report                    open Allure report
+  cortex install                   install Playwright browsers
+  cortex dashboard                 start Flask dashboard
+  cortex clean                     mvn clean + nuke target/
+USAGE
+    ;;
+esac

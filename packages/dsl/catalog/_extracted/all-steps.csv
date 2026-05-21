@@ -1,0 +1,757 @@
+lang,keyword,pattern,source_file,function_name,language_hint,params
+python,given,projede kosu verileri mevcut,engine/steps/api/step_analytics.py,execution_data_exists,unknown,
+python,when,{days:d} gunluk execution trend istegi gonderilir,engine/steps/api/step_analytics.py,get_trends,unknown,days
+python,then,"yanit ""data_points"" listesi doner",engine/steps/api/step_analytics.py,assert_data_points,unknown,
+python,then,"her veri noktasinda ""{fields}"" alanlari bulunmalidir",engine/steps/api/step_analytics.py,assert_point_fields,unknown,fields
+python,given,ayni senaryo farkli kosularda passed ve failed olmus,engine/steps/api/step_analytics.py,flaky_scenario_setup,unknown,
+python,when,flaky test listesi istenir,engine/steps/api/step_analytics.py,get_flaky_tests,unknown,
+python,then,"sonuc listesinde ilgili senaryo ""flip_count >= 1"" ile gorunmelidir",engine/steps/api/step_analytics.py,assert_flaky,unknown,
+python,when,kosu istatistikleri istenir,engine/steps/api/step_analytics.py,get_stats,unknown,
+python,when,"""{name}"" adli koleksiyon olusturulur",engine/steps/api/step_api_tests.py,create_collection,unknown,name
+python,given,projede bir API koleksiyonu olusturulmus,engine/steps/api/step_api_tests.py,collection_created,unknown,
+python,when,"koleksiyona ""{name}"" adli GET {path} request\'i eklenir",engine/steps/api/step_api_tests.py,add_request,tr,"name,path"
+python,given,koleksiyonda en az 1 request mevcut,engine/steps/api/step_api_tests.py,collection_has_request,unknown,
+python,when,koleksiyon calistirilir,engine/steps/api/step_api_tests.py,run_collection,unknown,
+python,then,"sonuc listesinde her request icin ""status_code"" ve ""passed"" alanlari donmelidir",engine/steps/api/step_api_tests.py,assert_run_results,unknown,
+python,given,koleksiyonda erisilemez base_url'li request mevcut,engine/steps/api/step_api_tests.py,unreachable_collection,unknown,
+python,then,"sonuc listesinde ""passed"" false ve ""error"" alani dolu olmalidir",engine/steps/api/step_api_tests.py,assert_error_results,unknown,
+python,given,projede onay kayitlari mevcut,engine/steps/api/step_approvals.py,approvals_exist,tr,
+python,when,onay listesi istenir,engine/steps/api/step_approvals.py,list_approvals,tr,
+python,given,"projede ""{status}"" statusunde bir onay mevcut",engine/steps/api/step_approvals.py,pending_approval_exists,tr,status
+python,when,"onay icin ""{decision}"" karari verilir",engine/steps/api/step_approvals.py,decide_approval,tr,decision
+python,then,"onay statusu ""{status}"" olmalidir",engine/steps/api/step_approvals.py,assert_approval_status,tr,status
+python,then,"onay ""{field}"" alani dolu olmalidir",engine/steps/api/step_approvals.py,assert_approval_field,tr,field
+python,when,var olmayan onay ID ile karar istegi gonderilir,engine/steps/api/step_approvals.py,decide_nonexistent,tr,
+python,given,devre disi birakilmis bir kullanici mevcut,engine/steps/api/step_auth.py,inactive_user_exists,tr,
+python,when,devre disi kullanicinin bilgileriyle login istegi gonderilir,engine/steps/api/step_auth.py,login_inactive_user,unknown,
+python,then,"veritabaninda ""auth.login"" aksiyonlu audit log kaydi bulunmalidir",engine/steps/api/step_auth.py,assert_audit_log,unknown,
+python,when,asagidaki analiz metni ile BDD uretim istegi gonderilir:,engine/steps/api/step_bdd_generation.py,generate_bdd_from_text,unknown,
+python,when,"""{text}"" analiz metni ile BDD uretim istegi gonderilir",engine/steps/api/step_bdd_generation.py,generate_bdd_short,unknown,text
+python,given,BDD senaryolari basariyla uretilmis,engine/steps/api/step_bdd_generation.py,bdd_scenarios_generated,unknown,
+python,when,uretilen senaryolar kaydetme istegi ile gonderilir,engine/steps/api/step_bdd_generation.py,save_bdd_scenarios,unknown,
+python,then,"kaydedilen tum senaryolar ""draft"" statusunde olmalidir",engine/steps/api/step_bdd_generation.py,assert_all_draft,unknown,
+python,given,backend servisi ayakta,engine/steps/api/step_common.py,backend_ready,unknown,
+python,given,admin kullanicisi seed edilmis,engine/steps/api/step_common.py,admin_seeded,unknown,
+python,given,kullanici oturum acmis,engine/steps/api/step_common.py,user_logged_in,tr,
+python,given,kullanici oturum acmamis,engine/steps/api/step_common.py,user_not_logged_in,tr,
+python,given,bir test projesi olusturulmus,engine/steps/api/step_common.py,project_created,unknown,
+python,given,"""{name}"" isimli proje olusturulmus",engine/steps/api/step_common.py,named_project_created,unknown,name
+python,given,projede bir senaryo olusturulmus,engine/steps/api/step_common.py,scenario_created,unknown,
+python,given,"projede ""{title}"" baslikli senaryo olusturulmus",engine/steps/api/step_common.py,named_scenario_created,unknown,title
+python,given,projede en az {count:d} senaryo olusturulmus,engine/steps/api/step_common.py,multiple_scenarios_created,unknown,count
+python,given,projede {count:d} senaryo olusturulmus,engine/steps/api/step_common.py,exact_scenarios_created,unknown,count
+python,given,projede en az 1 senaryo mevcut,engine/steps/api/step_common.py,at_least_one_scenario,unknown,
+python,given,projede hic senaryo yok,engine/steps/api/step_common.py,no_scenarios,unknown,
+python,given,projede bir gereksinim olusturulmus,engine/steps/api/step_common.py,requirement_created,unknown,
+python,when,"""{email}"" ve ""{password}"" ile login istegi gonderilir",engine/steps/api/step_common.py,login_request,unknown,"email,password"
+python,when,/api/v1/auth/me endpoint'ine GET istegi gonderilir,engine/steps/api/step_common.py,get_me,unknown,
+python,when,/api/v1/tspm/projects endpoint'ine token olmadan GET istegi gonderilir,engine/steps/api/step_common.py,get_projects_anon,unknown,
+python,then,HTTP yanit kodu {code:d} olmalidir,engine/steps/api/step_common.py,assert_status_code,unknown,code
+python,then,HTTP yanit kodu 401 veya 403 olmalidir,engine/steps/api/step_common.py,assert_unauthorized,unknown,
+python,then,"yanit ""{field}"" alani dolu olmalidir",engine/steps/api/step_common.py,assert_field_not_empty,unknown,field
+python,then,"yanit ""{field}"" alani ""{value}"" olmalidir",engine/steps/api/step_common.py,assert_field_equals_string,unknown,"field,value"
+python,then,"yanit ""{field}"" alani {value:d} olmalidir",engine/steps/api/step_common.py,assert_field_equals_int,unknown,"field,value"
+python,then,"yanit ""{field}"" alani false olmalidir",engine/steps/api/step_common.py,assert_field_false,unknown,field
+python,then,"yanit ""{field}"" alani sayi olmalidir",engine/steps/api/step_common.py,assert_field_is_number,unknown,field
+python,then,"yanit \""{field}\"" alani 0'dan buyuk olmalidir",engine/steps/api/step_common.py,assert_field_greater_than_zero,unknown,field
+python,then,"yanit hata mesaji ""{text}"" icermelidir",engine/steps/api/step_common.py,assert_error_contains,unknown,text
+python,then,"yanit ""{field}"" listesi bos olmamalidir",engine/steps/api/step_common.py,assert_list_not_empty,unknown,field
+python,then,"yanit listesinde her onay ""{fields}"" alanlarini icermelidir",engine/steps/api/step_common.py,assert_list_items_have_fields,tr,fields
+python,given,"projede senaryolar, onaylar, importlar ve kosular mevcut",engine/steps/api/step_dashboard.py,populated_project,unknown,
+python,when,proje dashboard istegi gonderilir,engine/steps/api/step_dashboard.py,get_dashboard,unknown,
+python,given,yeni olusturulmus bos bir proje mevcut,engine/steps/api/step_dashboard.py,empty_project,unknown,
+python,when,"senaryo ID\'leri ile ""{name}"" adli kosu olusturulur",engine/steps/api/step_executions.py,create_execution,unknown,name
+python,given,bir test kosusu olusturulmus,engine/steps/api/step_executions.py,execution_created,unknown,
+python,when,kosu detayi istenir,engine/steps/api/step_executions.py,get_execution_detail,unknown,
+python,then,"her senaryo icin ""pending"" statusunde sonuc kaydi bulunmalidir",engine/steps/api/step_executions.py,assert_pending_results,unknown,
+python,then,"her sonuc kaydinda ""{field}"" alani dolu olmalidir",engine/steps/api/step_executions.py,assert_result_field,unknown,field
+python,when,"ilk sonuc kaydinin statusu ""{status}"" olarak guncellenir",engine/steps/api/step_executions.py,update_first_result,tr,status
+python,then,"kosu detayindaki ilgili sonuc ""{status}"" olmalidir",engine/steps/api/step_executions.py,assert_result_status,unknown,status
+python,when,kosu re-run istegi gonderilir,engine/steps/api/step_executions.py,rerun_execution,unknown,
+python,then,"yeni kosunun adi ""(re-run)"" son eki icermelidir",engine/steps/api/step_executions.py,assert_rerun_name,unknown,
+python,then,yeni kosunun senaryo sayisi orijinal ile ayni olmalidir,engine/steps/api/step_executions.py,assert_same_scenario_count,unknown,
+python,when,var olmayan kosu ID ile re-run istegi gonderilir,engine/steps/api/step_executions.py,rerun_nonexistent,unknown,
+python,when,bos senaryo listesi ile kosu olusturulur,engine/steps/api/step_executions.py,create_empty_execution,unknown,
+python,when,"""{name}"" ismiyle yeni akis olusturulur",engine/steps/api/step_flows.py,create_flow,unknown,name
+python,given,projede bir akis olusturulmus,engine/steps/api/step_flows.py,flow_created,unknown,
+python,when,akisin nodes ve edges verisi guncellenir,engine/steps/api/step_flows.py,update_flow_graph,tr,
+python,then,akis detayinda guncel nodes ve edges donmelidir,engine/steps/api/step_flows.py,assert_flow_graph,unknown,
+python,when,"""{provider}"" provider\'i ile entegrasyon olusturulur",engine/steps/api/step_integrations.py,create_integration,unknown,provider
+python,given,projede bir entegrasyon olusturulmus,engine/steps/api/step_integrations.py,integration_created,unknown,
+python,when,entegrasyon sync istegi gonderilir,engine/steps/api/step_integrations.py,sync_integration,unknown,
+python,when,""""" provider\'i ile entegrasyon olusturma istegi gonderilir",engine/steps/api/step_integrations.py,create_empty_provider,unknown,
+python,given,baska bir kullanici mevcut,engine/steps/api/step_members.py,other_user_exists,tr,
+python,when,"kullanici ""{role}"" roluyle projeye eklenir",engine/steps/api/step_members.py,add_member,tr,role
+python,given,projede bir uye mevcut,engine/steps/api/step_members.py,member_exists,unknown,
+python,when,uye projeden cikarilir,engine/steps/api/step_members.py,remove_member,unknown,
+python,then,uye listesinde gorulmemelidir,engine/steps/api/step_members.py,assert_member_removed,unknown,
+python,when,kullanici rol belirtilmeden projeye eklenir,engine/steps/api/step_members.py,add_member_no_role,tr,
+python,when,"""{name}"" ismi ve ""{desc}"" ile proje olusturma istegi gonderilir",engine/steps/api/step_projects.py,create_project_with_desc,unknown,"name,desc"
+python,when,"""{name}"" ismi ile proje olusturma istegi gonderilir",engine/steps/api/step_projects.py,create_project,unknown,name
+python,when,{length:d} karakter uzunlugunda isim ile proje olusturma istegi gonderilir,engine/steps/api/step_projects.py,create_project_long_name,unknown,length
+python,when,proje listesi istenir,engine/steps/api/step_projects.py,list_projects,unknown,
+python,then,"listenin ilk elemani ""{name}"" olmalidir",engine/steps/api/step_projects.py,assert_first_project,unknown,name
+python,when,var olmayan proje ID ile dashboard istegi gonderilir,engine/steps/api/step_projects.py,get_nonexistent_dashboard,unknown,
+python,when,"""{name}"" ismiyle regresyon seti olusturulur",engine/steps/api/step_regression.py,create_regression_set,unknown,name
+python,given,projede bir regresyon seti olusturulmus,engine/steps/api/step_regression.py,regression_set_created,unknown,
+python,given,projede {count:d} senaryo olusturulmus,engine/steps/api/step_regression.py,create_n_scenarios,unknown,count
+python,when,{count:d} senaryonun ID'leri regresyon setine eklenir,engine/steps/api/step_regression.py,add_scenarios_to_set,tr,count
+python,then,set detayinda {count:d} senaryo bulunmalidir,engine/steps/api/step_regression.py,assert_set_count,unknown,count
+python,given,regresyon setinde {count:d} senaryo mevcut,engine/steps/api/step_regression.py,set_has_scenarios,unknown,count
+python,when,ayni senaryo ID'leri tekrar eklenir,engine/steps/api/step_regression.py,re_add_scenarios,tr,
+python,then,set detayindaki senaryo sayisi degismemelidir,engine/steps/api/step_regression.py,assert_count_unchanged,unknown,
+python,when,AI regresyon seti oneri istegi gonderilir,engine/steps/api/step_regression.py,request_ai_suggestion,unknown,
+python,then,"yanit ""sets"" listesi en az {count:d} oneri icermelidir",engine/steps/api/step_regression.py,assert_suggestions,unknown,count
+python,given,AI regresyon seti onerileri alinmis,engine/steps/api/step_regression.py,ai_suggestions_received,unknown,
+python,when,secilen oneriler kabul edilir,engine/steps/api/step_regression.py,accept_suggestions,unknown,
+python,then,onerilen setler basariyla olusturulmus olmalidir,engine/steps/api/step_regression.py,assert_sets_created,unknown,
+python,when,"""{ext_id}"" kimlikli ""{title}"" baslikli gereksinim olusturulur",engine/steps/api/step_requirements.py,create_requirement,unknown,"ext_id,title"
+python,when,senaryo ile gereksinim iliskilendirilir,engine/steps/api/step_requirements.py,link_scenario_requirement,unknown,
+python,then,"gereksinim detayinda ""scenario_count"" {count:d} olmalidir",engine/steps/api/step_requirements.py,assert_req_scenario_count,unknown,count
+python,given,senaryo-gereksinim baglantisi mevcut,engine/steps/api/step_requirements.py,link_exists,unknown,
+python,when,ayni baglanti tekrar gonderilir,engine/steps/api/step_requirements.py,re_link,unknown,
+python,given,projede {count:d} gereksinim olusturulmus,engine/steps/api/step_requirements.py,create_requirements,unknown,count
+python,given,{count:d} gereksinim senaryolara baglanmis,engine/steps/api/step_requirements.py,link_requirements,unknown,count
+python,when,kapsam matrisi istenir,engine/steps/api/step_requirements.py,get_coverage_matrix,unknown,
+python,then,"""{field}"" {value:d} olmalidir",engine/steps/api/step_requirements.py,assert_coverage_field_int,unknown,"field,value"
+python,then,"""{field}"" yaklasik {value:f} olmalidir",engine/steps/api/step_requirements.py,assert_coverage_field_float,unknown,"field,value"
+python,given,projede baglanmamis gereksinimler mevcut,engine/steps/api/step_requirements.py,unlinked_requirements,unknown,
+python,when,kapsam bosluklari istenir,engine/steps/api/step_requirements.py,get_coverage_gaps,unknown,
+python,then,baglanmamis gereksinimler listede gorulmalidir,engine/steps/api/step_requirements.py,assert_gaps,unknown,
+python,when,gereksinim silinir,engine/steps/api/step_requirements.py,delete_requirement,tr,
+python,then,kapsam matrisinde ilgili gereksinim bulunmamalidir,engine/steps/api/step_requirements.py,assert_req_deleted_from_matrix,unknown,
+python,when,""""" kimlikli gereksinim olusturma istegi gonderilir",engine/steps/api/step_requirements.py,create_empty_req,unknown,
+python,when,"""{title}"" baslikli yeni senaryo olusturulur",engine/steps/api/step_scenarios.py,create_scenario,unknown,title
+python,when,"senaryonun basligi ""{title}"" olarak guncellenir",engine/steps/api/step_scenarios.py,update_scenario_title,tr,title
+python,then,versiyon listesinde eski baslik versiyon 1 olarak saklanmalidir,engine/steps/api/step_scenarios.py,assert_version_history,unknown,
+python,given,baska bir projede bir senaryo olusturulmus,engine/steps/api/step_scenarios.py,scenario_in_other_project,unknown,
+python,when,bu senaryoya mevcut proje uzerinden erisim denenir,engine/steps/api/step_scenarios.py,access_cross_project_scenario,unknown,
+python,when,"senaryolar ""{term}"" arama terimiyle filtrelenir",engine/steps/api/step_scenarios.py,search_scenarios,unknown,term
+python,then,"sonuc listesinde yalnizca ""{term}"" iceren senaryolar bulunmalidir",engine/steps/api/step_scenarios.py,assert_search_results,unknown,term
+python,when,ilk 2 senaryonun ID'leri ile toplu silme istegi gonderilir,engine/steps/api/step_scenarios.py,bulk_delete,unknown,
+python,then,senaryo listesinde yalnizca silinmeyen senaryo kalmalidir,engine/steps/api/step_scenarios.py,assert_remaining_scenario,unknown,
+python,when,o senaryonun ID'si ile mevcut projede toplu silme denenir,engine/steps/api/step_scenarios.py,bulk_delete_cross_project,unknown,
+python,then,diger projenin senaryosu silinmemis olmalidir,engine/steps/api/step_scenarios.py,assert_other_scenario_exists,unknown,
+python,given,senaryo basligi guncellenmis,engine/steps/api/step_scenarios.py,scenario_title_updated,unknown,
+python,when,versiyon {v1:d} ve versiyon {v2:d} karsilastirilir,engine/steps/api/step_scenarios.py,compare_versions,unknown,"v1,v2"
+python,then,"diff sonucunda ""{field}"" true olmalidir",engine/steps/api/step_scenarios.py,assert_diff_field_true,unknown,field
+python,when,"""{name}"" adli ""{cron}"" cron ile zamanlama olusturulur",engine/steps/api/step_schedules.py,create_schedule,unknown,"name,cron"
+python,given,aktif bir zamanlama ve senaryolari mevcut,engine/steps/api/step_schedules.py,active_schedule,unknown,
+python,when,zamanlama tetiklenir,engine/steps/api/step_schedules.py,trigger_schedule,unknown,
+python,then,"yeni kosunun adi ""Scheduled:"" on eki icermelidir",engine/steps/api/step_schedules.py,assert_scheduled_name,unknown,
+python,then,"zamanlamanin ""last_run_at"" alani guncellenmis olmalidir",engine/steps/api/step_schedules.py,assert_last_run_updated,unknown,
+python,given,senaryo atamasi olmayan bir zamanlama mevcut,engine/steps/api/step_schedules.py,empty_schedule,unknown,
+python,given,"zamanlama ""scenario_ids"" bos ve ""regression_set_id"" dolu",engine/steps/api/step_schedules.py,schedule_with_regression,unknown,
+python,given,regression set'te senaryolar mevcut,engine/steps/api/step_schedules.py,regression_has_scenarios,unknown,
+python,then,kosu regression set'teki senaryolarla olusturulmalidir,engine/steps/api/step_schedules.py,assert_regression_execution,unknown,
+python,when,zamanlama bos cron ifadesi ile olusturma istegi gonderilir,engine/steps/api/step_schedules.py,create_empty_cron_schedule,unknown,
+python,when,asagidaki yapiyla test veri seti olusturulur:,engine/steps/api/step_test_data.py,create_test_data,unknown,
+python,given,projede bir senaryo ve veri seti olusturulmus,engine/steps/api/step_test_data.py,scenario_and_data,unknown,
+python,when,senaryo ile veri seti parametre eslesimiyle baglanir,engine/steps/api/step_test_data.py,bind_data,unknown,
+python,given,"senaryo adimlari ""{{kullanici}}"" yer tutucusu icerir",engine/steps/api/step_test_data.py,scenario_with_placeholder,tr,kullanici
+python,given,veri seti baglanmis,engine/steps/api/step_test_data.py,data_bound,unknown,
+python,when,genisletilmis senaryo istenir,engine/steps/api/step_test_data.py,get_expanded,unknown,
+python,then,her veri satiri icin adimlar genisletilmis donmelidir,engine/steps/api/step_test_data.py,assert_expanded,unknown,
+python,then,"""{{kullanici}}"" yerine gercek degerler yerlestirilmis olmalidir",engine/steps/api/step_test_data.py,assert_replaced,tr,kullanici
+python,given,projede bir senaryo mevcut,engine/steps/api/step_test_data.py,scenario_exists,unknown,
+python,when,var olmayan veri seti ID ile baglama istegi gonderilir,engine/steps/api/step_test_data.py,bind_nonexistent,unknown,
+python,then,"""{key}"" elementi gorunur olmalidir",engine/steps/assertion_steps.py,step_assert_visible,tr,key
+python,then,"""{key}"" elementi gizli olmalidir",engine/steps/assertion_steps.py,step_assert_hidden,unknown,key
+python,then,"""{key}"" elementinin metni ""{expected}"" olmalidir",engine/steps/assertion_steps.py,step_assert_text,unknown,"key,expected"
+python,then,"""{key}"" elementinin degeri ""{expected}"" olmalidir",engine/steps/assertion_steps.py,step_assert_value,unknown,"key,expected"
+python,then,"""{key}"" elementi aktif olmalidir",engine/steps/assertion_steps.py,step_assert_enabled,unknown,key
+python,then,"""{key}"" elementi deaktif olmalidir",engine/steps/assertion_steps.py,step_assert_disabled,unknown,key
+python,then,"sayfada ""{count:d}"" adet ""{key}"" elementi bulunmalidir",engine/steps/assertion_steps.py,step_assert_count,unknown,"count,key"
+python,then,"sayfa URL\'si ""{text}"" icermelidir",engine/steps/assertion_steps.py,step_assert_url,unknown,text
+python,then,"sayfa basligi ""{text}"" icermelidir",engine/steps/assertion_steps.py,step_assert_title,unknown,text
+python,when,API sağlık kontrolü yapılır,engine/steps/bgts_api_steps.py,api_health_check,tr,
+python,when,API hazırlık kontrolü yapılır,engine/steps/bgts_api_steps.py,api_ready_check,tr,
+python,when,API ile geçerli kimlik bilgileriyle giriş yapılır,engine/steps/bgts_api_steps.py,api_login_valid,tr,
+python,when,API ile geçersiz parola ile giriş yapılır,engine/steps/bgts_api_steps.py,api_login_invalid,tr,
+python,when,API ile kullanıcı bilgisi sorgulanır,engine/steps/bgts_api_steps.py,api_auth_me,tr,
+python,when,API ile token olmadan kullanıcı bilgisi sorgulanır,engine/steps/bgts_api_steps.py,api_auth_me_no_token,tr,
+python,when,API ile proje listesi sorgulanır,engine/steps/bgts_api_steps.py,api_list_projects,tr,
+python,when,API ile yeni proje oluşturulur,engine/steps/bgts_api_steps.py,api_create_project,tr,
+python,when,API ile proje dashboard sorgulanır,engine/steps/bgts_api_steps.py,api_project_dashboard,tr,
+python,when,API ile senaryo listesi sorgulanır,engine/steps/bgts_api_steps.py,api_list_scenarios,tr,
+python,when,API ile yeni senaryo oluşturulur,engine/steps/bgts_api_steps.py,api_create_scenario,tr,
+python,when,API ile senaryo güncellenir,engine/steps/bgts_api_steps.py,api_update_scenario,tr,
+python,when,API ile senaryolar toplu silinir,engine/steps/bgts_api_steps.py,api_bulk_delete_scenarios,tr,
+python,when,API ile BDD üretimi yapılır,engine/steps/bgts_api_steps.py,api_generate_bdd,tr,
+python,when,API ile onay listesi sorgulanır,engine/steps/bgts_api_steps.py,api_list_approvals,tr,
+python,when,API ile onay kararı verilir,engine/steps/bgts_api_steps.py,api_approval_decide,tr,
+python,when,API ile koşu oluşturulur,engine/steps/bgts_api_steps.py,api_create_execution,tr,
+python,when,API ile koşu trendleri sorgulanır,engine/steps/bgts_api_steps.py,api_execution_trends,tr,
+python,when,API ile flaky testler sorgulanır,engine/steps/bgts_api_steps.py,api_flaky_tests,tr,
+python,when,API ile regresyon seti oluşturulur,engine/steps/bgts_api_steps.py,api_create_regression_set,tr,
+python,when,API ile zamanlama oluşturulur,engine/steps/bgts_api_steps.py,api_create_schedule,tr,
+python,when,API ile zamanlama tetiklenir,engine/steps/bgts_api_steps.py,api_trigger_schedule,unknown,
+python,when,API ile gereksinim oluşturulur,engine/steps/bgts_api_steps.py,api_create_requirement,tr,
+python,when,API ile kapsam matrisi sorgulanır,engine/steps/bgts_api_steps.py,api_coverage_matrix,tr,
+python,when,API ile kapsam boşlukları sorgulanır,engine/steps/bgts_api_steps.py,api_coverage_gaps,tr,
+python,when,API ile koleksiyon oluşturulur,engine/steps/bgts_api_steps.py,api_create_collection,tr,
+python,when,API ile koleksiyon çalıştırılır,engine/steps/bgts_api_steps.py,api_run_collection,tr,
+python,when,Engine ile feature listesi sorgulanır,engine/steps/bgts_api_steps.py,engine_list_features,tr,
+python,when,Engine ile test koşusu başlatılır,engine/steps/bgts_api_steps.py,engine_run_tests,tr,
+python,when,Engine ile regresyon setleri sorgulanır,engine/steps/bgts_api_steps.py,engine_regression_sets,tr,
+python,when,Engine ile AI feature üretilir,engine/steps/bgts_api_steps.py,engine_generate_feature,tr,
+python,when,Engine ile görsel karşılaştırma yapılır,engine/steps/bgts_api_steps.py,engine_visual_compare,tr,
+python,when,Engine ile erişilebilirlik taraması yapılır,engine/steps/bgts_api_steps.py,engine_a11y_scan,tr,
+python,when,API ile dosya yüklenir,engine/steps/bgts_api_steps.py,api_upload_file,tr,
+python,when,API ile veri analizi yapılır,engine/steps/bgts_api_steps.py,api_analyze_data,tr,
+python,when,API ile PII tespiti yapılır,engine/steps/bgts_api_steps.py,api_detect_pii,tr,
+python,when,API ile sentetik veri üretilir,engine/steps/bgts_api_steps.py,api_generate_synthetic,tr,
+python,when,API ile entegrasyon oluşturulur,engine/steps/bgts_api_steps.py,api_create_integration,tr,
+python,when,API ile bildirim listesi sorgulanır,engine/steps/bgts_api_steps.py,api_list_notifications,tr,
+python,then,API yanıt kodu {code:d} olmalıdır,engine/steps/bgts_api_steps.py,assert_status_code,tr,code
+python,then,"API yanıtı ""{field}"" alanını içermelidir",engine/steps/bgts_api_steps.py,assert_response_has_field,tr,field
+python,then,API yanıtı başarılı olmalıdır,engine/steps/bgts_api_steps.py,assert_api_success,tr,
+python,given,kullanıcı onay kuyruğunu görüntülüyor,engine/steps/bgts_approval_steps.py,user_viewing_approval_queue,tr,
+python,given,"kullanıcı ""{project_id}"" projesinin onay kuyruğunda",engine/steps/bgts_approval_steps.py,user_on_project_approval_queue,tr,project_id
+python,when,"kullanıcı ""{approval_id}"" onay öğesini açar",engine/steps/bgts_approval_steps.py,open_approval_item,tr,approval_id
+python,when,kullanıcı ilk onay öğesini açar,engine/steps/bgts_approval_steps.py,open_first_approval_item,tr,
+python,when,"kullanıcı ""{approval_id}"" onayını onaylar",engine/steps/bgts_approval_steps.py,approve_item,tr,approval_id
+python,when,"kullanıcı ""{approval_id}"" onayını reddeder",engine/steps/bgts_approval_steps.py,reject_item,tr,approval_id
+python,when,"kullanıcı ""{approval_id}"" onayını ""{reason}"" sebebiyle reddeder",engine/steps/bgts_approval_steps.py,reject_item_with_reason,tr,"approval_id,reason"
+python,when,kullanıcı onay taslağını onaylar,engine/steps/bgts_approval_steps.py,approve_current_draft,tr,
+python,when,kullanıcı onay taslağını reddeder,engine/steps/bgts_approval_steps.py,reject_current_draft,tr,
+python,when,"kullanıcı taslağı ""{content}"" olarak düzenleyip onaylar",engine/steps/bgts_approval_steps.py,edit_and_approve_draft,tr,content
+python,then,onay listesi görünür olmalıdır,engine/steps/bgts_approval_steps.py,assert_approval_list_visible,tr,
+python,then,bekleyen onay sayısı görünür olmalıdır,engine/steps/bgts_approval_steps.py,assert_pending_count_visible,tr,
+python,then,split view paneli görünür olmalıdır,engine/steps/bgts_approval_steps.py,assert_split_view_visible,tr,
+python,then,kaynak panel görünür olmalıdır,engine/steps/bgts_approval_steps.py,assert_source_panel_visible,tr,
+python,then,taslak panel görünür olmalıdır,engine/steps/bgts_approval_steps.py,assert_draft_panel_visible,tr,
+python,then,başarı mesajı veya onay listesi görünür olmalıdır,engine/steps/bgts_approval_steps.py,assert_success_or_list_visible,tr,
+python,then,bekleyen onay sayısı en az {count:d} olmalıdır,engine/steps/bgts_approval_steps.py,assert_pending_approval_count,tr,count
+python,given,kullanıcı içe aktarma sayfasında bekliyor,engine/steps/bgts_import_steps.py,user_on_import_page_waiting,tr,
+python,given,"kullanıcı ""{project_id}"" projesi için içe aktarma sayfasındadır",engine/steps/bgts_import_steps.py,user_on_project_import_page,tr,project_id
+python,when,"kullanıcı ""{filename}"" dosyasını içe aktarma alanına yükler",engine/steps/bgts_import_steps.py,upload_import_file,tr,filename
+python,when,kullanıcı içe aktarma formunu gönderir,engine/steps/bgts_import_steps.py,submit_import_form,tr,
+python,when,"kullanıcı ""{filename}"" dosya adını girer",engine/steps/bgts_import_steps.py,fill_import_filename,tr,filename
+python,then,içe aktarma sayfası yüklenmiş olmalıdır,engine/steps/bgts_import_steps.py,assert_import_page_loaded,tr,
+python,then,içe aktarma sonucu görünür olmalıdır,engine/steps/bgts_import_steps.py,assert_import_result_visible,tr,
+python,then,içe aktarma formu görünür olmalıdır,engine/steps/bgts_import_steps.py,assert_import_form_visible,tr,
+python,given,kullanıcı giriş sayfasında bekliyor,engine/steps/bgts_login_steps.py,user_on_login_page_waiting,tr,
+python,given,"kullanıcı ""{role}"" rolüyle giriş yapmıştır",engine/steps/bgts_login_steps.py,user_logged_in_with_role,tr,role
+python,given,kullanıcı admin olarak giriş yapmıştır,engine/steps/bgts_login_steps.py,user_logged_in_as_admin,tr,
+python,when,"kullanıcı ""{email}"" e-postası ve ""{password}"" parolası ile giriş yapar",engine/steps/bgts_login_steps.py,login_with_credentials,tr,"email,password"
+python,when,kullanıcı oturumu kapatır,engine/steps/bgts_login_steps.py,user_logs_out,tr,
+python,when,kullanıcı giriş formunu boş bırakıp gönderir,engine/steps/bgts_login_steps.py,submit_empty_login_form,tr,
+python,then,kullanıcı başarıyla giriş yapmış olmalıdır,engine/steps/bgts_login_steps.py,assert_login_successful,tr,
+python,then,hata mesajı görünür olmalıdır,engine/steps/bgts_login_steps.py,assert_error_message_visible,tr,
+python,then,kullanıcı giriş sayfasına yönlendirilmelidir,engine/steps/bgts_login_steps.py,assert_redirected_to_login,tr,
+python,then,kullanıcı projeler sayfasına yönlendirilmelidir,engine/steps/bgts_login_steps.py,assert_redirected_to_projects,tr,
+python,then,giriş formu görünür olmalıdır,engine/steps/bgts_login_steps.py,assert_login_form_visible,tr,
+python,given,kullanıcı proje listesini görüntülüyor,engine/steps/bgts_project_steps.py,user_viewing_project_list,tr,
+python,given,"kullanıcı ""{project_name}"" projesinin dashboard\'ında",engine/steps/bgts_project_steps.py,user_on_project_dashboard,tr,project_name
+python,when,"kullanıcı ""{name}"" adlı yeni proje oluşturur",engine/steps/bgts_project_steps.py,create_new_project,tr,name
+python,when,"kullanıcı ""{name}"" adlı projeye tıklar",engine/steps/bgts_project_steps.py,click_project,tr,name
+python,when,"kullanıcı ""{name}"" projesini siler",engine/steps/bgts_project_steps.py,delete_project,tr,name
+python,when,"kullanıcı projeleri ""{query}"" ile arar",engine/steps/bgts_project_steps.py,search_projects,tr,query
+python,when,"kullanıcı sidebar\'dan ""{section}"" bölümüne gider",engine/steps/bgts_project_steps.py,navigate_via_sidebar,tr,section
+python,then,proje listesi görünür olmalıdır,engine/steps/bgts_project_steps.py,assert_project_list_visible,tr,
+python,then,"""{name}"" projesi listede görünür olmalıdır",engine/steps/bgts_project_steps.py,assert_project_in_list,tr,name
+python,then,dashboard istatistikleri görünür olmalıdır,engine/steps/bgts_project_steps.py,assert_dashboard_stats_visible,tr,
+python,then,hızlı aksiyon butonları görünür olmalıdır,engine/steps/bgts_project_steps.py,assert_quick_actions_visible,tr,
+python,then,proje sayısı en az {count:d} olmalıdır,engine/steps/bgts_project_steps.py,assert_project_count,tr,count
+python,given,regresyon test ortamı hazırdır,engine/steps/bgts_regression_steps.py,regression_environment_ready,tr,
+python,when,"kullanıcı regresyon modülü ""{module}"" sayfasına gider",engine/steps/bgts_regression_steps.py,navigate_to_regression_module,tr,module
+python,when,kullanıcı tüm ana modülleri sırayla ziyaret eder,engine/steps/bgts_regression_steps.py,visit_all_modules,tr,
+python,then,"""{module}"" modülü erişilebilir olmalıdır",engine/steps/bgts_regression_steps.py,assert_module_accessible,tr,module
+python,then,sayfa hatasız yüklenmiş olmalıdır,engine/steps/bgts_regression_steps.py,assert_no_page_errors,tr,
+python,then,"regresyon kontrolü ""{check}"" başarılı olmalıdır",engine/steps/bgts_regression_steps.py,assert_regression_check_passed,tr,check
+python,given,kullanıcı senaryo listesini görüntülüyor,engine/steps/bgts_scenario_steps.py,user_viewing_scenario_list,tr,
+python,given,kullanıcı yeni senaryo formunda,engine/steps/bgts_scenario_steps.py,user_on_new_scenario_form,tr,
+python,when,"kullanıcı senaryoları ""{query}"" ile arar",engine/steps/bgts_scenario_steps.py,search_scenarios,tr,query
+python,when,"kullanıcı senaryoları ""{priority}"" önceliğine göre filtreler",engine/steps/bgts_scenario_steps.py,filter_by_priority,tr,priority
+python,when,"kullanıcı senaryoları ""{scenario_type}"" türüne göre filtreler",engine/steps/bgts_scenario_steps.py,filter_by_type,tr,scenario_type
+python,when,"kullanıcı ""{title}"" başlıklı senaryo oluşturur",engine/steps/bgts_scenario_steps.py,create_scenario,tr,title
+python,when,"kullanıcı ""{scenario_id}"" senaryosunu düzenler",engine/steps/bgts_scenario_steps.py,edit_scenario_step,tr,scenario_id
+python,when,"kullanıcı ""{scenario_id}"" senaryosunu siler",engine/steps/bgts_scenario_steps.py,delete_scenario_step,tr,scenario_id
+python,when,kullanıcı tüm senaryoları seçer,engine/steps/bgts_scenario_steps.py,select_all_scenarios,tr,
+python,when,kullanıcı seçili senaryoları toplu siler,engine/steps/bgts_scenario_steps.py,bulk_delete_scenarios,tr,
+python,when,"kullanıcı ""{text}"" metni ile BDD senaryosu üretir",engine/steps/bgts_scenario_steps.py,generate_bdd_scenario,tr,text
+python,when,kullanıcı üretilen senaryoları kaydeder,engine/steps/bgts_scenario_steps.py,save_generated_scenarios,tr,
+python,when,kullanıcı senaryo detayını görüntüler,engine/steps/bgts_scenario_steps.py,view_scenario_detail,tr,
+python,when,kullanıcı versiyon geçmişini açar,engine/steps/bgts_scenario_steps.py,view_version_history,tr,
+python,then,senaryo tablosu görünür olmalıdır,engine/steps/bgts_scenario_steps.py,assert_scenario_table_visible,tr,
+python,then,senaryo sayısı en az {count:d} olmalıdır,engine/steps/bgts_scenario_steps.py,assert_scenario_count,tr,count
+python,then,toplu işlem butonları görünür olmalıdır,engine/steps/bgts_scenario_steps.py,assert_bulk_actions_visible,tr,
+python,then,doğrulama hatası görünür olmalıdır,engine/steps/bgts_scenario_steps.py,assert_validation_error_visible,tr,
+python,then,üretilen senaryolar görünür olmalıdır,engine/steps/bgts_scenario_steps.py,assert_generated_scenarios_visible,tr,
+python,then,senaryo detay bilgileri görünür olmalıdır,engine/steps/bgts_scenario_steps.py,assert_scenario_detail_visible,tr,
+python,then,versiyon listesi görünür olmalıdır,engine/steps/bgts_scenario_steps.py,assert_version_list_visible,tr,
+python,then,gereksinim seçici görünür olmalıdır,engine/steps/bgts_scenario_steps.py,assert_requirement_selector_visible,tr,
+python,given,kullanıcı hızlı giriş yapmıştır,engine/steps/bgts_smoke_steps.py,quick_login,tr,
+python,when,kullanıcı ana sayfanın yüklendiğini doğrular,engine/steps/bgts_smoke_steps.py,verify_homepage_loads,tr,
+python,when,"kullanıcı ""{url}"" endpoint\'ine GET isteği gönderir",engine/steps/bgts_smoke_steps.py,send_get_request,tr,url
+python,when,kullanıcı proje listesi sayfasını açar,engine/steps/bgts_smoke_steps.py,open_project_list,tr,
+python,when,kullanıcı senaryo listesi sayfasını açar,engine/steps/bgts_smoke_steps.py,open_scenario_list,tr,
+python,when,kullanıcı onay kuyruğu sayfasını açar,engine/steps/bgts_smoke_steps.py,open_approval_queue,tr,
+python,when,kullanıcı içe aktarma sayfasını açar,engine/steps/bgts_smoke_steps.py,open_import_page,tr,
+python,then,sayfa başarıyla yüklenmiş olmalıdır,engine/steps/bgts_smoke_steps.py,assert_page_loaded,tr,
+python,then,kullanıcı başarıyla çıkış yapmış olmalıdır,engine/steps/bgts_smoke_steps.py,assert_logged_out,tr,
+python,then,"""{element}"" elementi sayfada mevcut olmalıdır",engine/steps/bgts_smoke_steps.py,assert_element_present,tr,element
+python,then,platform temel işlevleri çalışır durumda olmalıdır,engine/steps/bgts_smoke_steps.py,assert_platform_healthy,tr,
+python,given,sentetik veri API servisi çalışıyor,engine/steps/bgts_synthetic_steps.py,synthetic_api_health_check,tr,
+python,given,"kullanıcı ""{dataset_id}"" veri setini seçmiştir",engine/steps/bgts_synthetic_steps.py,select_dataset,tr,dataset_id
+python,when,kullanıcı API üzerinden CSV dosyası yükler,engine/steps/bgts_synthetic_steps.py,api_upload_csv,tr,
+python,when,kullanıcı API üzerinden veri analizi başlatır,engine/steps/bgts_synthetic_steps.py,api_analyze_dataset,tr,
+python,when,kullanıcı API üzerinden {count:d} adet sentetik kayıt üretir,engine/steps/bgts_synthetic_steps.py,api_generate_synthetic,tr,count
+python,when,kullanıcı API üzerinden PII taraması başlatır,engine/steps/bgts_synthetic_steps.py,api_pii_scan,tr,
+python,when,"kullanıcı API üzerinden veri setini ""{fmt}"" formatında dışa aktarır",engine/steps/bgts_synthetic_steps.py,api_export_dataset,tr,fmt
+python,then,API yükleme başarılı olmalıdır,engine/steps/bgts_synthetic_steps.py,assert_api_upload_success,tr,
+python,then,API analiz sonuçları dönmüş olmalıdır,engine/steps/bgts_synthetic_steps.py,assert_api_analysis_success,tr,
+python,then,API sentetik veri üretimi başarılı olmalıdır,engine/steps/bgts_synthetic_steps.py,assert_api_generation_success,tr,
+python,then,PII tarama sonuçları dönmüş olmalıdır,engine/steps/bgts_synthetic_steps.py,assert_pii_scan_success,tr,
+python,then,API dışa aktarma başarılı olmalıdır,engine/steps/bgts_synthetic_steps.py,assert_api_export_success,tr,
+python,when,"kullanici ""{key}"" checkbox\'ini isaretler",engine/steps/checkbox_steps.py,step_check,tr,key
+python,when,"kullanici ""{key}"" checkbox\'inin isaretini kaldirir",engine/steps/checkbox_steps.py,step_uncheck,tr,key
+python,then,"""{key}"" checkbox\'i isaretli olmalidir",engine/steps/checkbox_steps.py,step_assert_checked,unknown,key
+python,then,"""{key}"" checkbox\'i isaretli olmamalidir",engine/steps/checkbox_steps.py,step_assert_unchecked,unknown,key
+python,when,"kullanici ""{key}"" elementine tiklar",engine/steps/click_steps.py,step_click_element,tr,key
+python,when,"kullanici ""{key}"" elementine cift tiklar",engine/steps/click_steps.py,step_double_click,tr,key
+python,when,"kullanici ""{key}"" elementine sag tiklar",engine/steps/click_steps.py,step_right_click,tr,key
+python,when,"kullanici ""{text}"" metnine tiklar",engine/steps/click_steps.py,step_click_text,tr,text
+python,when,"kullanici ""{key}"" elementine force tiklar",engine/steps/click_steps.py,step_force_click,tr,key
+python,given,kullanıcı ana sayfadadır,engine/steps/common_steps.py,navigate_to_home,tr,
+python,given,"kullanıcı ""{path}"" sayfasındadır",engine/steps/common_steps.py,navigate_to_path,tr,path
+python,when,"kullanıcı ""{text}"" metnine tıklar",engine/steps/common_steps.py,click_text,tr,text
+python,when,"kullanıcı ""{selector}"" seçicisini tıklar",engine/steps/common_steps.py,click_selector,tr,selector
+python,when,"kullanıcı arama kutusuna ""{value}"" yazar",engine/steps/common_steps.py,fill_search,tr,value
+python,when,"kullanıcı ""{selector}"" kutusuna ""{value}"" yazar",engine/steps/common_steps.py,fill_input,tr,"selector,value"
+python,when,kullanıcı Enter tuşuna basar,engine/steps/common_steps.py,press_enter,tr,
+python,when,"kullanıcı ""{selector}"" alanına ""{value}"" yazıp Enter\'a basar",engine/steps/common_steps.py,fill_and_enter,tr,"selector,value"
+python,when,"kullanıcı ""{ms}"" milisaniye bekler",engine/steps/common_steps.py,wait_ms,tr,ms
+python,when,"AI ""{task}"" görevini gerçekleştirir",engine/steps/common_steps.py,ai_perform_task,tr,task
+python,then,"sayfa başlığı ""{text}"" içermelidir",engine/steps/common_steps.py,assert_title_contains,tr,text
+python,then,"URL ""{text}"" içermelidir",engine/steps/common_steps.py,assert_url_contains,tr,text
+python,then,"""{selector}"" elementi görünür olmalıdır",engine/steps/common_steps.py,assert_element_visible,tr,selector
+python,then,en az 1 adım başarılı olmalıdır,engine/steps/common_steps.py,assert_at_least_one_passed,tr,
+python,then,"""{selector}"" elementinin değerini ""{key}"" olarak kaydet",engine/steps/common_steps.py,save_element_text,tr,"selector,key"
+python,when,"""{selector}"" elementinin değerini ""{key}"" olarak kaydet",engine/steps/common_steps.py,save_element_text,tr,"selector,key"
+python,then,"""{key}"" değişkenine ""{value}"" değerini ata",engine/steps/common_steps.py,set_variable,tr,"key,value"
+python,when,"""{key}"" değişkenine ""{value}"" değerini ata",engine/steps/common_steps.py,set_variable,tr,"key,value"
+python,when,kullanici sayfayi yeniler,engine/steps/common_steps.py,refresh_page,tr,
+python,when,"kullanici ""{url}"" adresine gider",engine/steps/common_steps.py,navigate_to_url,tr,url
+python,given,"kullanıcı test projesinin ""{sub_page}"" sayfasındadır",engine/steps/common_steps.py,navigate_to_project_sub,tr,sub_page
+python,given,kullanıcı test projesinin dashboard'ındadır,engine/steps/common_steps.py,navigate_to_project_dashboard,tr,
+python,when,"kullanici ""{source}"" elementini ""{target}"" elementine surukler",engine/steps/drag_drop_steps.py,step_drag_drop,tr,"source,target"
+python,given,I open the application url from config '{key}',engine/steps/english_steps.py,en_open_url,en,key
+python,given,"I open the application url ""{key}""",engine/steps/english_steps.py,en_open_url_double_quotes,en,key
+python,given,I open the application url (?P<key>.+),engine/steps/english_steps.py,en_open_url_bare,en,
+python,given,"I am on the ""{path}"" page",engine/steps/english_steps.py,en_navigate,en,path
+python,when,I click on '{key}',engine/steps/english_steps.py,en_click,en,key
+python,when,"I click on ""{key}""",engine/steps/english_steps.py,en_click_double_quotes,en,key
+python,when,I click on (?P<key>.+),engine/steps/english_steps.py,en_click_bare,en,
+python,when,I enter '{value}' into the input '{key}',engine/steps/english_steps.py,en_fill,en,"value,key"
+python,when,"I enter ""{value}"" into the input ""{key}""",engine/steps/english_steps.py,en_fill_double_quotes,en,"value,key"
+python,when,I clear the input '{key}',engine/steps/english_steps.py,en_clear,en,key
+python,when,"I clear the input ""{key}""",engine/steps/english_steps.py,en_clear_double_quotes,en,key
+python,when,I clear and enter (?P<value>\S+) into the input (?P<key>.+),engine/steps/english_steps.py,en_clear_and_fill_bare,en,
+python,when,I press the '{key}' key,engine/steps/english_steps.py,en_press_key,en,key
+python,when,I wait for {seconds:d} seconds,engine/steps/english_steps.py,en_wait,unknown,seconds
+python,when,I wait for element (?P<key>.+) to be clickable,engine/steps/english_steps.py,en_wait_clickable_bare,unknown,
+python,when,I refresh the page,engine/steps/english_steps.py,en_refresh,en,
+python,when,I upload the file '{file_type}' to the input '{key}',engine/steps/english_steps.py,en_upload,en,"file_type,key"
+python,when,I double click on '{key}',engine/steps/english_steps.py,en_dblclick,en,key
+python,when,I hover over '{key}',engine/steps/english_steps.py,en_hover,unknown,key
+python,when,I select '{label}' from '{key}',engine/steps/english_steps.py,en_select,unknown,"label,key"
+python,when,I check '{key}',engine/steps/english_steps.py,en_check,unknown,key
+python,when,I uncheck '{key}',engine/steps/english_steps.py,en_uncheck,unknown,key
+python,when,I scroll to '{key}',engine/steps/english_steps.py,en_scroll_to,unknown,key
+python,when,I drag '{source}' to '{target}',engine/steps/english_steps.py,en_drag_drop,unknown,"source,target"
+python,then,I see the element '{key}',engine/steps/english_steps.py,en_assert_visible,en,key
+python,then,"I see the element ""{key}""",engine/steps/english_steps.py,en_assert_visible_double_quotes,en,key
+python,then,I see the element (?P<key>.+),engine/steps/english_steps.py,en_assert_visible_bare,en,
+python,then,I verify element '{key}' text is '{expected}',engine/steps/english_steps.py,en_assert_text,unknown,"key,expected"
+python,then,"I verify element ""{key}"" text is ""{expected}""",engine/steps/english_steps.py,en_assert_text_double_quotes,unknown,"key,expected"
+python,then,I don't see element (?P<key>.+),engine/steps/english_steps.py,en_assert_hidden_bare,unknown,
+python,then,the element '{key}' should be hidden,engine/steps/english_steps.py,en_assert_hidden,en,key
+python,then,the URL should contain '{text}',engine/steps/english_steps.py,en_assert_url,en,text
+python,then,the page title should contain '{text}',engine/steps/english_steps.py,en_assert_title,en,text
+python,then,the element '{key}' should be checked,engine/steps/english_steps.py,en_assert_checked,en,key
+python,then,the element '{key}' should be enabled,engine/steps/english_steps.py,en_assert_enabled,en,key
+python,then,the element '{key}' should be disabled,engine/steps/english_steps.py,en_assert_disabled,en,key
+python,when,"kullanici ""{key}"" elementinin uzerine gelir",engine/steps/hover_steps.py,step_hover,tr,key
+python,when,"kullanici ""{hover_key}"" uzerine gelir ve ""{click_key}"" elementine tiklar",engine/steps/hover_steps.py,step_hover_and_click,tr,"hover_key,click_key"
+python,when,"kullanici ""{key}"" alanina ""{value}"" yazar",engine/steps/input_steps.py,step_fill_input,tr,"key,value"
+python,when,"kullanici ""{key}"" alanini temizler",engine/steps/input_steps.py,step_clear_input,tr,key
+python,when,"kullanici ""{key}"" alanina ""{value}"" yazip Enter\'a basar",engine/steps/input_steps.py,step_fill_and_enter,tr,"key,value"
+python,when,"kullanici ""{key}"" alanina karakter karakter ""{value}"" yazar",engine/steps/input_steps.py,step_type_slowly,tr,"key,value"
+python,when,"kullanici ""{key}"" tusuna basar",engine/steps/keyboard_steps.py,step_press_key,tr,key
+python,when,"kullanici ""{element}"" elementinde ""{key}"" tusuna basar",engine/steps/keyboard_steps.py,step_press_on_element,tr,"element,key"
+python,when,"kullanici ""{key}"" elementine scroll yapar",engine/steps/scroll_steps.py,step_scroll_to,tr,key
+python,when,kullanici sayfayi asagi scroll yapar,engine/steps/scroll_steps.py,step_scroll_down,tr,
+python,when,kullanici sayfayi yukari scroll yapar,engine/steps/scroll_steps.py,step_scroll_up,tr,
+python,when,kullanici sayfa basina scroll yapar,engine/steps/scroll_steps.py,step_scroll_top,tr,
+python,when,kullanici sayfa sonuna scroll yapar,engine/steps/scroll_steps.py,step_scroll_bottom,tr,
+python,when,"kullanici ""{key}"" dropdown\'undan ""{value}"" degerini secer",engine/steps/select_steps.py,step_select_by_value,tr,"key,value"
+python,when,"kullanici ""{key}"" dropdown\'undan ""{label}"" metnini secer",engine/steps/select_steps.py,step_select_by_label,tr,"key,label"
+python,when,"kullanici ""{key}"" dropdown\'undan {index:d}. siradakini secer",engine/steps/select_steps.py,step_select_by_index,tr,"key,index"
+python,when,"kullanici ""{key}"" alanina ""{file}"" dosyasini yukler",engine/steps/upload_steps.py,step_upload_file,tr,"key,file"
+python,when,"kullanici ""{key}"" alanindaki dosyayi temizler",engine/steps/upload_steps.py,step_clear_upload,tr,key
+python,given,kullanıcı login endpoint'ine istek hazırlıyor,backend/tests/bdd/steps/auth_steps.py,prepare_login,tr,
+python,given,"e-posta alanına ""{email}"" yazıyor",backend/tests/bdd/steps/auth_steps.py,set_email,tr,email
+python,given,"parola alanına ""{password}"" yazıyor",backend/tests/bdd/steps/auth_steps.py,set_password,tr,password
+python,given,admin kullanıcısı mevcut,backend/tests/bdd/steps/auth_steps.py,admin_exists,tr,
+python,given,admin kullanıcısı oturum açmış ve token almış,backend/tests/bdd/steps/auth_steps.py,admin_logged_in,tr,
+python,when,"POST ""{path}"" isteği gönderilir",backend/tests/bdd/steps/auth_steps.py,send_post,tr,path
+python,when,"GET ""{path}"" isteği token ile gönderilir",backend/tests/bdd/steps/auth_steps.py,send_get_with_token,tr,path
+python,when,Authorization header gönderilmiyor,backend/tests/bdd/steps/auth_steps.py,no_auth_header,tr,
+python,when,"GET ""{path}"" isteği gönderilir",backend/tests/bdd/steps/auth_steps.py,send_get_no_auth,tr,path
+python,then,yanıt kodu {code:d} olmalı,backend/tests/bdd/steps/auth_steps.py,check_status_code,tr,code
+python,then,yanıt kodu {c1:d} veya {c2:d} olmalı,backend/tests/bdd/steps/auth_steps.py,check_status_code_or,tr,"c1,c2"
+python,then,"yanıtta ""{field}"" alanı dolu olmalı",backend/tests/bdd/steps/auth_steps.py,check_field_present,tr,field
+python,then,"yanıtta ""{field}"" değeri ""{value}"" olmalı",backend/tests/bdd/steps/auth_steps.py,check_field_value,tr,"field,value"
+python,then,token JWT formatında (3 nokta-ayrılmış segment) olmalı,backend/tests/bdd/steps/auth_steps.py,check_jwt_format,tr,
+python,then,"yanıtta ""{field}"" listesi boş olmamalı",backend/tests/bdd/steps/auth_steps.py,check_list_not_empty,tr,field
+python,then,"yanıtta ""{message}"" mesajı olmalı",backend/tests/bdd/steps/auth_steps.py,check_error_message,tr,message
+python,given,kullanıcı oturum açmış ve geçerli JWT token'a sahip,backend/tests/bdd/steps/project_steps.py,user_authenticated,tr,
+python,given,proje oluşturma verisi hazırlanıyor,backend/tests/bdd/steps/project_steps.py,prepare_project,tr,
+python,given,"proje adı ""{name}"" olarak belirleniyor",backend/tests/bdd/steps/project_steps.py,set_project_name,tr,name
+python,given,"proje açıklaması ""{desc}"" olarak belirleniyor",backend/tests/bdd/steps/project_steps.py,set_project_desc,tr,desc
+python,when,"POST ""{path}"" isteği gönderilir",backend/tests/bdd/steps/project_steps.py,send_post,tr,path
+python,when,"GET ""{path}"" isteği gönderilir",backend/tests/bdd/steps/project_steps.py,send_get,tr,path
+python,then,yanıt kodu {code:d} olmalı,backend/tests/bdd/steps/project_steps.py,check_code,tr,code
+python,then,"yanıtta ""{field}"" alanı UUID formatında olmalı",backend/tests/bdd/steps/project_steps.py,check_uuid,tr,field
+python,then,"yanıtta ""{field}"" değeri ""{value}"" olmalı",backend/tests/bdd/steps/project_steps.py,check_val,tr,"field,value"
+python,then,"yanıtta ""{field}"" değeri false olmalı",backend/tests/bdd/steps/project_steps.py,check_false,tr,field
+python,then,"yanıtta ""{field}"" değeri null olmalı",backend/tests/bdd/steps/project_steps.py,check_null,tr,field
+python,then,"yanıtta ""{field}"" değeri {num:d} olmalı",backend/tests/bdd/steps/project_steps.py,check_int,tr,"field,num"
+python,then,"yanıtta ""{message}"" mesajı olmalı",backend/tests/bdd/steps/project_steps.py,check_msg,tr,message
+java,then,I verify element {string} text is {string},frameworks/selenium-cucumber-java/src/test/java/stepdefinitions/AssertionSteps.java,verifyElementText,unknown,"string,string"
+java,then,I see the element {string},frameworks/selenium-cucumber-java/src/test/java/stepdefinitions/AssertionSteps.java,iSeeTheElement,en,string
+java,then,I don't see element {string},frameworks/selenium-cucumber-java/src/test/java/stepdefinitions/AssertionSteps.java,verifyElementNotExists,unknown,string
+java,then,I verify element {string} contains text {string},frameworks/selenium-cucumber-java/src/test/java/stepdefinitions/AssertionSteps.java,verifyElementContainsText,unknown,"string,string"
+java,then,I verify element {string} is enabled,frameworks/selenium-cucumber-java/src/test/java/stepdefinitions/AssertionSteps.java,verifyElementIsEnabled,unknown,string
+java,then,I verify element {string} is disabled,frameworks/selenium-cucumber-java/src/test/java/stepdefinitions/AssertionSteps.java,verifyElementIsDisabled,unknown,string
+java,then,I verify element {string} has attribute {string} equal to {string},frameworks/selenium-cucumber-java/src/test/java/stepdefinitions/AssertionSteps.java,verifyElementAttributeEquals,unknown,"string,string,string"
+java,then,I verify the selected option in {string} is {string},frameworks/selenium-cucumber-java/src/test/java/stepdefinitions/AssertionSteps.java,verifySelectedOptionIn,en,"string,string"
+java,when,I check the checkbox {string},frameworks/selenium-cucumber-java/src/test/java/stepdefinitions/CheckboxSteps.java,checkCheckbox,en,string
+java,when,I uncheck the checkbox {string},frameworks/selenium-cucumber-java/src/test/java/stepdefinitions/CheckboxSteps.java,uncheckCheckbox,en,string
+java,then,I verify checkbox {string} is checked,frameworks/selenium-cucumber-java/src/test/java/stepdefinitions/CheckboxSteps.java,verifyCheckboxIsChecked,unknown,string
+java,then,I verify checkbox {string} is unchecked,frameworks/selenium-cucumber-java/src/test/java/stepdefinitions/CheckboxSteps.java,verifyCheckboxIsUnchecked,unknown,string
+java,when,I click on {string},frameworks/selenium-cucumber-java/src/test/java/stepdefinitions/ClickSteps.java,clickOnElement,en,string
+java,when,I double click on {string},frameworks/selenium-cucumber-java/src/test/java/stepdefinitions/ClickSteps.java,doubleClickOnElement,en,string
+java,when,I right click on {string},frameworks/selenium-cucumber-java/src/test/java/stepdefinitions/ClickSteps.java,rightClickOnElement,en,string
+java,when,I drag {string} and drop on {string},frameworks/selenium-cucumber-java/src/test/java/stepdefinitions/DragDropSteps.java,dragAndDrop,unknown,"string,string"
+java,when,I hover over {string},frameworks/selenium-cucumber-java/src/test/java/stepdefinitions/HoverSteps.java,hoverOver,unknown,string
+java,when,I enter {string} into the input {string},frameworks/selenium-cucumber-java/src/test/java/stepdefinitions/InputSteps.java,enterTextIntoInput,en,"string,string"
+java,when,I clear the input {string},frameworks/selenium-cucumber-java/src/test/java/stepdefinitions/InputSteps.java,clearTheInputField,en,string
+java,when,I upload the file {string} to the input {string},frameworks/selenium-cucumber-java/src/test/java/stepdefinitions/InputSteps.java,uploadFileToInput,en,"string,string"
+java,when,I enter {string} into the input {string} and press {string},frameworks/selenium-cucumber-java/src/test/java/stepdefinitions/InputSteps.java,enterTextAndPressKey,en,"string,string,string"
+java,when,I clear and enter {string} into the input {string},frameworks/selenium-cucumber-java/src/test/java/stepdefinitions/InputSteps.java,clearAndEnterText,en,"string,string"
+java,when,I press the {string} key,frameworks/selenium-cucumber-java/src/test/java/stepdefinitions/KeyboardSteps.java,pressTheKey,en,string
+java,given,I open the application url from config {string},frameworks/selenium-cucumber-java/src/test/java/stepdefinitions/NavigationSteps.java,openApplicationUrlFromConfig,en,string
+java,given,I open the application url {string},frameworks/selenium-cucumber-java/src/test/java/stepdefinitions/NavigationSteps.java,openApplicationUrl,en,string
+java,when,I go back,frameworks/selenium-cucumber-java/src/test/java/stepdefinitions/NavigationSteps.java,goBack,unknown,
+java,when,I go forward,frameworks/selenium-cucumber-java/src/test/java/stepdefinitions/NavigationSteps.java,goForward,unknown,
+java,when,I refresh the page,frameworks/selenium-cucumber-java/src/test/java/stepdefinitions/NavigationSteps.java,refreshPage,en,
+java,when,I select radio {string} with value {string},frameworks/selenium-cucumber-java/src/test/java/stepdefinitions/RadioSteps.java,selectRadioByValue,unknown,"string,string"
+java,then,I verify radio {string} is selected with value {string},frameworks/selenium-cucumber-java/src/test/java/stepdefinitions/RadioSteps.java,verifyRadioSelected,unknown,"string,string"
+java,when,I save the value of element {string} as {string},frameworks/selenium-cucumber-java/src/test/java/stepdefinitions/ScenarioContextSteps.java,saveValueOfElementAs,en,"string,string"
+java,when,I save the attribute {string} of element {string} as {string},frameworks/selenium-cucumber-java/src/test/java/stepdefinitions/ScenarioContextSteps.java,saveAttributeOfElementAs,en,"string,string,string"
+java,when,I enter the value stored under {string} into the input {string},frameworks/selenium-cucumber-java/src/test/java/stepdefinitions/ScenarioContextSteps.java,enterValueStoredUnderIntoInput,en,"string,string"
+java,then,I verify element {string} text is the value stored under {string},frameworks/selenium-cucumber-java/src/test/java/stepdefinitions/ScenarioContextSteps.java,verifyElementTextIsValueStoredUnder,en,"string,string"
+java,then,I verify element {string} contains the value stored under {string},frameworks/selenium-cucumber-java/src/test/java/stepdefinitions/ScenarioContextSteps.java,verifyElementContainsValueStoredUnder,en,"string,string"
+java,when,I take a screenshot {string},frameworks/selenium-cucumber-java/src/test/java/stepdefinitions/ScreenshotSteps.java,takeScreenshot,unknown,string
+java,when,I take screenshot of element {string},frameworks/selenium-cucumber-java/src/test/java/stepdefinitions/ScreenshotSteps.java,takeScreenshotOfElement,unknown,string
+java,when,I scroll to the element {string},frameworks/selenium-cucumber-java/src/test/java/stepdefinitions/ScrollSteps.java,scrollToTheElement,en,string
+java,when,I scroll to top,frameworks/selenium-cucumber-java/src/test/java/stepdefinitions/ScrollSteps.java,scrollToTop,unknown,
+java,when,I scroll to bottom,frameworks/selenium-cucumber-java/src/test/java/stepdefinitions/ScrollSteps.java,scrollToBottom,unknown,
+java,when,I scroll down by {int} pixels,frameworks/selenium-cucumber-java/src/test/java/stepdefinitions/ScrollSteps.java,scrollDownByPixels,unknown,int
+java,when,I scroll up by {int} pixels,frameworks/selenium-cucumber-java/src/test/java/stepdefinitions/ScrollSteps.java,scrollUpByPixels,unknown,int
+java,when,I select {string} from {string},frameworks/selenium-cucumber-java/src/test/java/stepdefinitions/SelectSteps.java,selectByVisibleText,unknown,"string,string"
+java,when,I select value {string} from {string},frameworks/selenium-cucumber-java/src/test/java/stepdefinitions/SelectSteps.java,selectByValue,unknown,"string,string"
+java,when,I wait for {int} seconds,frameworks/selenium-cucumber-java/src/test/java/stepdefinitions/WaitSteps.java,waitForSeconds,unknown,int
+java,when,I wait for element {string} to be clickable,frameworks/selenium-cucumber-java/src/test/java/stepdefinitions/WaitSteps.java,waitForElementClickable,unknown,string
+java,when,I wait for element {string} to disappear,frameworks/selenium-cucumber-java/src/test/java/stepdefinitions/WaitSteps.java,waitForElementToDisappear,unknown,string
+typescript,given,I have AI test generation enabled,frameworks/playwright-cucumber-ts/steps/ai-steps.ts,,unknown,
+typescript,when,I generate test scenarios for {string},frameworks/playwright-cucumber-ts/steps/ai-steps.ts,,unknown,string
+typescript,then,I should have generated test scenarios,frameworks/playwright-cucumber-ts/steps/ai-steps.ts,,en,
+typescript,then,the generated scenarios should have {int} or more steps,frameworks/playwright-cucumber-ts/steps/ai-steps.ts,,en,int
+typescript,when,I generate test data for the scenario,frameworks/playwright-cucumber-ts/steps/ai-steps.ts,,en,
+typescript,then,the suggested test data should include required fields,frameworks/playwright-cucumber-ts/steps/ai-steps.ts,,en,
+typescript,when,I analyze test coverage for the generated scenarios,frameworks/playwright-cucumber-ts/steps/ai-steps.ts,,en,
+typescript,then,the test coverage should be at least {int} percent,frameworks/playwright-cucumber-ts/steps/ai-steps.ts,,en,int
+typescript,then,I should see coverage gaps identified,frameworks/playwright-cucumber-ts/steps/ai-steps.ts,,en,
+typescript,then,I should see recommendations for improvement,frameworks/playwright-cucumber-ts/steps/ai-steps.ts,,en,
+typescript,when,I debug the failing test {string},frameworks/playwright-cucumber-ts/steps/ai-steps.ts,,en,string
+typescript,then,I should receive debugging suggestions,frameworks/playwright-cucumber-ts/steps/ai-steps.ts,,en,
+typescript,when,I analyze performance for optimization,frameworks/playwright-cucumber-ts/steps/ai-steps.ts,,unknown,
+typescript,then,I should receive optimization suggestions,frameworks/playwright-cucumber-ts/steps/ai-steps.ts,,en,
+typescript,when,I check AI client statistics,frameworks/playwright-cucumber-ts/steps/ai-steps.ts,,unknown,
+typescript,then,I should see the AI provider and model used,frameworks/playwright-cucumber-ts/steps/ai-steps.ts,,en,
+typescript,then,the AI client should have made {int} or more requests,frameworks/playwright-cucumber-ts/steps/ai-steps.ts,,en,int
+typescript,then,the token usage should be tracked,frameworks/playwright-cucumber-ts/steps/ai-steps.ts,,en,
+typescript,given,I have a comprehensive AI test generation setup,frameworks/playwright-cucumber-ts/steps/ai-steps.ts,,unknown,
+typescript,when,I execute a complete AI test generation workflow,frameworks/playwright-cucumber-ts/steps/ai-steps.ts,,unknown,
+typescript,then,the AI workflow should complete successfully,frameworks/playwright-cucumber-ts/steps/ai-steps.ts,,en,
+typescript,then,the AI workflow results should be comprehensive,frameworks/playwright-cucumber-ts/steps/ai-steps.ts,,en,
+typescript,given,I have valid login credentials,frameworks/playwright-cucumber-ts/steps/api.steps.ts,,unknown,
+typescript,given,I have invalid login credentials,frameworks/playwright-cucumber-ts/steps/api.steps.ts,,unknown,
+typescript,when,I perform a login request,frameworks/playwright-cucumber-ts/steps/api.steps.ts,,unknown,
+typescript,then,the login response status code should be {int},frameworks/playwright-cucumber-ts/steps/api.steps.ts,,en,int
+typescript,then,the login response status code should be <statusCode>,frameworks/playwright-cucumber-ts/steps/api.steps.ts,,en,
+typescript,then,I store the access token for subsequent requests,frameworks/playwright-cucumber-ts/steps/api.steps.ts,,en,
+typescript,given,I have a valid access token,frameworks/playwright-cucumber-ts/steps/api.steps.ts,,unknown,
+typescript,when,I request the products list with limit {int},frameworks/playwright-cucumber-ts/steps/api.steps.ts,,en,int
+typescript,then,the response status code should be {int},frameworks/playwright-cucumber-ts/steps/api.steps.ts,,en,int
+typescript,then,the products array length should match the limit {int},frameworks/playwright-cucumber-ts/steps/api.steps.ts,,en,int
+typescript,then,I store the first product ID,frameworks/playwright-cucumber-ts/steps/api.steps.ts,,en,
+typescript,when,I update the title of the first product to {string},frameworks/playwright-cucumber-ts/steps/api.steps.ts,,en,string
+typescript,then,the update response status code should be {int},frameworks/playwright-cucumber-ts/steps/api.steps.ts,,en,int
+typescript,when,I delete the first product,frameworks/playwright-cucumber-ts/steps/api.steps.ts,,en,
+typescript,then,the delete response status code should be {int},frameworks/playwright-cucumber-ts/steps/api.steps.ts,,en,int
+typescript,given,I have login credentials with username {string} and password {string},frameworks/playwright-cucumber-ts/steps/api.steps.ts,,unknown,"string,string"
+typescript,when,I update the isDeleted field of the first product to {string},frameworks/playwright-cucumber-ts/steps/api.steps.ts,,en,string
+typescript,when,I update the isDeleted field of the first product to true,frameworks/playwright-cucumber-ts/steps/api.steps.ts,,en,
+typescript,then,the response should contain isDeleted field as {string},frameworks/playwright-cucumber-ts/steps/api.steps.ts,,en,string
+typescript,then,the response should contain isDeleted field as true,frameworks/playwright-cucumber-ts/steps/api.steps.ts,,en,
+typescript,when,I request the products categories list,frameworks/playwright-cucumber-ts/steps/api.steps.ts,,en,
+typescript,then,I verify each category endpoint returns {int} OK,frameworks/playwright-cucumber-ts/steps/api.steps.ts,,unknown,int
+typescript,when,I perform a login request with delay parameter {int},frameworks/playwright-cucumber-ts/steps/api.steps.ts,,unknown,int
+typescript,then,the login response time should be less than {int} milliseconds,frameworks/playwright-cucumber-ts/steps/api.steps.ts,,en,int
+typescript,given,the application is started,frameworks/playwright-cucumber-ts/steps/common-steps.ts,,en,
+typescript,given,I navigate to {string},frameworks/playwright-cucumber-ts/steps/common-steps.ts,,unknown,string
+typescript,when,I navigate to {string},frameworks/playwright-cucumber-ts/steps/common-steps.ts,,unknown,string
+typescript,when,I go to URL {string},frameworks/playwright-cucumber-ts/steps/common-steps.ts,,unknown,string
+typescript,when,I click on {string},frameworks/playwright-cucumber-ts/steps/common-steps.ts,,en,string
+typescript,when,I click the {string} button,frameworks/playwright-cucumber-ts/steps/common-steps.ts,,en,string
+typescript,when,I click the {string} link,frameworks/playwright-cucumber-ts/steps/common-steps.ts,,en,string
+typescript,when,I fill {string} with {string},frameworks/playwright-cucumber-ts/steps/common-steps.ts,,unknown,"string,string"
+typescript,when,I enter {string} in {string},frameworks/playwright-cucumber-ts/steps/common-steps.ts,,en,"string,string"
+typescript,when,I type {string} in {string},frameworks/playwright-cucumber-ts/steps/common-steps.ts,,unknown,"string,string"
+typescript,when,I clear {string},frameworks/playwright-cucumber-ts/steps/common-steps.ts,,unknown,string
+typescript,when,I clear the input field {string},frameworks/playwright-cucumber-ts/steps/common-steps.ts,,en,string
+typescript,when,I wait for {int} seconds,frameworks/playwright-cucumber-ts/steps/common-steps.ts,,unknown,int
+typescript,when,I wait for {string} to be visible,frameworks/playwright-cucumber-ts/steps/common-steps.ts,,unknown,string
+typescript,when,I wait for {string} to be hidden,frameworks/playwright-cucumber-ts/steps/common-steps.ts,,unknown,string
+typescript,when,I wait for text {string} to appear,frameworks/playwright-cucumber-ts/steps/common-steps.ts,,unknown,string
+typescript,then,{string} should be visible,frameworks/playwright-cucumber-ts/steps/common-steps.ts,,en,string
+typescript,then,{string} should not be visible,frameworks/playwright-cucumber-ts/steps/common-steps.ts,,en,string
+typescript,then,{string} should be hidden,frameworks/playwright-cucumber-ts/steps/common-steps.ts,,en,string
+typescript,then,{string} should be enabled,frameworks/playwright-cucumber-ts/steps/common-steps.ts,,en,string
+typescript,then,{string} should be disabled,frameworks/playwright-cucumber-ts/steps/common-steps.ts,,en,string
+typescript,then,{string} should have text {string},frameworks/playwright-cucumber-ts/steps/common-steps.ts,,en,"string,string"
+typescript,then,{string} should contain {string},frameworks/playwright-cucumber-ts/steps/common-steps.ts,,en,"string,string"
+typescript,then,page should contain {string},frameworks/playwright-cucumber-ts/steps/common-steps.ts,,en,string
+typescript,then,page should not contain {string},frameworks/playwright-cucumber-ts/steps/common-steps.ts,,en,string
+typescript,then,{string} should have value {string},frameworks/playwright-cucumber-ts/steps/common-steps.ts,,en,"string,string"
+typescript,then,{string} should have attribute {string} with value {string},frameworks/playwright-cucumber-ts/steps/common-steps.ts,,en,"string,string,string"
+typescript,then,{string} should exist,frameworks/playwright-cucumber-ts/steps/common-steps.ts,,en,string
+typescript,then,{string} should not exist,frameworks/playwright-cucumber-ts/steps/common-steps.ts,,en,string
+typescript,then,{string} count should be {int},frameworks/playwright-cucumber-ts/steps/common-steps.ts,,en,"string,int"
+typescript,then,page title should be {string},frameworks/playwright-cucumber-ts/steps/common-steps.ts,,en,string
+typescript,then,page URL should contain {string},frameworks/playwright-cucumber-ts/steps/common-steps.ts,,en,string
+typescript,then,page URL should be {string},frameworks/playwright-cucumber-ts/steps/common-steps.ts,,en,string
+typescript,when,I hover over {string},frameworks/playwright-cucumber-ts/steps/common-steps.ts,,unknown,string
+typescript,when,I scroll to {string},frameworks/playwright-cucumber-ts/steps/common-steps.ts,,unknown,string
+typescript,when,I select {string} from {string},frameworks/playwright-cucumber-ts/steps/common-steps.ts,,unknown,"string,string"
+typescript,when,I select value {string} from {string},frameworks/playwright-cucumber-ts/steps/common-steps.ts,,unknown,"string,string"
+typescript,when,I press {string},frameworks/playwright-cucumber-ts/steps/common-steps.ts,,unknown,string
+typescript,when,I press {string} in {string},frameworks/playwright-cucumber-ts/steps/common-steps.ts,,unknown,"string,string"
+typescript,when,I press Enter,frameworks/playwright-cucumber-ts/steps/common-steps.ts,,en,
+typescript,when,I press Escape,frameworks/playwright-cucumber-ts/steps/common-steps.ts,,unknown,
+typescript,when,I refresh the page,frameworks/playwright-cucumber-ts/steps/common-steps.ts,,en,
+typescript,when,I go back,frameworks/playwright-cucumber-ts/steps/common-steps.ts,,unknown,
+typescript,when,I go forward,frameworks/playwright-cucumber-ts/steps/common-steps.ts,,unknown,
+typescript,when,I take a screenshot named {string},frameworks/playwright-cucumber-ts/steps/common-steps.ts,,unknown,string
+typescript,given,I have the following data:,frameworks/playwright-cucumber-ts/steps/common-steps.ts,,en,
+typescript,given,I have test data from {string},frameworks/playwright-cucumber-ts/steps/data-steps.ts,,unknown,string
+typescript,given,I load test data item {int} from {string},frameworks/playwright-cucumber-ts/steps/data-steps.ts,,unknown,"int,string"
+typescript,given,I have random test data from {string},frameworks/playwright-cucumber-ts/steps/data-steps.ts,,unknown,string
+typescript,given,I have {int} random test data items from {string},frameworks/playwright-cucumber-ts/steps/data-steps.ts,,unknown,"int,string"
+typescript,given,I have {int} unique test data items from {string},frameworks/playwright-cucumber-ts/steps/data-steps.ts,,unknown,"int,string"
+typescript,when,I merge test data from {string} and {string},frameworks/playwright-cucumber-ts/steps/data-steps.ts,,unknown,"string,string"
+typescript,when,"I merge test data from {string}, {string}, and {string}",frameworks/playwright-cucumber-ts/steps/data-steps.ts,,unknown,"string,string,string"
+typescript,when,I filter test data where {string} equals {string},frameworks/playwright-cucumber-ts/steps/data-steps.ts,,unknown,"string,string"
+typescript,when,I filter test data by user role {string},frameworks/playwright-cucumber-ts/steps/data-steps.ts,,en,string
+typescript,when,I extract fields {string} from test data,frameworks/playwright-cucumber-ts/steps/data-steps.ts,,unknown,string
+typescript,then,test data should have field {string},frameworks/playwright-cucumber-ts/steps/data-steps.ts,,en,string
+typescript,then,test data should have {int} items,frameworks/playwright-cucumber-ts/steps/data-steps.ts,,en,int
+typescript,then,test data {string} field should not be empty,frameworks/playwright-cucumber-ts/steps/data-steps.ts,,en,string
+typescript,given,I have generated test data with {int} users,frameworks/playwright-cucumber-ts/steps/data-steps.ts,,unknown,int
+typescript,given,I have generated random email {string},frameworks/playwright-cucumber-ts/steps/data-steps.ts,,unknown,string
+typescript,given,I have generated random password {string},frameworks/playwright-cucumber-ts/steps/data-steps.ts,,unknown,string
+typescript,given,I have generated random username {string},frameworks/playwright-cucumber-ts/steps/data-steps.ts,,unknown,string
+typescript,when,I save test data as fixture {string},frameworks/playwright-cucumber-ts/steps/data-steps.ts,,unknown,string
+typescript,given,test fixture {string} is available,frameworks/playwright-cucumber-ts/steps/data-steps.ts,,unknown,string
+typescript,then,all test data should be valid,frameworks/playwright-cucumber-ts/steps/data-steps.ts,,en,
+typescript,when,I run accessibility scan,frameworks/playwright-cucumber-ts/steps/e2e-steps.ts,,unknown,
+typescript,then,there should be no critical accessibility violations,frameworks/playwright-cucumber-ts/steps/e2e-steps.ts,,en,
+typescript,then,there should be no serious accessibility violations,frameworks/playwright-cucumber-ts/steps/e2e-steps.ts,,en,
+typescript,when,I validate page accessibility and performance,frameworks/playwright-cucumber-ts/steps/e2e-steps.ts,,unknown,
+typescript,then,the page should pass all quality gates,frameworks/playwright-cucumber-ts/steps/e2e-steps.ts,,en,
+typescript,when,I login with email and password from test data,frameworks/playwright-cucumber-ts/steps/e2e-steps.ts,,unknown,
+typescript,then,the complete workflow should be valid,frameworks/playwright-cucumber-ts/steps/e2e-steps.ts,,en,
+typescript,when,I compare multiple elements,frameworks/playwright-cucumber-ts/steps/e2e-steps.ts,,unknown,
+typescript,then,all compared elements should match baselines,frameworks/playwright-cucumber-ts/steps/e2e-steps.ts,,en,
+typescript,when,I perform sequential operations with validation,frameworks/playwright-cucumber-ts/steps/e2e-steps.ts,,unknown,
+typescript,then,the sequential operations should all succeed,frameworks/playwright-cucumber-ts/steps/e2e-steps.ts,,en,
+typescript,then,page performance should meet strict thresholds,frameworks/playwright-cucumber-ts/steps/e2e-steps.ts,,en,
+typescript,given,I have a comprehensive test context,frameworks/playwright-cucumber-ts/steps/e2e-steps.ts,,unknown,
+typescript,then,I should have test results for all domains,frameworks/playwright-cucumber-ts/steps/e2e-steps.ts,,en,
+typescript,given,I am on the Paribu home page,frameworks/playwright-cucumber-ts/steps/paribu-steps.ts,,en,
+typescript,given,I navigate to Paribu login page,frameworks/playwright-cucumber-ts/steps/paribu-steps.ts,,unknown,
+typescript,when,I go to markets page,frameworks/playwright-cucumber-ts/steps/paribu-steps.ts,,unknown,
+typescript,when,I go to trading page,frameworks/playwright-cucumber-ts/steps/paribu-steps.ts,,unknown,
+typescript,when,I go to wallet page,frameworks/playwright-cucumber-ts/steps/paribu-steps.ts,,unknown,
+typescript,when,I enter credentials and login,frameworks/playwright-cucumber-ts/steps/paribu-steps.ts,,en,
+typescript,when,I login with {string} and {string},frameworks/playwright-cucumber-ts/steps/paribu-steps.ts,,unknown,"string,string"
+typescript,then,login should be successful,frameworks/playwright-cucumber-ts/steps/paribu-steps.ts,,en,
+typescript,then,login error message should appear,frameworks/playwright-cucumber-ts/steps/paribu-steps.ts,,en,
+typescript,when,I search for {string},frameworks/playwright-cucumber-ts/steps/paribu-steps.ts,,unknown,string
+typescript,then,search results should show {string},frameworks/playwright-cucumber-ts/steps/paribu-steps.ts,,en,string
+typescript,when,I view the markets,frameworks/playwright-cucumber-ts/steps/paribu-steps.ts,,en,
+typescript,then,market table should be visible,frameworks/playwright-cucumber-ts/steps/paribu-steps.ts,,en,
+typescript,then,market should have {int} or more cryptocurrencies,frameworks/playwright-cucumber-ts/steps/paribu-steps.ts,,en,int
+typescript,when,I get the price for {string},frameworks/playwright-cucumber-ts/steps/paribu-steps.ts,,en,string
+typescript,then,the price should be available,frameworks/playwright-cucumber-ts/steps/paribu-steps.ts,,en,
+typescript,when,I go to my profile,frameworks/playwright-cucumber-ts/steps/paribu-steps.ts,,unknown,
+typescript,then,profile information should be displayed,frameworks/playwright-cucumber-ts/steps/paribu-steps.ts,,en,
+typescript,when,I logout,frameworks/playwright-cucumber-ts/steps/paribu-steps.ts,,unknown,
+typescript,then,I should be logged out,frameworks/playwright-cucumber-ts/steps/paribu-steps.ts,,en,
+typescript,then,featured markets should be visible,frameworks/playwright-cucumber-ts/steps/paribu-steps.ts,,en,
+typescript,then,featured markets should contain at least {int} cryptocurrencies,frameworks/playwright-cucumber-ts/steps/paribu-steps.ts,,en,int
+typescript,then,I should see {string} in featured markets,frameworks/playwright-cucumber-ts/steps/paribu-steps.ts,,en,string
+typescript,when,I measure the page load time,frameworks/playwright-cucumber-ts/steps/performance-steps.ts,,en,
+typescript,when,I measure the performance of {string},frameworks/playwright-cucumber-ts/steps/performance-steps.ts,,en,string
+typescript,then,the page load time should be less than {int} milliseconds,frameworks/playwright-cucumber-ts/steps/performance-steps.ts,,en,int
+typescript,then,the DOM content should load in less than {int} milliseconds,frameworks/playwright-cucumber-ts/steps/performance-steps.ts,,en,int
+typescript,then,the first contentful paint should be less than {int} milliseconds,frameworks/playwright-cucumber-ts/steps/performance-steps.ts,,en,int
+typescript,then,the largest contentful paint should be less than {int} milliseconds,frameworks/playwright-cucumber-ts/steps/performance-steps.ts,,en,int
+typescript,then,the cumulative layout shift should be less than {float},frameworks/playwright-cucumber-ts/steps/performance-steps.ts,,en,float
+typescript,when,I check the core web vitals,frameworks/playwright-cucumber-ts/steps/performance-steps.ts,,en,
+typescript,then,the core web vitals should be good,frameworks/playwright-cucumber-ts/steps/performance-steps.ts,,en,
+typescript,when,I check the network performance,frameworks/playwright-cucumber-ts/steps/performance-steps.ts,,en,
+typescript,then,the total network requests should be less than {int},frameworks/playwright-cucumber-ts/steps/performance-steps.ts,,en,int
+typescript,then,the total network size should be less than {int} KB,frameworks/playwright-cucumber-ts/steps/performance-steps.ts,,en,int
+typescript,then,the slowest network request should be {string},frameworks/playwright-cucumber-ts/steps/performance-steps.ts,,en,string
+typescript,when,I set performance threshold for page load to {int} milliseconds,frameworks/playwright-cucumber-ts/steps/performance-steps.ts,,unknown,int
+typescript,when,I assert performance with default thresholds,frameworks/playwright-cucumber-ts/steps/performance-steps.ts,,unknown,
+typescript,then,the performance report should have no violations,frameworks/playwright-cucumber-ts/steps/performance-steps.ts,,en,
+typescript,when,I benchmark the operation {string} for {int} iterations,frameworks/playwright-cucumber-ts/steps/performance-steps.ts,,en,"string,int"
+typescript,given,I start recording user actions,frameworks/playwright-cucumber-ts/steps/recording-steps.ts,,en,
+typescript,when,I stop recording,frameworks/playwright-cucumber-ts/steps/recording-steps.ts,,unknown,
+typescript,then,the recording should capture all user actions,frameworks/playwright-cucumber-ts/steps/recording-steps.ts,,en,
+typescript,when,I convert recorded actions to test steps,frameworks/playwright-cucumber-ts/steps/recording-steps.ts,,unknown,
+typescript,then,the generated steps should follow BDD format,frameworks/playwright-cucumber-ts/steps/recording-steps.ts,,en,
+typescript,when,I generate step definitions from the recording,frameworks/playwright-cucumber-ts/steps/recording-steps.ts,,en,
+typescript,then,the generated step definitions should be valid TypeScript,frameworks/playwright-cucumber-ts/steps/recording-steps.ts,,en,
+typescript,when,I export the recording as JSON,frameworks/playwright-cucumber-ts/steps/recording-steps.ts,,en,
+typescript,when,I export the recording as Gherkin,frameworks/playwright-cucumber-ts/steps/recording-steps.ts,,en,
+typescript,then,the exported JSON should contain all recorded actions,frameworks/playwright-cucumber-ts/steps/recording-steps.ts,,en,
+typescript,then,the exported Gherkin should be a valid feature file,frameworks/playwright-cucumber-ts/steps/recording-steps.ts,,en,
+typescript,when,I replay the recorded actions,frameworks/playwright-cucumber-ts/steps/recording-steps.ts,,en,
+typescript,then,the replay should complete successfully,frameworks/playwright-cucumber-ts/steps/recording-steps.ts,,en,
+typescript,when,I check recording statistics,frameworks/playwright-cucumber-ts/steps/recording-steps.ts,,unknown,
+typescript,then,the recording should have {int} or more actions,frameworks/playwright-cucumber-ts/steps/recording-steps.ts,,en,int
+typescript,then,the recording should have generated {int} or more steps,frameworks/playwright-cucumber-ts/steps/recording-steps.ts,,en,int
+typescript,given,I have a test recording setup,frameworks/playwright-cucumber-ts/steps/recording-steps.ts,,unknown,
+typescript,when,I perform a complete recording workflow,frameworks/playwright-cucumber-ts/steps/recording-steps.ts,,unknown,
+typescript,then,the recording workflow should produce valid output,frameworks/playwright-cucumber-ts/steps/recording-steps.ts,,en,
+typescript,when,I generate a test report in {string} format,frameworks/playwright-cucumber-ts/steps/reporting-steps.ts,,unknown,string
+typescript,when,I generate test reports in multiple formats,frameworks/playwright-cucumber-ts/steps/reporting-steps.ts,,unknown,
+typescript,then,the generated report should contain summary metrics,frameworks/playwright-cucumber-ts/steps/reporting-steps.ts,,en,
+typescript,then,the report should have success rate above {float}%,frameworks/playwright-cucumber-ts/steps/reporting-steps.ts,,en,float
+typescript,then,the report should include {int} test cases,frameworks/playwright-cucumber-ts/steps/reporting-steps.ts,,en,int
+typescript,when,I analyze test trends for the last {int} hours,frameworks/playwright-cucumber-ts/steps/reporting-steps.ts,,en,int
+typescript,when,I perform risk assessment for the test suite,frameworks/playwright-cucumber-ts/steps/reporting-steps.ts,,en,
+typescript,when,I get failure predictions,frameworks/playwright-cucumber-ts/steps/reporting-steps.ts,,unknown,
+typescript,then,the risk level should be {string},frameworks/playwright-cucumber-ts/steps/reporting-steps.ts,,en,string
+typescript,then,the risk score should be below {int},frameworks/playwright-cucumber-ts/steps/reporting-steps.ts,,en,int
+typescript,then,the risk assessment should provide recommendations,frameworks/playwright-cucumber-ts/steps/reporting-steps.ts,,en,
+typescript,then,there should be {int} or fewer failing tests,frameworks/playwright-cucumber-ts/steps/reporting-steps.ts,,en,int
+typescript,when,I analyze performance trends,frameworks/playwright-cucumber-ts/steps/reporting-steps.ts,,unknown,
+typescript,then,average test duration should be below {int}ms,frameworks/playwright-cucumber-ts/steps/reporting-steps.ts,,en,int
+typescript,then,performance should be {string},frameworks/playwright-cucumber-ts/steps/reporting-steps.ts,,en,string
+typescript,when,I generate comprehensive analytics report,frameworks/playwright-cucumber-ts/steps/reporting-steps.ts,,unknown,
+typescript,then,the analytics report should contain trend analysis,frameworks/playwright-cucumber-ts/steps/reporting-steps.ts,,en,
+typescript,then,the analytics report should contain recommendations,frameworks/playwright-cucumber-ts/steps/reporting-steps.ts,,en,
+typescript,when,I record test run results,frameworks/playwright-cucumber-ts/steps/reporting-steps.ts,,unknown,
+typescript,when,I record a failed test,frameworks/playwright-cucumber-ts/steps/reporting-steps.ts,,unknown,
+typescript,then,the test run should be recorded successfully,frameworks/playwright-cucumber-ts/steps/reporting-steps.ts,,en,
+typescript,given,I have a test run with results,frameworks/playwright-cucumber-ts/steps/reporting-steps.ts,,unknown,
+typescript,when,I perform comprehensive reporting workflow,frameworks/playwright-cucumber-ts/steps/reporting-steps.ts,,unknown,
+typescript,then,the reporting workflow should complete successfully,frameworks/playwright-cucumber-ts/steps/reporting-steps.ts,,en,
+typescript,when,I analyze the visual difference with AI,frameworks/playwright-cucumber-ts/steps/visual-ai-steps.ts,,en,
+typescript,then,the visual analysis should identify anomalies,frameworks/playwright-cucumber-ts/steps/visual-ai-steps.ts,,en,
+typescript,then,the visual analysis should detect {int} or fewer anomalies,frameworks/playwright-cucumber-ts/steps/visual-ai-steps.ts,,en,int
+typescript,then,there should be no critical visual anomalies,frameworks/playwright-cucumber-ts/steps/visual-ai-steps.ts,,en,
+typescript,then,the visual anomalies should include {string},frameworks/playwright-cucumber-ts/steps/visual-ai-steps.ts,,en,string
+typescript,then,the analysis should report color shifts,frameworks/playwright-cucumber-ts/steps/visual-ai-steps.ts,,en,
+typescript,then,the analysis should report layout changes,frameworks/playwright-cucumber-ts/steps/visual-ai-steps.ts,,en,
+typescript,when,I perform smart baseline analysis,frameworks/playwright-cucumber-ts/steps/visual-ai-steps.ts,,unknown,
+typescript,then,the baseline should {string} be updated,frameworks/playwright-cucumber-ts/steps/visual-ai-steps.ts,,en,string
+typescript,then,the baseline analysis should provide recommendations,frameworks/playwright-cucumber-ts/steps/visual-ai-steps.ts,,en,
+typescript,then,the visual similarity should be above {float},frameworks/playwright-cucumber-ts/steps/visual-ai-steps.ts,,en,float
+typescript,then,the visual similarity should be exactly {float} with tolerance {float},frameworks/playwright-cucumber-ts/steps/visual-ai-steps.ts,,en,"float,float"
+typescript,when,I generate visual analysis report,frameworks/playwright-cucumber-ts/steps/visual-ai-steps.ts,,unknown,
+typescript,then,the visual analysis report should contain anomaly details,frameworks/playwright-cucumber-ts/steps/visual-ai-steps.ts,,en,
+typescript,then,the visual analysis report should contain recommendations,frameworks/playwright-cucumber-ts/steps/visual-ai-steps.ts,,en,
+typescript,when,I check baseline status for {string},frameworks/playwright-cucumber-ts/steps/visual-ai-steps.ts,,unknown,string
+typescript,then,the baseline should have {int} or fewer update cycles,frameworks/playwright-cucumber-ts/steps/visual-ai-steps.ts,,en,int
+typescript,given,I have visual AI analysis enabled,frameworks/playwright-cucumber-ts/steps/visual-ai-steps.ts,,unknown,
+typescript,when,I perform comprehensive visual AI analysis,frameworks/playwright-cucumber-ts/steps/visual-ai-steps.ts,,unknown,
+typescript,then,the visual AI workflow should complete successfully,frameworks/playwright-cucumber-ts/steps/visual-ai-steps.ts,,en,
+typescript,when,I take a full page screenshot named {string},frameworks/playwright-cucumber-ts/steps/visual-steps.ts,,unknown,string
+typescript,when,I take a screenshot of {string} named {string},frameworks/playwright-cucumber-ts/steps/visual-steps.ts,,unknown,"string,string"
+typescript,then,the visual comparison should pass,frameworks/playwright-cucumber-ts/steps/visual-steps.ts,,en,
+typescript,then,the visual match should be above {float} percent,frameworks/playwright-cucumber-ts/steps/visual-steps.ts,,en,float
+typescript,when,I update the visual baseline {string},frameworks/playwright-cucumber-ts/steps/visual-steps.ts,,en,string
+typescript,when,I update the visual baseline for {string} as {string},frameworks/playwright-cucumber-ts/steps/visual-steps.ts,,en,"string,string"
+typescript,given,the visual baseline {string} exists,frameworks/playwright-cucumber-ts/steps/visual-steps.ts,,en,string
+typescript,when,I delete the visual baseline {string},frameworks/playwright-cucumber-ts/steps/visual-steps.ts,,en,string
+typescript,when,I clear all visual baselines,frameworks/playwright-cucumber-ts/steps/visual-steps.ts,,unknown,
+typescript,then,visual baseline {string} should not exist,frameworks/playwright-cucumber-ts/steps/visual-steps.ts,,en,string
+typescript,when,I set visual threshold to {float},frameworks/playwright-cucumber-ts/steps/visual-steps.ts,,unknown,float
+typescript,then,the page should match visual baseline {string},frameworks/playwright-cucumber-ts/steps/visual-steps.ts,,en,string
+typescript,then,the element {string} should match visual baseline {string},frameworks/playwright-cucumber-ts/steps/visual-steps.ts,,en,"string,string"
+typescript,given,I am logged in as {string},frameworks/playwright-cucumber-ts/steps/web-steps.ts,,unknown,string
+typescript,given,I am logged out,frameworks/playwright-cucumber-ts/steps/web-steps.ts,,unknown,
+typescript,when,I log in with {string} and {string},frameworks/playwright-cucumber-ts/steps/web-steps.ts,,unknown,"string,string"
+typescript,when,I fill the form with:,frameworks/playwright-cucumber-ts/steps/web-steps.ts,,en,
+typescript,when,I select {string} option from dropdown,frameworks/playwright-cucumber-ts/steps/web-steps.ts,,unknown,string
+typescript,when,I check {string},frameworks/playwright-cucumber-ts/steps/web-steps.ts,,unknown,string
+typescript,when,I uncheck {string},frameworks/playwright-cucumber-ts/steps/web-steps.ts,,unknown,string
+typescript,when,I submit the form,frameworks/playwright-cucumber-ts/steps/web-steps.ts,,en,
+typescript,when,I submit the form named {string},frameworks/playwright-cucumber-ts/steps/web-steps.ts,,en,string
+typescript,when,I search for {string},frameworks/playwright-cucumber-ts/steps/web-steps.ts,,unknown,string
+typescript,then,I should see search results,frameworks/playwright-cucumber-ts/steps/web-steps.ts,,en,
+typescript,then,I should see a table with columns:,frameworks/playwright-cucumber-ts/steps/web-steps.ts,,en,
+typescript,when,I click row with {string},frameworks/playwright-cucumber-ts/steps/web-steps.ts,,en,string
+typescript,then,I should see a modal with title {string},frameworks/playwright-cucumber-ts/steps/web-steps.ts,,en,string
+typescript,when,I close the modal,frameworks/playwright-cucumber-ts/steps/web-steps.ts,,en,
+typescript,when,I click {string} in the modal,frameworks/playwright-cucumber-ts/steps/web-steps.ts,,en,string
+typescript,then,I should see a success message,frameworks/playwright-cucumber-ts/steps/web-steps.ts,,en,
+typescript,then,I should see an error message,frameworks/playwright-cucumber-ts/steps/web-steps.ts,,en,
+typescript,then,I should see message {string},frameworks/playwright-cucumber-ts/steps/web-steps.ts,,en,string
+typescript,when,I click next page,frameworks/playwright-cucumber-ts/steps/web-steps.ts,,en,
+typescript,when,I click page {int},frameworks/playwright-cucumber-ts/steps/web-steps.ts,,en,int
+typescript,when,I download file {string},frameworks/playwright-cucumber-ts/steps/web-steps.ts,,unknown,string
+typescript,then,API response status should be {int},frameworks/playwright-cucumber-ts/steps/web-steps.ts,,en,int
+typescript,then,page should load within {int} seconds,frameworks/playwright-cucumber-ts/steps/web-steps.ts,,en,int
+typescript,given,I navigate to Paribu homepage,frameworks/playwright-cucumber-ts/steps/web.steps.ts,,unknown,
+typescript,given,I close the cookie notice if present,frameworks/playwright-cucumber-ts/steps/web.steps.ts,,en,
+typescript,when,I navigate to the Markets page,frameworks/playwright-cucumber-ts/steps/web.steps.ts,,en,
+typescript,when,I select the {string} filter,frameworks/playwright-cucumber-ts/steps/web.steps.ts,,en,string
+typescript,when,I enter unit price {string} in the Buy-Sell panel,frameworks/playwright-cucumber-ts/steps/web.steps.ts,,en,string
+typescript,when,I enter quantity {string} in the Buy-Sell panel,frameworks/playwright-cucumber-ts/steps/web.steps.ts,,en,string
+typescript,then,the total price should display the correct calculation result,frameworks/playwright-cucumber-ts/steps/web.steps.ts,,en,
+typescript,when,I set the time filter to {string},frameworks/playwright-cucumber-ts/steps/web.steps.ts,,en,string
+typescript,when,I click the {string} button to fill unit price,frameworks/playwright-cucumber-ts/steps/web.steps.ts,,en,string
+typescript,when,I navigate to the Login page,frameworks/playwright-cucumber-ts/steps/web.steps.ts,,en,
+typescript,when,I enter invalid country code {string},frameworks/playwright-cucumber-ts/steps/web.steps.ts,,en,string
+typescript,when,I enter invalid mobile number {string},frameworks/playwright-cucumber-ts/steps/web.steps.ts,,en,string
+typescript,when,I enter invalid password {string},frameworks/playwright-cucumber-ts/steps/web.steps.ts,,en,string
+typescript,when,I click the Login button,frameworks/playwright-cucumber-ts/steps/web.steps.ts,,en,
+typescript,then,an error message should appear,frameworks/playwright-cucumber-ts/steps/web.steps.ts,,en,
+typescript,then,the error message should contain {string},frameworks/playwright-cucumber-ts/steps/web.steps.ts,,en,string
+typescript,when,I sort by price in descending order,frameworks/playwright-cucumber-ts/steps/web.steps.ts,,unknown,
+typescript,when,I select {int} random coins with positive 24h change,frameworks/playwright-cucumber-ts/steps/web.steps.ts,,unknown,int
+typescript,when,I click on the first selected cryptocurrency,frameworks/playwright-cucumber-ts/steps/web.steps.ts,,en,
+typescript,when,I click on a pending buy order from the list,frameworks/playwright-cucumber-ts/steps/web.steps.ts,,en,
+typescript,when,I click on a pending sell order from the list,frameworks/playwright-cucumber-ts/steps/web.steps.ts,,en,
+typescript,then,the data should be correctly moved to the {string} tab,frameworks/playwright-cucumber-ts/steps/web.steps.ts,,en,string

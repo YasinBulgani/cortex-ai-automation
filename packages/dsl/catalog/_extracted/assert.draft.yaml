@@ -1,0 +1,2715 @@
+version: 0.1.0-draft
+category_name: Assert (OTOMATIK CIKARILDI)
+notes: Bu dosya extract_steps.py tarafindan uretildi. Lutfen rotuslayip catalog/ altina tasiyın.
+actions:
+- id: all_compared_elements_should_match_basel
+  category: assert.general
+  description: (taslak) all compared elements should match baselines
+  aliases:
+    en:
+    - all compared elements should match baselines
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/e2e-steps.ts
+      pattern: all compared elements should match baselines
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: all_test_data_should_be_valid
+  category: assert.general
+  description: (taslak) all test data should be valid
+  aliases:
+    en:
+    - all test data should be valid
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/data-steps.ts
+      pattern: all test data should be valid
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: an_error_message_should_appear
+  category: assert.general
+  description: (taslak) an error message should appear
+  aliases:
+    en:
+    - an error message should appear
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/web.steps.ts
+      pattern: an error message should appear
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: average_test_duration_should_be_below_ms
+  category: assert.general
+  description: (taslak) average test duration should be below {int}ms
+  aliases:
+    en:
+    - average test duration should be below {int}ms
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/reporting-steps.ts
+      pattern: average test duration should be below {int}ms
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: int
+    type: string
+    required: true
+- id: ba_ar_mesaj_veya_onay_listesi_g_r_n_r_ol
+  category: assert.general
+  description: (taslak) başarı mesajı veya onay listesi görünür olmalıdır
+  aliases:
+    tr:
+    - başarı mesajı veya onay listesi görünür olmalıdır
+  implementations:
+    python:
+      source_file: engine/steps/bgts_approval_steps.py
+      function: assert_success_or_list_visible
+      pattern: başarı mesajı veya onay listesi görünür olmalıdır
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: bekleyen_onay_say_s_en_az_olmal_d_r
+  category: assert.general
+  description: (taslak) bekleyen onay sayısı en az {count:d} olmalıdır
+  aliases:
+    tr:
+    - bekleyen onay sayısı en az {count:d} olmalıdır
+  implementations:
+    python:
+      source_file: engine/steps/bgts_approval_steps.py
+      function: assert_pending_approval_count
+      pattern: bekleyen onay sayısı en az {count:d} olmalıdır
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: count
+    type: string
+    required: true
+- id: bekleyen_onay_say_s_g_r_n_r_olmal_d_r
+  category: assert.general
+  description: (taslak) bekleyen onay sayısı görünür olmalıdır
+  aliases:
+    tr:
+    - bekleyen onay sayısı görünür olmalıdır
+  implementations:
+    python:
+      source_file: engine/steps/bgts_approval_steps.py
+      function: assert_pending_count_visible
+      pattern: bekleyen onay sayısı görünür olmalıdır
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: dashboard_istatistikleri_g_r_n_r_olmal_d
+  category: assert.general
+  description: (taslak) dashboard istatistikleri görünür olmalıdır
+  aliases:
+    tr:
+    - dashboard istatistikleri görünür olmalıdır
+  implementations:
+    python:
+      source_file: engine/steps/bgts_project_steps.py
+      function: assert_dashboard_stats_visible
+      pattern: dashboard istatistikleri görünür olmalıdır
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: do_rulama_hatas_g_r_n_r_olmal_d_r
+  category: assert.general
+  description: (taslak) doğrulama hatası görünür olmalıdır
+  aliases:
+    tr:
+    - doğrulama hatası görünür olmalıdır
+  implementations:
+    python:
+      source_file: engine/steps/bgts_scenario_steps.py
+      function: assert_validation_error_visible
+      pattern: doğrulama hatası görünür olmalıdır
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: en_az_1_ad_m_ba_ar_l_olmal_d_r
+  category: assert.general
+  description: (taslak) en az 1 adım başarılı olmalıdır
+  aliases:
+    tr:
+    - en az 1 adım başarılı olmalıdır
+  implementations:
+    python:
+      source_file: engine/steps/common_steps.py
+      function: assert_at_least_one_passed
+      pattern: en az 1 adım başarılı olmalıdır
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: featured_markets_should_be_visible
+  category: assert.general
+  description: (taslak) featured markets should be visible
+  aliases:
+    en:
+    - featured markets should be visible
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/paribu-steps.ts
+      pattern: featured markets should be visible
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: featured_markets_should_contain_at_least
+  category: assert.general
+  description: (taslak) featured markets should contain at least {int} cryptocurrencies
+  aliases:
+    en:
+    - featured markets should contain at least {int} cryptocurrencies
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/paribu-steps.ts
+      pattern: featured markets should contain at least {int} cryptocurrencies
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: int
+    type: string
+    required: true
+- id: giri_formu_g_r_n_r_olmal_d_r
+  category: assert.general
+  description: (taslak) giriş formu görünür olmalıdır
+  aliases:
+    tr:
+    - giriş formu görünür olmalıdır
+  implementations:
+    python:
+      source_file: engine/steps/bgts_login_steps.py
+      function: assert_login_form_visible
+      pattern: giriş formu görünür olmalıdır
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: hata_mesaj_g_r_n_r_olmal_d_r
+  category: assert.general
+  description: (taslak) hata mesajı görünür olmalıdır
+  aliases:
+    tr:
+    - hata mesajı görünür olmalıdır
+  implementations:
+    python:
+      source_file: engine/steps/bgts_login_steps.py
+      function: assert_error_message_visible
+      pattern: hata mesajı görünür olmalıdır
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: h_zl_aksiyon_butonlar_g_r_n_r_olmal_d_r
+  category: assert.general
+  description: (taslak) hızlı aksiyon butonları görünür olmalıdır
+  aliases:
+    tr:
+    - hızlı aksiyon butonları görünür olmalıdır
+  implementations:
+    python:
+      source_file: engine/steps/bgts_project_steps.py
+      function: assert_quick_actions_visible
+      pattern: hızlı aksiyon butonları görünür olmalıdır
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: i_assert_performance_with_default_thresh
+  category: assert.general
+  description: (taslak) I assert performance with default thresholds
+  aliases:
+    en:
+    - I assert performance with default thresholds
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/performance-steps.ts
+      pattern: I assert performance with default thresholds
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: i_don
+  category: assert.general
+  description: (taslak) I don
+  aliases:
+    en:
+    - I don
+  implementations:
+    python:
+      source_file: engine/steps/english_steps.py
+      function: en_assert_hidden_bare
+      pattern: I don
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: i_don_t_see_element
+  category: assert.general
+  description: (taslak) I don't see element {string}
+  aliases:
+    en:
+    - I don't see element {string}
+  implementations:
+    java:
+      source_file: frameworks/selenium-cucumber-java/src/test/java/stepdefinitions/AssertionSteps.java
+      function: verifyElementNotExists
+      pattern: I don't see element {string}
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_see_the_element
+  category: assert.general
+  description: '(taslak) I see the element '
+  aliases:
+    en:
+    - 'I see the element '
+  implementations:
+    python:
+      source_file: engine/steps/english_steps.py
+      function: en_assert_visible
+      pattern: 'I see the element '
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: i_see_the_element_p_key
+  category: assert.general
+  description: (taslak) I see the element (?P<key>.+)
+  aliases:
+    en:
+    - I see the element (?P<key>.+)
+  implementations:
+    python:
+      source_file: engine/steps/english_steps.py
+      function: en_assert_visible_bare
+      pattern: I see the element (?P<key>.+)
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: i_see_the_element_1
+  category: assert.general
+  description: (taslak) I see the element {string}
+  aliases:
+    en:
+    - I see the element {string}
+  implementations:
+    java:
+      source_file: frameworks/selenium-cucumber-java/src/test/java/stepdefinitions/AssertionSteps.java
+      function: iSeeTheElement
+      pattern: I see the element {string}
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_should_be_logged_out
+  category: assert.general
+  description: (taslak) I should be logged out
+  aliases:
+    en:
+    - I should be logged out
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/paribu-steps.ts
+      pattern: I should be logged out
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: i_should_have_generated_test_scenarios
+  category: assert.general
+  description: (taslak) I should have generated test scenarios
+  aliases:
+    en:
+    - I should have generated test scenarios
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/ai-steps.ts
+      pattern: I should have generated test scenarios
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: i_should_have_test_results_for_all_domai
+  category: assert.general
+  description: (taslak) I should have test results for all domains
+  aliases:
+    en:
+    - I should have test results for all domains
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/e2e-steps.ts
+      pattern: I should have test results for all domains
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: i_should_receive_debugging_suggestions
+  category: assert.general
+  description: (taslak) I should receive debugging suggestions
+  aliases:
+    en:
+    - I should receive debugging suggestions
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/ai-steps.ts
+      pattern: I should receive debugging suggestions
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: i_should_receive_optimization_suggestion
+  category: assert.general
+  description: (taslak) I should receive optimization suggestions
+  aliases:
+    en:
+    - I should receive optimization suggestions
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/ai-steps.ts
+      pattern: I should receive optimization suggestions
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: i_should_see_a_modal_with_title
+  category: assert.general
+  description: (taslak) I should see a modal with title {string}
+  aliases:
+    en:
+    - I should see a modal with title {string}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/web-steps.ts
+      pattern: I should see a modal with title {string}
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_should_see_a_success_message
+  category: assert.general
+  description: (taslak) I should see a success message
+  aliases:
+    en:
+    - I should see a success message
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/web-steps.ts
+      pattern: I should see a success message
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: i_should_see_a_table_with_columns
+  category: assert.general
+  description: '(taslak) I should see a table with columns:'
+  aliases:
+    en:
+    - 'I should see a table with columns:'
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/web-steps.ts
+      pattern: 'I should see a table with columns:'
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: i_should_see_an_error_message
+  category: assert.general
+  description: (taslak) I should see an error message
+  aliases:
+    en:
+    - I should see an error message
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/web-steps.ts
+      pattern: I should see an error message
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: i_should_see_coverage_gaps_identified
+  category: assert.general
+  description: (taslak) I should see coverage gaps identified
+  aliases:
+    en:
+    - I should see coverage gaps identified
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/ai-steps.ts
+      pattern: I should see coverage gaps identified
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: i_should_see_message
+  category: assert.general
+  description: (taslak) I should see message {string}
+  aliases:
+    en:
+    - I should see message {string}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/web-steps.ts
+      pattern: I should see message {string}
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_should_see_recommendations_for_improve
+  category: assert.general
+  description: (taslak) I should see recommendations for improvement
+  aliases:
+    en:
+    - I should see recommendations for improvement
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/ai-steps.ts
+      pattern: I should see recommendations for improvement
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: i_should_see_search_results
+  category: assert.general
+  description: (taslak) I should see search results
+  aliases:
+    en:
+    - I should see search results
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/web-steps.ts
+      pattern: I should see search results
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: i_should_see_the_ai_provider_and_model_u
+  category: assert.general
+  description: (taslak) I should see the AI provider and model used
+  aliases:
+    en:
+    - I should see the AI provider and model used
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/ai-steps.ts
+      pattern: I should see the AI provider and model used
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: i_should_see_in_featured_markets
+  category: assert.general
+  description: (taslak) I should see {string} in featured markets
+  aliases:
+    en:
+    - I should see {string} in featured markets
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/paribu-steps.ts
+      pattern: I should see {string} in featured markets
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_verify_checkbox_is_checked
+  category: assert.general
+  description: (taslak) I verify checkbox {string} is checked
+  aliases:
+    en:
+    - I verify checkbox {string} is checked
+  implementations:
+    java:
+      source_file: frameworks/selenium-cucumber-java/src/test/java/stepdefinitions/CheckboxSteps.java
+      function: verifyCheckboxIsChecked
+      pattern: I verify checkbox {string} is checked
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_verify_checkbox_is_unchecked
+  category: assert.general
+  description: (taslak) I verify checkbox {string} is unchecked
+  aliases:
+    en:
+    - I verify checkbox {string} is unchecked
+  implementations:
+    java:
+      source_file: frameworks/selenium-cucumber-java/src/test/java/stepdefinitions/CheckboxSteps.java
+      function: verifyCheckboxIsUnchecked
+      pattern: I verify checkbox {string} is unchecked
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_verify_element
+  category: assert.general
+  description: '(taslak) I verify element '
+  aliases:
+    en:
+    - 'I verify element '
+  implementations:
+    python:
+      source_file: engine/steps/english_steps.py
+      function: en_assert_text
+      pattern: 'I verify element '
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: i_verify_element_contains_text
+  category: assert.general
+  description: (taslak) I verify element {string} contains text {string}
+  aliases:
+    en:
+    - I verify element {string} contains text {string}
+  implementations:
+    java:
+      source_file: frameworks/selenium-cucumber-java/src/test/java/stepdefinitions/AssertionSteps.java
+      function: verifyElementContainsText
+      pattern: I verify element {string} contains text {string}
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_verify_element_contains_the_value_stor
+  category: assert.general
+  description: (taslak) I verify element {string} contains the value stored under {string}
+  aliases:
+    en:
+    - I verify element {string} contains the value stored under {string}
+  implementations:
+    java:
+      source_file: frameworks/selenium-cucumber-java/src/test/java/stepdefinitions/ScenarioContextSteps.java
+      function: verifyElementContainsValueStoredUnder
+      pattern: I verify element {string} contains the value stored under {string}
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_verify_element_has_attribute_equal_to
+  category: assert.general
+  description: (taslak) I verify element {string} has attribute {string} equal to {string}
+  aliases:
+    en:
+    - I verify element {string} has attribute {string} equal to {string}
+  implementations:
+    java:
+      source_file: frameworks/selenium-cucumber-java/src/test/java/stepdefinitions/AssertionSteps.java
+      function: verifyElementAttributeEquals
+      pattern: I verify element {string} has attribute {string} equal to {string}
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_verify_element_is_disabled
+  category: assert.general
+  description: (taslak) I verify element {string} is disabled
+  aliases:
+    en:
+    - I verify element {string} is disabled
+  implementations:
+    java:
+      source_file: frameworks/selenium-cucumber-java/src/test/java/stepdefinitions/AssertionSteps.java
+      function: verifyElementIsDisabled
+      pattern: I verify element {string} is disabled
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_verify_element_is_enabled
+  category: assert.general
+  description: (taslak) I verify element {string} is enabled
+  aliases:
+    en:
+    - I verify element {string} is enabled
+  implementations:
+    java:
+      source_file: frameworks/selenium-cucumber-java/src/test/java/stepdefinitions/AssertionSteps.java
+      function: verifyElementIsEnabled
+      pattern: I verify element {string} is enabled
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_verify_element_text_is_the_value_store
+  category: assert.general
+  description: (taslak) I verify element {string} text is the value stored under {string}
+  aliases:
+    en:
+    - I verify element {string} text is the value stored under {string}
+  implementations:
+    java:
+      source_file: frameworks/selenium-cucumber-java/src/test/java/stepdefinitions/ScenarioContextSteps.java
+      function: verifyElementTextIsValueStoredUnder
+      pattern: I verify element {string} text is the value stored under {string}
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_verify_element_text_is
+  category: assert.general
+  description: (taslak) I verify element {string} text is {string}
+  aliases:
+    en:
+    - I verify element {string} text is {string}
+  implementations:
+    java:
+      source_file: frameworks/selenium-cucumber-java/src/test/java/stepdefinitions/AssertionSteps.java
+      function: verifyElementText
+      pattern: I verify element {string} text is {string}
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_e_aktarma_formu_g_r_n_r_olmal_d_r
+  category: assert.general
+  description: (taslak) içe aktarma formu görünür olmalıdır
+  aliases:
+    tr:
+    - içe aktarma formu görünür olmalıdır
+  implementations:
+    python:
+      source_file: engine/steps/bgts_import_steps.py
+      function: assert_import_form_visible
+      pattern: içe aktarma formu görünür olmalıdır
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: i_e_aktarma_sayfas_y_klenmi_olmal_d_r
+  category: assert.general
+  description: (taslak) içe aktarma sayfası yüklenmiş olmalıdır
+  aliases:
+    tr:
+    - içe aktarma sayfası yüklenmiş olmalıdır
+  implementations:
+    python:
+      source_file: engine/steps/bgts_import_steps.py
+      function: assert_import_page_loaded
+      pattern: içe aktarma sayfası yüklenmiş olmalıdır
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: i_e_aktarma_sonucu_g_r_n_r_olmal_d_r
+  category: assert.general
+  description: (taslak) içe aktarma sonucu görünür olmalıdır
+  aliases:
+    tr:
+    - içe aktarma sonucu görünür olmalıdır
+  implementations:
+    python:
+      source_file: engine/steps/bgts_import_steps.py
+      function: assert_import_result_visible
+      pattern: içe aktarma sonucu görünür olmalıdır
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: kaynak_panel_g_r_n_r_olmal_d_r
+  category: assert.general
+  description: (taslak) kaynak panel görünür olmalıdır
+  aliases:
+    tr:
+    - kaynak panel görünür olmalıdır
+  implementations:
+    python:
+      source_file: engine/steps/bgts_approval_steps.py
+      function: assert_source_panel_visible
+      pattern: kaynak panel görünür olmalıdır
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: kullan_c_ba_ar_yla_giri_yapm_olmal_d_r
+  category: assert.general
+  description: (taslak) kullanıcı başarıyla giriş yapmış olmalıdır
+  aliases:
+    tr:
+    - kullanıcı başarıyla giriş yapmış olmalıdır
+  implementations:
+    python:
+      source_file: engine/steps/bgts_login_steps.py
+      function: assert_login_successful
+      pattern: kullanıcı başarıyla giriş yapmış olmalıdır
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: kullan_c_ba_ar_yla_k_yapm_olmal_d_r
+  category: assert.general
+  description: (taslak) kullanıcı başarıyla çıkış yapmış olmalıdır
+  aliases:
+    tr:
+    - kullanıcı başarıyla çıkış yapmış olmalıdır
+  implementations:
+    python:
+      source_file: engine/steps/bgts_smoke_steps.py
+      function: assert_logged_out
+      pattern: kullanıcı başarıyla çıkış yapmış olmalıdır
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: kullan_c_giri_sayfas_na_y_nlendirilmelid
+  category: assert.general
+  description: (taslak) kullanıcı giriş sayfasına yönlendirilmelidir
+  aliases:
+    tr:
+    - kullanıcı giriş sayfasına yönlendirilmelidir
+  implementations:
+    python:
+      source_file: engine/steps/bgts_login_steps.py
+      function: assert_redirected_to_login
+      pattern: kullanıcı giriş sayfasına yönlendirilmelidir
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: login_error_message_should_appear
+  category: assert.general
+  description: (taslak) login error message should appear
+  aliases:
+    en:
+    - login error message should appear
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/paribu-steps.ts
+      pattern: login error message should appear
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: login_should_be_successful
+  category: assert.general
+  description: (taslak) login should be successful
+  aliases:
+    en:
+    - login should be successful
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/paribu-steps.ts
+      pattern: login should be successful
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: market_should_have_or_more_cryptocurrenc
+  category: assert.general
+  description: (taslak) market should have {int} or more cryptocurrencies
+  aliases:
+    en:
+    - market should have {int} or more cryptocurrencies
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/paribu-steps.ts
+      pattern: market should have {int} or more cryptocurrencies
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: int
+    type: string
+    required: true
+- id: market_table_should_be_visible
+  category: assert.general
+  description: (taslak) market table should be visible
+  aliases:
+    en:
+    - market table should be visible
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/paribu-steps.ts
+      pattern: market table should be visible
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: onay_listesi_g_r_n_r_olmal_d_r
+  category: assert.general
+  description: (taslak) onay listesi görünür olmalıdır
+  aliases:
+    tr:
+    - onay listesi görünür olmalıdır
+  implementations:
+    python:
+      source_file: engine/steps/bgts_approval_steps.py
+      function: assert_approval_list_visible
+      pattern: onay listesi görünür olmalıdır
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: page_performance_should_meet_strict_thre
+  category: assert.general
+  description: (taslak) page performance should meet strict thresholds
+  aliases:
+    en:
+    - page performance should meet strict thresholds
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/e2e-steps.ts
+      pattern: page performance should meet strict thresholds
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: page_should_contain
+  category: assert.general
+  description: (taslak) page should contain {string}
+  aliases:
+    en:
+    - page should contain {string}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/common-steps.ts
+      pattern: page should contain {string}
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: page_should_not_contain
+  category: assert.general
+  description: (taslak) page should not contain {string}
+  aliases:
+    en:
+    - page should not contain {string}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/common-steps.ts
+      pattern: page should not contain {string}
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: page_title_should_be
+  category: assert.general
+  description: (taslak) page title should be {string}
+  aliases:
+    en:
+    - page title should be {string}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/common-steps.ts
+      pattern: page title should be {string}
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: page_url_should_be
+  category: assert.general
+  description: (taslak) page URL should be {string}
+  aliases:
+    en:
+    - page URL should be {string}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/common-steps.ts
+      pattern: page URL should be {string}
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: page_url_should_contain
+  category: assert.general
+  description: (taslak) page URL should contain {string}
+  aliases:
+    en:
+    - page URL should contain {string}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/common-steps.ts
+      pattern: page URL should contain {string}
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: performance_should_be
+  category: assert.general
+  description: (taslak) performance should be {string}
+  aliases:
+    en:
+    - performance should be {string}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/reporting-steps.ts
+      pattern: performance should be {string}
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: pii_tarama_sonu_lar_d_nm_olmal_d_r
+  category: assert.general
+  description: (taslak) PII tarama sonuçları dönmüş olmalıdır
+  aliases:
+    tr:
+    - PII tarama sonuçları dönmüş olmalıdır
+  implementations:
+    python:
+      source_file: engine/steps/bgts_synthetic_steps.py
+      function: assert_pii_scan_success
+      pattern: PII tarama sonuçları dönmüş olmalıdır
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: platform_temel_i_levleri_al_r_durumda_ol
+  category: assert.general
+  description: (taslak) platform temel işlevleri çalışır durumda olmalıdır
+  aliases:
+    tr:
+    - platform temel işlevleri çalışır durumda olmalıdır
+  implementations:
+    python:
+      source_file: engine/steps/bgts_smoke_steps.py
+      function: assert_platform_healthy
+      pattern: platform temel işlevleri çalışır durumda olmalıdır
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: profile_information_should_be_displayed
+  category: assert.general
+  description: (taslak) profile information should be displayed
+  aliases:
+    en:
+    - profile information should be displayed
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/paribu-steps.ts
+      pattern: profile information should be displayed
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: proje_listesi_g_r_n_r_olmal_d_r
+  category: assert.general
+  description: (taslak) proje listesi görünür olmalıdır
+  aliases:
+    tr:
+    - proje listesi görünür olmalıdır
+  implementations:
+    python:
+      source_file: engine/steps/bgts_project_steps.py
+      function: assert_project_list_visible
+      pattern: proje listesi görünür olmalıdır
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: proje_say_s_en_az_olmal_d_r
+  category: assert.general
+  description: (taslak) proje sayısı en az {count:d} olmalıdır
+  aliases:
+    tr:
+    - proje sayısı en az {count:d} olmalıdır
+  implementations:
+    python:
+      source_file: engine/steps/bgts_project_steps.py
+      function: assert_project_count
+      pattern: proje sayısı en az {count:d} olmalıdır
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: count
+    type: string
+    required: true
+- id: regresyon_kontrol
+  category: assert.general
+  description: '(taslak) regresyon kontrolü '
+  aliases:
+    tr:
+    - 'regresyon kontrolü '
+  implementations:
+    python:
+      source_file: engine/steps/bgts_regression_steps.py
+      function: assert_regression_check_passed
+      pattern: 'regresyon kontrolü '
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: sayfa_basligi
+  category: assert.general
+  description: '(taslak) sayfa basligi '
+  aliases:
+    en:
+    - 'sayfa basligi '
+  implementations:
+    python:
+      source_file: engine/steps/assertion_steps.py
+      function: step_assert_title
+      pattern: 'sayfa basligi '
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: sayfa_ba_ar_yla_y_klenmi_olmal_d_r
+  category: assert.general
+  description: (taslak) sayfa başarıyla yüklenmiş olmalıdır
+  aliases:
+    tr:
+    - sayfa başarıyla yüklenmiş olmalıdır
+  implementations:
+    python:
+      source_file: engine/steps/bgts_smoke_steps.py
+      function: assert_page_loaded
+      pattern: sayfa başarıyla yüklenmiş olmalıdır
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: sayfa_ba_l
+  category: assert.general
+  description: '(taslak) sayfa başlığı '
+  aliases:
+    tr:
+    - 'sayfa başlığı '
+  implementations:
+    python:
+      source_file: engine/steps/common_steps.py
+      function: assert_title_contains
+      pattern: 'sayfa başlığı '
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: sayfa_hatas_z_y_klenmi_olmal_d_r
+  category: assert.general
+  description: (taslak) sayfa hatasız yüklenmiş olmalıdır
+  aliases:
+    tr:
+    - sayfa hatasız yüklenmiş olmalıdır
+  implementations:
+    python:
+      source_file: engine/steps/bgts_regression_steps.py
+      function: assert_no_page_errors
+      pattern: sayfa hatasız yüklenmiş olmalıdır
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: sayfa_url
+  category: assert.general
+  description: (taslak) sayfa URL\
+  aliases:
+    en:
+    - sayfa URL\
+  implementations:
+    python:
+      source_file: engine/steps/assertion_steps.py
+      function: step_assert_url
+      pattern: sayfa URL\
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: sayfada
+  category: assert.general
+  description: '(taslak) sayfada '
+  aliases:
+    en:
+    - 'sayfada '
+  implementations:
+    python:
+      source_file: engine/steps/assertion_steps.py
+      function: step_assert_count
+      pattern: 'sayfada '
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: search_results_should_show
+  category: assert.general
+  description: (taslak) search results should show {string}
+  aliases:
+    en:
+    - search results should show {string}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/paribu-steps.ts
+      pattern: search results should show {string}
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: senaryo_detay_bilgileri_g_r_n_r_olmal_d_
+  category: assert.general
+  description: (taslak) senaryo detay bilgileri görünür olmalıdır
+  aliases:
+    tr:
+    - senaryo detay bilgileri görünür olmalıdır
+  implementations:
+    python:
+      source_file: engine/steps/bgts_scenario_steps.py
+      function: assert_scenario_detail_visible
+      pattern: senaryo detay bilgileri görünür olmalıdır
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: senaryo_say_s_en_az_olmal_d_r
+  category: assert.general
+  description: (taslak) senaryo sayısı en az {count:d} olmalıdır
+  aliases:
+    tr:
+    - senaryo sayısı en az {count:d} olmalıdır
+  implementations:
+    python:
+      source_file: engine/steps/bgts_scenario_steps.py
+      function: assert_scenario_count
+      pattern: senaryo sayısı en az {count:d} olmalıdır
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: count
+    type: string
+    required: true
+- id: senaryo_tablosu_g_r_n_r_olmal_d_r
+  category: assert.general
+  description: (taslak) senaryo tablosu görünür olmalıdır
+  aliases:
+    tr:
+    - senaryo tablosu görünür olmalıdır
+  implementations:
+    python:
+      source_file: engine/steps/bgts_scenario_steps.py
+      function: assert_scenario_table_visible
+      pattern: senaryo tablosu görünür olmalıdır
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: split_view_paneli_g_r_n_r_olmal_d_r
+  category: assert.general
+  description: (taslak) split view paneli görünür olmalıdır
+  aliases:
+    tr:
+    - split view paneli görünür olmalıdır
+  implementations:
+    python:
+      source_file: engine/steps/bgts_approval_steps.py
+      function: assert_split_view_visible
+      pattern: split view paneli görünür olmalıdır
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: taslak_panel_g_r_n_r_olmal_d_r
+  category: assert.general
+  description: (taslak) taslak panel görünür olmalıdır
+  aliases:
+    tr:
+    - taslak panel görünür olmalıdır
+  implementations:
+    python:
+      source_file: engine/steps/bgts_approval_steps.py
+      function: assert_draft_panel_visible
+      pattern: taslak panel görünür olmalıdır
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: test_data_should_have_field
+  category: assert.general
+  description: (taslak) test data should have field {string}
+  aliases:
+    en:
+    - test data should have field {string}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/data-steps.ts
+      pattern: test data should have field {string}
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: test_data_should_have_items
+  category: assert.general
+  description: (taslak) test data should have {int} items
+  aliases:
+    en:
+    - test data should have {int} items
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/data-steps.ts
+      pattern: test data should have {int} items
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: int
+    type: string
+    required: true
+- id: test_data_field_should_not_be_empty
+  category: assert.general
+  description: (taslak) test data {string} field should not be empty
+  aliases:
+    en:
+    - test data {string} field should not be empty
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/data-steps.ts
+      pattern: test data {string} field should not be empty
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: the_ai_client_should_have_made_or_more_r
+  category: assert.general
+  description: (taslak) the AI client should have made {int} or more requests
+  aliases:
+    en:
+    - the AI client should have made {int} or more requests
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/ai-steps.ts
+      pattern: the AI client should have made {int} or more requests
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: int
+    type: string
+    required: true
+- id: the_ai_workflow_results_should_be_compre
+  category: assert.general
+  description: (taslak) the AI workflow results should be comprehensive
+  aliases:
+    en:
+    - the AI workflow results should be comprehensive
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/ai-steps.ts
+      pattern: the AI workflow results should be comprehensive
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: the_ai_workflow_should_complete_successf
+  category: assert.general
+  description: (taslak) the AI workflow should complete successfully
+  aliases:
+    en:
+    - the AI workflow should complete successfully
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/ai-steps.ts
+      pattern: the AI workflow should complete successfully
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: the_analysis_should_report_color_shifts
+  category: assert.general
+  description: (taslak) the analysis should report color shifts
+  aliases:
+    en:
+    - the analysis should report color shifts
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/visual-ai-steps.ts
+      pattern: the analysis should report color shifts
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: the_analysis_should_report_layout_change
+  category: assert.general
+  description: (taslak) the analysis should report layout changes
+  aliases:
+    en:
+    - the analysis should report layout changes
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/visual-ai-steps.ts
+      pattern: the analysis should report layout changes
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: the_analytics_report_should_contain_reco
+  category: assert.general
+  description: (taslak) the analytics report should contain recommendations
+  aliases:
+    en:
+    - the analytics report should contain recommendations
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/reporting-steps.ts
+      pattern: the analytics report should contain recommendations
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: the_analytics_report_should_contain_tren
+  category: assert.general
+  description: (taslak) the analytics report should contain trend analysis
+  aliases:
+    en:
+    - the analytics report should contain trend analysis
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/reporting-steps.ts
+      pattern: the analytics report should contain trend analysis
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: the_baseline_analysis_should_provide_rec
+  category: assert.general
+  description: (taslak) the baseline analysis should provide recommendations
+  aliases:
+    en:
+    - the baseline analysis should provide recommendations
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/visual-ai-steps.ts
+      pattern: the baseline analysis should provide recommendations
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: the_baseline_should_have_or_fewer_update
+  category: assert.general
+  description: (taslak) the baseline should have {int} or fewer update cycles
+  aliases:
+    en:
+    - the baseline should have {int} or fewer update cycles
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/visual-ai-steps.ts
+      pattern: the baseline should have {int} or fewer update cycles
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: int
+    type: string
+    required: true
+- id: the_baseline_should_be_updated
+  category: assert.general
+  description: (taslak) the baseline should {string} be updated
+  aliases:
+    en:
+    - the baseline should {string} be updated
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/visual-ai-steps.ts
+      pattern: the baseline should {string} be updated
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: the_complete_workflow_should_be_valid
+  category: assert.general
+  description: (taslak) the complete workflow should be valid
+  aliases:
+    en:
+    - the complete workflow should be valid
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/e2e-steps.ts
+      pattern: the complete workflow should be valid
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: the_core_web_vitals_should_be_good
+  category: assert.general
+  description: (taslak) the core web vitals should be good
+  aliases:
+    en:
+    - the core web vitals should be good
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/performance-steps.ts
+      pattern: the core web vitals should be good
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: the_cumulative_layout_shift_should_be_le
+  category: assert.general
+  description: (taslak) the cumulative layout shift should be less than {float}
+  aliases:
+    en:
+    - the cumulative layout shift should be less than {float}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/performance-steps.ts
+      pattern: the cumulative layout shift should be less than {float}
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: float
+    type: string
+    required: true
+- id: the_data_should_be_correctly_moved_to_th
+  category: assert.general
+  description: (taslak) the data should be correctly moved to the {string} tab
+  aliases:
+    en:
+    - the data should be correctly moved to the {string} tab
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/web.steps.ts
+      pattern: the data should be correctly moved to the {string} tab
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: the_element
+  category: assert.general
+  description: '(taslak) the element '
+  aliases:
+    en:
+    - 'the element '
+  implementations:
+    python:
+      source_file: engine/steps/english_steps.py
+      function: en_assert_hidden
+      pattern: 'the element '
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: the_element_should_match_visual_baseline
+  category: assert.general
+  description: (taslak) the element {string} should match visual baseline {string}
+  aliases:
+    en:
+    - the element {string} should match visual baseline {string}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/visual-steps.ts
+      pattern: the element {string} should match visual baseline {string}
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: the_error_message_should_contain
+  category: assert.general
+  description: (taslak) the error message should contain {string}
+  aliases:
+    en:
+    - the error message should contain {string}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/web.steps.ts
+      pattern: the error message should contain {string}
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: the_exported_gherkin_should_be_a_valid_f
+  category: assert.general
+  description: (taslak) the exported Gherkin should be a valid feature file
+  aliases:
+    en:
+    - the exported Gherkin should be a valid feature file
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/recording-steps.ts
+      pattern: the exported Gherkin should be a valid feature file
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: the_exported_json_should_contain_all_rec
+  category: assert.general
+  description: (taslak) the exported JSON should contain all recorded actions
+  aliases:
+    en:
+    - the exported JSON should contain all recorded actions
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/recording-steps.ts
+      pattern: the exported JSON should contain all recorded actions
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: the_generated_report_should_contain_summ
+  category: assert.general
+  description: (taslak) the generated report should contain summary metrics
+  aliases:
+    en:
+    - the generated report should contain summary metrics
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/reporting-steps.ts
+      pattern: the generated report should contain summary metrics
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: the_generated_scenarios_should_have_or_m
+  category: assert.general
+  description: (taslak) the generated scenarios should have {int} or more steps
+  aliases:
+    en:
+    - the generated scenarios should have {int} or more steps
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/ai-steps.ts
+      pattern: the generated scenarios should have {int} or more steps
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: int
+    type: string
+    required: true
+- id: the_generated_steps_should_follow_bdd_fo
+  category: assert.general
+  description: (taslak) the generated steps should follow BDD format
+  aliases:
+    en:
+    - the generated steps should follow BDD format
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/recording-steps.ts
+      pattern: the generated steps should follow BDD format
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: the_page_should_match_visual_baseline
+  category: assert.general
+  description: (taslak) the page should match visual baseline {string}
+  aliases:
+    en:
+    - the page should match visual baseline {string}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/visual-steps.ts
+      pattern: the page should match visual baseline {string}
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: the_page_should_pass_all_quality_gates
+  category: assert.general
+  description: (taslak) the page should pass all quality gates
+  aliases:
+    en:
+    - the page should pass all quality gates
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/e2e-steps.ts
+      pattern: the page should pass all quality gates
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: the_page_title_should_contain
+  category: assert.general
+  description: '(taslak) the page title should contain '
+  aliases:
+    en:
+    - 'the page title should contain '
+  implementations:
+    python:
+      source_file: engine/steps/english_steps.py
+      function: en_assert_title
+      pattern: 'the page title should contain '
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: the_performance_report_should_have_no_vi
+  category: assert.general
+  description: (taslak) the performance report should have no violations
+  aliases:
+    en:
+    - the performance report should have no violations
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/performance-steps.ts
+      pattern: the performance report should have no violations
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: the_price_should_be_available
+  category: assert.general
+  description: (taslak) the price should be available
+  aliases:
+    en:
+    - the price should be available
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/paribu-steps.ts
+      pattern: the price should be available
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: the_recording_should_capture_all_user_ac
+  category: assert.general
+  description: (taslak) the recording should capture all user actions
+  aliases:
+    en:
+    - the recording should capture all user actions
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/recording-steps.ts
+      pattern: the recording should capture all user actions
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: the_recording_should_have_generated_or_m
+  category: assert.general
+  description: (taslak) the recording should have generated {int} or more steps
+  aliases:
+    en:
+    - the recording should have generated {int} or more steps
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/recording-steps.ts
+      pattern: the recording should have generated {int} or more steps
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: int
+    type: string
+    required: true
+- id: the_recording_should_have_or_more_action
+  category: assert.general
+  description: (taslak) the recording should have {int} or more actions
+  aliases:
+    en:
+    - the recording should have {int} or more actions
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/recording-steps.ts
+      pattern: the recording should have {int} or more actions
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: int
+    type: string
+    required: true
+- id: the_recording_workflow_should_produce_va
+  category: assert.general
+  description: (taslak) the recording workflow should produce valid output
+  aliases:
+    en:
+    - the recording workflow should produce valid output
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/recording-steps.ts
+      pattern: the recording workflow should produce valid output
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: the_replay_should_complete_successfully
+  category: assert.general
+  description: (taslak) the replay should complete successfully
+  aliases:
+    en:
+    - the replay should complete successfully
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/recording-steps.ts
+      pattern: the replay should complete successfully
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: the_report_should_have_success_rate_abov
+  category: assert.general
+  description: (taslak) the report should have success rate above {float}%
+  aliases:
+    en:
+    - the report should have success rate above {float}%
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/reporting-steps.ts
+      pattern: the report should have success rate above {float}%
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: float
+    type: string
+    required: true
+- id: the_report_should_include_test_cases
+  category: assert.general
+  description: (taslak) the report should include {int} test cases
+  aliases:
+    en:
+    - the report should include {int} test cases
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/reporting-steps.ts
+      pattern: the report should include {int} test cases
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: int
+    type: string
+    required: true
+- id: the_reporting_workflow_should_complete_s
+  category: assert.general
+  description: (taslak) the reporting workflow should complete successfully
+  aliases:
+    en:
+    - the reporting workflow should complete successfully
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/reporting-steps.ts
+      pattern: the reporting workflow should complete successfully
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: the_risk_assessment_should_provide_recom
+  category: assert.general
+  description: (taslak) the risk assessment should provide recommendations
+  aliases:
+    en:
+    - the risk assessment should provide recommendations
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/reporting-steps.ts
+      pattern: the risk assessment should provide recommendations
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: the_risk_level_should_be
+  category: assert.general
+  description: (taslak) the risk level should be {string}
+  aliases:
+    en:
+    - the risk level should be {string}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/reporting-steps.ts
+      pattern: the risk level should be {string}
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: the_risk_score_should_be_below
+  category: assert.general
+  description: (taslak) the risk score should be below {int}
+  aliases:
+    en:
+    - the risk score should be below {int}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/reporting-steps.ts
+      pattern: the risk score should be below {int}
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: int
+    type: string
+    required: true
+- id: the_sequential_operations_should_all_suc
+  category: assert.general
+  description: (taslak) the sequential operations should all succeed
+  aliases:
+    en:
+    - the sequential operations should all succeed
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/e2e-steps.ts
+      pattern: the sequential operations should all succeed
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: the_slowest_network_request_should_be
+  category: assert.general
+  description: (taslak) the slowest network request should be {string}
+  aliases:
+    en:
+    - the slowest network request should be {string}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/performance-steps.ts
+      pattern: the slowest network request should be {string}
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: the_suggested_test_data_should_include_r
+  category: assert.general
+  description: (taslak) the suggested test data should include required fields
+  aliases:
+    en:
+    - the suggested test data should include required fields
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/ai-steps.ts
+      pattern: the suggested test data should include required fields
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: the_test_coverage_should_be_at_least_per
+  category: assert.general
+  description: (taslak) the test coverage should be at least {int} percent
+  aliases:
+    en:
+    - the test coverage should be at least {int} percent
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/ai-steps.ts
+      pattern: the test coverage should be at least {int} percent
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: int
+    type: string
+    required: true
+- id: the_test_run_should_be_recorded_successf
+  category: assert.general
+  description: (taslak) the test run should be recorded successfully
+  aliases:
+    en:
+    - the test run should be recorded successfully
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/reporting-steps.ts
+      pattern: the test run should be recorded successfully
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: the_token_usage_should_be_tracked
+  category: assert.general
+  description: (taslak) the token usage should be tracked
+  aliases:
+    en:
+    - the token usage should be tracked
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/ai-steps.ts
+      pattern: the token usage should be tracked
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: the_total_network_requests_should_be_les
+  category: assert.general
+  description: (taslak) the total network requests should be less than {int}
+  aliases:
+    en:
+    - the total network requests should be less than {int}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/performance-steps.ts
+      pattern: the total network requests should be less than {int}
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: int
+    type: string
+    required: true
+- id: the_total_network_size_should_be_less_th
+  category: assert.general
+  description: (taslak) the total network size should be less than {int} KB
+  aliases:
+    en:
+    - the total network size should be less than {int} KB
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/performance-steps.ts
+      pattern: the total network size should be less than {int} KB
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: int
+    type: string
+    required: true
+- id: the_total_price_should_display_the_corre
+  category: assert.general
+  description: (taslak) the total price should display the correct calculation result
+  aliases:
+    en:
+    - the total price should display the correct calculation result
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/web.steps.ts
+      pattern: the total price should display the correct calculation result
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: the_url_should_contain
+  category: assert.general
+  description: '(taslak) the URL should contain '
+  aliases:
+    en:
+    - 'the URL should contain '
+  implementations:
+    python:
+      source_file: engine/steps/english_steps.py
+      function: en_assert_url
+      pattern: 'the URL should contain '
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: the_visual_ai_workflow_should_complete_s
+  category: assert.general
+  description: (taslak) the visual AI workflow should complete successfully
+  aliases:
+    en:
+    - the visual AI workflow should complete successfully
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/visual-ai-steps.ts
+      pattern: the visual AI workflow should complete successfully
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: the_visual_analysis_report_should_contai
+  category: assert.general
+  description: (taslak) the visual analysis report should contain anomaly details
+  aliases:
+    en:
+    - the visual analysis report should contain anomaly details
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/visual-ai-steps.ts
+      pattern: the visual analysis report should contain anomaly details
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: the_visual_analysis_report_should_contai_1
+  category: assert.general
+  description: (taslak) the visual analysis report should contain recommendations
+  aliases:
+    en:
+    - the visual analysis report should contain recommendations
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/visual-ai-steps.ts
+      pattern: the visual analysis report should contain recommendations
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: the_visual_analysis_should_detect_or_few
+  category: assert.general
+  description: (taslak) the visual analysis should detect {int} or fewer anomalies
+  aliases:
+    en:
+    - the visual analysis should detect {int} or fewer anomalies
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/visual-ai-steps.ts
+      pattern: the visual analysis should detect {int} or fewer anomalies
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: int
+    type: string
+    required: true
+- id: the_visual_analysis_should_identify_anom
+  category: assert.general
+  description: (taslak) the visual analysis should identify anomalies
+  aliases:
+    en:
+    - the visual analysis should identify anomalies
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/visual-ai-steps.ts
+      pattern: the visual analysis should identify anomalies
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: the_visual_anomalies_should_include
+  category: assert.general
+  description: (taslak) the visual anomalies should include {string}
+  aliases:
+    en:
+    - the visual anomalies should include {string}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/visual-ai-steps.ts
+      pattern: the visual anomalies should include {string}
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: the_visual_comparison_should_pass
+  category: assert.general
+  description: (taslak) the visual comparison should pass
+  aliases:
+    en:
+    - the visual comparison should pass
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/visual-steps.ts
+      pattern: the visual comparison should pass
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: the_visual_match_should_be_above_percent
+  category: assert.general
+  description: (taslak) the visual match should be above {float} percent
+  aliases:
+    en:
+    - the visual match should be above {float} percent
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/visual-steps.ts
+      pattern: the visual match should be above {float} percent
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: float
+    type: string
+    required: true
+- id: the_visual_similarity_should_be_above
+  category: assert.general
+  description: (taslak) the visual similarity should be above {float}
+  aliases:
+    en:
+    - the visual similarity should be above {float}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/visual-ai-steps.ts
+      pattern: the visual similarity should be above {float}
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: float
+    type: string
+    required: true
+- id: the_visual_similarity_should_be_exactly_
+  category: assert.general
+  description: (taslak) the visual similarity should be exactly {float} with tolerance {float}
+  aliases:
+    en:
+    - the visual similarity should be exactly {float} with tolerance {float}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/visual-ai-steps.ts
+      pattern: the visual similarity should be exactly {float} with tolerance {float}
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: float
+    type: string
+    required: true
+- id: there_should_be_no_critical_accessibilit
+  category: assert.general
+  description: (taslak) there should be no critical accessibility violations
+  aliases:
+    en:
+    - there should be no critical accessibility violations
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/e2e-steps.ts
+      pattern: there should be no critical accessibility violations
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: there_should_be_no_critical_visual_anoma
+  category: assert.general
+  description: (taslak) there should be no critical visual anomalies
+  aliases:
+    en:
+    - there should be no critical visual anomalies
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/visual-ai-steps.ts
+      pattern: there should be no critical visual anomalies
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: there_should_be_no_serious_accessibility
+  category: assert.general
+  description: (taslak) there should be no serious accessibility violations
+  aliases:
+    en:
+    - there should be no serious accessibility violations
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/e2e-steps.ts
+      pattern: there should be no serious accessibility violations
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: there_should_be_or_fewer_failing_tests
+  category: assert.general
+  description: (taslak) there should be {int} or fewer failing tests
+  aliases:
+    en:
+    - there should be {int} or fewer failing tests
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/reporting-steps.ts
+      pattern: there should be {int} or fewer failing tests
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: int
+    type: string
+    required: true
+- id: token_jwt_format_nda_3_nokta_ayr_lm_segm
+  category: assert.general
+  description: (taslak) token JWT formatında (3 nokta-ayrılmış segment) olmalı
+  aliases:
+    tr:
+    - token JWT formatında (3 nokta-ayrılmış segment) olmalı
+  implementations:
+    python:
+      source_file: backend/tests/bdd/steps/auth_steps.py
+      function: check_jwt_format
+      pattern: token JWT formatında (3 nokta-ayrılmış segment) olmalı
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: toplu_i_lem_butonlar_g_r_n_r_olmal_d_r
+  category: assert.general
+  description: (taslak) toplu işlem butonları görünür olmalıdır
+  aliases:
+    tr:
+    - toplu işlem butonları görünür olmalıdır
+  implementations:
+    python:
+      source_file: engine/steps/bgts_scenario_steps.py
+      function: assert_bulk_actions_visible
+      pattern: toplu işlem butonları görünür olmalıdır
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: url
+  category: assert.general
+  description: '(taslak) URL '
+  aliases:
+    en:
+    - 'URL '
+  implementations:
+    python:
+      source_file: engine/steps/common_steps.py
+      function: assert_url_contains
+      pattern: 'URL '
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: versiyon_listesi_g_r_n_r_olmal_d_r
+  category: assert.general
+  description: (taslak) versiyon listesi görünür olmalıdır
+  aliases:
+    tr:
+    - versiyon listesi görünür olmalıdır
+  implementations:
+    python:
+      source_file: engine/steps/bgts_scenario_steps.py
+      function: assert_version_list_visible
+      pattern: versiyon listesi görünür olmalıdır
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: visual_baseline_should_not_exist
+  category: assert.general
+  description: (taslak) visual baseline {string} should not exist
+  aliases:
+    en:
+    - visual baseline {string} should not exist
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/visual-steps.ts
+      pattern: visual baseline {string} should not exist
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: yan_t_kodu_olmal
+  category: assert.general
+  description: (taslak) yanıt kodu {code:d} olmalı
+  aliases:
+    tr:
+    - yanıt kodu {code:d} olmalı
+  implementations:
+    python:
+      source_file: backend/tests/bdd/steps/auth_steps.py
+      function: check_status_code
+      pattern: yanıt kodu {code:d} olmalı
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: code
+    type: string
+    required: true
+- id: yan_t_kodu_veya_olmal
+  category: assert.general
+  description: (taslak) yanıt kodu {c1:d} veya {c2:d} olmalı
+  aliases:
+    tr:
+    - yanıt kodu {c1:d} veya {c2:d} olmalı
+  implementations:
+    python:
+      source_file: backend/tests/bdd/steps/auth_steps.py
+      function: check_status_code_or
+      pattern: yanıt kodu {c1:d} veya {c2:d} olmalı
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: c1
+    type: string
+    required: true
+  - name: c2
+    type: string
+    required: true
+- id: yan_tta
+  category: assert.general
+  description: '(taslak) yanıtta '
+  aliases:
+    tr:
+    - 'yanıtta '
+  implementations:
+    python:
+      source_file: backend/tests/bdd/steps/auth_steps.py
+      function: check_field_present
+      pattern: 'yanıtta '
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: count_should_be
+  category: assert.general
+  description: (taslak) {string} count should be {int}
+  aliases:
+    en:
+    - '{string} count should be {int}'
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/common-steps.ts
+      pattern: '{string} count should be {int}'
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: int
+    type: string
+    required: true
+  - name: string
+    type: string
+    required: true
+- id: should_be_disabled
+  category: assert.general
+  description: (taslak) {string} should be disabled
+  aliases:
+    en:
+    - '{string} should be disabled'
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/common-steps.ts
+      pattern: '{string} should be disabled'
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: should_be_enabled
+  category: assert.general
+  description: (taslak) {string} should be enabled
+  aliases:
+    en:
+    - '{string} should be enabled'
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/common-steps.ts
+      pattern: '{string} should be enabled'
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: should_be_hidden
+  category: assert.general
+  description: (taslak) {string} should be hidden
+  aliases:
+    en:
+    - '{string} should be hidden'
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/common-steps.ts
+      pattern: '{string} should be hidden'
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: should_be_visible
+  category: assert.general
+  description: (taslak) {string} should be visible
+  aliases:
+    en:
+    - '{string} should be visible'
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/common-steps.ts
+      pattern: '{string} should be visible'
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: should_contain
+  category: assert.general
+  description: (taslak) {string} should contain {string}
+  aliases:
+    en:
+    - '{string} should contain {string}'
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/common-steps.ts
+      pattern: '{string} should contain {string}'
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: should_exist
+  category: assert.general
+  description: (taslak) {string} should exist
+  aliases:
+    en:
+    - '{string} should exist'
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/common-steps.ts
+      pattern: '{string} should exist'
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: should_have_attribute_with_value
+  category: assert.general
+  description: (taslak) {string} should have attribute {string} with value {string}
+  aliases:
+    en:
+    - '{string} should have attribute {string} with value {string}'
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/common-steps.ts
+      pattern: '{string} should have attribute {string} with value {string}'
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: should_have_text
+  category: assert.general
+  description: (taslak) {string} should have text {string}
+  aliases:
+    en:
+    - '{string} should have text {string}'
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/common-steps.ts
+      pattern: '{string} should have text {string}'
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: should_have_value
+  category: assert.general
+  description: (taslak) {string} should have value {string}
+  aliases:
+    en:
+    - '{string} should have value {string}'
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/common-steps.ts
+      pattern: '{string} should have value {string}'
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: should_not_be_visible
+  category: assert.general
+  description: (taslak) {string} should not be visible
+  aliases:
+    en:
+    - '{string} should not be visible'
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/common-steps.ts
+      pattern: '{string} should not be visible'
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: should_not_exist
+  category: assert.general
+  description: (taslak) {string} should not exist
+  aliases:
+    en:
+    - '{string} should not exist'
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/common-steps.ts
+      pattern: '{string} should not exist'
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: retilen_senaryolar_g_r_n_r_olmal_d_r
+  category: assert.general
+  description: (taslak) üretilen senaryolar görünür olmalıdır
+  aliases:
+    tr:
+    - üretilen senaryolar görünür olmalıdır
+  implementations:
+    python:
+      source_file: engine/steps/bgts_scenario_steps.py
+      function: assert_generated_scenarios_visible
+      pattern: üretilen senaryolar görünür olmalıdır
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'

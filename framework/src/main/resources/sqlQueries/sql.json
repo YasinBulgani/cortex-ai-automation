@@ -1,0 +1,6 @@
+{
+  "_README": "Cortex projesinde DB iceren senaryolar yazildiginda buraya SQL eklenir.",
+  "_format": "key = SQL stringi. Parametre: '?' placeholder. Step'ten parametre virgulle gecirilir.",
+  "_example": "selectCortexUser",
+  "_example_value": "SELECT id, username FROM users WHERE email = ?"
+}

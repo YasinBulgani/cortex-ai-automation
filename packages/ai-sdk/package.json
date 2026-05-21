@@ -1,0 +1,29 @@
+{
+  "name": "@neurex/ai-sdk",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Neurex AI SDK — intelligent LLM router, prompt registry, tools.",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".":              "./src/index.ts",
+    "./providers":    "./src/providers/index.ts",
+    "./router":       "./src/router/index.ts",
+    "./tools":        "./src/tools/index.ts",
+    "./prompts":      "./src/prompts/index.ts",
+    "./observability":"./src/observability/index.ts",
+    "./guardrails":   "./src/guardrails/index.ts",
+    "./evals":        "./src/evals/index.ts"
+  },
+  "scripts": {
+    "lint":       "eslint . --ext .ts,.tsx --max-warnings=0",
+    "type-check": "tsc --noEmit",
+    "test":       "vitest run --passWithNoTests",
+    "clean":      "rm -rf dist .turbo coverage"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0",
+    "vitest": "^2.1.0"
+  }
+}

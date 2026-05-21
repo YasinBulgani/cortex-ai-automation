@@ -1,0 +1,75 @@
+[
+  { "_comment": "Cortex login sayfasi locator'lari. Multi-fallback ile gercek selektor belirlendiginde daraltabilirsin." },
+
+  { "_comment": "----- Container -----" },
+  { "key": "loginContainer", "type": "css",   "value": "[data-test='login-form']" },
+  { "key": "loginContainer", "type": "css",   "value": "form[action*='login' i]" },
+  { "key": "loginContainer", "type": "css",   "value": "form:has(input[type='password'])" },
+  { "key": "loginContainer", "type": "css",   "value": "[class*='login-form' i], [id*='login-form' i]" },
+
+  { "_comment": "----- Username input -----" },
+  { "key": "userNameInput",  "type": "css",   "value": "input[data-testid='username']" },
+  { "key": "userNameInput",  "type": "css",   "value": "input[name='username' i]" },
+  { "key": "userNameInput",  "type": "css",   "value": "input[name='UserName']" },
+  { "key": "userNameInput",  "type": "css",   "value": "input[name='email' i]" },
+  { "key": "userNameInput",  "type": "css",   "value": "input[type='email']" },
+  { "key": "userNameInput",  "type": "css",   "value": "input[id*='user' i]:not([type='password'])" },
+  { "key": "userNameInput",  "type": "css",   "value": "input[placeholder*='kullan' i], input[placeholder*='e-posta' i]" },
+
+  { "_comment": "----- Password input -----" },
+  { "key": "passwordInput",  "type": "css",   "value": "input[data-testid='password']" },
+  { "key": "passwordInput",  "type": "css",   "value": "input[type='password']" },
+  { "key": "passwordInput",  "type": "css",   "value": "input[name='Password']" },
+  { "key": "passwordInput",  "type": "css",   "value": "input[placeholder*='parola' i], input[placeholder*='sifre' i], input[placeholder*='şifre' i]" },
+
+  { "_comment": "----- Login button -----" },
+  { "key": "loginButton",    "type": "css",   "value": "button[data-testid='login-submit']" },
+  { "key": "loginButton",    "type": "css",   "value": "button#btnLogin" },
+  { "key": "loginButton",    "type": "css",   "value": "button[type='submit']" },
+  { "key": "loginButton",    "type": "xpath", "value": "//button[normalize-space()='Giriş Yap' or normalize-space()='Giris' or normalize-space()='Login']" },
+
+  { "_comment": "----- Remember me -----" },
+  { "key": "rememberMeCheckbox", "type": "css",   "value": "input[type='checkbox'][name*='remember' i]" },
+  { "key": "rememberMeCheckbox", "type": "css",   "value": "input[type='checkbox'][id*='remember' i]" },
+  { "key": "rememberMeCheckbox", "type": "xpath", "value": "//label[contains(translate(., 'BHHA', 'bhha'), 'beni hatirla')]/preceding-sibling::input[@type='checkbox'][1]" },
+
+  { "_comment": "----- Show/hide password toggle -----" },
+  { "key": "passwordVisibilityToggle", "type": "css",   "value": "button[aria-label*='password' i][aria-label*='show' i], button[aria-label*='password' i][aria-label*='hide' i]" },
+  { "key": "passwordVisibilityToggle", "type": "css",   "value": "button[class*='toggle-password' i], button[class*='show-password' i]" },
+  { "key": "passwordVisibilityToggle", "type": "css",   "value": "input[type='password'] ~ button" },
+
+  { "_comment": "----- Forgot password -----" },
+  { "key": "forgotPasswordLink", "type": "css",   "value": "a[data-testid='forgot-password']" },
+  { "key": "forgotPasswordLink", "type": "css",   "value": "a[href*='forgot' i], a[href*='reset' i]" },
+  { "key": "forgotPasswordLink", "type": "xpath", "value": "//a[contains(translate(., 'UEUTM', 'uetum'), 'unuttum')]" },
+
+  { "_comment": "----- Sign up -----" },
+  { "key": "signUpLink",     "type": "css",   "value": "a[data-testid='sign-up']" },
+  { "key": "signUpLink",     "type": "css",   "value": "a[href*='register' i], a[href*='signup' i]" },
+
+  { "_comment": "----- Validation / error messages -----" },
+  { "key": "loginErrorMessage", "type": "css",   "value": "[data-testid='login-error']" },
+  { "key": "loginErrorMessage", "type": "css",   "value": ".alert-danger, .error-message, [class*='login-error' i]" },
+  { "key": "loginErrorMessage", "type": "css",   "value": "[role='alert']" },
+  { "key": "usernameFieldError","type": "css",   "value": "[data-testid='username-error']" },
+  { "key": "usernameFieldError","type": "css",   "value": "input[name*='user' i] + .error, input[name*='user' i] ~ [class*='error' i]" },
+  { "key": "passwordFieldError","type": "css",   "value": "[data-testid='password-error']" },
+  { "key": "passwordFieldError","type": "css",   "value": "input[type='password'] + .error, input[type='password'] ~ [class*='error' i]" },
+
+  { "_comment": "----- Post-login -----" },
+  { "key": "dashboardHome",  "type": "css",   "value": "[data-testid='dashboard']" },
+  { "key": "dashboardHome",  "type": "css",   "value": "[class*='dashboard-home' i], [id*='dashboard' i]" },
+  { "key": "dashboardHome",  "type": "css",   "value": "main[role='main']" },
+  { "key": "welcomeMessage", "type": "css",   "value": "[data-testid='welcome']" },
+  { "key": "welcomeMessage", "type": "xpath", "value": "//*[contains(translate(., 'HG', 'hg'), 'hos geldin') or contains(translate(., 'HG', 'hg'), 'hoş geldin')]" },
+
+  { "_comment": "----- Logout -----" },
+  { "key": "logoutButton",   "type": "css",   "value": "[data-testid='logout']" },
+  { "key": "logoutButton",   "type": "css",   "value": "button[id*='logout' i], a[href*='logout' i]" },
+  { "key": "logoutButton",   "type": "xpath", "value": "//button[contains(translate(., 'CKS', 'cks'), 'cikis') or contains(translate(., 'CK', 'ck'), 'çıkış')]" },
+
+  { "_comment": "----- Forgot password page -----" },
+  { "key": "resetEmailInput","type": "css",   "value": "input[type='email'][name*='reset' i], input[data-testid='reset-email']" },
+  { "key": "resetSubmitButton","type": "css", "value": "button[data-testid='reset-submit'], button[type='submit']" },
+  { "key": "resetSuccessMessage","type": "css","value": "[data-testid='reset-success'], [class*='reset-success' i], .alert-success" }
+]

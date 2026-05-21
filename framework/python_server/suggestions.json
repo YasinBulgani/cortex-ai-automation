@@ -1,0 +1,288 @@
+{
+  "locator hatası": [
+    {
+      "condition": "'click' in step.lower() and ('not found' in msg.lower() or 'bulunamadı' in msg.lower())",
+      "suggestion": "Tıklama adımında element bulunamadı, locator (XPath/CSS) doğru mu? Element tıklanabilir mi kontrol edin."
+    },
+    {
+      "condition": "'type' in step.lower() and ('not found' in msg.lower() or 'bulunamadı' in msg.lower())",
+      "suggestion": "Yazma adımında element bulunamadı, locator (XPath/CSS) doğru mu? Element görünür mü kontrol edin."
+    },
+    {
+      "condition": "'locator' in msg.lower() or 'not found' in msg.lower() or 'bulunamadı' in msg.lower()",
+      "suggestion": "Locator tanımları (XPath/CSS) doğru mu? Türkçe veya özel karakterli isimler için genelleştirilmiş bir ifade kullanın."
+    },
+    {
+      "condition": "'xpath' in msg.lower() or 'css' in msg.lower()",
+      "suggestion": "Element iframe veya shadow DOM içinde mi? Locator’ı buna göre güncelleyin."
+    },
+    {
+      "condition": "true",
+      "suggestion": "Locator sintaksını ve elementin varlığını kontrol edin."
+    }
+  ],
+  "timeout hatası": [
+    {
+      "condition": "'type' in step.lower() and ('waiting for' in msg.lower() or 'visibility' in msg.lower())",
+      "suggestion": "Yazma adımında element görünmüyor, bekleme süresini artırın (örn. WebDriverWait ile 30 saniye)."
+    },
+    {
+      "condition": "'click' in step.lower() and ('waiting for' in msg.lower() or 'visibility' in msg.lower())",
+      "suggestion": "Tıklama adımında element görünmüyor, bekleme süresini artırın veya tıklanabilirlik kontrolü yapın."
+    },
+    {
+      "condition": "'page to load' in msg.lower()",
+      "suggestion": "Sayfa yüklenmedi, ağ bağlantısını veya server performansını kontrol edin."
+    },
+    {
+      "condition": "'expected condition' in msg.lower()",
+      "suggestion": "Dinamik içerik yüklenmesini beklemek için FluentWait kullanın."
+    },
+    {
+      "condition": "true",
+      "suggestion": "Bekleme süresini veya ağ koşullarını kontrol edin."
+    }
+  ],
+  "assertion hatası": [
+    {
+      "condition": "'verify' in step.lower() and 'expected' in msg.lower()",
+      "suggestion": "Doğrulama adımında beklenen ve gerçek değerleri loglayarak farkı analiz edin."
+    },
+    {
+      "condition": "'expected' in msg.lower()",
+      "suggestion": "Test verilerinin doğru olduğunu kontrol edin (örn. API veya veritabanı verileri)."
+    },
+    {
+      "condition": "'text' in msg.lower() or 'title' in msg.lower()",
+      "suggestion": "Sayfa içeriğinin doğru yüklendiğini kontrol edin, dinamik veri var mı?"
+    },
+    {
+      "condition": "'failed' in msg.lower()",
+      "suggestion": "Test ortamının stabil olduğunu ve verilerin güncel olduğunu doğrulayın."
+    },
+    {
+      "condition": "true",
+      "suggestion": "Test verilerini ve doğrulama mantığını kontrol edin."
+    }
+  ],
+  "network hatası": [
+    {
+      "condition": "'err_name_not_resolved' in msg.lower()",
+      "suggestion": "DNS çözümleme hatası olabilir, ağ bağlantısını ve DNS ayarlarını kontrol edin."
+    },
+    {
+      "condition": "'connection' in msg.lower()",
+      "suggestion": "Bağlantı koptuysa, VPN, proxy veya firewall ayarlarını doğrulayın."
+    },
+    {
+      "condition": "'503' in msg.lower() or '504' in msg.lower()",
+      "suggestion": "Server yanıt vermiyor, server loglarını kontrol edin."
+    },
+    {
+      "condition": "'timeout' in msg.lower()",
+      "suggestion": "Ağ gecikmesi olabilir, bağlantı stabilitesini test edin."
+    },
+    {
+      "condition": "true",
+      "suggestion": "Ağ bağlantısını veya server durumunu inceleyin."
+    }
+  ],
+  "authentication hatası": [
+    {
+      "condition": "'type' in step.lower() and 'credentials' in msg.lower()",
+      "suggestion": "Yazma adımında giriş bilgileri (kullanıcı adı, şifre) doğru mu? Konfigürasyonu kontrol edin."
+    },
+    {
+      "condition": "'token' in msg.lower() or '401' in msg.lower()",
+      "suggestion": "Token veya oturum süresi dolmuş olabilir, yenileyin."
+    },
+    {
+      "condition": "'unauthorized' in msg.lower()",
+      "suggestion": "Kimlik doğrulama ayarlarını (SSO, OAuth) ve erişim yetkilerini kontrol edin."
+    },
+    {
+      "condition": "'invalid' in msg.lower()",
+      "suggestion": "Giriş bilgilerinin geçerli olduğunu test edin."
+    },
+    {
+      "condition": "true",
+      "suggestion": "Giriş bilgilerini ve oturum ayarlarını kontrol edin."
+    }
+  ],
+  "state hatası": [
+    {
+      "condition": "'driver' in msg.lower()",
+      "suggestion": "WebDriver doğru başlatıldı mı? Driver nesnesi null mu kontrol edin."
+    },
+    {
+      "condition": "'session' in msg.lower()",
+      "suggestion": "Oturum geçersizse, test öncesi oturum başlatma mantığını doğrulayın."
+    },
+    {
+      "condition": "'illegalstate' in msg.lower()",
+      "suggestion": "Uygulama durumlarını loglayarak state geçişlerinde hata olup olmadığını kontrol edin."
+    },
+    {
+      "condition": "'not ready' in msg.lower()",
+      "suggestion": "Test ortamının hazır olduğunu, servislerin çalıştığını doğrulayın."
+    },
+    {
+      "condition": "true",
+      "suggestion": "WebDriver veya oturum durumunu kontrol edin."
+    }
+  ],
+  "tarayıcı hatası": [
+    {
+      "condition": "'driver' in msg.lower()",
+      "suggestion": "Tarayıcı sürücüsü (örn. ChromeDriver) tarayıcı sürümüyle uyumlu mu? Güncelleyin."
+    },
+    {
+      "condition": "'crash' in msg.lower()",
+      "suggestion": "Tarayıcı çöktüyse, logları inceleyin, bellek veya CPU kullanımı yüksek mi?"
+    },
+    {
+      "condition": "'headless' in msg.lower()",
+      "suggestion": "Headless mod sorun yaratıyor olabilir, standart modda test edin."
+    },
+    {
+      "condition": "'extension' in msg.lower()",
+      "suggestion": "Tarayıcı eklentilerini devre dışı bırakarak testi tekrarlayın."
+    },
+    {
+      "condition": "true",
+      "suggestion": "Tarayıcı sürücüsü ve ayarlarını kontrol edin."
+    }
+  ],
+  "database hatası": [
+    {
+      "condition": "'connection' in msg.lower()",
+      "suggestion": "Veritabanı bağlantı ayarlarını (URL, kullanıcı adı, şifre) kontrol edin."
+    },
+    {
+      "condition": "'sql' in msg.lower()",
+      "suggestion": "SQL sorgusunun sintaksını ve parametrelerini kontrol edin."
+    },
+    {
+      "condition": "'table' in msg.lower() or 'schema' in msg.lower()",
+      "suggestion": "Tablo veya şema mevcut mu? Veritabanı loglarını inceleyin."
+    },
+    {
+      "condition": "'connection pool' in msg.lower()",
+      "suggestion": "Bağlantı havuzunda çok fazla açık bağlantı olabilir, ayarları kontrol edin."
+    },
+    {
+      "condition": "true",
+      "suggestion": "Veritabanı bağlantısını ve sorguları kontrol edin."
+    }
+  ],
+  "api hatası": [
+    {
+      "condition": "'404' in msg.lower()",
+      "suggestion": "Endpoint bulunamadı, API adresini kontrol edin."
+    },
+    {
+      "condition": "'500' in msg.lower()",
+      "suggestion": "Server hatası, API loglarını inceleyin, servis çalışıyor mu?"
+    },
+    {
+      "condition": "'request' in msg.lower()",
+      "suggestion": "Request header’larını (örn. Authorization) ve parametreleri kontrol edin."
+    },
+    {
+      "condition": "'json' in msg.lower()",
+      "suggestion": "API yanıtını loglayın, JSON formatı doğru mu?"
+    },
+    {
+      "condition": "true",
+      "suggestion": "API isteğini ve server durumunu kontrol edin."
+    }
+  ],
+  "index hatası": [
+    {
+      "condition": "'index' in msg.lower()",
+      "suggestion": "Dizi veya liste boyutunu kontrol edin (örn. list.size())."
+    },
+    {
+      "condition": "'out of bounds' in msg.lower()",
+      "suggestion": "Döngüde sınır dışı erişim var mı? İndeks mantığını doğrulayın."
+    },
+    {
+      "condition": "'array' in msg.lower()",
+      "suggestion": "Veri yapısının boyutunu loglayın, veri eksik mi?"
+    },
+    {
+      "condition": "'negative' in msg.lower()",
+      "suggestion": "İndeks hesaplamalarını kontrol edin, negatif indeks var mı?"
+    },
+    {
+      "condition": "true",
+      "suggestion": "İndeks erişim mantığını kontrol edin."
+    }
+  ],
+  "null hatası": [
+    {
+      "condition": "'nullpointer' in msg.lower()",
+      "suggestion": "NullPointerException için nesne kontrolleri ekleyin (örn. if (obj != null))."
+    },
+    {
+      "condition": "'null' in msg.lower()",
+      "suggestion": "Metodun null döndürmediğini kontrol edin, varsayılan değerler kullanın."
+    },
+    {
+      "condition": "'object' in msg.lower()",
+      "suggestion": "Değişken başlatmalarını loglayın, hangi nesne null?"
+    },
+    {
+      "condition": "'initialize' in msg.lower()",
+      "suggestion": "Test öncesi veri veya nesne başlatmalarını doğrulayın."
+    },
+    {
+      "condition": "true",
+      "suggestion": "Nesne başlatmalarını kontrol edin."
+    }
+  ],
+  "ortam hatası": [
+    {
+      "condition": "'url not defined' in msg.lower() or 'configuration' in msg.lower()",
+      "suggestion": "Konfigürasyonda URL veya anahtar tanımlı değil, konfigürasyon dosyasını kontrol edin."
+    },
+    {
+      "condition": "'server' in msg.lower()",
+      "suggestion": "Test ortamı erişilebilir mi? Server durumunu kontrol edin."
+    },
+    {
+      "condition": "'service' in msg.lower()",
+      "suggestion": "Servislerin (API, veritabanı) çalıştığını doğrulayın, logları inceleyin."
+    },
+    {
+      "condition": "'properties' in msg.lower()",
+      "suggestion": "Konfigürasyon dosyalarını (örn. properties) gözden geçirin."
+    },
+    {
+      "condition": "true",
+      "suggestion": "Ortam ayarlarını ve servis erişimlerini kontrol edin."
+    }
+  ],
+  "type error": [
+    {
+      "condition": "'type' in step.lower() and 'type' in msg.lower()",
+      "suggestion": "Yazma adımında veri türünü kontrol edin (örn. String yerine int gönderilmiş)."
+    },
+    {
+      "condition": "'classcastexception' in msg.lower()",
+      "suggestion": "Metodun beklediği veri türünü doğrulayın."
+    },
+    {
+      "condition": "'format' in msg.lower()",
+      "suggestion": "Giriş verilerinin formatını loglayın, uyumsuzluk var mı?"
+    },
+    {
+      "condition": "'parse' in msg.lower()",
+      "suggestion": "Veri dönüşüm mantığını kontrol edin, doğru parse ediliyor mu?"
+    },
+    {
+      "condition": "true",
+      "suggestion": "Veri türlerini ve metod beklentilerini kontrol edin."
+    }
+  ]
+}

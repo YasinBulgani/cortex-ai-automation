@@ -1,0 +1,496 @@
+"use client";
+
+import { Suspense, useState, useRef, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { BgtestLogo } from "@/components/BgtestLogo";
+import { WorldWarBackground } from "@/components/WorldWarBackground";
+import { API_BASE, ENGINE_BASE, apiFetch, setTokens } from "@/lib/api-client";
+
+function loginErrorMessage(err: unknown): string {
+  if (err instanceof TypeError && /failed to fetch|load failed|networkerror/i.test(String(err.message))) {
+    const devHint = process.env.NODE_ENV === "development" ? ` Şu anki API adresi: ${API_BASE}` : "";
+    return `Sunucuya ulaşılamıyor. Backend API çalışıyor mu ve adres doğru mu kontrol edin.${devHint}`;
+  }
+  if (err instanceof Error) return err.message;
+  return "Giriş başarısız";
+}
+
+const inputCls = "w-full rounded-xl border border-slate-700 bg-slate-800/60 px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500/60 focus:bg-slate-800 transition-colors";
+
+// ── AI Onboarding Chatbot ────────────────────────────────────────────────────
+const FAQ: Array<{ q: string; a: string }> = [
+  {
+    q: "Visium nedir?",
+    a: "Visium; test tasarımı, servis kalitesi, web otomasyonu, mobil run ve veri akislarini ayni kalite cekirdegi uzerinde birlestiren urun ailesidir.",
+  },
+  {
+    q: "Nasıl giriş yapabilirim?",
+    a: "Yöneticinizden size atanan e-posta ve şifre ile giriş yapabilirsiniz. Şifrenizi unuttaysanız 'Şifremi unuttum' bağlantısını kullanın.",
+  },
+  {
+    q: "MaviYaka nedir?",
+    a: "MaviYaka, Java/Selenium/Cucumber tabanli kurumsal otomasyon altyapisidir. Visium Web odagi, manuel testlerinizi otomatik olarak MaviYaka feature dosyalarina donusturebilir.",
+  },
+  {
+    q: "Desteklenen otomasyon araçları?",
+    a: "Playwright, Selenium/MaviYaka, Cypress, TestNG, Cucumber ve daha fazlası. AI, senaryo yapısına göre en uygun aracı önerir.",
+  },
+  {
+    q: "Test verisi nasıl yönetilir?",
+    a: "AI, senaryo adımlarından otomatik test verisi üretir. @dataKey referansları ile data.json dosyasına bağlanır, rastgele veri için +-key sözdizimi kullanılır.",
+  },
+];
+
+function AiAssistant() {
+  const [open, setOpen] = useState(false);
+  const [input, setInput] = useState("");
+  const [messages, setMessages] = useState<Array<{ role: "user" | "bot"; text: string }>>([
+    { role: "bot", text: "Merhaba! Visium urun ailesi hakkinda merak ettiginiz her seyi sorabilirsiniz." },
+  ]);
+  const [typing, setTyping] = useState(false);
+  const bottomRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, typing]);
+
+  function findAnswer(question: string): string {
+    const q = question.toLowerCase();
+    const match = FAQ.find(f =>
+      f.q.toLowerCase().split(" ").some(word => q.includes(word) && word.length > 3)
+    );
+    if (match) return match.a;
+    if (q.includes("şifre") || q.includes("unuttum")) return FAQ[1].a;
+    if (q.includes("giriş") || q.includes("login")) return FAQ[1].a;
+    if (q.includes("maviyaka") || q.includes("java") || q.includes("cucumber")) return FAQ[2].a;
+    if (q.includes("playwright") || q.includes("selenium") || q.includes("otomasyon")) return FAQ[3].a;
+    if (q.includes("test verisi") || q.includes("data")) return FAQ[4].a;
+    return "Anladım. Bu konuda yöneticinize veya destek ekibine danışmanızı öneririm. Başka sorunuz var mı?";
+  }
+
+  function handleSend() {
+    const text = input.trim();
+    if (!text) return;
+    setInput("");
+    setMessages(m => [...m, { role: "user", text }]);
+    setTyping(true);
+    setTimeout(() => {
+      const answer = findAnswer(text);
+      setMessages(m => [...m, { role: "bot", text: answer }]);
+      setTyping(false);
+    }, 600 + Math.random() * 400);
+  }
+
+  return (
+    <>
+      {/* Floating button */}
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="fixed bottom-6 right-6 z-50 flex items-center gap-2 rounded-full bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg hover:bg-emerald-500 transition-all"
+        aria-label="AI Yardım"
+      >
+        <span className="text-base">🤖</span>
+        {!open && <span>AI Yardım</span>}
+        {open && <span>Kapat</span>}
+      </button>
+
+      {/* Chat panel */}
+      {open && (
+        <div className="fixed bottom-20 right-6 z-50 w-80 rounded-2xl border border-white/10 bg-slate-900/95 backdrop-blur-xl shadow-2xl flex flex-col overflow-hidden" style={{ maxHeight: "420px" }}>
+          {/* Header */}
+          <div className="flex items-center gap-2 px-4 py-3 bg-emerald-700/30 border-b border-white/10">
+            <span className="text-lg">🤖</span>
+            <div>
+              <p className="text-sm font-semibold text-white">Visium Intelligence Asistan</p>
+              <p className="text-xs text-emerald-400">Çevrimiçi · Hızlı yanıt</p>
+            </div>
+          </div>
+
+          {/* FAQ chips */}
+          <div className="flex gap-1.5 flex-wrap px-3 pt-2 pb-1">
+            {FAQ.slice(0, 3).map(f => (
+              <button
+                key={f.q}
+                onClick={() => { setMessages(m => [...m, { role: "user", text: f.q }]); setTyping(true); setTimeout(() => { setMessages(m => [...m, { role: "bot", text: f.a }]); setTyping(false); }, 500); }}
+                className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1 text-xs text-emerald-300 hover:bg-emerald-500/20 transition-colors"
+              >
+                {f.q}
+              </button>
+            ))}
+          </div>
+
+          {/* Messages */}
+          <div className="flex-1 overflow-y-auto px-3 py-2 space-y-2 min-h-0" style={{ maxHeight: "220px" }}>
+            {messages.map((m, i) => (
+              <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
+                <div className={`max-w-[85%] rounded-xl px-3 py-2 text-xs leading-relaxed ${
+                  m.role === "user"
+                    ? "bg-blue-600 text-white"
+                    : "bg-slate-800 text-slate-200 border border-white/5"
+                }`}>
+                  {m.text}
+                </div>
+              </div>
+            ))}
+            {typing && (
+              <div className="flex justify-start">
+                <div className="bg-slate-800 border border-white/5 rounded-xl px-3 py-2">
+                  <div className="flex gap-1">
+                    {[0, 1, 2].map(i => (
+                      <span key={i} className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-bounce" style={{ animationDelay: `${i * 0.15}s` }} />
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+            <div ref={bottomRef} />
+          </div>
+
+          {/* Input */}
+          <div className="px-3 pb-3 pt-1 border-t border-white/10 flex gap-2">
+            <input
+              type="text"
+              value={input}
+              onChange={e => setInput(e.target.value)}
+              onKeyDown={e => e.key === "Enter" && handleSend()}
+              placeholder="Soru sorun…"
+              className="flex-1 rounded-xl bg-slate-800 border border-slate-700 px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500/60"
+            />
+            <button
+              onClick={handleSend}
+              disabled={!input.trim()}
+              className="rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 px-3 py-2 text-xs font-semibold text-white transition-colors"
+            >
+              ↑
+            </button>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
+
+
+const DEV_EMAIL = "test@test.com";
+const DEV_PASSWORD = "test";
+
+function LoginPageContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [rememberMe, setRememberMe] = useState(false);
+  const [uiReady, setUiReady] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [forgotOpen, setForgotOpen] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState("");
+  const [forgotMsg, setForgotMsg] = useState<string | null>(null);
+  const [forgotLoading, setForgotLoading] = useState(false);
+  const autoLoginRequested =
+    process.env.NODE_ENV === "development" &&
+    searchParams?.get("autologin") === "1";
+  const nextPath = searchParams?.get("next") || "/projects";
+
+  async function syncEngineSession(nextEmail: string, nextPassword: string) {
+    try {
+      await fetch(`${ENGINE_BASE}/api/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ email: nextEmail, password: nextPassword }),
+        signal: AbortSignal.timeout(3000),
+      });
+    } catch {
+      // Engine oturumu yardımcı katman; JWT oturumu için kritik değil.
+    }
+  }
+
+  // Geliştirme kolaylığı için otomatik giriş yalnızca açıkça istenirse çalışsın.
+  useEffect(() => {
+    setUiReady(true);
+  }, []);
+
+  useEffect(() => {
+    if (!autoLoginRequested) return;
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      try {
+        const res = await fetch(`${API_BASE}/api/v1/auth/login`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: DEV_EMAIL, password: DEV_PASSWORD }),
+          signal: AbortSignal.timeout(5000),
+        });
+        if (!cancelled && res.ok) {
+          const data = await res.json();
+          setTokens(data.access_token, data.refresh_token, data.expires_in);
+          void syncEngineSession(DEV_EMAIL, DEV_PASSWORD);
+          router.replace(nextPath);
+          return;
+        }
+      } catch {
+        // Backend erişilemez — formu göster
+      }
+      if (!cancelled) setLoading(false);
+    })();
+    return () => { cancelled = true; };
+  }, [autoLoginRequested, nextPath, router]);
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+    try {
+      // Ana oturum JWT tabanli backend uzerinden kurulur.
+      // "Beni hatırla" işaretliyse backend'e remember_me=true gönderilir;
+      // backend bu bayrağa göre access token TTL'ini uzatır.
+      const res = await fetch(`${API_BASE}/api/v1/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password, remember_me: rememberMe }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        throw new Error(body?.detail || body?.error || "E-posta veya şifre hatalı");
+      }
+      const data = await res.json();
+      // "Beni hatırla" seçili değilse session cookie'si için kısa TTL kullan.
+      const effectiveExpiresIn = rememberMe
+        ? data.expires_in
+        : Math.min(data.expires_in ?? 28800, 28800); // en fazla 8 saat
+      setTokens(data.access_token, data.refresh_token, effectiveExpiresIn);
+      void syncEngineSession(email, password);
+      router.replace(nextPath);
+    } catch (err: unknown) {
+      setError(loginErrorMessage(err));
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleForgotPassword(e: React.FormEvent) {
+    e.preventDefault();
+    setForgotLoading(true);
+    setForgotMsg(null);
+    try {
+      await apiFetch("/api/v1/auth/forgot-password", { method: "POST", json: { email: forgotEmail } });
+      setForgotMsg("Şifre sıfırlama bağlantısı e-posta adresinize gönderildi.");
+    } catch {
+      setForgotMsg("İşlem başarısız. Lütfen e-posta adresinizi kontrol edin.");
+    } finally {
+      setForgotLoading(false);
+    }
+  }
+
+  // Otomatik giriş denemesi sırasında spinner göster (en fazla 5 sn)
+  if (loading) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center bg-slate-950 gap-4">
+        <div className="pointer-events-none fixed inset-0 overflow-hidden opacity-30">
+          <WorldWarBackground />
+        </div>
+        <BgtestLogo className="h-12 relative z-10" />
+        <div className="relative z-10 flex items-center gap-3 text-slate-400 text-sm">
+          <div className="h-5 w-5 rounded-full border-2 border-slate-600 border-t-blue-400 animate-spin" />
+          Giriş yapılıyor…
+        </div>
+        <button
+          onClick={() => setLoading(false)}
+          className="relative z-10 text-xs text-slate-600 hover:text-slate-400 mt-2 transition-colors"
+        >
+          Manuel giriş yap
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className="flex min-h-screen items-center justify-center bg-slate-950 px-4"
+      data-testid="login-page"
+      data-ui-ready={uiReady ? "true" : "false"}
+    >
+      {/* ── World War Background ─────────────────────────────────────────── */}
+      <div className="pointer-events-none fixed inset-0 overflow-hidden">
+        <WorldWarBackground />
+      </div>
+
+      <div className="relative w-full max-w-md flex flex-col gap-6">
+        {/* Logo */}
+        <div className="flex flex-col items-center gap-3">
+          <BgtestLogo className="h-12" data-testid="login-logo" />
+          <p className="text-sm text-slate-400" data-testid="login-subtitle">Visium Product Family Access</p>
+        </div>
+
+        {/* Card */}
+        <div className="rounded-2xl border border-white/10 bg-slate-900/70 backdrop-blur-xl p-8 shadow-2xl ring-1 ring-white/5">
+          <h1 className="mb-6 text-center text-xl font-bold text-white" data-testid="login-heading">Giriş Yap</h1>
+
+          <form onSubmit={handleSubmit} className="flex flex-col gap-4" data-testid="login-form">
+            <div className="flex flex-col gap-1.5">
+              <label htmlFor="email" className="text-sm font-medium text-slate-300">E-posta</label>
+              <input
+                id="email"
+                type="email"
+                placeholder="ornek@sirket.com"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                autoComplete="email"
+                data-testid="login-input-email"
+                disabled={!uiReady || loading}
+                className={inputCls}
+              />
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <label htmlFor="password" className="text-sm font-medium text-slate-300">Şifre</label>
+              <input
+                id="password"
+                type="password"
+                placeholder="••••••••"
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                autoComplete="current-password"
+                data-testid="login-input-password"
+                disabled={!uiReady || loading}
+                className={inputCls}
+              />
+            </div>
+
+            <div className="flex items-center justify-between">
+              <label className="flex items-center gap-2 text-sm text-slate-400 cursor-pointer">
+                <input
+                  type="checkbox"
+                  className="h-4 w-4 rounded border-slate-600 accent-blue-500"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  data-testid="login-check-remember"
+                />
+                Beni hatırla
+              </label>
+              <button
+                type="button"
+                className="text-sm text-blue-400 hover:text-blue-300 transition-colors"
+                onClick={() => setForgotOpen(f => !f)}
+                data-testid="login-btn-forgot"
+              >
+                Şifremi unuttum
+              </button>
+            </div>
+
+            {error && (
+              <div className="rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300 text-center" data-testid="login-alert-error">
+                {error}
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={!uiReady || loading}
+              data-testid="login-btn-submit"
+              className="flex items-center justify-center gap-2 w-full px-4 py-2.5 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-500 rounded-xl transition-colors disabled:opacity-50 mt-1"
+            >
+              {loading ? (
+                <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Giriş yapılıyor…</>
+              ) : "Giriş Yap"}
+            </button>
+          </form>
+
+          {/* Forgot password panel */}
+          {forgotOpen && (
+            <div className="mt-4 rounded-xl border border-slate-700 bg-slate-800/50 p-4" data-testid="login-forgot-panel">
+              <h3 className="mb-1 text-sm font-semibold text-white">Şifre Sıfırlama</h3>
+              <p className="mb-3 text-xs text-slate-400">E-posta adresinize sıfırlama bağlantısı gönderilecektir.</p>
+              <form onSubmit={handleForgotPassword} className="flex flex-col gap-3">
+                <input
+                  type="email"
+                  placeholder="E-posta adresiniz"
+                  value={forgotEmail}
+                  onChange={e => setForgotEmail(e.target.value)}
+                  required
+                  data-testid="login-input-forgot-email"
+                  className={inputCls}
+                />
+                <div className="flex gap-2">
+                  <button
+                    type="submit"
+                    disabled={forgotLoading}
+                    data-testid="login-btn-forgot-submit"
+                    className="flex-1 px-4 py-2 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-500 rounded-xl transition-colors disabled:opacity-50"
+                  >
+                    {forgotLoading ? "Gönderiliyor…" : "Gönder"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setForgotOpen(false)}
+                    data-testid="login-btn-forgot-cancel"
+                    className="px-4 py-2 text-sm text-slate-400 hover:text-white border border-slate-700 hover:border-slate-500 rounded-xl transition-colors"
+                  >
+                    İptal
+                  </button>
+                </div>
+              </form>
+              {forgotMsg && (
+                <p className="mt-2 text-xs text-blue-400" data-testid="login-forgot-msg">{forgotMsg}</p>
+              )}
+            </div>
+          )}
+
+          {/*
+            Geliştirici modu test hesapları — yalnızca şu iki koşul birden sağlanırsa gösterilir:
+              1) NODE_ENV === "development"
+              2) NEXT_PUBLIC_SHOW_DEMO_CREDENTIALS === "true"
+            Bu çift kontrol, demo bilgilerinin üretim build'inde yanlışlıkla sızmasını önler.
+          */}
+          {process.env.NODE_ENV === "development" &&
+            process.env.NEXT_PUBLIC_SHOW_DEMO_CREDENTIALS === "true" && (
+            <div className="mt-4 rounded-xl border border-amber-500/20 bg-amber-500/5 px-3 py-2.5">
+              <p className="text-xs font-semibold text-amber-400">Geliştirici modu — test hesapları</p>
+              <div className="mt-1 space-y-0.5 text-xs text-amber-500/80">
+                <p><code className="font-mono">test@test.com</code> / <code className="font-mono">test</code> — Admin</p>
+                <p><code className="font-mono">admin@example.com</code> / <code className="font-mono">admin123</code> — Admin</p>
+                <p><code className="font-mono">operator@test.com</code> / <code className="font-mono">test123</code> — Operatör</p>
+              </div>
+            </div>
+          )}
+
+          {/* Register link */}
+          <div className="mt-6 border-t border-slate-800 pt-4">
+            <p className="text-center text-xs text-slate-500" data-testid="login-text-register">
+              Hesabınız yok mu?{" "}
+              <span className="text-blue-400" data-testid="login-btn-register">
+                Yöneticinizle iletişime geçin
+              </span>
+            </p>
+          </div>
+        </div>
+
+        <p className="text-center text-xs text-slate-700" data-testid="login-footer">
+          © {new Date().getFullYear()} Visium · Visium Operations
+        </p>
+      </div>
+
+      {/* ── AI Onboarding Asistan ────────────────────────────────────────────── */}
+      <AiAssistant />
+    </div>
+  );
+}
+
+function LoginPageFallback() {
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-slate-950 px-4 text-slate-400">
+      Giriş ekranı hazırlanıyor…
+    </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<LoginPageFallback />}>
+      <LoginPageContent />
+    </Suspense>
+  );
+}

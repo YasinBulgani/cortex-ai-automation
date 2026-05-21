@@ -1,0 +1,3 @@
+# Bu klasöre catalog/*.yaml dosyaları (ui-actions.yaml, api-actions.yaml, vb.) eklenir.
+# _extracted/ alt klasörü extract_steps.py tarafından üretilen geçici taslaklar içindir
+# ve .gitignore ile takipten çıkarılmıştır.

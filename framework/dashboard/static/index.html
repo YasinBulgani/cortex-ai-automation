@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Cortex Otomasyon Dashboard</title>
+  <link rel="stylesheet" href="/css/app.css" />
+  <link rel="icon" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='40' fill='%2300d9ff'/><text x='50' y='62' font-size='40' text-anchor='middle' fill='%230b0f1a' font-family='sans-serif' font-weight='700'>C</text></svg>" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <!-- CodeMirror 5 (lightweight, CDN, no build step) -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/codemirror@5.65.16/lib/codemirror.min.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/codemirror@5.65.16/theme/dracula.min.css" />
+  <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.16/lib/codemirror.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.16/mode/gherkin/gherkin.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.16/mode/javascript/javascript.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.16/mode/clike/clike.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.16/mode/xml/xml.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.16/mode/yaml/yaml.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.16/mode/markdown/markdown.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.16/mode/properties/properties.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.16/mode/shell/shell.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.16/mode/sql/sql.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.16/mode/python/python.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.16/mode/htmlmixed/htmlmixed.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.16/mode/css/css.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.16/addon/edit/closebrackets.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.16/addon/edit/matchbrackets.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.16/addon/search/search.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.16/addon/search/searchcursor.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.16/addon/dialog/dialog.min.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/codemirror@5.65.16/addon/dialog/dialog.min.css" />
+</head>
+<body>
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="logo">C</div>
+      <div>
+        <h1>Cortex</h1>
+        <small>Test Otomasyon Konsolu</small>
+      </div>
+    </div>
+    <nav>
+      <button class="nav-btn active" data-view="overview">Genel Bakis</button>
+      <button class="nav-btn" data-view="ide">📁 Dosyalar / Editor</button>
+      <button class="nav-btn" data-view="runner">Test Kosumu</button>
+      <button class="nav-btn" data-view="results">Sonuclar</button>
+      <button class="nav-btn" data-view="screenshots">Ekran Goruntuleri</button>
+      <button class="nav-btn" data-view="ai">AI Hata Analizi</button>
+      <button class="nav-btn" data-view="config">Konfigurasyon</button>
+    </nav>
+    <div class="sidebar-foot">
+      <div id="health-pill" class="pill">Baglaniyor...</div>
+      <div class="version" id="version-tag">v—</div>
+    </div>
+  </aside>
+
+  <main class="content">
+    <header class="topbar">
+      <div>
+        <h2 id="view-title">Genel Bakis</h2>
+        <p class="subtitle" id="view-subtitle">cortex-test.bgtsai.com</p>
+      </div>
+      <div class="topbar-actions">
+        <button id="refresh-btn" class="btn">Yenile</button>
+        <a class="btn primary" href="https://cortex-test.bgtsai.com/" target="_blank" rel="noopener">Cortex'i ac</a>
+      </div>
+    </header>
+
+    <!-- ===== Overview ===== -->
+    <section class="view active" data-view="overview">
+      <div class="grid stats">
+        <div class="card stat"><span>Toplam Senaryo</span><strong id="kpi-total">0</strong></div>
+        <div class="card stat ok"><span>Basarili</span><strong id="kpi-passed">0</strong></div>
+        <div class="card stat err"><span>Basarisiz</span><strong id="kpi-failed">0</strong></div>
+        <div class="card stat warn"><span>Atlanan</span><strong id="kpi-skipped">0</strong></div>
+        <div class="card stat info"><span>Sure</span><strong id="kpi-duration">0s</strong></div>
+        <div class="card stat info"><span>Basari Orani</span><strong id="kpi-rate">0%</strong></div>
+      </div>
+      <div class="grid two">
+        <div class="card">
+          <h3>Senaryo Dagilimi</h3>
+          <canvas id="chart-pie" height="220"></canvas>
+        </div>
+        <div class="card">
+          <h3>Feature Bazinda Sonuclar</h3>
+          <canvas id="chart-bar" height="220"></canvas>
+        </div>
+      </div>
+      <div class="card">
+        <h3>Son Aktif Kosum</h3>
+        <div id="last-run">Henuz kosum yok.</div>
+      </div>
+    </section>
+
+    <!-- ===== Runner ===== -->
+    <section class="view" data-view="runner">
+      <div class="card">
+        <h3>Test Kosumunu Baslat</h3>
+        <div class="form-row">
+          <label>Feature dosyasi
+            <select id="feature-select">
+              <option value="">— Tumu —</option>
+            </select>
+          </label>
+          <label>Tag filtresi
+            <input id="tag-input" type="text" placeholder="@smoke or @cortex" />
+          </label>
+          <button id="run-btn" class="btn primary">Kosumu Baslat</button>
+          <button id="stop-btn" class="btn danger" disabled>Durdur</button>
+        </div>
+        <div class="run-meta">
+          <span class="pill" id="run-state">hazir</span>
+          <span class="muted" id="run-id"></span>
+        </div>
+        <pre id="log-out" class="log"></pre>
+      </div>
+    </section>
+
+    <!-- ===== Results ===== -->
+    <section class="view" data-view="results">
+      <div class="card">
+        <h3>Feature/Senaryo Detayi</h3>
+        <div id="results-tree">Sonuc bulunamadi.</div>
+      </div>
+    </section>
+
+    <!-- ===== Screenshots ===== -->
+    <section class="view" data-view="screenshots">
+      <div class="card">
+        <h3>Ekran Goruntuleri</h3>
+        <div id="shots-grid" class="shots-grid">Yukleniyor...</div>
+      </div>
+    </section>
+
+    <!-- ===== AI ===== -->
+    <section class="view" data-view="ai">
+      <div class="card">
+        <h3>AI Hata Siniflandirma</h3>
+        <p class="muted">Bir hata mesajini yapistir, model siniflandirip oneri uretsin.</p>
+        <div class="form-row vertical">
+          <label>Hata mesaji
+            <textarea id="ai-error" rows="4" placeholder="org.openqa.selenium.NoSuchElementException..."></textarea>
+          </label>
+          <label>Senaryo
+            <input id="ai-scenario" type="text" placeholder="Cortex login" />
+          </label>
+          <label>Adim
+            <input id="ai-step" type="text" placeholder="I click loginButton" />
+          </label>
+          <button id="ai-submit" class="btn primary">Analiz Et</button>
+        </div>
+        <div id="ai-result" class="ai-result"></div>
+      </div>
+    </section>
+
+    <!-- ===== IDE (file tree + editor) ===== -->
+    <section class="view" data-view="ide">
+      <div class="ide-shell">
+        <!-- Sol: dosya ağacı -->
+        <div class="ide-tree">
+          <div class="ide-tree-head">
+            <span>Cortex Workspace</span>
+            <div class="ide-tree-actions">
+              <button class="icon-btn" id="tree-refresh" title="Yenile">⟳</button>
+              <button class="icon-btn" id="tree-new" title="Yeni dosya">＋</button>
+            </div>
+          </div>
+          <div id="tree-container" class="tree-container">Yukleniyor...</div>
+        </div>
+
+        <!-- Sağ: tab bar + editor -->
+        <div class="ide-main">
+          <div class="ide-tabs" id="editor-tabs"></div>
+
+          <div class="ide-editor-wrap">
+            <div id="editor-empty" class="ide-empty">
+              <div class="ide-empty-inner">
+                <h3>Cortex IDE</h3>
+                <p>Sol panelden bir dosya sec — Gherkin, JSON, Java, properties duzenle.</p>
+                <ul class="ide-hints">
+                  <li><kbd>Ctrl/Cmd</kbd> + <kbd>S</kbd> — Kaydet</li>
+                  <li><kbd>Ctrl/Cmd</kbd> + <kbd>F</kbd> — Bul</li>
+                  <li><kbd>Ctrl/Cmd</kbd> + <kbd>W</kbd> — Aktif tab'i kapat</li>
+                </ul>
+              </div>
+            </div>
+            <textarea id="editor-textarea" style="display:none"></textarea>
+          </div>
+
+          <div class="ide-statusbar">
+            <span id="status-path">—</span>
+            <span class="flex" />
+            <span id="status-lang">—</span>
+            <span id="status-pos">1:1</span>
+            <span id="status-dirty"></span>
+            <button class="btn small primary" id="editor-save" disabled>Kaydet</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== Config ===== -->
+    <section class="view" data-view="config">
+      <div class="card">
+        <h3>Konfigurasyon (salt-okunur)</h3>
+        <p class="muted">Hassas degerler (password/key/secret/token) maskelendi.</p>
+        <table id="config-table">
+          <thead><tr><th>Anahtar</th><th>Deger</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <script src="/js/app.js"></script>
+</body>
+</html>

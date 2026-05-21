@@ -1,0 +1,24 @@
+{
+  "name": "@neurex/contracts",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Backend OpenAPI spec'inden otomatik üretilen TypeScript tipler. FE/BE arası tip güvenliği.",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".":            "./src/index.ts",
+    "./openapi":    "./src/openapi.d.ts",
+    "./operations": "./src/operations.ts"
+  },
+  "scripts": {
+    "generate":   "openapi-typescript http://localhost:8000/openapi.json -o ./src/openapi.d.ts",
+    "generate:file": "openapi-typescript ../../openapi.json -o ./src/openapi.d.ts",
+    "type-check": "tsc --noEmit",
+    "clean":      "rm -rf .turbo"
+  },
+  "devDependencies": {
+    "openapi-typescript": "^7.0.0",
+    "typescript": "^5.4.0"
+  }
+}

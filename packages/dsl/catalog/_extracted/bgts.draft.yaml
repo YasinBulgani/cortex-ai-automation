@@ -1,0 +1,350 @@
+version: 0.1.0-draft
+category_name: Bgts (OTOMATIK CIKARILDI)
+notes: Bu dosya extract_steps.py tarafindan uretildi. Lutfen rotuslayip catalog/ altina tasiyın.
+actions:
+- id: i_analyze_test_coverage_for_the_generate
+  category: bgts.scenario
+  description: (taslak) I analyze test coverage for the generated scenarios
+  aliases:
+    en:
+    - I analyze test coverage for the generated scenarios
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/ai-steps.ts
+      pattern: I analyze test coverage for the generated scenarios
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: i_generate_test_data_for_the_scenario
+  category: bgts.scenario
+  description: (taslak) I generate test data for the scenario
+  aliases:
+    en:
+    - I generate test data for the scenario
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/ai-steps.ts
+      pattern: I generate test data for the scenario
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: i_generate_test_scenarios_for
+  category: bgts.scenario
+  description: (taslak) I generate test scenarios for {string}
+  aliases:
+    en:
+    - I generate test scenarios for {string}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/ai-steps.ts
+      pattern: I generate test scenarios for {string}
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: kullan_c_ilk_onay_esini_a_ar
+  category: bgts.approval
+  description: (taslak) kullanıcı ilk onay öğesini açar
+  aliases:
+    tr:
+    - kullanıcı ilk onay öğesini açar
+  implementations:
+    python:
+      source_file: engine/steps/bgts_approval_steps.py
+      function: open_first_approval_item
+      pattern: kullanıcı ilk onay öğesini açar
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: kullan_c_onay_kuyru_u_sayfas_n_a_ar
+  category: bgts.approval
+  description: (taslak) kullanıcı onay kuyruğu sayfasını açar
+  aliases:
+    tr:
+    - kullanıcı onay kuyruğu sayfasını açar
+  implementations:
+    python:
+      source_file: engine/steps/bgts_smoke_steps.py
+      function: open_approval_queue
+      pattern: kullanıcı onay kuyruğu sayfasını açar
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: kullan_c_onay_kuyru_unu_g_r_nt_l_yor
+  category: bgts.approval
+  description: (taslak) kullanıcı onay kuyruğunu görüntülüyor
+  aliases:
+    tr:
+    - kullanıcı onay kuyruğunu görüntülüyor
+  implementations:
+    python:
+      source_file: engine/steps/bgts_approval_steps.py
+      function: user_viewing_approval_queue
+      pattern: kullanıcı onay kuyruğunu görüntülüyor
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: kullan_c_onay_tasla_n_onaylar
+  category: bgts.approval
+  description: (taslak) kullanıcı onay taslağını onaylar
+  aliases:
+    tr:
+    - kullanıcı onay taslağını onaylar
+  implementations:
+    python:
+      source_file: engine/steps/bgts_approval_steps.py
+      function: approve_current_draft
+      pattern: kullanıcı onay taslağını onaylar
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: kullan_c_onay_tasla_n_reddeder
+  category: bgts.approval
+  description: (taslak) kullanıcı onay taslağını reddeder
+  aliases:
+    tr:
+    - kullanıcı onay taslağını reddeder
+  implementations:
+    python:
+      source_file: engine/steps/bgts_approval_steps.py
+      function: reject_current_draft
+      pattern: kullanıcı onay taslağını reddeder
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: kullan_c_proje_listesi_sayfas_n_a_ar
+  category: bgts.project
+  description: (taslak) kullanıcı proje listesi sayfasını açar
+  aliases:
+    tr:
+    - kullanıcı proje listesi sayfasını açar
+  implementations:
+    python:
+      source_file: engine/steps/bgts_smoke_steps.py
+      function: open_project_list
+      pattern: kullanıcı proje listesi sayfasını açar
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: kullan_c_proje_listesini_g_r_nt_l_yor
+  category: bgts.project
+  description: (taslak) kullanıcı proje listesini görüntülüyor
+  aliases:
+    tr:
+    - kullanıcı proje listesini görüntülüyor
+  implementations:
+    python:
+      source_file: engine/steps/bgts_project_steps.py
+      function: user_viewing_project_list
+      pattern: kullanıcı proje listesini görüntülüyor
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: kullan_c_projeler_sayfas_na_y_nlendirilm
+  category: bgts.project
+  description: (taslak) kullanıcı projeler sayfasına yönlendirilmelidir
+  aliases:
+    tr:
+    - kullanıcı projeler sayfasına yönlendirilmelidir
+  implementations:
+    python:
+      source_file: engine/steps/bgts_login_steps.py
+      function: assert_redirected_to_projects
+      pattern: kullanıcı projeler sayfasına yönlendirilmelidir
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: kullan_c_projeleri
+  category: bgts.project
+  description: '(taslak) kullanıcı projeleri '
+  aliases:
+    tr:
+    - 'kullanıcı projeleri '
+  implementations:
+    python:
+      source_file: engine/steps/bgts_project_steps.py
+      function: search_projects
+      pattern: 'kullanıcı projeleri '
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: kullan_c_senaryo_detay_n_g_r_nt_ler
+  category: bgts.scenario
+  description: (taslak) kullanıcı senaryo detayını görüntüler
+  aliases:
+    tr:
+    - kullanıcı senaryo detayını görüntüler
+  implementations:
+    python:
+      source_file: engine/steps/bgts_scenario_steps.py
+      function: view_scenario_detail
+      pattern: kullanıcı senaryo detayını görüntüler
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: kullan_c_senaryo_listesi_sayfas_n_a_ar
+  category: bgts.scenario
+  description: (taslak) kullanıcı senaryo listesi sayfasını açar
+  aliases:
+    tr:
+    - kullanıcı senaryo listesi sayfasını açar
+  implementations:
+    python:
+      source_file: engine/steps/bgts_smoke_steps.py
+      function: open_scenario_list
+      pattern: kullanıcı senaryo listesi sayfasını açar
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: kullan_c_senaryo_listesini_g_r_nt_l_yor
+  category: bgts.scenario
+  description: (taslak) kullanıcı senaryo listesini görüntülüyor
+  aliases:
+    tr:
+    - kullanıcı senaryo listesini görüntülüyor
+  implementations:
+    python:
+      source_file: engine/steps/bgts_scenario_steps.py
+      function: user_viewing_scenario_list
+      pattern: kullanıcı senaryo listesini görüntülüyor
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: kullan_c_senaryolar
+  category: bgts.scenario
+  description: '(taslak) kullanıcı senaryoları '
+  aliases:
+    tr:
+    - 'kullanıcı senaryoları '
+  implementations:
+    python:
+      source_file: engine/steps/bgts_scenario_steps.py
+      function: search_scenarios
+      pattern: 'kullanıcı senaryoları '
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: kullan_c_test_projesinin
+  category: bgts.project
+  description: '(taslak) kullanıcı test projesinin '
+  aliases:
+    tr:
+    - 'kullanıcı test projesinin '
+  implementations:
+    python:
+      source_file: engine/steps/common_steps.py
+      function: navigate_to_project_sub
+      pattern: 'kullanıcı test projesinin '
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: kullan_c_test_projesinin_dashboard
+  category: bgts.project
+  description: (taslak) kullanıcı test projesinin dashboard
+  aliases:
+    tr:
+    - kullanıcı test projesinin dashboard
+  implementations:
+    python:
+      source_file: engine/steps/common_steps.py
+      function: navigate_to_project_dashboard
+      pattern: kullanıcı test projesinin dashboard
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: kullan_c_yeni_senaryo_formunda
+  category: bgts.scenario
+  description: (taslak) kullanıcı yeni senaryo formunda
+  aliases:
+    tr:
+    - kullanıcı yeni senaryo formunda
+  implementations:
+    python:
+      source_file: engine/steps/bgts_scenario_steps.py
+      function: user_on_new_scenario_form
+      pattern: kullanıcı yeni senaryo formunda
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: kullan_c_retilen_senaryolar_kaydeder
+  category: bgts.scenario
+  description: (taslak) kullanıcı üretilen senaryoları kaydeder
+  aliases:
+    tr:
+    - kullanıcı üretilen senaryoları kaydeder
+  implementations:
+    python:
+      source_file: engine/steps/bgts_scenario_steps.py
+      function: save_generated_scenarios
+      pattern: kullanıcı üretilen senaryoları kaydeder
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: proje_ad
+  category: bgts.project
+  description: '(taslak) proje adı '
+  aliases:
+    tr:
+    - 'proje adı '
+  implementations:
+    python:
+      source_file: backend/tests/bdd/steps/project_steps.py
+      function: set_project_name
+      pattern: 'proje adı '
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: proje_a_klamas
+  category: bgts.project
+  description: '(taslak) proje açıklaması '
+  aliases:
+    tr:
+    - 'proje açıklaması '
+  implementations:
+    python:
+      source_file: backend/tests/bdd/steps/project_steps.py
+      function: set_project_desc
+      pattern: 'proje açıklaması '
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: proje_olu_turma_verisi_haz_rlan_yor
+  category: bgts.project
+  description: (taslak) proje oluşturma verisi hazırlanıyor
+  aliases:
+    tr:
+    - proje oluşturma verisi hazırlanıyor
+  implementations:
+    python:
+      source_file: backend/tests/bdd/steps/project_steps.py
+      function: prepare_project
+      pattern: proje oluşturma verisi hazırlanıyor
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'

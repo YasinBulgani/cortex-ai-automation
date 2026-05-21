@@ -1,0 +1,3 @@
+[
+  { "_comment": "Login guvenlik (SQLi, XSS) senaryolari icin locator'lar. login.json + common.json yeterli." }
+]

@@ -1,0 +1,736 @@
+version: 0.1.0-draft
+category_name: Setup (OTOMATIK CIKARILDI)
+notes: Bu dosya extract_steps.py tarafindan uretildi. Lutfen rotuslayip catalog/ altina tasiyın.
+actions:
+- id: admin_kullan_c_s_mevcut
+  category: setup.given
+  description: (taslak) admin kullanıcısı mevcut
+  aliases:
+    tr:
+    - admin kullanıcısı mevcut
+  implementations:
+    python:
+      source_file: backend/tests/bdd/steps/auth_steps.py
+      function: admin_exists
+      pattern: admin kullanıcısı mevcut
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: admin_kullan_c_s_oturum_a_m_ve_token_alm
+  category: setup.given
+  description: (taslak) admin kullanıcısı oturum açmış ve token almış
+  aliases:
+    tr:
+    - admin kullanıcısı oturum açmış ve token almış
+  implementations:
+    python:
+      source_file: backend/tests/bdd/steps/auth_steps.py
+      function: admin_logged_in
+      pattern: admin kullanıcısı oturum açmış ve token almış
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: e_posta_alan_na
+  category: setup.given
+  description: '(taslak) e-posta alanına '
+  aliases:
+    tr:
+    - 'e-posta alanına '
+  implementations:
+    python:
+      source_file: backend/tests/bdd/steps/auth_steps.py
+      function: set_email
+      pattern: 'e-posta alanına '
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: i_am_logged_in_as
+  category: setup.given
+  description: (taslak) I am logged in as {string}
+  aliases:
+    en:
+    - I am logged in as {string}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/web-steps.ts
+      pattern: I am logged in as {string}
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_am_logged_out
+  category: setup.given
+  description: (taslak) I am logged out
+  aliases:
+    en:
+    - I am logged out
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/web-steps.ts
+      pattern: I am logged out
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: i_am_on_the
+  category: setup.given
+  description: '(taslak) I am on the '
+  aliases:
+    en:
+    - 'I am on the '
+  implementations:
+    python:
+      source_file: engine/steps/english_steps.py
+      function: en_navigate
+      pattern: 'I am on the '
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: i_am_on_the_paribu_home_page
+  category: setup.given
+  description: (taslak) I am on the Paribu home page
+  aliases:
+    en:
+    - I am on the Paribu home page
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/paribu-steps.ts
+      pattern: I am on the Paribu home page
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: i_close_the_cookie_notice_if_present
+  category: setup.given
+  description: (taslak) I close the cookie notice if present
+  aliases:
+    en:
+    - I close the cookie notice if present
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/web.steps.ts
+      pattern: I close the cookie notice if present
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: i_have_a_comprehensive_ai_test_generatio
+  category: setup.given
+  description: (taslak) I have a comprehensive AI test generation setup
+  aliases:
+    en:
+    - I have a comprehensive AI test generation setup
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/ai-steps.ts
+      pattern: I have a comprehensive AI test generation setup
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: i_have_a_comprehensive_test_context
+  category: setup.given
+  description: (taslak) I have a comprehensive test context
+  aliases:
+    en:
+    - I have a comprehensive test context
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/e2e-steps.ts
+      pattern: I have a comprehensive test context
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: i_have_a_test_recording_setup
+  category: setup.given
+  description: (taslak) I have a test recording setup
+  aliases:
+    en:
+    - I have a test recording setup
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/recording-steps.ts
+      pattern: I have a test recording setup
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: i_have_a_test_run_with_results
+  category: setup.given
+  description: (taslak) I have a test run with results
+  aliases:
+    en:
+    - I have a test run with results
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/reporting-steps.ts
+      pattern: I have a test run with results
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: i_have_ai_test_generation_enabled
+  category: setup.given
+  description: (taslak) I have AI test generation enabled
+  aliases:
+    en:
+    - I have AI test generation enabled
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/ai-steps.ts
+      pattern: I have AI test generation enabled
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: i_have_generated_random_email
+  category: setup.given
+  description: (taslak) I have generated random email {string}
+  aliases:
+    en:
+    - I have generated random email {string}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/data-steps.ts
+      pattern: I have generated random email {string}
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_have_generated_random_password
+  category: setup.given
+  description: (taslak) I have generated random password {string}
+  aliases:
+    en:
+    - I have generated random password {string}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/data-steps.ts
+      pattern: I have generated random password {string}
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_have_generated_random_username
+  category: setup.given
+  description: (taslak) I have generated random username {string}
+  aliases:
+    en:
+    - I have generated random username {string}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/data-steps.ts
+      pattern: I have generated random username {string}
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_have_generated_test_data_with_users
+  category: setup.given
+  description: (taslak) I have generated test data with {int} users
+  aliases:
+    en:
+    - I have generated test data with {int} users
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/data-steps.ts
+      pattern: I have generated test data with {int} users
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: int
+    type: string
+    required: true
+- id: i_have_random_test_data_from
+  category: setup.given
+  description: (taslak) I have random test data from {string}
+  aliases:
+    en:
+    - I have random test data from {string}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/data-steps.ts
+      pattern: I have random test data from {string}
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_have_test_data_from
+  category: setup.given
+  description: (taslak) I have test data from {string}
+  aliases:
+    en:
+    - I have test data from {string}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/data-steps.ts
+      pattern: I have test data from {string}
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_have_the_following_data
+  category: setup.given
+  description: '(taslak) I have the following data:'
+  aliases:
+    en:
+    - 'I have the following data:'
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/common-steps.ts
+      pattern: 'I have the following data:'
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: i_have_visual_ai_analysis_enabled
+  category: setup.given
+  description: (taslak) I have visual AI analysis enabled
+  aliases:
+    en:
+    - I have visual AI analysis enabled
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/visual-ai-steps.ts
+      pattern: I have visual AI analysis enabled
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: i_have_random_test_data_items_from
+  category: setup.given
+  description: (taslak) I have {int} random test data items from {string}
+  aliases:
+    en:
+    - I have {int} random test data items from {string}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/data-steps.ts
+      pattern: I have {int} random test data items from {string}
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: int
+    type: string
+    required: true
+  - name: string
+    type: string
+    required: true
+- id: i_have_unique_test_data_items_from
+  category: setup.given
+  description: (taslak) I have {int} unique test data items from {string}
+  aliases:
+    en:
+    - I have {int} unique test data items from {string}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/data-steps.ts
+      pattern: I have {int} unique test data items from {string}
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: int
+    type: string
+    required: true
+  - name: string
+    type: string
+    required: true
+- id: i_load_test_data_item_from
+  category: setup.given
+  description: (taslak) I load test data item {int} from {string}
+  aliases:
+    en:
+    - I load test data item {int} from {string}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/data-steps.ts
+      pattern: I load test data item {int} from {string}
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: int
+    type: string
+    required: true
+  - name: string
+    type: string
+    required: true
+- id: i_navigate_to_paribu_homepage
+  category: setup.given
+  description: (taslak) I navigate to Paribu homepage
+  aliases:
+    en:
+    - I navigate to Paribu homepage
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/web.steps.ts
+      pattern: I navigate to Paribu homepage
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: i_navigate_to_paribu_login_page
+  category: setup.given
+  description: (taslak) I navigate to Paribu login page
+  aliases:
+    en:
+    - I navigate to Paribu login page
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/paribu-steps.ts
+      pattern: I navigate to Paribu login page
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: i_navigate_to
+  category: setup.given
+  description: (taslak) I navigate to {string}
+  aliases:
+    en:
+    - I navigate to {string}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/common-steps.ts
+      pattern: I navigate to {string}
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_open_the_application_url
+  category: setup.given
+  description: '(taslak) I open the application url '
+  aliases:
+    en:
+    - 'I open the application url '
+  implementations:
+    python:
+      source_file: engine/steps/english_steps.py
+      function: en_open_url_double_quotes
+      pattern: 'I open the application url '
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: i_open_the_application_url_p_key
+  category: setup.given
+  description: (taslak) I open the application url (?P<key>.+)
+  aliases:
+    en:
+    - I open the application url (?P<key>.+)
+  implementations:
+    python:
+      source_file: engine/steps/english_steps.py
+      function: en_open_url_bare
+      pattern: I open the application url (?P<key>.+)
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: i_open_the_application_url_from_config
+  category: setup.given
+  description: '(taslak) I open the application url from config '
+  aliases:
+    en:
+    - 'I open the application url from config '
+  implementations:
+    python:
+      source_file: engine/steps/english_steps.py
+      function: en_open_url
+      pattern: 'I open the application url from config '
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: i_open_the_application_url_from_config_1
+  category: setup.given
+  description: (taslak) I open the application url from config {string}
+  aliases:
+    en:
+    - I open the application url from config {string}
+  implementations:
+    java:
+      source_file: frameworks/selenium-cucumber-java/src/test/java/stepdefinitions/NavigationSteps.java
+      function: openApplicationUrlFromConfig
+      pattern: I open the application url from config {string}
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_open_the_application_url_1
+  category: setup.given
+  description: (taslak) I open the application url {string}
+  aliases:
+    en:
+    - I open the application url {string}
+  implementations:
+    java:
+      source_file: frameworks/selenium-cucumber-java/src/test/java/stepdefinitions/NavigationSteps.java
+      function: openApplicationUrl
+      pattern: I open the application url {string}
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_start_recording_user_actions
+  category: setup.given
+  description: (taslak) I start recording user actions
+  aliases:
+    en:
+    - I start recording user actions
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/recording-steps.ts
+      pattern: I start recording user actions
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: kullan_c
+  category: setup.given
+  description: '(taslak) kullanıcı '
+  aliases:
+    tr:
+    - 'kullanıcı '
+  implementations:
+    python:
+      source_file: engine/steps/bgts_approval_steps.py
+      function: user_on_project_approval_queue
+      pattern: 'kullanıcı '
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: kullan_c_admin_olarak_giri_yapm_t_r
+  category: setup.given
+  description: (taslak) kullanıcı admin olarak giriş yapmıştır
+  aliases:
+    tr:
+    - kullanıcı admin olarak giriş yapmıştır
+  implementations:
+    python:
+      source_file: engine/steps/bgts_login_steps.py
+      function: user_logged_in_as_admin
+      pattern: kullanıcı admin olarak giriş yapmıştır
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: kullan_c_ana_sayfadad_r
+  category: setup.given
+  description: (taslak) kullanıcı ana sayfadadır
+  aliases:
+    tr:
+    - kullanıcı ana sayfadadır
+  implementations:
+    python:
+      source_file: engine/steps/common_steps.py
+      function: navigate_to_home
+      pattern: kullanıcı ana sayfadadır
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: kullan_c_giri_sayfas_nda_bekliyor
+  category: setup.given
+  description: (taslak) kullanıcı giriş sayfasında bekliyor
+  aliases:
+    tr:
+    - kullanıcı giriş sayfasında bekliyor
+  implementations:
+    python:
+      source_file: engine/steps/bgts_login_steps.py
+      function: user_on_login_page_waiting
+      pattern: kullanıcı giriş sayfasında bekliyor
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: kullan_c_h_zl_giri_yapm_t_r
+  category: setup.given
+  description: (taslak) kullanıcı hızlı giriş yapmıştır
+  aliases:
+    tr:
+    - kullanıcı hızlı giriş yapmıştır
+  implementations:
+    python:
+      source_file: engine/steps/bgts_smoke_steps.py
+      function: quick_login
+      pattern: kullanıcı hızlı giriş yapmıştır
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: kullan_c_i_e_aktarma_sayfas_nda_bekliyor
+  category: setup.given
+  description: (taslak) kullanıcı içe aktarma sayfasında bekliyor
+  aliases:
+    tr:
+    - kullanıcı içe aktarma sayfasında bekliyor
+  implementations:
+    python:
+      source_file: engine/steps/bgts_import_steps.py
+      function: user_on_import_page_waiting
+      pattern: kullanıcı içe aktarma sayfasında bekliyor
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: kullan_c_login_endpoint
+  category: setup.given
+  description: (taslak) kullanıcı login endpoint
+  aliases:
+    tr:
+    - kullanıcı login endpoint
+  implementations:
+    python:
+      source_file: backend/tests/bdd/steps/auth_steps.py
+      function: prepare_login
+      pattern: kullanıcı login endpoint
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: kullan_c_oturum_a_m_ve_ge_erli_jwt_token
+  category: setup.given
+  description: (taslak) kullanıcı oturum açmış ve geçerli JWT token
+  aliases:
+    tr:
+    - kullanıcı oturum açmış ve geçerli JWT token
+  implementations:
+    python:
+      source_file: backend/tests/bdd/steps/project_steps.py
+      function: user_authenticated
+      pattern: kullanıcı oturum açmış ve geçerli JWT token
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: parola_alan_na
+  category: setup.given
+  description: '(taslak) parola alanına '
+  aliases:
+    tr:
+    - 'parola alanına '
+  implementations:
+    python:
+      source_file: backend/tests/bdd/steps/auth_steps.py
+      function: set_password
+      pattern: 'parola alanına '
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: regresyon_test_ortam_haz_rd_r
+  category: setup.given
+  description: (taslak) regresyon test ortamı hazırdır
+  aliases:
+    tr:
+    - regresyon test ortamı hazırdır
+  implementations:
+    python:
+      source_file: engine/steps/bgts_regression_steps.py
+      function: regression_environment_ready
+      pattern: regresyon test ortamı hazırdır
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: test_fixture_is_available
+  category: setup.given
+  description: (taslak) test fixture {string} is available
+  aliases:
+    en:
+    - test fixture {string} is available
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/data-steps.ts
+      pattern: test fixture {string} is available
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: the_application_is_started
+  category: setup.given
+  description: (taslak) the application is started
+  aliases:
+    en:
+    - the application is started
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/common-steps.ts
+      pattern: the application is started
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: the_visual_baseline_exists
+  category: setup.given
+  description: (taslak) the visual baseline {string} exists
+  aliases:
+    en:
+    - the visual baseline {string} exists
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/visual-steps.ts
+      pattern: the visual baseline {string} exists
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true

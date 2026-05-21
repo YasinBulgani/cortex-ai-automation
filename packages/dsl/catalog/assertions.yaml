@@ -1,0 +1,2535 @@
+version: 1.0.0
+category_name: Assert Actions
+generated_by: packages/dsl/scripts/build_catalog.py
+generated_at: '2026-04-17'
+actions:
+- id: all_compared_elements_should_match_basel
+  category: assert.visibility
+  description: 'Doğrulama: all compared elements should match baselines'
+  aliases:
+    en:
+    - all compared elements should match baselines
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/e2e-steps.ts
+      pattern: all compared elements should match baselines
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+- id: all_test_data_should_be_valid
+  category: assert.visibility
+  description: 'Doğrulama: all test data should be valid'
+  aliases:
+    en:
+    - all test data should be valid
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/data-steps.ts
+      pattern: all test data should be valid
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+- id: an_error_message_should_appear
+  category: assert.visibility
+  description: 'Doğrulama: an error message should appear'
+  aliases:
+    en:
+    - an error message should appear
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/web.steps.ts
+      pattern: an error message should appear
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+- id: assert_approval_list_visible
+  category: assert.visibility
+  description: 'Doğrulama: onay listesi görünür olmalıdır'
+  aliases:
+    tr:
+    - onay listesi görünür olmalıdır
+  implementations:
+    python:
+      source_file: engine/steps/bgts_approval_steps.py
+      function: assert_approval_list_visible
+      pattern: onay listesi görünür olmalıdır
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+- id: assert_bulk_actions_visible
+  category: assert.visibility
+  description: 'Doğrulama: toplu işlem butonları görünür olmalıdır'
+  aliases:
+    tr:
+    - toplu işlem butonları görünür olmalıdır
+  implementations:
+    python:
+      source_file: engine/steps/bgts_scenario_steps.py
+      function: assert_bulk_actions_visible
+      pattern: toplu işlem butonları görünür olmalıdır
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+- id: assert_dashboard_stats_visible
+  category: assert.visibility
+  description: 'Doğrulama: dashboard istatistikleri görünür olmalıdır'
+  aliases:
+    tr:
+    - dashboard istatistikleri görünür olmalıdır
+  implementations:
+    python:
+      source_file: engine/steps/bgts_project_steps.py
+      function: assert_dashboard_stats_visible
+      pattern: dashboard istatistikleri görünür olmalıdır
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+- id: assert_draft_panel_visible
+  category: assert.visibility
+  description: 'Doğrulama: taslak panel görünür olmalıdır'
+  aliases:
+    tr:
+    - taslak panel görünür olmalıdır
+  implementations:
+    python:
+      source_file: engine/steps/bgts_approval_steps.py
+      function: assert_draft_panel_visible
+      pattern: taslak panel görünür olmalıdır
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+- id: assert_element_visible
+  category: assert.visibility
+  description: 'Doğrulama: "{selector}" elementi görünür olmalıdır'
+  aliases:
+    tr:
+    - '"{selector}" elementi görünür olmalıdır'
+  implementations:
+    python:
+      source_file: engine/steps/common_steps.py
+      function: assert_element_visible
+      pattern: '"{selector}" elementi görünür olmalıdır'
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+  parameters:
+  - name: selector
+    type: string
+    required: true
+- id: assert_error_message_visible
+  category: assert.visibility
+  description: 'Doğrulama: hata mesajı görünür olmalıdır'
+  aliases:
+    tr:
+    - hata mesajı görünür olmalıdır
+  implementations:
+    python:
+      source_file: engine/steps/bgts_login_steps.py
+      function: assert_error_message_visible
+      pattern: hata mesajı görünür olmalıdır
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+- id: assert_generated_scenarios_visible
+  category: assert.visibility
+  description: 'Doğrulama: üretilen senaryolar görünür olmalıdır'
+  aliases:
+    tr:
+    - üretilen senaryolar görünür olmalıdır
+  implementations:
+    python:
+      source_file: engine/steps/bgts_scenario_steps.py
+      function: assert_generated_scenarios_visible
+      pattern: üretilen senaryolar görünür olmalıdır
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+- id: assert_import_form_visible
+  category: assert.visibility
+  description: 'Doğrulama: içe aktarma formu görünür olmalıdır'
+  aliases:
+    tr:
+    - içe aktarma formu görünür olmalıdır
+  implementations:
+    python:
+      source_file: engine/steps/bgts_import_steps.py
+      function: assert_import_form_visible
+      pattern: içe aktarma formu görünür olmalıdır
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+- id: assert_import_result_visible
+  category: assert.visibility
+  description: 'Doğrulama: içe aktarma sonucu görünür olmalıdır'
+  aliases:
+    tr:
+    - içe aktarma sonucu görünür olmalıdır
+  implementations:
+    python:
+      source_file: engine/steps/bgts_import_steps.py
+      function: assert_import_result_visible
+      pattern: içe aktarma sonucu görünür olmalıdır
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+- id: assert_login_form_visible
+  category: assert.visibility
+  description: 'Doğrulama: giriş formu görünür olmalıdır'
+  aliases:
+    tr:
+    - giriş formu görünür olmalıdır
+  implementations:
+    python:
+      source_file: engine/steps/bgts_login_steps.py
+      function: assert_login_form_visible
+      pattern: giriş formu görünür olmalıdır
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+- id: assert_pending_count_visible
+  category: assert.visibility
+  description: 'Doğrulama: bekleyen onay sayısı görünür olmalıdır'
+  aliases:
+    tr:
+    - bekleyen onay sayısı görünür olmalıdır
+  implementations:
+    python:
+      source_file: engine/steps/bgts_approval_steps.py
+      function: assert_pending_count_visible
+      pattern: bekleyen onay sayısı görünür olmalıdır
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+- id: assert_project_in_list
+  category: assert.visibility
+  description: 'Doğrulama: "{name}" projesi listede görünür olmalıdır'
+  aliases:
+    tr:
+    - '"{name}" projesi listede görünür olmalıdır'
+  implementations:
+    python:
+      source_file: engine/steps/bgts_project_steps.py
+      function: assert_project_in_list
+      pattern: '"{name}" projesi listede görünür olmalıdır'
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+  parameters:
+  - name: name
+    type: string
+    required: true
+- id: assert_project_list_visible
+  category: assert.visibility
+  description: 'Doğrulama: proje listesi görünür olmalıdır'
+  aliases:
+    tr:
+    - proje listesi görünür olmalıdır
+  implementations:
+    python:
+      source_file: engine/steps/bgts_project_steps.py
+      function: assert_project_list_visible
+      pattern: proje listesi görünür olmalıdır
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+- id: assert_quick_actions_visible
+  category: assert.visibility
+  description: 'Doğrulama: hızlı aksiyon butonları görünür olmalıdır'
+  aliases:
+    tr:
+    - hızlı aksiyon butonları görünür olmalıdır
+  implementations:
+    python:
+      source_file: engine/steps/bgts_project_steps.py
+      function: assert_quick_actions_visible
+      pattern: hızlı aksiyon butonları görünür olmalıdır
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+- id: assert_requirement_selector_visible
+  category: assert.visibility
+  description: 'Doğrulama: gereksinim seçici görünür olmalıdır'
+  aliases:
+    tr:
+    - gereksinim seçici görünür olmalıdır
+  implementations:
+    python:
+      source_file: engine/steps/bgts_scenario_steps.py
+      function: assert_requirement_selector_visible
+      pattern: gereksinim seçici görünür olmalıdır
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+- id: assert_scenario_detail_visible
+  category: assert.visibility
+  description: 'Doğrulama: senaryo detay bilgileri görünür olmalıdır'
+  aliases:
+    tr:
+    - senaryo detay bilgileri görünür olmalıdır
+  implementations:
+    python:
+      source_file: engine/steps/bgts_scenario_steps.py
+      function: assert_scenario_detail_visible
+      pattern: senaryo detay bilgileri görünür olmalıdır
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+- id: assert_scenario_table_visible
+  category: assert.visibility
+  description: 'Doğrulama: senaryo tablosu görünür olmalıdır'
+  aliases:
+    tr:
+    - senaryo tablosu görünür olmalıdır
+  implementations:
+    python:
+      source_file: engine/steps/bgts_scenario_steps.py
+      function: assert_scenario_table_visible
+      pattern: senaryo tablosu görünür olmalıdır
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+- id: assert_source_panel_visible
+  category: assert.visibility
+  description: 'Doğrulama: kaynak panel görünür olmalıdır'
+  aliases:
+    tr:
+    - kaynak panel görünür olmalıdır
+  implementations:
+    python:
+      source_file: engine/steps/bgts_approval_steps.py
+      function: assert_source_panel_visible
+      pattern: kaynak panel görünür olmalıdır
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+- id: assert_split_view_visible
+  category: assert.visibility
+  description: 'Doğrulama: split view paneli görünür olmalıdır'
+  aliases:
+    tr:
+    - split view paneli görünür olmalıdır
+  implementations:
+    python:
+      source_file: engine/steps/bgts_approval_steps.py
+      function: assert_split_view_visible
+      pattern: split view paneli görünür olmalıdır
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+- id: assert_success_or_list_visible
+  category: assert.visibility
+  description: 'Doğrulama: başarı mesajı veya onay listesi görünür olmalıdır'
+  aliases:
+    tr:
+    - başarı mesajı veya onay listesi görünür olmalıdır
+  implementations:
+    python:
+      source_file: engine/steps/bgts_approval_steps.py
+      function: assert_success_or_list_visible
+      pattern: başarı mesajı veya onay listesi görünür olmalıdır
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+- id: assert_validation_error_visible
+  category: assert.visibility
+  description: 'Doğrulama: doğrulama hatası görünür olmalıdır'
+  aliases:
+    tr:
+    - doğrulama hatası görünür olmalıdır
+  implementations:
+    python:
+      source_file: engine/steps/bgts_scenario_steps.py
+      function: assert_validation_error_visible
+      pattern: doğrulama hatası görünür olmalıdır
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+- id: assert_version_list_visible
+  category: assert.visibility
+  description: 'Doğrulama: versiyon listesi görünür olmalıdır'
+  aliases:
+    tr:
+    - versiyon listesi görünür olmalıdır
+  implementations:
+    python:
+      source_file: engine/steps/bgts_scenario_steps.py
+      function: assert_version_list_visible
+      pattern: versiyon listesi görünür olmalıdır
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+- id: average_test_duration_should_be_below_ms
+  category: assert.visibility
+  description: 'Doğrulama: average test duration should be below {int}ms'
+  aliases:
+    en:
+    - average test duration should be below {int}ms
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/reporting-steps.ts
+      pattern: average test duration should be below {int}ms
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+  parameters:
+  - name: int
+    type: string
+    required: true
+- id: count_should_be
+  category: assert.visibility
+  description: 'Doğrulama: {string} count should be {int}'
+  aliases:
+    en:
+    - '{string} count should be {int}'
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/common-steps.ts
+      pattern: '{string} count should be {int}'
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+  - name: int
+    type: string
+    required: true
+- id: en_assert_checked
+  category: assert.visibility
+  description: 'Doğrulama: the element ''{key}'' should be checked'
+  aliases:
+    en:
+    - the element '{key}' should be checked
+  implementations:
+    python:
+      source_file: engine/steps/english_steps.py
+      function: en_assert_checked
+      pattern: the element '{key}' should be checked
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+  parameters:
+  - name: key
+    type: locator
+    required: true
+- id: en_assert_disabled
+  category: assert.visibility
+  description: 'Doğrulama: the element ''{key}'' should be disabled'
+  aliases:
+    en:
+    - the element '{key}' should be disabled
+  implementations:
+    python:
+      source_file: engine/steps/english_steps.py
+      function: en_assert_disabled
+      pattern: the element '{key}' should be disabled
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+  parameters:
+  - name: key
+    type: locator
+    required: true
+- id: en_assert_enabled
+  category: assert.visibility
+  description: 'Doğrulama: the element ''{key}'' should be enabled'
+  aliases:
+    en:
+    - the element '{key}' should be enabled
+  implementations:
+    python:
+      source_file: engine/steps/english_steps.py
+      function: en_assert_enabled
+      pattern: the element '{key}' should be enabled
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+  parameters:
+  - name: key
+    type: locator
+    required: true
+- id: en_assert_hidden
+  category: assert.visibility
+  description: 'Doğrulama: the element ''{key}'' should be hidden'
+  aliases:
+    en:
+    - the element '{key}' should be hidden
+  implementations:
+    python:
+      source_file: engine/steps/english_steps.py
+      function: en_assert_hidden
+      pattern: the element '{key}' should be hidden
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+  parameters:
+  - name: key
+    type: locator
+    required: true
+- id: en_assert_text
+  category: assert.general
+  description: 'Doğrulama: I verify element ''{key}'' text is ''{expected}'''
+  aliases:
+    tr:
+    - I verify element '{key}' text is '{expected}'
+  implementations:
+    python:
+      source_file: engine/steps/english_steps.py
+      function: en_assert_text
+      pattern: I verify element '{key}' text is '{expected}'
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+  parameters:
+  - name: key
+    type: locator
+    required: true
+  - name: expected
+    type: string
+    required: true
+- id: en_assert_text_double_quotes
+  category: assert.general
+  description: 'Doğrulama: I verify element "{key}" text is "{expected}"'
+  aliases:
+    tr:
+    - I verify element "{key}" text is "{expected}"
+  implementations:
+    python:
+      source_file: engine/steps/english_steps.py
+      function: en_assert_text_double_quotes
+      pattern: I verify element "{key}" text is "{expected}"
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+  parameters:
+  - name: key
+    type: locator
+    required: true
+  - name: expected
+    type: string
+    required: true
+- id: en_assert_title
+  category: assert.visibility
+  description: 'Doğrulama: the page title should contain ''{text}'''
+  aliases:
+    en:
+    - the page title should contain '{text}'
+  implementations:
+    python:
+      source_file: engine/steps/english_steps.py
+      function: en_assert_title
+      pattern: the page title should contain '{text}'
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+  parameters:
+  - name: text
+    type: string
+    required: true
+- id: en_assert_url
+  category: assert.visibility
+  description: 'Doğrulama: the URL should contain ''{text}'''
+  aliases:
+    en:
+    - the URL should contain '{text}'
+  implementations:
+    python:
+      source_file: engine/steps/english_steps.py
+      function: en_assert_url
+      pattern: the URL should contain '{text}'
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+  parameters:
+  - name: text
+    type: string
+    required: true
+- id: featured_markets_should_be_visible
+  category: assert.visibility
+  description: 'Doğrulama: featured markets should be visible'
+  aliases:
+    en:
+    - featured markets should be visible
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/paribu-steps.ts
+      pattern: featured markets should be visible
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+- id: featured_markets_should_contain_at_least
+  category: assert.visibility
+  description: 'Doğrulama: featured markets should contain at least {int} cryptocurrencies'
+  aliases:
+    en:
+    - featured markets should contain at least {int} cryptocurrencies
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/paribu-steps.ts
+      pattern: featured markets should contain at least {int} cryptocurrencies
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+  parameters:
+  - name: int
+    type: string
+    required: true
+- id: i_assert_performance_with_default_thresh
+  category: assert.general
+  description: 'Eylem: I assert performance with default thresholds'
+  aliases:
+    tr:
+    - I assert performance with default thresholds
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/performance-steps.ts
+      pattern: I assert performance with default thresholds
+  tags:
+  - auto-extracted
+  - when
+  since: '2026-04-17'
+- id: i_should_be_logged_out
+  category: assert.visibility
+  description: 'Doğrulama: I should be logged out'
+  aliases:
+    en:
+    - I should be logged out
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/paribu-steps.ts
+      pattern: I should be logged out
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+- id: i_should_have_generated_test_scenarios
+  category: assert.visibility
+  description: 'Doğrulama: I should have generated test scenarios'
+  aliases:
+    en:
+    - I should have generated test scenarios
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/ai-steps.ts
+      pattern: I should have generated test scenarios
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+- id: i_should_have_test_results_for_all_domai
+  category: assert.visibility
+  description: 'Doğrulama: I should have test results for all domains'
+  aliases:
+    en:
+    - I should have test results for all domains
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/e2e-steps.ts
+      pattern: I should have test results for all domains
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+- id: i_should_receive_debugging_suggestions
+  category: assert.visibility
+  description: 'Doğrulama: I should receive debugging suggestions'
+  aliases:
+    en:
+    - I should receive debugging suggestions
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/ai-steps.ts
+      pattern: I should receive debugging suggestions
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+- id: i_should_receive_optimization_suggestion
+  category: assert.visibility
+  description: 'Doğrulama: I should receive optimization suggestions'
+  aliases:
+    en:
+    - I should receive optimization suggestions
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/ai-steps.ts
+      pattern: I should receive optimization suggestions
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+- id: i_should_see_a_modal_with_title
+  category: assert.visibility
+  description: 'Doğrulama: I should see a modal with title {string}'
+  aliases:
+    en:
+    - I should see a modal with title {string}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/web-steps.ts
+      pattern: I should see a modal with title {string}
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_should_see_a_success_message
+  category: assert.visibility
+  description: 'Doğrulama: I should see a success message'
+  aliases:
+    en:
+    - I should see a success message
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/web-steps.ts
+      pattern: I should see a success message
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+- id: i_should_see_a_table_with_columns
+  category: assert.visibility
+  description: 'Doğrulama: I should see a table with columns:'
+  aliases:
+    en:
+    - 'I should see a table with columns:'
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/web-steps.ts
+      pattern: 'I should see a table with columns:'
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+- id: i_should_see_an_error_message
+  category: assert.visibility
+  description: 'Doğrulama: I should see an error message'
+  aliases:
+    en:
+    - I should see an error message
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/web-steps.ts
+      pattern: I should see an error message
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+- id: i_should_see_coverage_gaps_identified
+  category: assert.visibility
+  description: 'Doğrulama: I should see coverage gaps identified'
+  aliases:
+    en:
+    - I should see coverage gaps identified
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/ai-steps.ts
+      pattern: I should see coverage gaps identified
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+- id: i_should_see_in_featured_markets
+  category: assert.visibility
+  description: 'Doğrulama: I should see {string} in featured markets'
+  aliases:
+    en:
+    - I should see {string} in featured markets
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/paribu-steps.ts
+      pattern: I should see {string} in featured markets
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_should_see_message
+  category: assert.visibility
+  description: 'Doğrulama: I should see message {string}'
+  aliases:
+    en:
+    - I should see message {string}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/web-steps.ts
+      pattern: I should see message {string}
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_should_see_recommendations_for_improve
+  category: assert.visibility
+  description: 'Doğrulama: I should see recommendations for improvement'
+  aliases:
+    en:
+    - I should see recommendations for improvement
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/ai-steps.ts
+      pattern: I should see recommendations for improvement
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+- id: i_should_see_search_results
+  category: assert.visibility
+  description: 'Doğrulama: I should see search results'
+  aliases:
+    en:
+    - I should see search results
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/web-steps.ts
+      pattern: I should see search results
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+- id: i_should_see_the_ai_provider_and_model_u
+  category: assert.visibility
+  description: 'Doğrulama: I should see the AI provider and model used'
+  aliases:
+    en:
+    - I should see the AI provider and model used
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/ai-steps.ts
+      pattern: I should see the AI provider and model used
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+- id: login_error_message_should_appear
+  category: assert.visibility
+  description: 'Doğrulama: login error message should appear'
+  aliases:
+    en:
+    - login error message should appear
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/paribu-steps.ts
+      pattern: login error message should appear
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+- id: login_should_be_successful
+  category: assert.visibility
+  description: 'Doğrulama: login should be successful'
+  aliases:
+    en:
+    - login should be successful
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/paribu-steps.ts
+      pattern: login should be successful
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+- id: market_should_have_or_more_cryptocurrenc
+  category: assert.visibility
+  description: 'Doğrulama: market should have {int} or more cryptocurrencies'
+  aliases:
+    en:
+    - market should have {int} or more cryptocurrencies
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/paribu-steps.ts
+      pattern: market should have {int} or more cryptocurrencies
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+  parameters:
+  - name: int
+    type: string
+    required: true
+- id: market_table_should_be_visible
+  category: assert.visibility
+  description: 'Doğrulama: market table should be visible'
+  aliases:
+    en:
+    - market table should be visible
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/paribu-steps.ts
+      pattern: market table should be visible
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+- id: page_performance_should_meet_strict_thre
+  category: assert.visibility
+  description: 'Doğrulama: page performance should meet strict thresholds'
+  aliases:
+    en:
+    - page performance should meet strict thresholds
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/e2e-steps.ts
+      pattern: page performance should meet strict thresholds
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+- id: page_should_contain
+  category: assert.visibility
+  description: 'Doğrulama: page should contain {string}'
+  aliases:
+    en:
+    - page should contain {string}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/common-steps.ts
+      pattern: page should contain {string}
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: page_should_load_within_seconds
+  category: assert.visibility
+  description: 'Doğrulama: page should load within {int} seconds'
+  aliases:
+    en:
+    - page should load within {int} seconds
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/web-steps.ts
+      pattern: page should load within {int} seconds
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+  parameters:
+  - name: int
+    type: string
+    required: true
+- id: page_should_not_contain
+  category: assert.visibility
+  description: 'Doğrulama: page should not contain {string}'
+  aliases:
+    en:
+    - page should not contain {string}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/common-steps.ts
+      pattern: page should not contain {string}
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: page_title_should_be
+  category: assert.visibility
+  description: 'Doğrulama: page title should be {string}'
+  aliases:
+    en:
+    - page title should be {string}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/common-steps.ts
+      pattern: page title should be {string}
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: page_url_should_be
+  category: assert.visibility
+  description: 'Doğrulama: page URL should be {string}'
+  aliases:
+    en:
+    - page URL should be {string}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/common-steps.ts
+      pattern: page URL should be {string}
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: page_url_should_contain
+  category: assert.visibility
+  description: 'Doğrulama: page URL should contain {string}'
+  aliases:
+    en:
+    - page URL should contain {string}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/common-steps.ts
+      pattern: page URL should contain {string}
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: performance_should_be
+  category: assert.visibility
+  description: 'Doğrulama: performance should be {string}'
+  aliases:
+    en:
+    - performance should be {string}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/reporting-steps.ts
+      pattern: performance should be {string}
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: profile_information_should_be_displayed
+  category: assert.visibility
+  description: 'Doğrulama: profile information should be displayed'
+  aliases:
+    en:
+    - profile information should be displayed
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/paribu-steps.ts
+      pattern: profile information should be displayed
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+- id: search_results_should_show
+  category: assert.visibility
+  description: 'Doğrulama: search results should show {string}'
+  aliases:
+    en:
+    - search results should show {string}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/paribu-steps.ts
+      pattern: search results should show {string}
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: should_be_disabled
+  category: assert.visibility
+  description: 'Doğrulama: {string} should be disabled'
+  aliases:
+    en:
+    - '{string} should be disabled'
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/common-steps.ts
+      pattern: '{string} should be disabled'
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: should_be_enabled
+  category: assert.visibility
+  description: 'Doğrulama: {string} should be enabled'
+  aliases:
+    en:
+    - '{string} should be enabled'
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/common-steps.ts
+      pattern: '{string} should be enabled'
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: should_be_hidden
+  category: assert.visibility
+  description: 'Doğrulama: {string} should be hidden'
+  aliases:
+    en:
+    - '{string} should be hidden'
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/common-steps.ts
+      pattern: '{string} should be hidden'
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: should_be_visible
+  category: assert.visibility
+  description: 'Doğrulama: {string} should be visible'
+  aliases:
+    en:
+    - '{string} should be visible'
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/common-steps.ts
+      pattern: '{string} should be visible'
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: should_contain
+  category: assert.visibility
+  description: 'Doğrulama: {string} should contain {string}'
+  aliases:
+    en:
+    - '{string} should contain {string}'
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/common-steps.ts
+      pattern: '{string} should contain {string}'
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: should_exist
+  category: assert.visibility
+  description: 'Doğrulama: {string} should exist'
+  aliases:
+    en:
+    - '{string} should exist'
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/common-steps.ts
+      pattern: '{string} should exist'
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: should_have_attribute_with_value
+  category: assert.visibility
+  description: 'Doğrulama: {string} should have attribute {string} with value {string}'
+  aliases:
+    en:
+    - '{string} should have attribute {string} with value {string}'
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/common-steps.ts
+      pattern: '{string} should have attribute {string} with value {string}'
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: should_have_text
+  category: assert.visibility
+  description: 'Doğrulama: {string} should have text {string}'
+  aliases:
+    en:
+    - '{string} should have text {string}'
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/common-steps.ts
+      pattern: '{string} should have text {string}'
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: should_have_value
+  category: assert.visibility
+  description: 'Doğrulama: {string} should have value {string}'
+  aliases:
+    en:
+    - '{string} should have value {string}'
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/common-steps.ts
+      pattern: '{string} should have value {string}'
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: should_not_be_visible
+  category: assert.visibility
+  description: 'Doğrulama: {string} should not be visible'
+  aliases:
+    en:
+    - '{string} should not be visible'
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/common-steps.ts
+      pattern: '{string} should not be visible'
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: should_not_exist
+  category: assert.visibility
+  description: 'Doğrulama: {string} should not exist'
+  aliases:
+    en:
+    - '{string} should not exist'
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/common-steps.ts
+      pattern: '{string} should not exist'
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: step_assert_visible
+  category: assert.visibility
+  description: 'Doğrulama: "{key}" elementi gorunur olmalidir'
+  aliases:
+    tr:
+    - '"{key}" elementi gorunur olmalidir'
+  implementations:
+    python:
+      source_file: engine/steps/assertion_steps.py
+      function: step_assert_visible
+      pattern: '"{key}" elementi gorunur olmalidir'
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+  parameters:
+  - name: key
+    type: locator
+    required: true
+- id: test_data_field_should_not_be_empty
+  category: assert.visibility
+  description: 'Doğrulama: test data {string} field should not be empty'
+  aliases:
+    en:
+    - test data {string} field should not be empty
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/data-steps.ts
+      pattern: test data {string} field should not be empty
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: test_data_should_have_field
+  category: assert.visibility
+  description: 'Doğrulama: test data should have field {string}'
+  aliases:
+    en:
+    - test data should have field {string}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/data-steps.ts
+      pattern: test data should have field {string}
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: test_data_should_have_items
+  category: assert.visibility
+  description: 'Doğrulama: test data should have {int} items'
+  aliases:
+    en:
+    - test data should have {int} items
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/data-steps.ts
+      pattern: test data should have {int} items
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+  parameters:
+  - name: int
+    type: string
+    required: true
+- id: the_ai_client_should_have_made_or_more_r
+  category: assert.visibility
+  description: 'Doğrulama: the AI client should have made {int} or more requests'
+  aliases:
+    en:
+    - the AI client should have made {int} or more requests
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/ai-steps.ts
+      pattern: the AI client should have made {int} or more requests
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+  parameters:
+  - name: int
+    type: string
+    required: true
+- id: the_ai_workflow_results_should_be_compre
+  category: assert.visibility
+  description: 'Doğrulama: the AI workflow results should be comprehensive'
+  aliases:
+    en:
+    - the AI workflow results should be comprehensive
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/ai-steps.ts
+      pattern: the AI workflow results should be comprehensive
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+- id: the_ai_workflow_should_complete_successf
+  category: assert.visibility
+  description: 'Doğrulama: the AI workflow should complete successfully'
+  aliases:
+    en:
+    - the AI workflow should complete successfully
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/ai-steps.ts
+      pattern: the AI workflow should complete successfully
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+- id: the_analysis_should_report_color_shifts
+  category: assert.visibility
+  description: 'Doğrulama: the analysis should report color shifts'
+  aliases:
+    en:
+    - the analysis should report color shifts
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/visual-ai-steps.ts
+      pattern: the analysis should report color shifts
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+- id: the_analysis_should_report_layout_change
+  category: assert.visibility
+  description: 'Doğrulama: the analysis should report layout changes'
+  aliases:
+    en:
+    - the analysis should report layout changes
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/visual-ai-steps.ts
+      pattern: the analysis should report layout changes
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+- id: the_analytics_report_should_contain_reco
+  category: assert.visibility
+  description: 'Doğrulama: the analytics report should contain recommendations'
+  aliases:
+    en:
+    - the analytics report should contain recommendations
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/reporting-steps.ts
+      pattern: the analytics report should contain recommendations
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+- id: the_analytics_report_should_contain_tren
+  category: assert.visibility
+  description: 'Doğrulama: the analytics report should contain trend analysis'
+  aliases:
+    en:
+    - the analytics report should contain trend analysis
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/reporting-steps.ts
+      pattern: the analytics report should contain trend analysis
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+- id: the_baseline_analysis_should_provide_rec
+  category: assert.visibility
+  description: 'Doğrulama: the baseline analysis should provide recommendations'
+  aliases:
+    en:
+    - the baseline analysis should provide recommendations
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/visual-ai-steps.ts
+      pattern: the baseline analysis should provide recommendations
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+- id: the_baseline_should_be_updated
+  category: assert.visibility
+  description: 'Doğrulama: the baseline should {string} be updated'
+  aliases:
+    en:
+    - the baseline should {string} be updated
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/visual-ai-steps.ts
+      pattern: the baseline should {string} be updated
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: the_baseline_should_have_or_fewer_update
+  category: assert.visibility
+  description: 'Doğrulama: the baseline should have {int} or fewer update cycles'
+  aliases:
+    en:
+    - the baseline should have {int} or fewer update cycles
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/visual-ai-steps.ts
+      pattern: the baseline should have {int} or fewer update cycles
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+  parameters:
+  - name: int
+    type: string
+    required: true
+- id: the_complete_workflow_should_be_valid
+  category: assert.visibility
+  description: 'Doğrulama: the complete workflow should be valid'
+  aliases:
+    en:
+    - the complete workflow should be valid
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/e2e-steps.ts
+      pattern: the complete workflow should be valid
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+- id: the_core_web_vitals_should_be_good
+  category: assert.visibility
+  description: 'Doğrulama: the core web vitals should be good'
+  aliases:
+    en:
+    - the core web vitals should be good
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/performance-steps.ts
+      pattern: the core web vitals should be good
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+- id: the_cumulative_layout_shift_should_be_le
+  category: assert.visibility
+  description: 'Doğrulama: the cumulative layout shift should be less than {float}'
+  aliases:
+    en:
+    - the cumulative layout shift should be less than {float}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/performance-steps.ts
+      pattern: the cumulative layout shift should be less than {float}
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+  parameters:
+  - name: float
+    type: string
+    required: true
+- id: the_data_should_be_correctly_moved_to_th
+  category: assert.visibility
+  description: 'Doğrulama: the data should be correctly moved to the {string} tab'
+  aliases:
+    en:
+    - the data should be correctly moved to the {string} tab
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/web.steps.ts
+      pattern: the data should be correctly moved to the {string} tab
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: the_dom_content_should_load_in_less_than
+  category: assert.visibility
+  description: 'Doğrulama: the DOM content should load in less than {int} milliseconds'
+  aliases:
+    en:
+    - the DOM content should load in less than {int} milliseconds
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/performance-steps.ts
+      pattern: the DOM content should load in less than {int} milliseconds
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+  parameters:
+  - name: int
+    type: string
+    required: true
+- id: the_element_should_match_visual_baseline
+  category: assert.visibility
+  description: 'Doğrulama: the element {string} should match visual baseline {string}'
+  aliases:
+    en:
+    - the element {string} should match visual baseline {string}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/visual-steps.ts
+      pattern: the element {string} should match visual baseline {string}
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: the_error_message_should_contain
+  category: assert.visibility
+  description: 'Doğrulama: the error message should contain {string}'
+  aliases:
+    en:
+    - the error message should contain {string}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/web.steps.ts
+      pattern: the error message should contain {string}
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: the_exported_gherkin_should_be_a_valid_f
+  category: assert.visibility
+  description: 'Doğrulama: the exported Gherkin should be a valid feature file'
+  aliases:
+    en:
+    - the exported Gherkin should be a valid feature file
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/recording-steps.ts
+      pattern: the exported Gherkin should be a valid feature file
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+- id: the_exported_json_should_contain_all_rec
+  category: assert.visibility
+  description: 'Doğrulama: the exported JSON should contain all recorded actions'
+  aliases:
+    en:
+    - the exported JSON should contain all recorded actions
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/recording-steps.ts
+      pattern: the exported JSON should contain all recorded actions
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+- id: the_first_contentful_paint_should_be_les
+  category: assert.visibility
+  description: 'Doğrulama: the first contentful paint should be less than {int} milliseconds'
+  aliases:
+    en:
+    - the first contentful paint should be less than {int} milliseconds
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/performance-steps.ts
+      pattern: the first contentful paint should be less than {int} milliseconds
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+  parameters:
+  - name: int
+    type: string
+    required: true
+- id: the_generated_report_should_contain_summ
+  category: assert.visibility
+  description: 'Doğrulama: the generated report should contain summary metrics'
+  aliases:
+    en:
+    - the generated report should contain summary metrics
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/reporting-steps.ts
+      pattern: the generated report should contain summary metrics
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+- id: the_generated_scenarios_should_have_or_m
+  category: assert.visibility
+  description: 'Doğrulama: the generated scenarios should have {int} or more steps'
+  aliases:
+    en:
+    - the generated scenarios should have {int} or more steps
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/ai-steps.ts
+      pattern: the generated scenarios should have {int} or more steps
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+  parameters:
+  - name: int
+    type: string
+    required: true
+- id: the_generated_step_definitions_should_be
+  category: assert.visibility
+  description: 'Doğrulama: the generated step definitions should be valid TypeScript'
+  aliases:
+    en:
+    - the generated step definitions should be valid TypeScript
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/recording-steps.ts
+      pattern: the generated step definitions should be valid TypeScript
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+- id: the_generated_steps_should_follow_bdd_fo
+  category: assert.visibility
+  description: 'Doğrulama: the generated steps should follow BDD format'
+  aliases:
+    en:
+    - the generated steps should follow BDD format
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/recording-steps.ts
+      pattern: the generated steps should follow BDD format
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+- id: the_largest_contentful_paint_should_be_l
+  category: assert.visibility
+  description: 'Doğrulama: the largest contentful paint should be less than {int} milliseconds'
+  aliases:
+    en:
+    - the largest contentful paint should be less than {int} milliseconds
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/performance-steps.ts
+      pattern: the largest contentful paint should be less than {int} milliseconds
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+  parameters:
+  - name: int
+    type: string
+    required: true
+- id: the_page_load_time_should_be_less_than_m
+  category: assert.visibility
+  description: 'Doğrulama: the page load time should be less than {int} milliseconds'
+  aliases:
+    en:
+    - the page load time should be less than {int} milliseconds
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/performance-steps.ts
+      pattern: the page load time should be less than {int} milliseconds
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+  parameters:
+  - name: int
+    type: string
+    required: true
+- id: the_page_should_match_visual_baseline
+  category: assert.visibility
+  description: 'Doğrulama: the page should match visual baseline {string}'
+  aliases:
+    en:
+    - the page should match visual baseline {string}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/visual-steps.ts
+      pattern: the page should match visual baseline {string}
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: the_page_should_pass_all_quality_gates
+  category: assert.visibility
+  description: 'Doğrulama: the page should pass all quality gates'
+  aliases:
+    en:
+    - the page should pass all quality gates
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/e2e-steps.ts
+      pattern: the page should pass all quality gates
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+- id: the_performance_report_should_have_no_vi
+  category: assert.visibility
+  description: 'Doğrulama: the performance report should have no violations'
+  aliases:
+    en:
+    - the performance report should have no violations
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/performance-steps.ts
+      pattern: the performance report should have no violations
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+- id: the_price_should_be_available
+  category: assert.visibility
+  description: 'Doğrulama: the price should be available'
+  aliases:
+    en:
+    - the price should be available
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/paribu-steps.ts
+      pattern: the price should be available
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+- id: the_products_array_length_should_match_t
+  category: assert.visibility
+  description: 'Doğrulama: the products array length should match the limit {int}'
+  aliases:
+    en:
+    - the products array length should match the limit {int}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/api.steps.ts
+      pattern: the products array length should match the limit {int}
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+  parameters:
+  - name: int
+    type: string
+    required: true
+- id: the_recording_should_capture_all_user_ac
+  category: assert.visibility
+  description: 'Doğrulama: the recording should capture all user actions'
+  aliases:
+    en:
+    - the recording should capture all user actions
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/recording-steps.ts
+      pattern: the recording should capture all user actions
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+- id: the_recording_should_have_generated_or_m
+  category: assert.visibility
+  description: 'Doğrulama: the recording should have generated {int} or more steps'
+  aliases:
+    en:
+    - the recording should have generated {int} or more steps
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/recording-steps.ts
+      pattern: the recording should have generated {int} or more steps
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+  parameters:
+  - name: int
+    type: string
+    required: true
+- id: the_recording_should_have_or_more_action
+  category: assert.visibility
+  description: 'Doğrulama: the recording should have {int} or more actions'
+  aliases:
+    en:
+    - the recording should have {int} or more actions
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/recording-steps.ts
+      pattern: the recording should have {int} or more actions
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+  parameters:
+  - name: int
+    type: string
+    required: true
+- id: the_recording_workflow_should_produce_va
+  category: assert.visibility
+  description: 'Doğrulama: the recording workflow should produce valid output'
+  aliases:
+    en:
+    - the recording workflow should produce valid output
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/recording-steps.ts
+      pattern: the recording workflow should produce valid output
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+- id: the_replay_should_complete_successfully
+  category: assert.visibility
+  description: 'Doğrulama: the replay should complete successfully'
+  aliases:
+    en:
+    - the replay should complete successfully
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/recording-steps.ts
+      pattern: the replay should complete successfully
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+- id: the_report_should_have_success_rate_abov
+  category: assert.visibility
+  description: 'Doğrulama: the report should have success rate above {float}%'
+  aliases:
+    en:
+    - the report should have success rate above {float}%
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/reporting-steps.ts
+      pattern: the report should have success rate above {float}%
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+  parameters:
+  - name: float
+    type: string
+    required: true
+- id: the_report_should_include_test_cases
+  category: assert.visibility
+  description: 'Doğrulama: the report should include {int} test cases'
+  aliases:
+    en:
+    - the report should include {int} test cases
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/reporting-steps.ts
+      pattern: the report should include {int} test cases
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+  parameters:
+  - name: int
+    type: string
+    required: true
+- id: the_reporting_workflow_should_complete_s
+  category: assert.visibility
+  description: 'Doğrulama: the reporting workflow should complete successfully'
+  aliases:
+    en:
+    - the reporting workflow should complete successfully
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/reporting-steps.ts
+      pattern: the reporting workflow should complete successfully
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+- id: the_risk_assessment_should_provide_recom
+  category: assert.visibility
+  description: 'Doğrulama: the risk assessment should provide recommendations'
+  aliases:
+    en:
+    - the risk assessment should provide recommendations
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/reporting-steps.ts
+      pattern: the risk assessment should provide recommendations
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+- id: the_risk_level_should_be
+  category: assert.visibility
+  description: 'Doğrulama: the risk level should be {string}'
+  aliases:
+    en:
+    - the risk level should be {string}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/reporting-steps.ts
+      pattern: the risk level should be {string}
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: the_risk_score_should_be_below
+  category: assert.visibility
+  description: 'Doğrulama: the risk score should be below {int}'
+  aliases:
+    en:
+    - the risk score should be below {int}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/reporting-steps.ts
+      pattern: the risk score should be below {int}
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+  parameters:
+  - name: int
+    type: string
+    required: true
+- id: the_sequential_operations_should_all_suc
+  category: assert.visibility
+  description: 'Doğrulama: the sequential operations should all succeed'
+  aliases:
+    en:
+    - the sequential operations should all succeed
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/e2e-steps.ts
+      pattern: the sequential operations should all succeed
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+- id: the_suggested_test_data_should_include_r
+  category: assert.visibility
+  description: 'Doğrulama: the suggested test data should include required fields'
+  aliases:
+    en:
+    - the suggested test data should include required fields
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/ai-steps.ts
+      pattern: the suggested test data should include required fields
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+- id: the_test_coverage_should_be_at_least_per
+  category: assert.visibility
+  description: 'Doğrulama: the test coverage should be at least {int} percent'
+  aliases:
+    en:
+    - the test coverage should be at least {int} percent
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/ai-steps.ts
+      pattern: the test coverage should be at least {int} percent
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+  parameters:
+  - name: int
+    type: string
+    required: true
+- id: the_test_run_should_be_recorded_successf
+  category: assert.visibility
+  description: 'Doğrulama: the test run should be recorded successfully'
+  aliases:
+    en:
+    - the test run should be recorded successfully
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/reporting-steps.ts
+      pattern: the test run should be recorded successfully
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+- id: the_token_usage_should_be_tracked
+  category: assert.visibility
+  description: 'Doğrulama: the token usage should be tracked'
+  aliases:
+    en:
+    - the token usage should be tracked
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/ai-steps.ts
+      pattern: the token usage should be tracked
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+- id: the_total_network_requests_should_be_les
+  category: assert.visibility
+  description: 'Doğrulama: the total network requests should be less than {int}'
+  aliases:
+    en:
+    - the total network requests should be less than {int}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/performance-steps.ts
+      pattern: the total network requests should be less than {int}
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+  parameters:
+  - name: int
+    type: string
+    required: true
+- id: the_total_network_size_should_be_less_th
+  category: assert.visibility
+  description: 'Doğrulama: the total network size should be less than {int} KB'
+  aliases:
+    en:
+    - the total network size should be less than {int} KB
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/performance-steps.ts
+      pattern: the total network size should be less than {int} KB
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+  parameters:
+  - name: int
+    type: string
+    required: true
+- id: the_total_price_should_display_the_corre
+  category: assert.visibility
+  description: 'Doğrulama: the total price should display the correct calculation result'
+  aliases:
+    en:
+    - the total price should display the correct calculation result
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/web.steps.ts
+      pattern: the total price should display the correct calculation result
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+- id: the_visual_ai_workflow_should_complete_s
+  category: assert.visibility
+  description: 'Doğrulama: the visual AI workflow should complete successfully'
+  aliases:
+    en:
+    - the visual AI workflow should complete successfully
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/visual-ai-steps.ts
+      pattern: the visual AI workflow should complete successfully
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+- id: the_visual_analysis_report_should_contai
+  category: assert.visibility
+  description: 'Doğrulama: the visual analysis report should contain anomaly details'
+  aliases:
+    en:
+    - the visual analysis report should contain anomaly details
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/visual-ai-steps.ts
+      pattern: the visual analysis report should contain anomaly details
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+- id: the_visual_analysis_report_should_contai_2
+  category: assert.visibility
+  description: 'Doğrulama: the visual analysis report should contain recommendations'
+  aliases:
+    en:
+    - the visual analysis report should contain recommendations
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/visual-ai-steps.ts
+      pattern: the visual analysis report should contain recommendations
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+- id: the_visual_analysis_should_detect_or_few
+  category: assert.visibility
+  description: 'Doğrulama: the visual analysis should detect {int} or fewer anomalies'
+  aliases:
+    en:
+    - the visual analysis should detect {int} or fewer anomalies
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/visual-ai-steps.ts
+      pattern: the visual analysis should detect {int} or fewer anomalies
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+  parameters:
+  - name: int
+    type: string
+    required: true
+- id: the_visual_analysis_should_identify_anom
+  category: assert.visibility
+  description: 'Doğrulama: the visual analysis should identify anomalies'
+  aliases:
+    en:
+    - the visual analysis should identify anomalies
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/visual-ai-steps.ts
+      pattern: the visual analysis should identify anomalies
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+- id: the_visual_anomalies_should_include
+  category: assert.visibility
+  description: 'Doğrulama: the visual anomalies should include {string}'
+  aliases:
+    en:
+    - the visual anomalies should include {string}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/visual-ai-steps.ts
+      pattern: the visual anomalies should include {string}
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: the_visual_comparison_should_pass
+  category: assert.visibility
+  description: 'Doğrulama: the visual comparison should pass'
+  aliases:
+    en:
+    - the visual comparison should pass
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/visual-steps.ts
+      pattern: the visual comparison should pass
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+- id: the_visual_match_should_be_above_percent
+  category: assert.visibility
+  description: 'Doğrulama: the visual match should be above {float} percent'
+  aliases:
+    en:
+    - the visual match should be above {float} percent
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/visual-steps.ts
+      pattern: the visual match should be above {float} percent
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+  parameters:
+  - name: float
+    type: string
+    required: true
+- id: the_visual_similarity_should_be_above
+  category: assert.visibility
+  description: 'Doğrulama: the visual similarity should be above {float}'
+  aliases:
+    en:
+    - the visual similarity should be above {float}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/visual-ai-steps.ts
+      pattern: the visual similarity should be above {float}
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+  parameters:
+  - name: float
+    type: string
+    required: true
+- id: the_visual_similarity_should_be_exactly
+  category: assert.visibility
+  description: 'Doğrulama: the visual similarity should be exactly {float} with tolerance {float}'
+  aliases:
+    en:
+    - the visual similarity should be exactly {float} with tolerance {float}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/visual-ai-steps.ts
+      pattern: the visual similarity should be exactly {float} with tolerance {float}
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+  parameters:
+  - name: float
+    type: string
+    required: true
+- id: there_should_be_no_critical_accessibilit
+  category: assert.visibility
+  description: 'Doğrulama: there should be no critical accessibility violations'
+  aliases:
+    en:
+    - there should be no critical accessibility violations
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/e2e-steps.ts
+      pattern: there should be no critical accessibility violations
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+- id: there_should_be_no_critical_visual_anoma
+  category: assert.visibility
+  description: 'Doğrulama: there should be no critical visual anomalies'
+  aliases:
+    en:
+    - there should be no critical visual anomalies
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/visual-ai-steps.ts
+      pattern: there should be no critical visual anomalies
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+- id: there_should_be_no_serious_accessibility
+  category: assert.visibility
+  description: 'Doğrulama: there should be no serious accessibility violations'
+  aliases:
+    en:
+    - there should be no serious accessibility violations
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/e2e-steps.ts
+      pattern: there should be no serious accessibility violations
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+- id: there_should_be_or_fewer_failing_tests
+  category: assert.visibility
+  description: 'Doğrulama: there should be {int} or fewer failing tests'
+  aliases:
+    en:
+    - there should be {int} or fewer failing tests
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/reporting-steps.ts
+      pattern: there should be {int} or fewer failing tests
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+  parameters:
+  - name: int
+    type: string
+    required: true
+- id: verify_element_attribute_equals
+  category: assert.general
+  description: 'Doğrulama: I verify element {string} has attribute {string} equal to {string}'
+  aliases:
+    tr:
+    - I verify element {string} has attribute {string} equal to {string}
+  implementations:
+    java:
+      source_file: frameworks/selenium-cucumber-java/src/test/java/stepdefinitions/AssertionSteps.java
+      function: verifyElementAttributeEquals
+      pattern: I verify element {string} has attribute {string} equal to {string}
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: verify_element_contains_text
+  category: assert.general
+  description: 'Doğrulama: I verify element {string} contains text {string}'
+  aliases:
+    tr:
+    - I verify element {string} contains text {string}
+  implementations:
+    java:
+      source_file: frameworks/selenium-cucumber-java/src/test/java/stepdefinitions/AssertionSteps.java
+      function: verifyElementContainsText
+      pattern: I verify element {string} contains text {string}
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: verify_element_contains_value_stored_under
+  category: assert.general
+  description: 'Doğrulama: I verify element {string} contains the value stored under {string}'
+  aliases:
+    en:
+    - I verify element {string} contains the value stored under {string}
+  implementations:
+    java:
+      source_file: frameworks/selenium-cucumber-java/src/test/java/stepdefinitions/ScenarioContextSteps.java
+      function: verifyElementContainsValueStoredUnder
+      pattern: I verify element {string} contains the value stored under {string}
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: verify_element_is_disabled
+  category: assert.general
+  description: 'Doğrulama: I verify element {string} is disabled'
+  aliases:
+    tr:
+    - I verify element {string} is disabled
+  implementations:
+    java:
+      source_file: frameworks/selenium-cucumber-java/src/test/java/stepdefinitions/AssertionSteps.java
+      function: verifyElementIsDisabled
+      pattern: I verify element {string} is disabled
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: verify_element_is_enabled
+  category: assert.general
+  description: 'Doğrulama: I verify element {string} is enabled'
+  aliases:
+    tr:
+    - I verify element {string} is enabled
+  implementations:
+    java:
+      source_file: frameworks/selenium-cucumber-java/src/test/java/stepdefinitions/AssertionSteps.java
+      function: verifyElementIsEnabled
+      pattern: I verify element {string} is enabled
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: verify_element_text
+  category: assert.general
+  description: 'Doğrulama: I verify element {string} text is {string}'
+  aliases:
+    tr:
+    - I verify element {string} text is {string}
+  implementations:
+    java:
+      source_file: frameworks/selenium-cucumber-java/src/test/java/stepdefinitions/AssertionSteps.java
+      function: verifyElementText
+      pattern: I verify element {string} text is {string}
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: verify_element_text_is_value_stored_under
+  category: assert.general
+  description: 'Doğrulama: I verify element {string} text is the value stored under {string}'
+  aliases:
+    en:
+    - I verify element {string} text is the value stored under {string}
+  implementations:
+    java:
+      source_file: frameworks/selenium-cucumber-java/src/test/java/stepdefinitions/ScenarioContextSteps.java
+      function: verifyElementTextIsValueStoredUnder
+      pattern: I verify element {string} text is the value stored under {string}
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: verify_selected_option_in
+  category: assert.general
+  description: 'Doğrulama: I verify the selected option in {string} is {string}'
+  aliases:
+    en:
+    - I verify the selected option in {string} is {string}
+  implementations:
+    java:
+      source_file: frameworks/selenium-cucumber-java/src/test/java/stepdefinitions/AssertionSteps.java
+      function: verifySelectedOptionIn
+      pattern: I verify the selected option in {string} is {string}
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: visual_baseline_should_not_exist
+  category: assert.visibility
+  description: 'Doğrulama: visual baseline {string} should not exist'
+  aliases:
+    en:
+    - visual baseline {string} should not exist
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/visual-steps.ts
+      pattern: visual baseline {string} should not exist
+  tags:
+  - auto-extracted
+  - then
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true

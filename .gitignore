@@ -1,0 +1,104 @@
+# ─────────────────────────────────────────────────────────
+#  Cortex AI Automation — Root .gitignore
+# ─────────────────────────────────────────────────────────
+
+# OS junk
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor
+.idea/
+.vscode/
+*.swp
+*.iml
+nbproject/private/
+
+# Secrets
+.env
+.env.local
+.env.*.local
+framework/.env
+framework/python_server/password.properties
+framework/src/main/resources/password.properties
+framework/src/main/resources/secrets/
+*.key
+*.pem
+
+# Java / Maven
+framework/target/
+framework/*.class
+*.class
+target/
+build/
+*.jar
+*.war
+framework/hs_err_pid*.log
+
+# Python
+framework/.venv/
+framework/python_server/__pycache__/
+**/__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+.pytest_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# Node / Next.js
+node_modules/
+web/node_modules/
+web/.next/
+web/out/
+web/.turbo/
+web/next-env.d.ts
+web/tsconfig.tsbuildinfo
+dist/
+
+# Logs / runtime
+*.log
+*.log.[0-9]*
+*.log.gz
+framework/logs/*.log*
+framework/dashboard/runtime/
+framework/dashboard/cache/
+framework/target/playwright-traces/
+framework/target/playwright-videos/
+
+# Installer outputs
+installer/out/
+installer/**/runtime/jre/
+installer/**/runtime/maven/
+*.exe-build/
+installer-build/
+
+# Reports
+TEST*.xml
+framework/target/cucumber-report*
+framework/target/ai_*.txt
+framework/target/ai_*.html
+
+# Screenshots (large; regenerated)
+framework/screenshots/*.png
+framework/screenshots/legacy/
+framework/screenshots/legacy_files/
+!framework/screenshots/.gitkeep
+!framework/screenshots/legacy/.gitkeep
+
+# Large media
+*.mp4
+*.avi
+*.flv
+*.mov
+*.wmv
+
+# Apps (build output)
+*.app
+
+# Backups
+*.backup
+*.backup-*

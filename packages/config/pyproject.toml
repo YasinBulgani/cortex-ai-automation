@@ -1,0 +1,16 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "neurex-config"
+version = "0.1.0"
+description = "Shared pydantic-settings base for all Neurex QA services"
+requires-python = ">=3.11"
+dependencies = [
+    "pydantic>=2.6.0",
+    "pydantic-settings>=2.2.0",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/neurex_config"]

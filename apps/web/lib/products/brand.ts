@@ -1,0 +1,158 @@
+import type { ProductFamilyId } from "@/lib/product";
+
+export interface ProductBrand {
+  primary: string;
+  primaryHex: string;
+  gradient: string;
+  gradientDark: string;
+  glow: string;
+  ring: string;
+  bg: string;
+  bgHover: string;
+  border: string;
+  text: string;
+  textMuted: string;
+  badge: string;
+  brandName: string;
+  tagline: string;
+  icon: string;
+}
+
+export const PRODUCT_BRAND: Record<ProductFamilyId, ProductBrand> = {
+  one: {
+    primary: "indigo",
+    primaryHex: "#6366f1",
+    gradient: "from-indigo-500 to-blue-600",
+    gradientDark: "from-indigo-900/60 to-blue-900/40",
+    glow: "shadow-indigo-500/30",
+    ring: "ring-indigo-400/40",
+    bg: "bg-indigo-500/8",
+    bgHover: "hover:bg-indigo-500/15",
+    border: "border-indigo-500/20",
+    text: "text-indigo-400",
+    textMuted: "text-indigo-300/70",
+    badge: "bg-indigo-500/15 text-indigo-300 border-indigo-500/25",
+    brandName: "Neurex One",
+    tagline: "Platform çekirdeği — tüm ürünlerin omurgası",
+    icon: "LayoutDashboard",
+  },
+  studio: {
+    primary: "violet",
+    primaryHex: "#8b5cf6",
+    gradient: "from-violet-500 to-purple-600",
+    gradientDark: "from-violet-900/60 to-purple-900/40",
+    glow: "shadow-violet-500/30",
+    ring: "ring-violet-400/40",
+    bg: "bg-violet-500/8",
+    bgHover: "hover:bg-violet-500/15",
+    border: "border-violet-500/20",
+    text: "text-violet-400",
+    textMuted: "text-violet-300/70",
+    badge: "bg-violet-500/15 text-violet-300 border-violet-500/25",
+    brandName: "Neurex Studio",
+    tagline: "Gereksinimden senaryoya — test tasarım atölyesi",
+    icon: "PenTool",
+  },
+  service: {
+    primary: "sky",
+    primaryHex: "#0ea5e9",
+    gradient: "from-sky-500 to-cyan-600",
+    gradientDark: "from-sky-900/60 to-cyan-900/40",
+    glow: "shadow-sky-500/30",
+    ring: "ring-sky-400/40",
+    bg: "bg-sky-500/8",
+    bgHover: "hover:bg-sky-500/15",
+    border: "border-sky-500/20",
+    text: "text-sky-400",
+    textMuted: "text-sky-300/70",
+    badge: "bg-sky-500/15 text-sky-300 border-sky-500/25",
+    brandName: "Neurex Service",
+    tagline: "API ve servis kalitesini operasyonel düzeyde yönet",
+    icon: "Layers",
+  },
+  web: {
+    primary: "emerald",
+    primaryHex: "#10b981",
+    gradient: "from-emerald-500 to-teal-600",
+    gradientDark: "from-emerald-900/60 to-teal-900/40",
+    glow: "shadow-emerald-500/30",
+    ring: "ring-emerald-400/40",
+    bg: "bg-emerald-500/8",
+    bgHover: "hover:bg-emerald-500/15",
+    border: "border-emerald-500/20",
+    text: "text-emerald-400",
+    textMuted: "text-emerald-300/70",
+    badge: "bg-emerald-500/15 text-emerald-300 border-emerald-500/25",
+    brandName: "Neurex Web",
+    tagline: "Web akışlarını ölç, üret ve çalıştır",
+    icon: "Globe",
+  },
+  mobile: {
+    primary: "rose",
+    primaryHex: "#f43f5e",
+    gradient: "from-rose-500 to-pink-600",
+    gradientDark: "from-rose-900/60 to-pink-900/40",
+    glow: "shadow-rose-500/30",
+    ring: "ring-rose-400/40",
+    bg: "bg-rose-500/8",
+    bgHover: "hover:bg-rose-500/15",
+    border: "border-rose-500/20",
+    text: "text-rose-400",
+    textMuted: "text-rose-300/70",
+    badge: "bg-rose-500/15 text-rose-300 border-rose-500/25",
+    brandName: "Neurex Mobile",
+    tagline: "Cihaz matrisi ve mobil koşuları tek yüzeyde",
+    icon: "Smartphone",
+  },
+  data: {
+    primary: "amber",
+    primaryHex: "#f59e0b",
+    gradient: "from-amber-500 to-orange-500",
+    gradientDark: "from-amber-900/60 to-orange-900/40",
+    glow: "shadow-amber-500/30",
+    ring: "ring-amber-400/40",
+    bg: "bg-amber-500/8",
+    bgHover: "hover:bg-amber-500/15",
+    border: "border-amber-500/20",
+    text: "text-amber-400",
+    textMuted: "text-amber-300/70",
+    badge: "bg-amber-500/15 text-amber-300 border-amber-500/25",
+    brandName: "Neurex Data",
+    tagline: "Test verisini üret, bağla ve güvenli tut",
+    icon: "Database",
+  },
+  intelligence: {
+    primary: "fuchsia",
+    primaryHex: "#d946ef",
+    gradient: "from-fuchsia-500 to-purple-600",
+    gradientDark: "from-fuchsia-900/60 to-purple-900/40",
+    glow: "shadow-fuchsia-500/30",
+    ring: "ring-fuchsia-400/40",
+    bg: "bg-fuchsia-500/8",
+    bgHover: "hover:bg-fuchsia-500/15",
+    border: "border-fuchsia-500/20",
+    text: "text-fuchsia-400",
+    textMuted: "text-fuchsia-300/70",
+    badge: "bg-fuchsia-500/15 text-fuchsia-300 border-fuchsia-500/25",
+    brandName: "Neurex AI",
+    tagline: "Yatay AI kalite katmanı — LLM görünürlüğü ve karar",
+    icon: "Brain",
+  },
+  "nexus-code": {
+    primary: "cyan",
+    primaryHex: "#06b6d4",
+    gradient: "from-cyan-500 to-blue-600",
+    gradientDark: "from-cyan-900/60 to-blue-900/40",
+    glow: "shadow-cyan-500/30",
+    ring: "ring-cyan-400/40",
+    bg: "bg-cyan-500/8",
+    bgHover: "hover:bg-cyan-500/15",
+    border: "border-cyan-500/20",
+    text: "text-cyan-400",
+    textMuted: "text-cyan-300/70",
+    badge: "bg-cyan-500/15 text-cyan-300 border-cyan-500/25",
+    brandName: "Neurex Code",
+    tagline: "URL ya da kodu ver — tam QA analizini tek seferde al",
+    icon: "Code2",
+  },
+};

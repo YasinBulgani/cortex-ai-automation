@@ -1,0 +1,916 @@
+error_message,label
+Element not found: 'login_btn',Locator Hatası
+NoSuchElementException: Unable to locate element,Locator Hatası
+Cannot find element with xpath '//div[@id='form']',Locator Hatası
+Locator 'submit_button' bulunamadı,Locator Hatası
+By.cssSelector: .btn-primary not found,Locator Hatası
+org.openqa.selenium.NoSuchElementException,Locator Hatası
+Element with id 'user_input' not present,Locator Hatası
+Unable to locate element: //input[@name='email'],Locator Hatası
+Dynamic ID caused element not found,Locator Hatası
+Element not found in iframe,Locator Hatası
+Shadow DOM element not located,Locator Hatası
+XPath syntax error in locator,Locator Hatası
+Element 'menu_item' not found on page,Locator Hatası
+Locator for 'dropdown' invalid,Locator Hatası
+CSS selector '.modal-dialog' returned no elements,Locator Hatası
+Element not found: 'search_field',Locator Hatası
+Unable to locate link with text 'logout',Locator Hatası
+Locator 'form_submit' bulunamadı,Locator Hatası
+No such element: By.id('popup'),Locator Hatası
+Element locator failed for 'profile_btn',Locator Hatası
+TimeoutException: waiting for visibility of element,Timeout Hatası
+org.openqa.selenium.TimeoutException: Expected condition failed,Timeout Hatası
+Element not visible after 10 seconds,Timeout Hatası
+Waiting for element '//div[@class='modal']' timed out,Timeout Hatası
+Timeout waiting for page to load,Timeout Hatası
+WebDriverWait failed: element not interactable,Timeout Hatası
+Timeout: element 'login_btn' not found,Timeout Hatası
+Sayfa yüklenmesi 30 saniyeyi aştı,Timeout Hatası
+Expected condition failed: waiting for element,Timeout Hatası
+TimeoutException at line 123,Timeout Hatası
+Visibility timeout for element 'popup',Timeout Hatası
+Timeout waiting for element 'user_form',Timeout Hatası
+Page load timeout exceeded,Timeout Hatası
+Element not clickable after 20 seconds,Timeout Hatası
+Timeout: waiting for AJAX response,Timeout Hatası
+WebDriverWait timeout for 'submit_btn',Timeout Hatası
+Sayfa yükleme zaman aşımı,Timeout Hatası
+Timeout waiting for element visibility,Timeout Hatası
+Element 'dropdown' not visible,Timeout Hatası
+TimeoutException: element not found,Timeout Hatası
+Expected 'Login Successful' but got 'Login Failed',Assertion Hatası
+"AssertionError: actual value 5, expected 10",Assertion Hatası
+Test failed: incorrect page title,Assertion Hatası
+Doğrulama hatası: beklenen değer bulunamadı,Assertion Hatası
+"Assertion failed: expected true, got false",Assertion Hatası
+Expected text 'Welcome' not found,Assertion Hatası
+AssertionError: element not visible,Assertion Hatası
+Test case failed: value mismatch,Assertion Hatası
+Beklenen sonuç 'Kayıt Başarılı' değil,Assertion Hatası
+Assertion failed at step definition,Assertion Hatası
+Expected URL '/dashboard' but got '/login',Assertion Hatası
+Validation error: incorrect data,Assertion Hatası
+AssertionError: list size mismatch,Assertion Hatası
+Test sonucu beklenenden farklı,Assertion Hatası
+Expected element 'btn_save' to be enabled,Assertion Hatası
+Assertion failed: invalid response,Assertion Hatası
+Boolean condition not satisfied,Assertion Hatası
+Assertion error: page not loaded,Assertion Hatası
+"Expected status 200, got 404",Assertion Hatası
+Test failed: incorrect output,Assertion Hatası
+Database connection failed,Database Hatası
+SQL syntax error in query,Database Hatası
+java.sql.SQLException: No suitable driver found,Database Hatası
+Veritabanına bağlanılamadı,Database Hatası
+Connection refused: database server,Database Hatası
+Invalid SQL statement,Database Hatası
+Database timeout: query execution,Database Hatası
+Table 'users' does not exist,Database Hatası
+SQL error: column not found,Database Hatası
+Database locked during operation,Database Hatası
+SQL exception: invalid table name,Database Hatası
+Veritabanı bağlantısı kesildi,Database Hatası
+Query failed: primary key violation,Database Hatası
+Database server not reachable,Database Hatası
+SQLException: connection timeout,Database Hatası
+Invalid database credentials,Database Hatası
+SQL error: syntax error at line 5,Database Hatası
+Database transaction failed,Database Hatası
+Connection pool exhausted,Database Hatası
+SQL query returned no results,Database Hatası
+Connection timed out,Network Hatası
+Failed to fetch API response,Network Hatası
+Network error: server not responding,Network Hatası
+java.net.ConnectException: Connection refused,Network Hatası
+API bağlantısı kesildi,Network Hatası
+503 Service Unavailable,Network Hatası
+Network timeout: 5000ms exceeded,Network Hatası
+Proxy connection failed,Network Hatası
+DNS lookup failed,Network Hatası
+Network error: host unreachable,Network Hatası
+SSL handshake failed,Network Hatası
+Connection reset by peer,Network Hatası
+Ağ bağlantısı sağlanamadı,Network Hatası
+Timeout fetching external resource,Network Hatası
+Network error: 502 Bad Gateway,Network Hatası
+Failed to connect to remote host,Network Hatası
+Network disconnected during test,Network Hatası
+Firewall blocked request,Network Hatası
+VPN connection dropped,Network Hatası
+Network error: packet loss,Network Hatası
+Session not created,State Hatası
+Invalid session id,State Hatası
+WebDriverException: session deleted,State Hatası
+Driver not initialized,State Hatası
+Oturum başlatılamadı,State Hatası
+Session expired during test,State Hatası
+WebDriver state invalid,State Hatası
+Illegal state: driver not ready,State Hatası
+Session not found,State Hatası
+WebDriver not in valid state,State Hatası
+Test failed: invalid driver state,State Hatası
+Session creation failed,State Hatası
+Oturum geçersiz,State Hatası
+Driver state error,State Hatası
+IllegalStateException: invalid operation,State Hatası
+WebDriver session corrupted,State Hatası
+Session timeout during execution,State Hatası
+Driver not in expected state,State Hatası
+Test environment state error,State Hatası
+Session not properly initialized,State Hatası
+NullPointerException at line 45,Null Hatası
+java.lang.NullPointerException,Null Hatası
+Object reference not set,Null Hatası
+Nesne başlatılmamış,Null Hatası
+Null object accessed,Null Hatası
+Cannot invoke method on null,Null Hatası
+Null value in variable,Null Hatası
+Unexpected null pointer,Null Hatası
+Null dereference in test,Null Hatası
+Object is null,Null Hatası
+Null exception in service call,Null Hatası
+NullPointerException: variable not initialized,Null Hatası
+Null object in method,Null Hatası
+Null reference error,Null Hatası
+Null value passed to function,Null Hatası
+NullPointerException in step,Null Hatası
+Object not instantiated,Null Hatası
+Null error in configuration,Null Hatası
+Null pointer in test case,Null Hatası
+Null value detected,Null Hatası
+WebDriverException: chrome not reachable,Tarayıcı Hatası
+Browser crashed during test,Tarayıcı Hatası
+ChromeDriver version mismatch,Tarayıcı Hatası
+Tarayıcı başlatılamadı,Tarayıcı Hatası
+Browser not responding,Tarayıcı Hatası
+WebDriver timeout,Tarayıcı Hatası
+Browser closed unexpectedly,Tarayıcı Hatası
+Driver lost connection to browser,Tarayıcı Hatası
+Unsupported browser version,Tarayıcı Hatası
+Browser process crashed,Tarayıcı Hatası
+WebDriverException: firefox not reachable,Tarayıcı Hatası
+Tarayıcı hatası: sekme çöktü,Tarayıcı Hatası
+Browser failed to launch,Tarayıcı Hatası
+Driver version incompatible,Tarayıcı Hatası
+Browser hung during test,Tarayıcı Hatası
+WebDriver error: session not created,Tarayıcı Hatası
+Browser not compatible,Tarayıcı Hatası
+Driver timeout: browser not ready,Tarayıcı Hatası
+Browser error: unexpected shutdown,Tarayıcı Hatası
+WebDriverException: browser disconnected,Tarayıcı Hatası
+Invalid credentials,Authentication Hatası
+401 Unauthorized,Authentication Hatası
+Giriş bilgileri geçersiz,Authentication Hatası
+Access token expired,Authentication Hatası
+User not authorized,Authentication Hatası
+Authentication failed: wrong password,Authentication Hatası
+JWT token invalid,Authentication Hatası
+Session expired: relogin required,Authentication Hatası
+Kimlik doğrulama hatası,Authentication Hatası
+Invalid OAuth token,Authentication Hatası
+Unauthorized access to resource,Authentication Hatası
+Login failed: user not found,Authentication Hatası
+Authentication service down,Authentication Hatası
+Basic auth credentials rejected,Authentication Hatası
+SSO login failed,Authentication Hatası
+Token validation failed,Authentication Hatası
+Multi-factor authentication required,Authentication Hatası
+Authentication error: invalid session,Authentication Hatası
+User credentials not valid,Authentication Hatası
+401 error: access denied,Authentication Hatası
+Server not responding,Ortam Hatası
+Environment not available,Ortam Hatası
+Test ortamı erişilemez,Ortam Hatası
+QA server down,Ortam Hatası
+Staging environment not reachable,Ortam Hatası
+Service unavailable: 503,Ortam Hatası
+Environment configuration error,Ortam Hatası
+Test environment not initialized,Ortam Hatası
+Server connection failed,Ortam Hatası
+Ortam servisleri çalışmıyor,Ortam Hatası
+Environment variables missing,Ortam Hatası
+Remote host not found,Ortam Hatası
+Test ortamı bağlantı hatası,Ortam Hatası
+Infrastructure error: cloud service down,Ortam Hatası
+Environment authentication failed,Ortam Hatası
+Server returned 500 error,Ortam Hatası
+Test environment timeout,Ortam Hatası
+Environment not properly configured,Ortam Hatası
+Service not running,Ortam Hatası
+Environment setup failed,Ortam Hatası
+"TypeError: expected string, got int",Type Error
+java.lang.ClassCastException,Type Error
+Wrong data type in method,Type Error
+Type mismatch in parameters,Type Error
+Invalid cast: string to number,Type Error
+TypeError: undefined variable,Type Error
+Wrong argument type passed,Type Error
+Type error in operation,Type Error
+"Expected list, got dict",Type Error
+Unsupported operand type,Type Error
+Type conversion failed,Type Error
+Invalid data type for function,Type Error
+Class cast error,Type Error
+TypeError: null is not an object,Type Error
+Wrong type in comparison,Type Error
+Type error: incorrect input,Type Error
+Data type mismatch,Type Error
+TypeError in script execution,Type Error
+Invalid type assignment,Type Error
+Type error: unexpected value,Type Error
+IndexOutOfBoundsException,Index Hatası
+Array index out of range,Index Hatası
+List index 5 exceeds size 3,Index Hatası
+Invalid index access,Index Hatası
+Index error: out of bounds,Index Hatası
+ArrayIndexOutOfBoundsException,Index Hatası
+Index 10 not found in list,Index Hatası
+Dizi sınırı aşıldı,Index Hatası
+Negative index accessed,Index Hatası
+Index overflow in array,Index Hatası
+List index out of range,Index Hatası
+Invalid index in loop,Index Hatası
+Index error: size exceeded,Index Hatası
+Out of bounds: index 7,Index Hatası
+Index not valid for collection,Index Hatası
+Array access error,Index Hatası
+Index error in data structure,Index Hatası
+Invalid index for operation,Index Hatası
+Index out of range: 4,Index Hatası
+List boundary exceeded,Index Hatası
+404 Not Found,API Hatası
+500 Internal Server Error,API Hatası
+API endpoint not reachable,API Hatası
+400 Bad Request,API Hatası
+API returned invalid JSON,API Hatası
+403 Forbidden response,API Hatası
+API bağlantısı başarısız,API Hatası
+502 Bad Gateway,API Hatası
+Too many requests: 429,API Hatası
+API timeout: no response,API Hatası
+Invalid API parameters,API Hatası
+API service unavailable,API Hatası
+Malformed API response,API Hatası
+API error: missing header,API Hatası
+Unexpected API response code,API Hatası
+API request failed,API Hatası
+API authentication error,API Hatası
+CORS error in API call,API Hatası
+API returned null response,API Hatası
+API endpoint down,API Hatası
+AssertionError: expected 'Home' but got 'Login',Assertion Hatası
+Test failed: value not equal,Assertion Hatası
+NullPointerException: object not initialized,Null Hatası
+Null reference in method call,Null Hatası
+TypeError: cannot convert string to int,Type Error
+Invalid type in function parameter,Type Error
+Invalid user credentials,Authentication Hatası
+403 Unauthorized access,Authentication Hatası
+Network connection lost,Network Hatası
+504 Gateway Timeout,Network Hatası
+Test environment unavailable,Ortam Hatası
+Server connection error,Ortam Hatası
+NoSuchElementException: element 'btn_submit' not found,Locator Hatası
+Element with xpath '//div[@class='popup']' not found,Locator Hatası
+TimeoutException: waiting for element visibility,Timeout Hatası
+Element not interactable after 15 seconds,Timeout Hatası
+AssertionError: expected 'Success' but got 'Error',Assertion Hatası
+Test failed: incorrect response data,Assertion Hatası
+Invalid login credentials,Authentication Hatası
+401 Unauthorized: access denied,Authentication Hatası
+Network timeout: server not reached,Network Hatası
+Connection failed: host down,Network Hatası
+Environment not accessible,Ortam Hatası
+Server unavailable during test,Ortam Hatası
+Network error: connection timed out,Network Hatası
+Failed to connect to server,Network Hatası
+AssertionError: expected 'True' but got 'False',Assertion Hatası
+Test failed: element not displayed,Assertion Hatası
+TimeoutException: waiting for element 'submit_btn',Timeout Hatası
+Element not visible after 20 seconds,Timeout Hatası
+NoSuchElementException: element 'form_input' not found,Locator Hatası
+Unable to locate element with xpath '//button[@id='save']',Locator Hatası
+Login failed: invalid username or password,Authentication Hatası
+401 Unauthorized: token expired,Authentication Hatası
+Network error: server timeout,Network Hatası
+Connection lost during request,Network Hatası
+Test environment not responding,Ortam Hatası
+Server down: 503 error,Ortam Hatası
+AssertionError: expected 'OK' but got 'Error',Assertion Hatası
+Test failed: incorrect element state,Assertion Hatası
+SQLException: database connection refused,Database Hatası
+SQL query failed: invalid table,Database Hatası
+AssertionError: expected 'Success' but got 'Failed',Assertion Hatası
+Test failed: incorrect value,Assertion Hatası
+Network error: timeout fetching data,Network Hatası
+Connection dropped during test,Network Hatası
+NoSuchElementException: element 'btn_save' not found,Locator Hatası
+Unable to locate xpath '//input[@id='user']',Locator Hatası
+TimeoutException: element not visible,Timeout Hatası
+Waiting for element timed out after 10 seconds,Timeout Hatası
+WebDriverException: browser crashed,Tarayıcı Hatası
+ChromeDriver not reachable,Tarayıcı Hatası
+SQLException: connection timeout,Database Hatası
+Database query failed: invalid column,Database Hatası
+Network error: server not responding,Network Hatası
+Connection timeout during API call,Network Hatası
+API returned 404 Not Found,API Hatası
+500 Server Error in API call,API Hatası
+AssertionError: expected 'Success' but got 'Error',Assertion Hatası
+Test failed: value mismatch,Assertion Hatası
+Network error: connection timeout,Network Hatası
+Failed to reach server,Network Hatası
+TimeoutException: element not visible after 15 seconds,Timeout Hatası
+Waiting for element timed out,Timeout Hatası
+Invalid credentials: login failed,Authentication Hatası
+401 Unauthorized: invalid token,Authentication Hatası
+SQLException: database server not found,Database Hatası
+SQL error: invalid query,Database Hatası
+IllegalStateException: driver not ready,State Hatası
+Session not in valid state,State Hatası
+Network timeout: no response,Network Hatası
+Connection error: server unreachable,Network Hatası
+Network timeout: server not responding,Network Hatası
+Connection failed: host unreachable,Network Hatası
+Environment server down,Ortam Hatası
+Test ortamı erişilemez: 503,Ortam Hatası
+Invalid login: wrong credentials,Authentication Hatası
+401 Unauthorized: token invalid,Authentication Hatası
+IllegalStateException: driver not initialized,State Hatası
+Session invalid during test,State Hatası
+API returned 403 Forbidden,API Hatası
+500 Internal Server Error,API Hatası
+Invalid login credentials,Authentication Hatası
+401 Unauthorized: access denied,Authentication Hatası
+AssertionError: expected 'OK' but got 'Error',Assertion Hatası
+Test failed: incorrect response,Assertion Hatası
+Network timeout: server not responding,Network Hatası
+Connection failed: host unreachable,Network Hatası
+Network timeout: no server response,Network Hatası
+Connection error: server down,Network Hatası
+Invalid login: credentials incorrect,Authentication Hatası
+401 Unauthorized: token expired,Authentication Hatası
+Environment unavailable: 503 error,Ortam Hatası
+Test server not responding,Ortam Hatası
+AssertionError: expected 'True' but got 'False',Assertion Hatası
+Test failed: incorrect output,Assertion Hatası
+Invalid credentials: login unsuccessful,Authentication Hatası
+401 Unauthorized: invalid session,Authentication Hatası
+WebDriverException: browser not responding,Tarayıcı Hatası
+Chrome crashed during test,Tarayıcı Hatası
+Network error: timeout on request,Network Hatası
+Connection failed: server not found,Network Hatası
+AssertionError: expected 'Success' but got 'Fail',Assertion Hatası
+Test failed: incorrect element text,Assertion Hatası
+Network timeout: server not responding,Network Hatası
+Connection failed: host unreachable,Network Hatası
+API returned 404 Not Found,API Hatası
+500 Internal Server Error in API,API Hatası
+IndexOutOfBoundsException: index 5,Index Hatası
+Array index out of range,Index Hatası
+Environment down: 503 error,Ortam Hatası
+Test server not accessible,Ortam Hatası
+Network error: server timeout,Network Hatası
+Connection failed: no response,Network Hatası
+IllegalStateException: session not valid,State Hatası
+WebDriver state error,State Hatası
+WebDriverException: browser crashed,Tarayıcı Hatası
+Chrome not responding,Tarayıcı Hatası
+AssertionError: expected 'Success' but got 'Fail',Assertion Hatası
+Test failed: incorrect value,Assertion Hatası
+Environment not accessible: 503 error,Ortam Hatası
+Test server down,Ortam Hatası
+SQLException: database connection failed,Database Hatası
+SQL query error: invalid syntax,Database Hatası
+Network timeout: server unreachable,Network Hatası
+Connection error: no response,Network Hatası
+AssertionError: expected 'Success' but got 'Fail',Assertion Hatası
+Test failed: incorrect output,Assertion Hatası
+IllegalStateException: driver not ready,State Hatası
+Session invalid during test,State Hatası
+WebDriverException: browser crashed,Tarayıcı Hatası
+ChromeDriver timeout,Tarayıcı Hatası
+Invalid credentials: login failed,Authentication Hatası
+401 Unauthorized: token invalid,Authentication Hatası
+Environment server down: 503,Ortam Hatası
+Test ortamı erişilemez,Ortam Hatası
+Network error: connection timeout,Network Hatası
+Server not reachable,Network Hatası
+TypeError: invalid type conversion,Type Error
+ClassCastException: wrong type,Type Error
+IllegalStateException: session not ready,State Hatası
+WebDriver state invalid,State Hatası
+Network timeout: server not responding,Network Hatası
+Connection failed: host down,Network Hatası
+AssertionError: expected 'Success' but got 'Fail',Assertion Hatası
+Test failed: incorrect response,Assertion Hatası
+API returned 404 Not Found,API Hatası
+500 Internal Server Error,API Hatası
+Invalid credentials: login failed,Authentication Hatası
+401 Unauthorized: token expired,Authentication Hatası
+IllegalStateException: driver not ready,State Hatası
+WebDriver session invalid,State Hatası
+WebDriverException: browser crashed,Tarayıcı Hatası
+ChromeDriver not responding,Tarayıcı Hatası
+Network timeout: server not reachable,Network Hatası
+Connection error: no response,Network Hatası
+API returned 404 Not Found,API Hatası
+500 Internal Server Error,API Hatası
+Network timeout: server not responding,Network Hatası
+Connection failed: host unreachable,Network Hatası
+Environment server down: 503,Ortam Hatası
+Test ortamı erişilemez,Ortam Hatası
+AssertionError: expected 'Success' but got 'Fail',Assertion Hatası
+Test failed: incorrect response,Assertion Hatası
+AssertionError: expected 'Success' but got 'Error',Assertion Hatası
+Test failed: incorrect response data,Assertion Hatası
+AssertionError: expected 'True' but got 'False',Assertion Hatası
+Validation failed: value mismatch,Assertion Hatası
+Expected text 'Welcome' not found,Assertion Hatası
+Assertion failed: element not visible,Assertion Hatası
+Test case failed: incorrect page title,Assertion Hatası
+Doğrulama hatası: beklenen değer bulunamadı,Assertion Hatası
+AssertionError: list size mismatch,Assertion Hatası
+Expected URL '/dashboard' but got '/login',Assertion Hatası
+Assertion failed at step definition,Assertion Hatası
+Test sonucu beklenenden farklı,Assertion Hatası
+"Expected status 200, got 404",Assertion Hatası
+Assertion error: page not loaded,Assertion Hatası
+Boolean condition not satisfied,Assertion Hatası
+TypeError: invalid type conversion,Type Error
+ClassCastException: wrong type,Type Error
+"TypeError: expected string, got int",Type Error
+Wrong data type in method,Type Error
+Type mismatch in parameters,Type Error
+Invalid cast: string to number,Type Error
+TypeError: undefined variable,Type Error
+Wrong argument type passed,Type Error
+Type error in operation,Type Error
+"Expected list, got dict",Type Error
+Unsupported operand type,Type Error
+Type conversion failed,Type Error
+Invalid data type for function,Type Error
+TypeError: null is not an object,Type Error
+Wrong type in comparison,Type Error
+WebDriverException: browser crashed,Tarayıcı Hatası
+ChromeDriver timeout,Tarayıcı Hatası
+Browser not responding,Tarayıcı Hatası
+WebDriver timeout,Tarayıcı Hatası
+Browser closed unexpectedly,Tarayıcı Hatası
+Driver lost connection to browser,Tarayıcı Hatası
+Unsupported browser version,Tarayıcı Hatası
+Browser process crashed,Tarayıcı Hatası
+WebDriverException: firefox not reachable,Tarayıcı Hatası
+Tarayıcı hatası: sekme çöktü,Tarayıcı Hatası
+Browser failed to launch,Tarayıcı Hatası
+Driver version incompatible,Tarayıcı Hatası
+Browser hung during test,Tarayıcı Hatası
+WebDriver error: session not created,Tarayıcı Hatası
+Browser not compatible,Tarayıcı Hatası
+SQLException: database connection failed,Database Hatası
+SQL query error: invalid syntax,Database Hatası
+java.sql.SQLException: No suitable driver found,Database Hatası
+Veritabanına bağlanılamadı,Database Hatası
+Connection refused: database server,Database Hatası
+Invalid SQL statement,Database Hatası
+Database timeout: query execution,Database Hatası
+Table 'users' does not exist,Database Hatası
+SQL error: column not found,Database Hatası
+Database locked during operation,Database Hatası
+SQL exception: invalid table name,Database Hatası
+Veritabanı bağlantısı kesildi,Database Hatası
+Query failed: primary key violation,Database Hatası
+Database server not reachable,Database Hatası
+SQLException: connection timeout,Database Hatası
+API returned 404 Not Found,API Hatası
+500 Internal Server Error,API Hatası
+API endpoint not reachable,API Hatası
+400 Bad Request,API Hatası
+API returned invalid JSON,API Hatası
+403 Forbidden response,API Hatası
+API bağlantısı başarısız,API Hatası
+502 Bad Gateway,API Hatası
+Too many requests: 429,API Hatası
+API timeout: no response,API Hatası
+Invalid credentials: login failed,Authentication Hatası
+401 Unauthorized: token expired,Authentication Hatası
+Invalid login: wrong credentials,Authentication Hatası
+Access token invalid,Authentication Hatası
+User not authorized,Authentication Hatası
+Authentication failed: wrong password,Authentication Hatası
+JWT token invalid,Authentication Hatası
+Session expired: relogin required,Authentication Hatası
+Kimlik doğrulama hatası,Authentication Hatası
+Invalid OAuth token,Authentication Hatası
+IndexOutOfBoundsException,Index Hatası
+Array index out of range,Index Hatası
+List index 5 exceeds size 3,Index Hatası
+Invalid index access,Index Hatası
+Index error: out of bounds,Index Hatası
+ArrayIndexOutOfBoundsException,Index Hatası
+Index 10 not found in list,Index Hatası
+Dizi sınırı aşıldı,Index Hatası
+Negative index accessed,Index Hatası
+Index overflow in array,Index Hatası
+java.lang.IllegalArgumentException: Locator for not found,Locator Hatası
+NoSuchElementException: element 'giris_btn' not found,Locator Hatası
+Cannot find element with xpath '//div[@id='form']',Locator Hatası
+Locator 'submit_button' bulunamadı,Locator Hatası
+By.cssSelector: .btn-primary not found,Locator Hatası
+org.openqa.selenium.NoSuchElementException,Locator Hatası
+Element with id 'user_input' not present,Locator Hatası
+Unable to locate element: //input[@name='email'],Locator Hatası
+Dynamic ID caused element not found,Locator Hatası
+Element not found in iframe,Locator Hatası
+Network timeout: server not responding,Network Hatası
+Connection failed: host unreachable,Network Hatası
+Network error: server not responding,Network Hatası
+java.net.ConnectException: Connection refused,Network Hatası
+API bağlantısı kesildi,Network Hatası
+503 Service Unavailable,Network Hatası
+Network timeout: 5000ms exceeded,Network Hatası
+Proxy connection failed,Network Hatası
+DNS lookup failed,Network Hatası
+Network error: host unreachable,Network Hatası
+NullPointerException at line 45,Null Hatası
+java.lang.NullPointerException,Null Hatası
+Object reference not set,Null Hatası
+Nesne başlatılmamış,Null Hatası
+Null object accessed,Null Hatası
+Cannot invoke method on null,Null Hatası
+Null value in variable,Null Hatası
+Unexpected null pointer,Null Hatası
+Null dereference in test,Null Hatası
+Object is null,Null Hatası
+Environment server down: 503,Ortam Hatası
+Test ortamı erişilemez,Ortam Hatası
+QA server not responding,Ortam Hatası
+Staging environment not reachable,Ortam Hatası
+Service unavailable: 503,Ortam Hatası
+Environment configuration error,Ortam Hatası
+Test environment not initialized,Ortam Hatası
+Server connection failed,Ortam Hatası
+Ortam servisleri çalışmıyor,Ortam Hatası
+Environment variables missing,Ortam Hatası
+IllegalStateException: driver not ready,State Hatası
+WebDriver session invalid,State Hatası
+Session not created,State Hatası
+Invalid session id,State Hatası
+WebDriverException: session deleted,State Hatası
+Driver not initialized,State Hatası
+Oturum başlatılamadı,State Hatası
+Session expired during test,State Hatası
+WebDriver state invalid,State Hatası
+Session not found,State Hatası
+TimeoutException: element not visible,Timeout Hatası
+org.openqa.selenium.TimeoutException: Expected condition failed,Timeout Hatası
+Element not visible after 10 seconds,Timeout Hatası
+Waiting for element '//div[@class='modal']' timed out,Timeout Hatası
+Timeout waiting for page to load,Timeout Hatası
+WebDriverWait failed: element not interactable,Timeout Hatası
+Timeout: element 'login_btn' not found,Timeout Hatası
+Sayfa yüklenmesi 30 saniyeyi aştı,Timeout Hatası
+Expected condition failed: waiting for element,Timeout Hatası
+TimeoutException at line 123,Timeout Hatası
+IllegalStateException: driver not initialized,State Hatası
+WebDriver session invalid,State Hatası
+Session not created: invalid state,State Hatası
+State error: driver not ready,State Hatası
+Session expired during test,State Hatası
+WebDriverException: session deleted,State Hatası
+Driver state not valid,State Hatası
+Oturum başlatılamadı: geçersiz durum,State Hatası
+Session not found in test,State Hatası
+IllegalStateException: test environment not ready,State Hatası
+WebDriver in illegal state,State Hatası
+Session timeout: invalid operation,State Hatası
+State error: unexpected driver condition,State Hatası
+Driver not properly initialized,State Hatası
+Session creation failed: state issue,State Hatası
+Network timeout: server not responding,Network Hatası
+Connection failed: host unreachable,Network Hatası
+Network error: 503 Service Unavailable,Network Hatası
+Proxy connection failed,Network Hatası
+DNS lookup failed,Network Hatası
+Network error: host unreachable,Network Hatası
+java.net.ConnectException: Connection refused,Network Hatası
+Ağ bağlantısı kesildi,Network Hatası
+Network timeout: 5000ms exceeded,Network Hatası
+SSL handshake failed,Network Hatası
+Connection reset by peer,Network Hatası
+Network error: packet loss,Network Hatası
+503 Gateway Timeout,Network Hatası
+Network disconnected during test,Network Hatası
+Firewall blocked request,Network Hatası
+API returned 404 Not Found,API Hatası
+500 Internal Server Error,API Hatası
+API endpoint not reachable,API Hatası
+400 Bad Request in API call,API Hatası
+API returned invalid JSON,API Hatası
+403 Forbidden response,API Hatası
+API bağlantısı başarısız,API Hatası
+502 Bad Gateway,API Hatası
+Too many requests: 429,API Hatası
+API timeout: no response,API Hatası
+Invalid API parameters,API Hatası
+API service unavailable,API Hatası
+Malformed API response,API Hatası
+API error: missing header,API Hatası
+API request failed,API Hatası
+AssertionError: expected 'Success' but got 'Error',Assertion Hatası
+Test failed: incorrect response data,Assertion Hatası
+AssertionError: expected 'True' but got 'False',Assertion Hatası
+Validation failed: value mismatch,Assertion Hatası
+Expected text 'Welcome' not found,Assertion Hatası
+Assertion failed: element not visible,Assertion Hatası
+Test case failed: incorrect page title,Assertion Hatası
+Doğrulama hatası: beklenen değer bulunamadı,Assertion Hatası
+AssertionError: list size mismatch,Assertion Hatası
+Expected URL '/dashboard' but got '/login',Assertion Hatası
+Invalid credentials: login failed,Authentication Hatası
+401 Unauthorized: token expired,Authentication Hatası
+Invalid login: wrong credentials,Authentication Hatası
+Access token invalid,Authentication Hatası
+User not authorized,Authentication Hatası
+Authentication failed: wrong password,Authentication Hatası
+JWT token invalid,Authentication Hatası
+Session expired: relogin required,Authentication Hatası
+Kimlik doğrulama hatası,Authentication Hatası
+Invalid OAuth token,Authentication Hatası
+SQLException: database connection failed,Database Hatası
+SQL query error: invalid syntax,Database Hatası
+java.sql.SQLException: No suitable driver found,Database Hatası
+Veritabanına bağlanılamadı,Database Hatası
+Connection refused: database server,Database Hatası
+Invalid SQL statement,Database Hatası
+Database timeout: query execution,Database Hatası
+Table 'users' does not exist,Database Hatası
+SQL error: column not found,Database Hatası
+Database locked during operation,Database Hatası
+IndexOutOfBoundsException,Index Hatası
+Array index out of range,Index Hatası
+List index 5 exceeds size 3,Index Hatası
+Invalid index access,Index Hatası
+Index error: out of bounds,Index Hatası
+ArrayIndexOutOfBoundsException,Index Hatası
+Index 10 not found in list,Index Hatası
+Dizi sınırı aşıldı,Index Hatası
+Negative index accessed,Index Hatası
+Index overflow in array,Index Hatası
+java.lang.IllegalArgumentException: Locator for not found,Locator Hatası
+NoSuchElementException: element 'giris_btn' not found,Locator Hatası
+Cannot find element with xpath '//div[@id='form']',Locator Hatası
+Locator 'submit_button' bulunamadı,Locator Hatası
+By.cssSelector: .btn-primary not found,Locator Hatası
+org.openqa.selenium.NoSuchElementException,Locator Hatası
+Element with id 'user_input' not present,Locator Hatası
+Unable to locate element: //input[@name='email'],Locator Hatası
+Dynamic ID caused element not found,Locator Hatası
+Element not found in iframe,Locator Hatası
+NullPointerException at line 45,Null Hatası
+java.lang.NullPointerException,Null Hatası
+Object reference not set,Null Hatası
+Nesne başlatılmamış,Null Hatası
+Null object accessed,Null Hatası
+Cannot invoke method on null,Null Hatası
+Null value in variable,Null Hatası
+Unexpected null pointer,Null Hatası
+Null dereference in test,Null Hatası
+Object is null,Null Hatası
+Environment server down: 503,Ortam Hatası
+Test ortamı erişilemez,Ortam Hatası
+QA server not responding,Ortam Hatası
+Staging environment not reachable,Ortam Hatası
+Service unavailable: 503,Ortam Hatası
+Environment configuration error,Ortam Hatası
+Test environment not initialized,Ortam Hatası
+Server connection failed,Ortam Hatası
+Ortam servisleri çalışmıyor,Ortam Hatası
+Environment variables missing,Ortam Hatası
+TimeoutException: element not visible,Timeout Hatası
+org.openqa.selenium.TimeoutException: Expected condition failed,Timeout Hatası
+Element not visible after 10 seconds,Timeout Hatası
+Waiting for element '//div[@class='modal']' timed out,Timeout Hatası
+Timeout waiting for page to load,Timeout Hatası
+WebDriverWait failed: element not interactable,Timeout Hatası
+Timeout: element 'login_btn' not found,Timeout Hatası
+Sayfa yüklenmesi 30 saniyeyi aştı,Timeout Hatası
+Expected condition failed: waiting for element,Timeout Hatası
+TimeoutException at line 123,Timeout Hatası
+TypeError: invalid type conversion,Type Error
+ClassCastException: wrong type,Type Error
+"TypeError: expected string, got int",Type Error
+Wrong data type in method,Type Error
+Type mismatch in parameters,Type Error
+Invalid cast: string to number,Type Error
+TypeError: undefined variable,Type Error
+Wrong argument type passed,Type Error
+Type error in operation,Type Error
+"Expected list, got dict",Type Error
+WebDriverException: browser crashed,Tarayıcı Hatası
+ChromeDriver timeout,Tarayıcı Hatası
+Browser not responding,Tarayıcı Hatası
+WebDriver timeout,Tarayıcı Hatası
+Browser closed unexpectedly,Tarayıcı Hatası
+Driver lost connection to browser,Tarayıcı Hatası
+Unsupported browser version,Tarayıcı Hatası
+Browser process crashed,Tarayıcı Hatası
+WebDriverException: firefox not reachable,Tarayıcı Hatası
+Tarayıcı hatası: sekme çöktü,Tarayıcı Hatası
+WebDriverException: net::ERR_CONNECTION_REFUSED,Network Hatası
+unknown error: net::ERR_CONNECTION_TIMED_OUT,Network Hatası
+DNS resolution failed: net::ERR_NAME_NOT_RESOLVED,Network Hatası
+Ağ hatası: net::ERR_NAME_NOT_RESOLVED,Network Hatası
+WebDriverException: connection failed due to DNS error,Network Hatası
+net::ERR_CONNECTION_CLOSED,Network Hatası
+Network error: unable to resolve host,Network Hatası
+org.openqa.selenium.WebDriverException: server not reachable,Network Hatası
+WebDriverException: net::ERR_INTERNET_DISCONNECTED,Network Hatası
+WebDriverException: net::ERR_CONNECTION_REFUSED,Network Hatası
+unknown error: net::ERR_CONNECTION_TIMED_OUT,Network Hatası
+DNS resolution failed: net::ERR_NAME_NOT_RESOLVED,Network Hatası
+Ağ hatası: net::ERR_NAME_NOT_RESOLVED,Network Hatası
+WebDriverException: connection failed due to DNS error,Network Hatası
+net::ERR_CONNECTION_CLOSED,Network Hatası
+Network error: unable to resolve host,Network Hatası
+org.openqa.selenium.WebDriverException: server not reachable,Network Hatası
+net::ERR_INTERNET_DISCONNECTED,Network Hatası
+Network timeout: server not responding,Network Hatası
+Connection failed: host unreachable,Network Hatası
+Network error: 503 Service Unavailable,Network Hatası
+Proxy connection failed,Network Hatası
+Network error: DNS lookup failed,Network Hatası
+API returned 404 Not Found,API Hatası
+500 Internal Server Error,API Hatası
+API endpoint not reachable,API Hatası
+400 Bad Request in API call,API Hatası
+API returned invalid JSON,API Hatası
+403 Forbidden response,API Hatası
+API bağlantısı başarısız,API Hatası
+502 Bad Gateway,API Hatası
+Too many requests: 429,API Hatası
+API timeout: no response,API Hatası
+Invalid API parameters,API Hatası
+API service unavailable,API Hatası
+Malformed API response,API Hatası
+API error: missing header,API Hatası
+API request failed,API Hatası
+AssertionError: expected 'Success' but got 'Error',Assertion Hatası
+Test failed: incorrect response data,Assertion Hatası
+AssertionError: expected 'True' but got 'False',Assertion Hatası
+Validation failed: value mismatch,Assertion Hatası
+Expected text 'Welcome' not found,Assertion Hatası
+Doğrulama hatası: beklenen değer bulunamadı,Assertion Hatası
+AssertionError: list size mismatch,Assertion Hatası
+Invalid credentials: login failed,Authentication Hatası
+401 Unauthorized: token expired,Authentication Hatası
+Invalid login: wrong credentials,Authentication Hatası
+Access token invalid,Authentication Hatası
+Authentication failed: wrong password,Authentication Hatası
+Kimlik doğrulama hatası,Authentication Hatası
+SQLException: database connection failed,Database Hatası
+SQL query error: invalid syntax,Database Hatası
+java.sql.SQLException: No suitable driver found,Database Hatası
+Veritabanına bağlanılamadı,Database Hatası
+Connection refused: database server,Database Hatası
+Invalid SQL statement,Database Hatası
+IndexOutOfBoundsException,Index Hatası
+Array index out of range,Index Hatası
+List index 5 exceeds size 3,Index Hatası
+Invalid index access,Index Hatası
+Index error: out of bounds,Index Hatası
+java.lang.IllegalArgumentException: Locator for not found,Locator Hatası
+NoSuchElementException: element 'giris_btn' not found,Locator Hatası
+Cannot find element with xpath '//div[@id='form']',Locator Hatası
+Locator 'submit_button' bulunamadı,Locator Hatası
+By.cssSelector: .btn-primary not found,Locator Hatası
+NullPointerException at line 45,Null Hatası
+java.lang.NullPointerException,Null Hatası
+Object reference not set,Null Hatası
+Nesne başlatılmamış,Null Hatası
+Null object accessed,Null Hatası
+Environment server down: 503,Ortam Hatası
+Test ortamı erişilemez,Ortam Hatası
+QA server not responding,Ortam Hatası
+Staging environment not reachable,Ortam Hatası
+Service unavailable: 503,Ortam Hatası
+IllegalStateException: driver not ready,State Hatası
+WebDriver session invalid,State Hatası
+Session not created,State Hatası
+Invalid session id,State Hatası
+WebDriverException: session deleted,State Hatası
+TimeoutException: element not visible,Timeout Hatası
+org.openqa.selenium.TimeoutException: Expected condition failed,Timeout Hatası
+Element not visible after 10 seconds,Timeout Hatası
+Waiting for element '//div[@class='modal']' timed out,Timeout Hatası
+Timeout waiting for page to load,Timeout Hatası
+TypeError: invalid type conversion,Type Error
+ClassCastException: wrong type,Type Error
+"TypeError: expected string, got int",Type Error
+Wrong data type in method,Type Error
+Type mismatch in parameters,Type Error
+WebDriverException: browser crashed,Tarayıcı Hatası
+ChromeDriver timeout,Tarayıcı Hatası
+Browser not responding,Tarayıcı Hatası
+WebDriver timeout,Tarayıcı Hatası
+Browser closed unexpectedly,Tarayıcı Hatası
+java.lang.IllegalArgumentException: Locator for not found,Locator Hatası
+NoSuchElementException: element 'giris_btn' not found,Locator Hatası
+Cannot find element with xpath '//div[@id='form']',Locator Hatası
+Locator 'submit_button' bulunamadı,Locator Hatası
+By.cssSelector: .btn-primary not found,Locator Hatası
+org.openqa.selenium.NoSuchElementException,Locator Hatası
+Element with id 'user_input' not present,Locator Hatası
+Unable to locate element: //input[@name='email'],Locator Hatası
+Dynamic ID caused element not found,Locator Hatası
+Element not found in iframe,Locator Hatası
+Locator 'zamanvedevamlilikk' bulunamadı,Locator Hatası
+NoSuchElementException: element 'menu_item' not found,Locator Hatası
+Cannot find element with css '.modal-dialog',Locator Hatası
+XPath '//button[@id='save']' not found,Locator Hatası
+Locator error: element 'form_submit' not found,Locator Hatası
+WebDriverException: net::ERR_CONNECTION_REFUSED,Network Hatası
+unknown error: net::ERR_CONNECTION_TIMED_OUT,Network Hatası
+DNS resolution failed: net::ERR_NAME_NOT_RESOLVED,Network Hatası
+Ağ hatası: net::ERR_NAME_NOT_RESOLVED,Network Hatası
+WebDriverException: connection failed due to DNS error,Network Hatası
+net::ERR_CONNECTION_CLOSED,Network Hatası
+Network error: unable to resolve host,Network Hatası
+org.openqa.selenium.WebDriverException: server not reachable,Network Hatası
+net::ERR_INTERNET_DISCONNECTED,Network Hatası
+Network timeout: server not responding,Network Hatası
+Connection failed: host unreachable,Network Hatası
+Network error: 503 Service Unavailable,Network Hatası
+Proxy connection failed,Network Hatası
+Network error: DNS lookup failed,Network Hatası
+API returned 404 Not Found,API Hatası
+500 Internal Server Error,API Hatası
+API endpoint not reachable,API Hatası
+400 Bad Request in API call,API Hatası
+API returned invalid JSON,API Hatası
+403 Forbidden response,API Hatası
+API bağlantısı başarısız,API Hatası
+502 Bad Gateway,API Hatası
+Too many requests: 429,API Hatası
+API timeout: no response,API Hatası
+Invalid API parameters,API Hatası
+API service unavailable,API Hatası
+Malformed API response,API Hatası
+API error: missing header,API Hatası
+API request failed,API Hatası
+AssertionError: expected 'Success' but got 'Error',Assertion Hatası
+Test failed: incorrect response data,Assertion Hatası
+AssertionError: expected 'True' but got 'False',Assertion Hatası
+Validation failed: value mismatch,Assertion Hatası
+Doğrulama hatası: beklenen değer bulunamadı,Assertion Hatası
+Invalid credentials: login failed,Authentication Hatası
+401 Unauthorized: token expired,Authentication Hatası
+Invalid login: wrong credentials,Authentication Hatası
+Access token invalid,Authentication Hatası
+Kimlik doğrulama hatası,Authentication Hatası
+SQLException: database connection failed,Database Hatası
+SQL query error: invalid syntax,Database Hatası
+java.sql.SQLException: No suitable driver found,Database Hatası
+Veritabanına bağlanılamadı,Database Hatası
+Connection refused: database server,Database Hatası
+IndexOutOfBoundsException,Index Hatası
+Array index out of range,Index Hatası
+List index 5 exceeds size 3,Index Hatası
+Invalid index access,Index Hatası
+Index error: out of bounds,Index Hatası
+NullPointerException at line 45,Null Hatası
+java.lang.NullPointerException,Null Hatası
+Object reference not set,Null Hatası
+Nesne başlatılmamış,Null Hatası
+Null object accessed,Null Hatası
+Environment server down: 503,Ortam Hatası
+Test ortamı erişilemez,Ortam Hatası
+QA server not responding,Ortam Hatası
+Staging environment not reachable,Ortam Hatası
+Service unavailable: 503,Ortam Hatası
+IllegalStateException: driver not ready,State Hatası
+WebDriver session invalid,State Hatası
+Session not created,State Hatası
+Invalid session id,State Hatası
+WebDriverException: session deleted,State Hatası
+TimeoutException: element not visible,Timeout Hatası
+org.openqa.selenium.TimeoutException: Expected condition failed,Timeout Hatası
+Element not visible after 10 seconds,Timeout Hatası
+Waiting for element '//div[@class='modal']' timed out,Timeout Hatası
+Timeout waiting for page to load,Timeout Hatası
+TypeError: invalid type conversion,Type Error
+ClassCastException: wrong type,Type Error
+"TypeError: expected string, got int",Type Error
+Wrong data type in method,Type Error
+Type mismatch in parameters,Type Error
+WebDriverException: browser crashed,Tarayıcı Hatası
+ChromeDriver timeout,Tarayıcı Hatası
+Browser not responding,Tarayıcı Hatası
+WebDriver timeout,Tarayıcı Hatası
+Browser closed unexpectedly,Tarayıcı Hatası
+java.lang.RuntimeException: URL not defined for the key,Ortam Hatası
+RuntimeException: URL configuration missing for key,Ortam Hatası
+URL not defined in configuration,Ortam Hatası
+java.lang.RuntimeException: Invalid URL key in config,Ortam Hatası
+Konfigürasyonda URL anahtarı bulunamadı,Ortam Hatası

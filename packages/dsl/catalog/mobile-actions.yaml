@@ -1,0 +1,385 @@
+version: 1.0.0
+category_name: Mobile Actions
+generated_by: manual
+generated_at: '2026-04-17'
+# ─────────────────────────────────────────────────────────────────────────────
+# Mobil otomasyon için DSL cümlecikleri.
+#
+# Playwright mobile emulation (`frameworks/playwright-cucumber-ts/steps/mobile-steps.ts`)
+# ve engine tarafı için pytest-bdd (`engine/steps/mobile_steps.py`) altyapısı
+# ortak tarafta yaşar. Appium gerçek-cihaz implementation'u planlanıyor.
+#
+# Alias kurallar:
+#  - Parametre yer tutucuları {name} formunda
+#  - TR + EN her ikisi mümkün olduğunca eşleşir
+#  - Deprecated olan bir şey yok; gelecek sprint'lerde AI önerileriyle genişler
+# ─────────────────────────────────────────────────────────────────────────────
+actions:
+- id: tap_element
+  category: mobile.gesture
+  description: Bir UI elementine dokunur (single tap)
+  aliases:
+    tr:
+    - kullanıcı "{selector}" üzerine dokunur
+    - '"{selector}" simgesine dokunur'
+    en:
+    - I tap on {selector}
+    - user taps on {selector}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/mobile-steps.ts
+      function: tapElement
+      pattern: I tap on {selector}
+    python:
+      source_file: engine/steps/mobile_steps.py
+      function: tap_element
+      pattern: kullanıcı "{selector}" üzerine dokunur
+  tags:
+  - mobile
+  - gesture
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: selector
+    type: locator
+    required: true
+    description: Hedef element (role, text veya CSS)
+- id: long_press_element
+  category: mobile.gesture
+  description: Bir elemente uzun basma (context menü veya drag başlatmak için)
+  aliases:
+    tr:
+    - kullanıcı "{selector}" üzerine uzun basar
+    en:
+    - I long press on {selector}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/mobile-steps.ts
+      function: longPressElement
+      pattern: I long press on {selector}
+  tags:
+  - mobile
+  - gesture
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: selector
+    type: locator
+    required: true
+  - name: duration_ms
+    type: duration_ms
+    required: false
+    default: 800
+    description: Basılı tutma süresi (ms)
+- id: swipe_direction
+  category: mobile.gesture
+  description: Ekranı belirtilen yönde kaydırır (up/down/left/right)
+  aliases:
+    tr:
+    - kullanıcı "{direction}" yönünde kaydırır
+    - ekran "{direction}" kaydırılır
+    en:
+    - I swipe {direction}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/mobile-steps.ts
+      function: swipeDirection
+      pattern: I swipe {direction}
+    python:
+      source_file: engine/steps/mobile_steps.py
+      function: swipe_direction
+      pattern: kullanıcı "{direction}" yönünde kaydırır
+  tags:
+  - mobile
+  - gesture
+  - scroll
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: direction
+    type: string
+    required: true
+    description: 'up | down | left | right'
+    examples:
+    - up
+    - down
+    - left
+    - right
+- id: scroll_until_visible
+  category: mobile.scroll
+  description: Ekranı belirtilen metin/element görünene kadar kaydırır
+  aliases:
+    tr:
+    - "\"{text}\" görünene kadar kaydır"
+    en:
+    - I scroll until {text} is visible
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/mobile-steps.ts
+      function: scrollUntilVisible
+      pattern: I scroll until {text} is visible
+  tags:
+  - mobile
+  - scroll
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: text
+    type: string
+    required: true
+    description: Aranacak metin (case-insensitive substring)
+  - name: max_scrolls
+    type: int
+    required: false
+    default: 10
+- id: pinch_zoom
+  category: mobile.gesture
+  description: İki parmakla yakınlaştırma / uzaklaştırma (Playwright emulate)
+  aliases:
+    tr:
+    - kullanıcı "{factor}" oranında yakınlaştırır
+    en:
+    - I pinch to zoom by {factor}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/mobile-steps.ts
+      function: pinchZoom
+      pattern: I pinch to zoom by {factor}
+  tags:
+  - mobile
+  - gesture
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: factor
+    type: float
+    required: true
+    description: 1.0 = yok, 2.0 = 2x yakınlaştırma, 0.5 = uzaklaştırma
+- id: rotate_device
+  category: mobile.device
+  description: Cihazı portrait ↔ landscape arasında döndürür
+  aliases:
+    tr:
+    - cihaz "{orientation}" konumuna döndürülür
+    en:
+    - I rotate the device to {orientation}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/mobile-steps.ts
+      function: rotateDevice
+      pattern: I rotate the device to {orientation}
+  tags:
+  - mobile
+  - device
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: orientation
+    type: string
+    required: true
+    description: 'portrait | landscape'
+- id: press_hardware_key
+  category: mobile.device
+  description: Sistem tuşlarına basar (back, home, menu, volume_up, volume_down)
+  aliases:
+    tr:
+    - kullanıcı "{key}" tuşuna basar
+    en:
+    - I press the {key} key
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/mobile-steps.ts
+      function: pressHardwareKey
+      pattern: I press the {key} key
+  tags:
+  - mobile
+  - device
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: key
+    type: string
+    required: true
+    description: 'back | home | menu | volume_up | volume_down | power'
+- id: go_back_nav
+  category: mobile.nav
+  description: Uygulamada bir önceki ekrana döner
+  aliases:
+    tr:
+    - kullanıcı geri döner
+    - geri tuşuna bas
+    en:
+    - I go back
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/mobile-steps.ts
+      function: goBack
+      pattern: I go back
+  tags:
+  - mobile
+  - nav
+  - when
+  since: '2026-04-17'
+  parameters: []
+- id: launch_app
+  category: mobile.app
+  description: APK/IPA'sı yüklenmiş uygulamayı başlatır
+  aliases:
+    tr:
+    - "\"{package}\" uygulaması açılır"
+    en:
+    - I launch the app {package}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/mobile-steps.ts
+      function: launchApp
+      pattern: I launch the app {package}
+    python:
+      source_file: engine/steps/mobile_steps.py
+      function: launch_app
+      pattern: "\"{package}\" uygulaması açılır"
+  tags:
+  - mobile
+  - app
+  - given
+  - when
+  since: '2026-04-17'
+  parameters:
+  - name: package
+    type: string
+    required: true
+    description: Android package name veya iOS bundle id
+- id: install_app
+  category: mobile.app
+  description: Test öncesi cihaza APK/IPA yükler
+  aliases:
+    tr:
+    - "\"{package}\" uygulaması yüklenir"
+    en:
+    - I install the app {package}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/mobile-steps.ts
+      function: installApp
+      pattern: I install the app {package}
+  tags:
+  - mobile
+  - app
+  - setup
+  - given
+  since: '2026-04-17'
+  parameters:
+  - name: package
+    type: string
+    required: true
+  - name: path
+    type: url
+    required: false
+    description: APK/IPA dosya yolu (upload_id)
+- id: set_network_mode
+  category: mobile.network
+  description: Ağı çevrimdışı, 3G, WiFi gibi bir moda alır
+  aliases:
+    tr:
+    - ağ "{mode}" olarak ayarlanır
+    en:
+    - I set the network to {mode}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/mobile-steps.ts
+      function: setNetworkMode
+      pattern: I set the network to {mode}
+  tags:
+  - mobile
+  - network
+  - given
+  since: '2026-04-17'
+  parameters:
+  - name: mode
+    type: string
+    required: true
+    description: 'offline | 3g | wifi | fast-3g | slow-3g'
+- id: grant_permission
+  category: mobile.permission
+  description: Uygulamaya bir sistem iznini önceden verir
+  aliases:
+    tr:
+    - "\"{permission}\" izni verilir"
+    en:
+    - I grant the {permission} permission
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/mobile-steps.ts
+      function: grantPermission
+      pattern: I grant the {permission} permission
+  tags:
+  - mobile
+  - permission
+  - setup
+  - given
+  since: '2026-04-17'
+  parameters:
+  - name: permission
+    type: string
+    required: true
+    description: 'camera | location | notifications | contacts | microphone'
+- id: switch_to_webview
+  category: mobile.context
+  description: Native ↔ WebView context arasında geçer
+  aliases:
+    tr:
+    - kullanıcı webview'a geçer
+    en:
+    - I switch to webview
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/mobile-steps.ts
+      function: switchToWebview
+      pattern: I switch to webview
+  tags:
+  - mobile
+  - context
+  - when
+  since: '2026-04-17'
+  parameters: []
+- id: assert_element_on_screen
+  category: mobile.assert
+  description: Bir elementin cihaz ekranında görünür olduğunu doğrular
+  aliases:
+    tr:
+    - "\"{selector}\" ekranda görünür"
+    en:
+    - the element {selector} should be on screen
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/mobile-steps.ts
+      function: assertElementOnScreen
+      pattern: the element {selector} should be on screen
+  tags:
+  - mobile
+  - assert
+  - then
+  since: '2026-04-17'
+  parameters:
+  - name: selector
+    type: locator
+    required: true
+- id: take_mobile_screenshot
+  category: mobile.screenshot
+  description: Aktif cihazın tam ekran görüntüsünü kaydeder
+  aliases:
+    tr:
+    - cihaz ekran görüntüsü alınır
+    en:
+    - I take a mobile screenshot
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/mobile-steps.ts
+      function: takeMobileScreenshot
+      pattern: I take a mobile screenshot
+  tags:
+  - mobile
+  - screenshot
+  - when
+  since: '2026-04-17'
+  parameters: []

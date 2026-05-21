@@ -1,0 +1,87 @@
+@import "./styles/tokens.css";
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Sidebar collapsed mode (desktop): yazıları gizle, icon'ları koru */
+@media (min-width: 768px) {
+  aside[data-collapsed="true"] {
+    width: 3.5rem !important;
+  }
+  aside[data-collapsed="true"] nav {
+    overflow-x: hidden;
+    padding-left: 0.25rem !important;
+    padding-right: 0.25rem !important;
+  }
+  aside[data-collapsed="true"] nav a,
+  aside[data-collapsed="true"] nav button {
+    font-size: 0 !important;
+    justify-content: center !important;
+    text-align: center;
+    padding: 0.5rem !important;
+    text-indent: -9999px;
+    width: 100%;
+  }
+  aside[data-collapsed="true"] nav a > *,
+  aside[data-collapsed="true"] nav button > * {
+    text-indent: 0 !important;
+  }
+  aside[data-collapsed="true"] nav svg {
+    font-size: 1rem !important;
+    text-indent: 0 !important;
+    flex-shrink: 0;
+    margin: 0 auto;
+  }
+  /* Section başlıkları, aktif proje kartları ve büyük metin kutuları */
+  aside[data-collapsed="true"] nav > p,
+  aside[data-collapsed="true"] nav > div[data-testid="sidebar-active-project"],
+  aside[data-collapsed="true"] nav > div[data-testid="sidebar-flow-hint"],
+  aside[data-collapsed="true"] nav > div[data-testid="sidebar-workspace-focus"],
+  aside[data-collapsed="true"] nav > div[data-testid="sidebar-nexus-ai"] {
+    display: none !important;
+  }
+}
+
+@layer base {
+  html {
+    @apply antialiased;
+  }
+  body {
+    @apply bg-bg text-fg min-h-screen;
+  }
+
+  /* WCAG 2.3.3 — Animation from Interactions.
+     prefers-reduced-motion aktifse tüm animasyon/geçişleri minimize et.
+     Tailwind'in `motion-reduce:` varyantı component'lerde kullanılıyor;
+     global fallback'i buraya koyuyoruz (3rd-party CSS dahil her şey için). */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+
+  /* Sadece klavye focus'u için net bir ring — fare click'lerinde görünmez.
+     Tailwind focus-visible: variant'ları var; bu sadece component'lerde
+     focus-visible kullanmayan 3rd-party element'ler için global safety. */
+  :focus-visible {
+    outline: 2px solid #60a5fa;  /* blue-400 */
+    outline-offset: 2px;
+  }
+}
+
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(200%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  @keyframes shimmer {
+    0%, 100% { transform: none; }
+  }
+}

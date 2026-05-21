@@ -1,0 +1,1797 @@
+version: 0.1.0-draft
+category_name: Uncategorized (OTOMATIK CIKARILDI)
+notes: Bu dosya extract_steps.py tarafindan uretildi. Lutfen rotuslayip catalog/ altina tasiyın.
+actions:
+- id: ai
+  category: uncategorized
+  description: '(taslak) AI '
+  aliases:
+    en:
+    - 'AI '
+  implementations:
+    python:
+      source_file: engine/steps/common_steps.py
+      function: ai_perform_task
+      pattern: 'AI '
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: authorization_header_g_nderilmiyor
+  category: uncategorized
+  description: (taslak) Authorization header gönderilmiyor
+  aliases:
+    tr:
+    - Authorization header gönderilmiyor
+  implementations:
+    python:
+      source_file: backend/tests/bdd/steps/auth_steps.py
+      function: no_auth_header
+      pattern: Authorization header gönderilmiyor
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: get
+  category: uncategorized
+  description: '(taslak) GET '
+  aliases:
+    en:
+    - 'GET '
+  implementations:
+    python:
+      source_file: backend/tests/bdd/steps/auth_steps.py
+      function: send_get_with_token
+      pattern: 'GET '
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: i_analyze_performance_for_optimization
+  category: uncategorized
+  description: (taslak) I analyze performance for optimization
+  aliases:
+    en:
+    - I analyze performance for optimization
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/ai-steps.ts
+      pattern: I analyze performance for optimization
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: i_analyze_performance_trends
+  category: uncategorized
+  description: (taslak) I analyze performance trends
+  aliases:
+    en:
+    - I analyze performance trends
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/reporting-steps.ts
+      pattern: I analyze performance trends
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: i_analyze_test_trends_for_the_last_hours
+  category: uncategorized
+  description: (taslak) I analyze test trends for the last {int} hours
+  aliases:
+    en:
+    - I analyze test trends for the last {int} hours
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/reporting-steps.ts
+      pattern: I analyze test trends for the last {int} hours
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: int
+    type: string
+    required: true
+- id: i_analyze_the_visual_difference_with_ai
+  category: uncategorized
+  description: (taslak) I analyze the visual difference with AI
+  aliases:
+    en:
+    - I analyze the visual difference with AI
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/visual-ai-steps.ts
+      pattern: I analyze the visual difference with AI
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: i_benchmark_the_operation_for_iterations
+  category: uncategorized
+  description: (taslak) I benchmark the operation {string} for {int} iterations
+  aliases:
+    en:
+    - I benchmark the operation {string} for {int} iterations
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/performance-steps.ts
+      pattern: I benchmark the operation {string} for {int} iterations
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: int
+    type: string
+    required: true
+  - name: string
+    type: string
+    required: true
+- id: i_check
+  category: uncategorized
+  description: '(taslak) I check '
+  aliases:
+    en:
+    - 'I check '
+  implementations:
+    python:
+      source_file: engine/steps/english_steps.py
+      function: en_check
+      pattern: 'I check '
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: i_check_ai_client_statistics
+  category: uncategorized
+  description: (taslak) I check AI client statistics
+  aliases:
+    en:
+    - I check AI client statistics
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/ai-steps.ts
+      pattern: I check AI client statistics
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: i_check_baseline_status_for
+  category: uncategorized
+  description: (taslak) I check baseline status for {string}
+  aliases:
+    en:
+    - I check baseline status for {string}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/visual-ai-steps.ts
+      pattern: I check baseline status for {string}
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_check_recording_statistics
+  category: uncategorized
+  description: (taslak) I check recording statistics
+  aliases:
+    en:
+    - I check recording statistics
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/recording-steps.ts
+      pattern: I check recording statistics
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: i_check_the_checkbox
+  category: uncategorized
+  description: (taslak) I check the checkbox {string}
+  aliases:
+    en:
+    - I check the checkbox {string}
+  implementations:
+    java:
+      source_file: frameworks/selenium-cucumber-java/src/test/java/stepdefinitions/CheckboxSteps.java
+      function: checkCheckbox
+      pattern: I check the checkbox {string}
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_check_the_core_web_vitals
+  category: uncategorized
+  description: (taslak) I check the core web vitals
+  aliases:
+    en:
+    - I check the core web vitals
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/performance-steps.ts
+      pattern: I check the core web vitals
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: i_check_the_network_performance
+  category: uncategorized
+  description: (taslak) I check the network performance
+  aliases:
+    en:
+    - I check the network performance
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/performance-steps.ts
+      pattern: I check the network performance
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: i_check_1
+  category: uncategorized
+  description: (taslak) I check {string}
+  aliases:
+    en:
+    - I check {string}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/web-steps.ts
+      pattern: I check {string}
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_clear_all_visual_baselines
+  category: uncategorized
+  description: (taslak) I clear all visual baselines
+  aliases:
+    en:
+    - I clear all visual baselines
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/visual-steps.ts
+      pattern: I clear all visual baselines
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: i_clear
+  category: uncategorized
+  description: (taslak) I clear {string}
+  aliases:
+    en:
+    - I clear {string}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/common-steps.ts
+      pattern: I clear {string}
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_close_the_modal
+  category: uncategorized
+  description: (taslak) I close the modal
+  aliases:
+    en:
+    - I close the modal
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/web-steps.ts
+      pattern: I close the modal
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: i_compare_multiple_elements
+  category: uncategorized
+  description: (taslak) I compare multiple elements
+  aliases:
+    en:
+    - I compare multiple elements
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/e2e-steps.ts
+      pattern: I compare multiple elements
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: i_convert_recorded_actions_to_test_steps
+  category: uncategorized
+  description: (taslak) I convert recorded actions to test steps
+  aliases:
+    en:
+    - I convert recorded actions to test steps
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/recording-steps.ts
+      pattern: I convert recorded actions to test steps
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: i_debug_the_failing_test
+  category: uncategorized
+  description: (taslak) I debug the failing test {string}
+  aliases:
+    en:
+    - I debug the failing test {string}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/ai-steps.ts
+      pattern: I debug the failing test {string}
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_delete_the_visual_baseline
+  category: uncategorized
+  description: (taslak) I delete the visual baseline {string}
+  aliases:
+    en:
+    - I delete the visual baseline {string}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/visual-steps.ts
+      pattern: I delete the visual baseline {string}
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_download_file
+  category: uncategorized
+  description: (taslak) I download file {string}
+  aliases:
+    en:
+    - I download file {string}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/web-steps.ts
+      pattern: I download file {string}
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_drag
+  category: uncategorized
+  description: '(taslak) I drag '
+  aliases:
+    en:
+    - 'I drag '
+  implementations:
+    python:
+      source_file: engine/steps/english_steps.py
+      function: en_drag_drop
+      pattern: 'I drag '
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: i_drag_and_drop_on
+  category: uncategorized
+  description: (taslak) I drag {string} and drop on {string}
+  aliases:
+    en:
+    - I drag {string} and drop on {string}
+  implementations:
+    java:
+      source_file: frameworks/selenium-cucumber-java/src/test/java/stepdefinitions/DragDropSteps.java
+      function: dragAndDrop
+      pattern: I drag {string} and drop on {string}
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_execute_a_complete_ai_test_generation_
+  category: uncategorized
+  description: (taslak) I execute a complete AI test generation workflow
+  aliases:
+    en:
+    - I execute a complete AI test generation workflow
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/ai-steps.ts
+      pattern: I execute a complete AI test generation workflow
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: i_export_the_recording_as_gherkin
+  category: uncategorized
+  description: (taslak) I export the recording as Gherkin
+  aliases:
+    en:
+    - I export the recording as Gherkin
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/recording-steps.ts
+      pattern: I export the recording as Gherkin
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: i_export_the_recording_as_json
+  category: uncategorized
+  description: (taslak) I export the recording as JSON
+  aliases:
+    en:
+    - I export the recording as JSON
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/recording-steps.ts
+      pattern: I export the recording as JSON
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: i_extract_fields_from_test_data
+  category: uncategorized
+  description: (taslak) I extract fields {string} from test data
+  aliases:
+    en:
+    - I extract fields {string} from test data
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/data-steps.ts
+      pattern: I extract fields {string} from test data
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_filter_test_data_by_user_role
+  category: uncategorized
+  description: (taslak) I filter test data by user role {string}
+  aliases:
+    en:
+    - I filter test data by user role {string}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/data-steps.ts
+      pattern: I filter test data by user role {string}
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_filter_test_data_where_equals
+  category: uncategorized
+  description: (taslak) I filter test data where {string} equals {string}
+  aliases:
+    en:
+    - I filter test data where {string} equals {string}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/data-steps.ts
+      pattern: I filter test data where {string} equals {string}
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_generate_a_test_report_in_format
+  category: uncategorized
+  description: (taslak) I generate a test report in {string} format
+  aliases:
+    en:
+    - I generate a test report in {string} format
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/reporting-steps.ts
+      pattern: I generate a test report in {string} format
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_generate_comprehensive_analytics_repor
+  category: uncategorized
+  description: (taslak) I generate comprehensive analytics report
+  aliases:
+    en:
+    - I generate comprehensive analytics report
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/reporting-steps.ts
+      pattern: I generate comprehensive analytics report
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: i_generate_step_definitions_from_the_rec
+  category: uncategorized
+  description: (taslak) I generate step definitions from the recording
+  aliases:
+    en:
+    - I generate step definitions from the recording
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/recording-steps.ts
+      pattern: I generate step definitions from the recording
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: i_generate_test_reports_in_multiple_form
+  category: uncategorized
+  description: (taslak) I generate test reports in multiple formats
+  aliases:
+    en:
+    - I generate test reports in multiple formats
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/reporting-steps.ts
+      pattern: I generate test reports in multiple formats
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: i_generate_visual_analysis_report
+  category: uncategorized
+  description: (taslak) I generate visual analysis report
+  aliases:
+    en:
+    - I generate visual analysis report
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/visual-ai-steps.ts
+      pattern: I generate visual analysis report
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: i_get_failure_predictions
+  category: uncategorized
+  description: (taslak) I get failure predictions
+  aliases:
+    en:
+    - I get failure predictions
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/reporting-steps.ts
+      pattern: I get failure predictions
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: i_get_the_price_for
+  category: uncategorized
+  description: (taslak) I get the price for {string}
+  aliases:
+    en:
+    - I get the price for {string}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/paribu-steps.ts
+      pattern: I get the price for {string}
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_go_back
+  category: uncategorized
+  description: (taslak) I go back
+  aliases:
+    en:
+    - I go back
+  implementations:
+    java:
+      source_file: frameworks/selenium-cucumber-java/src/test/java/stepdefinitions/NavigationSteps.java
+      function: goBack
+      pattern: I go back
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/common-steps.ts
+      pattern: I go back
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: i_go_forward
+  category: uncategorized
+  description: (taslak) I go forward
+  aliases:
+    en:
+    - I go forward
+  implementations:
+    java:
+      source_file: frameworks/selenium-cucumber-java/src/test/java/stepdefinitions/NavigationSteps.java
+      function: goForward
+      pattern: I go forward
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/common-steps.ts
+      pattern: I go forward
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: i_go_to_markets_page
+  category: uncategorized
+  description: (taslak) I go to markets page
+  aliases:
+    en:
+    - I go to markets page
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/paribu-steps.ts
+      pattern: I go to markets page
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: i_go_to_my_profile
+  category: uncategorized
+  description: (taslak) I go to my profile
+  aliases:
+    en:
+    - I go to my profile
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/paribu-steps.ts
+      pattern: I go to my profile
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: i_go_to_trading_page
+  category: uncategorized
+  description: (taslak) I go to trading page
+  aliases:
+    en:
+    - I go to trading page
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/paribu-steps.ts
+      pattern: I go to trading page
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: i_go_to_url
+  category: uncategorized
+  description: (taslak) I go to URL {string}
+  aliases:
+    en:
+    - I go to URL {string}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/common-steps.ts
+      pattern: I go to URL {string}
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_go_to_wallet_page
+  category: uncategorized
+  description: (taslak) I go to wallet page
+  aliases:
+    en:
+    - I go to wallet page
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/paribu-steps.ts
+      pattern: I go to wallet page
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: i_log_in_with_and
+  category: uncategorized
+  description: (taslak) I log in with {string} and {string}
+  aliases:
+    en:
+    - I log in with {string} and {string}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/web-steps.ts
+      pattern: I log in with {string} and {string}
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_login_with_email_and_password_from_tes
+  category: uncategorized
+  description: (taslak) I login with email and password from test data
+  aliases:
+    en:
+    - I login with email and password from test data
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/e2e-steps.ts
+      pattern: I login with email and password from test data
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: i_login_with_and
+  category: uncategorized
+  description: (taslak) I login with {string} and {string}
+  aliases:
+    en:
+    - I login with {string} and {string}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/paribu-steps.ts
+      pattern: I login with {string} and {string}
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_logout
+  category: uncategorized
+  description: (taslak) I logout
+  aliases:
+    en:
+    - I logout
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/paribu-steps.ts
+      pattern: I logout
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: i_measure_the_page_load_time
+  category: uncategorized
+  description: (taslak) I measure the page load time
+  aliases:
+    en:
+    - I measure the page load time
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/performance-steps.ts
+      pattern: I measure the page load time
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: i_measure_the_performance_of
+  category: uncategorized
+  description: (taslak) I measure the performance of {string}
+  aliases:
+    en:
+    - I measure the performance of {string}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/performance-steps.ts
+      pattern: I measure the performance of {string}
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_merge_test_data_from_and
+  category: uncategorized
+  description: (taslak) I merge test data from {string} and {string}
+  aliases:
+    en:
+    - I merge test data from {string} and {string}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/data-steps.ts
+      pattern: I merge test data from {string} and {string}
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_merge_test_data_from_and_1
+  category: uncategorized
+  description: (taslak) I merge test data from {string}, {string}, and {string}
+  aliases:
+    en:
+    - I merge test data from {string}, {string}, and {string}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/data-steps.ts
+      pattern: I merge test data from {string}, {string}, and {string}
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_navigate_to_the_login_page
+  category: uncategorized
+  description: (taslak) I navigate to the Login page
+  aliases:
+    en:
+    - I navigate to the Login page
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/web.steps.ts
+      pattern: I navigate to the Login page
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: i_navigate_to_the_markets_page
+  category: uncategorized
+  description: (taslak) I navigate to the Markets page
+  aliases:
+    en:
+    - I navigate to the Markets page
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/web.steps.ts
+      pattern: I navigate to the Markets page
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: i_perform_a_complete_recording_workflow
+  category: uncategorized
+  description: (taslak) I perform a complete recording workflow
+  aliases:
+    en:
+    - I perform a complete recording workflow
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/recording-steps.ts
+      pattern: I perform a complete recording workflow
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: i_perform_comprehensive_reporting_workfl
+  category: uncategorized
+  description: (taslak) I perform comprehensive reporting workflow
+  aliases:
+    en:
+    - I perform comprehensive reporting workflow
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/reporting-steps.ts
+      pattern: I perform comprehensive reporting workflow
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: i_perform_comprehensive_visual_ai_analys
+  category: uncategorized
+  description: (taslak) I perform comprehensive visual AI analysis
+  aliases:
+    en:
+    - I perform comprehensive visual AI analysis
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/visual-ai-steps.ts
+      pattern: I perform comprehensive visual AI analysis
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: i_perform_risk_assessment_for_the_test_s
+  category: uncategorized
+  description: (taslak) I perform risk assessment for the test suite
+  aliases:
+    en:
+    - I perform risk assessment for the test suite
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/reporting-steps.ts
+      pattern: I perform risk assessment for the test suite
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: i_perform_sequential_operations_with_val
+  category: uncategorized
+  description: (taslak) I perform sequential operations with validation
+  aliases:
+    en:
+    - I perform sequential operations with validation
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/e2e-steps.ts
+      pattern: I perform sequential operations with validation
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: i_perform_smart_baseline_analysis
+  category: uncategorized
+  description: (taslak) I perform smart baseline analysis
+  aliases:
+    en:
+    - I perform smart baseline analysis
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/visual-ai-steps.ts
+      pattern: I perform smart baseline analysis
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: i_press_escape
+  category: uncategorized
+  description: (taslak) I press Escape
+  aliases:
+    en:
+    - I press Escape
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/common-steps.ts
+      pattern: I press Escape
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: i_press_the
+  category: uncategorized
+  description: '(taslak) I press the '
+  aliases:
+    en:
+    - 'I press the '
+  implementations:
+    python:
+      source_file: engine/steps/english_steps.py
+      function: en_press_key
+      pattern: 'I press the '
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: i_press_the_key
+  category: uncategorized
+  description: (taslak) I press the {string} key
+  aliases:
+    en:
+    - I press the {string} key
+  implementations:
+    java:
+      source_file: frameworks/selenium-cucumber-java/src/test/java/stepdefinitions/KeyboardSteps.java
+      function: pressTheKey
+      pattern: I press the {string} key
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_press
+  category: uncategorized
+  description: (taslak) I press {string}
+  aliases:
+    en:
+    - I press {string}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/common-steps.ts
+      pattern: I press {string}
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_press_in
+  category: uncategorized
+  description: (taslak) I press {string} in {string}
+  aliases:
+    en:
+    - I press {string} in {string}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/common-steps.ts
+      pattern: I press {string} in {string}
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_record_a_failed_test
+  category: uncategorized
+  description: (taslak) I record a failed test
+  aliases:
+    en:
+    - I record a failed test
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/reporting-steps.ts
+      pattern: I record a failed test
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: i_record_test_run_results
+  category: uncategorized
+  description: (taslak) I record test run results
+  aliases:
+    en:
+    - I record test run results
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/reporting-steps.ts
+      pattern: I record test run results
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: i_refresh_the_page
+  category: uncategorized
+  description: (taslak) I refresh the page
+  aliases:
+    en:
+    - I refresh the page
+  implementations:
+    python:
+      source_file: engine/steps/english_steps.py
+      function: en_refresh
+      pattern: I refresh the page
+    java:
+      source_file: frameworks/selenium-cucumber-java/src/test/java/stepdefinitions/NavigationSteps.java
+      function: refreshPage
+      pattern: I refresh the page
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/common-steps.ts
+      pattern: I refresh the page
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: i_replay_the_recorded_actions
+  category: uncategorized
+  description: (taslak) I replay the recorded actions
+  aliases:
+    en:
+    - I replay the recorded actions
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/recording-steps.ts
+      pattern: I replay the recorded actions
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: i_run_accessibility_scan
+  category: uncategorized
+  description: (taslak) I run accessibility scan
+  aliases:
+    en:
+    - I run accessibility scan
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/e2e-steps.ts
+      pattern: I run accessibility scan
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: i_save_test_data_as_fixture
+  category: uncategorized
+  description: (taslak) I save test data as fixture {string}
+  aliases:
+    en:
+    - I save test data as fixture {string}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/data-steps.ts
+      pattern: I save test data as fixture {string}
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_save_the_attribute_of_element_as
+  category: uncategorized
+  description: (taslak) I save the attribute {string} of element {string} as {string}
+  aliases:
+    en:
+    - I save the attribute {string} of element {string} as {string}
+  implementations:
+    java:
+      source_file: frameworks/selenium-cucumber-java/src/test/java/stepdefinitions/ScenarioContextSteps.java
+      function: saveAttributeOfElementAs
+      pattern: I save the attribute {string} of element {string} as {string}
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_save_the_value_of_element_as
+  category: uncategorized
+  description: (taslak) I save the value of element {string} as {string}
+  aliases:
+    en:
+    - I save the value of element {string} as {string}
+  implementations:
+    java:
+      source_file: frameworks/selenium-cucumber-java/src/test/java/stepdefinitions/ScenarioContextSteps.java
+      function: saveValueOfElementAs
+      pattern: I save the value of element {string} as {string}
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_search_for
+  category: uncategorized
+  description: (taslak) I search for {string}
+  aliases:
+    en:
+    - I search for {string}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/paribu-steps.ts
+      pattern: I search for {string}
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_set_the_time_filter_to
+  category: uncategorized
+  description: (taslak) I set the time filter to {string}
+  aliases:
+    en:
+    - I set the time filter to {string}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/web.steps.ts
+      pattern: I set the time filter to {string}
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_set_visual_threshold_to
+  category: uncategorized
+  description: (taslak) I set visual threshold to {float}
+  aliases:
+    en:
+    - I set visual threshold to {float}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/visual-steps.ts
+      pattern: I set visual threshold to {float}
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: float
+    type: string
+    required: true
+- id: i_sort_by_price_in_descending_order
+  category: uncategorized
+  description: (taslak) I sort by price in descending order
+  aliases:
+    en:
+    - I sort by price in descending order
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/web.steps.ts
+      pattern: I sort by price in descending order
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: i_stop_recording
+  category: uncategorized
+  description: (taslak) I stop recording
+  aliases:
+    en:
+    - I stop recording
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/recording-steps.ts
+      pattern: I stop recording
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: i_submit_the_form
+  category: uncategorized
+  description: (taslak) I submit the form
+  aliases:
+    en:
+    - I submit the form
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/web-steps.ts
+      pattern: I submit the form
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: i_submit_the_form_named
+  category: uncategorized
+  description: (taslak) I submit the form named {string}
+  aliases:
+    en:
+    - I submit the form named {string}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/web-steps.ts
+      pattern: I submit the form named {string}
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_take_a_full_page_screenshot_named
+  category: uncategorized
+  description: (taslak) I take a full page screenshot named {string}
+  aliases:
+    en:
+    - I take a full page screenshot named {string}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/visual-steps.ts
+      pattern: I take a full page screenshot named {string}
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_take_a_screenshot_named
+  category: uncategorized
+  description: (taslak) I take a screenshot named {string}
+  aliases:
+    en:
+    - I take a screenshot named {string}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/common-steps.ts
+      pattern: I take a screenshot named {string}
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_take_a_screenshot_of_named
+  category: uncategorized
+  description: (taslak) I take a screenshot of {string} named {string}
+  aliases:
+    en:
+    - I take a screenshot of {string} named {string}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/visual-steps.ts
+      pattern: I take a screenshot of {string} named {string}
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_take_a_screenshot
+  category: uncategorized
+  description: (taslak) I take a screenshot {string}
+  aliases:
+    en:
+    - I take a screenshot {string}
+  implementations:
+    java:
+      source_file: frameworks/selenium-cucumber-java/src/test/java/stepdefinitions/ScreenshotSteps.java
+      function: takeScreenshot
+      pattern: I take a screenshot {string}
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_take_screenshot_of_element
+  category: uncategorized
+  description: (taslak) I take screenshot of element {string}
+  aliases:
+    en:
+    - I take screenshot of element {string}
+  implementations:
+    java:
+      source_file: frameworks/selenium-cucumber-java/src/test/java/stepdefinitions/ScreenshotSteps.java
+      function: takeScreenshotOfElement
+      pattern: I take screenshot of element {string}
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_uncheck
+  category: uncategorized
+  description: '(taslak) I uncheck '
+  aliases:
+    en:
+    - 'I uncheck '
+  implementations:
+    python:
+      source_file: engine/steps/english_steps.py
+      function: en_uncheck
+      pattern: 'I uncheck '
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: i_uncheck_the_checkbox
+  category: uncategorized
+  description: (taslak) I uncheck the checkbox {string}
+  aliases:
+    en:
+    - I uncheck the checkbox {string}
+  implementations:
+    java:
+      source_file: frameworks/selenium-cucumber-java/src/test/java/stepdefinitions/CheckboxSteps.java
+      function: uncheckCheckbox
+      pattern: I uncheck the checkbox {string}
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_uncheck_1
+  category: uncategorized
+  description: (taslak) I uncheck {string}
+  aliases:
+    en:
+    - I uncheck {string}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/web-steps.ts
+      pattern: I uncheck {string}
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_update_the_visual_baseline_for_as
+  category: uncategorized
+  description: (taslak) I update the visual baseline for {string} as {string}
+  aliases:
+    en:
+    - I update the visual baseline for {string} as {string}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/visual-steps.ts
+      pattern: I update the visual baseline for {string} as {string}
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_update_the_visual_baseline
+  category: uncategorized
+  description: (taslak) I update the visual baseline {string}
+  aliases:
+    en:
+    - I update the visual baseline {string}
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/visual-steps.ts
+      pattern: I update the visual baseline {string}
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_upload_the_file
+  category: uncategorized
+  description: '(taslak) I upload the file '
+  aliases:
+    en:
+    - 'I upload the file '
+  implementations:
+    python:
+      source_file: engine/steps/english_steps.py
+      function: en_upload
+      pattern: 'I upload the file '
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: i_validate_page_accessibility_and_perfor
+  category: uncategorized
+  description: (taslak) I validate page accessibility and performance
+  aliases:
+    en:
+    - I validate page accessibility and performance
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/e2e-steps.ts
+      pattern: I validate page accessibility and performance
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: i_view_the_markets
+  category: uncategorized
+  description: (taslak) I view the markets
+  aliases:
+    en:
+    - I view the markets
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/paribu-steps.ts
+      pattern: I view the markets
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: i_wait_for_element_to_disappear
+  category: uncategorized
+  description: (taslak) I wait for element {string} to disappear
+  aliases:
+    en:
+    - I wait for element {string} to disappear
+  implementations:
+    java:
+      source_file: frameworks/selenium-cucumber-java/src/test/java/stepdefinitions/WaitSteps.java
+      function: waitForElementToDisappear
+      pattern: I wait for element {string} to disappear
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_wait_for_text_to_appear
+  category: uncategorized
+  description: (taslak) I wait for text {string} to appear
+  aliases:
+    en:
+    - I wait for text {string} to appear
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/common-steps.ts
+      pattern: I wait for text {string} to appear
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_wait_for_to_be_hidden
+  category: uncategorized
+  description: (taslak) I wait for {string} to be hidden
+  aliases:
+    en:
+    - I wait for {string} to be hidden
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/common-steps.ts
+      pattern: I wait for {string} to be hidden
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: i_wait_for_to_be_visible
+  category: uncategorized
+  description: (taslak) I wait for {string} to be visible
+  aliases:
+    en:
+    - I wait for {string} to be visible
+  implementations:
+    typescript:
+      source_file: frameworks/playwright-cucumber-ts/steps/common-steps.ts
+      pattern: I wait for {string} to be visible
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+  parameters:
+  - name: string
+    type: string
+    required: true
+- id: kullanici_sayfayi_yeniler
+  category: uncategorized
+  description: (taslak) kullanici sayfayi yeniler
+  aliases:
+    tr:
+    - kullanici sayfayi yeniler
+  implementations:
+    python:
+      source_file: engine/steps/common_steps.py
+      function: refresh_page
+      pattern: kullanici sayfayi yeniler
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: kullan_c_ana_sayfan_n_y_klendi_ini_do_ru
+  category: uncategorized
+  description: (taslak) kullanıcı ana sayfanın yüklendiğini doğrular
+  aliases:
+    tr:
+    - kullanıcı ana sayfanın yüklendiğini doğrular
+  implementations:
+    python:
+      source_file: engine/steps/bgts_smoke_steps.py
+      function: verify_homepage_loads
+      pattern: kullanıcı ana sayfanın yüklendiğini doğrular
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: kullan_c_arama_kutusuna
+  category: uncategorized
+  description: '(taslak) kullanıcı arama kutusuna '
+  aliases:
+    tr:
+    - 'kullanıcı arama kutusuna '
+  implementations:
+    python:
+      source_file: engine/steps/common_steps.py
+      function: fill_search
+      pattern: 'kullanıcı arama kutusuna '
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: kullan_c_giri_formunu_bo_b_rak_p_g_nderi
+  category: uncategorized
+  description: (taslak) kullanıcı giriş formunu boş bırakıp gönderir
+  aliases:
+    tr:
+    - kullanıcı giriş formunu boş bırakıp gönderir
+  implementations:
+    python:
+      source_file: engine/steps/bgts_login_steps.py
+      function: submit_empty_login_form
+      pattern: kullanıcı giriş formunu boş bırakıp gönderir
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: kullan_c_i_e_aktarma_formunu_g_nderir
+  category: uncategorized
+  description: (taslak) kullanıcı içe aktarma formunu gönderir
+  aliases:
+    tr:
+    - kullanıcı içe aktarma formunu gönderir
+  implementations:
+    python:
+      source_file: engine/steps/bgts_import_steps.py
+      function: submit_import_form
+      pattern: kullanıcı içe aktarma formunu gönderir
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: kullan_c_i_e_aktarma_sayfas_n_a_ar
+  category: uncategorized
+  description: (taslak) kullanıcı içe aktarma sayfasını açar
+  aliases:
+    tr:
+    - kullanıcı içe aktarma sayfasını açar
+  implementations:
+    python:
+      source_file: engine/steps/bgts_smoke_steps.py
+      function: open_import_page
+      pattern: kullanıcı içe aktarma sayfasını açar
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: kullan_c_oturumu_kapat_r
+  category: uncategorized
+  description: (taslak) kullanıcı oturumu kapatır
+  aliases:
+    tr:
+    - kullanıcı oturumu kapatır
+  implementations:
+    python:
+      source_file: engine/steps/bgts_login_steps.py
+      function: user_logs_out
+      pattern: kullanıcı oturumu kapatır
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: kullan_c_regresyon_mod_l
+  category: uncategorized
+  description: '(taslak) kullanıcı regresyon modülü '
+  aliases:
+    tr:
+    - 'kullanıcı regresyon modülü '
+  implementations:
+    python:
+      source_file: engine/steps/bgts_regression_steps.py
+      function: navigate_to_regression_module
+      pattern: 'kullanıcı regresyon modülü '
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: kullan_c_sidebar
+  category: uncategorized
+  description: (taslak) kullanıcı sidebar\
+  aliases:
+    tr:
+    - kullanıcı sidebar\
+  implementations:
+    python:
+      source_file: engine/steps/bgts_project_steps.py
+      function: navigate_via_sidebar
+      pattern: kullanıcı sidebar\
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: kullan_c_tasla
+  category: uncategorized
+  description: '(taslak) kullanıcı taslağı '
+  aliases:
+    tr:
+    - 'kullanıcı taslağı '
+  implementations:
+    python:
+      source_file: engine/steps/bgts_approval_steps.py
+      function: edit_and_approve_draft
+      pattern: 'kullanıcı taslağı '
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: kullan_c_t_m_ana_mod_lleri_s_rayla_ziyar
+  category: uncategorized
+  description: (taslak) kullanıcı tüm ana modülleri sırayla ziyaret eder
+  aliases:
+    tr:
+    - kullanıcı tüm ana modülleri sırayla ziyaret eder
+  implementations:
+    python:
+      source_file: engine/steps/bgts_regression_steps.py
+      function: visit_all_modules
+      pattern: kullanıcı tüm ana modülleri sırayla ziyaret eder
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: kullan_c_versiyon_ge_mi_ini_a_ar
+  category: uncategorized
+  description: (taslak) kullanıcı versiyon geçmişini açar
+  aliases:
+    tr:
+    - kullanıcı versiyon geçmişini açar
+  implementations:
+    python:
+      source_file: engine/steps/bgts_scenario_steps.py
+      function: view_version_history
+      pattern: kullanıcı versiyon geçmişini açar
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'
+- id: post
+  category: uncategorized
+  description: '(taslak) POST '
+  aliases:
+    en:
+    - 'POST '
+  implementations:
+    python:
+      source_file: backend/tests/bdd/steps/auth_steps.py
+      function: send_post
+      pattern: 'POST '
+  tags:
+  - draft
+  - auto-extracted
+  since: '2026-04-17'

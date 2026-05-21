@@ -1,0 +1,26 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "neurex-telemetry"
+version = "0.1.0"
+description = "Shared OpenTelemetry helpers for all Neurex QA services"
+requires-python = ">=3.11"
+dependencies = []
+
+[project.optional-dependencies]
+otel = [
+    "opentelemetry-api>=1.24.0",
+    "opentelemetry-sdk>=1.24.0",
+    "opentelemetry-exporter-otlp-proto-grpc>=1.24.0",
+    "opentelemetry-exporter-otlp-proto-http>=1.24.0",
+    "opentelemetry-instrumentation-fastapi>=0.45b0",
+    "opentelemetry-instrumentation-flask>=0.45b0",
+    "opentelemetry-instrumentation-sqlalchemy>=0.45b0",
+    "opentelemetry-instrumentation-redis>=0.45b0",
+    "opentelemetry-instrumentation-httpx>=0.45b0",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/neurex_telemetry"]

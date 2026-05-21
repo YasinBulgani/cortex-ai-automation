@@ -1,0 +1,17 @@
+[
+  {
+    "key": "isIlaniButton",
+    "hostSelector": "bl-select#communicationPostType",
+    "innerSelector": "fieldset.select-input"
+  },
+  {
+    "key": "profileDropdown",
+    "hostSelector": "bl-select#profile",
+    "innerSelector": "fieldset.select-input"
+  },
+  {
+    "key": "editIconButton",
+    "hostSelector": "bl-button[icon='edit']",
+    "innerSelector": "button"
+  }
+]

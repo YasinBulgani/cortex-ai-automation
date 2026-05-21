@@ -1,0 +1,41 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "twai-banking-domain"
+version = "0.1.0"
+description = "TR bankacılık validator, generator, fraud pattern ve compliance kütüphanesi"
+readme = "README.md"
+authors = [{ name = "TestwrightAI Ekibi" }]
+license = { text = "Proprietary" }
+requires-python = ">=3.11"
+dependencies = [
+    "pydantic>=2.6",
+    "faker>=24.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-cov>=5.0",
+    "pytest-asyncio>=0.23",
+    "ruff>=0.5",
+    "mypy>=1.10",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["python/banking_domain"]
+
+[tool.pytest.ini_options]
+testpaths = ["python/tests"]
+python_files = ["test_*.py"]
+addopts = "-v --tb=short"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.mypy]
+strict = true
+ignore_missing_imports = true

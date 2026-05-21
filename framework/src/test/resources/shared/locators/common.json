@@ -1,0 +1,19 @@
+[
+  { "_comment": "Tum projelerde ortak kullanilan jenerik locator'lar. Proje-ozel olanlar projects/<X>/locators/common.json'a yazilir." },
+
+  { "_section": "Generic page elements" },
+  { "key": "body",             "type": "css", "value": "body" },
+  { "key": "html",             "type": "css", "value": "html" },
+  { "key": "submitButton",     "type": "css", "value": "button[type='submit']" },
+  { "key": "cancelButton",     "type": "css", "value": "button[type='button'][class*='cancel' i]" },
+
+  { "_section": "Loading / async states" },
+  { "key": "spinner",          "type": "css", "value": "[class*='spinner' i], [class*='loading' i], [aria-busy='true']" },
+  { "key": "progressBar",      "type": "css", "value": "[role='progressbar']" },
+
+  { "_section": "Errors / alerts" },
+  { "key": "errorAlert",       "type": "css", "value": "[role='alert'], .alert-danger, [class*='error' i][class*='message' i]" },
+  { "key": "warningAlert",     "type": "css", "value": ".alert-warning, [class*='warning' i]" },
+  { "key": "successAlert",     "type": "css", "value": ".alert-success, [class*='success' i]" },
+  { "key": "infoAlert",        "type": "css", "value": ".alert-info, [role='status']" }
+]

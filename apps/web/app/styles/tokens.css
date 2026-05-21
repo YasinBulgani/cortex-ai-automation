@@ -1,0 +1,276 @@
+/* ─── Design Tokens v2 ────────────────────────────────────────────────────
+ * Tüm renk, tipografi, spacing, animation tokenleri burada.
+ * Tailwind config bu değişkenleri okur. Komponentler `bg-surface`, `text-fg`
+ * gibi semantic class'ları kullanır — direkt hex'lerden kaçınılır.
+ * ─────────────────────────────────────────────────────────────────────── */
+
+:root {
+  /* ── Surface katmanları ──────────────────────────────────────────────── */
+  --surface-base:    #f8fafc;
+  --surface-raised:  #ffffff;
+  --surface-overlay: #f1f5f9;
+  --surface-accent:  #e2e8f0;
+
+  /* Legacy aliases */
+  --bg:        var(--surface-base);
+  --bg-subtle: var(--surface-overlay);
+
+  /* ── Foreground & text ───────────────────────────────────────────────── */
+  --fg:           #0f172a;
+  --fg-muted:     #475569;
+  --fg-subtle:    #94a3b8;
+  --fg-disabled:  #cbd5e1;
+  --muted:        #64748b;
+  --muted-fg:     #94a3b8;
+
+  /* ── Borders ─────────────────────────────────────────────────────────── */
+  --border:        #e2e8f0;
+  --border-strong: #cbd5e1;
+  --border-subtle: #f1f5f9;
+
+  /* ── Brand: Neurex (default) ─────────────────────────────────────────── */
+  --brand-primary:    #6366f1;
+  --brand-secondary:  #8b5cf6;
+  --brand-soft:       #eef2ff;
+  --brand-fg:         #ffffff;
+  --accent:           var(--brand-primary);
+  --accent-fg:        var(--brand-fg);
+  --accent-subtle:    var(--brand-soft);
+
+  /* ── Per-Ürün renkleri ───────────────────────────────────────────────── */
+  --product-one:          #6366f1;
+  --product-studio:       #f59e0b;
+  --product-service:      #10b981;
+  --product-web:          #3b82f6;
+  --product-mobile:       #f43f5e;
+  --product-data:         #06b6d4;
+  --product-intelligence: #8b5cf6;
+  --product-code:         #64748b;
+
+  /* ── AI ──────────────────────────────────────────────────────────────── */
+  --ai:         #7c3aed;
+  --ai-fg:      #ffffff;
+  --ai-subtle:  #f5f3ff;
+
+  /* ── Status ──────────────────────────────────────────────────────────── */
+  --success:        #16a34a;
+  --success-fg:     #ffffff;
+  --success-subtle: #f0fdf4;
+  --warning:        #d97706;
+  --warning-fg:     #ffffff;
+  --warning-subtle: #fffbeb;
+  --danger:         #dc2626;
+  --danger-fg:      #ffffff;
+  --danger-subtle:  #fef2f2;
+  --info:           #0284c7;
+  --info-fg:        #ffffff;
+  --info-subtle:    #f0f9ff;
+
+  /* ── Radius ──────────────────────────────────────────────────────────── */
+  --radius-xs:   0.125rem;
+  --radius-sm:   0.25rem;
+  --radius:      0.5rem;
+  --radius-md:   0.625rem;
+  --radius-lg:   0.75rem;
+  --radius-xl:   1rem;
+  --radius-2xl:  1.5rem;
+  --radius-full: 9999px;
+
+  /* ── Tipografi ───────────────────────────────────────────────────────── */
+  /* Next.js next/font ile yüklenen fontlar (--font-sans-loaded / --font-mono-loaded)
+   * mevcutsa onları, yoksa sistem fontunu kullanır */
+  --font-sans: var(--font-sans-loaded, "Inter"), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-mono: var(--font-mono-loaded, "JetBrains Mono"), ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+
+  /* Tipografi skalası (modüler 1.25) */
+  --text-2xs: 0.6875rem;
+  --text-xs:  0.75rem;
+  --text-sm:  0.8125rem;
+  --text-base:0.875rem;
+  --text-md:  1rem;
+  --text-lg:  1.125rem;
+  --text-xl:  1.375rem;
+  --text-2xl: 1.75rem;
+  --text-3xl: 2.25rem;
+  --text-4xl: 3rem;
+
+  --leading-tight:   1.2;
+  --leading-snug:    1.35;
+  --leading-normal:  1.5;
+  --leading-relaxed: 1.65;
+
+  --tracking-tighter: -0.04em;
+  --tracking-tight:   -0.02em;
+  --tracking-normal:  0;
+  --tracking-wide:    0.02em;
+  --tracking-wider:   0.08em;
+  --tracking-widest:  0.15em;
+
+  /* ── Shadows ─────────────────────────────────────────────────────────── */
+  --shadow-xs:       0 1px 1px rgb(0 0 0 / 0.04);
+  --shadow-sm:       0 1px 2px rgb(0 0 0 / 0.05);
+  --shadow-elevated: 0 1px 3px rgb(0 0 0 / 0.06), 0 8px 24px rgb(0 0 0 / 0.06);
+  --shadow-lg:       0 4px 6px rgb(0 0 0 / 0.05), 0 20px 40px rgb(0 0 0 / 0.08);
+  --shadow-xl:       0 24px 48px rgb(0 0 0 / 0.12);
+  --shadow-glow:     0 0 0 4px rgb(99 102 241 / 0.15);
+
+  /* ── Z-index sahneleme ───────────────────────────────────────────────── */
+  --z-base:    1;
+  --z-raised:  10;
+  --z-sticky:  20;
+  --z-overlay: 30;
+  --z-modal:   40;
+  --z-popover: 50;
+  --z-toast:   60;
+  --z-tooltip: 70;
+
+  /* ── Animation ───────────────────────────────────────────────────────── */
+  --ease-out:    cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in:     cubic-bezier(0.4, 0, 1, 1);
+  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  --duration-fast:   120ms;
+  --duration-base:   180ms;
+  --duration-slow:   240ms;
+  --duration-slower: 360ms;
+
+  /* ── Focus ring ──────────────────────────────────────────────────────── */
+  --focus-ring:        0 0 0 2px var(--surface-base), 0 0 0 4px var(--brand-primary);
+  --focus-ring-danger: 0 0 0 2px var(--surface-base), 0 0 0 4px var(--danger);
+}
+
+.dark {
+  --surface-base:    #0c0e14;
+  --surface-raised:  #131720;
+  --surface-overlay: #1c2230;
+  --surface-accent:  #252d3d;
+
+  --bg:        var(--surface-base);
+  --bg-subtle: var(--surface-overlay);
+
+  --fg:          #f1f5f9;
+  --fg-muted:    #cbd5e1;
+  --fg-subtle:   #94a3b8;
+  --fg-disabled: #475569;
+  --muted:       #94a3b8;
+  --muted-fg:    #64748b;
+
+  --border:        #1e2535;
+  --border-strong: #2d3748;
+  --border-subtle: #131720;
+
+  --brand-primary:   #818cf8;
+  --brand-secondary: #a78bfa;
+  --brand-soft:      rgb(99 102 241 / 0.15);
+  --brand-fg:        #0c0e14;
+  --accent:          var(--brand-primary);
+  --accent-fg:       #ffffff;
+  --accent-subtle:   var(--brand-soft);
+
+  --product-one:          #818cf8;
+  --product-studio:       #fbbf24;
+  --product-service:      #34d399;
+  --product-web:          #60a5fa;
+  --product-mobile:       #fb7185;
+  --product-data:         #22d3ee;
+  --product-intelligence: #a78bfa;
+  --product-code:         #94a3b8;
+
+  --ai:        #a78bfa;
+  --ai-fg:     #ffffff;
+  --ai-subtle: rgb(139 92 246 / 0.15);
+
+  --success:        #22c55e;
+  --success-fg:     #ffffff;
+  --success-subtle: rgb(34 197 94 / 0.15);
+  --warning:        #f59e0b;
+  --warning-fg:     #0c0e14;
+  --warning-subtle: rgb(245 158 11 / 0.15);
+  --danger:         #ef4444;
+  --danger-fg:      #ffffff;
+  --danger-subtle:  rgb(239 68 68 / 0.15);
+  --info:           #38bdf8;
+  --info-fg:        #ffffff;
+  --info-subtle:    rgb(56 189 248 / 0.15);
+
+  --shadow-xs:       0 1px 1px rgb(0 0 0 / 0.4);
+  --shadow-sm:       0 1px 2px rgb(0 0 0 / 0.3);
+  --shadow-elevated: 0 1px 3px rgb(0 0 0 / 0.4), 0 8px 24px rgb(0 0 0 / 0.35);
+  --shadow-lg:       0 4px 6px rgb(0 0 0 / 0.3), 0 20px 40px rgb(0 0 0 / 0.4);
+  --shadow-xl:       0 24px 48px rgb(0 0 0 / 0.5);
+  --shadow-glow:     0 0 0 4px rgb(129 140 248 / 0.25);
+}
+
+/* ── Per-product theme override ──────────────────────────────────────────── */
+[data-product="one"]          { --brand-primary: var(--product-one);          --brand-soft: rgb(99 102 241 / 0.15); }
+[data-product="studio"]       { --brand-primary: var(--product-studio);       --brand-soft: rgb(245 158 11 / 0.15); }
+[data-product="service"]      { --brand-primary: var(--product-service);      --brand-soft: rgb(16 185 129 / 0.15); }
+[data-product="web"]          { --brand-primary: var(--product-web);          --brand-soft: rgb(59 130 246 / 0.15); }
+[data-product="mobile"]       { --brand-primary: var(--product-mobile);       --brand-soft: rgb(244 63 94 / 0.15); }
+[data-product="data"]         { --brand-primary: var(--product-data);         --brand-soft: rgb(6 182 212 / 0.15); }
+[data-product="intelligence"] { --brand-primary: var(--product-intelligence); --brand-soft: rgb(139 92 246 / 0.15); }
+[data-product="nexus-code"]   { --brand-primary: var(--product-code);         --brand-soft: rgb(100 116 139 / 0.15); }
+
+/* ── Reduce motion ───────────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+/* ── Tabular numerics ────────────────────────────────────────────────────── */
+.tabular-nums,
+[data-tabular="true"] {
+  font-feature-settings: "tnum", "lnum";
+}
+
+/* ── A11y: Focus ring (klavye-only) ──────────────────────────────────────── */
+*:focus-visible {
+  outline: 2px solid var(--brand-primary);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+/* Buton ve link içeride zaten focus-visible ring class'ı kullanıyorsa
+   default outline'ı sıfırla */
+button:focus-visible,
+a:focus-visible,
+[role="button"]:focus-visible,
+[role="menuitem"]:focus-visible {
+  outline: 2px solid var(--brand-primary);
+  outline-offset: 2px;
+}
+
+/* Skip-to-content her zaman okunabilir */
+.skip-to-content:focus-visible {
+  outline: 2px solid white;
+  outline-offset: 0;
+}
+
+/* ── A11y: Selection rengi marka ile uyumlu ──────────────────────────────── */
+::selection {
+  background-color: var(--brand-primary);
+  color: var(--brand-fg);
+}
+
+/* ── A11y: High-contrast media query desteği ─────────────────────────────── */
+@media (prefers-contrast: more) {
+  :root {
+    --border:        #000000;
+    --border-strong: #000000;
+    --fg-subtle:     #000000;
+  }
+  .dark {
+    --border:        #ffffff;
+    --border-strong: #ffffff;
+    --fg-subtle:     #ffffff;
+  }
+}
+
+/* ── Smooth scrolling ────────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: no-preference) {
+  html { scroll-behavior: smooth; }
+}

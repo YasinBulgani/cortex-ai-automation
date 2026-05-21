@@ -1,0 +1,42 @@
+{
+  "name": "@neurex/design-system",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Neurex QA — paylaşılan tasarım sistemi (tokens + primitives + patterns)",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".":          "./src/index.ts",
+    "./tokens":   "./src/tokens/index.ts",
+    "./primitives": "./src/primitives/index.ts",
+    "./patterns": "./src/patterns/index.ts",
+    "./utils":    "./src/utils/index.ts",
+    "./hooks":    "./src/hooks/index.ts",
+    "./tokens.css": "./src/tokens/tokens.css"
+  },
+  "scripts": {
+    "lint":       "eslint . --ext .ts,.tsx --max-warnings=0",
+    "type-check": "tsc --noEmit",
+    "test":       "vitest run --passWithNoTests",
+    "test:watch": "vitest",
+    "clean":      "rm -rf dist .turbo coverage"
+  },
+  "dependencies": {
+    "@tanstack/react-virtual": "^3.10.0"
+  },
+  "peerDependencies": {
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0"
+  },
+  "devDependencies": {
+    "@testing-library/jest-dom": "^6.4.0",
+    "@testing-library/react": "^14.2.0",
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0",
+    "@vitejs/plugin-react": "^4.3.0",
+    "jsdom": "^25.0.0",
+    "typescript": "^5.4.0",
+    "vitest": "^2.1.0"
+  }
+}
