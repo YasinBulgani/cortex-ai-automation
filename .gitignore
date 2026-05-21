@@ -102,3 +102,6 @@ framework/screenshots/legacy_files/
 # Backups
 *.backup
 *.backup-*
+
+# Stray nested checkout (not part of project)
+cortex-otomasyon/
