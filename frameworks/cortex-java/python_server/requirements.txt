@@ -4,3 +4,5 @@ pandas==2.2.2
 scikit-learn==1.6.1
 joblib==1.4.2
 waitress==3.0.0
+# Playwright codegen — alternative recorder backend (Microsoft's official)
+playwright==1.48.0

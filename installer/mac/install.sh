@@ -271,6 +271,10 @@ if [[ -f "python_server/train_model.py" && ! -f "python_server/final_model.pkl" 
     log "ML modeli eğitiliyor..."
     cd python_server && python train_model.py && cd ..
 fi
+
+# Playwright (Python SDK) browser indir — codegen backend için gerekli
+log "Playwright Chromium (Python SDK) indiriliyor..."
+python -m playwright install chromium 2>/dev/null || warn "Playwright install başarısız; codegen ilk kullanımda kurulacak."
 deactivate
 ok "Python ortamı hazır."
 

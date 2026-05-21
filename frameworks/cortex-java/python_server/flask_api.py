@@ -1299,6 +1299,125 @@ def cortex_recorder_actions():
     return jsonify(body), status
 
 
+# ============================================================
+#  Playwright Codegen — alternative recorder backend
+# ============================================================
+# Why: For sites with shadow DOM, cross-origin OAuth popups, or other
+# edge cases where our custom recorder.js struggles, we delegate to
+# Microsoft's official `playwright codegen`. Battle-tested, opens a
+# Chromium + Inspector window, writes generated JS to a temp file as
+# the user interacts.
+
+try:
+    from codegen_recorder import (
+        start_codegen, stop_codegen, get_job, list_jobs,
+        read_output, codegen_to_gherkin, is_codegen_available
+    )
+    _CODEGEN_OK = True
+except ImportError as e:
+    print(f"[cortex] codegen_recorder import failed: {e}")
+    _CODEGEN_OK = False
+
+
+@app.route("/api/cortex/codegen/available")
+def cortex_codegen_available():
+    """Quick check: is Playwright codegen functional?"""
+    if not _CODEGEN_OK:
+        return jsonify({"available": False, "reason": "codegen_recorder module not loaded"}), 200
+    ok, msg = is_codegen_available()
+    return jsonify({"available": ok, "version": msg if ok else None, "reason": None if ok else msg}), 200
+
+
+@app.route("/api/cortex/codegen/start", methods=["POST"])
+def cortex_codegen_start():
+    """Spawn playwright codegen subprocess for the given URL."""
+    if not _CODEGEN_OK:
+        return jsonify({"ok": False, "error": "codegen module unavailable"}), 503
+    payload = request.get_json(silent=True) or {}
+    url = payload.get("url")
+    target = payload.get("target", "javascript")
+    browser = payload.get("browser", "chromium")
+    if not url:
+        return jsonify({"ok": False, "error": "url required"}), 400
+    job = start_codegen(url=url, target=target, browser=browser)
+    return jsonify({"ok": job.status != "error", "job": job.to_dict()}), 200
+
+
+@app.route("/api/cortex/codegen/status/<job_id>")
+def cortex_codegen_status(job_id: str):
+    if not _CODEGEN_OK:
+        return jsonify({"ok": False, "error": "codegen module unavailable"}), 503
+    job = get_job(job_id)
+    if not job:
+        return jsonify({"ok": False, "error": "job not found"}), 404
+    return jsonify({"ok": True, "job": job.to_dict()}), 200
+
+
+@app.route("/api/cortex/codegen/stop/<job_id>", methods=["POST"])
+def cortex_codegen_stop(job_id: str):
+    if not _CODEGEN_OK:
+        return jsonify({"ok": False, "error": "codegen module unavailable"}), 503
+    ok = stop_codegen(job_id)
+    job = get_job(job_id)
+    return jsonify({"ok": ok, "job": job.to_dict() if job else None}), 200
+
+
+@app.route("/api/cortex/codegen/output/<job_id>")
+def cortex_codegen_output(job_id: str):
+    """Raw codegen JS (current snapshot, even while running)."""
+    if not _CODEGEN_OK:
+        return jsonify({"ok": False, "error": "codegen module unavailable"}), 503
+    job = get_job(job_id)
+    if not job:
+        return jsonify({"ok": False, "error": "job not found"}), 404
+    return jsonify({"ok": True, "source": read_output(job_id), "job": job.to_dict()}), 200
+
+
+@app.route("/api/cortex/codegen/convert/<job_id>", methods=["POST"])
+def cortex_codegen_convert(job_id: str):
+    """Parse codegen JS → Gherkin .feature + locator JSON, save to projects/cortex/."""
+    if not _CODEGEN_OK:
+        return jsonify({"ok": False, "error": "codegen module unavailable"}), 503
+    payload = request.get_json(silent=True) or {}
+    feature_name = payload.get("feature_name") or f"codegen-{job_id}"
+    target_dir = payload.get("target_dir", "recordings")
+    src = read_output(job_id)
+    if not src.strip():
+        return jsonify({"ok": False, "error": "no codegen output yet"}), 400
+    gherkin, locators = codegen_to_gherkin(src, feature_name=feature_name)
+
+    # Save the .feature
+    root = _cortex_features_root(target_dir)
+    root.mkdir(parents=True, exist_ok=True)
+    feature_path = root / f"{feature_name}.feature"
+    feature_path.write_text(gherkin, encoding="utf-8")
+
+    # Save locators next to features as .json (in projects/cortex/locators/)
+    loc_root = _cortex_root() / "locators"
+    loc_root.mkdir(parents=True, exist_ok=True)
+    locator_path = loc_root / f"{feature_name}.json"
+    import json as _json
+    locator_path.write_text(_json.dumps(locators, indent=2, ensure_ascii=False), encoding="utf-8")
+
+    return jsonify({
+        "ok": True,
+        "feature_path": str(feature_path),
+        "locator_path": str(locator_path),
+        "gherkin": gherkin,
+        "locator_count": len(locators),
+    }), 200
+
+
+def _cortex_root() -> Path:
+    """projects/cortex root inside framework/src/test/resources/."""
+    return Path(__file__).resolve().parent.parent / "src" / "test" / "resources" / "projects" / "cortex"
+
+
+def _cortex_features_root(target_dir: str) -> Path:
+    safe = "features" if target_dir not in ("features", "recordings") else target_dir
+    return _cortex_root() / safe
+
+
 @app.route("/api/cortex/recorder/inject", methods=["POST"])
 def cortex_recorder_inject():
     """Inject an action into the running recorder from outside the browser."""

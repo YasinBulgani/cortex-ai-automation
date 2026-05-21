@@ -213,6 +213,14 @@ if ((Test-Path (Join-Path $FrameworkDir 'python_server\train_model.py')) -and (-
     & $py train_model.py
     Pop-Location
 }
+
+# Playwright (Python SDK) browser indir — codegen backend için gerekli
+Log-Info "Playwright Chromium (Python SDK) indiriliyor..."
+& $py -m playwright install chromium 2>$null
+if ($LASTEXITCODE -ne 0) {
+    Log-Warn "Playwright install başarısız; codegen ilk kullanımda kurulacak."
+}
+
 Pop-Location
 Log-Ok "Python ortamı hazır."
 
