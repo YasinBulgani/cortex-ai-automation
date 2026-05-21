@@ -1,3 +1,0 @@
-✅ BAŞARILI
-'izinlerimSayfasıTalepEdilenIzınSilmeIslemBasarılıUyarıText' adlı elemanın sayfada görünür olduğu kontrol ediliyor
-'izinlerimSayfasıTalepEdilenIzınSilmeIslemBasarılıUyarıText' adlı eleman sayfada görünür durumda. Kontrol başarılı.

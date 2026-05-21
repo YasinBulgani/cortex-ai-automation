@@ -1,2 +1,0 @@
-Klavyeden 'enter' tuşuna basılıyor
-Basılacak tuş: enter

@@ -1,3 +1,0 @@
-✅ BAŞARILI
-'izinlerimSayfasıTalepEdilenIzınText' adlı elemanın değeri kontrol ediliyor (Beklenen: sFOyvIZbIIyFOOA)
-'izinlerimSayfasıTalepEdilenIzınText' adlı elemanın metni doğrulandı. Beklenen değer: 'sFOyvIZbIIyFOOA' bulundu.

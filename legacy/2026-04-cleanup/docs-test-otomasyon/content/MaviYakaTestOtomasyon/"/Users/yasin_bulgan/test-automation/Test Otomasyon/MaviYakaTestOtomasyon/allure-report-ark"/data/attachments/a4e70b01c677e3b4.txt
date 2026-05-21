@@ -1,2 +1,0 @@
-'izinTalepEtSayfasıIzinTipiSelectBox' adlı butona/elemana tıklanıyor
-Element anahtarı: izinTalepEtSayfasıIzinTipiSelectBox

@@ -1,3 +1,0 @@
-✅ BAŞARILI
-'izinlerimSayfasıTalepEdilenIzınText' adlı elemanın değeri kontrol ediliyor (Beklenen: uGequs0ZADFsxUx)
-'izinlerimSayfasıTalepEdilenIzınText' adlı elemanın metni doğrulandı. Beklenen değer: 'uGequs0ZADFsxUx' bulundu.

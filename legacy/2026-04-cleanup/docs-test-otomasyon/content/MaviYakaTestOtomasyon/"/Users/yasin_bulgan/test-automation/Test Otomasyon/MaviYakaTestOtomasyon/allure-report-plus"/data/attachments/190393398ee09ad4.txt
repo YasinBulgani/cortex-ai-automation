@@ -1,3 +1,0 @@
-✅ BAŞARILI
-'izinlerimSayfasıTalepEdilenIzınText' adlı elemanın değeri kontrol ediliyor (Beklenen: PVvEeJQrlzmgeVC)
-'izinlerimSayfasıTalepEdilenIzınText' adlı elemanın metni doğrulandı. Beklenen değer: 'PVvEeJQrlzmgeVC' bulundu.

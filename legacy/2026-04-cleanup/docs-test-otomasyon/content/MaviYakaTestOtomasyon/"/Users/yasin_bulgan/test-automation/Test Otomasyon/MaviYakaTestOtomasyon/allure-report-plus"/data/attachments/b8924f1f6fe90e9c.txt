@@ -1,2 +1,0 @@
-'izinTalepEtSayfasıIzinTipiFiltreInput' adlı alana metin yazılıyor (Yazılan: Refakatçi İzni)
-Element: izinTalepEtSayfasıIzinTipiFiltreInput, Yazılacak metin: Refakatçi İzni

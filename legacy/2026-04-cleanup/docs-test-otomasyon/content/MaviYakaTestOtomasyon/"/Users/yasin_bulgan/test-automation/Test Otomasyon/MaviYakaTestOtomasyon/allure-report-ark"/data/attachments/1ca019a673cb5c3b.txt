@@ -1,3 +1,0 @@
-✅ BAŞARILI
-'izinlerimSayfasıTalepEdilenIzınText' adlı elemanın değeri kontrol ediliyor (Beklenen: HX1imTpmMivxBCJ)
-'izinlerimSayfasıTalepEdilenIzınText' adlı elemanın metni doğrulandı. Beklenen değer: 'HX1imTpmMivxBCJ' bulundu.

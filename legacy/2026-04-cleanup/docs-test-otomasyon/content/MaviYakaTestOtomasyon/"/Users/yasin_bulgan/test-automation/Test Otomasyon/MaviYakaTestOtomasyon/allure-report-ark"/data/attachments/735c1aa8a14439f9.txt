@@ -1,2 +1,0 @@
-'izinlerimSayfasıTalepEdilenIzınText' adlı elemanın değeri kontrol ediliyor (Beklenen: unXfRPaAzejMFZY)
-Element: izinlerimSayfasıTalepEdilenIzınText, Beklenen metin: unXfRPaAzejMFZY

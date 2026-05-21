@@ -1,2 +1,0 @@
-Klavyeden 'escape' tuşuna basılıyor
-Basılacak tuş: escape

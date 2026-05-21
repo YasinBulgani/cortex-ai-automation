@@ -1,3 +1,0 @@
-✅ BAŞARILI
-Uygulama açılıyor (Config'den: url)
-Uygulama başarıyla açıldı. Config'den 'url' anahtarı kullanıldı.

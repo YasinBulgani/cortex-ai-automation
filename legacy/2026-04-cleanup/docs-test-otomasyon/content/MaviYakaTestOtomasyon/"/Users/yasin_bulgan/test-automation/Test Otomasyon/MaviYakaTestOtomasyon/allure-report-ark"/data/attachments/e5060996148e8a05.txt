@@ -1,2 +1,0 @@
-Uygulama açılıyor (Config'den: url)
-Config anahtarı: url

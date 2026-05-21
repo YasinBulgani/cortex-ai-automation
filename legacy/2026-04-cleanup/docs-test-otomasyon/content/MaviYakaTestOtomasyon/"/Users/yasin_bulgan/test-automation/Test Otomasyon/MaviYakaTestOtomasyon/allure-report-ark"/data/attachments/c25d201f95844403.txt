@@ -1,2 +1,0 @@
-'SifreAlanıInput' adlı alana metin yazılıyor (Yazılan: hMaWzWZJ95Nk)
-Element: SifreAlanıInput, Yazılacak metin: hMaWzWZJ95Nk

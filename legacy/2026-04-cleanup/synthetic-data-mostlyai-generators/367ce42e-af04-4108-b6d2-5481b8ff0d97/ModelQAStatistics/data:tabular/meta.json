@@ -1,1 +1,0 @@
-{"rows_original": 300, "rows_training": 241, "rows_holdout": 59, "rows_synthetic": 300, "tgt_columns": 9, "ctx_columns": 0, "trn_tgt_columns": ["age", "ed", "employ", "address", "income", "debtinc", "creddebt", "othdebt", "default"], "trn_ctx_columns": null, "report_title": "Model Report", "report_subtitle": " for data:tabular", "report_credits": ""}

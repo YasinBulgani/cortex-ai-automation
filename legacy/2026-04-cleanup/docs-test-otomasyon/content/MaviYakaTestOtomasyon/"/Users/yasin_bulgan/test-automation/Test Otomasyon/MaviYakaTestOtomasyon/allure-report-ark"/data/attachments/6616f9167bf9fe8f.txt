@@ -1,2 +1,0 @@
-'GirisYapButon' adlı butona/elemana tıklanıyor
-Element anahtarı: GirisYapButon

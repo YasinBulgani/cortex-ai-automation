@@ -1,3 +1,0 @@
-✅ BAŞARILI
-'izinTalepEtSayfasıIzinTipiSelectBox' adlı butona/elemana tıklanıyor
-'izinTalepEtSayfasıIzinTipiSelectBox' adlı elemana başarıyla tıklandı. İşlem tamamlandı.

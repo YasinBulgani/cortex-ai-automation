@@ -1,2 +1,0 @@
-'izinTalepEtSayfasıİzinOnayFormuCheckBox' adlı butona/elemana tıklanıyor
-Element anahtarı: izinTalepEtSayfasıİzinOnayFormuCheckBox

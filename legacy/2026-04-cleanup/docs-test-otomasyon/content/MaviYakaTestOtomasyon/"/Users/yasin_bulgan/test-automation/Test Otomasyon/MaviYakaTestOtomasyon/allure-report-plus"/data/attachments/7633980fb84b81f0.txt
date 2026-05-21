@@ -1,3 +1,0 @@
-✅ BAŞARILI
-'izinTalepEtSayfasıIzinTipiFiltreInput' adlı alana metin yazılıyor (Yazılan: Evlilik İzni)
-'izinTalepEtSayfasıIzinTipiFiltreInput' adlı alana 'Evlilik İzni' metni başarıyla yazıldı.

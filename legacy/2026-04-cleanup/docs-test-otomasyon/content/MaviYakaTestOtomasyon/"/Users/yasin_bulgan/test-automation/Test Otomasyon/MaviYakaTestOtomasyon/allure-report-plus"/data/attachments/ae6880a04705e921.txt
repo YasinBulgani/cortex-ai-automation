@@ -1,2 +1,0 @@
-'izinlerimSayfasıTalepEdilenIzınUcNoktaButon' adlı butona/elemana tıklanıyor
-Element anahtarı: izinlerimSayfasıTalepEdilenIzınUcNoktaButon

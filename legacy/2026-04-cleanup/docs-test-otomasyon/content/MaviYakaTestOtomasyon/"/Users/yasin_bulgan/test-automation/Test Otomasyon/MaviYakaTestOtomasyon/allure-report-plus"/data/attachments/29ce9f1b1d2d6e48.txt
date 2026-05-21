@@ -1,3 +1,0 @@
-✅ BAŞARILI
-'izinlerimSayfasıTalepEdilenIzınSilmeOnayButon' adlı butona/elemana tıklanıyor
-'izinlerimSayfasıTalepEdilenIzınSilmeOnayButon' adlı elemana başarıyla tıklandı. İşlem tamamlandı.

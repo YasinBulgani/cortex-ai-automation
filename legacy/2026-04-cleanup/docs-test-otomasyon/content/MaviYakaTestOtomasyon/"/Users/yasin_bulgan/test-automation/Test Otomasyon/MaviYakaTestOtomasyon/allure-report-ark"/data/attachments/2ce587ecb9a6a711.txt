@@ -1,3 +1,0 @@
-✅ BAŞARILI
-'izinlerimSayfasıTalepEdilenIzınSilmeOnayButon' adlı elemanın sayfada görünür olduğu kontrol ediliyor
-'izinlerimSayfasıTalepEdilenIzınSilmeOnayButon' adlı eleman sayfada görünür durumda. Kontrol başarılı.

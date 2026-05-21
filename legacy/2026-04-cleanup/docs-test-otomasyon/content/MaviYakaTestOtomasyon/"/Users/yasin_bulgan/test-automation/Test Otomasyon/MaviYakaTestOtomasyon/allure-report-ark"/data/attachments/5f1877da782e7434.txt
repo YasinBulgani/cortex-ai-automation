@@ -1,3 +1,0 @@
-✅ BAŞARILI
-'izinTalepEtSayfasıİzinTalebiİşlemBaşarılıText' adlı elemanın sayfada görünür olduğu kontrol ediliyor
-'izinTalepEtSayfasıİzinTalebiİşlemBaşarılıText' adlı eleman sayfada görünür durumda. Kontrol başarılı.

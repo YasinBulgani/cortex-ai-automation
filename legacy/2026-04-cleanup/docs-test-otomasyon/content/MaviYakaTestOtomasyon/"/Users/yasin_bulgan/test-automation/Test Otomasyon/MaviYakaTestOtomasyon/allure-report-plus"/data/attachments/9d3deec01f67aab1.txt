@@ -1,2 +1,0 @@
-'anaSayfaIzinlerimButon' adlı butona/elemana tıklanıyor
-Element anahtarı: anaSayfaIzinlerimButon

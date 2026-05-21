@@ -1,3 +1,0 @@
-✅ BAŞARILI
-'AnaSayfaKullanıcıAdıText' adlı elemanın değeri kontrol ediliyor (Beklenen: Test3)
-'AnaSayfaKullanıcıAdıText' adlı elemanın metni doğrulandı. Beklenen değer: 'Test3' bulundu.

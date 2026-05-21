@@ -1,2 +1,0 @@
-'izinTalepEtSayfasıIzinTipiFiltreInput' adlı alana metin yazılıyor (Yazılan: Sınav İzni)
-Element: izinTalepEtSayfasıIzinTipiFiltreInput, Yazılacak metin: Sınav İzni

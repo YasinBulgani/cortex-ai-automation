@@ -1,2 +1,0 @@
-'izinlerimSayfasıTalepEdilenIzınSilmeOnayButon' adlı elemanın sayfada görünür olduğu kontrol ediliyor
-Element: izinlerimSayfasıTalepEdilenIzınSilmeOnayButon

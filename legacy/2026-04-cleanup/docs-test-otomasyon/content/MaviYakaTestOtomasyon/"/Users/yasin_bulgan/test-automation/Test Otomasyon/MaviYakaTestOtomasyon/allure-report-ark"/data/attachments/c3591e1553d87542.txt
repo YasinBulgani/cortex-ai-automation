@@ -1,2 +1,0 @@
-'izinTalepEtSayfasıÜcretsizİzniBilgilendirmeButon' adlı butona/elemana tıklanıyor
-Element anahtarı: izinTalepEtSayfasıÜcretsizİzniBilgilendirmeButon
