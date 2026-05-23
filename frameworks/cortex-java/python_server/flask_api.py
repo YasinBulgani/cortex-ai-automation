@@ -2432,9 +2432,10 @@ def cortex_codegen_start():
     url = payload.get("url")
     target = payload.get("target", "javascript")
     browser = payload.get("browser", "chromium")
+    device = payload.get("device")  # E25: optional Playwright device preset name
     if not url:
         return jsonify({"ok": False, "error": "url required"}), 400
-    job = start_codegen(url=url, target=target, browser=browser)
+    job = start_codegen(url=url, target=target, browser=browser, device=device)
     return jsonify({"ok": job.status != "error", "job": job.to_dict()}), 200
 
 

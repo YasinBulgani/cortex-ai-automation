@@ -93,6 +93,7 @@ function RecorderTab({ onClose }: { onClose: () => void }) {
   const [url, setUrl] = useState("https://cortex-test.bgtsai.com/");
   const [featureName, setFeatureName] = useState("");
   const [browser, setBrowser] = useState("chromium");
+  const [device, setDevice] = useState("Desktop");
   // Recorder backend: "codegen" = Playwright official (daha sağlam, önerilen)
   const [backend, setBackend] = useState<"custom" | "codegen">("codegen");
   const [codegenJobId, setCodegenJobId] = useState<string | null>(null);
@@ -193,7 +194,7 @@ function RecorderTab({ onClose }: { onClose: () => void }) {
         // Playwright official codegen
         const r = await fetch(`${DASHBOARD_URL}/api/cortex/codegen/start`, {
           method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ url, target: "javascript", browser }),
+          body: JSON.stringify({ url, target: "javascript", browser, device: device !== "Desktop" ? device : undefined }),
         });
         const j = await r.json();
         if (!r.ok || !j.ok) {
@@ -207,7 +208,7 @@ function RecorderTab({ onClose }: { onClose: () => void }) {
         // Custom recorder.js + Java RecorderMain
         const r = await fetch(`${DASHBOARD_URL}/api/cortex/recorder/start`, {
           method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ url, feature_name: featureName || undefined, browser }),
+          body: JSON.stringify({ url, feature_name: featureName || undefined, browser, device: device !== "Desktop" ? device : undefined }),
         });
         const j = await r.json();
         if (!r.ok || !j.ok) {
@@ -569,6 +570,36 @@ function RecorderTab({ onClose }: { onClose: () => void }) {
             </p>
           )}
         </FormField>
+      </div>
+
+      {/* Device emulation — E25 */}
+      <div className="grid grid-cols-2 gap-3">
+        <FormField label="Cihaz Emülasyonu">
+          <select value={device} onChange={(e) => setDevice(e.target.value)} className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-white text-sm focus:border-fuchsia-500 focus:outline-none">
+            <optgroup label="Desktop">
+              <option value="Desktop">Desktop (varsayılan)</option>
+            </optgroup>
+            <optgroup label="iPhone">
+              <option value="iPhone 14">iPhone 14 (390×844, iOS Safari)</option>
+              <option value="iPhone 14 Pro">iPhone 14 Pro (393×852)</option>
+              <option value="iPhone SE">iPhone SE (375×667, küçük ekran)</option>
+            </optgroup>
+            <optgroup label="Android">
+              <option value="Pixel 7">Pixel 7 (412×915, Chrome Android)</option>
+              <option value="Galaxy S22">Galaxy S22 (360×780)</option>
+            </optgroup>
+            <optgroup label="Tablet">
+              <option value="iPad Pro">iPad Pro 12.9&quot; (1024×1366)</option>
+              <option value="iPad Mini">iPad Mini (768×1024)</option>
+            </optgroup>
+          </select>
+          {device !== "Desktop" && (
+            <p className="mt-1 text-[10px] text-fuchsia-300/80">
+              📱 <strong>{device}</strong> emülasyonu — viewport, user-agent ve touch desteği otomatik ayarlanır.
+            </p>
+          )}
+        </FormField>
+        <div /> {/* spacer */}
       </div>
 
       {err && (
