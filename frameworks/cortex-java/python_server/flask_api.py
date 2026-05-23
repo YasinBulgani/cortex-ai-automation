@@ -1949,6 +1949,20 @@ def cortex_recorder_enhance_stream():
     return Response(stream_with_context(_token_stream()), mimetype="text/event-stream")
 
 
+@app.route("/api/cortex/recorder/pause", methods=["POST"])
+def cortex_recorder_pause():
+    """E06: Pause recording — incoming browser actions are discarded until resumed."""
+    body, status = _recorder_call("POST", "/pause")
+    return jsonify(body), status
+
+
+@app.route("/api/cortex/recorder/resume", methods=["POST"])
+def cortex_recorder_resume():
+    """E06: Resume a paused recording session."""
+    body, status = _recorder_call("POST", "/resume")
+    return jsonify(body), status
+
+
 @app.route("/api/cortex/recorder/actions")
 def cortex_recorder_actions():
     """Full action list (for live preview)."""

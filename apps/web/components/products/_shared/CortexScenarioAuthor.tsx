@@ -105,6 +105,7 @@ function RecorderTab({ onClose }: { onClose: () => void }) {
   const [err, setErr] = useState<string | null>(null);
   const [busyStop, setBusyStop] = useState(false);
   const [busyUndo, setBusyUndo] = useState(false);
+  const [busyPause, setBusyPause] = useState(false);
 
   // 🪄 AI Polish — local Ollama post-processing of the most-recent .feature.
   // Triggered by the "AI Polish Son Kayıt" button in the idle view.
@@ -375,15 +376,27 @@ function RecorderTab({ onClose }: { onClose: () => void }) {
     return (
       <div className="space-y-4">
         {/* Status banner */}
-        <div className="rounded-xl bg-rose-500/10 border border-rose-500/30 p-4 flex items-center justify-between">
+        <div className={`rounded-xl p-4 flex items-center justify-between border ${
+          (status as {paused?: boolean} | null)?.paused
+            ? "bg-amber-500/10 border-amber-500/30"
+            : "bg-rose-500/10 border-rose-500/30"
+        }`}>
           <div className="flex items-center gap-3">
             <span className="relative flex h-3 w-3">
-              {phase === "running" && <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75" />}
-              <span className={`relative inline-flex rounded-full h-3 w-3 ${phase === "stopping" ? "bg-amber-400" : "bg-rose-500"}`} />
+              {phase === "running" && !(status as {paused?: boolean} | null)?.paused && (
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75" />
+              )}
+              <span className={`relative inline-flex rounded-full h-3 w-3 ${
+                phase === "stopping" ? "bg-amber-400"
+                : (status as {paused?: boolean} | null)?.paused ? "bg-amber-400"
+                : "bg-rose-500"
+              }`} />
             </span>
             <div>
               <p className="text-sm font-bold text-white">
-                {phase === "stopping" ? "Durduruluyor…" : "🔴 KAYIT YAPILIYOR"}
+                {phase === "stopping" ? "Durduruluyor…"
+                  : (status as {paused?: boolean} | null)?.paused ? "⏸ DURAKLATILDI"
+                  : "🔴 KAYIT YAPILIYOR"}
               </p>
               <p className="text-xs text-rose-200/80">
                 {phase === "stopping"
@@ -433,7 +446,7 @@ function RecorderTab({ onClose }: { onClose: () => void }) {
 
         {err && <div className="rounded-xl p-3 bg-rose-500/10 border border-rose-500/30 text-rose-300 text-sm">✗ {err}</div>}
 
-        {/* Control bar — STOP + UNDO + LOGS */}
+        {/* Control bar — PAUSE + STOP + UNDO + LOGS */}
         <div className="flex flex-wrap items-center gap-2 pt-1 sticky bottom-0 bg-slate-950 pb-1">
           <button
             onClick={undo}
@@ -452,6 +465,25 @@ function RecorderTab({ onClose }: { onClose: () => void }) {
             ↗ Cortex sekmesini öne getir
           </a>
           <div className="flex-1" />
+          {/* E06: Pause/Resume button */}
+          <button
+            onClick={async () => {
+              setBusyPause(true);
+              const isPaused = (status as {paused?: boolean} | null)?.paused;
+              try {
+                await fetch(`${DASHBOARD_URL}/api/cortex/recorder/${isPaused ? "resume" : "pause"}`, { method: "POST" });
+              } finally { setBusyPause(false); }
+            }}
+            disabled={busyPause || phase === "stopping"}
+            className={`px-4 py-2 rounded-lg text-sm font-medium border disabled:opacity-40 disabled:cursor-not-allowed ${
+              (status as {paused?: boolean} | null)?.paused
+                ? "bg-emerald-500/20 border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/30"
+                : "bg-amber-500/20 border-amber-500/40 text-amber-300 hover:bg-amber-500/30"
+            }`}
+            title={(status as {paused?: boolean} | null)?.paused ? "Kaydı devam ettir" : "Kaydı duraklat — telefon, e-posta bekleme vb."}
+          >
+            {busyPause ? "…" : (status as {paused?: boolean} | null)?.paused ? "▶ Devam Et" : "⏸ Duraklat"}
+          </button>
           <button
             onClick={stop}
             disabled={busyStop || phase === "stopping"}
