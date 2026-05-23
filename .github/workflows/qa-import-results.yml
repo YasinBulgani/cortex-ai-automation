@@ -93,13 +93,20 @@ jobs:
 
       - name: Import results → run YAML
         if: steps.detect.outputs.skip != 'true'
-        working-directory: qa
+        # Untrusted inputs (run_name, env_name) flow through env vars instead
+        # of direct ${{...}} interpolation in shell (Semgrep run-shell-injection).
+        env:
+          DETECTED_FLAGS: ${{ steps.detect.outputs.flags }}
+          RUN_NAME: ${{ inputs.run_name }}
+          ENV_NAME: ${{ inputs.env_name }}
+          RUN_ID: ${{ github.run_id }}
         run: |
-          cd ..
+          cd "$GITHUB_WORKSPACE"
+          # shellcheck disable=SC2086
           node qa/tools/import-results.mjs \
-            ${{ steps.detect.outputs.flags }} \
-            --name="${{ inputs.run_name }}-${{ github.run_id }}" \
-            --env="${{ inputs.env_name }}" \
+            $DETECTED_FLAGS \
+            --name="${RUN_NAME}-${RUN_ID}" \
+            --env="$ENV_NAME" \
             --browser=chromium \
             --plan=ci-auto
 
@@ -110,6 +117,11 @@ jobs:
 
       - name: Commit run YAML + coverage updates
         if: steps.detect.outputs.skip != 'true' && (inputs.auto_commit == true || github.event_name == 'workflow_dispatch')
+        env:
+          RUN_NAME: ${{ inputs.run_name }}
+          RUN_ID: ${{ github.run_id }}
+          WORKFLOW: ${{ github.workflow }}
+          SHA: ${{ github.sha }}
         run: |
           git config user.email "qa-bot@cortex-ai-automation.local"
           git config user.name "qa-bot"
@@ -119,8 +131,8 @@ jobs:
           else
             git commit -m "qa(ci): import run results $(date -u +%Y-%m-%d) [skip ci]
 
-Run: ${{ inputs.run_name }}-${{ github.run_id }}
-Source: ${{ github.workflow }} @ ${{ github.sha }}
+Run: ${RUN_NAME}-${RUN_ID}
+Source: ${WORKFLOW} @ ${SHA}
 "
             git push
           fi

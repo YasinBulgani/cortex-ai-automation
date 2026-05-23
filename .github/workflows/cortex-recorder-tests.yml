@@ -27,6 +27,7 @@ on:
 permissions:
   contents: read
   pull-requests: write   # needed for "PR comment on failure" step
+  issues: write          # github-script issues.createComment uses /issues/{n}/comments REST endpoint
 
 jobs:
   cortex-tests:

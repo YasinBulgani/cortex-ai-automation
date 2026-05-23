@@ -33,7 +33,12 @@ jobs:
         run: npm install --no-audit --no-fund
 
       - name: Write event payload
-        run: echo '${{ toJSON(github.event) }}' > /tmp/event.json
+        # Use env: indirection to avoid shell-injection via untrusted github.event
+        # data (Semgrep run-shell-injection). The payload is JSON; we cat env var
+        # into the file without interpreting shell metacharacters.
+        env:
+          EVENT_JSON: ${{ toJSON(github.event) }}
+        run: printf '%s' "$EVENT_JSON" > /tmp/event.json
 
       - name: Generate defect mirror
         working-directory: qa
@@ -44,6 +49,12 @@ jobs:
         run: node tools/trace.mjs
 
       - name: Commit mirror
+        # Move untrusted issue title/URL/number into env vars so the commit
+        # message construction can't be exploited by a malicious issue title.
+        env:
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          ISSUE_URL: ${{ github.event.issue.html_url }}
+          ISSUE_TITLE: ${{ github.event.issue.title }}
         run: |
           git config user.email "qa-bot@cortex-ai-automation.local"
           git config user.name "qa-bot"
@@ -51,10 +62,10 @@ jobs:
           if git diff --cached --quiet; then
             echo "No changes"
           else
-            git commit -m "qa(defect): mirror #${{ github.event.issue.number }} [skip ci]
+            git commit -m "qa(defect): mirror #${ISSUE_NUMBER} [skip ci]
 
-Issue: ${{ github.event.issue.html_url }}
-Title: ${{ github.event.issue.title }}
+Issue: ${ISSUE_URL}
+Title: ${ISSUE_TITLE}
 "
             git push
           fi
