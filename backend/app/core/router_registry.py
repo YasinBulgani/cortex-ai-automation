@@ -48,6 +48,14 @@ from app.domains.tspm.router import router as tspm_router
 from app.domains.nexus_repo.router import router as nexus_repo_router
 from app.domains.products.router import router as products_router
 
+# qa/ git-native test management — yeni domain (PR 41)
+try:
+    from app.domains.qa.router import router as qa_router  # type: ignore
+    _HAS_QA_ROUTER = True
+except ImportError:
+    qa_router = None  # type: ignore[assignment]
+    _HAS_QA_ROUTER = False
+
 # DDD bounded context routers (new architecture)
 try:
     from app.contexts.projects.api import router as contexts_projects_router
@@ -105,6 +113,9 @@ _PREFIXED_ROUTERS = [
     onboarding_router,
     nexus_repo_router,
 ]
+
+if _HAS_QA_ROUTER and qa_router is not None:
+    _PREFIXED_ROUTERS.append(qa_router)
 
 
 # Routers that carry their own full path prefix (e.g. /api/v1/api-testing/…)
