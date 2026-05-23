@@ -62,11 +62,11 @@ for (const t of tcs) {
   if (t.data.requirements?.length) requirementsByTc.set(t.data.id, t.data.requirements);
 }
 
-// CSV
+// CSV — sort by tc_id for deterministic output (Map insertion order is glob-order, non-deterministic)
 const csvLines = [
   "tc_id,suite,priority,type,automation_status,automation_ref,requirements,last_run,last_status,open_defects",
 ];
-for (const [id, data] of tcById) {
+for (const [id, data] of [...tcById].sort(([a], [b]) => a.localeCompare(b))) {
   const refs = (data.automation?.refs || []).join(" | ");
   const last = lastResultByTc.get(id);
   const reqs = (data.requirements || []).join(" | ");
@@ -151,16 +151,19 @@ for (const id of taggedTcs) {
   else if (data.automation?.status !== "automated")
     tcsTaggedButNotAutomated.push({ id, reason: "tagged-but-status-not-automated" });
 }
+tcsTaggedButNotAutomated.sort((a, b) => a.id.localeCompare(b.id));
 
 const tcsAutomatedButNotTagged = [];
 for (const id of tcsClaimingAutomation) {
   if (!taggedTcs.has(id)) tcsAutomatedButNotTagged.push(id);
 }
+tcsAutomatedButNotTagged.sort();
 
 const tcsWithoutRequirement = [];
 for (const [id, data] of tcById) {
   if (!data.requirements?.length) tcsWithoutRequirement.push(id);
 }
+tcsWithoutRequirement.sort();
 
 const reqsWithoutTc = [];
 const reqsById = new Set(reqs.map((r) => r.data?.id).filter(Boolean));
@@ -171,6 +174,7 @@ for (const [, data] of tcById) {
 for (const rid of reqsById) {
   if (!reqsCoveredByTc.has(rid)) reqsWithoutTc.push(rid);
 }
+reqsWithoutTc.sort();
 
 const orphanLines = [
   "# Orphans & Gaps",

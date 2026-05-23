@@ -59,27 +59,34 @@ jobs:
       # Smoke on PR, regression on push/schedule
       - name: Determine suite
         id: suite
+        # Use env vars to avoid ${{ github.* }} interpolation directly in shell
+        # (Semgrep run-shell-injection: untrusted context data must not be
+        #  interpolated in run: steps — use env: intermediates instead).
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          INPUT_TAG: ${{ inputs.tag }}
         run: |
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
+          if [ "$EVENT_NAME" = "pull_request" ]; then
             echo "tag=@smoke" >> "$GITHUB_OUTPUT"
             echo "label=SMOKE" >> "$GITHUB_OUTPUT"
-          elif [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "tag=${{ inputs.tag }}" >> "$GITHUB_OUTPUT"
+          elif [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            echo "tag=${INPUT_TAG:-@smoke}" >> "$GITHUB_OUTPUT"
             echo "label=CUSTOM" >> "$GITHUB_OUTPUT"
           else
             echo "tag=@cortex and not @manual" >> "$GITHUB_OUTPUT"
             echo "label=REGRESSION" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Run tests (${{ steps.suite.outputs.label }})
+      - name: Run tests
         run: |
           ./mvnw -B test \
             -Pheadless,parallel \
             -Dparallel.threads=4 \
-            -Dcucumber.filter.tags="${{ steps.suite.outputs.tag }}"
+            -Dcucumber.filter.tags="$SUITE_TAG"
         env:
           CORTEX_ENV: ci
           PLAYWRIGHT_TIMEOUT_MS: 60000
+          SUITE_TAG: ${{ steps.suite.outputs.tag }}
 
       - name: Upload test artifacts
         if: always()

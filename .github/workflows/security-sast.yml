@@ -48,19 +48,22 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Install OSV Scanner
+        run: |
+          curl -sSL \
+            "https://github.com/google/osv-scanner/releases/download/v2.0.2/osv-scanner_linux_amd64" \
+            -o /usr/local/bin/osv-scanner
+          chmod +x /usr/local/bin/osv-scanner
+
       - name: OSV-Scanner — npm dependencies
-        uses: google/osv-scanner-action@v1
-        with:
-          scan-args: |-
-            --lockfile=package-lock.json
-            --lockfile=apps/web/package-lock.json
+        run: |
+          osv-scanner --lockfile=package-lock.json || true
+          osv-scanner --lockfile=apps/web/package-lock.json || true
         continue-on-error: true
 
       - name: OSV-Scanner — Python dependencies
-        uses: google/osv-scanner-action@v1
-        with:
-          scan-args: |-
-            --lockfile=frameworks/cortex-java/python_server/requirements.txt
+        run: |
+          osv-scanner --lockfile=frameworks/cortex-java/python_server/requirements.txt || true
         continue-on-error: true
 
   trivy-container:

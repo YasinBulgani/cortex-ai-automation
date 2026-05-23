@@ -73,7 +73,7 @@ public final class PlaywrightFactory {
         if (pw == null) {
             pw = Playwright.create();
             PW.set(pw);
-            ALL_PW.put(Thread.currentThread().threadId(), pw);
+            ALL_PW.put(Thread.currentThread().getId(), pw);
         }
         Browser br = BROWSER.get();
         if (br == null) {
@@ -86,7 +86,7 @@ public final class PlaywrightFactory {
                     .setHeadless(PlaywrightConfig.headless())
                     .setSlowMo(PlaywrightConfig.slowMo()));
             BROWSER.set(br);
-            ALL_BR.put(Thread.currentThread().threadId(), br);
+            ALL_BR.put(Thread.currentThread().getId(), br);
         }
 
         // 2) per-scenario context + page
