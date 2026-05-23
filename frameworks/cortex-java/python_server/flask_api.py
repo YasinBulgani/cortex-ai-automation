@@ -34,6 +34,7 @@ from flask import (
     abort,
     jsonify,
     request,
+    send_file,
     send_from_directory,
     stream_with_context,
 )
@@ -1395,6 +1396,22 @@ def cortex_recorder_undo():
     return jsonify(body), status
 
 
+@app.route("/api/cortex/recorder/pause", methods=["POST"])
+def cortex_recorder_pause():
+    """Pause the recorder (E06 fix) — Java side discards incoming actions
+    while paused.set(true). /status response'unda paused field görünür.
+    """
+    body, status = _recorder_call("POST", "/pause")
+    return jsonify(body), status
+
+
+@app.route("/api/cortex/recorder/resume", methods=["POST"])
+def cortex_recorder_resume():
+    """Resume the recorder (E06 fix)."""
+    body, status = _recorder_call("POST", "/resume")
+    return jsonify(body), status
+
+
 # ───────────────────────────────────────────────────────────────────────────
 #  Local LLM polish — Ollama @ 127.0.0.1:11434
 #  Takes a recorded .feature and asks the local model to:
@@ -1739,6 +1756,319 @@ def cortex_recorder_replay():
         "skipped": skipped,
         "results": results,
     })
+
+
+@app.route("/api/cortex/locator/suggest", methods=["POST"])
+def cortex_locator_suggest():
+    """AI-powered locator suggestion (E20 MVP).
+
+    Test fail durumunda — orijinal selector çalışmıyor → DOM snippet'i + key'i
+    Ollama'ya gönder, alternatif selector'lar öner.
+
+    Body: {
+      key: str,                  # locator key (e.g., "girisYapButton")
+      original_selector?: str,   # broken selector
+      dom_snippet: str,          # current page HTML around the expected area
+      context?: str,             # optional: scenario name, step text
+    }
+    Returns: {
+      ok, suggestions: [
+        {selector, type: "css"|"xpath"|"role"|"testid", confidence: 0-100, why: str},
+        ...
+      ]
+    }
+    """
+    data = request.get_json(silent=True) or {}
+    key = (data.get("key") or "").strip()
+    original = (data.get("original_selector") or "").strip()
+    dom = (data.get("dom_snippet") or "").strip()
+    context = (data.get("context") or "").strip()
+
+    if not key or not dom:
+        return jsonify({"ok": False, "error": "key + dom_snippet zorunlu"}), 400
+
+    # Truncate large DOMs to fit in context
+    if len(dom) > 8000:
+        dom = dom[:8000] + "\n<!-- ...truncated... -->"
+
+    prompt = (
+        "Sen QA otomasyon uzmanisin. Bir Playwright testi BAŞARISIZ oldu çünkü "
+        "bir element bulunamadı. DOM'u inceleyip alternatif selector öner.\n\n"
+        f"ARANAN ELEMENT KEY: {key}\n"
+    )
+    if original:
+        prompt += f"ORİJİNAL (çalışmayan) SELECTOR: {original}\n"
+    if context:
+        prompt += f"SENARYO BAĞLAMI: {context}\n"
+    prompt += (
+        "\nSAYFA DOM ÖRNEĞİ:\n"
+        "```html\n"
+        f"{dom}\n"
+        "```\n\n"
+        "GÖREVLER:\n"
+        "1. Bu DOM'da key'in semantik olarak karşılığı olabilecek en az 3 element bul\n"
+        "2. Her biri için Playwright-uyumlu bir selector öner (öncelik: data-testid > id > role+name > css)\n"
+        "3. Confidence (0-100): selector'ın doğru element'i bulma olasılığı\n\n"
+        "ÇIKTI FORMATI (sadece JSON dizisi, başka açıklama YOK):\n"
+        '[\n'
+        '  {"selector": "[data-testid=\\"submit\\"]", "type": "testid", "confidence": 95, "why": "data-testid attribute en stabil"},\n'
+        '  {"selector": "button:has-text(\\"Giriş Yap\\")", "type": "css", "confidence": 75, "why": "metin tabanlı, dile bağımlı"},\n'
+        '  ...\n'
+        ']\n\n'
+        "JSON:\n"
+    )
+
+    response, err = _ollama_generate(prompt, OLLAMA_MODEL, timeout=60.0)
+    if err:
+        return jsonify({"ok": False, "error": err}), 502
+
+    # Try to parse JSON from response
+    suggestions = []
+    try:
+        # Strip markdown fences if any
+        clean = _strip_markdown_fences(response).strip()
+        # Find first [ ... ]
+        start = clean.find("[")
+        end = clean.rfind("]")
+        if start >= 0 and end > start:
+            suggestions = json.loads(clean[start:end + 1])
+    except Exception as e:
+        return jsonify({
+            "ok": True,
+            "suggestions": [],
+            "raw_response": response,
+            "parse_error": str(e),
+            "warning": "LLM çıktısı parse edilemedi, raw_response'a bak",
+        })
+
+    # Validate structure
+    valid = []
+    for s in suggestions if isinstance(suggestions, list) else []:
+        if isinstance(s, dict) and s.get("selector"):
+            valid.append({
+                "selector": str(s.get("selector", "")),
+                "type": str(s.get("type", "css")),
+                "confidence": int(s.get("confidence", 50)),
+                "why": str(s.get("why", "")),
+            })
+
+    return jsonify({
+        "ok": True,
+        "key": key,
+        "model": OLLAMA_MODEL,
+        "suggestions": valid,
+    })
+
+
+@app.route("/api/cortex/test-runs/list", methods=["GET"])
+def cortex_test_runs_list():
+    """List recent test runs from target/test-runs/ (E18 MVP).
+
+    PwHooks creates one directory per scenario with result.json + step screenshots.
+    Indexes them for the dashboard's recordings/runs page.
+
+    Query: ?limit=50&offset=0&status=passed|failed|all
+    Returns: { ok, total, runs: [{id, scenario, passed, duration_ms, steps, ...}] }
+    """
+    cortex_dir = Path(__file__).resolve().parent.parent
+    runs_dir = cortex_dir / "target" / "test-runs"
+
+    if not runs_dir.is_dir():
+        return jsonify({"ok": True, "total": 0, "runs": [],
+                        "note": f"test-runs dizini yok: {runs_dir}"})
+
+    limit = min(int(request.args.get("limit", 50)), 200)
+    offset = int(request.args.get("offset", 0))
+    status_filter = (request.args.get("status") or "all").lower()
+
+    all_runs = []
+    for run_dir in runs_dir.iterdir():
+        if not run_dir.is_dir():
+            continue
+        result_file = run_dir / "result.json"
+        if not result_file.exists():
+            try:
+                mtime = run_dir.stat().st_mtime
+            except Exception:
+                continue
+            all_runs.append({
+                "id": run_dir.name, "scenario": run_dir.name,
+                "passed": None, "duration_ms": 0, "steps": 0,
+                "screenshot_count": len(list(run_dir.glob("*.png"))),
+                "mtime": mtime, "in_progress": True,
+            })
+            continue
+        try:
+            data = json.loads(result_file.read_text(encoding="utf-8"))
+        except Exception:
+            continue
+
+        if status_filter == "passed" and not data.get("passed"):
+            continue
+        if status_filter == "failed" and data.get("passed"):
+            continue
+
+        screenshots = sorted([f.name for f in run_dir.glob("*.png")])
+        all_runs.append({
+            "id": run_dir.name,
+            "scenario": data.get("scenario", run_dir.name),
+            "passed": data.get("passed"),
+            "duration_ms": data.get("duration_ms", 0),
+            "steps": data.get("steps", 0),
+            "screenshot_count": len(screenshots),
+            "screenshots": screenshots,
+            "mtime": run_dir.stat().st_mtime,
+        })
+
+    all_runs.sort(key=lambda r: r["mtime"], reverse=True)
+    paginated = all_runs[offset:offset + limit]
+
+    return jsonify({
+        "ok": True, "total": len(all_runs),
+        "limit": limit, "offset": offset, "runs": paginated,
+    })
+
+
+@app.route("/api/cortex/test-runs/<run_id>", methods=["GET"])
+def cortex_test_run_detail(run_id):
+    """Detailed info for one test run + screenshot list."""
+    import re as _re
+    if not _re.match(r"^[A-Za-z0-9_-]+$", run_id):
+        return jsonify({"ok": False, "error": "geçersiz run_id"}), 400
+
+    cortex_dir = Path(__file__).resolve().parent.parent
+    run_dir = cortex_dir / "target" / "test-runs" / run_id
+    if not run_dir.is_dir():
+        return jsonify({"ok": False, "error": "run bulunamadı"}), 404
+
+    result_file = run_dir / "result.json"
+    data = {}
+    if result_file.exists():
+        try:
+            data = json.loads(result_file.read_text(encoding="utf-8"))
+        except Exception:
+            pass
+
+    screenshots = []
+    for png in sorted(run_dir.glob("*.png")):
+        screenshots.append({
+            "name": png.name,
+            "path": str(png.relative_to(cortex_dir)),
+            "size_bytes": png.stat().st_size,
+        })
+
+    return jsonify({
+        "ok": True, "id": run_id,
+        "scenario": data.get("scenario", run_id),
+        "passed": data.get("passed"),
+        "duration_ms": data.get("duration_ms", 0),
+        "steps": data.get("steps", 0),
+        "screenshots": screenshots,
+        "mtime": run_dir.stat().st_mtime,
+    })
+
+
+@app.route("/api/cortex/test-runs/<run_id>/screenshot/<filename>", methods=["GET"])
+def cortex_test_run_screenshot(run_id, filename):
+    """Serve a screenshot PNG from a run directory (path-traversal safe)."""
+    import re as _re
+    if not _re.match(r"^[A-Za-z0-9_-]+$", run_id):
+        return jsonify({"error": "geçersiz run_id"}), 400
+    if not _re.match(r"^[A-Za-z0-9._-]+\.png$", filename):
+        return jsonify({"error": "geçersiz dosya adı"}), 400
+
+    cortex_dir = Path(__file__).resolve().parent.parent
+    png_path = (cortex_dir / "target" / "test-runs" / run_id / filename).resolve()
+    try:
+        png_path.relative_to((cortex_dir / "target" / "test-runs").resolve())
+    except (ValueError, OSError):
+        return jsonify({"error": "path traversal blocked"}), 400
+
+    if not png_path.exists():
+        return jsonify({"error": "screenshot yok"}), 404
+
+    return send_file(str(png_path), mimetype="image/png")
+
+
+@app.route("/api/cortex/recordings/list", methods=["GET"])
+def cortex_recordings_list():
+    """List all recorded .feature files with metadata (E18).
+
+    Query: ?limit=50&offset=0&tag=smoke&status=all|with_runs|no_runs
+    Returns: { ok, total, recordings: [{name, path, scenario_count, tags, last_run_at, last_passed, size_bytes}] }
+    """
+    limit = min(int(request.args.get("limit", 50)), 200)
+    offset = int(request.args.get("offset", 0))
+    tag_filter = (request.args.get("tag") or "").strip().lower()
+    status_filter = (request.args.get("status") or "all").lower()
+
+    cortex_dir = Path(__file__).resolve().parent.parent
+    runs_dir = cortex_dir / "target" / "test-runs"
+
+    # Build a lookup: scenario_name → most recent run result
+    run_lookup: dict = {}
+    if runs_dir.is_dir():
+        for run_dir in runs_dir.iterdir():
+            if not run_dir.is_dir():
+                continue
+            result_file = run_dir / "result.json"
+            if not result_file.exists():
+                continue
+            try:
+                data = json.loads(result_file.read_text(encoding="utf-8"))
+                scenario = data.get("scenario", "")
+                mtime = run_dir.stat().st_mtime
+                existing = run_lookup.get(scenario)
+                if existing is None or mtime > existing["mtime"]:
+                    run_lookup[scenario] = {
+                        "mtime": mtime,
+                        "passed": data.get("passed"),
+                    }
+            except Exception:
+                continue
+
+    all_recordings = []
+    for recordings_dir in [
+        cortex_dir / "src" / "test" / "resources" / "recordings",
+        RECORDINGS_DIR,
+    ]:
+        if not recordings_dir or not recordings_dir.is_dir():
+            continue
+        for feature_file in recordings_dir.glob("*.feature"):
+            try:
+                content = feature_file.read_text(encoding="utf-8", errors="replace")
+                lines = content.splitlines()
+                scenario_count = sum(1 for l in lines if l.strip().startswith("Scenario"))
+                tags = [w.lstrip("@") for line in lines
+                        if line.strip().startswith("@")
+                        for w in line.split()
+                        if w.startswith("@")]
+                unique_tags = list(dict.fromkeys(tags))
+                if tag_filter and tag_filter not in [t.lower() for t in unique_tags]:
+                    continue
+                run_info = run_lookup.get(feature_file.stem, {})
+                last_run_at = run_info.get("mtime")
+                last_passed = run_info.get("passed")
+                if status_filter == "with_runs" and last_run_at is None:
+                    continue
+                if status_filter == "no_runs" and last_run_at is not None:
+                    continue
+                all_recordings.append({
+                    "name": feature_file.stem,
+                    "path": str(feature_file.relative_to(cortex_dir)),
+                    "scenario_count": scenario_count,
+                    "tags": unique_tags,
+                    "last_run_at": last_run_at,
+                    "last_passed": last_passed,
+                    "size_bytes": feature_file.stat().st_size,
+                    "mtime": feature_file.stat().st_mtime,
+                })
+            except Exception:
+                continue
+
+    all_recordings.sort(key=lambda r: r["mtime"], reverse=True)
+    paginated = all_recordings[offset:offset + limit]
+    return jsonify({"ok": True, "total": len(all_recordings), "limit": limit, "offset": offset, "recordings": paginated})
 
 
 @app.route("/api/cortex/llm/models", methods=["GET"])
