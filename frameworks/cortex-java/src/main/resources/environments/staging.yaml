@@ -1,0 +1,8 @@
+# Staging environment
+env: staging
+base_url: https://cortex-staging.bgtsai.com
+api_url: https://api-staging.bgtsai.com
+db_url: jdbc:sqlserver://10.10.0.49:1433;databaseName=HCM_Stage_Final;encrypt=false;trustServerCertificate=true
+feature_flags:
+  new_dashboard: true
+  ai_polish: true

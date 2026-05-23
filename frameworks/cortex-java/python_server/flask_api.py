@@ -1172,6 +1172,41 @@ def _probe_recorder_port(timeout_total: float = 25.0) -> int | None:
     return None
 
 
+def _kill_stale_recorders() -> dict[str, Any]:
+    """Best-effort: stop any leftover recorder JVM (cached state + scan ports + pgrep).
+
+    Why: orphan JVMs occupy 7700/7701, and a stale `_recorder_state.port` causes
+    the next /status poll to talk to the wrong JVM (pid/port mismatch).
+    """
+    killed = {"via_stop": 0, "via_signal": 0, "ports_freed": []}
+    # 1) Cached port → graceful /stop
+    cached_port = _recorder_state.get("port")
+    if cached_port:
+        try:
+            _recorder_call("POST", "/stop", port=cached_port)
+            killed["via_stop"] += 1
+        except Exception:
+            pass
+    # 2) Scan recorder port range — any listener is suspicious
+    for p in RECORDER_PORT_RANGE:
+        try:
+            with _urlreq.urlopen(f"http://127.0.0.1:{p}/stop", timeout=0.4,
+                                 data=b"") as _:
+                killed["via_stop"] += 1
+                killed["ports_freed"].append(p)
+        except Exception:
+            continue
+    # 3) Hard kill any RecorderMain process still around
+    try:
+        r = subprocess.run(["pkill", "-f", "recorder.RecorderMain"], timeout=3)
+        if r.returncode == 0:
+            killed["via_signal"] += 1
+    except Exception:
+        pass
+    _recorder_state.clear()
+    return killed
+
+
 @app.route("/api/cortex/recorder/start", methods=["POST"])
 def cortex_recorder_start():
     """Spawn the Java recorder via Maven (-Precorder).
@@ -1184,6 +1219,14 @@ def cortex_recorder_start():
     url     = data.get("url") or "https://cortex-test.bgtsai.com/"
     feature = data.get("feature_name") or ""
     browser = data.get("browser") or "chromium"
+
+    # Stop any orphan recorder JVM + clear stale state BEFORE spawning new one.
+    # Without this, the new spawn races with leftover JVMs on 7700/7701 and
+    # _probe_recorder_port returns the wrong port.
+    stale = _kill_stale_recorders()
+    if stale["via_stop"] or stale["via_signal"]:
+        log.info("Killed stale recorders before spawn: %s", stale)
+        time.sleep(1.0)  # give the OS a beat to release ports
 
     mvn = "./mvnw" if (PROJECT_ROOT / "mvnw").exists() else "mvn"
     cmd = [
@@ -1216,6 +1259,7 @@ def cortex_recorder_start():
             "url": url,
             "port": port,
             "log_file": str(log_file.relative_to(PROJECT_ROOT)),
+            "stale_killed": stale,
             "port_warning": None if port else "Recorder port 30sn icinde acilmadi — Maven derlenirken olabilir",
         })
     except Exception as exc:
@@ -1278,11 +1322,70 @@ def cortex_recorder_status():
 
 @app.route("/api/cortex/recorder/stop", methods=["POST"])
 def cortex_recorder_stop():
-    """Trigger the recorder to save & exit (same as the in-browser Stop button)."""
+    """Trigger the recorder to save & exit. Enriched with the saved file's
+    metadata so the dashboard can show it without a separate call (E10 fix).
+
+    Returns: { ok, feature_file?, locator_file?, mtime?, action_count?, name? }
+    """
+    import time as _time
     body, status = _recorder_call("POST", "/stop")
-    if status == 200:
-        _recorder_state.update({"pid": None, "port": None})
-    return jsonify(body), status
+    if status != 200:
+        return jsonify(body), status
+
+    _recorder_state.update({"pid": None, "port": None})
+
+    # Wait for Java to finish persisting (typically 1-2 seconds).
+    # We poll the recordings dir for the freshly-written .feature file.
+    cortex_dir = Path(__file__).resolve().parent.parent
+    recordings = cortex_dir / "src" / "test" / "resources" / "recordings"
+    deadline = _time.time() + 5.0
+
+    pre_state_mtime = 0
+    if recordings.is_dir():
+        # Snapshot mtime of newest pre-existing file (so we detect a NEW one)
+        existing = list(recordings.glob("*.feature"))
+        if existing:
+            pre_state_mtime = max(f.stat().st_mtime for f in existing)
+
+    latest = None
+    while _time.time() < deadline:
+        if recordings.is_dir():
+            files = list(recordings.glob("*.feature"))
+            if files:
+                newest = max(files, key=lambda f: f.stat().st_mtime)
+                if newest.stat().st_mtime > pre_state_mtime + 0.1:
+                    latest = newest
+                    break
+        _time.sleep(0.3)
+
+    response = dict(body) if isinstance(body, dict) else {"ok": True}
+    if latest:
+        response["feature_file"] = str(latest)
+        response["name"] = latest.name
+        response["mtime"] = latest.stat().st_mtime
+
+        # Companion locator JSON
+        loc_path = recordings / "locators" / (latest.stem + ".json")
+        if loc_path.exists():
+            response["locator_file"] = str(loc_path)
+            try:
+                response["locator_count"] = len(json.loads(loc_path.read_text()))
+            except Exception:
+                pass
+
+        # Count steps in feature (excluding comments/blank lines)
+        try:
+            lines = latest.read_text(encoding="utf-8").splitlines()
+            response["action_count"] = sum(
+                1 for ln in lines
+                if ln.strip() and not ln.strip().startswith("#")
+                and any(ln.strip().startswith(kw) for kw in
+                        ("Given ", "When ", "Then ", "And ", "But ", "* "))
+            )
+        except Exception:
+            pass
+
+    return jsonify(response), 200
 
 
 @app.route("/api/cortex/recorder/undo", methods=["POST"])
@@ -1290,6 +1393,560 @@ def cortex_recorder_undo():
     """Remove the last recorded action."""
     body, status = _recorder_call("POST", "/undo")
     return jsonify(body), status
+
+
+# ───────────────────────────────────────────────────────────────────────────
+#  Local LLM polish — Ollama @ 127.0.0.1:11434
+#  Takes a recorded .feature and asks the local model to:
+#   - rename the Scenario title to something descriptive (Turkish)
+#   - insert helpful `#` comments above important steps
+#   - suggest a Then assertion as a `# ONERI:` line
+#  The model is INSTRUCTED not to alter existing step lines.
+# ───────────────────────────────────────────────────────────────────────────
+OLLAMA_URL   = os.environ.get("CORTEX_OLLAMA_URL",   "http://127.0.0.1:11434")
+OLLAMA_MODEL = os.environ.get("CORTEX_OLLAMA_MODEL", "qwen2.5:14b")
+
+
+def _build_polish_prompt(feature_content: str) -> str:
+    return (
+        "Sen QA otomasyon uzmanisin. Asagidaki kaydedilmis Gherkin senaryosunu IYILESTIR.\n\n"
+        "GOREVLER:\n"
+        "1. Anlamsiz 'Scenario:' baslik satirini ('Recorded - 22.05...' gibi) "
+        "anlamli, Turkce, ozet bir basliga cevir.\n"
+        "2. Onemli adimlarin USTUNE TEK satirlik Turkce yorum (`# `) ekle. "
+        "Kullanicinin niyetini aciklayan, kisa.\n"
+        "3. Senaryonun sonuna en az 1 dogrulama onerisi ekle (yorum olarak):\n"
+        "   `    # ONERI: Then I see \"<locator-key>\"`  (locator key tahmin et)\n"
+        "4. Mevcut `Given/When/Then/* I ...` satirlarina KESINLIKLE DOKUNMA.\n"
+        "5. Yorum/locator JSON header'ini (en ustteki `# Auto-generated...` ve "
+        "`# Locator file:` satirlari) AYNEN BIRAK.\n"
+        "6. Ciktida SADECE Gherkin metni dondur, baska aciklama veya markdown "
+        "kod bloku (```) YOK.\n\n"
+        "KAYDEDILMIS .feature:\n"
+        "------ BEGIN ------\n"
+        f"{feature_content}\n"
+        "------ END ------\n\n"
+        "IYILESTIRILMIS .feature:\n"
+    )
+
+
+def _ollama_generate(prompt: str, model: str, timeout: float = 120.0) -> tuple[str, str | None]:
+    """Returns (response_text, error). Either error is None and text is filled, or vice versa."""
+    payload = json.dumps({
+        "model": model,
+        "prompt": prompt,
+        "stream": False,
+        "options": {"temperature": 0.2, "num_ctx": 8192},
+    }).encode("utf-8")
+    req = _urlreq.Request(
+        f"{OLLAMA_URL}/api/generate",
+        data=payload,
+        headers={"Content-Type": "application/json"},
+        method="POST",
+    )
+    try:
+        with _urlreq.urlopen(req, timeout=timeout) as resp:
+            raw = resp.read().decode("utf-8", errors="replace")
+            data = json.loads(raw)
+            return (data.get("response", "") or "").strip(), None
+    except _urlerr.HTTPError as e:
+        return "", f"Ollama HTTP {e.code}: {e.reason}"
+    except Exception as e:
+        return "", f"Ollama: {e}"
+
+
+def _strip_markdown_fences(text: str) -> str:
+    """LLMs love to wrap output in ```gherkin / ```. Strip those if present."""
+    text = re.sub(r"^\s*```\w*\s*\n", "", text)
+    text = re.sub(r"\n?\s*```\s*$", "", text)
+    return text.strip() + "\n"
+
+
+@app.route("/api/cortex/recorder/last-feature", methods=["GET"])
+def cortex_recorder_last_feature():
+    """Return the most-recently-modified .feature in the recordings dir.
+
+    Used by the dashboard's "AI Polish" button — after the user clicks
+    Durdur ve Kaydet, the just-saved file is the newest one in the dir.
+    """
+    # python_server/flask_api.py  →  parent.parent = frameworks/cortex-java/
+    cortex_dir = Path(__file__).resolve().parent.parent
+    recordings = cortex_dir / "src" / "test" / "resources" / "recordings"
+    if not recordings.is_dir():
+        return jsonify({"ok": False, "error": f"Recordings dir yok: {recordings}"}), 404
+
+    feature_files = list(recordings.glob("*.feature"))
+    if not feature_files:
+        return jsonify({"ok": False, "error": "Henüz kaydedilmiş .feature yok"}), 404
+
+    latest = max(feature_files, key=lambda p: p.stat().st_mtime)
+    try:
+        content = latest.read_text(encoding="utf-8")
+    except Exception as e:
+        return jsonify({"ok": False, "error": f"Read fail: {e}"}), 500
+
+    return jsonify({
+        "ok":      True,
+        "path":    str(latest),
+        "name":    latest.name,
+        "content": content,
+        "mtime":   latest.stat().st_mtime,
+    })
+
+
+@app.route("/api/cortex/recorder/explain-failure", methods=["POST"])
+def cortex_recorder_explain_failure():
+    """Türkçe açıklayıcı yorum (E12 fix) — test fail'lerini QA testçisi
+    için anlamlı hale getirir. Ollama'ya output + feature gönderir.
+
+    Body: { output: str, feature_path?: str, model?: str }
+    Returns: { ok, explanation, suggested_fixes: [...] }
+    """
+    data = request.get_json(silent=True) or {}
+    output = (data.get("output") or "").strip()
+    feature_path = (data.get("feature_path") or "").strip()
+    model = (data.get("model") or OLLAMA_MODEL).strip()
+
+    if not output:
+        return jsonify({"ok": False, "error": "output bos"}), 400
+
+    feature_content = ""
+    if feature_path:
+        try:
+            feature_content = Path(feature_path).read_text(encoding="utf-8")[:2000]
+        except Exception:
+            pass
+
+    prompt = (
+        "Sen QA otomasyon uzmanisin. Bir Cucumber+Playwright testi BASARISIZ oldu. "
+        "Maven/Java stacktrace'ini analiz et ve QA testçisi için TÜRKÇE açıkla.\n\n"
+        "CEVAP ŞABLONU (JSON gibi yazma, düz metin yaz):\n"
+        "## Hatanın Özeti\n"
+        "(1-2 cümle, teknik terim minimum)\n\n"
+        "## Muhtemel Sebepler\n"
+        "1. ...\n"
+        "2. ...\n\n"
+        "## Çözüm Önerileri\n"
+        "1. ... (somut, uygulanabilir)\n"
+        "2. ...\n\n"
+        "KURALLAR:\n"
+        "- Java stacktrace satırlarını AÇIKLA, kopyalama\n"
+        "- 'Locator missing' gibi spesifik kelimelerin ne anlama geldiğini açıkla\n"
+        "- Çözümleri eylemsel yaz: 'Şunu kontrol et', 'Şunu deneyebilirsin'\n\n"
+    )
+    if feature_content:
+        prompt += "TEST DOSYASI (ilk 2000 char):\n" + feature_content + "\n\n"
+    prompt += "MAVEN/CUCUMBER ÇIKTI (son 200 satır):\n" + output[-6000:] + "\n\n"
+    prompt += "AÇIKLAMA:\n"
+
+    explanation, err = _ollama_generate(prompt, model, timeout=120.0)
+    if err:
+        return jsonify({"ok": False, "error": err}), 502
+
+    return jsonify({
+        "ok": True,
+        "explanation": _strip_markdown_fences(explanation),
+        "model": model,
+    })
+
+
+@app.route("/api/cortex/recorder/run", methods=["POST"])
+def cortex_recorder_run():
+    """
+    Run a single .feature via Maven + Cucumber (E11 fix).
+
+    Body: { "feature_path": "src/test/resources/.../foo.feature",
+            "timeout_ms": 45000 }
+    Returns: { ok, exit_code, duration_ms, summary, output (last 200 lines) }
+
+    Sync — blocks until mvn test finishes (10-60s typical). For streaming
+    output, see future /run/stream SSE endpoint.
+    """
+    import subprocess, time as _time
+    data = request.get_json(silent=True) or {}
+    feature = (data.get("feature_path") or "").strip()
+    timeout_ms = int(data.get("timeout_ms") or 45000)
+
+    if not feature:
+        return jsonify({"ok": False, "error": "feature_path zorunlu"}), 400
+
+    # Security: confine to recordings/ dir under the project
+    cortex_dir = Path(__file__).resolve().parent.parent
+    abs_path = (cortex_dir / feature) if not feature.startswith("/") else Path(feature)
+    try:
+        abs_path = abs_path.resolve()
+        # Must be under cortex-java dir
+        abs_path.relative_to(cortex_dir.resolve())
+    except (ValueError, OSError):
+        return jsonify({"ok": False, "error": "feature_path geçersiz veya proje dışı"}), 400
+
+    if not abs_path.exists():
+        return jsonify({"ok": False, "error": f"Dosya yok: {abs_path}"}), 404
+
+    cmd = [
+        "./mvnw", "-B", "test",
+        f"-Dcucumber.features={abs_path}",
+        f"-Dplaywright.timeout.ms={timeout_ms}",
+    ]
+
+    t0 = _time.time()
+    try:
+        proc = subprocess.run(
+            cmd, cwd=str(cortex_dir),
+            capture_output=True, text=True,
+            timeout=180,  # absolute upper bound 3 minutes
+        )
+    except subprocess.TimeoutExpired:
+        return jsonify({
+            "ok": False,
+            "error": "Test 180 saniyede tamamlanmadı (sürdür timeout)",
+            "duration_ms": int((_time.time() - t0) * 1000),
+        }), 504
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+    duration_ms = int((_time.time() - t0) * 1000)
+    output_lines = (proc.stdout + "\n" + proc.stderr).splitlines()
+    tail = "\n".join(output_lines[-200:])
+
+    # Parse summary from Cucumber output
+    summary = {"scenarios": "?", "steps": "?", "result": "unknown"}
+    for line in output_lines:
+        if "Scenarios" in line and "(" in line:
+            summary["scenarios"] = line.strip()
+        elif "Steps" in line and "(" in line:
+            summary["steps"] = line.strip()
+        elif "BUILD SUCCESS" in line:
+            summary["result"] = "success" if proc.returncode == 0 else "build_ok_test_fail"
+        elif "BUILD FAILURE" in line:
+            summary["result"] = "failure"
+    if "(1 passed)" in (summary["scenarios"] or "") and proc.returncode == 0:
+        summary["result"] = "passed"
+    elif "(1 failed)" in (summary["scenarios"] or ""):
+        summary["result"] = "failed"
+
+    return jsonify({
+        "ok": True,
+        "exit_code": proc.returncode,
+        "duration_ms": duration_ms,
+        "summary": summary,
+        "output": tail,
+        "feature": str(abs_path.relative_to(cortex_dir)),
+    })
+
+
+@app.route("/api/cortex/recorder/replay", methods=["POST"])
+def cortex_recorder_replay():
+    """
+    Replay the currently-recorded action list against the LIVE recorder JVM
+    via Java's /perform endpoint (E09 fix).
+
+    Body: { actions?: [...] }  — if empty, fetches live list from Java /actions.
+    Returns: { ok, total, passed, failed, results: [...] }
+    """
+    data = request.get_json(silent=True) or {}
+    actions = data.get("actions")
+
+    # If client didn't supply actions, pull the live list from Java
+    if not actions:
+        body, status = _recorder_call("GET", "/actions")
+        if status != 200:
+            return jsonify({"ok": False, "error": "Java /actions çağrısı başarısız"}), 502
+        actions = body if isinstance(body, list) else []
+
+    if not actions:
+        return jsonify({"ok": False, "error": "Replay edilecek aksiyon yok"}), 400
+
+    # Map RecordedAction → /perform body. Skip non-interactive ones.
+    def best_selector(element):
+        if not element:
+            return None
+        if element.get("dataTestId"): return f"[data-testid='{element['dataTestId']}']"
+        if element.get("id"):         return f"#{element['id']}"
+        if element.get("name"):       return f"[name='{element['name']}']"
+        if element.get("xpath"):      return f"xpath={element['xpath']}"
+        if element.get("cssPath"):    return element["cssPath"]
+        return None
+
+    results = []
+    passed = 0
+    failed = 0
+    skipped = 0
+
+    for i, a in enumerate(actions):
+        atype = a.get("type")
+        elt = a.get("element") or {}
+        text = a.get("text") or ""
+        url = a.get("url") or ""
+        key = a.get("key") or ""
+
+        # Skip non-driveable actions
+        if atype in ("comment", "wait"):
+            results.append({"step": i + 1, "type": atype, "status": "skipped", "reason": "non-driveable"})
+            skipped += 1
+            continue
+
+        perform_body = {"action": atype, "timeoutMs": 8000}
+        if atype == "navigate":
+            perform_body["url"] = url
+        elif atype in ("click", "fill", "hover", "change", "press", "assert_visible", "assert_text"):
+            sel = best_selector(elt)
+            if not sel:
+                results.append({"step": i + 1, "type": atype, "status": "skipped",
+                                "reason": "selector çıkarılamadı"})
+                skipped += 1
+                continue
+            perform_body["selector"] = sel
+            if text:
+                perform_body["text"] = text
+            if atype == "press" and key:
+                perform_body["text"] = key
+        else:
+            results.append({"step": i + 1, "type": atype, "status": "skipped",
+                            "reason": f"bilinmeyen action: {atype}"})
+            skipped += 1
+            continue
+
+        # Call Java /perform
+        try:
+            body_bytes = json.dumps(perform_body).encode("utf-8")
+            req = _urlreq.Request(
+                f"http://127.0.0.1:7700/perform",
+                data=body_bytes,
+                headers={"Content-Type": "application/json"},
+                method="POST",
+            )
+            with _urlreq.urlopen(req, timeout=10) as resp:
+                body = json.loads(resp.read().decode("utf-8"))
+                results.append({"step": i + 1, "type": atype, "selector": perform_body.get("selector"),
+                                "status": "passed", "result": body.get("result")})
+                passed += 1
+        except _urlerr.HTTPError as e:
+            err_body = e.read().decode("utf-8", errors="replace")[:300]
+            results.append({"step": i + 1, "type": atype, "selector": perform_body.get("selector"),
+                            "status": "failed", "error": f"HTTP {e.code}: {err_body}"})
+            failed += 1
+        except Exception as e:
+            results.append({"step": i + 1, "type": atype, "selector": perform_body.get("selector"),
+                            "status": "failed", "error": str(e)[:300]})
+            failed += 1
+
+    return jsonify({
+        "ok": True,
+        "total": len(actions),
+        "passed": passed,
+        "failed": failed,
+        "skipped": skipped,
+        "results": results,
+    })
+
+
+@app.route("/api/cortex/llm/models", methods=["GET"])
+def cortex_llm_models():
+    """List available Ollama models (E15 fix).
+
+    Returns: { ok, models: [{name, size_gb, latency_estimate_sec}], default }
+    """
+    try:
+        with _urlreq.urlopen(f"{OLLAMA_URL}/api/tags", timeout=2) as r:
+            data = json.loads(r.read().decode("utf-8"))
+        # Rough latency estimate based on model size (qwen2.5:14b ~30sn baseline)
+        def latency(size_gb):
+            if size_gb < 5: return "~12sn"
+            if size_gb < 10: return "~25sn"
+            if size_gb < 20: return "~50sn"
+            return "~80sn"
+
+        models = []
+        for m in data.get("models", []):
+            size_gb = round(m.get("size", 0) / 1e9, 1)
+            models.append({
+                "name": m.get("name"),
+                "size_gb": size_gb,
+                "latency_estimate": latency(size_gb),
+                "family": m.get("details", {}).get("family", ""),
+            })
+        return jsonify({
+            "ok": True,
+            "models": models,
+            "default": OLLAMA_MODEL,
+        })
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 502
+
+
+@app.route("/api/cortex/health", methods=["GET"])
+def cortex_health():
+    """Top-level health probe for the 4 Cortex services.
+
+    Returns one JSON object with per-service status. Used by the dashboard
+    HealthBar component to show ● green / ○ amber / ✗ red dots.
+
+    Each service entry has:
+      - status: "ok" | "down" | "slow"
+      - latency_ms: round-trip in milliseconds (null if down)
+      - extra:    service-specific info (model list, JVM count, etc.)
+    """
+    import time as _time
+
+    def probe(name, url, timeout=1.5, ok_status=200):
+        t0 = _time.time()
+        try:
+            with _urlreq.urlopen(url, timeout=timeout) as resp:
+                latency = int((_time.time() - t0) * 1000)
+                if resp.status == ok_status:
+                    return {"status": "ok" if latency < 800 else "slow", "latency_ms": latency}
+                return {"status": "down", "latency_ms": latency,
+                        "error": f"HTTP {resp.status}"}
+        except Exception as e:
+            return {"status": "down", "latency_ms": None,
+                    "error": str(e).split("\n")[0][:120]}
+
+    result = {
+        "ollama":  probe("ollama",  f"{OLLAMA_URL}/api/tags"),
+        "flask":   {"status": "ok", "latency_ms": 0, "pid": os.getpid()},
+        "nextjs":  probe("nextjs",  "http://127.0.0.1:3000/", timeout=1.0),
+        "recorder": probe("recorder", "http://127.0.0.1:7700/status", timeout=0.5),
+    }
+
+    # Ollama extras — model list (lightweight, already in /api/tags response)
+    if result["ollama"]["status"] != "down":
+        try:
+            with _urlreq.urlopen(f"{OLLAMA_URL}/api/tags", timeout=1.0) as r:
+                tags = json.loads(r.read().decode("utf-8"))
+                result["ollama"]["models"] = [m.get("name") for m in tags.get("models", [])]
+        except Exception:
+            pass
+
+    # Recorder extras — actions captured this session
+    if result["recorder"]["status"] != "down":
+        try:
+            with _urlreq.urlopen("http://127.0.0.1:7700/status", timeout=0.5) as r:
+                st = json.loads(r.read().decode("utf-8"))
+                result["recorder"]["actions"] = st.get("actions", 0)
+                result["recorder"]["pid"] = _recorder_state.get("pid")
+        except Exception:
+            pass
+
+    # JVM count — quick ps grep
+    try:
+        ps = subprocess.run(["bash", "-c", "ps -ax | grep 'exec:java' | grep -v grep | wc -l"],
+                            capture_output=True, text=True, timeout=2)
+        result["jvm_count"] = int(ps.stdout.strip() or "0")
+    except Exception:
+        result["jvm_count"] = -1
+
+    # Aggregate
+    down_services = [k for k, v in result.items()
+                     if isinstance(v, dict) and v.get("status") == "down"]
+    result["overall"] = "ok" if not down_services else f"degraded: {','.join(down_services)}"
+
+    return jsonify(result)
+
+
+@app.route("/api/cortex/recorder/enhance", methods=["POST"])
+def cortex_recorder_enhance():
+    """LLM-polish a recorded .feature via local Ollama (blocking).
+
+    Body: { "featurePath"?: str, "featureContent"?: str, "model"?: str }
+    Returns: { ok, original, enhanced, model } or { ok: false, error }.
+    """
+    data = request.get_json(silent=True) or {}
+    feature_path    = (data.get("featurePath")    or "").strip()
+    feature_content = (data.get("featureContent") or "").strip()
+    model           = (data.get("model")          or OLLAMA_MODEL).strip()
+
+    if not feature_content and feature_path:
+        try:
+            feature_content = Path(feature_path).read_text(encoding="utf-8")
+        except Exception as e:
+            return jsonify({"ok": False, "error": f"Feature okunamadi: {e}"}), 400
+
+    if not feature_content.strip():
+        return jsonify({"ok": False, "error": "featureContent veya featurePath bos"}), 400
+
+    prompt = _build_polish_prompt(feature_content)
+    enhanced, err = _ollama_generate(prompt, model)
+    if err:
+        return jsonify({"ok": False, "error": err, "model": model}), 502
+
+    enhanced_clean = _strip_markdown_fences(enhanced)
+    return jsonify({
+        "ok":        True,
+        "model":     model,
+        "original":  feature_content,
+        "enhanced":  enhanced_clean,
+    })
+
+
+@app.route("/api/cortex/recorder/enhance/stream", methods=["POST"])
+def cortex_recorder_enhance_stream():
+    """SSE streaming version of enhance — sends tokens as they arrive from Ollama.
+
+    Body: { "featurePath"?: str, "featureContent"?: str, "model"?: str }
+    Events:
+      data: {"token": "..."}        — incremental token
+      data: {"done": true, "model": "...", "original": "..."}  — finished
+      data: {"error": "..."}        — error
+    """
+    data = request.get_json(silent=True) or {}
+    feature_path    = (data.get("featurePath")    or "").strip()
+    feature_content = (data.get("featureContent") or "").strip()
+    model           = (data.get("model")          or OLLAMA_MODEL).strip()
+
+    if not feature_content and feature_path:
+        try:
+            feature_content = Path(feature_path).read_text(encoding="utf-8")
+        except Exception as e:
+            feature_content = ""
+
+    if not feature_content.strip():
+        def _err_stream():
+            yield f"data: {json.dumps({'error': 'featureContent veya featurePath bos'})}\n\n"
+        return Response(stream_with_context(_err_stream()), mimetype="text/event-stream")
+
+    original = feature_content
+    prompt = _build_polish_prompt(feature_content)
+
+    def _token_stream():
+        import urllib.request as _ur, urllib.error as _ue
+        payload = json.dumps({
+            "model": model,
+            "prompt": prompt,
+            "stream": True,
+            "options": {"temperature": 0.2, "num_ctx": 8192},
+        }).encode("utf-8")
+        req = _ur.Request(
+            f"{OLLAMA_URL}/api/generate",
+            data=payload,
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        accumulated = []
+        try:
+            with _ur.urlopen(req, timeout=180.0) as resp:
+                for raw_line in resp:
+                    line = raw_line.decode("utf-8", errors="replace").strip()
+                    if not line:
+                        continue
+                    try:
+                        chunk = json.loads(line)
+                    except json.JSONDecodeError:
+                        continue
+                    token = chunk.get("response", "")
+                    if token:
+                        accumulated.append(token)
+                        yield f"data: {json.dumps({'token': token})}\n\n"
+                    if chunk.get("done"):
+                        full = _strip_markdown_fences("".join(accumulated))
+                        yield f"data: {json.dumps({'done': True, 'model': model, 'original': original, 'enhanced': full})}\n\n"
+                        return
+        except _ue.HTTPError as e:
+            yield f"data: {json.dumps({'error': f'Ollama HTTP {e.code}: {e.reason}'})}\n\n"
+        except Exception as e:
+            yield f"data: {json.dumps({'error': str(e)})}\n\n"
+
+    return Response(stream_with_context(_token_stream()), mimetype="text/event-stream")
 
 
 @app.route("/api/cortex/recorder/actions")
@@ -1302,14 +1959,69 @@ def cortex_recorder_actions():
 @app.route("/api/cortex/recorder/cleanup", methods=["POST"])
 def cortex_recorder_cleanup():
     """
-    Kill any orphan Playwright Chromium processes. Tries the running JVM
-    first (via /cleanup endpoint), then falls back to direct shell command
-    if JVM isn't running.
+    Aggressive cleanup (E02 fix):
+      1. Tell the live recorder JVM to kill its Chromium (if alive)
+      2. Then unconditionally pkill ALL orphan JVMs (`exec:java`, `playwright-java`)
+      3. Then pkill any leftover ms-playwright Chromium processes
+
+    Returns counts of what was killed at each step.
     """
+    import platform, subprocess
+
+    chrome_killed_via_jvm = False
     body, status = _recorder_call("POST", "/cleanup")
     if status == 200:
-        return jsonify(body), status
-    # JVM not running — do it ourselves from Python
+        chrome_killed_via_jvm = True
+
+    killed_jvms = 0
+    killed_chromium = 0
+    try:
+        if platform.system() in ("Darwin", "Linux"):
+            # Step 1: orphan JVMs (Maven exec, Playwright Node driver)
+            for pattern in ["exec:java", "playwright-java"]:
+                r = subprocess.run(["pkill", "-9", "-f", pattern], timeout=3,
+                                   capture_output=True, text=True)
+                if r.returncode == 0:
+                    killed_jvms += 1
+            # Step 2: leftover Chromium / Chrome for Testing instances
+            for pattern in ["ms-playwright.*[Cc]hromium",
+                            "ms-playwright.*chrome-headless-shell"]:
+                r = subprocess.run(["pkill", "-f", pattern], timeout=3,
+                                   capture_output=True, text=True)
+                if r.returncode == 0:
+                    killed_chromium += 1
+        elif platform.system() == "Windows":
+            ps = (
+                "$procs = Get-CimInstance Win32_Process | Where-Object "
+                "{ $_.CommandLine -like '*exec:java*' -or $_.CommandLine -like '*ms-playwright*' }; "
+                "$procs | ForEach-Object { try { Stop-Process -Id $_.ProcessId -Force "
+                "-ErrorAction SilentlyContinue } catch {} }; "
+                "($procs | Measure-Object).Count"
+            )
+            r = subprocess.run(["powershell", "-NoProfile", "-Command", ps],
+                               capture_output=True, text=True, timeout=10)
+            try:
+                killed_chromium = int((r.stdout or "0").strip().splitlines()[-1])
+            except Exception:
+                killed_chromium = 0
+        # Clear our cached recorder state
+        _recorder_state.update({"pid": None, "port": None, "started_at": None})
+        return jsonify({
+            "ok": True,
+            "killed_jvms": killed_jvms,
+            "killed_chromium": killed_chromium,
+            "chrome_killed_via_jvm": chrome_killed_via_jvm,
+        }), 200
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+# Old code below intentionally unreachable — superseded by the block above.
+# Keeping as reference comment for future maintainers:
+#   - returncode handling per platform
+#   - the "ms-playwright" pattern is what catches Playwright bundled Chromium
+# ─── Eski cleanup mantığı (yukarıdaki tarafından değiştirildi) ──────────────
+def _old_cleanup_for_reference():
     import platform, subprocess
     killed = 0
     try:
@@ -1515,20 +2227,94 @@ def _recorder_call_with_body(method: str, path: str, payload: dict) -> tuple[dic
 
 @app.route("/api/cortex/generate-from-prompt", methods=["POST"])
 def cortex_generate_from_prompt():
-    """Lightweight Gherkin scaffold from a natural-language prompt.
+    """Gherkin from a natural-language prompt — now powered by local Ollama (E13 fix).
 
-    Currently a template-based generator (no LLM dependency). When AI Gateway
-    is wired up, swap _generate_template() with a model call.
+    Body: { prompt: str, tag?: str, model?: str, fallback_template?: bool }
+    Returns: { feature_name, content, model, source: "llm"|"template" }
+
+    If LLM call fails AND fallback_template=true, falls back to _generate_template.
     """
     data = request.get_json(silent=True) or {}
     prompt = (data.get("prompt") or "").strip()
     tag    = (data.get("tag") or "@cortex @smoke @pw").strip()
+    model  = (data.get("model") or OLLAMA_MODEL).strip()
+    fallback_ok = bool(data.get("fallback_template", True))
 
     if not prompt:
         return jsonify({"error": "prompt is required"}), 400
 
-    feature_name, content = _generate_template(prompt, tag)
-    return jsonify({"feature_name": feature_name, "content": content})
+    llm_prompt = _build_generate_prompt(prompt, tag)
+    enhanced, err = _ollama_generate(llm_prompt, model, timeout=60.0)
+
+    if err and not fallback_ok:
+        return jsonify({"error": f"LLM hata: {err}"}), 502
+
+    if err:
+        # Graceful degradation to old template generator
+        feature_name, content = _generate_template(prompt, tag)
+        return jsonify({
+            "feature_name": feature_name,
+            "content": content,
+            "model": "template-fallback",
+            "source": "template",
+            "warning": f"LLM çalışmadı, template'e düşüldü: {err}",
+        })
+
+    content = _strip_markdown_fences(enhanced)
+
+    # Try to extract feature_name from the LLM output
+    feature_name = "ai-generated"
+    for line in content.splitlines()[:5]:
+        s = line.strip()
+        if s.lower().startswith("feature:"):
+            name = s.split(":", 1)[1].strip()
+            if name:
+                # Turkish → ASCII transliteration so feature_name stays readable
+                _tr = str.maketrans("çğıöşüÇĞİÖŞÜ", "cgiosuCGIOSU")
+                feature_name = name.translate(_tr).lower().replace(" ", "_")
+                import re as _re
+                feature_name = _re.sub(r"[^a-z0-9_-]+", "_", feature_name).strip("_-") or "ai-generated"
+            break
+
+    return jsonify({
+        "feature_name": feature_name,
+        "content": content,
+        "model": model,
+        "source": "llm",
+    })
+
+
+def _build_generate_prompt(user_request: str, tag: str) -> str:
+    return (
+        "Sen QA otomasyon uzmanisin. Kullanicinin dogal dildeki test isteğini "
+        "Cucumber Gherkin formatina cevir.\n\n"
+        f"KULLANICI İSTEĞİ: {user_request}\n\n"
+        "KULLANILABILECEK STEP PHRASELER:\n"
+        "  Given I open the recorded url \"URL\"\n"
+        "  When I click \"<locator-key>\"\n"
+        "  * I write \"<text>\" into \"<locator-key>\"\n"
+        "  * I enter encrypted password alias \"<alias>\" into \"<locator-key>\"\n"
+        "  * I press \"<KEY>\"  (KEY: ENTER, ESCAPE, TAB)\n"
+        "  * I wait for <N> seconds\n"
+        "  * I hover over \"<locator-key>\"\n"
+        "  Then I see \"<locator-key>\"\n"
+        "  Then I verify \"<locator-key>\" contains \"<text>\"\n"
+        "  Then I verify \"<locator-key>\" value is \"<text>\"\n\n"
+        "KURALLAR:\n"
+        "1. Sadece yukarıdaki step phrase'leri kullan, yenisini icat etme.\n"
+        "2. Locator key'leri camelCase (girisYapButton, emailInput, loginContainer).\n"
+        "3. Anlamlı bir Feature ve Scenario başlığı kullan (Türkçe).\n"
+        f"4. Tag satırını koru: {tag}\n"
+        "5. Çıktıda SADECE Gherkin döndür, başka açıklama veya markdown fence YOK.\n\n"
+        "ÇIKTI FORMATI:\n"
+        "Feature: <kısa anlamlı ad>\n"
+        f"  {tag}\n"
+        "  Scenario: <açıklayıcı senaryo başlığı>\n"
+        "    <step 1>\n"
+        "    <step 2>\n"
+        "    ...\n\n"
+        "GHERKIN:\n"
+    )
 
 
 def _generate_template(prompt: str, tag: str) -> tuple[str, str]:

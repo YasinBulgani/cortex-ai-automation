@@ -1,0 +1,8 @@
+# Production environment — dikkatli kullan!
+env: prod
+base_url: https://cortex.bgtsai.com
+api_url: https://api.bgtsai.com
+db_url: jdbc:sqlserver://10.10.0.49:1433;databaseName=HCM_Prod;encrypt=true;trustServerCertificate=false
+feature_flags:
+  new_dashboard: true
+  ai_polish: false

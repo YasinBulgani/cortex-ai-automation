@@ -1,0 +1,8 @@
+# Test environment — varsayılan
+env: test
+base_url: https://cortex-test.bgtsai.com
+api_url: https://api-test.bgtsai.com
+db_url: jdbc:sqlserver://10.10.0.49:1433;databaseName=HCM_Test_Final;encrypt=false;trustServerCertificate=true
+feature_flags:
+  new_dashboard: false
+  ai_polish: true

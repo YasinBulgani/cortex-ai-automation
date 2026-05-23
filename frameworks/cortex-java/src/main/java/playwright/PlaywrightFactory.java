@@ -7,6 +7,7 @@ import com.microsoft.playwright.Page;
 import com.microsoft.playwright.Playwright;
 import com.microsoft.playwright.Tracing;
 
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.concurrent.ConcurrentHashMap;
@@ -96,6 +97,16 @@ public final class PlaywrightFactory {
         if (PlaywrightConfig.videoEnabled()) {
             opts.setRecordVideoDir(Paths.get("target/playwright-videos"));
         }
+
+        // E22: Load storage state (cookies + localStorage) if a saved file exists.
+        // The recorder saves state after recording; subsequent runs reuse it to skip login.
+        // Storage file location: recordings/<feature-name>/storage-state.json
+        // Sensitivity: this file is git-ignored — do NOT commit session tokens.
+        Path storageState = resolveStorageState(scenarioName);
+        if (storageState != null) {
+            opts.setStorageStatePath(storageState);
+        }
+
         BrowserContext ctx = br.newContext(opts);
         ctx.setDefaultTimeout(PlaywrightConfig.defaultTimeoutMs());
 
@@ -128,6 +139,22 @@ public final class PlaywrightFactory {
         try { if (ctx  != null) ctx.close();  } catch (Exception ignored) {}
         PAGE.remove();
         CTX.remove();
+    }
+
+    /**
+     * E22: Find a storage-state.json for this scenario.
+     * Looks for: recordings/<safe-scenario-name>/storage-state.json
+     * Returns null if not found (so context is created without pre-loaded state).
+     */
+    private static Path resolveStorageState(String scenarioName) {
+        if (scenarioName == null) return null;
+        String safe = scenarioName.replaceAll("[^A-Za-z0-9_-]", "_").toLowerCase();
+        Path candidate = Paths.get("recordings").resolve(safe).resolve("storage-state.json");
+        if (Files.exists(candidate)) return candidate;
+        // Also check generic "shared" storage state for suite-level pre-login
+        Path shared = Paths.get("recordings/shared-storage-state.json");
+        if (Files.exists(shared)) return shared;
+        return null;
     }
 
     private static void shutdownAll() {
