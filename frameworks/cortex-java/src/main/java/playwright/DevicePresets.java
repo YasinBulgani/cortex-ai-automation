@@ -32,50 +32,45 @@ public final class DevicePresets {
 
     private static final Map<String, Device> REGISTRY = new HashMap<>();
     static {
-        // Desktop (default — no emulation)
-        register(new Device("Desktop", 1440, 900, 1.0,
-                "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
-                + "(KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36",
-                false, false));
+        String UA_IOS = "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 "
+                + "(KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1";
+        String UA_IPAD = "Mozilla/5.0 (iPad; CPU OS 16_0 like Mac OS X) AppleWebKit/605.1.15 "
+                + "(KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1";
+        String UA_ANDROID = "Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 "
+                + "(KHTML, like Gecko) Chrome/127.0.0.0 Mobile Safari/537.36";
+        String UA_DESKTOP = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
+                + "(KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36";
 
-        // iPhone family
-        register(new Device("iPhone 14", 390, 844, 3.0,
-                "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 "
-                + "(KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1",
-                true, true));
-        register(new Device("iPhone SE", 375, 667, 2.0,
-                "Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15 "
-                + "(KHTML, like Gecko) Version/15.0 Mobile/15E148 Safari/604.1",
-                true, true));
-        register(new Device("iPhone 14 Pro Max", 430, 932, 3.0,
-                "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 "
-                + "(KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1",
-                true, true));
+        // Desktop variants
+        register(new Device("Desktop",      1440, 900,  1.0, UA_DESKTOP, false, false), "desktop");
+        register(new Device("Laptop",       1366, 768,  1.0, UA_DESKTOP, false, false), "laptop");
+        register(new Device("Desktop FHD",  1920, 1080, 1.0, UA_DESKTOP, false, false), "desktop-fhd");
+        register(new Device("Desktop 4K",   3840, 2160, 2.0, UA_DESKTOP, false, false), "desktop-4k");
 
-        // Android family
-        register(new Device("Pixel 7", 412, 915, 2.625,
-                "Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 "
-                + "(KHTML, like Gecko) Chrome/127.0.0.0 Mobile Safari/537.36",
-                true, true));
-        register(new Device("Galaxy S22", 360, 780, 3.0,
-                "Mozilla/5.0 (Linux; Android 13; SM-S901B) AppleWebKit/537.36 "
-                + "(KHTML, like Gecko) Chrome/127.0.0.0 Mobile Safari/537.36",
-                true, true));
+        // iPhone — multiple model versions sharing similar dimensions
+        register(new Device("iPhone 13",         390, 844, 3.0, UA_IOS, true, true), "iphone-13");
+        register(new Device("iPhone 14",         390, 844, 3.0, UA_IOS, true, true), "iphone-14");
+        register(new Device("iPhone 14 Pro",     393, 852, 3.0, UA_IOS, true, true), "iphone-14-pro");
+        register(new Device("iPhone 14 Pro Max", 430, 932, 3.0, UA_IOS, true, true), "iphone-14-pro-max");
+        register(new Device("iPhone SE",         375, 667, 2.0, UA_IOS, true, true), "iphone-se");
+
+        // Android phones
+        register(new Device("Pixel 7",     412, 915, 2.625, UA_ANDROID, true, true), "pixel-7");
+        register(new Device("Pixel 8",     412, 915, 2.625, UA_ANDROID, true, true), "pixel-8");
+        register(new Device("Galaxy S22",  360, 780, 3.0,   UA_ANDROID, true, true), "galaxy-s22");
+        register(new Device("Galaxy S23",  360, 780, 3.0,   UA_ANDROID, true, true), "galaxy-s23");
+        register(new Device("Galaxy Fold", 280, 653, 3.0,   UA_ANDROID, true, true), "galaxy-fold");
 
         // Tablets
-        register(new Device("iPad Pro 11", 834, 1194, 2.0,
-                "Mozilla/5.0 (iPad; CPU OS 16_0 like Mac OS X) AppleWebKit/605.1.15 "
-                + "(KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1",
-                true, true));
-        register(new Device("iPad Pro 12.9", 1024, 1366, 2.0,
-                "Mozilla/5.0 (iPad; CPU OS 16_0 like Mac OS X) AppleWebKit/605.1.15 "
-                + "(KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1",
-                true, true));
+        register(new Device("iPad Mini",     768, 1024, 2.0, UA_IPAD, true, true), "ipad-mini");
+        register(new Device("iPad Pro 11",   834, 1194, 2.0, UA_IPAD, true, true), "ipad-pro-11");
+        register(new Device("iPad Pro 12.9", 1024, 1366, 2.0, UA_IPAD, true, true), "ipad-pro-12-9");
     }
 
-    private static void register(Device d) {
+    private static void register(Device d, String... aliases) {
+        REGISTRY.put(d.name(), d);
         REGISTRY.put(d.name().toLowerCase().replace(" ", "-"), d);
-        REGISTRY.put(d.name(), d);  // also lookup by original case
+        for (String a : aliases) REGISTRY.put(a, d);
     }
 
     /** Lookup a device by name or slug. Returns null if unknown. */
@@ -101,8 +96,10 @@ public final class DevicePresets {
     /** Available device names (for the dashboard dropdown). */
     public static String[] availableNames() {
         return new String[]{
-                "Desktop", "iPhone 14", "iPhone SE", "iPhone 14 Pro Max",
-                "Pixel 7", "Galaxy S22", "iPad Pro 11", "iPad Pro 12.9"
+                "Desktop", "Laptop", "Desktop FHD", "Desktop 4K",
+                "iPhone 13", "iPhone 14", "iPhone 14 Pro", "iPhone 14 Pro Max", "iPhone SE",
+                "Pixel 7", "Pixel 8", "Galaxy S22", "Galaxy S23", "Galaxy Fold",
+                "iPad Mini", "iPad Pro 11", "iPad Pro 12.9"
         };
     }
 
