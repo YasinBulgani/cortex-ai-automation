@@ -73,19 +73,65 @@ public class PwCommonSteps {
      * If no placeholder is present the text is returned as-is.
      */
     static String resolveEnv(String text) {
-        if (text == null || !text.contains("${ENV:")) return text;
-        java.util.regex.Matcher m = java.util.regex.Pattern
-                .compile("\\$\\{ENV:([A-Z0-9_]+)(?::([^}]*))?}")
-                .matcher(text);
-        StringBuilder out = new StringBuilder();
-        while (m.find()) {
-            String env = System.getenv(m.group(1));
-            if (env == null) env = m.group(2);
-            if (env == null) env = "";
-            m.appendReplacement(out, java.util.regex.Matcher.quoteReplacement(env));
+        if (text == null) return null;
+        // ENV resolution (existing)
+        if (text.contains("${ENV:")) {
+            java.util.regex.Matcher m = java.util.regex.Pattern
+                    .compile("\\$\\{ENV:([A-Z0-9_]+)(?::([^}]*))?}")
+                    .matcher(text);
+            StringBuilder out = new StringBuilder();
+            while (m.find()) {
+                String env = System.getenv(m.group(1));
+                if (env == null) env = m.group(2);
+                if (env == null) env = "";
+                m.appendReplacement(out, java.util.regex.Matcher.quoteReplacement(env));
+            }
+            m.appendTail(out);
+            text = out.toString();
         }
-        m.appendTail(out);
-        return out.toString();
+
+        // E21 fix — FAKER / RANDOM placeholders
+        // ${UUID} ${TIMESTAMP} ${TIMESTAMP:iso}
+        // ${FAKER:name|email|phone|address|city|company|username|password|url|ipv4|number}
+        if (text.contains("${UUID}")) {
+            text = text.replace("${UUID}", java.util.UUID.randomUUID().toString());
+        }
+        if (text.contains("${TIMESTAMP:iso}")) {
+            text = text.replace("${TIMESTAMP:iso}", java.time.Instant.now().toString());
+        }
+        if (text.contains("${TIMESTAMP}")) {
+            text = text.replace("${TIMESTAMP}", String.valueOf(System.currentTimeMillis()));
+        }
+        if (text.contains("${FAKER:")) {
+            java.util.regex.Matcher m = java.util.regex.Pattern
+                    .compile("\\$\\{FAKER:([a-z_]+)}")
+                    .matcher(text);
+            StringBuilder out = new StringBuilder();
+            net.datafaker.Faker faker = new net.datafaker.Faker(new java.util.Locale("tr"));
+            while (m.find()) {
+                String kind = m.group(1).toLowerCase();
+                String val = switch (kind) {
+                    case "name"     -> faker.name().fullName();
+                    case "first"    -> faker.name().firstName();
+                    case "last"     -> faker.name().lastName();
+                    case "email"    -> faker.internet().emailAddress();
+                    case "phone"    -> faker.phoneNumber().cellPhone();
+                    case "address"  -> faker.address().fullAddress();
+                    case "city"     -> faker.address().city();
+                    case "company"  -> faker.company().name();
+                    case "username" -> faker.internet().username();
+                    case "password" -> faker.internet().password();
+                    case "url"      -> faker.internet().url();
+                    case "ipv4"     -> faker.internet().ipV4Address();
+                    case "number"   -> String.valueOf(faker.number().numberBetween(1, 10_000));
+                    default         -> "?FAKER:" + kind + "?";
+                };
+                m.appendReplacement(out, java.util.regex.Matcher.quoteReplacement(val));
+            }
+            m.appendTail(out);
+            text = out.toString();
+        }
+        return text;
     }
 
     @When("I type {string} into {string}")

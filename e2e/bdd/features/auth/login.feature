@@ -3,6 +3,7 @@
 Özellik: Kullanici Girisi
   Kullanicilar email ve sifre ile sisteme giris yapabilmelidir.
 
+  @TC-AUTH-001
   Senaryo: Basarili giris
     Diyelim ki kullanici giris sayfasindadir
     Ve "admin@example.com" emailini girer
@@ -10,6 +11,7 @@
     Ozaman giris butonuna tiklar
     Ve kullanici projeler sayfasina yonlendirilir
 
+  @TC-AUTH-002
   Senaryo: Hatali sifre ile giris
     Diyelim ki kullanici giris sayfasindadir
     Ve "admin@example.com" emailini girer
@@ -17,6 +19,7 @@
     Ozaman giris butonuna tiklar
     Ve hata mesaji goruntulenir
 
+  @TC-AUTH-007
   Senaryo: Bos form gonderme
     Diyelim ki kullanici giris sayfasindadir
     Ozaman giris butonuna tiklar

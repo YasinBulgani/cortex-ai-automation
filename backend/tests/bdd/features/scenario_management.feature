@@ -8,7 +8,7 @@ Feature: Senaryo Yönetimi
     Given kullanıcı oturum açmış ve geçerli JWT token'a sahip
     And "Test Projesi" adıyla bir proje mevcut
 
-  @critical @pozitif
+  @critical @pozitif @TC-SCN-001
   Scenario: Yeni senaryo oluşturma ve varsayılan değerler
     Given senaryo oluşturma verisi hazırlanıyor
     And senaryo başlığı "Login Fonksiyonellik Testi" olarak belirleniyor
@@ -23,7 +23,7 @@ Feature: Senaryo Yönetimi
     And yanıtta "status" değeri "draft" olmalı
     And yanıtta "current_version" değeri 1 olmalı
 
-  @critical @pozitif
+  @critical @pozitif @TC-SCN-002
   Scenario: Senaryo güncelleme ile otomatik versiyonlama
     Given projede "Login Testi" başlıklı senaryo mevcut
     And senaryonun mevcut versiyonu 1
@@ -32,7 +32,7 @@ Feature: Senaryo Yönetimi
     And senaryo versiyon listesinde versiyon 1 kaydı bulunmalı
     And versiyon 1 kaydında eski başlık "Login Testi" olmalı
 
-  @high @pozitif
+  @high @pozitif @TC-SCN-003
   Scenario: Senaryolar başlık ile aranabilir
     Given projede şu senaryolar mevcut:
       | başlık              |
@@ -43,7 +43,7 @@ Feature: Senaryo Yönetimi
     Then yanıtta 2 senaryo dönmeli
     And yanıttaki tüm senaryoların başlığında "Login" geçmeli
 
-  @high @pozitif
+  @high @pozitif @TC-SCN-004
   Scenario: Toplu senaryo silme
     Given projede 3 senaryo oluşturulmuş: "A", "B", "C"
     And senaryoların ID'leri alınmış
@@ -51,7 +51,7 @@ Feature: Senaryo Yönetimi
     Then yanıt kodu 204 olmalı
     And senaryo listesinde yalnızca "C" senaryosu kalmalı
 
-  @high @negatif
+  @high @negatif @TC-SCN-009
   Scenario: Farklı projeye ait senaryoya erişim engellenir
     Given "Proje-A" ve "Proje-B" mevcut
     And "Proje-A" altında "Test-A" senaryosu var
@@ -66,7 +66,7 @@ Feature: Senaryo Yönetimi
     When proje altında POST ".../scenarios" isteği gönderilir
     Then yanıt kodu 422 olmalı
 
-  @medium @pozitif
+  @medium @pozitif @TC-SCN-008
   Scenario: Versiyon karşılaştırma (diff)
     Given projede senaryo mevcut ve 2 kez güncellenmiş
     And versiyon 1 başlığı "Orijinal Başlık"

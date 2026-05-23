@@ -168,6 +168,15 @@
             <version>${allure.version}</version>
             <scope>test</scope>
         </dependency>
+
+        <!-- ============================================================ -->
+        <!--  Faker (E21 fix — test data generation)                       -->
+        <!-- ============================================================ -->
+        <dependency>
+            <groupId>net.datafaker</groupId>
+            <artifactId>datafaker</artifactId>
+            <version>2.4.2</version>
+        </dependency>
     </dependencies>
 
     <build>
@@ -270,6 +279,26 @@
                         <version>3.1.0</version>
                         <configuration>
                             <mainClass>recorder.RecorderMain</mainClass>
+                            <classpathScope>compile</classpathScope>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+
+        <!-- Codegen-based recorder: mvn -Precorder-codegen compile exec:java
+             Uses Playwright's built-in Inspector window (no in-page injection,
+             SPA-proof). See recorder/CodegenRecorder.java for the flow. -->
+        <profile>
+            <id>recorder-codegen</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>exec-maven-plugin</artifactId>
+                        <version>3.1.0</version>
+                        <configuration>
+                            <mainClass>recorder.CodegenRecorder</mainClass>
                             <classpathScope>compile</classpathScope>
                         </configuration>
                     </plugin>

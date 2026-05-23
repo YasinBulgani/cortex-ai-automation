@@ -2279,18 +2279,8 @@ def cortex_recorder_enhance_stream():
     return Response(stream_with_context(_token_stream()), mimetype="text/event-stream")
 
 
-@app.route("/api/cortex/recorder/pause", methods=["POST"])
-def cortex_recorder_pause():
-    """E06: Pause recording — incoming browser actions are discarded until resumed."""
-    body, status = _recorder_call("POST", "/pause")
-    return jsonify(body), status
-
-
-@app.route("/api/cortex/recorder/resume", methods=["POST"])
-def cortex_recorder_resume():
-    """E06: Resume a paused recording session."""
-    body, status = _recorder_call("POST", "/resume")
-    return jsonify(body), status
+# NOTE: /pause and /resume already defined above at line ~1399 (E06 fix).
+# Duplicate stubs that were here have been removed.
 
 
 @app.route("/api/cortex/recorder/actions")
@@ -2634,31 +2624,41 @@ def _build_generate_prompt(user_request: str, tag: str) -> str:
         "Sen QA otomasyon uzmanisin. Kullanicinin dogal dildeki test isteğini "
         "Cucumber Gherkin formatina cevir.\n\n"
         f"KULLANICI İSTEĞİ: {user_request}\n\n"
-        "KULLANILABILECEK STEP PHRASELER:\n"
-        "  Given I open the recorded url \"URL\"\n"
-        "  When I click \"<locator-key>\"\n"
-        "  * I write \"<text>\" into \"<locator-key>\"\n"
-        "  * I enter encrypted password alias \"<alias>\" into \"<locator-key>\"\n"
-        "  * I press \"<KEY>\"  (KEY: ENTER, ESCAPE, TAB)\n"
-        "  * I wait for <N> seconds\n"
-        "  * I hover over \"<locator-key>\"\n"
-        "  Then I see \"<locator-key>\"\n"
-        "  Then I verify \"<locator-key>\" contains \"<text>\"\n"
-        "  Then I verify \"<locator-key>\" value is \"<text>\"\n\n"
-        "KURALLAR:\n"
+        "ZORUNLU FORMAT — ÇİFT TIRNAK KULLANIMI:\n"
+        "Cucumber step'lerinde TÜM string parametreler ÇİFT TIRNAK içinde olmalı.\n"
+        "ASLA tırnak atlama. Örnek:\n"
+        '  DOĞRU:  When I click "loginButton"\n'
+        '  YANLIŞ: When I click loginButton\n'
+        '  DOĞRU:  * I write "test@a.com" into "emailInput"\n'
+        '  YANLIŞ: * I write "test@a.com" into emailInput\n\n'
+        "KULLANILABILECEK STEP PHRASELER (parametreler her zaman tırnak içinde):\n"
+        '  Given I open the recorded url "URL"\n'
+        '  When I click "<locator-key>"\n'
+        '  * I write "<text>" into "<locator-key>"\n'
+        '  * I enter encrypted password alias "<alias>" into "<locator-key>"\n'
+        '  * I press "<KEY>"   (KEY=ENTER|ESCAPE|TAB, tek kelime)\n'
+        '  * I wait for <N> seconds   (N=sayı, tırnak YOK sadece burada)\n'
+        '  * I hover over "<locator-key>"\n'
+        '  Then I see "<locator-key>"\n'
+        '  Then I verify "<locator-key>" contains "<text>"\n'
+        '  Then I verify "<locator-key>" value is "<text>"\n\n'
+        "DİĞER KURALLAR:\n"
         "1. Sadece yukarıdaki step phrase'leri kullan, yenisini icat etme.\n"
         "2. Locator key'leri camelCase (girisYapButton, emailInput, loginContainer).\n"
-        "3. Anlamlı bir Feature ve Scenario başlığı kullan (Türkçe).\n"
-        f"4. Tag satırını koru: {tag}\n"
-        "5. Çıktıda SADECE Gherkin döndür, başka açıklama veya markdown fence YOK.\n\n"
-        "ÇIKTI FORMATI:\n"
-        "Feature: <kısa anlamlı ad>\n"
+        "3. Step satırlarında ASLA parantez içi açıklama yazma — 'press \"ENTER\" (KEY: ENTER)' YANLIŞ.\n"
+        "4. Anlamlı bir Feature ve Scenario başlığı kullan (Türkçe).\n"
+        f"5. Tag satırını koru: {tag}\n"
+        "6. Çıktıda SADECE Gherkin döndür, başka açıklama veya markdown fence YOK.\n\n"
+        "ÇIKTI FORMATI (örnekteki tırnak kullanımını birebir taklit et):\n"
+        "Feature: Kullanıcı Girişi\n"
         f"  {tag}\n"
-        "  Scenario: <açıklayıcı senaryo başlığı>\n"
-        "    <step 1>\n"
-        "    <step 2>\n"
-        "    ...\n\n"
-        "GHERKIN:\n"
+        "  Scenario: Geçerli kullanıcı başarıyla giriş yapar\n"
+        '    Given I open the recorded url "https://example.com/login"\n'
+        '    When I write "test@a.com" into "emailInput"\n'
+        '    * I enter encrypted password alias "testUser" into "passwordInput"\n'
+        '    When I click "loginButton"\n'
+        '    Then I see "dashboardHome"\n\n'
+        "Şimdi yukarıdaki KULLANICI İSTEĞİ için Gherkin üret:\n"
     )
 
 

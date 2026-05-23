@@ -1,0 +1,23 @@
+id: TR-{YYYY}-{MM}-{DD}-{NAME}-{NNN}
+plan: smoke-daily
+started: 2026-01-01T09:00:00+03:00
+ended: 2026-01-01T09:15:00+03:00
+executor: "@username"
+environment:
+  branch: main
+  commit: abcdef1
+  browser: chromium
+  env: staging
+  url: https://staging.example.com
+summary:
+  total: 0
+  passed: 0
+  failed: 0
+  blocked: 0
+  skipped: 0
+results:
+  - tc: TC-AUTH-001
+    tc_commit: abcdef1
+    status: pass
+    duration_s: 3.2
+    automation: e2e/bdd/features/auth/login.feature:12

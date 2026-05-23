@@ -1,0 +1,8 @@
+id: SUITE-A11Y
+title: "A11y"
+description: "Auto-created during PR 3 migration. Update with real description."
+domain: a11y
+owner: "@unassigned"
+parent: null
+order: 99
+links: {}

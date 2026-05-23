@@ -1,0 +1,11 @@
+id: SUITE-AUTH
+title: "Kimlik Doğrulama"
+description: "Login, logout, session, JWT, MFA, password reset, hesap güvenliği."
+domain: identity
+owner: "@yasin-bulgan"
+parent: null
+order: 1
+links:
+  spec: "../../requirements/REQ-AUTH-001-login-spec.md"
+  bdd_ui: "../../../e2e/bdd/features/auth/"
+  bdd_api: "../../../backend/tests/bdd/features/authentication.feature"

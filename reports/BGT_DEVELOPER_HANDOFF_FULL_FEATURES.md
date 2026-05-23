@@ -24,7 +24,7 @@ Repoda sabit bir “ürün backlog” tablosu yerine **test/otomasyon öncelikle
 
 | Öncelik | Tipik içerik | Kaynak |
 |---------|----------------|--------|
-| **P0** | Smoke, kritik API/E2E, RBAC, sözleşme testleri | `docs/AI_TEST_OTOMASYON_RAPORU.md`, `docs/test-design/`, pytest marker `@pytest.mark.P0` |
+| **P0** | Smoke, kritik API/E2E, RBAC, sözleşme testleri | `docs/AI_TEST_OTOMASYON_RAPORU.md`, `qa/test-design/`, pytest marker `@pytest.mark.P0` |
 | **P1** | Regresyon, güvenlik/performans genişlemesi, ek tarayıcı | Aynı + `docs/test-platform-guide.md` |
 | **P2** | Mobil/responsive, ek entegrasyonlar | `docs/AI_TEST_OTOMASYON_RAPORU.md`, `docs/synthetic-data-research.md` |
 | **P3** | İyileştirme / nice-to-have | Marker kullanımı ile `engine` / `backend` testlerinde |

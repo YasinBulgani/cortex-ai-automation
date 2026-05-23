@@ -75,6 +75,25 @@ repos:
         pass_filenames: false
         stages: [pre-commit]
 
+      # ─── qa/ artifacts ──────────────────────────────────────────────────
+      - id: qa-validate
+        name: "qa/: schema + ID + cross-ref validation"
+        description: qa/cases, qa/plans, qa/runs, qa/defects, qa/requirements doğrulaması. node ve qa/node_modules gerekir.
+        entry: bash -c 'if [[ -d qa/node_modules ]]; then (cd qa && node tools/validate.mjs); else echo "qa/node_modules yok - cd qa && npm install ile kur. Skip."; exit 0; fi'
+        language: system
+        pass_filenames: false
+        files: ^qa/(cases|plans|runs|defects|requirements|shared|milestones)/.*\.(md|yml)$
+        stages: [pre-commit]
+
+      - id: qa-trace-stale
+        name: "qa/: traceability snapshot güncel mi?"
+        description: TC eklendi/silindiyse qa/coverage/*'ı güncel tut.
+        entry: bash -c 'if [[ -d qa/node_modules ]]; then (cd qa && node tools/trace.mjs --check) || (echo "qa/coverage stale — npm run trace && git add qa/coverage" && exit 1); else exit 0; fi'
+        language: system
+        pass_filenames: false
+        files: ^qa/(cases|requirements)/.*\.md$
+        stages: [pre-commit]
+
       # ─── Security guards (D3.4) ─────────────────────────────────────────
       - id: gitleaks-local
         name: "Guard: gitleaks (secret scan)"

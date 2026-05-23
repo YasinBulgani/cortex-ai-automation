@@ -1,0 +1,114 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "cortex.qa.test-case",
+  "title": "Test Case Frontmatter",
+  "type": "object",
+  "required": [
+    "id",
+    "title",
+    "suite",
+    "priority",
+    "type",
+    "status",
+    "owner",
+    "created",
+    "updated",
+    "automation"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^TC-[A-Z0-9]+-\\d{3,}$"
+    },
+    "title": { "type": "string", "minLength": 1 },
+    "suite": { "type": "string", "pattern": "^[a-z0-9-]+$" },
+    "priority": { "enum": ["P0", "P1", "P2", "P3"] },
+    "type": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "functional",
+          "smoke",
+          "regression",
+          "integration",
+          "api",
+          "ui",
+          "perf",
+          "security",
+          "a11y",
+          "exploratory"
+        ]
+      }
+    },
+    "status": { "enum": ["draft", "active", "deprecated"] },
+    "owner": { "type": "string", "pattern": "^@[A-Za-z0-9_-]+$" },
+    "created": { "type": "string", "format": "date" },
+    "updated": { "type": "string", "format": "date" },
+    "estimated_minutes": { "type": "integer", "minimum": 1 },
+    "automation": {
+      "type": "object",
+      "required": ["status"],
+      "additionalProperties": false,
+      "properties": {
+        "status": {
+          "enum": ["not-automated", "in-progress", "automated", "out-of-scope"]
+        },
+        "reason": { "type": "string" },
+        "refs": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "status": { "const": "out-of-scope" } } },
+          "then": { "required": ["reason"] }
+        },
+        {
+          "if": { "properties": { "status": { "const": "automated" } } },
+          "then": {
+            "required": ["refs"],
+            "properties": { "refs": { "minItems": 1 } }
+          }
+        }
+      ]
+    },
+    "requirements": {
+      "type": "array",
+      "items": { "type": "string", "pattern": "^REQ-[A-Z0-9]+-\\d{3,}$" }
+    },
+    "pre_conditions": {
+      "type": "array",
+      "items": { "type": "string", "pattern": "^PRE-\\d{3,}$" }
+    },
+    "tags": {
+      "type": "array",
+      "items": { "type": "string", "pattern": "^[a-z0-9-]+$" }
+    },
+    "configurations": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "browsers": {
+          "type": "array",
+          "items": { "enum": ["chromium", "firefox", "webkit", "edge"] }
+        },
+        "envs": {
+          "type": "array",
+          "items": { "enum": ["local", "staging", "prod", "demo"] }
+        }
+      }
+    },
+    "data_sets": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "open_defects": {
+      "type": "array",
+      "items": { "type": "string", "pattern": "^GH-\\d+$" }
+    }
+  }
+}

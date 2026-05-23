@@ -1,0 +1,93 @@
+name: QA Defect
+description: Test koşumu sırasında bulunan defect (qa/ mirror için standart format)
+title: "[QA] "
+labels: ["qa-defect"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Bu template qa/runs/ tarafından açılan defect'leri standart hale getirir.
+        Issue kapatıldığında CI bot `qa/defects/GH-{NUMBER}.md` mirror üretir.
+
+  - type: input
+    id: tc
+    attributes:
+      label: İlgili Test Case
+      description: "qa/cases/ altındaki TC ID (örn. TC-AUTH-001)"
+      placeholder: "TC-AUTH-001"
+    validations:
+      required: true
+
+  - type: input
+    id: found_in
+    attributes:
+      label: Bulunduğu Run
+      description: "qa/runs/ altındaki run ID (örn. TR-2026-05-22-SMOKE-001)"
+      placeholder: "TR-2026-05-22-..."
+    validations:
+      required: false
+
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Severity
+      description: "Etki büyüklüğü"
+      options:
+        - "S1 — Kritik (release stopper)"
+        - "S2 — Büyük (feature broken, workaround zor)"
+        - "S3 — Orta (workaround var)"
+        - "S4 — Küçük (kozmetik)"
+      default: 2
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Tekrar üretme adımları
+      description: "Adım adım nasıl tetiklenir"
+      placeholder: |
+        1. Login sayfasına git
+        2. ...
+        3. ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Beklenen davranış
+      placeholder: "HTTP 401 dönmeliydi"
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Gerçekleşen davranış
+      placeholder: "HTTP 500 döndü, stack trace eklenmiş"
+    validations:
+      required: true
+
+  - type: input
+    id: environment
+    attributes:
+      label: Ortam
+      placeholder: "staging, chromium 120, commit 4f8a9c2"
+    validations:
+      required: false
+
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Kanıt
+      description: "Screenshot, log dosyası, video — drag&drop veya path"
+      placeholder: "ekran-goruntusu.png ..."
+
+  - type: markdown
+    attributes:
+      value: |
+        ---
+        **Tip**: Bu Issue kapatılınca `qa-bot` `qa/defects/GH-{NUMBER}.md` mirror oluşturur.
+        TC frontmatter'ı manuel olarak güncellemek için `qa/cases/{suite}/TC-XXX-NNN.md`
+        içinde `open_defects: [GH-{NUMBER}]` ekleyin.

@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: qa/ dokümantasyonu
+    url: https://github.com/yasin-bulgan/Cortex_Ai_Automation/blob/main/qa/README.md
+    about: Test management sistemi, TC nasıl yazılır, run nasıl kaydedilir
+  - name: qa/ konvansiyonları (ID şeması, frontmatter)
+    url: https://github.com/yasin-bulgan/Cortex_Ai_Automation/blob/main/qa/CONVENTIONS.md
+    about: Domain prefix'ler, schema'lar, naming kuralları

@@ -55,7 +55,7 @@ Kategoriler: `Added`, `Changed`, `Deprecated`, `Removed`, `Fixed`, `Security`.
 - `docs/adr/` — 5 ADR ile mimari karar kayıtları sistemi (monorepo, engine/backend ayrımı, synthetic-data, legacy politikası, test taksonomisi)
 - `docs/architecture/engine-backend-contract.md` — Flask engine ↔ FastAPI backend arası resmi HTTP kontratı, deprecation takvimi
 - `docs/architecture/synthetic-data-gap-analysis.md` — platform-v4 → backend merge için özellik karşılaştırması
-- `docs/testing/TEST_STRATEGY.md` — "yeni test nereye yazılır?" karar ağacı, piramit, marker sistemi
+- `qa/strategy/test-strategy.md` — "yeni test nereye yazılır?" karar ağacı, piramit, marker sistemi
 - `CONTRIBUTING.md` — setup, branch/PR/commit kuralları, release akışı
 - `.github/CODEOWNERS` — domain bazlı review ataması
 - `.github/PULL_REQUEST_TEMPLATE.md`

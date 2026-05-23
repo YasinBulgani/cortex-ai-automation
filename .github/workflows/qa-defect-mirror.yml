@@ -1,0 +1,60 @@
+name: qa/ defect mirror
+
+# GitHub Issue (label: qa-defect) kapatıldığında qa/defects/GH-{NUMBER}.md mirror üret.
+# Kanonik kaynak GitHub Issues, repo'daki MD'ler closed-state snapshot (audit + AI training).
+
+on:
+  issues:
+    types: [closed]
+
+permissions:
+  contents: write
+  issues: read
+
+jobs:
+  mirror:
+    name: Mirror closed defect → qa/defects/
+    if: contains(github.event.issue.labels.*.name, 'qa-defect')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: qa/package.json
+
+      - name: Install qa tooling
+        working-directory: qa
+        run: npm install --no-audit --no-fund
+
+      - name: Write event payload
+        run: echo '${{ toJSON(github.event) }}' > /tmp/event.json
+
+      - name: Generate defect mirror
+        working-directory: qa
+        run: node tools/mirror-defect.mjs --issue-json=/tmp/event.json
+
+      - name: Refresh traceability
+        working-directory: qa
+        run: node tools/trace.mjs
+
+      - name: Commit mirror
+        run: |
+          git config user.email "qa-bot@cortex-ai-automation.local"
+          git config user.name "qa-bot"
+          git add qa/defects qa/coverage
+          if git diff --cached --quiet; then
+            echo "No changes"
+          else
+            git commit -m "qa(defect): mirror #${{ github.event.issue.number }} [skip ci]
+
+Issue: ${{ github.event.issue.html_url }}
+Title: ${{ github.event.issue.title }}
+"
+            git push
+          fi

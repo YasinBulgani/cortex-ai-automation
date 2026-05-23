@@ -1,0 +1,110 @@
+name: Cortex Recorder Tests
+
+# E28 fix — CI/CD entegrasyonu
+# - PR'da smoke (tag @smoke) çalışır, fail olursa merge bloklanır
+# - Push to main'de regression çalışır
+# - Nightly schedule'da full suite + Allure report artifact
+
+on:
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'frameworks/cortex-java/**'
+      - 'apps/web/**'
+      - '.github/workflows/cortex-recorder-tests.yml'
+  push:
+    branches: [main]
+  schedule:
+    # 02:00 Türkiye saati (nightly)
+    - cron: '0 23 * * *'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Cucumber tag expression (örn: @smoke and not @manual)"
+        required: false
+        default: "@smoke"
+
+jobs:
+  cortex-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: frameworks/cortex-java
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: 17
+          distribution: temurin
+          cache: maven
+
+      - name: Set up Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: pw-${{ runner.os }}-${{ hashFiles('frameworks/cortex-java/pom.xml') }}
+
+      - name: Install Playwright browsers
+        run: ./scripts/cortex install
+
+      # Smoke on PR, regression on push/schedule
+      - name: Determine suite
+        id: suite
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo "tag=@smoke" >> "$GITHUB_OUTPUT"
+            echo "label=SMOKE" >> "$GITHUB_OUTPUT"
+          elif [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "tag=${{ inputs.tag }}" >> "$GITHUB_OUTPUT"
+            echo "label=CUSTOM" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=@cortex and not @manual" >> "$GITHUB_OUTPUT"
+            echo "label=REGRESSION" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Run tests (${{ steps.suite.outputs.label }})
+        run: |
+          ./mvnw -B test \
+            -Pheadless,parallel \
+            -Dparallel.threads=4 \
+            -Dcucumber.filter.tags="${{ steps.suite.outputs.tag }}"
+        env:
+          CORTEX_ENV: ci
+          PLAYWRIGHT_TIMEOUT_MS: 60000
+
+      - name: Upload test artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cortex-test-runs-${{ github.run_id }}
+          path: |
+            frameworks/cortex-java/target/test-runs/**/*.png
+            frameworks/cortex-java/target/test-runs/**/result.json
+            frameworks/cortex-java/target/cucumber-reports/**
+            frameworks/cortex-java/target/allure-results/**
+          retention-days: 14
+          if-no-files-found: ignore
+
+      - name: PR comment on failure
+        if: failure() && github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '❌ Cortex Recorder smoke testleri **başarısız** oldu.\n' +
+                    '[Detaylı sonuçlar](' + context.payload.repository.html_url +
+                    '/actions/runs/' + context.runId + ')\n' +
+                    'Screenshot ve Allure raporu artifact\'lardan indirilebilir.'
+            })

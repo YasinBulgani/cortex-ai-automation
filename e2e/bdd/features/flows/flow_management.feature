@@ -11,7 +11,7 @@
     Diyelim ki kullanici akislar sayfasindadir
     Ozaman akis listesi goruntulenir
 
-  @critical
+  @critical @TC-FLW-001
   Senaryo: Yeni akis olusturma
     Diyelim ki kullanici akislar sayfasindadir
     Ve yeni akis butonuna tiklar

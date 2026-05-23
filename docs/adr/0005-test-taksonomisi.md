@@ -21,7 +21,7 @@ Yeni gelen developer "yeni test nereye yazayım?" sorusuna 3 farklı cevap alıy
 
 ## Karar
 
-Her test tipi için **tek ve resmi** bir konum tanımlandı. Karar ağacı ile `docs/testing/TEST_STRATEGY.md`'de yazıldı.
+Her test tipi için **tek ve resmi** bir konum tanımlandı. Karar ağacı ile `qa/strategy/test-strategy.md`'de yazıldı.
 
 Özet:
 
@@ -73,7 +73,7 @@ Her test bir **marker/tag** taşımalı:
 - Team eğitimi gerekli
 
 ### Takip işleri
-- [x] Doküman: `docs/testing/TEST_STRATEGY.md` (2026-04-19)
+- [x] Doküman: `qa/strategy/test-strategy.md` (2026-04-19)
 - [x] `tests/load/`, `tests/performance/` → `performance-tests/` (2026-04-19)
 - [x] Root `tests/` dizinini sil — kırık Python entegrasyon test'leri silindi (2026-04-19, hardcoded `/sessions/zealous-lucid-bell/` path'leri nedeniyle çalışmıyorlardı)
 - [ ] CI'da marker-based matrix: smoke / regression / full jobs
@@ -82,5 +82,5 @@ Her test bir **marker/tag** taşımalı:
 
 ## İlgili
 
-- [docs/testing/TEST_STRATEGY.md](../testing/TEST_STRATEGY.md)
+- [qa/strategy/test-strategy.md](../../qa/strategy/test-strategy.md)
 - [ADR-0001](0001-monorepo-yapisi.md)

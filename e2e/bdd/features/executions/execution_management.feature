@@ -12,7 +12,7 @@
     Diyelim ki kullanici kosular sayfasindadir
     Ozaman kosu listesi goruntulenir
 
-  @critical
+  @critical @TC-EXC-001
   Senaryo: Yeni kosu olusturma
     Diyelim ki kullanici kosular sayfasindadir
     Ve yeni kosu butonuna tiklar

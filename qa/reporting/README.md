@@ -1,17 +1,31 @@
-# BGTS Kalite ve Raporlama Yönetim Sistemi
+# qa/reporting — Kalite ve Raporlama Yönetim Sistemi
 
-Bu klasör, BGTS Test Platformu'nun raporlama, coverage, traceability ve kalite yönetim yapısını tanımlar.
+> **Not**: PR 2'de `docs/quality/`'den taşındı. Dosya isimleri sadeleştirildi (01_, 02_ prefix'leri kaldırıldı). İçerik aynı.
+
+Bu klasör, Cortex AI Automation'ın raporlama, kalite checklist ve şablon yapısını tanımlar.
 
 ## Doküman İndeksi
 
-| # | Doküman | Açıklama |
-|---|---------|----------|
-| 01 | [Raporlama Mimarisi](01_reporting_architecture.md) | Katmanlı raporlama sistemi, veri kaynakları, rapor tipleri, CI/CD entegrasyonu |
-| 02 | [Coverage Matrisi](02_coverage_matrix.md) | 4 boyutlu coverage: Requirement, Feature, Automation, Risk-Based |
-| 03 | [Traceability Yapısı](03_traceability_structure.md) | Requirement → Test Case → Automation → Execution zinciri |
-| 04 | [Yönetici Özet Şablonu](04_executive_summary_template.md) | Üst yönetim için tek sayfa kalite raporu |
-| 05 | [Kalite Checklist'i](05_quality_checklist.md) | Sprint, PR, Release ve periyodik kontrol listeleri |
-| 06 | [Root-Cause Analysis](06_root_cause_analysis.md) | Başarısız test kök neden sınıflandırma taksonomisi ve şablonları |
+| Doküman | Açıklama |
+|---------|----------|
+| [architecture.md](architecture.md) | Katmanlı raporlama sistemi, veri kaynakları, rapor tipleri, CI/CD entegrasyonu |
+| [quality-checklist.md](quality-checklist.md) | Sprint, PR, Release ve periyodik kontrol listeleri |
+
+## Şablonlar (template'ler)
+
+| Şablon | Kullanım |
+|---|---|
+| [exec-summary.template.md](exec-summary.template.md) | Üst yönetim için tek sayfa kalite raporu |
+| [release-signoff.template.md](release-signoff.template.md) | Release sign-off checklist (PR 1'de yaratıldı) |
+| [rca.template.md](rca.template.md) | Başarısız test kök neden sınıflandırma şablonu |
+
+## İlgili dokümanlar (farklı klasörlerde)
+
+| Konu | Konum |
+|---|---|
+| Coverage stratejisi (4 boyutlu) | [../strategy/coverage-strategy.md](../strategy/coverage-strategy.md) |
+| Traceability mimarisi (Requirement → TC → Automation → Run) | [../strategy/traceability.md](../strategy/traceability.md) |
+| Otomatik üretilen coverage çıktıları | [../coverage/](../coverage/) |
 
 ## Rapor Şablonları
 

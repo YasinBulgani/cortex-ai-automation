@@ -1,0 +1,67 @@
+[
+  {
+    "key": "cortexBigbannerClose",
+    "type": "id",
+    "value": "cortex-bigbanner-close"
+  },
+  {
+    "key": "email",
+    "type": "name",
+    "value": "email"
+  },
+  {
+    "key": "email_2",
+    "type": "name",
+    "value": "email"
+  },
+  {
+    "key": "password",
+    "type": "name",
+    "value": "password"
+  },
+  {
+    "key": "password_2",
+    "type": "name",
+    "value": "password"
+  },
+  {
+    "key": "email_3",
+    "type": "name",
+    "value": "email"
+  },
+  {
+    "key": "email_4",
+    "type": "name",
+    "value": "email"
+  },
+  {
+    "key": "email_5",
+    "type": "name",
+    "value": "email"
+  },
+  {
+    "key": "password_3",
+    "type": "name",
+    "value": "password"
+  },
+  {
+    "key": "password_4",
+    "type": "name",
+    "value": "password"
+  },
+  {
+    "key": "password_5",
+    "type": "name",
+    "value": "password"
+  },
+  {
+    "key": "girisYapButton",
+    "type": "xpath",
+    "value": "//button[normalize-space()\u003d\u0027Giriş Yap\u0027]"
+  },
+  {
+    "key": "girisYapButton_2",
+    "type": "xpath",
+    "value": "//button[normalize-space()\u003d\u0027Giriş Yap\u0027]"
+  }
+]

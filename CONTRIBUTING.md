@@ -164,7 +164,7 @@ docs(adr): establish ADR system with 5 foundational records
 
 ## Testler — "nereye yazarım?"
 
-Tek kaynak: [`docs/testing/TEST_STRATEGY.md`](docs/testing/TEST_STRATEGY.md)
+Tek kaynak: [`qa/strategy/test-strategy.md`](qa/strategy/test-strategy.md)
 
 Hızlı karar:
 
@@ -289,5 +289,5 @@ gh release create v0.5.0 --generate-notes
 - [README.md](README.md) — proje genel bakış
 - [docs/adr/](docs/adr/) — mimari kararlar
 - [docs/architecture/engine-backend-contract.md](docs/architecture/engine-backend-contract.md)
-- [docs/testing/TEST_STRATEGY.md](docs/testing/TEST_STRATEGY.md)
+- [qa/strategy/test-strategy.md](qa/strategy/test-strategy.md)
 - [legacy/README.md](legacy/README.md) — arşiv politikası

@@ -11,13 +11,14 @@
     Diyelim ki kullanici regresyon sayfasindadir
     Ozaman regresyon seti listesi goruntulenir
 
-  @critical
+  @critical @TC-REG-001
   Senaryo: Yeni regresyon seti olusturma
     Diyelim ki kullanici regresyon sayfasindadir
     Ve set adini "Sprint-1 Regresyon" olarak girer
     Ozaman set olustur butonuna tiklar
     Ve regresyon seti basariyla olusturulur
 
+  @TC-REG-003
   Senaryo: AI ile regresyon onerisi
     Diyelim ki kullanici regresyon sayfasindadir
     Ozaman AI oner butonuna tiklar

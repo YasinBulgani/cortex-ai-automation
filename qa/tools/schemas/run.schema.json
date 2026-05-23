@@ -1,0 +1,79 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "cortex.qa.run",
+  "title": "Test Run",
+  "type": "object",
+  "required": ["id", "plan", "started", "ended", "executor", "environment", "summary", "results"],
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^TR-\\d{4}-\\d{2}-\\d{2}-[A-Z0-9-]+-\\d{3,}$"
+    },
+    "plan": { "type": "string", "minLength": 1 },
+    "started": { "type": "string", "format": "date-time" },
+    "ended": { "type": "string", "format": "date-time" },
+    "executor": { "type": "string", "pattern": "^@[A-Za-z0-9_-]+$" },
+    "environment": {
+      "type": "object",
+      "required": ["branch", "commit", "env"],
+      "additionalProperties": true,
+      "properties": {
+        "branch": { "type": "string" },
+        "commit": { "type": "string", "pattern": "^[a-f0-9]{7,40}$" },
+        "browser": { "type": "string" },
+        "env": { "type": "string" },
+        "url": { "type": "string", "format": "uri" }
+      }
+    },
+    "summary": {
+      "type": "object",
+      "required": ["total", "passed", "failed", "blocked", "skipped"],
+      "additionalProperties": false,
+      "properties": {
+        "total": { "type": "integer", "minimum": 0 },
+        "passed": { "type": "integer", "minimum": 0 },
+        "failed": { "type": "integer", "minimum": 0 },
+        "blocked": { "type": "integer", "minimum": 0 },
+        "skipped": { "type": "integer", "minimum": 0 },
+        "untested": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "results": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["tc", "tc_commit", "status"],
+        "additionalProperties": false,
+        "properties": {
+          "tc": { "type": "string", "pattern": "^TC-[A-Z0-9]+-\\d{3,}$" },
+          "tc_commit": { "type": "string", "pattern": "^[a-f0-9]{7,40}$" },
+          "status": {
+            "enum": [
+              "pass",
+              "fail",
+              "blocked",
+              "skipped",
+              "untested",
+              "retest",
+              "not-applicable"
+            ]
+          },
+          "duration_s": { "type": "number", "minimum": 0 },
+          "automation": { "type": "string" },
+          "defect": { "type": "string", "pattern": "^GH-\\d+$" },
+          "note": { "type": "string" },
+          "evidence": { "type": "string" },
+          "config": {
+            "type": "object",
+            "properties": {
+              "browser": { "type": "string" },
+              "env": { "type": "string" }
+            }
+          }
+        }
+      }
+    }
+  }
+}

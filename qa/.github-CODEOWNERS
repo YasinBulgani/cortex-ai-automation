@@ -1,0 +1,26 @@
+# qa/ — Suite-bazlı CODEOWNERS
+#
+# Bu dosyayı repo köküne `.github/CODEOWNERS`'a aktarın veya repo'nun mevcut
+# CODEOWNERS'ına aşağıdaki satırları ekleyin.
+
+# Strategy ve konvansiyonlar — QA leads
+qa/CONVENTIONS.md          @yasin-bulgan
+qa/README.md               @yasin-bulgan
+qa/strategy/               @yasin-bulgan
+
+# Tooling — DX ekibi (henüz tek kişi)
+qa/tools/                  @yasin-bulgan
+qa/.github/                @yasin-bulgan
+
+# Suite-bazlı sahiplik (eklendikçe doldurulacak)
+qa/cases/auth/             @yasin-bulgan
+qa/cases/security/         @yasin-bulgan
+qa/cases/billing/          @yasin-bulgan
+qa/cases/rbac/             @yasin-bulgan
+
+# Plans + Runs — QA leads
+qa/plans/                  @yasin-bulgan
+qa/runs/                   @yasin-bulgan
+
+# Requirements — Product + QA
+qa/requirements/           @yasin-bulgan
