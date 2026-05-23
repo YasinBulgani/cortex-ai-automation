@@ -13,7 +13,8 @@ from typing import List, Optional
 
 from fastapi import APIRouter, Body, HTTPException, Path, Query, status
 
-from . import service
+from . import insights, service
+from .insights import InsightsResponse
 from .models import (
     CoverageResponse,
     CreateRunRequest,
@@ -138,6 +139,15 @@ def coverage() -> CoverageResponse:
 @router.get("/health", response_model=HealthReport)
 def health() -> HealthReport:
     return service.health_score()
+
+
+# ── Insights ────────────────────────────────────────────────────────────
+
+@router.get("/insights", response_model=InsightsResponse)
+def get_insights() -> InsightsResponse:
+    """Velocity (TC/hafta), trend (günlük pass rate), per-owner breakdown,
+    top failing TC'ler. Dashboard "Insights" sekmesi ve haftalık rapor için."""
+    return insights.insights_response()
 
 
 # ── Defect Issue (GitHub bridge) ────────────────────────────────────────
