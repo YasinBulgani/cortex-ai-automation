@@ -1220,6 +1220,7 @@ def cortex_recorder_start():
     url     = data.get("url") or "https://cortex-test.bgtsai.com/"
     feature = data.get("feature_name") or ""
     browser = data.get("browser") or "chromium"
+    device = (data.get("device") or "").strip()  # E25 fix: device emulation
 
     # Stop any orphan recorder JVM + clear stale state BEFORE spawning new one.
     # Without this, the new spawn races with leftover JVMs on 7700/7701 and
@@ -1238,6 +1239,11 @@ def cortex_recorder_start():
     ]
     if feature:
         cmd.append(f"-Drecorder.feature.name={feature}")
+    if device and device.lower() not in ("desktop", "none", ""):
+        # E25 fix — propagate device to both recorder (Java RecorderConfig)
+        # and the test runner (PlaywrightConfig.device()).
+        cmd.append(f"-Drecorder.device={device}")
+        cmd.append(f"-Dplaywright.device={device}")
 
     try:
         log_file = LOGS_DIR / "recorder.log"

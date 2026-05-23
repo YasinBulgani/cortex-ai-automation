@@ -94,6 +94,25 @@ public final class PlaywrightFactory {
                 .setViewportSize(PlaywrightConfig.viewportWidth(), PlaywrightConfig.viewportHeight())
                 .setLocale("tr-TR");
 
+        // E25 fix — Mobile device emulation
+        // If -Dplaywright.device=<name> is set, override viewport + apply
+        // userAgent, deviceScaleFactor, isMobile, hasTouch from DevicePresets.
+        String deviceName = PlaywrightConfig.device();
+        if (!deviceName.isBlank()) {
+            DevicePresets.Device dev = DevicePresets.lookup(deviceName);
+            if (dev != null) {
+                DevicePresets.applyTo(opts, deviceName);
+                System.out.println("[PlaywrightFactory] Device emulation active: "
+                        + dev.name() + " (" + dev.viewportWidth() + "x" + dev.viewportHeight()
+                        + ", DPR=" + dev.deviceScaleFactor()
+                        + ", mobile=" + dev.isMobile() + ")");
+            } else {
+                System.err.println("[PlaywrightFactory] Unknown device: '" + deviceName
+                        + "' — falling back to desktop viewport. "
+                        + "Use one of: " + String.join(", ", DevicePresets.availableNames()));
+            }
+        }
+
         if (PlaywrightConfig.videoEnabled()) {
             opts.setRecordVideoDir(Paths.get("target/playwright-videos"));
         }
