@@ -58,8 +58,8 @@ class BrowserManager:
             if self._playwright is not None:
                 try:
                     await self._playwright.stop()
-                except Exception as _exc:
-                    logger.debug("Önceki Playwright stop hatası (yoksayıldı): %s", _exc)
+                except Exception:
+                    logger.debug("Playwright durdurulurken hata (görmezden geliniyor)", exc_info=True)
             self._playwright = await async_playwright().start()
             self._browser = await self._playwright.chromium.launch(headless=True)
             logger.info("Playwright Chromium browser başlatıldı.")
@@ -91,8 +91,8 @@ class BrowserManager:
         if ctx is not None:
             try:
                 await ctx.close()
-            except Exception as _exc:
-                logger.debug("Context %s kapatılırken hata (yoksayıldı): %s", session_id, _exc)
+            except Exception:
+                logger.debug("Session %s browser context kapatılırken hata", session_id, exc_info=True)
 
     def _touch(self, session_id: str) -> None:
         """Update last_active timestamp."""
@@ -718,18 +718,18 @@ class BrowserManager:
             for sid in list(self._sessions):
                 try:
                     await self._close_session_internal(sid)
-                except Exception as _exc:
-                    logger.debug("Session %s kapatılırken hata (yoksayıldı): %s", sid, _exc)
+                except Exception:
+                    logger.debug("Shutdown sırasında session %s kapatılamadı", sid, exc_info=True)
             if self._browser is not None:
                 try:
                     await self._browser.close()
-                except Exception as _exc:
-                    logger.debug("Browser kapatılırken hata (yoksayıldı): %s", _exc)
+                except Exception:
+                    logger.debug("Browser kapatılırken hata (görmezden geliniyor)", exc_info=True)
                 self._browser = None
             if self._playwright is not None:
                 try:
                     await self._playwright.stop()
-                except Exception as _exc:
-                    logger.debug("Playwright stop hatası (yoksayıldı): %s", _exc)
+                except Exception:
+                    logger.debug("Playwright durdurulurken hata (görmezden geliniyor)", exc_info=True)
                 self._playwright = None
             logger.info("BrowserManager tamamen kapatildi.")

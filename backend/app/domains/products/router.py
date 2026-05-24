@@ -39,7 +39,7 @@ router = APIRouter(prefix="/products", tags=["products"])
 
 VALID_PRODUCT_IDS = {
     "one", "studio", "service", "web", "mobile",
-    "data", "intelligence", "nexus-code",
+    "data", "management", "intelligence", "nexus-code",
 }
 
 # ── Stat templates per product ────────────────────────────────────────────────
@@ -102,6 +102,14 @@ PRODUCT_STATS: dict[str, list[dict[str, Any]]] = {
         {"key": "volume",        "label": "Üretim (satır)",  "value": 125000, "unit": None, "trend": "up", "severity": "ok"},
         {"key": "recipes",       "label": "Reçete",          "value": 12,  "unit": None,  "trend": "up",   "severity": "ok"},
     ],
+    "management": [
+        {"key": "cases", "label": "Manuel Test Case", "value": 341, "unit": None, "trend": "up", "severity": "ok"},
+        {"key": "active_runs", "label": "Aktif Run", "value": 9, "unit": None, "trend": "flat", "severity": "ok"},
+        {"key": "pass_rate", "label": "Pass Rate", "value": 88, "unit": "%", "trend": "up", "severity": "ok"},
+        {"key": "blocked", "label": "Blocked", "value": 7, "unit": None, "trend": "down", "severity": "warning"},
+        {"key": "coverage", "label": "Req. Coverage", "value": 76, "unit": "%", "trend": "up", "severity": "warning"},
+        {"key": "workload", "label": "Tester İş Yükü", "value": 42, "unit": None, "trend": "flat", "severity": "ok"},
+    ],
     "intelligence": [
         {"key": "providers",     "label": "Provider",        "value": 3,   "unit": None,  "trend": "flat", "severity": "ok"},
         {"key": "token_m",       "label": "Token (M)",       "value": 2.4, "unit": "M",   "trend": "up",   "severity": "ok"},
@@ -144,6 +152,10 @@ AI_INSIGHTS: dict[str, list[dict[str, Any]]] = {
     "data": [
         {"id": "i1", "title": "4 PII bulgusu maskelenemedi", "description": "Email alanlarında kısmi maskeleme hatası tespit edildi.", "severity": "critical", "category": "pii", "confidence": 0.99},
         {"id": "i2", "title": "Veri tazeliği düştü", "description": "Orders tablosu son güncelleme 6 saat önce — beklenen süre 1 saat.", "severity": "warning", "category": "freshness", "confidence": 0.85},
+    ],
+    "management": [
+        {"id": "i1", "title": "7 blocked test release riskini artırıyor", "description": "Sprint 12 regression run içinde ödeme ve mobil doğrulama kaynaklı blocked testler var.", "severity": "warning", "category": "run", "confidence": 0.91},
+        {"id": "i2", "title": "Coverage matrisi güncellenmeli", "description": "Checkout requirement setinde 11 kısmi coverage kaydı tespit edildi.", "severity": "info", "category": "coverage", "confidence": 0.84},
     ],
     "intelligence": [
         {"id": "i1", "title": "Groq token limiti yaklaşıyor", "description": "Günlük kota %78 kullanıldı — 6 saat içinde Gemini fallback devreye girebilir.", "severity": "warning", "category": "quota", "confidence": 0.91},

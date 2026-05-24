@@ -69,8 +69,8 @@ def _estimate_duration(db: Session, test_case_id: str) -> float:
             vals = [r[0] for r in rows if r[0] is not None]
             if vals:
                 return sum(vals) / len(vals)
-    except Exception as _exc:
-        logger.debug("Ortalama süre hesaplanamadı (test_case_id=%s): %s", test_case_id, _exc)
+    except Exception:
+        logger.debug("Test süre ortalaması hesaplanamadı — varsayılan kullanılıyor", exc_info=True)
     return DEFAULT_DURATION_MS
 
 

@@ -41,6 +41,7 @@ logger = logging.getLogger(__name__)
 ROLES: Dict[str, Set[str]] = {
     "viewer": {
         "tspm.read",
+        "test_management.read",
         "ai.read",
         "coverup.read",
         "feature_flags.read",
@@ -48,6 +49,9 @@ ROLES: Dict[str, Set[str]] = {
     "test_author": {
         "tspm.read",
         "tspm.write",
+        "test_management.read",
+        "test_management.write",
+        "test_management.execute",
         "ai.read",
         "ai.generate",
         "coverup.read",
@@ -57,6 +61,7 @@ ROLES: Dict[str, Set[str]] = {
     "reviewer": {
         "tspm.read",
         "tspm.approve",
+        "test_management.read",
         "prompts.read",
         "prompts.approve",
         "coverup.read",
@@ -67,6 +72,10 @@ ROLES: Dict[str, Set[str]] = {
         "tspm.read",
         "tspm.write",
         "tspm.deploy",
+        "test_management.read",
+        "test_management.write",
+        "test_management.execute",
+        "test_management.admin",
         "coverup.read",
         "coverup.heal.approve",
         "feature_flags.read",
@@ -76,6 +85,8 @@ ROLES: Dict[str, Set[str]] = {
     },
     "auditor": {
         "tspm.read",
+        "test_management.read",
+        "test_management.audit",
         "ai.read",
         "coverup.read",
         "audit.read",

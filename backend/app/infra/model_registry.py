@@ -10,6 +10,7 @@ from app.domains.api_testing import models as api_testing_models  # noqa: F401
 from app.domains.billing import models as billing_models  # noqa: F401
 from app.domains.coverup import models as coverup_models  # noqa: F401
 from app.domains.notifications import models as notifications_models  # noqa: F401
+from app.domains.test_management import models as test_management_models  # noqa: F401
 from app.domains.tspm import models as tspm_models  # noqa: F401
 from app.infra import models as core_models  # noqa: F401
 

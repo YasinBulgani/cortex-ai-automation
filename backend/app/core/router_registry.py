@@ -44,6 +44,7 @@ from app.domains.prompts.router import router as prompts_router
 from app.domains.git_fetch.router import router as git_fetch_router
 from app.domains.quality.router import router as quality_router
 from app.domains.rules.router import router as rules_router
+from app.domains.test_management.router import router as test_management_router
 from app.domains.tspm.router import router as tspm_router
 from app.domains.nexus_repo.router import router as nexus_repo_router
 from app.domains.products.router import router as products_router
@@ -84,6 +85,7 @@ _PREFIXED_ROUTERS = [
     rules_router,
     jobs_router,
     artifacts_router,
+    test_management_router,
     tspm_router,
     notifications_router,
     automation_router,

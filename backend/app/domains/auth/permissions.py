@@ -22,6 +22,10 @@ class Permission(str, Enum):
     INTEGRATION_MANAGE = "integration.manage"
     API_TEST_MANAGE = "api_test.manage"
     TEST_DATA_MANAGE = "test_data.manage"
+    TEST_MANAGEMENT_READ = "test_management.read"
+    TEST_MANAGEMENT_WRITE = "test_management.write"
+    TEST_MANAGEMENT_EXECUTE = "test_management.execute"
+    TEST_MANAGEMENT_ADMIN = "test_management.admin"
     ADMIN_FULL = "admin.*"
 
 
@@ -45,9 +49,13 @@ ROLE_PERMISSIONS: dict[str, list[str]] = {
         Permission.INTEGRATION_MANAGE.value,
         Permission.API_TEST_MANAGE.value,
         Permission.TEST_DATA_MANAGE.value,
+        Permission.TEST_MANAGEMENT_READ.value,
+        Permission.TEST_MANAGEMENT_WRITE.value,
+        Permission.TEST_MANAGEMENT_EXECUTE.value,
     ],
     "viewer": [
         Permission.PROJECT_READ.value,
         Permission.SCENARIO_READ.value,
+        Permission.TEST_MANAGEMENT_READ.value,
     ],
 }
