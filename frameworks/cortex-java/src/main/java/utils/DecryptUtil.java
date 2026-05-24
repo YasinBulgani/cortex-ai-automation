@@ -1,26 +1,65 @@
 package utils;
 
 import javax.crypto.Cipher;
+import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
+import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import crypto.PasswordManager;
 import config.ConfigManager;
 
+/**
+ * AES decryption — backward-compatible iki mod:
+ * <ul>
+ *   <li>v2 (GCM): {@code v2:} prefix'li girdiler. IV ilk 12 byte'tir.</li>
+ *   <li>v1 (ECB, deprecated): prefix yoksa eski yolla decode eder. Sadece eski
+ *       password.properties girdileri icin korunmustur.</li>
+ * </ul>
+ */
 public class DecryptUtil {
 
+    private static final int GCM_IV_BYTES = 12;
+    private static final int GCM_TAG_BITS = 128;
+
+    /** Otomatik mod secimi: v2: prefix'i varsa GCM, yoksa eski ECB. */
     public static String decrypt(String encryptedData, String key) throws Exception {
-        if (key.length() != 16) {
+        if (key == null || key.length() != 16) {
             throw new IllegalArgumentException("AES key must be exactly 16 characters");
         }
+        if (encryptedData != null && encryptedData.startsWith(EncryptUtil.V2_PREFIX)) {
+            return decryptGcm(encryptedData.substring(EncryptUtil.V2_PREFIX.length()), key);
+        }
+        return decryptEcb(encryptedData, key);
+    }
 
+    private static String decryptGcm(String base64Body, String key) throws Exception {
+        byte[] raw = Base64.getDecoder().decode(base64Body);
+        if (raw.length <= GCM_IV_BYTES) {
+            throw new IllegalArgumentException("v2 ciphertext too short (missing IV)");
+        }
+        byte[] iv = new byte[GCM_IV_BYTES];
+        System.arraycopy(raw, 0, iv, 0, GCM_IV_BYTES);
+        byte[] ciphertext = new byte[raw.length - GCM_IV_BYTES];
+        System.arraycopy(raw, GCM_IV_BYTES, ciphertext, 0, ciphertext.length);
+
+        Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
+        SecretKeySpec keySpec = new SecretKeySpec(key.getBytes(StandardCharsets.UTF_8), "AES");
+        cipher.init(Cipher.DECRYPT_MODE, keySpec, new GCMParameterSpec(GCM_TAG_BITS, iv));
+        return new String(cipher.doFinal(ciphertext), StandardCharsets.UTF_8);
+    }
+
+    /**
+     * @deprecated Eski ECB sifrelenmis veriler icin. Yeni v2 (GCM) cikislari
+     * uretmek icin {@link EncryptUtil#encryptGcm(String, String)} kullanin.
+     */
+    @Deprecated
+    private static String decryptEcb(String encryptedData, String key) throws Exception {
         Cipher cipher = Cipher.getInstance("AES");
-        SecretKeySpec keySpec = new SecretKeySpec(key.getBytes(), "AES");
+        SecretKeySpec keySpec = new SecretKeySpec(key.getBytes(StandardCharsets.UTF_8), "AES");
         cipher.init(Cipher.DECRYPT_MODE, keySpec);
-
         byte[] decodedBytes = Base64.getDecoder().decode(encryptedData);
         byte[] decryptedBytes = cipher.doFinal(decodedBytes);
-
-        return new String(decryptedBytes);
+        return new String(decryptedBytes, StandardCharsets.UTF_8);
     }
 
     public static String decryptPasswordByAlias(String alias) throws Exception {
