@@ -65,21 +65,42 @@ public class DecryptUtil {
     public static String decryptPasswordByAlias(String alias) throws Exception {
         String encrypted = PasswordManager.getPassword(alias);
         if (encrypted == null) {
-            throw new IllegalArgumentException("No encrypted password found for alias: " + alias);
+            throw new IllegalArgumentException(
+                "No encrypted password found for alias: \"" + alias + "\".\n" +
+                "Fix options:\n" +
+                "  1. Re-record the scenario — the Cortex Recorder auto-encrypts\n" +
+                "     typed passwords and saves them under the correct alias.\n" +
+                "  2. Encrypt manually:\n" +
+                "       a) Set CORTEX_AES_KEY=<your-16-char-key> in .env\n" +
+                "       b) Call EncryptionManager.encryptAndSaveToPasswordFile(<plain>, \"" + alias + "\")\n" +
+                "  Known aliases in password.properties: " + PasswordManager.listAliases()
+            );
         }
 
         String key = ConfigManager.getProperty("aes.key");
         if (key == null || key.isBlank()) {
             throw new IllegalStateException(
-                "AES key missing. Copy .env.example to .env and set " +
-                "CORTEX_AES_KEY=<16 chars>."
+                "AES key missing — cannot decrypt alias \"" + alias + "\".\n" +
+                "Fix: copy .env.example to .env and set CORTEX_AES_KEY=<16 chars>."
             );
         }
         if (key.length() != 16) {
             throw new IllegalArgumentException(
-                "CORTEX_AES_KEY must be exactly 16 characters (current: " + key.length() + ")"
+                "CORTEX_AES_KEY must be exactly 16 characters (current: "
+                + key.length() + "). Fix: update CORTEX_AES_KEY in .env."
             );
         }
-        return decrypt(encrypted, key);
+        try {
+            return decrypt(encrypted, key);
+        } catch (Exception e) {
+            throw new RuntimeException(
+                "Decryption failed for alias \"" + alias + "\": " + e.getMessage() + "\n" +
+                "Likely cause: the value in password.properties was encrypted with a different\n" +
+                "CORTEX_AES_KEY than the one currently set in .env.\n" +
+                "Fix: re-run EncryptionManager.encryptAndSaveToPasswordFile(<plain>, \"" + alias + "\")" +
+                " with the current key.",
+                e
+            );
+        }
     }
 }

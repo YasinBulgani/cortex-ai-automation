@@ -1,6 +1,5 @@
 package recorder;
 
-import com.microsoft.playwright.Browser;
 import com.microsoft.playwright.BrowserContext;
 import com.microsoft.playwright.BrowserType;
 import com.microsoft.playwright.Page;
@@ -33,19 +32,16 @@ public class RecorderMain {
 
     public static void main(String[] args) {
         RecorderConfig cfg = RecorderConfig.fromSystem();
+        // -Drecorder.no-browser=true → skip Playwright entirely, run as HTTP-only.
+        // Used when the actions come from the Cortex Chrome extension installed
+        // in the user's own browser. The HTTP server still listens on 7700+.
+        final boolean noBrowser = "true".equalsIgnoreCase(
+                System.getProperty("recorder.no-browser", "false"));
         System.out.println("=".repeat(60));
-        System.out.println(" Cortex Recorder ");
+        System.out.println(" Cortex Recorder " + (noBrowser ? "(no-browser mode)" : ""));
         System.out.println("=".repeat(60));
         System.out.println(cfg);
         System.out.println("-".repeat(60));
-
-        // 0. Pre-launch cleanup: kill any orphan Playwright Chromium processes
-        //    from previous interrupted runs. Without this, each launch leaks
-        //    a Chrome window on the user's machine.
-        int killed = killOrphanedPlaywrightProcesses();
-        if (killed > 0) {
-            System.out.println("[Recorder] Cleaned up " + killed + " orphan Chromium process(es) from previous runs.");
-        }
 
         // 1. HTTP server (fall back to next free port if requested one is busy)
         RecorderServer server;
@@ -87,39 +83,78 @@ public class RecorderMain {
             return;
         }
 
-        // 4. Playwright + browser
+        // 4. Playwright + browser — OR skip everything in no-browser mode and
+        //    just wait for the extension to talk to us via the HTTP server.
+        if (noBrowser) {
+            System.out.println("[Recorder] no-browser mode: HTTP server only on port " + activePort);
+            System.out.println("[Recorder]   1. Install the Cortex Chrome extension once:");
+            System.out.println("[Recorder]      chrome://extensions → Developer mode → Load unpacked →");
+            System.out.println("[Recorder]      select frameworks/cortex-java/src/main/resources/recorder-extension/");
+            System.out.println("[Recorder]   2. Open the target URL in your regular Chrome.");
+            System.out.println("[Recorder]   3. Click the Cortex Recorder icon → 'Kaydı Başlat'.");
+            System.out.println("[Recorder] Waiting for /stop from the extension…");
+            try {
+                server.stopSignal().join();
+            } catch (Exception ignored) {}
+            if (saved.getCount() > 0) {
+                persist(cfg, server.getActions());
+                saved.countDown();
+            }
+            server.stop();
+            System.out.println("[Recorder] Done.");
+            return;
+        }
+
         try (Playwright pw = Playwright.create()) {
             BrowserType bt = switch (cfg.browser) {
                 case "firefox" -> pw.firefox();
                 case "webkit"  -> pw.webkit();
                 default        -> pw.chromium();
             };
-            BrowserType.LaunchOptions launchOpts = new BrowserType.LaunchOptions()
-                    .setHeadless(cfg.headless)
-                    .setArgs(List.of(
-                            "--start-maximized",
-                            "--disable-blink-features=AutomationControlled",
-                            // PNA: allow fetch() from https://cortex-test... to http://127.0.0.1:7700
-                            "--disable-features=BlockInsecurePrivateNetworkRequests,PrivateNetworkAccessSendPreflights",
-                            "--disable-site-isolation-trials"
-                    ));
+            // ── Chrome extension (toolbar UI) ─────────────────────────
+            // Extracts MV3 extension from classpath to a real directory and
+            // launches Chromium with --load-extension. This puts the toolbar
+            // UI inside chrome-extension:// origin where SPA reconciliation
+            // on the recorded page cannot remove it. See
+            // src/main/resources/recorder-extension/ for the extension code.
+            Path extensionDir = null;
+            try {
+                extensionDir = extractExtension();
+                System.out.println("[Recorder] Toolbar extension extracted to: " + extensionDir);
+            } catch (IOException e) {
+                System.err.println("[Recorder] Extension extract failed, falling back to in-page toolbar: " + e.getMessage());
+            }
 
-            try (Browser browser = bt.launch(launchOpts)) {
-                // Extra shutdown hook for the browser specifically — try-with-resources
-                // handles normal exits, but SIGKILL / IntelliJ Stop bypass it.
-                final Browser finalBrowser = browser;
-                Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-                    try {
-                        if (finalBrowser != null) {
-                            System.out.println("[Recorder] Shutdown hook -> closing browser");
-                            finalBrowser.close();
-                        }
-                    } catch (Exception ignored) {}
-                }, "cortex-browser-cleanup"));
+            // --load-extension requires a persistent context, so we use one with
+            // a throwaway temp userDataDir per recording so state doesn't bleed.
+            final Path userDataDir;
+            try {
+                userDataDir = Files.createTempDirectory("cortex-rec-userdata-");
+            } catch (IOException ioe) {
+                throw new RuntimeException("Failed to create recorder userDataDir", ioe);
+            }
 
-                BrowserContext ctx = browser.newContext(new Browser.NewContextOptions()
-                        .setViewportSize(cfg.viewportWidth, cfg.viewportHeight)
-                        .setLocale("tr-TR"));
+            java.util.List<String> launchArgs = new java.util.ArrayList<>(java.util.List.of(
+                    "--start-maximized",
+                    "--disable-blink-features=AutomationControlled",
+                    // PNA: allow fetch() from https://cortex-test... to http://127.0.0.1:7700
+                    "--disable-features=BlockInsecurePrivateNetworkRequests,PrivateNetworkAccessSendPreflights",
+                    "--disable-site-isolation-trials"
+            ));
+            if (extensionDir != null) {
+                String absExt = extensionDir.toAbsolutePath().toString();
+                launchArgs.add("--load-extension=" + absExt);
+                launchArgs.add("--disable-extensions-except=" + absExt);
+            }
+
+            BrowserType.LaunchPersistentContextOptions persistentOpts =
+                    new BrowserType.LaunchPersistentContextOptions()
+                            .setHeadless(cfg.headless)
+                            .setViewportSize(cfg.viewportWidth, cfg.viewportHeight)
+                            .setLocale("tr-TR")
+                            .setArgs(launchArgs);
+
+            try (BrowserContext ctx = bt.launchPersistentContext(userDataDir, persistentOpts)) {
 
                 // CDP bindings that bypass PNA/CORS — recorder.js calls these
                 // instead of fetch() so private-network blocks never trigger.
@@ -169,7 +204,10 @@ public class RecorderMain {
                 // NOW (after bindings) add the init script so recorder.js sees them.
                 ctx.addInitScript(initScript);
 
-                Page page = ctx.newPage();
+                // Persistent context starts with an initial blank page — reuse it
+                // so we don't end up with two windows. Fall back to a new page if
+                // Playwright didn't give us one (defensive).
+                Page page = ctx.pages().isEmpty() ? ctx.newPage() : ctx.pages().get(0);
                 // Bind the Page to the server so /perform endpoint can drive it
                 server.setPlaywrightPage(page);
 
@@ -199,6 +237,12 @@ public class RecorderMain {
                         server.removeLastAction();
                     } else if (text.startsWith("__CORTEX_ELEMENTS__")) {
                         server.setPageScan(text.substring("__CORTEX_ELEMENTS__".length()));
+                    } else if (text.contains("[cortex-rec]")
+                            && ("error".equals(msg.type()) || "warning".equals(msg.type()))) {
+                        // Forward browser-side recorder errors/warnings to the Java
+                        // log so failures like buildToolbar()/installDebugOverlay()
+                        // are visible in recorder.log without opening DevTools.
+                        System.out.println("[Recorder][page-" + msg.type() + "] " + text);
                     }
                 });
 
@@ -209,6 +253,11 @@ public class RecorderMain {
                 final String safeReinject = initScript;
                 page.onFrameNavigated((frame) -> {
                     if (frame != page.mainFrame()) return;
+                    // Page may be closed by the time a queued framenavigated event
+                    // fires (user closed the tab, hit Stop & Save, etc.). Calling
+                    // page.evaluate() on a closed page throws TargetClosedError
+                    // with a multi-line stack trace that spams the log. Skip it.
+                    if (page.isClosed()) return;
                     try {
                         page.evaluate(
                             "(scriptBody) => { try { (0, eval)(scriptBody); } " +
@@ -217,6 +266,12 @@ public class RecorderMain {
                         );
                         System.out.println("[Recorder] re-inject after nav: " + frame.url() + " ✓");
                     } catch (Exception e) {
+                        // Expected during shutdown — quiet the noisy stack trace.
+                        if (page.isClosed()
+                                || (e.getMessage() != null
+                                    && e.getMessage().contains("Target page, context or browser has been closed"))) {
+                            return;
+                        }
                         System.err.println("[Recorder] re-inject failed: " + e.getMessage());
                     }
                 });
@@ -316,7 +371,9 @@ public class RecorderMain {
                         "    title:         document.title,\n" +
                         "    url:           location.href,\n" +
                         "    bodyChildCount: document.body ? document.body.children.length : 0,\n" +
-                        "    iframeCount:   document.querySelectorAll('iframe').length\n" +
+                        "    iframeCount:   document.querySelectorAll('iframe').length,\n" +
+                        "    heartbeatCount: (window.__cortexDbg && window.__cortexDbg.heartbeat) || 0,\n" +
+                        "    lastError:     window.__cortexLastError ? window.__cortexLastError.msg : null\n" +
                         "  };\n" +
                         "}"
                     );
@@ -353,22 +410,7 @@ public class RecorderMain {
                     server.stopSignal().join();
                 } catch (Exception ignored) {}
 
-                // 6. Persist storage state (cookies + localStorage) for replay reuse
-                try {
-                    java.nio.file.Path stateDir = java.nio.file.Paths.get("src/test/resources/projects/cortex/storage-states");
-                    java.nio.file.Files.createDirectories(stateDir);
-                    String stateName = "recorder-" + System.currentTimeMillis() + ".json";
-                    java.nio.file.Path statePath = stateDir.resolve(stateName);
-                    ctx.storageState(new BrowserContext.StorageStateOptions().setPath(statePath));
-                    System.out.println("[Recorder] storage state saved: " + statePath);
-                    // Also save as 'latest.json' for convenient default use
-                    java.nio.file.Files.copy(statePath, stateDir.resolve("latest.json"),
-                            java.nio.file.StandardCopyOption.REPLACE_EXISTING);
-                } catch (Exception e) {
-                    System.err.println("[Recorder] storage state save failed: " + e.getMessage());
-                }
-
-                // 7. Persist (unless the shutdown hook already did it)
+                // 6. Persist (unless the shutdown hook already did it)
                 if (saved.getCount() > 0) {
                     persist(cfg, server.getActions());
                     saved.countDown();
@@ -387,59 +429,6 @@ public class RecorderMain {
      * This makes re-inject (via framenavigated handler) effective even after
      * React hydration strips our DOM mutations.
      */
-    /**
-     * Kill any orphan Playwright Chromium processes left over from previous
-     * interrupted recorder runs. Playwright's bundled Chromium lives under
-     * ~/Library/Caches/ms-playwright/ (Mac) or %USERPROFILE%\.cache\ms-playwright\
-     * (Windows) or ~/.cache/ms-playwright/ (Linux). We match command-line
-     * substrings to be safe (won't kill user's regular Chrome).
-     *
-     * @return number of processes killed (best-effort, not authoritative)
-     */
-    public static int killOrphanedPlaywrightProcesses() {
-        String os = System.getProperty("os.name", "").toLowerCase();
-        int killed = 0;
-        try {
-            if (os.contains("mac") || os.contains("nix") || os.contains("nux")) {
-                // Match: any process whose command line contains "ms-playwright"
-                // pkill returns 0=killed, 1=none-matched, 2/3=error. We treat 0 as success.
-                String[] patterns = {
-                    "ms-playwright.*[Cc]hromium",
-                    "ms-playwright.*chrome-headless-shell",
-                    "ms-playwright.*[Ff]irefox",
-                    "ms-playwright.*[Ww]ebkit",
-                };
-                for (String p : patterns) {
-                    try {
-                        Process proc = new ProcessBuilder("pkill", "-f", p)
-                                .redirectErrorStream(true).start();
-                        if (proc.waitFor(3, java.util.concurrent.TimeUnit.SECONDS) && proc.exitValue() == 0) {
-                            killed++;
-                        }
-                    } catch (Exception ignored) {}
-                }
-            } else if (os.contains("win")) {
-                // PowerShell: find by CommandLine substring, then Stop-Process
-                String ps = "$procs = Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -like '*ms-playwright*' }; " +
-                            "$procs | ForEach-Object { try { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue } catch {} }; " +
-                            "($procs | Measure-Object).Count";
-                try {
-                    Process proc = new ProcessBuilder("powershell", "-NoProfile", "-Command", ps)
-                            .redirectErrorStream(true).start();
-                    if (proc.waitFor(10, java.util.concurrent.TimeUnit.SECONDS)) {
-                        byte[] out = proc.getInputStream().readAllBytes();
-                        String s = new String(out).trim();
-                        try { killed = Integer.parseInt(s.split("\\s+")[s.split("\\s+").length - 1]); }
-                        catch (NumberFormatException ignored) {}
-                    }
-                } catch (Exception ignored) {}
-            }
-        } catch (Exception e) {
-            System.err.println("[Recorder] killOrphanedPlaywrightProcesses warning: " + e.getMessage());
-        }
-        return killed;
-    }
-
     private static String buildInitScript(RecorderConfig cfg, int activePort) throws IOException {
         String js  = readResource("/recorder/recorder.js");
         String css = readResource("/recorder/recorder.css");
@@ -465,6 +454,43 @@ public class RecorderMain {
         return new String(in.readAllBytes(), StandardCharsets.UTF_8);
     }
 
+    /**
+     * Copy the MV3 toolbar extension out of the classpath into a real directory
+     * (Chromium's --load-extension can't read from inside a JAR). Returns the
+     * extracted directory.
+     */
+    private static Path extractExtension() throws IOException {
+        String[] files = { "manifest.json", "content.js", "background.js", "popup.html", "popup.css", "popup.js" };
+        Path target = Files.createTempDirectory("cortex-rec-ext-");
+        for (String name : files) {
+            String res = "/recorder-extension/" + name;
+            try (var in = RecorderMain.class.getResourceAsStream(res)) {
+                if (in != null) {
+                    Files.copy(in, target.resolve(name));
+                    continue;
+                }
+            }
+            // Fallback to source path for dev runs where target/classes isn't populated.
+            Path fsFallback = Path.of("src/main/resources" + res);
+            if (Files.exists(fsFallback)) {
+                Files.copy(fsFallback, target.resolve(name));
+                continue;
+            }
+            throw new IOException("Extension resource not found: " + res);
+        }
+        // Best-effort cleanup on JVM exit (no guarantees if process is killed -9).
+        Path finalTarget = target;
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            try {
+                try (var stream = Files.walk(finalTarget)) {
+                    stream.sorted(java.util.Comparator.reverseOrder())
+                          .forEach(p -> { try { Files.deleteIfExists(p); } catch (IOException ignored) {} });
+                }
+            } catch (IOException ignored) {}
+        }, "cortex-rec-ext-cleanup"));
+        return target;
+    }
+
     /** Escape into a JS string literal. */
     private static String jsString(String s) {
         return "\"" + s.replace("\\", "\\\\")
@@ -481,7 +507,7 @@ public class RecorderMain {
             return;
         }
         try {
-            var tr = new ActionTranslator().translate(actions);
+            var tr = new ActionTranslator(cfg.featureName).translate(actions);
             var result = new FeatureWriter(cfg).write(tr);
             System.out.println("=".repeat(60));
             System.out.println(" RECORDING COMPLETE ");
@@ -498,5 +524,59 @@ public class RecorderMain {
             System.err.println("[Recorder] Failed to write artifacts: " + e.getMessage());
             e.printStackTrace();
         }
+    }
+
+    /**
+     * Kill any orphaned Playwright-managed browser processes left over from
+     * an interrupted previous recording run.
+     *
+     * Restored after the cross-repo merge — RecorderServer still calls this
+     * during shutdown. Two-OS implementation:
+     *   - macOS / Linux: pkill -f against the ms-playwright path
+     *   - Windows: PowerShell CIM query + Stop-Process
+     *
+     * Returns the number of pkill/Stop-Process invocations that succeeded.
+     * Errors are swallowed: a missing pkill or denied permission must not
+     * block a fresh recording session.
+     */
+    public static int killOrphanedPlaywrightProcesses() {
+        String os = System.getProperty("os.name", "").toLowerCase();
+        int killed = 0;
+        try {
+            if (os.contains("mac") || os.contains("nix") || os.contains("nux")) {
+                String[] patterns = {
+                    "ms-playwright.*[Cc]hromium",
+                    "ms-playwright.*chrome-headless-shell",
+                    "ms-playwright.*[Ff]irefox",
+                    "ms-playwright.*[Ww]ebkit",
+                };
+                for (String p : patterns) {
+                    try {
+                        Process proc = new ProcessBuilder("pkill", "-f", p)
+                                .redirectErrorStream(true).start();
+                        if (proc.waitFor(3, java.util.concurrent.TimeUnit.SECONDS) && proc.exitValue() == 0) {
+                            killed++;
+                        }
+                    } catch (Exception ignored) {}
+                }
+            } else if (os.contains("win")) {
+                String ps = "$procs = Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -like '*ms-playwright*' }; " +
+                            "$procs | ForEach-Object { try { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue } catch {} }; " +
+                            "($procs | Measure-Object).Count";
+                try {
+                    Process proc = new ProcessBuilder("powershell", "-NoProfile", "-Command", ps)
+                            .redirectErrorStream(true).start();
+                    if (proc.waitFor(10, java.util.concurrent.TimeUnit.SECONDS)) {
+                        byte[] out = proc.getInputStream().readAllBytes();
+                        String s = new String(out).trim();
+                        try { killed = Integer.parseInt(s.split("\\s+")[s.split("\\s+").length - 1]); }
+                        catch (NumberFormatException ignored) {}
+                    }
+                } catch (Exception ignored) {}
+            }
+        } catch (Exception e) {
+            System.err.println("[Recorder] killOrphanedPlaywrightProcesses warning: " + e.getMessage());
+        }
+        return killed;
     }
 }

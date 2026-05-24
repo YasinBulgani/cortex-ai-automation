@@ -22,6 +22,27 @@ public class ActionTranslator {
             Map<String, Map<String, String>> locatorEntries
     ) {}
 
+    /**
+     * Slug derived from the recording's feature name (e.g. {@code recorded_20260524_163316}).
+     * Used to build a session-unique default password alias so that recording
+     * three different login scenarios doesn't cause the last one to silently
+     * overwrite the first two in password.properties.
+     *
+     * <p>Null means "no context provided" — falls back to {@code "recordedPassword"}
+     * for backward compatibility (unit tests that call the no-arg constructor).</p>
+     */
+    private final String featureSlug;
+
+    /** Full constructor — use from {@link recorder.RecorderMain} to get collision-safe aliases. */
+    public ActionTranslator(String featureSlug) {
+        this.featureSlug = (featureSlug == null || featureSlug.isBlank()) ? null : featureSlug;
+    }
+
+    /** No-arg constructor kept for backward compatibility (tests, external callers). */
+    public ActionTranslator() {
+        this(null);
+    }
+
     private final LocatorBuilder locatorBuilder = new LocatorBuilder();
 
     public TranslationResult translate(List<RecordedAction> actions) {
@@ -57,7 +78,11 @@ public class ActionTranslator {
                     if (a.element != null && a.element.isPassword) {
                         String alias = (a.passwordAlias != null && !a.passwordAlias.isBlank())
                                 ? a.passwordAlias
-                                : "recordedPassword";
+                                // Derive a session-unique alias from the feature slug so that
+                                // recording N different login scenarios produces N distinct
+                                // aliases (e.g. recorded_20260524_163316_password) instead of
+                                // all colliding on "recordedPassword".
+                                : (featureSlug != null ? featureSlug + "_password" : "recordedPassword");
                         // Persist the typed password under the alias so the generated test
                         // can actually decrypt at runtime. Without this, the recorder leaves
                         // the test in a broken state — the step references an alias that does
