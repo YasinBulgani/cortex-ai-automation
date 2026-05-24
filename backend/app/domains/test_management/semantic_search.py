@@ -83,6 +83,8 @@ def _embed(texts: list[str]) -> list[list[float]] | None:
 
 def _cosine_similarity(query_vec: list[float], corpus_vecs: list[list[float]]) -> list[float]:
     """Batch cosine similarity between one query vector and N corpus vectors."""
+    if not corpus_vecs:
+        return []
     try:
         import numpy as np
 

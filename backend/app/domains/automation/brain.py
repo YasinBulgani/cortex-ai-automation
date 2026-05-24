@@ -27,7 +27,7 @@ from .schemas import (
 )
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(frozen=True)  # slots=True requires Python 3.10+; removed for 3.9 compat
 class AutomationAdapter:
     kind: AutomationKind
     label: str

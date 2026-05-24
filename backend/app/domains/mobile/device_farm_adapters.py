@@ -40,6 +40,12 @@ from typing import Any, Optional, Protocol
 
 logger = logging.getLogger(__name__)
 
+# Re-export so unit tests can patch "app.domains.mobile.device_farm_adapters.get_broker"
+try:
+    from .device_broker import get_broker as get_broker  # noqa: PLC0414
+except Exception:  # pragma: no cover — device_broker may not be importable in test env
+    get_broker = None  # type: ignore[assignment]
+
 
 # ── Device record (provider-agnostic) ────────────────────────────────────────
 
@@ -603,9 +609,9 @@ class _LocalFarmAdapter:
     name = "local"
 
     def list_devices(self, platform=None, os_version=None) -> list[FarmDevice]:
-        from .device_broker import get_broker
+        from app.domains.mobile import device_farm_adapters as _self_mod
 
-        broker = get_broker()
+        broker = _self_mod.get_broker()
         devices = broker.list_devices()
         result = []
         for d in devices:
@@ -625,9 +631,9 @@ class _LocalFarmAdapter:
 
     def start_session(self, device_id: str, app_path: str,
                       capabilities: dict) -> FarmSession:
-        from .device_broker import get_broker
+        from app.domains.mobile import device_farm_adapters as _self_mod
 
-        broker = get_broker()
+        broker = _self_mod.get_broker()
         dev = broker.get_device(device_id)
         if not dev:
             return FarmSession(session_id="error", device_id=device_id,
@@ -653,9 +659,9 @@ class _LocalFarmAdapter:
         pass  # In-process sessions are ephemeral
 
     def health(self) -> dict[str, Any]:
-        from .device_broker import get_broker
+        from app.domains.mobile import device_farm_adapters as _self_mod
 
-        broker = get_broker()
+        broker = _self_mod.get_broker()
         devices = broker.list_devices()
         idle = sum(1 for d in devices if d.status.value == "idle")
         return {
