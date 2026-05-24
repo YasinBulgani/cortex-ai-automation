@@ -62,7 +62,34 @@ public class DecryptUtil {
         return new String(decryptedBytes, StandardCharsets.UTF_8);
     }
 
+    /**
+     * ${ENV:VAR_NAME} pattern — CI/CD shortcut.
+     * Alias bu formattaysa password.properties'i atlar ve dogrudan
+     * belirtilen ortam degiskenini dondurur.
+     * Ornek kullanim (feature dosyasinda):
+     * <pre>
+     *   * I enter encrypted password alias "${ENV:CI_PASSWORD}" into "password"
+     * </pre>
+     */
+    private static final String ENV_PREFIX = "${ENV:";
+
     public static String decryptPasswordByAlias(String alias) throws Exception {
+        // ── ${ENV:VAR_NAME} CI override ──────────────────────────────────
+        if (alias != null && alias.startsWith(ENV_PREFIX) && alias.endsWith("}")) {
+            String envVarName = alias.substring(ENV_PREFIX.length(), alias.length() - 1);
+            String envValue = System.getenv(envVarName);
+            if (envValue == null || envValue.isBlank()) {
+                throw new IllegalArgumentException(
+                    "ENV override alias \"" + alias + "\": environment variable \"" + envVarName
+                    + "\" is not set or empty.\n"
+                    + "Fix: export " + envVarName + "=<password> before running the test suite,\n"
+                    + "  or set it in your CI pipeline secrets (GitHub Actions: secrets."
+                    + envVarName + ", Jenkins: withCredentials)."
+                );
+            }
+            return envValue;
+        }
+
         String encrypted = PasswordManager.getPassword(alias);
         if (encrypted == null) {
             throw new IllegalArgumentException(
