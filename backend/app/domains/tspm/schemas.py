@@ -305,11 +305,18 @@ class MobileRunOut(BaseModel):
 class FlowCreate(BaseModel):
     name: str = Field(min_length=1, max_length=300)
     description: str = Field(default="", max_length=2000)
+    # Frontend flow-designer create payload (template_id, agent_type, tags)
+    template_id: Optional[str] = Field(default=None, max_length=128)
+    agent_type: Optional[str] = Field(default=None, max_length=64)
+    tags: list[str] = Field(default_factory=list)
 
 class FlowOut(BaseModel):
     id: str
     name: str
     description: Optional[str] = None
+    template_id: Optional[str] = None
+    agent_type: Optional[str] = None
+    tags: list[str] = Field(default_factory=list)
     created_at: Optional[datetime] = None
     model_config = {"from_attributes": True}
 

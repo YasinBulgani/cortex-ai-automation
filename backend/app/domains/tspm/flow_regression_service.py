@@ -42,7 +42,14 @@ def list_flows_for_project(
 
 
 def create_flow_for_project(db: Session, project_id: str, body: FlowCreate) -> TspmFlow:
-    flow = TspmFlow(project_id=project_id, name=body.name, description=body.description)
+    flow = TspmFlow(
+        project_id=project_id,
+        name=body.name,
+        description=body.description,
+        template_id=body.template_id,
+        agent_type=body.agent_type,
+        tags=body.tags or [],
+    )
     db.add(flow)
     db.commit()
     db.refresh(flow)

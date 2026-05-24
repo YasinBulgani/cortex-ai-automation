@@ -94,6 +94,18 @@
 
 ---
 
+## Vizyon & Roadmap
+
+> **Yapılacaklar listesi değil** — stratejik referans belgelerdir. Aktif sprint çalışması için Planlama bölümünü kullan.
+
+| Doküman | İçerik |
+|---|---|
+| [`vision/README.md`](vision/README.md) | Vizyon dizini |
+| [`vision/PLAN-FRONTIER-2030.md`](vision/PLAN-FRONTIER-2030.md) | 2030 vizyonu |
+| [`vision/PLAN-BEYOND-2035.md`](vision/PLAN-BEYOND-2035.md) | 2035+ uzun vade |
+
+---
+
 ## Arşiv & Tarihsel
 
 Aktif geliştirme için **kullanılmaz** — yalnızca tarihsel referans amaçlıdır.
