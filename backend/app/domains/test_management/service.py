@@ -357,6 +357,17 @@ def create_cycle(db: Session, project_id: str, payload: TestCycleCreate, user: A
     return cycle
 
 
+def get_run(db: Session, project_id: str, run_id: str) -> TestRun:
+    """Return a single run with nested run_cases and step_results."""
+    run = db.get(TestRun, run_id)
+    if run is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Test run bulunamadı")
+    # Verify project ownership through cycle→plan.
+    if run.cycle.plan.project_id != project_id:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Test run bulunamadı")
+    return run
+
+
 def list_runs(db: Session, project_id: str, status_filter: str | None = None) -> list[TestRun]:
     """Return all runs for a project, optionally filtered by status."""
     q = (

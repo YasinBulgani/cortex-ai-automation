@@ -22,6 +22,7 @@ from app.domains.test_management.schemas import (
     RequirementLinkCreate,
     RequirementLinkOut,
     RunCaseOut,
+    RunDetailOut,
     StepResultUpdate,
     TestCaseCreate,
     TestCaseOut,
@@ -149,6 +150,11 @@ def list_runs(
 @router.post("/projects/{project_id}/runs", response_model=TestRunOut, status_code=status.HTTP_201_CREATED)
 def create_run(project_id: str, payload: TestRunCreate, db: DB, user: WriteUser) -> TestRunOut:
     return service.create_run(db, project_id, payload, user)
+
+
+@router.get("/projects/{project_id}/runs/{run_id}", response_model=RunDetailOut)
+def get_run(project_id: str, run_id: str, db: DB, _user: ReadUser) -> RunDetailOut:
+    return service.get_run(db, project_id, run_id)
 
 
 @router.patch("/projects/{project_id}/run-cases/{run_case_id}/steps/{step_no}", response_model=RunCaseOut)

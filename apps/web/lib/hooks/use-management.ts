@@ -124,6 +124,31 @@ export interface DefectLink {
   created_at: string;
 }
 
+export interface StepResult {
+  id: string;
+  run_case_id: string;
+  step_no: number;
+  status: string;
+  actual_result?: string | null;
+  comment?: string | null;
+  executed_at?: string | null;
+}
+
+export interface RunCase {
+  id: string;
+  run_id: string;
+  case_id: string;
+  case_version_no: number;
+  assigned_to?: string | null;
+  status: string;
+  actual_result?: string | null;
+  execution_notes?: string | null;
+  started_at?: string | null;
+  completed_at?: string | null;
+  duration_seconds?: number | null;
+  step_results: StepResult[];
+}
+
 export interface TestRun {
   id: string;
   cycle_id: string;
@@ -132,6 +157,10 @@ export interface TestRun {
   started_at?: string | null;
   completed_at?: string | null;
   created_at: string;
+}
+
+export interface RunDetail extends TestRun {
+  run_cases: RunCase[];
 }
 
 export interface ImportJob {
@@ -218,6 +247,15 @@ export function useManagementCases(projectId: string | undefined, includeArchive
       ),
     enabled: !!projectId,
     staleTime: 30_000,
+  });
+}
+
+export function useManagementRun(projectId: string | undefined, runId: string | undefined) {
+  return useQuery({
+    queryKey: [...managementKeys.runs(projectId), runId, "detail"] as const,
+    queryFn: () => apiFetch<RunDetail>(`${BASE(projectId!)}/runs/${runId!}`),
+    enabled: !!projectId && !!runId,
+    staleTime: 15_000,
   });
 }
 
