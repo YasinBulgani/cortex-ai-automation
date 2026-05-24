@@ -91,8 +91,8 @@ class BrowserManager:
         if ctx is not None:
             try:
                 await ctx.close()
-            except Exception:
-                pass
+            except Exception as _exc:
+                logger.debug("Context %s kapatılırken hata (yoksayıldı): %s", session_id, _exc)
 
     def _touch(self, session_id: str) -> None:
         """Update last_active timestamp."""
