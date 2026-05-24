@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 
 const tabs = [
   { href: "management", label: "Dashboard" },
@@ -26,10 +27,13 @@ export function ManagementShell({ projectId, title, description, active, childre
   return (
     <main className="min-h-screen bg-slate-950 p-6 text-slate-100">
       <div className="mb-6 flex flex-col gap-4">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-teal-300">Neurex Management</p>
-          <h1 className="mt-2 text-3xl font-bold tracking-tight text-white">{title}</h1>
-          <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-400">{description}</p>
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-teal-300">Neurex Management</p>
+            <h1 className="mt-2 text-3xl font-bold tracking-tight text-white">{title}</h1>
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-400">{description}</p>
+          </div>
+          <LanguageSwitcher className="mt-1 flex-shrink-0" />
         </div>
         <nav className="flex gap-2 overflow-x-auto border-b border-slate-800 pb-3">
           {tabs.map((tab) => {
