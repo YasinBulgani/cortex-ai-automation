@@ -34,8 +34,11 @@ async function loadQaData() {
       const m = matter(raw, {
         engines: {
           yaml: {
-            parse: (i: string) => yaml.load(i, { schema: yaml.JSON_SCHEMA }),
-            stringify: (i: unknown) => yaml.dump(i),
+            parse: (i: string) => {
+              const parsed = yaml.load(i, { schema: yaml.JSON_SCHEMA });
+              return typeof parsed === "object" && parsed !== null ? parsed : {};
+            },
+            stringify: (i: object) => yaml.dump(i),
           },
         },
       });
