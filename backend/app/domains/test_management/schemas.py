@@ -375,3 +375,26 @@ class TraceabilityRow(BaseModel):
     # Derived
     covered: bool = False
     stale: bool = False  # source_updated_at newer than case's last run
+
+
+# ── Semantic search ───────────────────────────────────────────────────────────
+
+class SimilarCaseQuery(BaseModel):
+    """Input for semantic case similarity search."""
+    query: str = Field(..., min_length=1, max_length=2000,
+                       description="Natural-language description to match against test cases")
+    k: int = Field(default=10, ge=1, le=50, description="Maximum number of results")
+    min_score: float = Field(default=0.30, ge=0.0, le=1.0,
+                              description="Minimum cosine similarity threshold (0–1)")
+    exclude_case_id: Optional[str] = None
+
+
+class SimilarCaseResult(BaseModel):
+    """A test case match from semantic search."""
+    case_id: str
+    case_key: str
+    title: str
+    score: float
+    project_id: str
+    tags: list[str] = Field(default_factory=list)
+    last_run_status: Optional[str] = None

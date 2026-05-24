@@ -459,3 +459,32 @@ export function useCommitImportJob(projectId: string) {
     },
   });
 }
+
+// ── Semantic search ───────────────────────────────────────────────────────────
+
+export interface SimilarCaseResult {
+  case_id: string;
+  case_key: string;
+  title: string;
+  score: number;
+  project_id: string;
+  tags: string[];
+  last_run_status?: string | null;
+}
+
+export interface SimilarCaseQuery {
+  query: string;
+  k?: number;
+  min_score?: number;
+  exclude_case_id?: string | null;
+}
+
+export function useSearchSimilarCases(projectId: string) {
+  return useMutation({
+    mutationFn: (payload: SimilarCaseQuery) =>
+      apiFetch<SimilarCaseResult[]>(`${BASE(projectId)}/cases/search-similar`, {
+        method: "POST",
+        json: payload,
+      }),
+  });
+}

@@ -28,6 +28,8 @@ from app.domains.test_management.schemas import (
     RequirementLinkOut,
     RunCaseOut,
     RunDetailOut,
+    SimilarCaseQuery,
+    SimilarCaseResult,
     StepResultUpdate,
     TestCaseCreate,
     TestCaseOut,
@@ -249,6 +251,46 @@ def commit_import_job(project_id: str, job_id: str, db: DB, user: WriteUser) -> 
 )
 def create_import_job(project_id: str, payload: TestImportJobCreate, db: DB, user: WriteUser) -> TestImportJobOut:
     return service.create_import_job(db, project_id, payload, user)
+
+
+@router.post(
+    "/projects/{project_id}/cases/search-similar",
+    response_model=list[SimilarCaseResult],
+    summary="Semantic similarity search across test cases",
+)
+def search_similar_cases(
+    project_id: str,
+    payload: SimilarCaseQuery,
+    db: DB,
+    _user: ReadUser,
+) -> list[SimilarCaseResult]:
+    """Find test cases semantically similar to a natural-language query.
+
+    Uses the AI Gateway embedding model (bge-m3 / multilingual) to compute
+    cosine similarity.  Returns an empty list when the gateway is unavailable.
+    """
+    from app.domains.test_management.semantic_search import find_similar_cases
+
+    results = find_similar_cases(
+        db,
+        project_id,
+        payload.query,
+        k=payload.k,
+        min_score=payload.min_score,
+        exclude_case_id=payload.exclude_case_id,
+    )
+    return [
+        SimilarCaseResult(
+            case_id=r.case_id,
+            case_key=r.case_key,
+            title=r.title,
+            score=r.score,
+            project_id=r.project_id,
+            tags=r.tags,
+            last_run_status=r.last_run_status,
+        )
+        for r in results
+    ]
 
 
 @router.post(
