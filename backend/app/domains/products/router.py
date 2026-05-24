@@ -13,6 +13,7 @@ from datetime import datetime, timezone
 from typing import Any
 
 from fastapi import APIRouter, HTTPException
+from fastapi.responses import JSONResponse
 
 router = APIRouter(prefix="/products", tags=["products"])
 
@@ -177,8 +178,22 @@ def get_product_telemetry(product_id: str) -> dict[str, Any]:
 # her birinin TODO'su ilgili handler'ın üstünde belirtilmiştir.
 
 
+_DEMO_NOTICE = (
+    "DEMO_DATA: Bu endpoint henüz gerçek aggregation'a bağlanmadı — "
+    "dönen veriler statik örnektir. "
+    "Bkz: backend/app/domains/products/router.py TODO yorumları."
+)
+_DEMO_HEADERS = {"X-Demo-Data": "true", "X-Demo-Notice": _DEMO_NOTICE}
+
+
 def _now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
+
+
+def _demo(payload: dict[str, Any]) -> JSONResponse:
+    """Wrap a demo payload with X-Demo-Data headers so consumers can detect mock data."""
+    payload.setdefault("_demo", {"notice": _DEMO_NOTICE, "realDataAvailable": False})
+    return JSONResponse(content=payload, headers=_DEMO_HEADERS)
 
 
 # TODO: visual_diff/a11y/perf/run aggregations'tan birleşik release health üret.
@@ -196,12 +211,12 @@ def get_web_release_health(project_id: str | None = None) -> dict[str, Any]:
         verdict = "caution"
     else:
         verdict = "ship"
-    return {
+    return _demo({
         "verdict": verdict,
         "release": "web@2.5.0-rc3",
         "checks": checks,
         "updatedAt": _now_iso(),
-    }
+    })
 
 
 # TODO: stats'tan son 24s + önceki 24s pencerelerini agg, delta hesapla.
@@ -215,7 +230,7 @@ def get_web_day_over_day(project_id: str | None = None) -> dict[str, Any]:
         {"key": "visdiff",  "label": "Visual Diff", "today": "4",     "yesterday": "6",     "delta": -2,                       "goodDirection": "down", "spark": [8, 7, 7, 6, 6, 5, 5, 4]},
         {"key": "runs",     "label": "Toplam Koşu", "today": "1.284", "yesterday": "1.156", "delta": 11,   "deltaUnit": "%",  "goodDirection": "up",   "spark": [950, 1000, 1080, 1120, 1150, 1156, 1200, 1284]},
     ]
-    return {"windowHours": 24, "metrics": metrics, "updatedAt": _now_iso()}
+    return _demo({"windowHours": 24, "metrics": metrics, "updatedAt": _now_iso()})
 
 
 # TODO: visual diff onayları, flaky escalation'lar, PR review request'leri, perf
@@ -229,7 +244,7 @@ def get_web_my_inbox(project_id: str | None = None) -> dict[str, Any]:
         {"id": "4", "kind": "investigate", "priority": "med",  "title": "Homepage LCP 2.5s → 2.9s yükseldi",              "context": "Son deploy sonrası perf regression",      "age": "4 sa"},
         {"id": "5", "kind": "approve",     "priority": "low",  "title": "Profile page — yeni baseline alındı",            "context": "AI 'kabul edilebilir' diyor (skor 0.94)", "age": "6 sa"},
     ]
-    return {"items": items, "updatedAt": _now_iso()}
+    return _demo({"items": items, "updatedAt": _now_iso()})
 
 
 # TODO: Lighthouse / RUM (CrUX, Web Vitals) verilerini agg edip sayfa başı
@@ -251,7 +266,7 @@ def get_web_perf_metrics(project_id: str | None = None) -> dict[str, Any]:
         "fcp": [1.6, 1.7, 1.7, 1.8, 1.8, 1.9, 1.9, 1.9],
         "tbt": [320, 340, 350, 360, 380, 400, 410, 420],
     }
-    return {"pages": pages, "trend": trend, "updatedAt": _now_iso()}
+    return _demo({"pages": pages, "trend": trend, "updatedAt": _now_iso()})
 
 
 _VALID_INBOX_ACTIONS = {"approve", "reject", "snooze", "reassign"}

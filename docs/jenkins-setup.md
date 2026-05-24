@@ -90,52 +90,58 @@ Not: Mevcut `Jenkinsfile`, workspace temizligi icin `deleteDir()` kullandigi ici
 
 ## Required Credentials
 
-Pipeline bu credential adlarini bekler:
+Pipeline bu credential adlarini bekler. Jenkins UI → **Manage Jenkins → Credentials → System → Global credentials** altinda ekle.
+
+> ⚠️ Bu credential'lar Jenkins'de **tanımlı olmadan** `PUSH_IMAGES=true` veya `DEPLOY_STAGING=true` çalıştırılırsa ilgili stage hata verir.
 
 ### Container Registry
 
-- `ghcr-creds`
-  Tip: `Username with password`
-  Icerik:
-  - username: GHCR kullanicisi
-  - password: GHCR token veya PAT
+| ID | Tip | Ne gireceğin |
+|---|---|---|
+| `ghcr-creds` | `Username with password` | GitHub kullanıcı adı + `ghcr.io` için oluşturulmuş PAT (scopes: `write:packages`, `read:packages`) |
+
+**PAT oluşturma:** GitHub → Settings → Developer settings → Personal access tokens → Generate new token (classic) → `write:packages` seç.
 
 ### Staging SSH
 
-- `staging-ssh-key`
-  Tip: `SSH Username with private key` veya `SSH private key`
-- `staging-host`
-  Tip: `Secret text`
-- `staging-user`
-  Tip: `Secret text`
-- `staging-path`
-  Tip: `Secret text`
+| ID | Tip | Ne gireceğin |
+|---|---|---|
+| `staging-ssh-key` | `SSH Username with private key` | Staging sunucusu için `ssh-keygen -t ed25519` ile oluşturulan private key |
+| `staging-host` | `Secret text` | Staging sunucu IP veya hostname (örn. `staging.example.com`) |
+| `staging-user` | `Secret text` | SSH kullanıcısı (örn. `deploy`) |
+| `staging-path` | `Secret text` | Sunucudaki deploy dizini (örn. `/srv/cortex`) |
 
 ### Production SSH
 
-- `prod-ssh-key`
-  Tip: `SSH Username with private key` veya `SSH private key`
-- `prod-host`
-  Tip: `Secret text`
-- `prod-user`
-  Tip: `Secret text`
-- `prod-path`
-  Tip: `Secret text`
+| ID | Tip | Ne gireceğin |
+|---|---|---|
+| `prod-ssh-key` | `SSH Username with private key` | Production sunucu private key (staging'den farklı olmalı) |
+| `prod-host` | `Secret text` | Production IP/hostname |
+| `prod-user` | `Secret text` | SSH kullanıcısı |
+| `prod-path` | `Secret text` | Deploy dizini |
+
+**Kontrol komutu (credential'lar tanımlı mı?):**
+```bash
+# Jenkins Script Console'da çalıştır (Manage Jenkins → Script Console):
+println Jenkins.instance.getExtensionList('com.cloudbees.plugins.credentials.SystemCredentialsProvider')[0]
+  .getCredentials().collect { it.id }
+```
+Çıktıda `ghcr-creds`, `staging-ssh-key`, `staging-host`, `staging-user`, `staging-path`, `prod-ssh-key`, `prod-host`, `prod-user`, `prod-path` görünmeli.
 
 ## Recommended Job Type
 
 En iyi secenek iki ayri job kullanmaktir:
 
-- `bgts-ci`: script path `Jenkinsfile`
-- `bgts-deploy`: script path `jenkins/Jenkinsfile.deploy`
-- `bgts-rollback`: script path `jenkins/Jenkinsfile.rollback`
+- `cortex-ci`: script path `Jenkinsfile`
+- `cortex-deploy`: script path `jenkins/Jenkinsfile.deploy`
+- `cortex-rollback`: script path `jenkins/Jenkinsfile.rollback`
 
-`bgts-ci` icin `Multibranch Pipeline` daha uygundur.
-`bgts-deploy` icin normal `Pipeline` job genelde daha kontrolludur.
+`cortex-ci` icin `Multibranch Pipeline` daha uygundur.
+`cortex-deploy` icin normal `Pipeline` job genelde daha kontrolludur.
 
 Kurulum:
 
-1. Jenkins'te `bgts-ci` icin `New Item` sec.
+1. Jenkins'te `cortex-ci` icin `New Item` sec.
 2. `Multibranch Pipeline` olustur.
 3. Repo baglantisini tanimla.
 4. Branch discovery aktif et.
@@ -143,14 +149,14 @@ Kurulum:
 
 Deploy job icin:
 
-1. Jenkins'te `bgts-deploy` adli yeni bir `Pipeline` job olustur.
+1. Jenkins'te `cortex-deploy` adli yeni bir `Pipeline` job olustur.
 2. Repo baglantisini tanimla.
 3. `Pipeline script from SCM` sec.
 4. Script path olarak `jenkins/Jenkinsfile.deploy` kullan.
 
 Rollback job icin:
 
-1. Jenkins'te `bgts-rollback` adli yeni bir `Pipeline` job olustur.
+1. Jenkins'te `cortex-rollback` adli yeni bir `Pipeline` job olustur.
 2. Repo baglantisini tanimla.
 3. `Pipeline script from SCM` sec.
 4. Script path olarak `jenkins/Jenkinsfile.rollback` kullan.
@@ -331,7 +337,7 @@ Granuler stage komutlari da tek tek kosulabilir:
 ./scripts/ci/test.sh e2e-smoke
 ./scripts/ci/test.sh e2e-regression
 ./scripts/ci/allure.sh
-NOTIFY_WEBHOOK_URL=https://hooks.slack.com/services/... ./scripts/ci/notify.sh bgts-ci SUCCESS http://jenkins.example/job/1
+NOTIFY_WEBHOOK_URL=https://hooks.slack.com/services/... ./scripts/ci/notify.sh cortex-ci SUCCESS http://jenkins.example/job/1
 ```
 
 Deploy script'i localden de dogrulanabilir:
@@ -347,12 +353,12 @@ export IMAGE_TAG=abc1234
 Deploy-only pipeline mantigi:
 
 - CI build'i image push yapar
-- `bgts-deploy` job'u sadece secilen `IMAGE_TAG` ile staging veya production deploy yapar
+- `cortex-deploy` job'u sadece secilen `IMAGE_TAG` ile staging veya production deploy yapar
 - production icin opsiyonel approval adimi vardir
 
 Rollback-only pipeline mantigi:
 
-- `bgts-rollback` job'u yalnizca secilen `ROLLBACK_IMAGE_TAG` ile geri doner
+- `cortex-rollback` job'u yalnizca secilen `ROLLBACK_IMAGE_TAG` ile geri doner
 - rollback sırasında migration downgrade yapilmaz
 - production icin opsiyonel approval adimi vardir
 - rollback sonunda `reports/rollback-metadata.json` artifact olarak saklanir
@@ -470,6 +476,6 @@ Mevcut ilk surum bilerek sade tutuldu. Su alanlar henuz eklenmedi:
 Bu temel kurulumdan sonra su iyilestirmeler mantikli olur:
 
 1. Docker test servislerini tekil port yerine izole compose projesine almak
-2. Ayrica `bgts-deploy` adli ayrik bir deployment pipeline olusturmak
+2. Ayrica `cortex-deploy` adli ayrik bir deployment pipeline olusturmak
 3. Image build ve test cache'lerini kalici hale getirmek
 4. Allure sonuc kapsamını BDD disindaki testlere de genisletmek

@@ -12,6 +12,20 @@ Bu dizin, **Neurex QA** için önemli mimari kararların kayıtlarını içerir.
 | [0004](./0004-outbox-pattern-events.md) | Outbox Pattern for Reliable Events | ✅ Accepted |
 | [0005](./0005-engine-consolidation.md) | Flask Engine → FastAPI Consolidation | 🔄 In Progress |
 
+## Arşivlenmiş (Eski Türkçe ADR'ler)
+
+Eski Türkçe ADR'ler (Nisan 2026 öncesi) `archive/2026-04-tr/` altına taşındı.
+Bunlar artık **kanonik kaynak değil** — yukarıdaki İngilizce ADR'ler geçerlidir.
+
+| Arşiv dosyası | İçerik | Yerini alan |
+|---|---|---|
+| `0001-monorepo-yapisi.md` | Turborepo kararı | ADR-0001 |
+| `0002-engine-vs-backend-ayirimi.md` | Engine/backend ayrımı | ADR-0005 |
+| `0003-synthetic-data-konsolidasyonu.md` | Synthetic data gap | ADR-0003 |
+| `0004-legacy-silme-politikasi.md` | Legacy cleanup | ADR-0004 |
+| `0005-multi-tenant-rls.md` | RLS planı | (ilerleyen sprint) |
+| `0005-test-taksonomisi.md` | Test taxonomy | `qa/strategy/test-strategy.md` |
+
 ## ADR nedir?
 
 Bir **Architecture Decision Record**, belirli bir zamanda alınan önemli bir mimari/teknik kararı, o kararın **bağlamını**, **alternatiflerini** ve **sonuçlarını** kaydeder. Amaç: 6 ay sonra "neden böyle yapmıştık?" sorusunun cevabını bulabilmek.

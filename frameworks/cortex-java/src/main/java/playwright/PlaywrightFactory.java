@@ -162,17 +162,28 @@ public final class PlaywrightFactory {
 
     /**
      * E22: Find a storage-state.json for this scenario.
-     * Looks for: recordings/<safe-scenario-name>/storage-state.json
-     * Returns null if not found (so context is created without pre-loaded state).
+     *
+     * Lookup tier (first hit wins):
+     *   1. recordings/&lt;safe-scenario-name&gt;/storage-state.json      — scenario-specific (preferred)
+     *   2. recordings/shared-storage-state.json                          — suite-level pre-login
+     *   3. src/test/resources/projects/cortex/storage-states/latest.json — last recording auto-save
+     *
+     * Tier 3 lets the recorder's auto-saved session flow into replay without
+     * extra wiring: record once, every subsequent scenario inherits the login.
+     *
+     * Returns null if no state found (context is then created clean).
      */
     private static Path resolveStorageState(String scenarioName) {
-        if (scenarioName == null) return null;
-        String safe = scenarioName.replaceAll("[^A-Za-z0-9_-]", "_").toLowerCase();
-        Path candidate = Paths.get("recordings").resolve(safe).resolve("storage-state.json");
-        if (Files.exists(candidate)) return candidate;
-        // Also check generic "shared" storage state for suite-level pre-login
+        if (scenarioName != null) {
+            String safe = scenarioName.replaceAll("[^A-Za-z0-9_-]", "_").toLowerCase();
+            Path scenarioSpecific = Paths.get("recordings").resolve(safe).resolve("storage-state.json");
+            if (Files.exists(scenarioSpecific)) return scenarioSpecific;
+        }
         Path shared = Paths.get("recordings/shared-storage-state.json");
         if (Files.exists(shared)) return shared;
+        // Recorder writes its session here as "latest.json" after every record.
+        Path recorderLatest = Paths.get("src/test/resources/projects/cortex/storage-states/latest.json");
+        if (Files.exists(recorderLatest)) return recorderLatest;
         return null;
     }
 

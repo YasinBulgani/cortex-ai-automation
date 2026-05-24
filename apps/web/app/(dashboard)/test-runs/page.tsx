@@ -19,7 +19,7 @@
 import { useState, useEffect, useCallback } from "react";
 
 const DASHBOARD_URL =
-  (typeof process !== "undefined" && process.env.NEXT_PUBLIC_FLASK_URL) ||
+  (typeof process !== "undefined" && process.env.NEXT_PUBLIC_ENGINE_BASE) ||
   "http://127.0.0.1:5001";
 
 type TestRun = {
