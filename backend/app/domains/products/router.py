@@ -8,12 +8,32 @@ Frontend'deki useProductTelemetry hook bu endpoint'i 60s'de bir poll eder.
 
 from __future__ import annotations
 
+import os
 import random
 from datetime import datetime, timezone
 from typing import Any
 
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import JSONResponse
+
+
+def _is_production() -> bool:
+    """Read app env at request time so tests can override via monkeypatch."""
+    env = (os.getenv("CORTEX_ENV") or os.getenv("APP_ENV") or "").lower()
+    return env in {"production", "prod"}
+
+
+def _block_in_production(endpoint: str) -> None:
+    """Refuse to serve demo data in production. Raises HTTP 503 if env=prod."""
+    if _is_production():
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                f"{endpoint}: real aggregation not yet implemented and demo data "
+                "is disabled in production. See backend/app/domains/products/router.py TODOs."
+            ),
+            headers={"X-Demo-Disabled": "true"},
+        )
 
 router = APIRouter(prefix="/products", tags=["products"])
 
@@ -199,6 +219,7 @@ def _demo(payload: dict[str, Any]) -> JSONResponse:
 # TODO: visual_diff/a11y/perf/run aggregations'tan birleşik release health üret.
 @router.get("/web/release-health", summary="Web release sağlığı (verdict + checks)")
 def get_web_release_health(project_id: str | None = None) -> dict[str, Any]:
+    _block_in_production("web/release-health")
     checks = [
         {"key": "visual", "label": "Visual regression",      "status": "warn", "detail": "1 kritik diff onay bekliyor",  "href": "#visual"},
         {"key": "a11y",   "label": "Accessibility (a11y)",   "status": "fail", "detail": "2 WCAG AA blocker — Checkout", "href": "#a11y"},
@@ -222,6 +243,7 @@ def get_web_release_health(project_id: str | None = None) -> dict[str, Any]:
 # TODO: stats'tan son 24s + önceki 24s pencerelerini agg, delta hesapla.
 @router.get("/web/day-over-day", summary="Bugün vs dün delta metrikleri")
 def get_web_day_over_day(project_id: str | None = None) -> dict[str, Any]:
+    _block_in_production("web/day-over-day")
     metrics = [
         {"key": "pass",     "label": "Pass Rate",   "today": "94.8%", "yesterday": "92.9%", "delta": 1.9,  "deltaUnit": "pp", "goodDirection": "up",   "spark": [88, 90, 89, 91, 92, 92, 94, 95]},
         {"key": "duration", "label": "Ort. Süre",   "today": "3.2dk", "yesterday": "3.6dk", "delta": -11,  "deltaUnit": "%",  "goodDirection": "down", "spark": [42, 40, 39, 38, 37, 36, 34, 32]},
@@ -237,6 +259,7 @@ def get_web_day_over_day(project_id: str | None = None) -> dict[str, Any]:
 # regression alert'leri ile birleşik bir inbox üret. Kullanıcı kimliği auth'tan.
 @router.get("/web/my-inbox", summary="Kullanıcıya atanmış açık işler")
 def get_web_my_inbox(project_id: str | None = None) -> dict[str, Any]:
+    _block_in_production("web/my-inbox")
     items = [
         {"id": "1", "kind": "approve",     "priority": "high", "title": "Checkout Step 2 — visual diff onayı bekliyor", "context": "12.4% pixel diff · v2.4.0 → v2.5.0",     "age": "23 dk"},
         {"id": "2", "kind": "fix",         "priority": "high", "title": "Auth flow test'in 3 koşudur flaky",              "context": "Safari 17.4 · 'token undefined' hatası", "age": "1 sa"},
@@ -251,6 +274,7 @@ def get_web_my_inbox(project_id: str | None = None) -> dict[str, Any]:
 # p75 LCP/INP/CLS/FCP/TBT döndür. Şu an demo veri.
 @router.get("/web/perf-metrics", summary="Core Web Vitals — sayfa başı + trend")
 def get_web_perf_metrics(project_id: str | None = None) -> dict[str, Any]:
+    _block_in_production("web/perf-metrics")
     pages = [
         {"page": "Homepage",        "url": "/",         "lcp": 2100, "inp": 180, "cls": 0.04, "fcp": 1400, "tbt": 140, "sampleCount": 1284},
         {"page": "Checkout Step 1", "url": "/checkout", "lcp": 2900, "inp": 240, "cls": 0.12, "fcp": 1900, "tbt": 380, "sampleCount": 542},
@@ -278,6 +302,7 @@ _VALID_INBOX_ACTIONS = {"approve", "reject", "snooze", "reassign"}
 #  - reassign     → request body'den yeni assignee al, audit log yaz
 @router.post("/web/my-inbox/{item_id}/{action}", summary="Inbox item aksiyonu")
 def post_web_inbox_action(item_id: str, action: str) -> dict[str, Any]:
+    _block_in_production("web/my-inbox/action")
     if action not in _VALID_INBOX_ACTIONS:
         raise HTTPException(status_code=400, detail=f"Geçersiz aksiyon: {action}")
     return {

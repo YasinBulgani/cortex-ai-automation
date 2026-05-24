@@ -80,24 +80,33 @@ public final class PwLocatorReader {
 
     private static void loadFile(Path file, Map<String, List<String>> out) {
         if (!Files.exists(file)) return;
+        String content;
         try {
-            String content = Files.readString(file);
-            List<Map<String, String>> rawData = new Gson()
-                    .fromJson(content, new TypeToken<List<Map<String, String>>>() {}.getType());
-            if (rawData == null) return;
-            for (Map<String, String> entry : rawData) {
-                // _comment / _README docs entries
-                if (entry.keySet().stream().allMatch(k -> k.startsWith("_"))) continue;
-                if (entry.containsKey("hostSelector") && entry.containsKey("innerSelector")) continue;
-                String key = entry.get("key");
-                String type = entry.get("type");
-                String value = entry.get("value");
-                if (key == null || type == null || value == null) continue;
-                out.computeIfAbsent(key, k -> new ArrayList<>())
-                   .add(toPlaywrightSelector(type, value));
-            }
+            content = Files.readString(file);
+        } catch (IOException e) {
+            throw new IllegalStateException(
+                "[PwLocatorReader] Cannot read locator file " + file + " (permission/IO error). "
+                + "Scenario would run with incomplete locators; failing fast.", e);
+        }
+        List<Map<String, String>> rawData;
+        try {
+            rawData = new Gson().fromJson(content, new TypeToken<List<Map<String, String>>>() {}.getType());
         } catch (Exception e) {
-            System.err.println("[PwLocatorReader] Failed to read " + file + ": " + e.getMessage());
+            throw new IllegalStateException(
+                "[PwLocatorReader] Malformed JSON in locator file " + file + ": " + e.getMessage()
+                + ". Scenario would run with missing keys; fix the file or remove it.", e);
+        }
+        if (rawData == null) return;
+        for (Map<String, String> entry : rawData) {
+            // _comment / _README docs entries
+            if (entry.keySet().stream().allMatch(k -> k.startsWith("_"))) continue;
+            if (entry.containsKey("hostSelector") && entry.containsKey("innerSelector")) continue;
+            String key = entry.get("key");
+            String type = entry.get("type");
+            String value = entry.get("value");
+            if (key == null || type == null || value == null) continue;
+            out.computeIfAbsent(key, k -> new ArrayList<>())
+               .add(toPlaywrightSelector(type, value));
         }
     }
 

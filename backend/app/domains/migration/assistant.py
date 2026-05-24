@@ -218,7 +218,7 @@ def migrate_selenium_java(source: str, *, source_file: Optional[str] = None) -> 
         result.steps_total += 1
 
         ts_body, dsl = _translate_step_body(pattern)
-        if ts_body.startswith("// TODO"):
+        if "MIGRATION_NEEDED" in ts_body:
             result.steps_unhandled += 1
             result.unhandled.append(
                 UnhandledStep(
@@ -316,7 +316,7 @@ def migrate_selenium_py(source: str, *, source_file: Optional[str] = None) -> Mi
                 dsl = mapped_dsl
                 break
 
-        if "TODO" in translated:
+        if "MIGRATION_NEEDED" in translated:
             result.steps_unhandled += 1
             result.unhandled.append(
                 UnhandledStep(
