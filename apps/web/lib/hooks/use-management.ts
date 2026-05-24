@@ -295,6 +295,34 @@ export function useExecutionSummary(projectId: string | undefined) {
   });
 }
 
+export interface TracedCase {
+  case_id: string;
+  case_key?: string | null;
+  title: string;
+  last_run_status?: string | null;
+  coverage_status: string;
+}
+
+export interface TraceabilityRow {
+  requirement_key: string;
+  title: string;
+  source: string;
+  url?: string | null;
+  covered: boolean;
+  stale: boolean;
+  cases: TracedCase[];
+}
+
+export function useRequirementTraceability(projectId: string | undefined) {
+  return useQuery({
+    queryKey: [...managementKeys.requirements(projectId), "traceability"] as const,
+    queryFn: () =>
+      apiFetch<TraceabilityRow[]>(`${BASE(projectId!)}/requirements/traceability`),
+    enabled: !!projectId,
+    staleTime: 60_000,
+  });
+}
+
 export function useManagementRequirements(projectId: string | undefined, caseId?: string) {
   return useQuery({
     queryKey: [...managementKeys.requirements(projectId), caseId] as const,

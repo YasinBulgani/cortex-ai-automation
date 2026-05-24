@@ -489,6 +489,74 @@ def export_repository(db: Session, project_id: str) -> dict[str, Any]:
     }
 
 
+def requirement_traceability(db: Session, project_id: str) -> list[dict[str, Any]]:
+    """Build a requirements ↔ test-case traceability matrix for the project.
+
+    Returns a list of dicts (one per unique requirement key) each containing:
+      requirement_key, title, source, url, covered, stale, cases[]
+
+    Each case entry includes: case_id, case_key, title, last_run_status,
+    coverage_status (from the link row).
+
+    Stale = the requirement's source_updated_at is more recent than the
+    case's last_run_at (i.e. the requirement changed after the last test run).
+    """
+    get_project(db, project_id)
+    links = list(
+        db.scalars(
+            select(RequirementLink)
+            .where(RequirementLink.project_id == project_id)
+            .order_by(RequirementLink.external_source, RequirementLink.external_key)
+        ).all()
+    )
+
+    # Group by external_key.
+    from collections import defaultdict
+    grouped: dict[str, list[RequirementLink]] = defaultdict(list)
+    for lnk in links:
+        grouped[lnk.external_key].append(lnk)
+
+    rows = []
+    for req_key, req_links in grouped.items():
+        first = req_links[0]
+        cases = []
+        covered = False
+        stale = False
+
+        for lnk in req_links:
+            case = db.get(TestCase, lnk.case_id)
+            if case is None or case.project_id != project_id:
+                continue
+            cases.append({
+                "case_id": case.id,
+                "case_key": case.case_key,
+                "title": case.title,
+                "last_run_status": case.last_run_status,
+                "coverage_status": lnk.coverage_status,
+            })
+            if lnk.coverage_status in ("covered", "partial"):
+                covered = True
+            # Mark stale if requirement was updated after the case's last run.
+            if (
+                lnk.source_updated_at
+                and case.last_run_at
+                and lnk.source_updated_at > case.last_run_at
+            ):
+                stale = True
+
+        rows.append({
+            "requirement_key": req_key,
+            "title": first.title_snapshot,
+            "source": first.external_source,
+            "url": first.url,
+            "covered": covered,
+            "stale": stale,
+            "cases": cases,
+        })
+
+    return rows
+
+
 def list_requirement_links(db: Session, project_id: str, case_id: str | None = None) -> list[RequirementLink]:
     get_project(db, project_id)
     stmt = select(RequirementLink).where(RequirementLink.project_id == project_id)

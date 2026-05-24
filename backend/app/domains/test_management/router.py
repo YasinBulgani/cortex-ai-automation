@@ -43,6 +43,7 @@ from app.domains.test_management.schemas import (
     TestRunOut,
     TestSuiteCreate,
     TestSuiteOut,
+    TraceabilityRow,
 )
 from app.infra.database import get_db
 from app.infra.models import User
@@ -177,6 +178,12 @@ def update_step_result(
 @router.get("/projects/{project_id}/reports/execution-summary", response_model=ExecutionSummaryOut)
 def execution_summary(project_id: str, db: DB, _user: ReadUser) -> ExecutionSummaryOut:
     return service.execution_summary(db, project_id)
+
+
+@router.get("/projects/{project_id}/requirements/traceability", response_model=list[TraceabilityRow])
+def requirement_traceability(project_id: str, db: DB, _user: ReadUser) -> list[TraceabilityRow]:
+    """Return the requirements ↔ test-case traceability matrix."""
+    return service.requirement_traceability(db, project_id)  # type: ignore[return-value]
 
 
 @router.get("/projects/{project_id}/requirements", response_model=list[RequirementLinkOut])

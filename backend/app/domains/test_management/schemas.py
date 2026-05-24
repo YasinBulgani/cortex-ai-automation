@@ -355,3 +355,23 @@ class EvidenceOut(BaseModel):
     content_type: str
     url: str
     uploaded_at: str
+
+
+class TracedCase(BaseModel):
+    """A single test case entry in the traceability matrix."""
+    case_id: str
+    case_key: Optional[str] = None
+    title: str
+    last_run_status: Optional[str] = None
+    coverage_status: str  # coverage_status from the requirement link
+
+class TraceabilityRow(BaseModel):
+    """One requirement row in the traceability matrix."""
+    requirement_key: str
+    title: str
+    source: str
+    url: Optional[str] = None
+    cases: list[TracedCase] = Field(default_factory=list)
+    # Derived
+    covered: bool = False
+    stale: bool = False  # source_updated_at newer than case's last run
