@@ -7,6 +7,46 @@ Kategoriler: `Added`, `Changed`, `Deprecated`, `Removed`, `Fixed`, `Security`.
 
 ## [Unreleased]
 
+### Added — P1/P2 sprint devamı (2026-05-24, Tur 4, Neurex_QA port)
+
+**Docs**
+- `docs/semgrep-secrets-runbook.md` oluşturuldu — SEMGREP_APP_TOKEN, CI secrets, yerel tarama, false positive suppression, eskalasyon prosedürü (P1 #35).
+
+**Tests — Backend**
+- `backend/tests/unit/conftest.py`: `feature_flags_svc` fixture eklendi (P1 #41).
+- `backend/tests/unit/test_products_service.py`, `test_events_service.py`, `test_jobs_service.py`, `test_rules_service.py`, `test_automation_service.py` — 52 toplam unit test (Neurex_QA port).
+
+**Tests — Engine**
+- `engine/tests/unit/core/test_step_mapper.py` — 9 test class, step_mapper coverage (P1 #31).
+- `engine/tests/unit/test_utility_routes.py` — 11 test; utility Flask routes.
+- `engine/tests/unit/test_auth_security.py` — 9 test; login/register/logout güvenlik testleri.
+- `engine/tests/unit/test_recorder_routes.py` — 37 test; recorder routes + Cortex'e özgü pause/resume/status endpoint'leri.
+
+### Added — Backend DDD service.py facade'ları + P0/P1 deficiency düzeltmeleri (2026-05-24)
+
+**Backend — 6 yeni service.py facade (Neurex_QA'dan port, DDD pattern tamamlandı)**
+- `domains/accessibility/service.py`, `cicd/service.py`, `compliance/service.py`, `evals/service.py`, `mobile/service.py`, `catalog/service.py` — router + specialist module arasında DDD facade katmanı.
+
+**Backend — P0 hata düzeltmeleri (Neurex_QA'dan port)**
+- `domains/cicd/quality_gate.py`: `BaseCheck` → `class BaseCheck(ABC)` + `run()` → `@abstractmethod`.
+- `domains/migration/assistant.py`: sessiz `// TODO` çıktısı → `throw new Error('⚠ MIGRATION_REQUIRED: ...')` ve `pytest.fail('...')`.
+- `engine/features/lks.featıres.feature`: boş dosya silindi.
+
+**Backend — P2 sessiz exception düzeltmeleri**
+- `playwright_mcp/browser_manager.py`, `evals/adapters/prompt_shield_adapter.py`, `ingestion/service.py`, `api_testing/security_scanner.py`, `api_testing/test_prioritizer.py`: `except: pass` → `logger.warning/debug(..., exc_info=True)`.
+- `quality/service.py`: ENV double naming (`ENGINE_EVAL_REPORTS_DIR` → `EVAL_REPORTS_DIR` öncelikli, fallback korundu).
+
+**Frontend**
+- `apps/web/app/(dashboard)/kb/page.tsx`: Render-sync `setState` hazard → `useEffect + useRef` ile düzeltildi.
+- `apps/web/app/(dashboard)/new-project/page.tsx:858`: Step definition üretiminde `// TODO: implement` → akıllı action skeleton (click/fill/expect/goto/waitFor/selectOption).
+- `apps/web/package.json`: `@axe-core/playwright@^4.10.1` eklendi.
+
+**Engine**
+- `engine/core/test_recorder.py`: `TR_KEYWORDS` sözlüğüne 12 yeni action type eklendi. Bilinmeyen action'lar artık `raise NotImplementedError(...)` üretir.
+
+**Tests**
+- `backend/tests/conftest.py`: `feature_flags_svc` fixture eklendi.
+
 ### Added — Monorepo paketleri ve backend DDD (admiring-bartik-50490a, 2026-05-17)
 
 **`@neurex/ai-sdk` — production-grade (109 test)**
@@ -130,4 +170,4 @@ Kategoriler: `Added`, `Changed`, `Deprecated`, `Removed`, `Fixed`, `Security`.
 - **2026-06-01** — Engine'deki deprecated route'ların tam kaldırılması (ADR-0002, sunset header aktif)
 - **2026-10-19** — `legacy/2026-04-cleanup/` dizininin tümden silinmesi (ADR-0004)
 
-[Unreleased]: https://github.com/YasinBulgani/BGTS-Test-Donusum/compare/main...HEAD
+[Unreleased]: https://github.com/YasinBulgani/cortex-ai-automation/compare/main...HEAD

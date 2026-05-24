@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <title>Cortex Recorder</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <span class="dot" id="dot"></span>
+      <span class="title">Cortex Recorder</span>
+    </div>
+    <div class="status" id="status">durum kontrol ediliyor&hellip;</div>
+  </header>
+
+  <section id="idle-section">
+    <label>
+      <span>Feature dosya adi (opsiyonel)</span>
+      <input id="feature-name" type="text" placeholder="recorded_login_v2" autocomplete="off">
+    </label>
+    <label>
+      <span>Etiketler (bosluk ile ayir)</span>
+      <input id="tags" type="text" placeholder="@smoke @critical" autocomplete="off">
+    </label>
+    <button id="start" class="primary">&#9654; Kaydi Baslat</button>
+    <p class="help">Java sunucusu calismiyor mu? Terminalde: <code>./mvnw -Precorder-server compile exec:java</code></p>
+  </section>
+
+  <section id="running-section" hidden>
+    <div class="big-count">
+      <span class="num" id="count">0</span>
+      <span class="lbl">aksiyon</span>
+    </div>
+    <div class="elapsed" id="elapsed">00:00</div>
+    <div class="actions">
+      <button id="undo">&#x21B6; Geri Al</button>
+      <button id="stop" class="danger">&#x23F9; Durdur ve Kaydet</button>
+    </div>
+    <p class="help">Sekme degistirebilirsin &mdash; tum tab'larda yakalama aktif.</p>
+  </section>
+
+  <section id="saved-section" hidden>
+    <div class="saved-msg">&#10003; Kayit tamamlandi</div>
+    <div class="saved-file" id="saved-file"></div>
+    <button id="new-recording">+ Yeni kayit</button>
+  </section>
+
+  <footer>
+    <span id="port-info"></span>
+    <span class="version">v2.0</span>
+  </footer>
+  <script src="popup.js"></script>
+</body>
+</html>

@@ -25,6 +25,7 @@ Bu çalışma, [visium-urun-ailesi-arastirma.md](/Users/yasin_bulgan/Desktop/Cor
   - `Visium Web`
   - `Visium Mobile`
   - `Visium Data`
+  - `Visium Management`
 - yatay AI katmanı:
   - `Visium Intelligence`
 
@@ -42,7 +43,8 @@ graph TD
     A --> E["Visium Web"]
     A --> F["Visium Mobile"]
     A --> G["Visium Data"]
-    A --> H["Visium Intelligence"]
+    A --> H["Visium Management"]
+    A --> I["Visium Intelligence"]
 ```
 
 ### Visium One
@@ -123,6 +125,23 @@ Kullanıcı tipi:
 - veri yönetişimi ekipleri
 - compliance tarafı
 
+### Visium Management
+
+Rolü:
+
+- manuel test case repository
+- test plan/cycle/run yönetimi
+- tester atama ve execution evidence
+- defect linkleme, requirement coverage ve release GO/NO-GO raporları
+
+Kullanıcı tipi:
+
+- QA lead
+- manual tester
+- test manager
+- product owner
+- auditor
+
 ### Visium Intelligence
 
 Rolü:
@@ -147,7 +166,8 @@ Kullanıcı tipi:
 4. `Web`
 5. `Mobile`
 6. `Data`
-7. `Intelligence`
+7. `Management`
+8. `Intelligence`
 
 Bu katmanın amacı kullanıcıya “hangi ürün alanındayım?” cevabını vermek.
 
@@ -223,6 +243,18 @@ Her ürünün kendi yerel menüsü olur.
 - Quality
 - Domain Packs
 
+### Visium Management
+
+- Dashboard
+- Test Repository
+- Test Plans
+- Test Runs
+- Requirements
+- Defects
+- Reports
+- Import / Export
+- Settings
+
 ### Visium Intelligence
 
 - AI Chat
@@ -258,6 +290,9 @@ Yeni öneri:
 - `Visium Data`
   - 1 privacy audit bekliyor
   - 4 aktif synthetic data seti
+- `Visium Management`
+  - 42 manuel test koşum bekliyor
+  - 7 blocked test ve 3 kritik failed test
 
 Bu sayede kullanıcı hem ürün ailesini görür hem de tek ekranda kaybolmaz.
 

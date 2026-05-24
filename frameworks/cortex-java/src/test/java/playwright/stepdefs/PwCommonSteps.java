@@ -74,17 +74,29 @@ public class PwCommonSteps {
      */
     static String resolveEnv(String text) {
         if (text == null) return null;
-        // ENV resolution (existing)
+        // ENV resolution (existing).
+        // E23: the active environment profile (config/environments/<name>.properties)
+        // is checked FIRST so a deliberate "-Dcortex.env=staging" run cannot be
+        // hijacked by a stray OS env var. The OS env is still the second tier
+        // (so secrets injected by CI continue to work) and the explicit
+        // ${ENV:NAME:default} default is the last tier.
+        // Pattern relaxed to accept lower-case keys too (base_url, api_url, ...).
         if (text.contains("${ENV:")) {
             java.util.regex.Matcher m = java.util.regex.Pattern
-                    .compile("\\$\\{ENV:([A-Z0-9_]+)(?::([^}]*))?}")
+                    .compile("\\$\\{ENV:([A-Za-z0-9_]+)(?::([^}]*))?}")
                     .matcher(text);
             StringBuilder out = new StringBuilder();
             while (m.find()) {
-                String env = System.getenv(m.group(1));
-                if (env == null) env = m.group(2);
-                if (env == null) env = "";
-                m.appendReplacement(out, java.util.regex.Matcher.quoteReplacement(env));
+                String name = m.group(1);
+                String fallback = m.group(2);
+                String resolved = playwright.EnvironmentConfig.get(name)
+                        .orElseGet(() -> {
+                            String os = System.getenv(name);
+                            if (os == null) os = System.getenv(name.toUpperCase());
+                            if (os != null) return os;
+                            return fallback == null ? "" : fallback;
+                        });
+                m.appendReplacement(out, java.util.regex.Matcher.quoteReplacement(resolved));
             }
             m.appendTail(out);
             text = out.toString();

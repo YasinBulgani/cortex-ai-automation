@@ -4,6 +4,8 @@
 
 BGTS Test Dönüşüm, **test yönetimi**, **sentetik veri üretimi** ve **AI destekli test otomasyonu** yeteneklerini tek bir platformda birleştiren bir monorepo projesidir.
 
+Yeni ürün ailesi adlandırmasında manuel test operasyon katmanı **Neurex Management** olarak ayrılır. Bu alan, mevcut TSPM senaryo/süreç omurgasının üzerine manuel test case repository, test plan/cycle/run, tester ataması, kanıt saklama, defect linkleme ve coverage raporlarını ürünleştirir.
+
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                        Kullanıcı                            │
@@ -49,15 +51,27 @@ BGTS Test Dönüşüm, **test yönetimi**, **sentetik veri üretimi** ve **AI de
 - **Teknoloji**: FastAPI, SQLAlchemy 2, Alembic, PostgreSQL, Redis/RQ
 - **Port**: 8000
 - **Domain Modülleri**:
-  | Domain | Görev |
-  |--------|-------|
-  | `auth` | JWT tabanlı kimlik doğrulama |
-  | `catalog` | Veri seti kataloğu |
-  | `rules` | Kural yönetimi |
-  | `jobs` | Arka plan iş kuyruğu (RQ) |
-  | `artifacts` | Çıktı dosyaları yönetimi |
-  | `tspm` | Test Senaryo ve Süreç Yönetimi |
-  | `automation` | Engine proxy/entegrasyon |
+
+| Domain | Görev |
+|--------|-------|
+| `auth` | JWT tabanlı kimlik doğrulama |
+| `catalog` | Veri seti kataloğu |
+| `rules` | Kural yönetimi |
+| `jobs` | Arka plan iş kuyruğu (RQ) |
+| `artifacts` | Çıktı dosyaları yönetimi |
+| `tspm` | Test Senaryo ve Süreç Yönetimi |
+| `test_management` | Neurex Management: manuel test repository, plan, run, evidence, defect ve coverage |
+| `automation` | Engine proxy/entegrasyon |
+
+### TSPM ve Neurex Management Sınırı
+
+| Alan | Sorumluluk |
+|------|------------|
+| `tspm` | AI destekli senaryo tasarımı, requirements, approvals, akış/regresyon, automation-oriented execution ve mevcut geniş süreç endpoint'leri |
+| `test_management` | Manuel testlerin kalıcı saklanması, adım bazlı expected/actual result, tester assignment, test plan/cycle/run, execution evidence, defect linkleme ve manuel QA raporları |
+| Ortak katman | Project/workspace, auth/RBAC, artifacts, integrations, audit ve reporting altyapısı |
+
+Kural: `test_management` manuel QA operasyonunun kaynağıdır; `tspm` tasarım, AI üretim ve otomasyon süreçlerinin kaynağı kalır. İki domain arasında bağlantı gerektiğinde doğrudan tablo paylaşımı yerine servis/API sınırı veya açık foreign key sözleşmesi kullanılır.
 
 ### 3. Otomasyon Motoru — `engine/`
 - **Teknoloji**: Flask, Playwright, OpenAI/Anthropic, pytest-bdd
@@ -114,6 +128,7 @@ Cortex_Ai_Automation/
 │   │   │   ├── jobs/
 │   │   │   ├── artifacts/
 │   │   │   ├── tspm/
+│   │   │   ├── test_management/ # Neurex Management manuel test operasyonu
 │   │   │   └── automation/     # Engine proxy
 │   │   ├── infra/              # DB, models
 │   │   └── main.py

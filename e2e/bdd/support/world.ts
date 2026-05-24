@@ -77,9 +77,18 @@ export class PlaywrightWorld extends World {
   }
 
   async cleanup() {
-    await this.page?.close();
-    await this.context?.close();
-    await this.browser?.close();
+    // Her kaynağı bağımsız olarak kapat — birinin hatası diğerini bloklamamalı.
+    try { await this.page?.close(); } catch { /* sayfa zaten kapalı olabilir */ }
+    try { await this.context?.close(); } catch { /* context zaten kapalı olabilir */ }
+    try { await this.browser?.close(); } catch { /* browser zaten kapalı olabilir */ }
+  }
+
+  async captureTrace(name: string): Promise<Buffer | null> {
+    try {
+      return await this.page?.screenshot({ fullPage: true }) ?? null;
+    } catch {
+      return null;
+    }
   }
 }
 

@@ -196,36 +196,36 @@ def _mock_playwright(title: str, steps: list[dict], target_url: str = "") -> str
     for i, s in enumerate(steps, 1):
         action = s.get("action", "").strip().replace('"', '\\"')
         expected = s.get("expected", "").strip().replace('"', '\\"')
-        al = action.lower()
         lines.append(f"    # Adım {i}: {action}")
-        # Generate a best-effort Playwright call based on the action keyword
-        if any(kw in al for kw in ("navigate", "goto", "open", "url", "git", "ziyaret")):
-            lines.append(f"    page.goto(\"{url}\")")
-        elif any(kw in al for kw in ("click", "tıkla", "press", "tap", "bas")):
-            lines.append(f"    page.get_by_role(\"button\").filter(has_text=\"{action[:40]}\").click()")
-        elif any(kw in al for kw in ("fill", "type", "input", "enter", "yaz", "gir", "doldur")):
-            lines.append(f"    page.get_by_label(\"{action[:40]}\").fill(\"test_value\")")
-        elif any(kw in al for kw in ("select", "choose", "seç", "dropdown")):
-            lines.append(f"    page.get_by_label(\"{action[:40]}\").select_option(\"option\")")
-        elif any(kw in al for kw in ("check", "uncheck", "toggle", "işaretle")):
-            lines.append(f"    page.get_by_label(\"{action[:40]}\").check()")
-        elif any(kw in al for kw in ("wait", "bekle", "pause")):
-            lines.append(f"    page.wait_for_load_state(\"networkidle\")")
-        else:
-            lines.append(f"    page.wait_for_load_state(\"networkidle\")  # action: {action[:60]}")
-        # Inline assertion when expected is provided
         if expected:
-            el = expected.lower()
-            if any(kw in el for kw in ("url", "yönlendir", "redirect", "navigate")):
-                lines.append(f"    expect(page).to_have_url(re.compile(r\"{expected[:60]}\"))")
-            elif any(kw in el for kw in ("title", "başlık")):
-                lines.append(f"    expect(page).to_have_title(re.compile(r\"{expected[:60]}\"))")
-            else:
-                lines.append(f"    expect(page.locator(\"body\")).to_contain_text(\"{expected[:80]}\")")
+            lines.append(f"    # Beklenen: {expected}")
+        # Action türüne göre anlamlı placeholder üret
+        action_lc = action.lower()
+        if any(w in action_lc for w in ("tıkla", "click", "bas", "button")):
+            lines.append(f'    page.get_by_role("button").filter(has_text="{action[:40]}").click()')
+        elif any(w in action_lc for w in ("yaz", "gir", "doldur", "fill", "type", "input")):
+            lines.append(f'    page.get_by_label("{action[:40]}").fill("")  # değeri doldurun')
+        elif any(w in action_lc for w in ("git", "navigate", "aç", "open", "url")):
+            lines.append(f'    page.goto("{url}")')
+        elif any(w in action_lc for w in ("bekle", "wait", "yüklen")):
+            lines.append("    page.wait_for_load_state('networkidle')")
+        elif any(w in action_lc for w in ("seç", "select", "dropdown")):
+            lines.append(f'    page.get_by_label("{action[:40]}").select_option("")  # seçeneği belirtin')
+        else:
+            lines.append(f"    page.wait_for_load_state('domcontentloaded')  # ⚠ adım manuel implemente edilmeli")
+        # Beklenen sonuç varsa assertion üret
+        if expected:
+            exp_lc = expected.lower()
+            if any(w in exp_lc for w in ("görün", "visible", "gör", "göster")):
+                lines.append(f'    expect(page.get_by_text("{expected[:50]}", exact=False)).to_be_visible()')
+            elif any(w in exp_lc for w in ("url", "sayfa", "yönlen")):
+                lines.append(f'    expect(page).to_have_url(re.compile(r"{_slug(expected)}"))')
+            elif expected:
+                lines.append(f'    expect(page.get_by_text("{expected[:50]}", exact=False)).to_be_visible()')
     lines += [
         "",
-        "    # Final state assertion",
-        "    expect(page.locator(\"body\")).to_be_visible()",
+        "    # Genel kontrol — her adımdan bağımsız sayfa sağlığı",
+        "    expect(page).not_to_have_url(re.compile(r'error|404|500'))",
     ]
     return "\n".join(lines)
 
