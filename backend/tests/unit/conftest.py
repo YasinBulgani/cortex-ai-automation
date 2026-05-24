@@ -27,29 +27,13 @@ def _unit_gateway_key(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 @pytest.fixture()
-def feature_flags():
+def feature_flags_svc():
+    """FeatureFlags service'ini döner — unit testlere açık erişim (P1 #41).
+
+    test_ai_governance.py, test_ai_enhancements.py vb. inline
+    ``try/except ImportError: skip`` yerine bu fixture'ı kullanabilir.
+    Import başarısız olursa testi açıkça fail et, sessizce atla.
     """
-    Unit testler için feature_flags servis fixture'ı.
-
-    Import guard içinde ``pytest.skip("feature_flags missing")`` çağrısı
-    yapan testler bu fixture sayesinde atlamak yerine çalışabilir.
-
-    Her test sonunda tüm flag değişiklikleri sıfırlanır (state leak yok).
-    """
-    from app.domains.feature_flags.service import feature_flags as _ff  # noqa: PLC0415
-
-    # Test öncesi mevcut durumu sakla
-    try:
-        _before = dict(_ff._flags) if hasattr(_ff, "_flags") else {}
-    except Exception:
-        _before = {}
-
-    yield _ff
-
-    # Test sonrası state'i geri yükle
-    try:
-        if hasattr(_ff, "_flags"):
-            _ff._flags.clear()
-            _ff._flags.update(_before)
-    except Exception:
-        pass
+    from app.domains.feature_flags.service import feature_flags
+    from app.domains.feature_flags.schemas import FlagUpdate
+    return feature_flags, FlagUpdate

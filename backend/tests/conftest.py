@@ -90,6 +90,20 @@ def viewer_headers(viewer_token: str) -> dict[str, str]:
     return {"Authorization": f"Bearer {viewer_token}"}
 
 
+@pytest.fixture()
+def feature_flags_svc():
+    """feature_flags service singleton'ını döner.
+
+    Test_ai_governance.py gibi dosyalardaki `try/except ImportError: skip`
+    kalıplarını ortadan kaldırmak için conftest'te merkezi fixture olarak
+    tanımlandı. Module her zaman mevcut — import hatası olursa testi
+    açıkça fail et, sessizce atla.
+    """
+    from app.domains.feature_flags.service import feature_flags
+    from app.domains.feature_flags.schemas import FlagUpdate
+    return feature_flags, FlagUpdate
+
+
 def pytest_configure(config: pytest.Config) -> None:
     config.addinivalue_line("markers", "smoke: Hızlı sağlık kontrolü testleri")
     config.addinivalue_line("markers", "service: API servis katmanı testleri")
