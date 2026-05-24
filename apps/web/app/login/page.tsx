@@ -147,6 +147,12 @@ function LoginPageContent() {
   const [forgotMsg,     setForgotMsg]     = useState<string | null>(null);
   const [forgotLoading, setForgotLoading] = useState(false);
 
+  // MFA step-up state
+  const [mfaSessionToken, setMfaSessionToken] = useState<string | null>(null);
+  const [mfaCode,          setMfaCode]         = useState("");
+  const [mfaLoading,       setMfaLoading]       = useState(false);
+  const [mfaError,         setMfaError]         = useState<string | null>(null);
+
   // kayıt state
   const [regName,        setRegName]        = useState("");
   const [regEmail,       setRegEmail]       = useState("");
@@ -223,6 +229,11 @@ function LoginPageContent() {
         throw new Error(body?.detail || body?.error || "E-posta veya şifre hatalı");
       }
       const data = await res.json();
+      // MFA challenge: show TOTP input instead of completing login
+      if (data.mfa_required) {
+        setMfaSessionToken(data.mfa_session_token ?? null);
+        return;
+      }
       setTokens(data.access_token, data.refresh_token, data.expires_in);
       migrateToCookieAuth();  // SECURITY: eski localStorage token'larını temizle
       void syncEngine(email, password);
@@ -231,6 +242,33 @@ function LoginPageContent() {
       setError(loginErrorMessage(err));
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleMfaSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!mfaSessionToken) return;
+    setMfaLoading(true);
+    setMfaError(null);
+    try {
+      const res = await fetch(`${API_BASE}/api/v1/auth/mfa/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ session_token: mfaSessionToken, code: mfaCode.replace(/\s/g, "") }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        throw new Error(body?.detail || "Geçersiz kod");
+      }
+      const data = await res.json();
+      setTokens(data.access_token, data.refresh_token, data.expires_in);
+      migrateToCookieAuth();
+      void syncEngine(email, password);
+      router.replace(nextPath);
+    } catch (err: unknown) {
+      setMfaError(err instanceof Error ? err.message : "Geçersiz kod");
+    } finally {
+      setMfaLoading(false);
     }
   }
 
@@ -370,8 +408,57 @@ function LoginPageContent() {
               </div>
             ) : null}
 
+            {/* ── MFA Step-2 ── */}
+            {mfaSessionToken && (
+              <form onSubmit={handleMfaSubmit} className="space-y-5" data-testid="mfa-form">
+                <div className="rounded-xl border border-violet-500/20 bg-violet-500/5 p-4 text-center">
+                  <p className="text-2xl mb-2">🔐</p>
+                  <p className="text-sm font-semibold text-white">İki Faktörlü Doğrulama</p>
+                  <p className="text-xs text-slate-400 mt-1">
+                    Authenticator uygulamanızdaki 6 haneli kodu veya yedek kodunuzu girin.
+                  </p>
+                </div>
+                <div>
+                  <label htmlFor="mfa-code" className="mb-2 block text-sm font-medium text-slate-300">
+                    Doğrulama Kodu
+                  </label>
+                  <input
+                    id="mfa-code"
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={8}
+                    value={mfaCode}
+                    onChange={(e) => setMfaCode(e.target.value)}
+                    placeholder="000000"
+                    autoFocus
+                    autoComplete="one-time-code"
+                    className="w-full rounded-xl border border-slate-700 bg-slate-800/60 px-4 py-3 text-center font-mono text-2xl text-white tracking-widest focus:border-violet-500/50 focus:outline-none focus:ring-2 focus:ring-violet-500/20"
+                  />
+                </div>
+                {mfaError && (
+                  <p className="rounded-lg border border-rose-500/20 bg-rose-500/5 px-3 py-2 text-xs text-rose-400 text-center">
+                    {mfaError}
+                  </p>
+                )}
+                <button
+                  type="submit"
+                  disabled={mfaLoading || mfaCode.length < 6}
+                  className="w-full rounded-xl bg-violet-600 py-3 text-sm font-semibold text-white hover:bg-violet-500 disabled:opacity-40 transition"
+                >
+                  {mfaLoading ? "Doğrulanıyor…" : "Doğrula & Giriş Yap"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setMfaSessionToken(null); setMfaCode(""); setMfaError(null); }}
+                  className="w-full text-xs text-slate-500 hover:text-slate-300 transition"
+                >
+                  ← Giriş formuna dön
+                </button>
+              </form>
+            )}
+
             {/* ── Giriş Formu ── */}
-            {tab === "login" && (
+            {tab === "login" && !mfaSessionToken && (
               <form onSubmit={handleLogin} className="space-y-5" data-testid="login-form">
 
                 {/* e-posta */}
