@@ -357,6 +357,20 @@ def create_cycle(db: Session, project_id: str, payload: TestCycleCreate, user: A
     return cycle
 
 
+def list_runs(db: Session, project_id: str, status_filter: str | None = None) -> list[TestRun]:
+    """Return all runs for a project, optionally filtered by status."""
+    q = (
+        db.query(TestRun)
+        .join(TestCycle, TestRun.cycle_id == TestCycle.id)
+        .join(TestPlan, TestCycle.plan_id == TestPlan.id)
+        .filter(TestPlan.project_id == project_id)
+        .order_by(TestRun.created_at.desc())
+    )
+    if status_filter:
+        q = q.filter(TestRun.status == status_filter)
+    return q.all()
+
+
 def create_run(db: Session, project_id: str, payload: TestRunCreate, user: Any | None) -> TestRun:
     cycle = db.get(TestCycle, payload.cycle_id)
     if cycle is None or cycle.plan.project_id != project_id:

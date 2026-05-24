@@ -124,6 +124,16 @@ export interface DefectLink {
   created_at: string;
 }
 
+export interface TestRun {
+  id: string;
+  cycle_id: string;
+  name: string;
+  status: string;
+  started_at?: string | null;
+  completed_at?: string | null;
+  created_at: string;
+}
+
 export interface ImportJob {
   id: string;
   project_id: string;
@@ -177,6 +187,7 @@ export const managementKeys = {
   project: (projectId: string | undefined) => [...managementKeys.projects(), projectId] as const,
   repository: (projectId: string | undefined) => [...managementKeys.project(projectId), "repository"] as const,
   cases: (projectId: string | undefined) => [...managementKeys.project(projectId), "cases"] as const,
+  runs: (projectId: string | undefined) => [...managementKeys.project(projectId), "runs"] as const,
   summary: (projectId: string | undefined) => [...managementKeys.project(projectId), "summary"] as const,
   requirements: (projectId: string | undefined) => [...managementKeys.project(projectId), "requirements"] as const,
   defects: (projectId: string | undefined) => [...managementKeys.project(projectId), "defects"] as const,
@@ -204,6 +215,18 @@ export function useManagementCases(projectId: string | undefined, includeArchive
     queryFn: () =>
       apiFetch<TestCase[]>(
         `${BASE(projectId!)}/cases${includeArchived ? "?include_archived=true" : ""}`,
+      ),
+    enabled: !!projectId,
+    staleTime: 30_000,
+  });
+}
+
+export function useManagementRuns(projectId: string | undefined, statusFilter?: string) {
+  return useQuery({
+    queryKey: [...managementKeys.runs(projectId), statusFilter] as const,
+    queryFn: () =>
+      apiFetch<TestRun[]>(
+        `${BASE(projectId!)}/runs${statusFilter ? `?status=${encodeURIComponent(statusFilter)}` : ""}`,
       ),
     enabled: !!projectId,
     staleTime: 30_000,

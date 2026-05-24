@@ -136,6 +136,16 @@ def create_cycle(project_id: str, payload: TestCycleCreate, db: DB, user: WriteU
     return {"id": cycle.id, "status": cycle.status}
 
 
+@router.get("/projects/{project_id}/runs", response_model=list[TestRunOut])
+def list_runs(
+    project_id: str,
+    db: DB,
+    _user: ReadUser,
+    status: Optional[str] = Query(default=None, description="Filter by run status"),
+) -> list[TestRunOut]:
+    return service.list_runs(db, project_id, status_filter=status)
+
+
 @router.post("/projects/{project_id}/runs", response_model=TestRunOut, status_code=status.HTTP_201_CREATED)
 def create_run(project_id: str, payload: TestRunCreate, db: DB, user: WriteUser) -> TestRunOut:
     return service.create_run(db, project_id, payload, user)
