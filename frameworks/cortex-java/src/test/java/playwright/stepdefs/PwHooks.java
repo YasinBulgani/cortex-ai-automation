@@ -2,6 +2,8 @@ package playwright.stepdefs;
 
 import com.microsoft.playwright.Page;
 import crypto.CredentialPreflightChecker;
+import crypto.FeatureVault;
+import crypto.VaultContext;
 import io.cucumber.java.After;
 import io.cucumber.java.AfterStep;
 import io.cucumber.java.Before;
@@ -67,6 +69,11 @@ public class PwHooks {
         String featureName = extractFeatureName(featureFile);
         PwConfigSteps.loadLocators("src/main/resources/locators", featureName);
 
+        // ── Per-feature credential vault (Recorder #6) ───────────────────
+        // Activate the feature-scoped vault so DecryptUtil resolves credentials
+        // from <featureName>.vault.properties first, then falls back to global.
+        VaultContext.set(new FeatureVault(featureName));
+
         // Create run-level directory
         String ts = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm"));
         String safe = scenario.getName().replaceAll("[^A-Za-z0-9_-]", "_").replaceAll("_+", "_");
@@ -126,6 +133,9 @@ public class PwHooks {
                 Files.write(runDir.resolve("result.json"), json.getBytes(StandardCharsets.UTF_8));
             }
         } catch (Exception ignored) {}
+
+        // Clear per-feature vault to avoid cross-scenario credential leakage.
+        VaultContext.clear();
 
         PlaywrightFactory.closeContext(scenario.getName(), scenario.isFailed());
         RUN_DIR.remove();

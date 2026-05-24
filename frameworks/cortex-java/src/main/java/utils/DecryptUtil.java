@@ -90,8 +90,16 @@ public class DecryptUtil {
             return envValue;
         }
 
-        String encrypted = PasswordManager.getPassword(alias);
+        // ── Per-feature vault lookup (falls back to global PasswordManager) ───
+        crypto.FeatureVault vault = crypto.VaultContext.get();
+        String encrypted = vault.getPassword(alias);
         if (encrypted == null) {
+            // Build a helpful context string showing where we looked.
+            String vaultInfo = crypto.VaultContext.hasFeatureVault()
+                ? "Feature vault [" + vault.getFeatureName() + "] local aliases: "
+                    + vault.listLocalAliases() + "\n"
+                    + "  Global password.properties aliases: " + PasswordManager.listAliases()
+                : "Known aliases in password.properties: " + PasswordManager.listAliases();
             throw new IllegalArgumentException(
                 "No encrypted password found for alias: \"" + alias + "\".\n" +
                 "Fix options:\n" +
@@ -100,7 +108,10 @@ public class DecryptUtil {
                 "  2. Encrypt manually:\n" +
                 "       a) Set CORTEX_AES_KEY=<your-16-char-key> in .env\n" +
                 "       b) Call EncryptionManager.encryptAndSaveToPasswordFile(<plain>, \"" + alias + "\")\n" +
-                "  Known aliases in password.properties: " + PasswordManager.listAliases()
+                "     Or to store in the per-feature vault:\n" +
+                "       c) Call FeatureVault.forFile(\"yourFeature.feature\")" +
+                         ".setPassword(\"" + alias + "\", encrypted); vault.save()\n" +
+                "  " + vaultInfo
             );
         }
 
