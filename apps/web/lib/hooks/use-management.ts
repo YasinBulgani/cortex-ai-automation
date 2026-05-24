@@ -163,6 +163,16 @@ export interface RunDetail extends TestRun {
   run_cases: RunCase[];
 }
 
+export interface ImportJobRow {
+  id: string;
+  job_id: string;
+  row_no: number;
+  parsed_data: Record<string, unknown>;
+  validation_errors: Record<string, unknown>[];
+  status: string;
+  conflict_key?: string | null;
+}
+
 export interface ImportJob {
   id: string;
   project_id: string;
@@ -172,6 +182,10 @@ export interface ImportJob {
   totals: Record<string, unknown>;
   created_by?: string | null;
   created_at: string;
+}
+
+export interface ImportJobDetail extends ImportJob {
+  rows: ImportJobRow[];
 }
 
 export interface CreateTestCaseInput {
@@ -220,6 +234,7 @@ export const managementKeys = {
   summary: (projectId: string | undefined) => [...managementKeys.project(projectId), "summary"] as const,
   requirements: (projectId: string | undefined) => [...managementKeys.project(projectId), "requirements"] as const,
   defects: (projectId: string | undefined) => [...managementKeys.project(projectId), "defects"] as const,
+  imports: (projectId: string | undefined) => [...managementKeys.project(projectId), "imports"] as const,
 };
 
 export function useManagementProjects() {
@@ -372,12 +387,47 @@ export function useCreateManagementDefect(projectId: string) {
   });
 }
 
+export function useManagementImports(projectId: string | undefined) {
+  return useQuery({
+    queryKey: managementKeys.imports(projectId),
+    queryFn: () => apiFetch<ImportJob[]>(`${BASE(projectId!)}/imports`),
+    enabled: !!projectId,
+    staleTime: 30_000,
+  });
+}
+
+export function useManagementImportDetail(projectId: string | undefined, jobId: string | undefined) {
+  return useQuery({
+    queryKey: [...managementKeys.imports(projectId), jobId] as const,
+    queryFn: () => apiFetch<ImportJobDetail>(`${BASE(projectId!)}/imports/${jobId!}`),
+    enabled: !!projectId && !!jobId,
+    staleTime: 15_000,
+  });
+}
+
 export function useCreateManagementImportJob(projectId: string) {
+  const qc = useQueryClient();
   return useMutation({
     mutationFn: (payload: { filename: string; mapping?: Record<string, unknown>; rows?: Record<string, unknown>[] }) =>
       apiFetch<ImportJob>(`${BASE(projectId)}/imports`, {
         method: "POST",
         json: payload,
       }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: managementKeys.imports(projectId) });
+    },
+  });
+}
+
+export function useCommitImportJob(projectId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (jobId: string) =>
+      apiFetch<ImportJob>(`${BASE(projectId)}/imports/${jobId}/commit`, { method: "POST" }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: managementKeys.imports(projectId) });
+      void qc.invalidateQueries({ queryKey: managementKeys.repository(projectId) });
+      void qc.invalidateQueries({ queryKey: managementKeys.cases(projectId) });
+    },
   });
 }

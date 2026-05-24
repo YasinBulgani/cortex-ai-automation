@@ -326,3 +326,32 @@ class TestImportJobOut(BaseModel):
     totals: dict[str, Any]
     created_by: Optional[str] = None
     created_at: datetime
+
+
+class ImportJobRowOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    job_id: str
+    row_no: int
+    parsed_data: dict[str, Any]
+    validation_errors: list[dict[str, Any]]
+    status: str  # new | duplicate_candidate | conflict | invalid | ready
+    conflict_key: Optional[str] = None
+
+
+class ImportJobDetailOut(TestImportJobOut):
+    """Extended import job with staging rows."""
+    model_config = ConfigDict(from_attributes=True)
+
+    rows: list[ImportJobRowOut] = Field(default_factory=list)
+
+
+class EvidenceOut(BaseModel):
+    """Evidence / artifact linked to a run-case."""
+    id: str
+    run_case_id: str
+    filename: str
+    content_type: str
+    url: str
+    uploaded_at: str

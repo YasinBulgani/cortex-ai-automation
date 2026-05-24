@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
 from typing import Any, Iterable, Optional
 
 from fastapi import HTTPException, status
@@ -549,3 +550,93 @@ def create_import_job(db: Session, project_id: str, payload: TestImportJobCreate
     db.commit()
     db.refresh(job)
     return job
+
+
+def list_import_jobs(db: Session, project_id: str) -> list[TestImportJob]:
+    """Return all import jobs for the project, newest first."""
+    get_project(db, project_id)
+    return list(
+        db.scalars(
+            select(TestImportJob)
+            .where(TestImportJob.project_id == project_id)
+            .order_by(TestImportJob.created_at.desc())
+        ).all()
+    )
+
+
+def get_import_job(db: Session, project_id: str, job_id: str) -> TestImportJob:
+    """Return a single import job with rows (for preview/conflict screen)."""
+    job = db.get(TestImportJob, job_id)
+    if job is None or job.project_id != project_id:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Import job bulunamadı")
+    return job
+
+
+def commit_import_job(db: Session, project_id: str, job_id: str, user: Any | None) -> TestImportJob:
+    """Commit a staged import job — write 'ready' rows as new TestCases."""
+    job = get_import_job(db, project_id, job_id)
+    if job.status != "preview":
+        raise HTTPException(status.HTTP_409_CONFLICT, f"Import job zaten '{job.status}' durumunda — commit edilemez")
+
+    created = 0
+    for row in job.rows:
+        if row.status not in ("ready", "new"):
+            continue
+        data = row.parsed_data or {}
+        title = data.get("title") or data.get("name") or f"Imported case {row.row_no}"
+        tc = TestCase(
+            project_id=project_id,
+            title=title,
+            case_key=data.get("case_key") or None,
+            priority=data.get("priority", "P2"),
+            severity=data.get("severity", "medium"),
+            type=data.get("type", "manual"),
+            status=data.get("status", "active"),
+            source_type="import",
+            source_ref=job.id,
+        )
+        db.add(tc)
+        created += 1
+
+    job.status = "committed"
+    job.totals = {**job.totals, "committed": created}
+    db.flush()
+    audit(db, "import_job.committed", "import_job", job.id, project_id, user, {"created": created})
+    db.commit()
+    db.refresh(job)
+    return job
+
+
+def upload_evidence(
+    db: Session,
+    project_id: str,
+    run_case_id: str,
+    filename: str,
+    content_type: str,
+    content: bytes,
+) -> dict[str, Any]:
+    """Store evidence bytes on disk and return a reference dict."""
+    import os
+    storage_dir = os.environ.get("EVIDENCE_STORAGE_DIR", "reports/evidence")
+    run_case = db.get(TestRunCase, run_case_id)
+    if run_case is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Run case bulunamadı")
+    if run_case.case.project_id != project_id:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Run case bulunamadı")
+
+    # Write to disk.
+    import uuid as _uuid_module
+    artifact_id = str(_uuid_module.uuid4())
+    dest_dir = Path(storage_dir) / project_id / run_case_id
+    dest_dir.mkdir(parents=True, exist_ok=True)
+    dest = dest_dir / f"{artifact_id}_{filename}"
+    dest.write_bytes(content)
+
+    return {
+        "id": artifact_id,
+        "run_case_id": run_case_id,
+        "filename": filename,
+        "content_type": content_type,
+        "url": f"/evidence/{project_id}/{run_case_id}/{artifact_id}_{filename}",
+        "uploaded_at": utcnow().isoformat(),
+    }

@@ -12,10 +12,15 @@ from sqlalchemy.orm import Session
 
 from app.deps import require_permission
 from app.domains.test_management import service
+from fastapi import File, UploadFile
+
 from app.domains.test_management.schemas import (
     DefectLinkCreate,
     DefectLinkOut,
+    EvidenceOut,
     ExecutionSummaryOut,
+    ImportJobDetailOut,
+    ImportJobRowOut,
     ManagementProjectCreate,
     ManagementProjectOut,
     RepositoryOut,
@@ -212,6 +217,24 @@ def create_defect_link(project_id: str, payload: DefectLinkCreate, db: DB, user:
     return service.create_defect_link(db, project_id, payload, user)
 
 
+@router.get("/projects/{project_id}/imports", response_model=list[TestImportJobOut])
+def list_import_jobs(project_id: str, db: DB, _user: ReadUser) -> list[TestImportJobOut]:
+    return service.list_import_jobs(db, project_id)
+
+
+@router.get("/projects/{project_id}/imports/{job_id}", response_model=ImportJobDetailOut)
+def get_import_job(project_id: str, job_id: str, db: DB, _user: ReadUser) -> ImportJobDetailOut:
+    return service.get_import_job(db, project_id, job_id)
+
+
+@router.post(
+    "/projects/{project_id}/imports/{job_id}/commit",
+    response_model=TestImportJobOut,
+)
+def commit_import_job(project_id: str, job_id: str, db: DB, user: WriteUser) -> TestImportJobOut:
+    return service.commit_import_job(db, project_id, job_id, user)
+
+
 @router.post(
     "/projects/{project_id}/imports",
     response_model=TestImportJobOut,
@@ -219,3 +242,29 @@ def create_defect_link(project_id: str, payload: DefectLinkCreate, db: DB, user:
 )
 def create_import_job(project_id: str, payload: TestImportJobCreate, db: DB, user: WriteUser) -> TestImportJobOut:
     return service.create_import_job(db, project_id, payload, user)
+
+
+@router.post(
+    "/projects/{project_id}/runs/{run_id}/cases/{run_case_id}/evidence",
+    response_model=EvidenceOut,
+    status_code=status.HTTP_201_CREATED,
+    summary="Upload evidence file for a run case",
+)
+async def upload_evidence(
+    project_id: str,
+    run_id: str,
+    run_case_id: str,
+    db: DB,
+    _user: ExecuteUser,
+    file: UploadFile = File(...),
+) -> EvidenceOut:
+    content = await file.read()
+    result = service.upload_evidence(
+        db,
+        project_id=project_id,
+        run_case_id=run_case_id,
+        filename=file.filename or "evidence",
+        content_type=file.content_type or "application/octet-stream",
+        content=content,
+    )
+    return EvidenceOut(**result)

@@ -9,6 +9,7 @@ import {
   type TestCase,
   type TestCaseStep,
 } from "@/lib/hooks/use-management";
+import { apiFetch } from "@/lib/api-client";
 import { ManagementPanel, ManagementShell, ManagementStat } from "../../../_components/ManagementShell";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -149,16 +150,66 @@ function StepRow({
   );
 }
 
+// ── Evidence upload ────────────────────────────────────────────────────────────
+
+function EvidenceUpload({
+  projectId,
+  runId,
+  runCaseId,
+}: {
+  projectId: string;
+  runId: string;
+  runCaseId: string;
+}) {
+  const [uploading, setUploading] = useState(false);
+  const [uploaded, setUploaded] = useState<string[]>([]);
+
+  const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      const form = new FormData();
+      form.append("file", file);
+      const res = await fetch(
+        `/api/v1/test-management/projects/${projectId}/runs/${runId}/cases/${runCaseId}/evidence`,
+        { method: "POST", body: form },
+      );
+      if (res.ok) {
+        const data = await res.json() as { filename: string };
+        setUploaded((prev) => [...prev, data.filename]);
+      }
+    } finally {
+      setUploading(false);
+      e.target.value = "";
+    }
+  };
+
+  return (
+    <div className="flex items-center gap-3">
+      <label className="cursor-pointer rounded-lg border border-slate-700 px-3 py-1.5 text-xs text-slate-400 hover:bg-slate-800">
+        {uploading ? "Yükleniyor…" : "📎 Evidence Yükle"}
+        <input type="file" className="hidden" onChange={handleFile} disabled={uploading} />
+      </label>
+      {uploaded.length > 0 && (
+        <span className="text-xs text-emerald-400">{uploaded.length} dosya yüklendi</span>
+      )}
+    </div>
+  );
+}
+
 // ── Case panel ────────────────────────────────────────────────────────────────
 
 function CasePanel({
   runCase,
   caseData,
   projectId,
+  runId,
 }: {
   runCase: RunCase;
   caseData?: TestCase;
   projectId: string;
+  runId: string;
 }) {
   const [open, setOpen] = useState(false);
   const dotClass = STATUS_DOT[runCase.status] ?? "bg-slate-600";
@@ -216,6 +267,9 @@ function CasePanel({
               />
             ))
           )}
+          <div className="border-t border-slate-800 pt-3">
+            <EvidenceUpload projectId={projectId} runId={runId} runCaseId={runCase.id} />
+          </div>
         </div>
       )}
     </div>
@@ -296,6 +350,7 @@ export default function ManagementRunExecutePage({
               runCase={rc}
               caseData={caseById[rc.case_id]}
               projectId={projectId}
+              runId={runId}
             />
           ))
         )}
