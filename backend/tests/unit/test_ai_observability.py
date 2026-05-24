@@ -289,7 +289,7 @@ class TestRateLimitMonitor:
 
 class TestRouterRateLimitFallback:
 
-    def test_rate_limited_premium_falls_to_mid(self, monkeypatch):
+    def test_rate_limited_premium_falls_to_mid(self, monkeypatch, feature_flags):
         """Premium model kota bittiginde MID'e dusmeli."""
         from app.domains.ai import smart_model_router as router
         from app.domains.ai.smart_model_router import route_model, Tier
@@ -303,16 +303,12 @@ class TestRouterRateLimitFallback:
         monkeypatch.setattr(router.settings, "ai_routing_mode", "balanced", raising=False)
 
         # Feature flag aktif
-        try:
-            from app.domains.feature_flags.service import feature_flags
-            from app.domains.feature_flags.schemas import FlagUpdate
-            feature_flags.set_flag(
-                "ai.router.v2",
-                FlagUpdate(enabled=True, percent=100),
-                actor="test",
-            )
-        except Exception:
-            pytest.skip("feature_flags missing")
+        from app.domains.feature_flags.schemas import FlagUpdate
+        feature_flags.set_flag(
+            "ai.router.v2",
+            FlagUpdate(enabled=True, percent=100),
+            actor="test",
+        )
 
         # Premium rate-limit'i bitir
         rlm.record_rate_limit_headers("claude-sonnet-4-20250514", {

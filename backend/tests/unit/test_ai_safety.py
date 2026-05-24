@@ -183,17 +183,13 @@ class TestOutputShield:
         # 0.95 * 0.3 = 0.285 < 0.5 warn threshold
         assert result.decision == "allow"
 
-    def test_flag_disabled_allows_all(self):
-        try:
-            from app.domains.feature_flags.service import feature_flags
-            from app.domains.feature_flags.schemas import FlagUpdate
-            feature_flags.set_flag(
-                "ai.output_shield",
-                FlagUpdate(enabled=False, percent=0),
-                actor="test",
-            )
-        except Exception:
-            pytest.skip("feature_flags missing")
+    def test_flag_disabled_allows_all(self, feature_flags):
+        from app.domains.feature_flags.schemas import FlagUpdate
+        feature_flags.set_flag(
+            "ai.output_shield",
+            FlagUpdate(enabled=False, percent=0),
+            actor="test",
+        )
 
         from app.domains.ai.output_shield import inspect_output
         # Bloklanacak bir text

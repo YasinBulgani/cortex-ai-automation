@@ -112,18 +112,14 @@ class TestPIIRedactionPreLLM:
         assert redacted == text
         assert count == 0
 
-    def test_flag_disabled_bypasses_redaction(self, monkeypatch):
+    def test_flag_disabled_bypasses_redaction(self, monkeypatch, feature_flags):
         """ai.pii.redact kapaliysa ham metin gecer."""
-        try:
-            from app.domains.feature_flags.service import feature_flags
-            from app.domains.feature_flags.schemas import FlagUpdate
-            feature_flags.set_flag(
-                "ai.pii.redact",
-                FlagUpdate(enabled=False, percent=0),
-                actor="test",
-            )
-        except Exception:
-            pytest.skip("feature_flags missing")
+        from app.domains.feature_flags.schemas import FlagUpdate
+        feature_flags.set_flag(
+            "ai.pii.redact",
+            FlagUpdate(enabled=False, percent=0),
+            actor="test",
+        )
 
         from app.domains.ai.gateway_client import _redact_pii
         text = "IBAN: TR330006100519786457841326"
@@ -150,18 +146,14 @@ class TestPromptRegistryResolve:
         assert sys is None
         assert meta is None
 
-    def test_registry_flag_on_but_no_prompt_returns_none(self, monkeypatch):
+    def test_registry_flag_on_but_no_prompt_returns_none(self, monkeypatch, feature_flags):
         """Flag acik ama DB'de prompt yoksa None."""
-        try:
-            from app.domains.feature_flags.service import feature_flags
-            from app.domains.feature_flags.schemas import FlagUpdate
-            feature_flags.set_flag(
-                "ai.prompts.registry",
-                FlagUpdate(enabled=True, percent=100),
-                actor="test",
-            )
-        except Exception:
-            pytest.skip("feature_flags missing")
+        from app.domains.feature_flags.schemas import FlagUpdate
+        feature_flags.set_flag(
+            "ai.prompts.registry",
+            FlagUpdate(enabled=True, percent=100),
+            actor="test",
+        )
 
         # Mock resolve -> None (DB'de yok)
         monkeypatch.setattr(
@@ -178,32 +170,24 @@ class TestPromptRegistryResolve:
 
 class TestSelfRefine:
 
-    def test_should_not_refine_when_flag_disabled(self):
-        try:
-            from app.domains.feature_flags.service import feature_flags
-            from app.domains.feature_flags.schemas import FlagUpdate
-            feature_flags.set_flag(
-                "ai.self_refine",
-                FlagUpdate(enabled=False, percent=0),
-                actor="test",
-            )
-        except Exception:
-            pytest.skip("feature_flags missing")
+    def test_should_not_refine_when_flag_disabled(self, feature_flags):
+        from app.domains.feature_flags.schemas import FlagUpdate
+        feature_flags.set_flag(
+            "ai.self_refine",
+            FlagUpdate(enabled=False, percent=0),
+            actor="test",
+        )
 
         from app.domains.ai.self_refine import should_self_refine
         assert should_self_refine("security_audit", risk_level="critical") is False
 
-    def test_should_refine_when_flag_on_and_critical(self, monkeypatch):
-        try:
-            from app.domains.feature_flags.service import feature_flags
-            from app.domains.feature_flags.schemas import FlagUpdate
-            feature_flags.set_flag(
-                "ai.self_refine",
-                FlagUpdate(enabled=True, percent=100),
-                actor="test",
-            )
-        except Exception:
-            pytest.skip("feature_flags missing")
+    def test_should_refine_when_flag_on_and_critical(self, monkeypatch, feature_flags):
+        from app.domains.feature_flags.schemas import FlagUpdate
+        feature_flags.set_flag(
+            "ai.self_refine",
+            FlagUpdate(enabled=True, percent=100),
+            actor="test",
+        )
 
         from app.domains.ai.self_refine import should_self_refine
         assert should_self_refine("security_audit", risk_level="critical") is True
