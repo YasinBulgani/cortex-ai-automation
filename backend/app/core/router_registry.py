@@ -44,18 +44,17 @@ from app.domains.prompts.router import router as prompts_router
 from app.domains.git_fetch.router import router as git_fetch_router
 from app.domains.quality.router import router as quality_router
 from app.domains.rules.router import router as rules_router
-from app.domains.test_management.router import router as test_management_router
 from app.domains.tspm.router import router as tspm_router
 from app.domains.nexus_repo.router import router as nexus_repo_router
 from app.domains.products.router import router as products_router
-
-# qa/ git-native test management — yeni domain (PR 41)
-try:
-    from app.domains.qa.router import router as qa_router  # type: ignore
-    _HAS_QA_ROUTER = True
-except ImportError:
-    qa_router = None  # type: ignore[assignment]
-    _HAS_QA_ROUTER = False
+from app.domains.events.router import router as events_router
+from app.domains.marketplace.router import router as marketplace_router
+from app.domains.visual.router import router as visual_router
+from app.domains.pilot.router import router as pilot_router
+from app.domains.defects.router import router as defects_router
+from app.domains.ingestion.router import router as ingestion_router
+from app.domains.knowledge_base.router import router as knowledge_base_router
+from app.domains.compliance.router import router as compliance_router
 
 # DDD bounded context routers (new architecture)
 try:
@@ -85,7 +84,6 @@ _PREFIXED_ROUTERS = [
     rules_router,
     jobs_router,
     artifacts_router,
-    test_management_router,
     tspm_router,
     notifications_router,
     automation_router,
@@ -114,10 +112,15 @@ _PREFIXED_ROUTERS = [
     quality_router,
     onboarding_router,
     nexus_repo_router,
+    events_router,
+    marketplace_router,
+    visual_router,
+    pilot_router,
+    defects_router,
+    ingestion_router,
+    knowledge_base_router,
+    compliance_router,
 ]
-
-if _HAS_QA_ROUTER and qa_router is not None:
-    _PREFIXED_ROUTERS.append(qa_router)
 
 
 # Routers that carry their own full path prefix (e.g. /api/v1/api-testing/…)

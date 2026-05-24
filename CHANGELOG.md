@@ -9,12 +9,20 @@ Kategoriler: `Added`, `Changed`, `Deprecated`, `Removed`, `Fixed`, `Security`.
 
 ### Added — P1/P2 sprint devamı (2026-05-24, Tur 4, Neurex_QA port)
 
+**Backend — Kritik Bug Fix (Neurex_QA port)**
+- `backend/app/core/router_registry.py`: `events`, `marketplace`, `visual`, `pilot` router'ları eklendi — 4 domain router'ı uygulamaya bağlanmamıştı; 404 dönüyordu.
+- `backend/tests/integration/test_router_registration.py`: Parametrize listesi 14 prefix'e genişletildi.
+
 **Docs**
 - `docs/semgrep-secrets-runbook.md` oluşturuldu — SEMGREP_APP_TOKEN, CI secrets, yerel tarama, false positive suppression, eskalasyon prosedürü (P1 #35).
 
 **Tests — Backend**
 - `backend/tests/unit/conftest.py`: `feature_flags_svc` fixture eklendi (P1 #41).
-- `backend/tests/unit/test_products_service.py`, `test_events_service.py`, `test_jobs_service.py`, `test_rules_service.py`, `test_automation_service.py` — 52 toplam unit test (Neurex_QA port).
+- `backend/tests/unit/test_products_service.py`, `test_events_service.py`, `test_jobs_service.py`, `test_rules_service.py`, `test_automation_service.py`, `test_agents_service.py`, `test_n8n_service.py`, `test_artifacts_service.py`, `test_git_fetch_service.py`, `test_nexus_repo_service.py`, `test_pilot_service.py` — toplam 109 unit test (Neurex_QA port).
+- `backend/tests/test_smoke.py`: 4 yeni smoke test — events/defects/kb/pilot router kaydı doğrulama.
+
+**Frontend**
+- `apps/web/lib/useKnowledgeBase.ts`: Backend-first load eklendi — `/api/v1/kb/articles` endpoint artık kayıtlı.
 
 **Tests — Engine**
 - `engine/tests/unit/core/test_step_mapper.py` — 9 test class, step_mapper coverage (P1 #31).

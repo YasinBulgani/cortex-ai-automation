@@ -20,6 +20,20 @@ from fastapi.testclient import TestClient
         "/api/v1/tspm",
         "/api/v1/auth",
         "/api/v1/dsl",
+        # Domains added to router_registry (2026-05-24 fix — previously unregistered)
+        "/api/v1/events",
+        "/api/v1/marketplace",
+        "/api/v1/visual",
+        "/api/v1/pilot",
+        "/api/v1/artifacts",
+        "/api/v1/git-fetch",
+        "/api/v1/rules",
+        "/api/v1/jobs",
+        "/api/v1/products",
+        "/api/v1/defects",
+        "/api/v1/ingestion",
+        "/api/v1/kb",
+        "/api/v1/compliance",
     ],
 )
 def test_critical_router_prefix_present(path_prefix: str) -> None:
