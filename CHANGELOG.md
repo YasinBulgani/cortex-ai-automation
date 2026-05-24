@@ -29,6 +29,9 @@ Kategoriler: `Added`, `Changed`, `Deprecated`, `Removed`, `Fixed`, `Security`.
 - `engine/tests/unit/test_utility_routes.py` — 11 test; utility Flask routes.
 - `engine/tests/unit/test_auth_security.py` — 9 test; login/register/logout güvenlik testleri.
 - `engine/tests/unit/test_recorder_routes.py` — 37 test; recorder routes + Cortex'e özgü pause/resume/status endpoint'leri.
+- `engine/tests/unit/test_wizard_routes.py` — 20 test; 7 wizard endpoint coverage.
+- `engine/tests/unit/test_pipeline_routes.py` — 25 test; assertion synthesis regresyon testleri dahil pipeline coverage.
+- `backend/tests/integration/test_new_domain_routers.py` — 8 domain router kaydı kontrol testi.
 
 ### Added — Backend DDD service.py facade'ları + P0/P1 deficiency düzeltmeleri (2026-05-24)
 
