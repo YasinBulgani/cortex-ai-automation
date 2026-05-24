@@ -691,6 +691,160 @@ def delete_chain(
     db.commit()
 
 
+# ── Chain Run ─────────────────────────────────────────────────────────────────
+
+class ChainStepResult(BaseModel):
+    step: int
+    method: str
+    path: str
+    status_code: int = 0
+    ok: bool
+    duration_ms: int
+    error: Optional[str] = None
+
+
+class ChainRunResult(BaseModel):
+    run_id: str
+    status: str  # "completed" | "failed"
+    steps: List[ChainStepResult]
+    total_duration_ms: int
+    passed: int
+    failed: int
+
+
+@router.post("/chains/{chain_id}/run", response_model=ChainRunResult)
+async def run_chain(
+    project_id: str,
+    chain_id: str,
+    db: Session = Depends(get_db),
+    user: Any = Depends(get_current_user),
+):
+    """Chain'deki tüm node'ları sırayla çalıştır.
+
+    Node'lar edges listesindeki bağlantı sırasına göre (veya yoksa node listesi
+    sırasına göre) yürütülür. Her node'un ``data`` alanında en azından
+    ``method`` ve ``path`` beklenir.
+
+    Dönen ``ChainRunResult`` şekli FE ``useRunChain`` hook'unun beklediği
+    TypeScript tipine birebir eşleşir.
+    """
+    from app.domains.api_testing.request_executor import execute_request
+    import time, uuid
+
+    chain = db.query(ApiChain).filter(
+        ApiChain.id == chain_id,
+        ApiChain.project_id == project_id,
+    ).first()
+    if not chain:
+        raise HTTPException(404, "Chain bulunamadi")
+
+    nodes: list = chain.nodes or []
+    edges: list = chain.edges or []
+
+    # Build execution order via topological sort based on edges.
+    # Fallback: if edges are empty, use the nodes list order.
+    if edges:
+        # Build adjacency & in-degree
+        id_to_node = {n.get("id"): n for n in nodes}
+        in_degree: dict[str, int] = {n.get("id"): 0 for n in nodes}
+        adj: dict[str, list] = {n.get("id"): [] for n in nodes}
+        for e in edges:
+            src = e.get("source") or e.get("sourceHandle")
+            tgt = e.get("target") or e.get("targetHandle")
+            if src and tgt and src in adj:
+                adj[src].append(tgt)
+                in_degree[tgt] = in_degree.get(tgt, 0) + 1
+
+        from collections import deque
+        queue = deque([nid for nid, deg in in_degree.items() if deg == 0])
+        ordered_nodes: list = []
+        while queue:
+            nid = queue.popleft()
+            if nid in id_to_node:
+                ordered_nodes.append(id_to_node[nid])
+            for nxt in adj.get(nid, []):
+                in_degree[nxt] -= 1
+                if in_degree[nxt] == 0:
+                    queue.append(nxt)
+        # If cycle or missing nodes, fall back to original list
+        if len(ordered_nodes) < len(nodes):
+            ordered_nodes = nodes
+    else:
+        ordered_nodes = nodes
+
+    step_results: list[ChainStepResult] = []
+    run_start = time.monotonic()
+    run_id = str(uuid.uuid4())
+    stop_on_failure: bool = getattr(chain, "stop_on_failure", True)
+    global_variables: dict = chain.global_variables or {}
+
+    for idx, node in enumerate(ordered_nodes):
+        data = node.get("data") or {}
+        method: str = (data.get("method") or "GET").upper()
+        path: str   = data.get("path") or data.get("url") or "/"
+        headers: dict = data.get("headers") or {}
+        body_data: Any = data.get("body")
+        assertions: list = data.get("assertions") or []
+
+        # Resolve absolute URL: if path starts with http use as-is, else prepend env base
+        url = path if path.startswith("http") else path
+
+        step_start = time.monotonic()
+        error_msg: Optional[str] = None
+        status_code = 0
+        ok = False
+
+        try:
+            validate_outbound_url(url)
+            result = await execute_request(
+                method=method,
+                url=url,
+                headers=headers,
+                params={},
+                body=body_data,
+                variables=global_variables,
+                assertions=assertions,
+                expected_schema=None,
+                timeout=data.get("timeout_ms", 15000) / 1000,
+            )
+            status_code = result.status_code or 0
+            ok = result.ok
+            # Carry forward extracted variables for downstream steps
+            if result.extracted_variables:
+                global_variables = {**global_variables, **result.extracted_variables}
+        except UnsafeTargetError as exc:
+            error_msg = f"Guvensiz URL: {exc}"
+        except Exception as exc:
+            error_msg = str(exc)[:300]
+
+        duration_ms = int((time.monotonic() - step_start) * 1000)
+        step_results.append(ChainStepResult(
+            step=idx + 1,
+            method=method,
+            path=path,
+            status_code=status_code,
+            ok=ok,
+            duration_ms=duration_ms,
+            error=error_msg,
+        ))
+
+        if stop_on_failure and not ok:
+            break
+
+    total_ms = int((time.monotonic() - run_start) * 1000)
+    passed = sum(1 for s in step_results if s.ok)
+    failed = sum(1 for s in step_results if not s.ok)
+
+    return ChainRunResult(
+        run_id=run_id,
+        status="completed" if failed == 0 else "failed",
+        steps=step_results,
+        total_duration_ms=total_ms,
+        passed=passed,
+        failed=failed,
+    )
+
+
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 # DASHBOARD / STATS
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
