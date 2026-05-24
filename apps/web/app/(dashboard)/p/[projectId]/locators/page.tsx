@@ -28,96 +28,20 @@ import {
   type TrendResponse,
 } from "@/lib/hooks/use-locator-intelligence";
 
-// ── Types ────────────────────────────────────────────────────────────
+import type { Locator, TabId } from "./_components/constants";
+import {
+  STATUS_STYLES,
+  TYPE_COLORS,
+  TABS,
+  BTN_PRIMARY,
+  INPUT_CLS,
+  TEXTAREA_CLS,
+  getScoreColor,
+} from "./_components/constants";
+import { Spinner, ConfidenceBar, RiskBar, CopyButton } from "./_components/MicroComponents";
 
-type Locator = {
-  id: string;
-  name: string;
-  selector: string;
-  type: string;
-  page: string;
-  status: string;
-};
-
-const STATUS_STYLES: Record<string, { color: string; dot: string; label: string }> = {
-  healthy: { color: "bg-emerald-500/10 border-emerald-500/20 text-emerald-400", dot: "bg-emerald-400", label: "Saglikli" },
-  broken:  { color: "bg-red-500/10 border-red-500/20 text-red-400",            dot: "bg-red-400",     label: "Kırık" },
-  warning: { color: "bg-amber-500/10 border-amber-500/20 text-amber-400",      dot: "bg-amber-400",   label: "Uyari" },
-};
-
-const TYPE_COLORS: Record<string, string> = {
-  css:    "bg-blue-500/10 border-blue-500/20 text-blue-400",
-  xpath:  "bg-amber-500/10 border-amber-500/20 text-amber-400",
-  testid: "bg-violet-500/10 border-violet-500/20 text-violet-400",
-  text:   "bg-slate-800 border-slate-700 text-slate-300",
-};
-
-type TabId = "management" | "stability" | "fallback" | "pom" | "breakage";
-const TABS = [
-  { id: "management" as TabId, label: "Yönetim" },
-  { id: "stability" as TabId, label: "Stabilite" },
-  { id: "fallback" as TabId, label: "Fallback" },
-  { id: "pom" as TabId, label: "POM" },
-  { id: "breakage" as TabId, label: "Kırılma" },
-];
-const BTN_PRIMARY = "inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-500 disabled:opacity-40 disabled:cursor-not-allowed transition-all";
-const INPUT_CLS = "w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500/50";
-const TEXTAREA_CLS = "w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500/50 resize-none font-mono";
-
-function getScoreColor(score: number): string {
-  if (score >= 4) return "bg-emerald-500/10 border-emerald-500/20 text-emerald-400";
-  if (score >= 3) return "bg-blue-500/10 border-blue-500/20 text-blue-400";
-  if (score >= 2) return "bg-amber-500/10 border-amber-500/20 text-amber-400";
-  return "bg-red-500/10 border-red-500/20 text-red-400";
-}
-
-function Spinner({ className = "w-5 h-5" }: { className?: string }) {
-  return <div className={`border-2 border-slate-700 border-t-blue-400 rounded-full animate-spin ${className}`} />;
-}
-
-function ConfidenceBar({ value, max = 1 }: { value: number; max?: number }) {
-  const pct = Math.min(100, (value / max) * 100);
-  const color = pct >= 70 ? "bg-emerald-500" : pct >= 40 ? "bg-amber-500" : "bg-red-500";
-  return (
-    <div className="h-1.5 rounded-full bg-slate-700 overflow-hidden">
-      <div className={`h-full rounded-full ${color}`} style={{ width: `${pct}%` }} />
-    </div>
-  );
-}
-
-function RiskBar({ value }: { value: number }) {
-  const pct = Math.min(100, value * 100);
-  const color = pct >= 70 ? "bg-red-500" : pct >= 40 ? "bg-amber-500" : "bg-emerald-500";
-  return (
-    <div className="flex items-center gap-2">
-      <div className="h-1.5 w-24 rounded-full bg-slate-700 overflow-hidden">
-        <div className={`h-full rounded-full ${color}`} style={{ width: `${pct}%` }} />
-      </div>
-      <span className="text-xs font-mono text-slate-400">{(value * 100).toFixed(0)}%</span>
-    </div>
-  );
-}
-
-function CopyButton({ text }: { text: string }) {
-  const [copied, setCopied] = useState(false);
-  return (
-    <button
-      onClick={() => { void navigator.clipboard.writeText(text); setCopied(true); setTimeout(() => setCopied(false), 2000); }}
-      className="rounded p-1 text-slate-400 hover:text-white hover:bg-slate-700 transition-all"
-      title="Kopyala"
-    >
-      {copied ? (
-        <svg className="w-3.5 h-3.5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-        </svg>
-      ) : (
-        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-        </svg>
-      )}
-    </button>
-  );
-}
+// ── (Types and constants moved to ./_components/constants.ts) ────────────────
+// ── (Micro-components moved to ./_components/MicroComponents.tsx) ────────────
 
 function TabManagement({ locators, loading, refresh, projectId }: { locators: Locator[]; loading: boolean; refresh: () => void; projectId: string }) {
   const healthy = locators.filter((l) => l.status === "healthy").length;
