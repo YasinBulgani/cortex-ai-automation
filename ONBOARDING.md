@@ -15,27 +15,17 @@ java --version        # JDK 17+
 node --version        # 20+
 python3 --version     # 3.10+
 mvn --version         # 3.9+ (veya repo'daki ./mvnw kullanılır)
-ollama --version      # 0.5+
 ```
 
 Eksikse macOS'ta Homebrew ile:
 ```bash
-brew install openjdk@17 node@20 python@3.12 maven ollama
+brew install openjdk@17 node@20 python@3.12 maven
 ```
 
-**Ollama modelini indir** (~10 GB, internet hızına bağlı 5-15 dk):
-```bash
-ollama pull qwen2.5:14b
-```
-
-> ⚠ Sistem RAM'i ≥16 GB olmalı. qwen2.5:14b çalışırken ~9 GB tüketir. RAM düşükse `qwen2.5:7b` veya `llama3.1:8b` kullan.
-
-**Beklenen çıktı:**
-```
-$ ollama list
-NAME             SIZE
-qwen2.5:14b      9.0 GB
-```
+> **Ollama (opsiyonel):** Yalnızca AI kod-polish özelliği için gereklidir.
+> Test kayıt ve BDD üretimi için Ollama zorunlu değildir.
+> Kurmak istersen: `brew install ollama && ollama pull qwen2.5:14b`
+> RAM ≥16 GB önerilir. RAM düşükse `qwen2.5:7b` veya `llama3.1:8b` da çalışır.
 
 ---
 
@@ -67,18 +57,20 @@ make cortex-up
 ```
 
 Bu komut şunları başlatır:
-- **Ollama** (background, port 11434) — AI Polish için
 - **Flask API** (background, port 5001) — Dashboard backend
 - **Next.js Dashboard** (background, port 3000) — Web UI
 - **Java Recorder JVM** ihtiyaç oldukça Dashboard tarafından spawn edilir
+- **Ollama** (opsiyonel — yalnızca Ollama kuruluysa ve AI Polish özelliği aktifse başlatılır)
 
 **Beklenen çıktı:**
 ```
-✓ Ollama 11434
 ✓ Flask 5001
 ✓ Next.js 3000
 Dashboard: http://localhost:3000/products/intelligence
 ```
+
+> Ollama kuruluysa ek satır görürsün: `✓ Ollama 11434`
+> Ollama kurulu değilse bu satır çıkmaz — bu normaldir, diğer özellikler çalışmaya devam eder.
 
 > ⚠ Port çakışması: Mevcut bir servis varsa `make cortex-down` ile kapat, sonra `cortex-up` çalıştır.
 

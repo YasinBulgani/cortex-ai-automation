@@ -50,6 +50,7 @@
     "@neurex/product-code": "*"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.10.1",
     "@swc/helpers": "^0.5.15",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",

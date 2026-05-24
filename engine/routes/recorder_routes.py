@@ -89,6 +89,69 @@ def stop_recording(session_id: str):
         return jsonify({"ok": False, "error": str(exc)}), 500
 
 
+@recorder_bp.route("/api/recorder/<session_id>/pause", methods=["POST"])
+def pause_recording(session_id: str):
+    """
+    Aktif kayıt oturumunu duraklatır.
+    Duraklatıldıktan sonra gelen aksiyonlar sessizce görmezden gelinir.
+    Resume edilene ya da stop edilene kadar devam eder.
+
+    Returns:
+      {ok, session_id, paused: true}
+    """
+    recorder = _get_recorder(session_id)
+    if not recorder:
+        return jsonify({"ok": False, "error": "Oturum bulunamadı"}), 404
+    try:
+        recorder.pause()
+        return jsonify({"ok": True, "session_id": session_id, "paused": True})
+    except Exception as exc:
+        return jsonify({"ok": False, "error": str(exc)}), 500
+
+
+@recorder_bp.route("/api/recorder/<session_id>/resume", methods=["POST"])
+def resume_recording(session_id: str):
+    """
+    Duraklatılmış kayıt oturumunu devam ettirir.
+
+    Returns:
+      {ok, session_id, paused: false}
+    """
+    recorder = _get_recorder(session_id)
+    if not recorder:
+        return jsonify({"ok": False, "error": "Oturum bulunamadı"}), 404
+    try:
+        recorder.resume()
+        return jsonify({"ok": True, "session_id": session_id, "paused": False})
+    except Exception as exc:
+        return jsonify({"ok": False, "error": str(exc)}), 500
+
+
+@recorder_bp.route("/api/recorder/<session_id>/status", methods=["GET"])
+def recording_status(session_id: str):
+    """
+    Aktif bir kayıt oturumunun anlık durumunu döner.
+
+    Returns:
+      {ok, session_id, paused, action_count, name, domain}
+    """
+    recorder = _get_recorder(session_id)
+    if not recorder:
+        return jsonify({"ok": False, "error": "Oturum bulunamadı"}), 404
+    try:
+        session = recorder.session
+        return jsonify({
+            "ok": True,
+            "session_id": session_id,
+            "paused": recorder.is_paused,
+            "action_count": len(session.actions),
+            "name": session.name,
+            "domain": session.domain,
+        })
+    except Exception as exc:
+        return jsonify({"ok": False, "error": str(exc)}), 500
+
+
 @recorder_bp.route("/api/recorder/sessions", methods=["GET"])
 def list_sessions():
     """

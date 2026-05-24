@@ -106,6 +106,18 @@ if _session_key == _INSECURE_SESSION_DEFAULT or _internal_key == _INSECURE_INTER
 
 ENGINE_PORT = int(os.environ.get("ENGINE_PORT", "5001"))
 
+# ── Metrics helpers ──────────────────────────────────────────────────────────
+_app_start_time: float = time.time()
+
+
+def _active_sessions_ref() -> dict:
+    """Late-bound reference to recorder_routes._active_sessions (avoids circular import)."""
+    try:
+        from routes.recorder_routes import _active_sessions  # noqa: PLC0415
+        return _active_sessions
+    except Exception:
+        return {}
+
 try:
     from prometheus_client import Counter, Histogram, REGISTRY as _PROM_REGISTRY
     try:
@@ -311,6 +323,42 @@ def health_root():
         "service": "testwright-ai-automation-engine",
         "port": ENGINE_PORT,
     })
+
+
+@app.route("/metrics")
+def metrics_root():
+    """Prometheus-compatible text format metrics (basic counters).
+
+    Exposes enough for a dashboard scrape or ``curl /metrics`` healthcheck.
+    Extend with ``prometheus_client`` when a real Prometheus scrape target is needed.
+    """
+    import time
+    import gc
+
+    uptime_seconds = time.time() - _app_start_time
+    gc_stats = gc.get_count()
+    active_sessions = len(_active_sessions_ref()) if callable(_active_sessions_ref) else 0
+
+    lines = [
+        "# HELP engine_uptime_seconds Seconds since engine process started",
+        "# TYPE engine_uptime_seconds gauge",
+        f"engine_uptime_seconds {uptime_seconds:.1f}",
+        "",
+        "# HELP engine_active_recording_sessions Number of in-memory recording sessions",
+        "# TYPE engine_active_recording_sessions gauge",
+        f"engine_active_recording_sessions {active_sessions}",
+        "",
+        "# HELP engine_gc_generation_0_count Python GC generation 0 object count",
+        "# TYPE engine_gc_generation_0_count gauge",
+        f"engine_gc_generation_0_count {gc_stats[0]}",
+        "",
+        "# HELP engine_gc_generation_1_count Python GC generation 1 object count",
+        "# TYPE engine_gc_generation_1_count gauge",
+        f"engine_gc_generation_1_count {gc_stats[1]}",
+        "",
+    ]
+    from flask import Response  # local import keeps top-level imports clean
+    return Response("\n".join(lines), mimetype="text/plain; version=0.0.4; charset=utf-8")
 
 
 # ─── Deprecated route sunset header'ları (ADR-0002) ────────────────────────

@@ -308,12 +308,12 @@ cortex-down: ## Tüm Cortex servislerini durdur (JVM + Flask + Next.js + Ollama)
 
 cortex-status: ## Tüm Cortex servislerinin durumunu göster
 	@echo "Cortex Servis Durumu:"
-	@printf "  Ollama  :11434  "
-	@if curl -s -m 1 http://127.0.0.1:11434/api/tags >/dev/null 2>&1; then echo "✓ çalışıyor"; else echo "✗ kapalı"; fi
 	@printf "  Flask   :5001   "
 	@if curl -s -m 1 http://127.0.0.1:5001/ >/dev/null 2>&1; then echo "✓ çalışıyor"; else echo "✗ kapalı"; fi
 	@printf "  Next.js :3000   "
 	@if curl -s -m 1 http://127.0.0.1:3000/ >/dev/null 2>&1; then echo "✓ çalışıyor"; else echo "✗ kapalı"; fi
+	@printf "  Ollama  :11434  "
+	@if curl -s -m 1 http://127.0.0.1:11434/api/tags >/dev/null 2>&1; then echo "✓ çalışıyor (AI polish aktif)"; else echo "○ kapalı (opsiyonel — AI polish devre dışı)"; fi
 	@printf "  Java JVM        "
 	@n=$$(ps -ax | grep "exec:java" | grep -v grep | wc -l | tr -d ' '); \
 	if [ "$$n" -gt 0 ]; then echo "● $$n aktif recorder JVM (cortex-down ile öldür)"; else echo "○ idle (recorder kullanılmıyor)"; fi
