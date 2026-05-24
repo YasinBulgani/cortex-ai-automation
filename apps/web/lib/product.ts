@@ -34,6 +34,7 @@ import type {
 import productCode from "@neurex/product-code";
 import productData from "@neurex/product-data";
 import productIntelligence from "@neurex/product-intelligence";
+import productManagement from "@neurex/product-management";
 import productMobile from "@neurex/product-mobile";
 import productOne from "@neurex/product-one";
 import productService from "@neurex/product-service";
@@ -90,6 +91,7 @@ const REGISTRY = composeProductRegistry([
   productWeb,
   productMobile,
   productData,
+  productManagement,
   productIntelligence,
   productCode,
 ]);

@@ -12,6 +12,7 @@ export type ProductFamilyId =
   | "web"
   | "mobile"
   | "data"
+  | "management"
   | "intelligence"
   | "nexus-code";
 

@@ -44,6 +44,7 @@
   --product-web:          #3b82f6;
   --product-mobile:       #f43f5e;
   --product-data:         #06b6d4;
+  --product-management:   #14b8a6;
   --product-intelligence: #8b5cf6;
   --product-code:         #64748b;
 
@@ -174,6 +175,7 @@
   --product-web:          #60a5fa;
   --product-mobile:       #fb7185;
   --product-data:         #22d3ee;
+  --product-management:   #2dd4bf;
   --product-intelligence: #a78bfa;
   --product-code:         #94a3b8;
 
@@ -209,6 +211,7 @@
 [data-product="web"]          { --brand-primary: var(--product-web);          --brand-soft: rgb(59 130 246 / 0.15); }
 [data-product="mobile"]       { --brand-primary: var(--product-mobile);       --brand-soft: rgb(244 63 94 / 0.15); }
 [data-product="data"]         { --brand-primary: var(--product-data);         --brand-soft: rgb(6 182 212 / 0.15); }
+[data-product="management"]   { --brand-primary: var(--product-management);   --brand-soft: rgb(20 184 166 / 0.15); }
 [data-product="intelligence"] { --brand-primary: var(--product-intelligence); --brand-soft: rgb(139 92 246 / 0.15); }
 [data-product="nexus-code"]   { --brand-primary: var(--product-code);         --brand-soft: rgb(100 116 139 / 0.15); }
 

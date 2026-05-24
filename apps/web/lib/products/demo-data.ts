@@ -21,7 +21,7 @@ export const DEMO_TELEMETRY: Record<ProductFamilyId, ProductTelemetry> = {
     lastUpdated: now,
     stats: [
       { key: "projects", label: "Aktif Proje", value: 24, trend: "up", delta: 3, deltaLabel: "bu ay", sparkline: spark(11) },
-      { key: "products", label: "Aktif Ürün", value: 7, unit: "/8", trend: "stable", sparkline: spark(22) },
+      { key: "products", label: "Aktif Ürün", value: 8, unit: "/9", trend: "stable", sparkline: spark(22) },
       { key: "pass_rate", label: "Platform Pass Rate", value: "94.2", unit: "%", delta: 1.8, trend: "up", sparkline: spark(33) },
       { key: "integrations", label: "Entegrasyon", value: 12, trend: "stable", sparkline: spark(44) },
       { key: "users", label: "Aktif Kullanıcı", value: 38, trend: "up", delta: 5, sparkline: spark(55) },
@@ -208,6 +208,37 @@ export const DEMO_TELEMETRY: Record<ProductFamilyId, ProductTelemetry> = {
       { id: "do2", title: "PII taraması çalıştır", description: "Mevcut verilerinizde kişisel veri tespiti yapın.", done: true, ctaLabel: "Gizlilik" },
       { id: "do3", title: "İlk sentetik veri üret", description: "Şemanızdan gerçekçi, KVKK uyumlu test verisi üretin.", done: false, ctaLabel: "Sentetik Veri" },
       { id: "do4", title: "Maskeleme kuralları tanımla", description: "Hangi alanların nasıl maskeleneceğini yapılandırın.", done: false, ctaLabel: "Gizlilik" },
+    ],
+  },
+
+  management: {
+    productId: "management",
+    isDemo: true,
+    lastUpdated: now,
+    stats: [
+      { key: "cases", label: "Manuel Test Case", value: 341, trend: "up", delta: 24, deltaLabel: "bu hafta", sparkline: spark(19) },
+      { key: "active_runs", label: "Aktif Run", value: 9, trend: "stable", sparkline: spark(31) },
+      { key: "pass_rate", label: "Pass Rate", value: "88.1", unit: "%", delta: 2.4, trend: "up", sparkline: spark(42) },
+      { key: "blocked", label: "Blocked", value: 7, severity: "warn", trend: "down", sparkline: spark(53) },
+      { key: "coverage", label: "Req. Coverage", value: "76.5", unit: "%", trend: "up", sparkline: spark(64) },
+      { key: "workload", label: "Tester İş Yükü", value: 42, trend: "stable", sparkline: spark(75) },
+    ],
+    aiInsights: [
+      { id: "mg1", title: "Checkout suite coverage düşük", description: "Checkout requirement setinde 11 requirement yalnızca kısmi manuel test coverage'a sahip. Regression planına 8 test case eklenmesi öneriliyor.", severity: "warning", category: "Coverage", ctaLabel: "Coverage matrisi", createdAt: ago(16), confidence: 86 },
+      { id: "mg2", title: "7 blocked test release kararını etkiliyor", description: "Blocked testlerin 4'ü ödeme ortamı, 3'ü mobil doğrulama verisi bekliyor. QA Lead aksiyonu önerilir.", severity: "critical", category: "Run Riski", ctaLabel: "Run detayları", createdAt: ago(28), confidence: 91 },
+      { id: "mg3", title: "24 yeni manuel test case eklendi", description: "Sprint 12 kapsamında Login ve Customer modüllerine yeni manuel testler eklendi. 19'u ready durumunda.", severity: "success", category: "Repository", ctaLabel: "Repository", createdAt: ago(90), confidence: 93 },
+    ],
+    recentActivity: [
+      { id: "mga1", ts: ago(5), actor: "QA Lead", verb: "oluşturdu", object: "test planı", objectName: "Sprint 12 Regression" },
+      { id: "mga2", ts: ago(14), actor: "Ece T.", verb: "koştu", object: "manuel test", objectName: "TC-1042 Checkout ödeme doğrulama" },
+      { id: "mga3", ts: ago(34), actor: "Murat K.", verb: "linkledi", object: "defect", objectName: "PAY-381 kart reddi mesajı" },
+      { id: "mga4", ts: ago(72), actor: "Import Wizard", verb: "aktardı", object: "test case", objectName: "Login Regression Excel - 46 case" },
+    ],
+    onboarding: [
+      { id: "mgo1", title: "Test repository oluştur", description: "Suite ve folder yapısını kurarak manuel test case havuzunu başlat.", done: true, ctaLabel: "Repository" },
+      { id: "mgo2", title: "Excel'den testleri içe aktar", description: "Mevcut manuel test Excel'lerini mapping ekranıyla Management'a taşı.", done: true, ctaLabel: "Import" },
+      { id: "mgo3", title: "İlk test planını oluştur", description: "Release veya sprint kapsamındaki testleri plana ekle.", done: false, ctaLabel: "Test Planları" },
+      { id: "mgo4", title: "Tester atamalarını yap", description: "Run içindeki test case'leri manual tester'lara dağıt.", done: false, ctaLabel: "Test Runs" },
     ],
   },
 

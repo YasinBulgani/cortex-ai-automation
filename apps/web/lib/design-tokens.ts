@@ -47,6 +47,7 @@ export const productMeta: Record<ProductFamilyId, {
   web:          { emoji: "🌐", brandClass: "text-product-web",          bgClass: "bg-product-web",          borderClass: "border-product-web",          cssVar: "--product-web" },
   mobile:       { emoji: "📱", brandClass: "text-product-mobile",       bgClass: "bg-product-mobile",       borderClass: "border-product-mobile",       cssVar: "--product-mobile" },
   data:         { emoji: "💾", brandClass: "text-product-data",         bgClass: "bg-product-data",         borderClass: "border-product-data",         cssVar: "--product-data" },
+  management:   { emoji: "📋", brandClass: "text-product-management",   bgClass: "bg-product-management",   borderClass: "border-product-management",   cssVar: "--product-management" },
   intelligence: { emoji: "🧠", brandClass: "text-product-intelligence", bgClass: "bg-product-intelligence", borderClass: "border-product-intelligence", cssVar: "--product-intelligence" },
   "nexus-code": { emoji: "💻", brandClass: "text-product-code",         bgClass: "bg-product-code",         borderClass: "border-product-code",         cssVar: "--product-code" },
 };

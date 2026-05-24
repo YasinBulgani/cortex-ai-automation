@@ -106,20 +106,21 @@ describe("productMeta", () => {
     "web",
     "mobile",
     "data",
+    "management",
     "intelligence",
     "nexus-code",
   ];
 
   const REQUIRED_SUB_KEYS = ["emoji", "brandClass", "bgClass", "borderClass", "cssVar"] as const;
 
-  it("has all 8 required product IDs", () => {
+  it("has all 9 required product IDs", () => {
     expect(Object.keys(productMeta)).toEqual(
       expect.arrayContaining(EXPECTED_PRODUCT_IDS)
     );
   });
 
-  it("has exactly 8 entries (no extras)", () => {
-    expect(Object.keys(productMeta)).toHaveLength(8);
+  it("has exactly 9 entries (no extras)", () => {
+    expect(Object.keys(productMeta)).toHaveLength(9);
   });
 
   it.each(EXPECTED_PRODUCT_IDS)("product '%s' exists", (id) => {
