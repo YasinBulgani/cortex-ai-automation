@@ -54,14 +54,14 @@ class TestGetBrainSummary:
     def test_returns_dict(self):
         db = _make_db()
         summary = _make_summary()
-        with patch.object(automation_service.brain_service, "get_summary", return_value=summary):
+        with patch.object(automation_service.brain_service, "summary", return_value=summary):
             result = automation_service.get_brain_summary(db)
         assert isinstance(result, dict)
 
     def test_contains_expected_keys(self):
         db = _make_db()
         summary = _make_summary(capabilities=["api"], total_runs=5, status="idle")
-        with patch.object(automation_service.brain_service, "get_summary", return_value=summary):
+        with patch.object(automation_service.brain_service, "summary", return_value=summary):
             result = automation_service.get_brain_summary(db)
         assert "capabilities" in result
         assert "status" in result
@@ -69,7 +69,7 @@ class TestGetBrainSummary:
     def test_delegates_to_brain_service(self):
         db = _make_db()
         summary = _make_summary()
-        with patch.object(automation_service.brain_service, "get_summary", return_value=summary) as mock_get:
+        with patch.object(automation_service.brain_service, "summary", return_value=summary) as mock_get:
             automation_service.get_brain_summary(db)
         mock_get.assert_called_once_with(db)
 

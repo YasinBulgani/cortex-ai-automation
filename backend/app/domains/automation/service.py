@@ -15,15 +15,38 @@ from app.domains.automation.schemas import AutomationRunCreate
 logger = logging.getLogger(__name__)
 
 
+def _to_dict(obj: Any) -> Dict[str, Any]:
+    """Serialise a Pydantic model or dict-like object to a plain dict.
+
+    Try .dict() first (Pydantic v1 / mocks), then .model_dump() (Pydantic v2).
+    """
+    if isinstance(obj, dict):
+        return obj
+    # Try .dict() first — mocks configure this; Pydantic v1 uses it natively
+    try:
+        result = obj.dict()
+        if isinstance(result, dict):
+            return result
+    except (AttributeError, TypeError):
+        pass
+    # Pydantic v2 .model_dump()
+    try:
+        result = obj.model_dump()
+        if isinstance(result, dict):
+            return result
+    except (AttributeError, TypeError):
+        pass
+    return dict(obj)
+
+
 def get_brain_summary(db: Session) -> Dict[str, Any]:
     """Return the automation brain's capability + run summary.
 
     Returns:
         Dict with capabilities, recent run counts, and status.
     """
-    summary = brain_service.get_summary(db)
-    # AutomationBrainSummary is a Pydantic model — serialise to dict
-    return summary.dict() if hasattr(summary, "dict") else dict(summary)
+    summary = brain_service.summary(db)
+    return _to_dict(summary)
 
 
 def list_runs(db: Session, limit: int = 50) -> List[Dict[str, Any]]:
@@ -38,10 +61,9 @@ def list_runs(db: Session, limit: int = 50) -> List[Dict[str, Any]]:
     """
     limit = min(int(limit), 200)
     runs = brain_service.list_runs(db, limit=limit)
-    result = []
-    for r in runs:
-        result.append(r.dict() if hasattr(r, "dict") else dict(r))
-    return result
+    # Handles both AutomationRunList (has .items) and plain list (from mocks)
+    items = runs.items if hasattr(runs, "items") else runs
+    return [_to_dict(r) for r in items]
 
 
 def create_run(db: Session, config: Dict[str, Any]) -> Dict[str, Any]:
@@ -64,4 +86,4 @@ def create_run(db: Session, config: Dict[str, Any]) -> Dict[str, Any]:
     run_create = AutomationRunCreate(**config)
     run = brain_service.create_run(db, run_create)
     logger.info("Automation run oluşturuldu: kind=%s id=%s", kind, getattr(run, "id", "?"))
-    return run.dict() if hasattr(run, "dict") else dict(run)
+    return _to_dict(run)

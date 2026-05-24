@@ -178,6 +178,47 @@ _JAVA_STEP_TRANSLATIONS: List[Tuple[re.Pattern[str], str, str]] = [
         "await page.locator(selector).setInputFiles(path);",
         "en_upload",
     ),
+    # ── Turkish step patterns (TR) ─────────────────────────────────────────
+    (
+        re.compile(r"kullan[ıi]c[ıi]\s+.*sayfada(?:d[ıi]r)?|sayfas[ıi]nda(?:d[ıi]r)?", re.I),
+        "await page.waitForURL('**');",
+        "en_wait_url",
+    ),
+    (
+        re.compile(r"kullan[ıi]c[ıi]\s+.*butonuna\s+t[ıi]klar|butona\s+t[ıi]klar?", re.I),
+        "await page.getByRole('button').click();",
+        "click_text",
+    ),
+    (
+        re.compile(r"kullan[ıi]c[ıi]\s+.*(?:t[ıi]klar?|ba(?:s|s)ar?)", re.I),
+        "await page.getByText(text).click();",
+        "click_text",
+    ),
+    (
+        re.compile(r"kullan[ıi]c[ıi]\s+.*(?:giriş|giris|login)\s+yapar?", re.I),
+        "await page.fill('[name=email]', email);\nawait page.fill('[name=password]', password);\nawait page.getByRole('button', { name: /giriş|login/i }).click();",
+        "en_login",
+    ),
+    (
+        re.compile(r"kullan[ıi]c[ıi]\s+.*(?:doldurur?|yazar?|girer?)", re.I),
+        "await page.getByLabel(fieldName).fill(value);",
+        "fill_input",
+    ),
+    (
+        re.compile(r"(?:sayfa|ekran)\s+.*g[öo]r[üu]n[üu]r?|g[öo]r[üu]nt[üu]lenir?", re.I),
+        "await expect(page.getByText(text)).toBeVisible();",
+        None,
+    ),
+    (
+        re.compile(r"kullan[ıi]c[ıi]\s+.*bekler?|y[üu]klenir?", re.I),
+        "await page.waitForLoadState('networkidle');",
+        "en_wait",
+    ),
+    (
+        re.compile(r"kullan[ıi]c[ıi]\s+.*se[çc]er?|se[çc]ilir?", re.I),
+        "await page.locator(selector).selectOption(value);",
+        "en_select",
+    ),
 ]
 
 

@@ -170,7 +170,7 @@ class AutomationBrainService:
     def capabilities(self) -> list[AutomationCapability]:
         return [adapter.capability() for adapter in ADAPTERS.values()]
 
-    def summary(self, *, project_id: str | None = None) -> AutomationBrainSummary:
+    def summary(self, db: object = None, *, project_id: str | None = None) -> AutomationBrainSummary:  # noqa: ANN001
         runs = self.store.list(project_id=project_id, limit=100)
         return AutomationBrainSummary(
             capabilities=self.capabilities(),
@@ -179,10 +179,15 @@ class AutomationBrainService:
             last_run=runs[0] if runs else None,
         )
 
-    def create_run(self, request: AutomationRunCreate, *, created_by: str | None = None) -> AutomationRunOut:
-        return self.store.create(request, created_by=created_by)
+    def create_run(self, db_or_request: "object | AutomationRunCreate", request: "AutomationRunCreate | None" = None, *, created_by: str | None = None) -> AutomationRunOut:  # noqa: ANN001
+        # Accept (db, request) or (request,) signatures for service-layer compatibility
+        if request is None:
+            actual_request = db_or_request  # type: ignore[assignment]
+        else:
+            actual_request = request
+        return self.store.create(actual_request, created_by=created_by)  # type: ignore[arg-type]
 
-    def list_runs(self, *, project_id: str | None = None, limit: int = 50) -> AutomationRunList:
+    def list_runs(self, db: object = None, *, project_id: str | None = None, limit: int = 50) -> AutomationRunList:  # noqa: ANN001
         items = self.store.list(project_id=project_id, limit=limit)
         return AutomationRunList(items=items, total=len(items))
 
