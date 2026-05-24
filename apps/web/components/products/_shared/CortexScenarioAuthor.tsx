@@ -126,7 +126,7 @@ function RecorderTab({ onClose }: { onClose: () => void }) {
     loading: false,
     model: "qwen2.5:14b",
   });
-  const polishAbortRef = React.useRef<AbortController | null>(null);
+  const polishAbortRef = useRef<AbortController | null>(null);
   const [startedAt, setStartedAt] = useState<number | null>(null);
   const [now, setNow] = useState<number>(Date.now());
   useEffect(() => {

@@ -14,7 +14,7 @@
 **Terminal 1: Start Backend**
 ```bash
 # Navigate to project root
-cd /Users/yasin_bulgan/BGTS_Test_Donusum
+cd /Users/yasin_bulgan/Cortex_Ai_Automation
 
 # Activate Python virtual environment (if using venv)
 source venv/bin/activate  # macOS/Linux
@@ -61,7 +61,7 @@ curl http://localhost:8000/api/health
 **Terminal 3: Start Frontend**
 ```bash
 # Navigate to frontend directory
-cd /Users/yasin_bulgan/BGTS_Test_Donusum/website/frontend
+cd /Users/yasin_bulgan/Cortex_Ai_Automation/website/frontend
 
 # Install dependencies
 npm install
@@ -239,7 +239,7 @@ curl -X GET "http://localhost:8000/api/reporting/analytics/trends?hours=24" \
 
 ### Create Backend .env File
 
-**File**: `/Users/yasin_bulgan/BGTS_Test_Donusum/.env`
+**File**: `/Users/yasin_bulgan/Cortex_Ai_Automation/.env`
 
 ```env
 # Flask Configuration

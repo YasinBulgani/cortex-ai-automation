@@ -103,12 +103,14 @@ class StepDefinitionMapper:
 
         decorator = {"given": "given", "when": "when", "then": "then"}.get(keyword, "when")
 
-        return f'''@{decorator}('{pattern}')
+        return f'''import pytest
+
+@pytest.mark.xfail(reason="Auto-generated stub — manuel implementation gerekli", strict=False)
+@{decorator}('{pattern}')
 def {func_name}({params}):
-    """Auto-generated step definition — bu stub doldurulana kadar testi atlar."""
-    try:
-        import pytest
-        pytest.skip("Step henuz implemente edilmedi")
-    except ImportError:
-        raise NotImplementedError("Step implementation needed: {func_name}")
+    """Auto-generated step definition — xfail olarak işaretlendi, suite'den silinmedi.
+
+    Bu step için beklenen davranışı implement edip @pytest.mark.xfail dekoratörünü kaldırın.
+    """
+    raise NotImplementedError(f"Step implementation needed: {func_name}")
 '''

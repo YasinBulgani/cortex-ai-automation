@@ -1787,7 +1787,7 @@ export const dataMasker = new DataMasker();
 ### 7.1 Önerilen Dizin Yapısı (BGTS Uyumlu)
 
 ```
-BGTS_Test_Donusum/
+Cortex_Ai_Automation/
 ├── e2e/                           # Playwright E2E testleri (mevcut)
 │   ├── fixtures/
 │   │   ├── pages.fixture.ts       # Page object DI (mevcut)

@@ -146,7 +146,7 @@ adla olan required checks varsa, yeni adla güncellemen gerekir.
 |--------|---------|
 | **BrowserStack** | Yeni project adı: `TestwrightAI Visium Operations` (eski: `BGTS Nexus QA`) — BrowserStack dashboard'unda da elle güncelle |
 | **Jira** | `project_key = "BGTS"` kullanıcı konfigürasyonu olduğu için dokunulmadı. Gerekirse TSPM Integrations sayfasından güncelle |
-| **GitHub Repo** | Opsiyonel: repo adını `BGTS_Test_Donusum` → `testwright-ai` olarak rename et (`DSL_GIT_GITHUB_REPO` env otomatik güncellenmez — manuel) |
+| **GitHub Repo** | Opsiyonel: repo adını `Cortex_Ai_Automation` → `testwright-ai` olarak rename et (`DSL_GIT_GITHUB_REPO` env otomatik güncellenmez — manuel) |
 | **Sentry** | `apps/web/next.config.mjs` `org: "bgts"` olarak bırakıldı (Sentry hesap adı) — gerekirse Sentry'de org rename yap |
 
 ---
@@ -161,7 +161,7 @@ Aşağıdakiler **runtime state veya dış bağımlılık** sebebiyle değişmed
 - APScheduler job ID: `bgts-ai-ops-agent`, `bgts_schedule_{id}`
 - Logger namespace'leri: `bgts.security`, `bgts.audit`
 - Python step dosya adları: `engine/steps/bgts_*_steps.py` (DSL katalog bağımlılığı)
-- Proje kök klasör adı: `BGTS_Test_Donusum` (kullanıcı manuel rename etmeli)
+- Proje kök klasör adı: `Cortex_Ai_Automation` (kullanıcı manuel rename etmeli)
 - macOS launchctl reverse-DNS: `com.testwrightai.*` (yeni); eski `com.bgts.*` unload gerekir
 - `docs/project-history/` altındaki tarihsel dokümanlar
 - `ai-engine/`, `test-automation-workspace/` gibi "silinmeye aday" modüller

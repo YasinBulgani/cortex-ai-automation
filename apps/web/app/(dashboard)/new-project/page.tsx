@@ -855,7 +855,25 @@ export default function NewProjectPage() {
           const kw = trimmed.split(/\s+/)[0] || "Given";
           const body = trimmed.slice(kw.length).trim();
           const pattern = body.replace(/"[^"]*"/g, '{string}');
-          return `${kw}(/^${pattern.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$/, async function () {\n  // TODO: implement\n  await this.page.waitForLoadState("networkidle");\n});`;
+          const escaped = pattern.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+          // Generate a runnable skeleton based on the keyword/action hint in the step text
+          const bodyLower = body.toLowerCase();
+          let impl: string;
+          if (kw === "Given" || bodyLower.includes("navigate") || bodyLower.includes("açık") || bodyLower.includes("git")) {
+            const urlMatch = body.match(/"([^"]+)"/);
+            impl = urlMatch
+              ? `  await this.page.goto('${urlMatch[1]}');`
+              : `  await this.page.goto(testData.baseUrl ?? '/');`;
+          } else if (bodyLower.includes("click") || bodyLower.includes("tıkla") || bodyLower.includes("bas")) {
+            impl = `  await this.page.click(locators['${pattern.split(/\s+/).slice(-1)[0]?.replace(/[^a-zA-Z0-9]/g, '')}'] ?? '[data-testid="unknown"]');`;
+          } else if (bodyLower.includes("fill") || bodyLower.includes("type") || bodyLower.includes("gir") || bodyLower.includes("yaz")) {
+            impl = `  await this.page.fill(locators['input'] ?? 'input', {string});`;
+          } else if (kw === "Then" || bodyLower.includes("see") || bodyLower.includes("görün") || bodyLower.includes("expect") || bodyLower.includes("doğrula")) {
+            impl = `  await expect(this.page.locator(locators['result'] ?? 'body')).toBeVisible();`;
+          } else {
+            impl = `  // Action: ${kw} ${body}\n  await this.page.waitForLoadState('networkidle');`;
+          }
+          return `${kw}(/^${escaped}$/, async function () {\n${impl}\n});`;
         })
         .join("\n\n");
       files.push({

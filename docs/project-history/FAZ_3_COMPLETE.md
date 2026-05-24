@@ -11,7 +11,7 @@
 
 ## 📋 Executive Summary
 
-Phase 3 successfully implements a complete AI-powered testing platform with advanced features for visual analysis, test recording, analytics, and comprehensive reporting. All four tasks (T3.1.1 through T3.1.4) have been completed and integrated into the BGTS_Test_Donusum framework.
+Phase 3 successfully implements a complete AI-powered testing platform with advanced features for visual analysis, test recording, analytics, and comprehensive reporting. All four tasks (T3.1.1 through T3.1.4) have been completed and integrated into the Cortex_Ai_Automation framework.
 
 The platform now supports:
 - **Intelligent test generation** from user stories using multiple LLM providers

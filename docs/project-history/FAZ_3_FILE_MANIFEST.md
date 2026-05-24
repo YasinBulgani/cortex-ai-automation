@@ -10,7 +10,7 @@
 ## 📁 Project Structure - Phase 3 Additions
 
 ```
-BGTS_Test_Donusum/
+Cortex_Ai_Automation/
 ├── core/
 │   ├── typescript/
 │   │   ├── steps/

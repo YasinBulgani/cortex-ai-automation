@@ -49,7 +49,7 @@ run_backend_lint() {
   (
     cd "$ROOT_DIR/backend"
     "$(backend_python)" -m ruff check app/
-    "$(backend_python)" -m mypy app/ --strict --ignore-missing-imports || true
+    "$(backend_python)" -m mypy app/ --strict --ignore-missing-imports
   )
 }
 

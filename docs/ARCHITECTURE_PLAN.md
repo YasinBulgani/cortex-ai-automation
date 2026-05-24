@@ -1,4 +1,4 @@
-# BGTS_Test_Donusum — Kapsamlı Birleştirme Mimari Planı
+# Cortex_Ai_Automation — Kapsamlı Birleştirme Mimari Planı
 > Mimar Ajan Analizi — 2026-04-06
 
 ## ÖZET: Gerçek Durum
@@ -66,7 +66,7 @@ Gerçekte kalan iş, büyük bir birleştirme değil — **ince fark giderme ve 
 ## 2. Nihai Klasör Mimarisi
 
 ```
-BGTS_Test_Donusum/
+Cortex_Ai_Automation/
 │
 ├── frameworks/
 │   ├── playwright-cucumber-ts/                    [TAMAMLANMIŞ]
@@ -299,4 +299,4 @@ run-aday-degerlendirme:
 
 ---
 
-*Mimar Ajan çıktısı — BGTS_Test_Donusum proje mimarisi*
+*Mimar Ajan çıktısı — Cortex_Ai_Automation proje mimarisi*

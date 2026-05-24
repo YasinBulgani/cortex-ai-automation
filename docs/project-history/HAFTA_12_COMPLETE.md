@@ -391,7 +391,7 @@ Veritabanı performansı:
 
 ---
 
-**BGTS_Test_Donusum Platform, üretim dağıtımı için tamamen hazırdır.**
+**Cortex_Ai_Automation Platform, üretim dağıtımı için tamamen hazırdır.**
 
 🚀 **Happy Deploying!**
 

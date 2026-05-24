@@ -25,7 +25,7 @@ Alternatifler değerlendirildi:
 
 ## Karar
 
-**Monorepo** kullanıyoruz: `/Users/yasin_bulgan/Desktop/BGTS_Test_Donusum/`.
+**Monorepo** kullanıyoruz: `/Users/yasin_bulgan/Desktop/Cortex_Ai_Automation/`.
 
 Yapı:
 ```

@@ -232,3 +232,28 @@ class OpenDefectIssueResponse(BaseModel):
     issue_url: Optional[str] = None
     dry_run: bool = False
     message: str
+
+
+class AISuggestRequest(BaseModel):
+    suite: str
+    requirement: Optional[str] = None
+    brief: Optional[str] = None
+    max_cases: int = Field(default=5, ge=1, le=10)
+    dry_run: bool = True
+
+
+class AISuggestDraft(BaseModel):
+    file_name: str
+    tc_id: str
+    title: str
+    priority: Priority
+
+
+class AISuggestResponse(BaseModel):
+    provider: str
+    drafts: List[AISuggestDraft] = Field(default_factory=list)
+    dry_run: bool = True
+    prompt_preview: Optional[str] = None
+    stdout: Optional[str] = None
+    stderr: Optional[str] = None
+    exit_code: int = 0

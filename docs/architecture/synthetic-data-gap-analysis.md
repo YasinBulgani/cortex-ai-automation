@@ -61,6 +61,11 @@ Erişim: `backend/synthetic-data-v4 → ../synthetic-data/platform-v4` symlink'i
 
 ### Backend şu an sunuyor (13 endpoint)
 
+> ⚠️ **PLANLI — henüz implement edilmedi.** Aşağıdaki endpoint'ler bu gap-analysis dokümanında
+> hedeflenen API yüzeyini gösterir; `backend/app/domains/ai_synthetic_data/` dizini mevcut
+> ancak router/service içeriği boş. Gerçek bir `POST /api/v1/synthetic-data/*` çağrısı
+> şu an 404 döner.
+
 ```
 POST   /api/v1/synthetic-data/generate
 POST   /api/v1/synthetic-data/banking-dataset

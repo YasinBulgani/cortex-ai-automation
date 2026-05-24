@@ -214,7 +214,7 @@ tests/
 ### Start Services
 ```bash
 # Start Flask API
-cd /Users/yasin_bulgan/BGTS_Test_Donusum
+cd /Users/yasin_bulgan/Cortex_Ai_Automation
 export FLASK_ENV=development
 python3 -m services.flask_app
 

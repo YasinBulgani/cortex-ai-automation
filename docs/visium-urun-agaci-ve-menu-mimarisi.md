@@ -9,7 +9,7 @@ Bu doküman, `Visium` ürün ailesinin kullanıcıya nasıl sunulacağını netl
 - global menü nasıl görünmeli
 - mevcut route’lar hangi ürün altında toplanmalı
 
-Bu çalışma, [visium-urun-ailesi-arastirma.md](/Users/yasin_bulgan/Desktop/BGTS_Test_Donusum/docs/visium-urun-ailesi-arastirma.md) içindeki stratejik araştırmanın uygulama seviyesindeki devamıdır.
+Bu çalışma, [visium-urun-ailesi-arastirma.md](/Users/yasin_bulgan/Desktop/Cortex_Ai_Automation/docs/visium-urun-ailesi-arastirma.md) içindeki stratejik araştırmanın uygulama seviyesindeki devamıdır.
 
 ---
 

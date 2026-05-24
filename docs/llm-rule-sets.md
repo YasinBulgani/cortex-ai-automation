@@ -4,11 +4,11 @@ Bu dosya BGTS içinde daha kaliteli LLM çıktıları üretmek için kullanılan
 
 ## Kanonik Kaynak
 
-- Merkezi prompt yönetimi [prompt_center/manifest.json](/Users/yasin_bulgan/Desktop/BGTS_Test_Donusum/prompt_center/manifest.json) üzerinden yapılır.
-- Ortak policy parçaları [prompt_center/policies](/Users/yasin_bulgan/Desktop/BGTS_Test_Donusum/prompt_center/policies) altında tutulur.
-- Gateway görev promptları [prompt_center/tasks](/Users/yasin_bulgan/Desktop/BGTS_Test_Donusum/prompt_center/tasks) altında tutulur.
-- Engine servis promptları [prompt_center/engine](/Users/yasin_bulgan/Desktop/BGTS_Test_Donusum/prompt_center/engine) altında tutulur.
-- [ai-gateway/app/core/prompts.py](/Users/yasin_bulgan/Desktop/BGTS_Test_Donusum/ai-gateway/app/core/prompts.py) yalnızca uyumluluk katmanıdır; kanonik içerik değildir.
+- Merkezi prompt yönetimi [prompt_center/manifest.json](/Users/yasin_bulgan/Desktop/Cortex_Ai_Automation/prompt_center/manifest.json) üzerinden yapılır.
+- Ortak policy parçaları [prompt_center/policies](/Users/yasin_bulgan/Desktop/Cortex_Ai_Automation/prompt_center/policies) altında tutulur.
+- Gateway görev promptları [prompt_center/tasks](/Users/yasin_bulgan/Desktop/Cortex_Ai_Automation/prompt_center/tasks) altında tutulur.
+- Engine servis promptları [prompt_center/engine](/Users/yasin_bulgan/Desktop/Cortex_Ai_Automation/prompt_center/engine) altında tutulur.
+- [ai-gateway/app/core/prompts.py](/Users/yasin_bulgan/Desktop/Cortex_Ai_Automation/ai-gateway/app/core/prompts.py) yalnızca uyumluluk katmanıdır; kanonik içerik değildir.
 
 ## Evrensel Kurallar
 
@@ -72,13 +72,13 @@ Bu dosya BGTS içinde daha kaliteli LLM çıktıları üretmek için kullanılan
 
 ## Nerede Uygulanıyor
 
-- [prompt_center/manifest.json](/Users/yasin_bulgan/Desktop/BGTS_Test_Donusum/prompt_center/manifest.json)
-- [prompt_center/policies](/Users/yasin_bulgan/Desktop/BGTS_Test_Donusum/prompt_center/policies)
-- [prompt_center/tasks](/Users/yasin_bulgan/Desktop/BGTS_Test_Donusum/prompt_center/tasks)
-- [prompt_center/engine](/Users/yasin_bulgan/Desktop/BGTS_Test_Donusum/prompt_center/engine)
-- [ai-gateway/app/core/prompts.py](/Users/yasin_bulgan/Desktop/BGTS_Test_Donusum/ai-gateway/app/core/prompts.py)
-- [engine/prompts/bdd_generator_system.md](/Users/yasin_bulgan/Desktop/BGTS_Test_Donusum/engine/prompts/bdd_generator_system.md)
-- [engine/prompts/test_generator_system.md](/Users/yasin_bulgan/Desktop/BGTS_Test_Donusum/engine/prompts/test_generator_system.md)
-- [engine/prompts/self_healer_system.md](/Users/yasin_bulgan/Desktop/BGTS_Test_Donusum/engine/prompts/self_healer_system.md)
-- [engine/prompts/assertion_analyzer_system.md](/Users/yasin_bulgan/Desktop/BGTS_Test_Donusum/engine/prompts/assertion_analyzer_system.md)
-- [engine/prompts/security_analyzer_system.md](/Users/yasin_bulgan/Desktop/BGTS_Test_Donusum/engine/prompts/security_analyzer_system.md)
+- [prompt_center/manifest.json](/Users/yasin_bulgan/Desktop/Cortex_Ai_Automation/prompt_center/manifest.json)
+- [prompt_center/policies](/Users/yasin_bulgan/Desktop/Cortex_Ai_Automation/prompt_center/policies)
+- [prompt_center/tasks](/Users/yasin_bulgan/Desktop/Cortex_Ai_Automation/prompt_center/tasks)
+- [prompt_center/engine](/Users/yasin_bulgan/Desktop/Cortex_Ai_Automation/prompt_center/engine)
+- [ai-gateway/app/core/prompts.py](/Users/yasin_bulgan/Desktop/Cortex_Ai_Automation/ai-gateway/app/core/prompts.py)
+- [engine/prompts/bdd_generator_system.md](/Users/yasin_bulgan/Desktop/Cortex_Ai_Automation/engine/prompts/bdd_generator_system.md)
+- [engine/prompts/test_generator_system.md](/Users/yasin_bulgan/Desktop/Cortex_Ai_Automation/engine/prompts/test_generator_system.md)
+- [engine/prompts/self_healer_system.md](/Users/yasin_bulgan/Desktop/Cortex_Ai_Automation/engine/prompts/self_healer_system.md)
+- [engine/prompts/assertion_analyzer_system.md](/Users/yasin_bulgan/Desktop/Cortex_Ai_Automation/engine/prompts/assertion_analyzer_system.md)
+- [engine/prompts/security_analyzer_system.md](/Users/yasin_bulgan/Desktop/Cortex_Ai_Automation/engine/prompts/security_analyzer_system.md)

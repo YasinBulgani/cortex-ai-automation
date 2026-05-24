@@ -16,6 +16,9 @@ from fastapi import APIRouter, Body, HTTPException, Path, Query, status
 from . import insights, service
 from .insights import InsightsResponse
 from .models import (
+    AISuggestDraft,
+    AISuggestRequest,
+    AISuggestResponse,
     CoverageResponse,
     CreateRunRequest,
     CreateTestCaseRequest,
@@ -148,6 +151,87 @@ def get_insights() -> InsightsResponse:
     """Velocity (TC/hafta), trend (günlük pass rate), per-owner breakdown,
     top failing TC'ler. Dashboard "Insights" sekmesi ve haftalık rapor için."""
     return insights.insights_response()
+
+
+# ── AI suggest (LLM TC draft) ───────────────────────────────────────────
+
+@router.post("/ai-suggest", response_model=AISuggestResponse)
+def ai_suggest(req: AISuggestRequest) -> AISuggestResponse:
+    """ai-suggest.mjs CLI wrapper.
+
+    Dry-run modunda prompt'u döner (LLM çağrısı yapmaz). Production'da
+    CORTEX_AI_GATEWAY_URL veya ANTHROPIC_API_KEY/OPENAI_API_KEY env var
+    set olmalı; backend cwd repo kökü olmalı (so qa/ accessible).
+    """
+    import subprocess
+    from pathlib import Path
+    from .service import QA_ROOT
+
+    cmd = [
+        "node", str(QA_ROOT / "tools" / "ai-suggest.mjs"),
+        f"--suite={req.suite}",
+        f"--max-cases={req.max_cases}",
+    ]
+    if req.requirement:
+        cmd.append(f"--requirement={req.requirement}")
+    if req.brief:
+        cmd.append(f"--brief={req.brief}")
+    if req.dry_run:
+        cmd.append("--dry-run")
+
+    try:
+        result = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            cwd=str(QA_ROOT),
+            timeout=120,
+        )
+    except subprocess.TimeoutExpired:
+        raise HTTPException(status.HTTP_504_GATEWAY_TIMEOUT, "ai-suggest timed out (120s)")
+    except FileNotFoundError:
+        raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, "node CLI not available on backend host")
+
+    # Find newly created draft files
+    drafts: list[AISuggestDraft] = []
+    draft_dir = QA_ROOT / "cases" / req.suite / "_draft"
+    if draft_dir.exists():
+        import re as _re
+        from . import service as _service
+        for f in sorted(draft_dir.glob("DRAFT-TC-*.md"), reverse=True)[: req.max_cases]:
+            try:
+                text = f.read_text(encoding="utf-8")
+                fm, _body = _service._parse_frontmatter(text)
+                drafts.append(
+                    AISuggestDraft(
+                        file_name=f.name,
+                        tc_id=fm.get("id", "?"),
+                        title=fm.get("title", "?"),
+                        priority=fm.get("priority", "P2"),
+                    )
+                )
+            except Exception:
+                pass
+
+    # Provider name parse'i (ilk satır: "Provider: cortex-ai-gateway")
+    provider = "unknown"
+    for line in (result.stdout or "").splitlines():
+        if line.startswith("Provider:"):
+            provider = line.split(":", 1)[1].strip()
+            break
+        if "DRY RUN" in line:
+            provider = "dry-run"
+            break
+
+    return AISuggestResponse(
+        provider=provider,
+        drafts=drafts,
+        dry_run=req.dry_run,
+        prompt_preview=(result.stdout[-2000:] if req.dry_run else None),
+        stdout=result.stdout[-4000:] if result.stdout else None,
+        stderr=result.stderr[-2000:] if result.stderr else None,
+        exit_code=result.returncode,
+    )
 
 
 # ── Defect Issue (GitHub bridge) ────────────────────────────────────────

@@ -242,7 +242,17 @@ wait_for_service() {
   warn "$name henüz hazır değil — arka planda başlıyor olabilir."
 }
 
-wait_for_service "PostgreSQL" "http://localhost:5432" 1 || true  # TCP check uygun değil, pg_isready ile Docker health yeter
+# PostgreSQL HTTP konuşmaz — pg_isready ile TCP sağlık kontrolü yap
+if command -v pg_isready >/dev/null 2>&1; then
+  echo -n "  PostgreSQL bekliyor..."
+  for _i in $(seq 1 15); do
+    pg_isready -h 127.0.0.1 -p 5432 -q && echo " ✓" && break
+    sleep 2
+  done
+  pg_isready -h 127.0.0.1 -p 5432 -q || warn "PostgreSQL henüz hazır değil."
+else
+  warn "pg_isready bulunamadı — PostgreSQL sağlık kontrolü atlandı (Docker health check bekleniyor)."
+fi
 wait_for_service "Backend API" "http://localhost:8000/health" 20
 wait_for_service "Engine"      "http://localhost:5001/health" 15
 if bool_true "$USE_AI"; then

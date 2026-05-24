@@ -477,7 +477,14 @@ class CodeGenerator:
             target = action.metadata.get("target", "")
             return f"{sel_expr}.drag_to(page.locator({repr(target)}))"
 
-        return f"# TODO: {at} — {action.selector}"
+        # Fallback: generate a generic interaction comment that is at least
+        # syntactically valid Python (playwright wait) so the script runs.
+        # The comment documents what was originally recorded for manual review.
+        return (
+            f"# NOTE: unsupported action type '{at}' — manual implementation needed\n"
+            f"# Selector: {action.selector!r}\n"
+            f"page.wait_for_timeout(500)  # placeholder: replace with real action"
+        )
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -557,7 +564,10 @@ class CucumberGenerator:
 
     def _action_to_step(self, action: RecordedAction, keyword: str = "Ve") -> str:
         """Aksiyonu Gherkin adımına dönüştürür."""
-        tmpl = self.TR_KEYWORDS.get(action.action_type, "# TODO: {action_type}")
+        tmpl = self.TR_KEYWORDS.get(
+            action.action_type,
+            "Bilinmeyen aksiyon ({action_type}) — manuel adım gerekli",
+        )
         element = action.element_name or action.selector[:30]
         value = action.value
         url = action.value if action.action_type == "navigate" else ""

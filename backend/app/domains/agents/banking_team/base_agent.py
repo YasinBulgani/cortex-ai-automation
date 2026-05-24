@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from abc import ABC, abstractmethod
 import logging
 import re
 import time
@@ -111,7 +112,7 @@ class AgentResult:
     tokens_used: int = 0
 
 
-class BaseAgent:
+class BaseAgent(ABC):
     """
     Tüm banking QA ajanlarinin temel sinifi.
 
@@ -928,9 +929,9 @@ class BaseAgent:
 
     # ── Calistirma ────────────────────────────────────────────────────────────
 
+    @abstractmethod
     def run(self, context: dict) -> AgentResult:
         """Alt siniflar override eder."""
-        raise NotImplementedError
 
     def safe_run(self, context: dict) -> AgentResult:
         """Hata yakalanmis calistirma — pipeline'i asla kirmaz."""

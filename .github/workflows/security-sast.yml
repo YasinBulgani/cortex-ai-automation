@@ -23,6 +23,8 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Semgrep scan (OWASP + security-audit)
+        # continue-on-error removed — real findings should block the workflow.
+        # SEMGREP_APP_TOKEN is optional; semgrep runs in local mode when absent.
         run: |
           semgrep ci \
             --config p/owasp-top-ten \
@@ -33,14 +35,13 @@ jobs:
             --no-autofix
         env:
           SEMGREP_APP_TOKEN: ${{ secrets.SEMGREP_APP_TOKEN }}
-        continue-on-error: true
 
       - name: Upload SARIF to GitHub Security tab
         uses: github/codeql-action/upload-sarif@v3
-        if: always()
+        if: always()   # upload even if scan found issues (to populate Security tab)
         with:
           sarif_file: semgrep.sarif
-        continue-on-error: true
+        continue-on-error: true  # SARIF upload may fail if file is missing; scan result is authoritative
 
   osv-scanner:
     name: OSV Scanner (SCA)

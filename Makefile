@@ -13,8 +13,9 @@
         dsl-ai-warm dsl-ai-rebuild dsl-ai-info dsl-editor-config dsl-proposals
 
 SHELL := /bin/bash
-PYTHON := python3
-PIP := pip3
+VENV   := .venv
+PYTHON := $(VENV)/bin/python3
+PIP    := $(VENV)/bin/pip
 COMPOSE := $(shell if docker compose version >/dev/null 2>&1; then printf 'docker compose'; elif command -v docker-compose >/dev/null 2>&1; then printf 'docker-compose'; else printf 'docker compose'; fi)
 COMPOSE_BASE := $(COMPOSE) -f docker-compose.yml
 COMPOSE_AI := $(COMPOSE) -f docker-compose.yml -f docker-compose.ai.yml
@@ -71,11 +72,15 @@ help:
 	@echo ""
 
 # ─── Kurulum ──────────────────────────────────────────────────────────────────
-setup:
+$(VENV):
+	python3 -m venv $(VENV)
+	$(VENV)/bin/pip install --upgrade pip setuptools wheel
+
+setup: $(VENV)
 	npm ci
 	cd apps/web && npm ci
-	cd backend && $(PIP) install -r requirements.txt -r requirements-dev.txt
-	cd engine && $(PIP) install -r requirements.txt
+	$(PIP) install -r backend/requirements.txt -r backend/requirements-dev.txt
+	$(PIP) install -r engine/requirements.txt
 	npm run playwright:install
 
 seed:

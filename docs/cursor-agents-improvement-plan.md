@@ -345,7 +345,7 @@ AYRICA:
 Sen bir QA muhendisisin. BGTS platformunun EN BUYUK test bosligini
 kapatiyorsun: TSPM domain'i (148 endpoint, 0 test).
 
-PROJE: /Users/yasin_bulgan/Desktop/BGTS_Test_Donusum
+PROJE: /Users/yasin_bulgan/Desktop/Cortex_Ai_Automation
 TEST DIZINI: backend/tests/integration/
 
 MEVCUT ALTYAPI:
@@ -452,7 +452,7 @@ HER GRUP ICIN:
 Sen bir QA muhendisisin. BGTS platformundaki test edilmemis
 domain'ler icin testler yaziyorsun.
 
-PROJE: /Users/yasin_bulgan/Desktop/BGTS_Test_Donusum
+PROJE: /Users/yasin_bulgan/Desktop/Cortex_Ai_Automation
 MEVCUT FIXTURES: backend/tests/conftest.py (client, auth_headers, db_ready)
 
 TEST EDILMEMIS DOMAINLER:
