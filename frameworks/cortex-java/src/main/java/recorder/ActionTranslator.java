@@ -1,5 +1,8 @@
 package recorder;
 
+import crypto.EncryptionManager;
+import crypto.PasswordManager;
+
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -55,6 +58,12 @@ public class ActionTranslator {
                         String alias = (a.passwordAlias != null && !a.passwordAlias.isBlank())
                                 ? a.passwordAlias
                                 : "recordedPassword";
+                        // Persist the typed password under the alias so the generated test
+                        // can actually decrypt at runtime. Without this, the recorder leaves
+                        // the test in a broken state — the step references an alias that does
+                        // not exist in password.properties, so DecryptUtil throws
+                        // "No encrypted password found for alias".
+                        persistPasswordForAlias(alias, nullToEmpty(a.text), lines);
                         return "    * I enter encrypted password alias \"" + alias + "\" into \"" + loc.key() + "\"";
                     }
                     return "    * I write \"" + nullToEmpty(a.text) + "\" into \"" + loc.key() + "\"";
@@ -358,5 +367,43 @@ public class ActionTranslator {
             return true;
         }
         return false;
+    }
+
+    /**
+     * Encrypts and saves the typed password under {@code alias} so the recorded
+     * feature's "I enter encrypted password alias ... into ..." step can actually
+     * decrypt at runtime.
+     *
+     * <p>Failure modes are non-fatal — we never want the recording itself to crash
+     * just because credentials cannot be persisted. Instead we drop a {@code #} comment
+     * into the generated feature so the human sees what went wrong:</p>
+     * <ul>
+     *   <li>Empty password → comment "skipped (empty value)"</li>
+     *   <li>aes.key missing → comment with setup instructions</li>
+     *   <li>Same encrypted value already saved → silent (no-op)</li>
+     * </ul>
+     */
+    private void persistPasswordForAlias(String alias, String plain, List<String> outLines) {
+        if (plain == null || plain.isEmpty()) {
+            outLines.add("    # [recorder] password persist skipped — empty value captured for alias \""
+                    + alias + "\"");
+            return;
+        }
+        try {
+            // If alias already has a value, leave it alone (user may have manually
+            // set a different password). Re-encrypting the same plaintext would
+            // produce a different ciphertext anyway (GCM uses a fresh IV).
+            if (PasswordManager.contains(alias)) {
+                return;
+            }
+            EncryptionManager.encryptAndSaveToPasswordFile(plain, alias);
+        } catch (Exception e) {
+            String msg = e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage();
+            outLines.add("    # [recorder] password persist FAILED for alias \"" + alias + "\": "
+                    + msg.replace('\n', ' '));
+            outLines.add("    # [recorder] To fix: set CORTEX_AES_KEY=<16 chars> in .env,");
+            outLines.add("    # then run EncryptionManager.encryptAndSaveToPasswordFile(<plain>, \""
+                    + alias + "\")");
+        }
     }
 }
