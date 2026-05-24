@@ -103,6 +103,11 @@ class User(Base):
         DateTime(timezone=True), default=utcnow, nullable=False
     )
 
+    # ── MFA / TOTP ───────────────────────────────────────────────
+    totp_secret: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    mfa_enabled: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False, server_default="false")
+    mfa_backup_codes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+
     roles: Mapped[list[Role]] = relationship(
         secondary=sd_user_roles, back_populates="users"
     )

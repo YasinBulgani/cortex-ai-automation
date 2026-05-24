@@ -13,6 +13,7 @@ from app.domains.auth.schemas import (
     ProfileUpdateRequest, ProfileOut, PasswordChangeRequest,
     ForgotPasswordRequest, RegisterRequest, RefreshRequest, ResetPasswordRequest,
     UserListOut, UserCreateRequest, UserUpdateRequest,
+    MfaSetupResponse, MfaVerifyRequest, MfaStatusResponse, MfaDisableRequest,
 )
 from app.domains.auth.service import (
     create_access_token, verify_password, hash_password,
@@ -602,3 +603,150 @@ def delete_user(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Kullanıcı bulunamadı")
     target.is_active = False
     db.commit()
+
+
+# ── MFA / TOTP endpoints ──────────────────────────────────────────────────────
+
+@router.get("/mfa/status", response_model=MfaStatusResponse, tags=["auth", "mfa"])
+def mfa_status(
+    user: Annotated[User, Depends(get_current_user)],
+) -> MfaStatusResponse:
+    """Return current MFA status for the authenticated user."""
+    import json
+    backup_remaining: Optional[int] = None
+    if user.mfa_enabled and user.mfa_backup_codes:
+        try:
+            backup_remaining = len(json.loads(user.mfa_backup_codes))
+        except Exception:
+            backup_remaining = 0
+    return MfaStatusResponse(
+        mfa_enabled=bool(user.mfa_enabled),
+        backup_codes_remaining=backup_remaining,
+    )
+
+
+@router.post("/mfa/setup", response_model=MfaSetupResponse, tags=["auth", "mfa"])
+def mfa_setup(
+    user: Annotated[User, Depends(get_current_user)],
+    db: Session = Depends(get_db),
+) -> MfaSetupResponse:
+    """
+    Initiate TOTP setup for the authenticated user.
+
+    Generates a new secret and backup codes.  MFA is **not** yet enabled —
+    the user must confirm with POST /auth/mfa/verify.
+    """
+    from app.domains.auth.mfa_service import (
+        generate_totp_secret, totp_provisioning_uri,
+        generate_backup_codes, hash_backup_codes,
+    )
+
+    secret = generate_totp_secret()
+    backup_codes = generate_backup_codes()
+
+    # Store secret and hashed backup codes; mfa_enabled stays False until verify
+    db_user = db.get(User, user.id)
+    if db_user is None:
+        raise HTTPException(status_code=404, detail="Kullanıcı bulunamadı")
+    db_user.totp_secret = secret
+    db_user.mfa_backup_codes = hash_backup_codes(backup_codes)
+    db.commit()
+
+    log_audit(db, user_id=user.id, action="mfa.setup_initiated", resource="user", resource_id=user.id)
+
+    return MfaSetupResponse(
+        secret=secret,
+        provisioning_uri=totp_provisioning_uri(secret, user.email),
+        backup_codes=backup_codes,
+    )
+
+
+@router.post("/mfa/verify", tags=["auth", "mfa"])
+def mfa_verify(
+    req: MfaVerifyRequest,
+    user: Annotated[User, Depends(get_current_user)],
+    db: Session = Depends(get_db),
+) -> dict:
+    """
+    Confirm TOTP setup by verifying the first code from the authenticator app.
+
+    After this call succeeds, MFA is fully enabled for the account.
+    """
+    from app.domains.auth.mfa_service import verify_totp
+
+    db_user = db.get(User, user.id)
+    if db_user is None:
+        raise HTTPException(status_code=404, detail="Kullanıcı bulunamadı")
+    if not db_user.totp_secret:
+        raise HTTPException(status_code=400, detail="Önce /auth/mfa/setup çağrısı yapın")
+    if db_user.mfa_enabled:
+        raise HTTPException(status_code=409, detail="MFA zaten etkin")
+
+    if not verify_totp(db_user.totp_secret, req.code):
+        raise HTTPException(status_code=422, detail="Geçersiz TOTP kodu")
+
+    db_user.mfa_enabled = True
+    db.commit()
+
+    log_audit(db, user_id=user.id, action="mfa.enabled", resource="user", resource_id=user.id)
+    return {"detail": "MFA başarıyla etkinleştirildi"}
+
+
+@router.post("/mfa/disable", tags=["auth", "mfa"])
+def mfa_disable(
+    req: MfaDisableRequest,
+    user: Annotated[User, Depends(get_current_user)],
+    db: Session = Depends(get_db),
+) -> dict:
+    """
+    Disable MFA.  Requires current password + valid TOTP code as confirmation.
+    """
+    from app.domains.auth.mfa_service import verify_totp
+
+    db_user = db.get(User, user.id)
+    if db_user is None:
+        raise HTTPException(status_code=404, detail="Kullanıcı bulunamadı")
+    if not db_user.mfa_enabled:
+        raise HTTPException(status_code=409, detail="MFA zaten devre dışı")
+
+    if not verify_password(req.password, db_user.password_hash):
+        raise HTTPException(status_code=401, detail="Mevcut parola yanlış")
+    if not verify_totp(db_user.totp_secret or "", req.code):
+        raise HTTPException(status_code=422, detail="Geçersiz TOTP kodu")
+
+    db_user.mfa_enabled = False
+    db_user.totp_secret = None
+    db_user.mfa_backup_codes = None
+    db.commit()
+
+    log_audit(db, user_id=user.id, action="mfa.disabled", resource="user", resource_id=user.id)
+    return {"detail": "MFA devre dışı bırakıldı"}
+
+
+@router.post("/mfa/backup-codes/regenerate", tags=["auth", "mfa"])
+def mfa_regenerate_backup_codes(
+    req: MfaVerifyRequest,  # require TOTP confirmation before regenerating
+    user: Annotated[User, Depends(get_current_user)],
+    db: Session = Depends(get_db),
+) -> dict:
+    """
+    Regenerate backup codes (invalidates old ones).  Requires a valid TOTP code.
+    """
+    from app.domains.auth.mfa_service import (
+        verify_totp, generate_backup_codes, hash_backup_codes,
+    )
+
+    db_user = db.get(User, user.id)
+    if db_user is None:
+        raise HTTPException(status_code=404, detail="Kullanıcı bulunamadı")
+    if not db_user.mfa_enabled:
+        raise HTTPException(status_code=409, detail="MFA etkin değil")
+    if not verify_totp(db_user.totp_secret or "", req.code):
+        raise HTTPException(status_code=422, detail="Geçersiz TOTP kodu")
+
+    new_codes = generate_backup_codes()
+    db_user.mfa_backup_codes = hash_backup_codes(new_codes)
+    db.commit()
+
+    log_audit(db, user_id=user.id, action="mfa.backup_codes_regenerated", resource="user", resource_id=user.id)
+    return {"backup_codes": new_codes}
