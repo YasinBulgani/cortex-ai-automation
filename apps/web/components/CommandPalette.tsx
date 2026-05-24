@@ -55,6 +55,7 @@ const NAV_COMMANDS: NavCommand[] = [
   { id: "nav-wizard",   label: "Platform Sihirbazı",hint: "Platforma hızlı başlangıç",   href: "/bgtest-wizard", icon: <IcPlus />,     keywords: "wizard sihirbaz başlangıç platform onboarding setup" },
   { id: "nav-ide",      label: "Senaryo IDE",       hint: "Test editörü",                href: "/ide",           icon: <IcTerminal />, keywords: "ide editör senaryo kod",               shortcut: "G E" },
   { id: "nav-settings", label: "Ayarlar",           hint: "Sistem yapılandırması",       href: "/admin/settings",icon: <IcSettings />, keywords: "ayar settings yapılandırma" },
+  { id: "nav-security", label: "Güvenlik / 2FA",   hint: "MFA ve şifre ayarları",        href: "/settings/security", icon: <IcSettings />, keywords: "güvenlik security mfa 2fa totp şifre parola" },
 ];
 
 // Aksiyon komutları (sayfa açar veya işlem yapar)

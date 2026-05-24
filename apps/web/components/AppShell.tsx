@@ -668,6 +668,7 @@ export function AppShell({
                         <p className="text-xs text-slate-400">yasin.bulgan@bgtest.com</p>
                       </div>
                       <Link href="/profile" className="block px-3 py-2 text-sm text-slate-200 hover:bg-slate-700 transition-colors" onClick={() => setUserMenuOpen(false)} data-testid="user-menu-link-profile">Profil</Link>
+                      <Link href="/settings/security" className="block px-3 py-2 text-sm text-slate-200 hover:bg-slate-700 transition-colors" onClick={() => setUserMenuOpen(false)} data-testid="user-menu-link-security">🔐 Güvenlik (2FA)</Link>
                       <Link href="/admin/users" className="flex items-center gap-2 px-3 py-2 text-sm text-slate-200 hover:bg-slate-700 transition-colors" onClick={() => setUserMenuOpen(false)} data-testid="user-menu-link-admin"><IconUsers />Yönetim</Link>
                       <Link href="/ai-quality" className="block px-3 py-2 text-sm text-slate-200 hover:bg-slate-700 transition-colors" onClick={() => setUserMenuOpen(false)} data-testid="user-menu-link-aiq">AI Kalite</Link>
                       <Link href="/ai-workflows" className="block px-3 py-2 text-sm text-slate-200 hover:bg-slate-700 transition-colors" onClick={() => setUserMenuOpen(false)} data-testid="user-menu-link-ai-workflows">Workflow Health</Link>
