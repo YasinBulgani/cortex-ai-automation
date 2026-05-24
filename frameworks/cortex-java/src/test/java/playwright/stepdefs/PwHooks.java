@@ -1,9 +1,11 @@
 package playwright.stepdefs;
 
 import com.microsoft.playwright.Page;
+import crypto.CredentialPreflightChecker;
 import io.cucumber.java.After;
 import io.cucumber.java.AfterStep;
 import io.cucumber.java.Before;
+import io.cucumber.java.BeforeAll;
 import io.cucumber.java.Scenario;
 import playwright.PlaywrightFactory;
 
@@ -33,6 +35,20 @@ import java.util.concurrent.atomic.AtomicInteger;
  *       result.json  — { passed, duration_ms, steps }
  */
 public class PwHooks {
+
+    // ── Pre-flight credential validation (Recorder #8) ──────────────────
+    // Runs once before any scenario. Fails fast if aliases referenced in
+    // feature files are missing from password.properties or their env vars
+    // are unset. Set CORTEX_PREFLIGHT=warn to downgrade to a warning.
+    @BeforeAll
+    public static void credentialPreflight() {
+        String mode = System.getenv("CORTEX_PREFLIGHT");
+        CredentialPreflightChecker.Mode checkMode =
+            "warn".equalsIgnoreCase(mode)
+                ? CredentialPreflightChecker.Mode.WARN
+                : CredentialPreflightChecker.Mode.FAIL_FAST;
+        CredentialPreflightChecker.check("src/test/resources", checkMode);
+    }
 
     // Thread-local run dir and step counter so parallel scenarios stay isolated.
     private static final ThreadLocal<Path> RUN_DIR = new ThreadLocal<>();
