@@ -14,6 +14,7 @@ from app.domains.auth.schemas import (
     ForgotPasswordRequest, RegisterRequest, RefreshRequest, ResetPasswordRequest,
     UserListOut, UserCreateRequest, UserUpdateRequest,
     MfaSetupResponse, MfaVerifyRequest, MfaStatusResponse, MfaDisableRequest,
+    MfaLoginRequest, LoginResponse,
 )
 from app.domains.auth.service import (
     create_access_token, verify_password, hash_password,
@@ -126,22 +127,35 @@ def _request_ip(request: Request) -> Optional[str]:
 
 @router.post(
     "/login",
-    response_model=TokenResponse,
+    response_model=LoginResponse,
     responses={
         200: {
-            "description": "Basarili giris",
+            "description": "Başarılı giriş veya MFA challenge",
             "content": {
                 "application/json": {
-                    "example": {
-                        "access_token": "eyJhbGciOiJIUzI1NiIs...",
-                        "refresh_token": "eyJhbGciOiJIUzI1NiIs...",
-                        "expires_in": 1800,
+                    "examples": {
+                        "no_mfa": {
+                            "summary": "MFA devre dışı",
+                            "value": {
+                                "access_token": "eyJhbGciOiJIUzI1NiIs...",
+                                "refresh_token": "eyJhbGciOiJIUzI1NiIs...",
+                                "expires_in": 1800,
+                                "mfa_required": False,
+                            },
+                        },
+                        "mfa_required": {
+                            "summary": "MFA etkin — ikinci adım gerekli",
+                            "value": {
+                                "mfa_required": True,
+                                "mfa_session_token": "eyJhbGciOiJIUzI1NiIs...",
+                            },
+                        },
                     }
                 }
             },
         },
-        401: {"description": "Hatali e-posta veya parola"},
-        422: {"description": "Gecersiz istek formati"},
+        401: {"description": "Hatalı e-posta veya parola"},
+        422: {"description": "Geçersiz istek formatı"},
     },
 )
 @_limit(settings.rate_limit_login)
@@ -150,8 +164,13 @@ def login(
     response: Response,
     body: LoginRequest,
     db: Annotated[Session, Depends(get_db)],
-) -> TokenResponse:
-    """Kullanici girisi yapar ve JWT token doner."""
+) -> LoginResponse:
+    """Kullanıcı girişi yapar.
+
+    - MFA devre dışıysa: access + refresh token döner.
+    - MFA etkinse: ``mfa_required: true`` ve kısa ömürlü ``mfa_session_token``
+      döner.  İstemci bunu ``POST /auth/mfa/login`` çağrısında kullanmalıdır.
+    """
     user = db.scalar(select(User).where(User.email == body.email))
     if user is None or not verify_password(body.password, user.password_hash):
         raise HTTPException(
@@ -161,7 +180,25 @@ def login(
     if not user.is_active:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Hesap devre dışı")
 
-    # "Beni hatırla" seçiliyse daha uzun TTL (default 7 gün) kullan.
+    # ── MFA challenge ──────────────────────────────────────────────────────────
+    if getattr(user, "mfa_enabled", False):
+        # Issue a short-lived (5-minute) session token for the MFA step.
+        # It carries purpose=mfa_challenge so it cannot be used as a normal access token.
+        mfa_session = create_access_token(
+            user.id,
+            extra_claims={
+                "purpose": "mfa_challenge",
+                "tenant": getattr(user, "tenant_id", "00000000-0000-0000-0000-000000000001"),
+                "remember_me": body.remember_me,
+            },
+            expires_minutes=5,
+        )
+        return LoginResponse(
+            mfa_required=True,
+            mfa_session_token=mfa_session,
+        )
+
+    # ── Normal login (no MFA) ─────────────────────────────────────────────────
     ttl_minutes = (
         settings.access_token_expire_minutes_remember_me
         if body.remember_me
@@ -189,15 +226,13 @@ def login(
         # Audit/commit (şema uyumsuzluğu vb.) başarısızsa oturum açılışını engelleme.
         db.rollback()
 
-    # SECURITY: httpOnly cookie üzerinden auth — XSS'e karşı koruma.
-    # Token response body'sinde de döner (geri uyumluluk için, frontend
-    # migrasyonu tamamlanınca kaldırılabilir).
     _set_auth_cookies(response, request, access, refresh)
 
-    return TokenResponse(
+    return LoginResponse(
         access_token=access,
         refresh_token=refresh,
         expires_in=ttl_minutes * 60,
+        mfa_required=False,
     )
 
 
@@ -750,3 +785,99 @@ def mfa_regenerate_backup_codes(
 
     log_audit(db, actor_user_id=user.id, action="mfa.backup_codes_regenerated", resource_type="user", resource_id=user.id, payload=None, ip=None)
     return {"backup_codes": new_codes}
+
+
+@router.post("/mfa/login", response_model=LoginResponse, tags=["auth", "mfa"])
+@_limit("5/minute")
+def mfa_login(
+    req: MfaLoginRequest,
+    request: Request,
+    response: Response,
+    db: Session = Depends(get_db),
+) -> LoginResponse:
+    """
+    Step-2 login: verify TOTP code using the MFA session token from /auth/login.
+
+    Accepts a TOTP code OR a backup code.
+    On success, issues the full access + refresh token pair.
+    """
+    import jwt as _jwt
+    from app.domains.auth.mfa_service import verify_totp, verify_backup_code
+
+    # ── Validate the MFA session token ────────────────────────────────────────
+    try:
+        payload = _jwt.decode(
+            req.session_token,
+            settings.secret_key,
+            algorithms=["HS256"],
+        )
+    except _jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="MFA oturumu süresi doldu, lütfen tekrar giriş yapın")
+    except _jwt.InvalidTokenError:
+        raise HTTPException(status_code=401, detail="Geçersiz MFA oturumu")
+
+    if payload.get("purpose") != "mfa_challenge":
+        raise HTTPException(status_code=401, detail="Geçersiz token amacı")
+
+    user_id: str = payload.get("sub") or ""
+    db_user = db.get(User, user_id)
+    if db_user is None or not db_user.is_active:
+        raise HTTPException(status_code=401, detail="Kullanıcı bulunamadı veya devre dışı")
+    if not db_user.mfa_enabled:
+        raise HTTPException(status_code=409, detail="Bu hesapta MFA etkin değil")
+
+    # ── Verify code (TOTP or backup) ──────────────────────────────────────────
+    code = req.code.upper().replace("-", "").replace(" ", "")
+    code_ok = False
+
+    if len(code) == 6 and code.isdigit():
+        # Try TOTP first
+        code_ok = verify_totp(db_user.totp_secret or "", code)
+
+    if not code_ok and db_user.mfa_backup_codes:
+        # Try backup code
+        matched, updated_codes = verify_backup_code(db_user.mfa_backup_codes, code)
+        if matched:
+            db_user.mfa_backup_codes = updated_codes
+            code_ok = True
+
+    if not code_ok:
+        raise HTTPException(status_code=422, detail="Geçersiz TOTP veya yedek kod")
+
+    # ── Issue full tokens ─────────────────────────────────────────────────────
+    remember_me: bool = payload.get("remember_me", False)
+    ttl_minutes = (
+        settings.access_token_expire_minutes_remember_me
+        if remember_me
+        else settings.access_token_expire_minutes
+    )
+    access = create_access_token(
+        db_user.id,
+        extra_claims={"tenant": getattr(db_user, "tenant_id", "00000000-0000-0000-0000-000000000001")},
+        expires_minutes=ttl_minutes,
+    )
+    user_agent = request.headers.get("user-agent", "")
+    refresh = create_refresh_token(db_user.id, db, user_agent=user_agent)
+
+    try:
+        log_audit(
+            db,
+            actor_user_id=db_user.id,
+            action="auth.mfa_login",
+            resource_type="user",
+            resource_id=db_user.id,
+            payload={"backup_code_used": not (len(code) == 6 and code.isdigit())},
+            ip=None,
+        )
+        db.commit()
+    except Exception:
+        db.rollback()
+
+    _set_auth_cookies(response, request, access, refresh)
+
+    return LoginResponse(
+        access_token=access,
+        refresh_token=refresh,
+        expires_in=ttl_minutes * 60,
+        mfa_required=False,
+    )

@@ -179,8 +179,9 @@ class MfaVerifyRequest(BaseModel):
 
 class MfaLoginRequest(BaseModel):
     """Used when MFA is required during login (step 2)."""
-    session_token: str           # opaque token from first login step
+    session_token: str           # short-lived JWT with purpose=mfa_challenge
     code: str = Field(min_length=6, max_length=8)  # TOTP or backup code
+    remember_me: bool = False
 
 
 class MfaStatusResponse(BaseModel):
