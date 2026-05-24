@@ -360,7 +360,7 @@ run-aday-degerlendirme:
 ## AI Gateway kurulumu (bağımlılıkları yükle)
 gateway-install:
 	@echo "📦 AI Gateway bağımlılıkları kuruluyor..."
-	cd ai-gateway && $(PIP) install -r requirements.txt --break-system-packages
+	cd ai-gateway && $(PIP) install -r requirements.txt
 	@echo "✅ AI Gateway kurulumu tamamlandı"
 	@echo ""
 	@echo "⚙️  API key'leri için:"

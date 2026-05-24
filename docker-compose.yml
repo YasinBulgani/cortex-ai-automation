@@ -283,9 +283,9 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"  # Ollama local erişimi için
 
-  # ─── NOT: ai-test-pipeline ───────────────────────────────────────────────────
-  # ai-test-pipeline/ dizini şu an yalnızca __pycache__ içermektedir.
-  # Kaynak kodlar eklendiğinde bu blok aktif edilecek (port: 5003).
+  # ─── ai-test-pipeline (henüz aktif değil) ───────────────────────────────────
+  # ai-test-pipeline/ dizini kaynak kodu tamamlandığında etkinleştir.
+  # Bkz: docs/planning/END_USER_GAPS_PLAN.md
   # ai-test-pipeline:
   #   build:
   #     context: ./ai-test-pipeline

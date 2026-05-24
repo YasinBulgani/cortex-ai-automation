@@ -27,6 +27,9 @@ venv_clean/
 venv_new/
 venv_platform/
 projects/
+# But keep template feature files in version control
+!projects/*/features/
+!projects/*/features/*.feature
 nohup.out
 *.txt
 debug_abs.py
