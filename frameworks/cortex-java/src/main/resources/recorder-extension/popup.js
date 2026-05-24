@@ -1,27 +1,33 @@
 // Cortex Recorder popup — talks to background service worker only.
 
 const els = {
-  dot:            document.getElementById('dot'),
-  status:         document.getElementById('status'),
-  idleSection:    document.getElementById('idle-section'),
-  runningSection: document.getElementById('running-section'),
-  savedSection:   document.getElementById('saved-section'),
-  featureName:    document.getElementById('feature-name'),
-  tags:           document.getElementById('tags'),
-  startBtn:       document.getElementById('start'),
-  undoBtn:        document.getElementById('undo'),
-  stopBtn:        document.getElementById('stop'),
-  newBtn:         document.getElementById('new-recording'),
-  count:          document.getElementById('count'),
-  elapsed:        document.getElementById('elapsed'),
-  savedFile:      document.getElementById('saved-file'),
-  portInfo:       document.getElementById('port-info'),
+  dot:             document.getElementById('dot'),
+  status:          document.getElementById('status'),
+  idleSection:     document.getElementById('idle-section'),
+  runningSection:  document.getElementById('running-section'),
+  passwordSection: document.getElementById('password-section'),
+  savedSection:    document.getElementById('saved-section'),
+  featureName:     document.getElementById('feature-name'),
+  tags:            document.getElementById('tags'),
+  startBtn:        document.getElementById('start'),
+  undoBtn:         document.getElementById('undo'),
+  stopBtn:         document.getElementById('stop'),
+  newBtn:          document.getElementById('new-recording'),
+  count:           document.getElementById('count'),
+  elapsed:         document.getElementById('elapsed'),
+  savedFile:       document.getElementById('saved-file'),
+  portInfo:        document.getElementById('port-info'),
+  // Password alias confirm UI
+  pwAlias:         document.getElementById('pw-alias'),
+  pwConfirmBtn:    document.getElementById('pw-confirm'),
+  pwSkipBtn:       document.getElementById('pw-skip'),
 };
 
 function showSection(name) {
-  els.idleSection.hidden    = name !== 'idle';
-  els.runningSection.hidden = name !== 'running';
-  els.savedSection.hidden   = name !== 'saved';
+  els.idleSection.hidden     = name !== 'idle';
+  els.runningSection.hidden  = name !== 'running';
+  els.passwordSection.hidden = name !== 'password';
+  els.savedSection.hidden    = name !== 'saved';
 }
 
 function setStatus(text, color) {
@@ -74,7 +80,19 @@ async function refresh() {
   }
   els.portInfo.textContent = state.port ? ('port :' + state.port) : 'port aranıyor';
 
-  if (state.recording) {
+  if (state.recording && state.pendingPassword) {
+    // Password field detected — show alias confirmation UI.
+    showSection('password');
+    els.dot.className = 'dot recording';
+    setStatus('sifre alani yakalandı · alias girin', '#d946ef');
+    // Pre-fill alias with background suggestion but only if field is empty or matches prev suggestion.
+    if (!els.pwAlias.value || els.pwAlias.dataset.lastSuggestion === els.pwAlias.value) {
+      els.pwAlias.value = state.pendingPassword.alias || '';
+      els.pwAlias.dataset.lastSuggestion = els.pwAlias.value;
+    }
+    // Focus alias input automatically.
+    setTimeout(() => els.pwAlias.focus(), 80);
+  } else if (state.recording) {
     showSection('running');
     els.dot.className = 'dot recording';
     setStatus('port :' + state.port + ' · canli', '#94a3b8');
@@ -140,6 +158,42 @@ els.newBtn.addEventListener('click', async () => {
   els.featureName.value = '';
   els.tags.value = '';
   await refresh();
+});
+
+// ── Password alias confirm / skip ────────────────────────────────────────────
+
+els.pwConfirmBtn.addEventListener('click', async () => {
+  const alias = els.pwAlias.value.trim();
+  if (!alias) {
+    els.pwAlias.focus();
+    els.pwAlias.style.borderColor = '#ef4444';
+    setTimeout(() => { els.pwAlias.style.borderColor = ''; }, 1500);
+    return;
+  }
+  els.pwConfirmBtn.disabled = true;
+  els.pwConfirmBtn.textContent = 'kaydediliyor…';
+  const r = await send('confirmPassword', { alias });
+  els.pwAlias.value = '';
+  els.pwAlias.dataset.lastSuggestion = '';
+  els.pwConfirmBtn.disabled = false;
+  els.pwConfirmBtn.textContent = '✓ Kaydet';
+  if (r && typeof r.count === 'number') els.count.textContent = String(r.count);
+  await refresh();
+});
+
+els.pwSkipBtn.addEventListener('click', async () => {
+  els.pwSkipBtn.disabled = true;
+  await send('skipPassword');
+  els.pwAlias.value = '';
+  els.pwAlias.dataset.lastSuggestion = '';
+  els.pwSkipBtn.disabled = false;
+  await refresh();
+});
+
+// Allow Enter key to confirm alias input.
+els.pwAlias.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') els.pwConfirmBtn.click();
+  if (e.key === 'Escape') els.pwSkipBtn.click();
 });
 
 refresh();

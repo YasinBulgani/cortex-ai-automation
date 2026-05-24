@@ -12,6 +12,9 @@ const state = {
   actionCount: 0,
   lastError: null,
   savedFile: null,
+  // Pending password capture waiting for popup confirmation.
+  // IMPORTANT: actual password value is NEVER stored here — only alias suggestion.
+  pendingPassword: null, // null | { alias: string, element: object, capturedAt: number }
 };
 
 async function tryFetch(port, path, opts) {
@@ -104,6 +107,23 @@ function resetState() {
   state.actionCount = 0;
   state.lastError = null;
   state.savedFile = null;
+  state.pendingPassword = null;
+}
+
+// Open the popup so the user sees the password confirmation UI.
+async function openPopup() {
+  try {
+    await chrome.action.openPopup();
+  } catch (_) {
+    // openPopup is not available in all contexts (e.g. non-user-gesture).
+    // Badge the icon instead to draw attention.
+    chrome.action.setBadgeText({ text: '🔑' });
+    chrome.action.setBadgeBackgroundColor({ color: '#d946ef' });
+  }
+}
+
+function clearPasswordBadge() {
+  chrome.action.setBadgeText({ text: '' });
 }
 
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
@@ -151,6 +171,52 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
           const r = await tryFetch(port, '/undo', { method: 'POST' });
           if (r && typeof r.count === 'number') state.actionCount = r.count;
           sendResponse({ ok: !!r, count: state.actionCount });
+          return;
+        }
+        // ── Password mask flow ───────────────────────────────────────────
+        case 'passwordCapture': {
+          // Content script detected a password field fill; store alias suggestion.
+          // Actual password value is NEVER relayed — only the alias name flows through.
+          if (!state.recording) { sendResponse({ ok: false }); return; }
+          state.pendingPassword = {
+            alias: msg.alias || 'recordedPassword',
+            element: msg.element || {},
+            capturedAt: Date.now(),
+          };
+          await openPopup();
+          sendResponse({ ok: true });
+          return;
+        }
+        case 'confirmPassword': {
+          // Popup user confirmed alias name → send masked fill action to Java server.
+          if (!state.pendingPassword) { sendResponse({ ok: false, error: 'no pending capture' }); return; }
+          const confirmedAlias = (msg.alias || state.pendingPassword.alias).trim();
+          const port = await resolvePort();
+          if (!port) { sendResponse({ ok: false, error: 'Java server bulunamadi' }); return; }
+          const r = await tryFetch(port, '/action', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              type: 'fill',
+              element: state.pendingPassword.element,
+              text: null,                 // actual value intentionally null
+              passwordAlias: confirmedAlias,
+              masked: true,
+              timestamp: state.pendingPassword.capturedAt,
+              url: state.pendingPassword.element.url || '',
+            }),
+          });
+          if (r && typeof r.count === 'number') state.actionCount = r.count;
+          state.pendingPassword = null;
+          clearPasswordBadge();
+          sendResponse({ ok: !!r, count: state.actionCount });
+          return;
+        }
+        case 'skipPassword': {
+          // User chose to skip recording this password field entirely.
+          state.pendingPassword = null;
+          clearPasswordBadge();
+          sendResponse({ ok: true });
           return;
         }
         default:

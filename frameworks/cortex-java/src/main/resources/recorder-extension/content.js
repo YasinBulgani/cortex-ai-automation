@@ -123,9 +123,23 @@
     if (!('value' in el)) return;
     clearTimeout(inputTimers.get(el));
     const h = setTimeout(() => {
-      const action = { type: 'fill', element: describe(el), text: el.value };
-      if (el.type === 'password') action.passwordAlias = el.name || el.id || 'recordedPassword';
-      send(action);
+      if (el.type === 'password') {
+        // Password fields: NEVER send the actual value.
+        // Send a passwordCapture request so the popup can ask the user for an alias name.
+        const suggestedAlias = el.name || el.id || el.getAttribute('autocomplete') || 'recordedPassword';
+        try {
+          chrome.runtime.sendMessage({
+            type: 'passwordCapture',
+            alias: suggestedAlias,
+            element: describe(el),
+            // actual value intentionally omitted
+          });
+        } catch (e2) {
+          console.error('[cortex-rec] passwordCapture send failed', e2);
+        }
+      } else {
+        send({ type: 'fill', element: describe(el), text: el.value });
+      }
     }, 500); // debounce
     inputTimers.set(el, h);
   }, { capture: true, passive: true });
