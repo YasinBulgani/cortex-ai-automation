@@ -37,3 +37,15 @@ def feature_flags_svc():
     from app.domains.feature_flags.service import feature_flags
     from app.domains.feature_flags.schemas import FlagUpdate
     return feature_flags, FlagUpdate
+
+
+@pytest.fixture()
+def feature_flags():
+    """FeatureFlags service singleton — tests that call fixture.set_flag(...).
+
+    Alias of feature_flags_svc that returns only the service (not the tuple),
+    matching the call pattern used in test_ai_governance.py, test_ai_enhancements.py,
+    test_ai_observability.py, test_ai_safety.py, test_smart_model_router.py.
+    """
+    from app.domains.feature_flags.service import feature_flags as svc
+    return svc
