@@ -186,7 +186,13 @@ def _translate_step_body(pattern: str) -> Tuple[str, Optional[str]]:
     for pat, ts, dsl in _JAVA_STEP_TRANSLATIONS:
         if pat.search(pattern):
             return ts, dsl
-    return "// TODO: manual migration gerekli", None
+    # No pattern matched — return a stub that throws at runtime so the developer
+    # knows immediately which step needs work (not a silent TODO comment).
+    escaped = pattern.replace("'", "\\'")
+    return (
+        f"throw new Error('MIGRATION_NEEDED: step not auto-translated — "
+        f"implement: {escaped}');"
+    ), None
 
 
 def migrate_selenium_java(source: str, *, source_file: Optional[str] = None) -> MigrationResult:
@@ -300,7 +306,9 @@ def migrate_selenium_py(source: str, *, source_file: Optional[str] = None) -> Mi
         func_name = m.group(3)
         result.steps_total += 1
 
-        translated = "    # TODO: manual migration"
+        # Default: raise at runtime so the developer knows immediately (not a silent comment)
+        escaped_pattern = pattern.replace('"', '\\"')
+        translated = f'    raise NotImplementedError("MIGRATION_NEEDED: {escaped_pattern}")'
         dsl = None
         for pat, body, mapped_dsl in _PY_STEP_TRANSLATIONS:
             if pat.search(func_name) or pat.search(pattern):
@@ -383,7 +391,7 @@ def migrate_katalon(source: str, *, source_file: Optional[str] = None) -> Migrat
                     reason=f"Desteklenmeyen Katalon komutu: {action}",
                 )
             )
-            ts_lines.append(f"  // TODO: WebUI.{action}({args[:80]}...)")
+            ts_lines.append(f"  throw new Error('MIGRATION_NEEDED: WebUI.{action}({args[:60]}...)');")
             continue
 
         result.steps_migrated += 1

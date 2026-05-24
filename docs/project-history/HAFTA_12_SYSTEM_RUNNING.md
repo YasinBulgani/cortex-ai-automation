@@ -197,7 +197,7 @@ tail -20 /tmp/bgts_monitor.log
 ```bash
 # Hataları olmayacak şekilde yeniden başlat
 lsof -ti:8000 | xargs kill -9
-cd /Users/yasin_bulgan/BGTS_Test_Donusum
+cd /Users/yasin_bulgan/Cortex_Ai_Automation
 python services/flask_app.py &
 ```
 
@@ -294,7 +294,7 @@ lsof -i :8000
 # Varsa kapat
 lsof -ti:8000 | xargs kill -9
 # Yeniden başlat
-python /Users/yasin_bulgan/BGTS_Test_Donusum/services/flask_app.py &
+python /Users/yasin_bulgan/Cortex_Ai_Automation/services/flask_app.py &
 ```
 
 **Problem**: Dashboard açılamıyor

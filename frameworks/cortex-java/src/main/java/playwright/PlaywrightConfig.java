@@ -34,6 +34,26 @@ public final class PlaywrightConfig {
         return ConfigManager.getInt("playwright.viewport.height", 900);
     }
 
+    /**
+     * Device emulation preset name (E25 fix — Mobile Testing).
+     * One of: "Desktop" (default), "iPhone 14", "iPhone SE", "iPhone 14 Pro Max",
+     *         "Pixel 7", "Galaxy S22", "iPad Pro 11", "iPad Pro 12.9".
+     *
+     * When set to anything other than "Desktop"/"none"/empty, PlaywrightFactory
+     * applies viewport + userAgent + deviceScaleFactor + isMobile + hasTouch
+     * from {@link DevicePresets}, overriding viewport.width / viewport.height.
+     */
+    public static String device() {
+        String d = ConfigManager.getProperty("playwright.device", "");
+        return (d == null || d.isBlank() || "none".equalsIgnoreCase(d)) ? "" : d;
+    }
+
+    /** True when device() is set to a real mobile/tablet preset. */
+    public static boolean isMobileEmulation() {
+        String d = device();
+        return !d.isBlank() && !"Desktop".equalsIgnoreCase(d);
+    }
+
     public static int defaultTimeoutMs() {
         return ConfigManager.getInt("playwright.timeout.ms", 15000);
     }

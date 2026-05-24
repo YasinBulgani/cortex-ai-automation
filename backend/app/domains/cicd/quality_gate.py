@@ -10,6 +10,7 @@ Kullanım:
 
 from __future__ import annotations
 
+from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -32,11 +33,12 @@ class CheckResult:
         }
 
 
-class BaseCheck:
+class BaseCheck(ABC):
     name: str = "check"
 
+    @abstractmethod
     def run(self, summary: dict) -> CheckResult:
-        raise NotImplementedError
+        """Alt sınıflar override eder — quality gate kontrolünü uygular."""
 
 
 class PassRateCheck(BaseCheck):

@@ -8,8 +8,11 @@ LLM eklendiğinde extract_acceptance_criteria() içine plug-in olarak gelir.
 """
 from __future__ import annotations
 
+import logging
 import re
 import secrets
+
+logger = logging.getLogger(__name__)
 from dataclasses import dataclass, field, asdict
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
@@ -129,8 +132,8 @@ def _publish_ingested(req: IngestedRequirement) -> None:
             },
             project_id=req.project_id,
         ))
-    except Exception:
-        pass
+    except Exception as _exc:
+        logger.warning("requirement.ingested event publish edilemedi: %s", _exc)
 
 
 # ── Public API ─────────────────────────────────────────────────────────────

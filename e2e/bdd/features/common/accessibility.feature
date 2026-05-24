@@ -6,6 +6,7 @@
   Arka plan:
     Diyelim ki kullanici sisteme giris yapmistir
 
+  @TC-A11Y-001
   Senaryo Taslagi: Sayfa erisilebilirlik kontrolu
     Diyelim ki kullanici "<sayfa>" a11y sayfasindadir
     Ozaman sayfa WCAG 2.1 AA standartlarina uygun olmalidir

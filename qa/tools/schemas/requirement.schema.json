@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "cortex.qa.requirement",
+  "title": "Requirement",
+  "type": "object",
+  "required": ["id", "title", "domain", "source", "status"],
+  "additionalProperties": false,
+  "properties": {
+    "id": { "type": "string", "pattern": "^REQ-[A-Z0-9]+-\\d{3,}$" },
+    "title": { "type": "string", "minLength": 1 },
+    "domain": { "type": "string", "minLength": 1 },
+    "source": {
+      "enum": ["internal-spec", "customer-ticket", "compliance", "exploratory", "regulatory"]
+    },
+    "external": { "type": "string" },
+    "covered_by": {
+      "type": "array",
+      "items": { "type": "string", "pattern": "^TC-[A-Z0-9]+-\\d{3,}$" }
+    },
+    "status": { "enum": ["active", "superseded", "rejected", "draft"] }
+  }
+}

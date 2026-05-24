@@ -1,0 +1,8 @@
+id: SUITE-VIS
+title: "Visual Regression"
+description: "Auto-created during PR 3 migration. Update with real description."
+domain: visual-regression
+owner: "@unassigned"
+parent: null
+order: 99
+links: {}

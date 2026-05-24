@@ -17,12 +17,14 @@ const DASHBOARD_URL = process.env.NEXT_PUBLIC_CORTEX_DASHBOARD_URL || "http://lo
 
 type Health = { ok: boolean; model_loaded: boolean; active_runs: number; suggestions_count: number; version: string };
 type Summary = { total: number; passed: number; failed: number; skipped: number; pass_rate: number; duration_seconds: number };
+type TestRun = { id: string; scenario: string; passed: boolean | null; duration_ms: number; steps: number; screenshot_count: number; mtime: number };
 
 export function CortexAutomationPanel() {
   const [health, setHealth]   = useState<Health | null>(null);
   const [summary, setSummary] = useState<Summary | null>(null);
   const [featuresCount, setFeaturesCount] = useState<number | null>(null);
   const [shotsCount, setShotsCount]       = useState<number | null>(null);
+  const [testRuns, setTestRuns]           = useState<TestRun[]>([]);
   const [error, setError]                 = useState<string | null>(null);
   const [loading, setLoading]             = useState(true);
   const [authorOpen, setAuthorOpen]       = useState(false);
@@ -31,17 +33,19 @@ export function CortexAutomationPanel() {
     let cancelled = false;
     const load = async () => {
       try {
-        const [h, r, f, s] = await Promise.all([
+        const [h, r, f, s, runs] = await Promise.all([
           fetch(`${DASHBOARD_URL}/api/health`).then((r) => r.json()),
           fetch(`${DASHBOARD_URL}/api/results`).then((r) => r.json()),
           fetch(`${DASHBOARD_URL}/api/features`).then((r) => r.json()),
           fetch(`${DASHBOARD_URL}/api/screenshots`).then((r) => r.json()),
+          fetch(`${DASHBOARD_URL}/api/cortex/test-runs/list?limit=5`).then((r) => r.json()).catch(() => ({ runs: [] })),
         ]);
         if (cancelled) return;
         setHealth(h);
         setSummary(r?.summary ?? null);
         setFeaturesCount(Array.isArray(f) ? f.length : 0);
         setShotsCount(Array.isArray(s) ? s.length : 0);
+        setTestRuns(Array.isArray(runs?.runs) ? runs.runs : []);
         setError(null);
       } catch (e: unknown) {
         if (!cancelled) setError(e instanceof Error ? e.message : "Connection failed");
@@ -153,6 +157,33 @@ export function CortexAutomationPanel() {
 
           {/* Author modal */}
           <CortexScenarioAuthor open={authorOpen} onClose={() => setAuthorOpen(false)} />
+
+          {/* Recent test runs (E18) */}
+          {testRuns.length > 0 && (
+            <div className="mt-4 pt-4 border-t border-slate-800">
+              <p className="text-xs text-slate-500 mb-2 font-semibold uppercase tracking-wide">Son Test Koşumları</p>
+              <div className="space-y-1.5">
+                {testRuns.map((run) => (
+                  <div key={run.id} className="flex items-center gap-2 rounded-lg bg-slate-800/60 px-3 py-2 text-xs">
+                    <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${run.passed === true ? "bg-emerald-400" : run.passed === false ? "bg-rose-400" : "bg-amber-400"}`} />
+                    <span className="flex-1 truncate text-slate-300" title={run.scenario}>{run.scenario}</span>
+                    <span className="text-slate-500 font-mono text-[10px] ml-2">
+                      {run.duration_ms >= 1000 ? `${(run.duration_ms / 1000).toFixed(1)}s` : `${run.duration_ms}ms`}
+                    </span>
+                    <span className="text-slate-600 text-[10px]">{run.steps}adım</span>
+                  </div>
+                ))}
+              </div>
+              <a
+                href={`${DASHBOARD_URL}/api/cortex/test-runs/list`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-2 block text-center text-[10px] text-fuchsia-400 hover:text-fuchsia-300 transition-colors"
+              >
+                Tüm koşumları gör →
+              </a>
+            </div>
+          )}
 
           {/* Quick CLI hint */}
           <div className="mt-4 pt-4 border-t border-slate-800">

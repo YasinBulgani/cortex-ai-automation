@@ -3,7 +3,8 @@
  * Custom Cucumber World implementation for Playwright integration
  */
 
-import { setWorldConstructor, World, IWorldOptions } from '@cucumber/cucumber';
+import { World, IWorldOptions } from '@cucumber/cucumber';
+// setWorldConstructor is intentionally called ONLY in hooks.ts to avoid double registration.
 import { Browser, BrowserContext, Page, APIRequestContext } from 'playwright';
 import { launchBrowser, BrowserType, getBrowserConfig, getEnvironmentConfig } from '../config/config';
 import * as dotenv from 'dotenv';
@@ -49,16 +50,16 @@ export class PlaywrightWorld extends World {
   }
 
   async cleanup(): Promise<void> {
-    if (this.page) {
-      await this.page.close();
+    // Close in reverse order; ignore "already closed" errors so a mid-test
+    // browser crash does not swallow the original failure.
+    if (this.page && !this.page.isClosed()) {
+      await this.page.close().catch(() => {});
     }
     if (this.context) {
-      await this.context.close();
+      await this.context.close().catch(() => {});
     }
-    if (this.browser) {
-      await this.browser.close();
+    if (this.browser && this.browser.isConnected()) {
+      await this.browser.close().catch(() => {});
     }
   }
 }
-
-setWorldConstructor(PlaywrightWorld);

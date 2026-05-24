@@ -7,17 +7,19 @@
     Diyelim ki kullanici sisteme giris yapmistir
     Ve aktif bir proje secilmistir
 
+  @TC-IMP-002
   Senaryo: Ice aktarma sayfasi acilir
     Diyelim ki kullanici ice aktarma sayfasindadir
     Ozaman ice aktarma formu goruntulenir
 
-  @critical
+  @critical @TC-IMP-001
   Senaryo: Dosya yukleyerek ice aktarma
     Diyelim ki kullanici ice aktarma sayfasindadir
     Ve bir test dosyasi secer
     Ozaman yukle butonuna tiklar
     Ve ice aktarma basariyla tamamlanir
 
+  @TC-IMP-003
   Senaryo: Gecersiz dosya ile ice aktarma
     Diyelim ki kullanici ice aktarma sayfasindadir
     Ve gecersiz bir dosya secer

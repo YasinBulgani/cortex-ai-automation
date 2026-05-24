@@ -1,0 +1,16 @@
+id: TP-2026.Q2-SMOKE-DAILY
+title: "Günlük smoke regression"
+milestone: R-2026.Q2
+owner: "@yasin-bulgan"
+created: 2026-05-22
+scope:
+  include:
+    - suite: auth
+      priorities: [P0]
+    - tags: [smoke]
+configurations:
+  matrix:
+    - { browser: chromium, env: staging }
+exit_criteria:
+  - "Tüm P0 pass"
+  - "Açık S1 defect = 0"

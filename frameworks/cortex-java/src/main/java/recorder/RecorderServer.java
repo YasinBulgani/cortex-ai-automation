@@ -14,6 +14,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Embedded HTTP server (jdk.httpserver) used by the recorder.
@@ -34,6 +35,8 @@ public class RecorderServer {
     private final Gson gson = new Gson();
     private final CompletableFuture<Void> stopSignal = new CompletableFuture<>();
     private final int port;
+    // E06: pause flag — when true, incoming /action events are silently discarded.
+    private final AtomicBoolean paused = new AtomicBoolean(false);
 
     public RecorderServer(int port) throws IOException {
         this.port = port;
@@ -134,16 +137,19 @@ public class RecorderServer {
     /* --------------------------------------------------------------- */
 
     private void registerHandlers() {
-        http.createContext("/action", this::handleAction);
-        http.createContext("/stop",   this::handleStop);
-        http.createContext("/status", this::handleStatus);
+        http.createContext("/action",  this::handleAction);
+        http.createContext("/stop",    this::handleStop);
+        http.createContext("/status",  this::handleStatus);
         http.createContext("/actions", this::handleListActions);
-        http.createContext("/undo",   this::handleUndo);
-        http.createContext("/inject", this::handleInject);
+        http.createContext("/undo",    this::handleUndo);
+        http.createContext("/inject",  this::handleInject);
         http.createContext("/last-element", this::handleLastElement);
-        http.createContext("/elements", this::handleElements);
-        http.createContext("/perform",  this::handlePerform);
-        http.createContext("/cleanup",  this::handleCleanup);
+        http.createContext("/elements",  this::handleElements);
+        http.createContext("/perform",   this::handlePerform);
+        http.createContext("/cleanup",   this::handleCleanup);
+        // E06: pause / resume recording
+        http.createContext("/pause",     this::handlePause);
+        http.createContext("/resume",    this::handleResume);
     }
 
     /**
@@ -262,6 +268,11 @@ public class RecorderServer {
     private void handleAction(HttpExchange ex) throws IOException {
         if (preflight(ex)) return;
         if (!"POST".equalsIgnoreCase(ex.getRequestMethod())) { respond(ex, 405, "{\"error\":\"POST required\"}"); return; }
+        // E06: discard events while paused
+        if (paused.get()) {
+            respond(ex, 200, "{\"ok\":true,\"discarded\":true,\"paused\":true,\"count\":" + actions.size() + "}");
+            return;
+        }
         try {
             String body = new String(ex.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
             RecordedAction a = gson.fromJson(body, RecordedAction.class);
@@ -278,6 +289,20 @@ public class RecorderServer {
         }
     }
 
+    private void handlePause(HttpExchange ex) throws IOException {
+        if (preflight(ex)) return;
+        paused.set(true);
+        System.out.println("[Recorder] ⏸ PAUSED — incoming events will be discarded.");
+        respond(ex, 200, "{\"ok\":true,\"paused\":true,\"actions\":" + actions.size() + "}");
+    }
+
+    private void handleResume(HttpExchange ex) throws IOException {
+        if (preflight(ex)) return;
+        paused.set(false);
+        System.out.println("[Recorder] ▶ RESUMED — recording continues.");
+        respond(ex, 200, "{\"ok\":true,\"paused\":false,\"actions\":" + actions.size() + "}");
+    }
+
     private void handleStop(HttpExchange ex) throws IOException {
         if (preflight(ex)) return;
         System.out.println("[Recorder] /stop triggered (toolbar)");
@@ -287,7 +312,7 @@ public class RecorderServer {
 
     private void handleStatus(HttpExchange ex) throws IOException {
         if (preflight(ex)) return;
-        respond(ex, 200, "{\"running\":true,\"actions\":" + actions.size() + "}");
+        respond(ex, 200, "{\"running\":true,\"paused\":" + paused.get() + ",\"actions\":" + actions.size() + "}");
     }
 
     private void handleListActions(HttpExchange ex) throws IOException {

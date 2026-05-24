@@ -1,0 +1,11 @@
+id: SUITE-{DOMAIN}
+title: "{Suite başlığı}"
+description: "{Bu suite'in kapsamı, ne tür TC'ler içerir}"
+domain: "{semantic-domain-tag}"
+owner: "@username"
+parent: null
+order: 1
+links:
+  spec: ""
+  bdd_ui: ""
+  bdd_api: ""

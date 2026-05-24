@@ -1,0 +1,8 @@
+id: SUITE-SYN
+title: "Synthetic Data"
+description: "Auto-created during PR 3 migration. Update with real description."
+domain: synthetic-data
+owner: "@unassigned"
+parent: null
+order: 99
+links: {}

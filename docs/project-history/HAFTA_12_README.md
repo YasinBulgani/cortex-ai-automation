@@ -13,7 +13,7 @@
 
 ```bash
 # Navigate to project root
-cd /Users/yasin_bulgan/BGTS_Test_Donusum
+cd /Users/yasin_bulgan/Cortex_Ai_Automation
 
 # Make startup script executable
 chmod +x HAFTA_12_STARTUP.sh
@@ -35,7 +35,7 @@ The script will:
 
 **Terminal 1 - Backend API**:
 ```bash
-cd /Users/yasin_bulgan/BGTS_Test_Donusum
+cd /Users/yasin_bulgan/Cortex_Ai_Automation
 source venv/bin/activate  # or venv\Scripts\activate on Windows
 export FLASK_ENV=development
 export FLASK_DEBUG=True
@@ -44,14 +44,14 @@ python -m services.flask_app
 
 **Terminal 2 - Frontend Dashboard**:
 ```bash
-cd /Users/yasin_bulgan/BGTS_Test_Donusum/website/frontend
+cd /Users/yasin_bulgan/Cortex_Ai_Automation/website/frontend
 npm install  # if not already done
 npm start
 ```
 
 **Terminal 3 - Run Integration Tests**:
 ```bash
-cd /Users/yasin_bulgan/BGTS_Test_Donusum
+cd /Users/yasin_bulgan/Cortex_Ai_Automation
 python hafta12_integration_test.py
 ```
 
@@ -96,7 +96,7 @@ python hafta12_integration_test.py
 ### 1. Automated Integration Test
 
 ```bash
-cd /Users/yasin_bulgan/BGTS_Test_Donusum
+cd /Users/yasin_bulgan/Cortex_Ai_Automation
 python hafta12_integration_test.py
 ```
 
@@ -224,7 +224,7 @@ REACT_APP_WS_URL=ws://localhost:8000/ws
 curl http://localhost:8000/api/health
 
 # If not, start it
-cd /Users/yasin_bulgan/BGTS_Test_Donusum
+cd /Users/yasin_bulgan/Cortex_Ai_Automation
 python -m services.flask_app
 ```
 
@@ -248,7 +248,7 @@ const ws = new WebSocket('ws://localhost:8000/ws');
 
 **Solution**:
 ```bash
-cd /Users/yasin_bulgan/BGTS_Test_Donusum/website/frontend
+cd /Users/yasin_bulgan/Cortex_Ai_Automation/website/frontend
 rm -rf node_modules package-lock.json
 npm install
 npm start
@@ -404,7 +404,7 @@ kill $(lsof -t -i:3000)
 
 ## 🚀 Ready to Launch
 
-The BGTS_Test_Donusum platform is fully prepared for production deployment. All components are integrated, tested, and documented.
+The Cortex_Ai_Automation platform is fully prepared for production deployment. All components are integrated, tested, and documented.
 
 **Status**: ✅ **HAFTA 12 READY TO BEGIN**
 

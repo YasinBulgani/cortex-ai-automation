@@ -1,0 +1,1369 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>qa/ — Cortex AI Automation</title>
+<style>
+*{box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;margin:0;background:#0b0d10;color:#e6e8eb;font-size:14px;line-height:1.5}
+header{padding:24px 32px;border-bottom:1px solid #1f2329;background:#11141a;display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:12px}
+h1{margin:0;font-size:20px;font-weight:600}
+.meta{color:#8a929c;font-size:12px}
+main{max-width:1400px;margin:0 auto;padding:24px 32px}
+section{margin-bottom:36px}
+section>h2{font-size:13px;text-transform:uppercase;letter-spacing:0.08em;color:#8a929c;font-weight:600;margin:0 0 12px 0;padding-bottom:8px;border-bottom:1px solid #1f2329}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}
+.kpi{background:#11141a;border:1px solid #1f2329;border-radius:8px;padding:16px;display:flex;flex-direction:column;gap:6px}
+.kpi-label{font-size:11px;color:#8a929c;text-transform:uppercase;letter-spacing:0.06em}
+.kpi-value{font-size:28px;font-weight:600;font-variant-numeric:tabular-nums}
+.kpi-sub{font-size:12px;color:#a8b1bd}
+.kpi.good .kpi-value{color:#3fb950}
+.kpi.warn .kpi-value{color:#d29922}
+.kpi.bad .kpi-value{color:#f85149}
+table{width:100%;border-collapse:collapse;background:#11141a;border:1px solid #1f2329;border-radius:8px;overflow:hidden}
+th,td{padding:8px 12px;text-align:left;border-bottom:1px solid #1f2329;font-size:13px}
+th{background:#0f1217;font-size:11px;text-transform:uppercase;letter-spacing:0.06em;color:#8a929c;font-weight:600;position:sticky;top:0}
+tr:last-child td{border-bottom:none}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+.badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.04em}
+.b-P0{background:#5a1e1e;color:#ffb4ad}
+.b-P1{background:#5a3e1e;color:#ffd29c}
+.b-P2{background:#2e3a4e;color:#a8c6f0}
+.b-P3{background:#2a2e34;color:#a8b1bd}
+.s-pass{background:#0d3a18;color:#3fb950}
+.s-fail{background:#4a1414;color:#f85149}
+.s-blocked{background:#4a3818;color:#d29922}
+.s-skipped{background:#2a2e34;color:#a8b1bd}
+.s-untested{background:#1f2329;color:#6e7682}
+.a-automated{background:#0d3a18;color:#3fb950}
+.a-not-automated{background:#1f2329;color:#a8b1bd}
+.a-in-progress{background:#4a3818;color:#d29922}
+.a-out-of-scope{background:#2a2e34;color:#6e7682}
+.bar-container{position:relative;height:6px;background:#1f2329;border-radius:3px;overflow:hidden}
+.bar-fill{position:absolute;top:0;left:0;height:100%;background:linear-gradient(90deg,#3fb950,#56d364);transition:width 0.3s}
+.controls{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+.controls input,.controls select{background:#11141a;border:1px solid #1f2329;border-radius:6px;padding:6px 12px;color:#e6e8eb;font-size:13px;font-family:inherit}
+.controls input{flex:1;min-width:200px}
+.empty{text-align:center;padding:32px;color:#6e7682;font-style:italic}
+.run-row{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-bottom:1px solid #1f2329;background:#11141a}
+.run-row:first-child{border-top-left-radius:8px;border-top-right-radius:8px}
+.run-row:last-child{border-bottom-left-radius:8px;border-bottom-right-radius:8px;border-bottom:none}
+.run-bar{display:flex;height:8px;width:160px;border-radius:4px;overflow:hidden;background:#1f2329}
+.run-bar>div{height:100%}
+.run-meta{display:flex;gap:16px;align-items:center}
+footer{padding:24px 32px;color:#6e7682;font-size:12px;text-align:center;border-top:1px solid #1f2329;margin-top:48px}
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>qa/ — Cortex AI Automation</h1>
+    <div class="meta">Test Management Dashboard</div>
+  </div>
+  <div class="meta">Generated: 2026-05-23T20:10:33.865Z</div>
+</header>
+<main>
+
+<section>
+  <h2>Key Metrics</h2>
+  <div class="kpis">
+    <div class="kpi"><span class="kpi-label">Total TC</span><span class="kpi-value">77</span><span class="kpi-sub">23 suite</span></div>
+    <div class="kpi bad"><span class="kpi-label">Automation</span><span class="kpi-value">36%</span><span class="kpi-sub">28 of 77 automated</span></div>
+    <div class="kpi"><span class="kpi-label">P0 Critical</span><span class="kpi-value">17</span><span class="kpi-sub">P1: 37, P2: 21, P3: 2</span></div>
+    <div class="kpi"><span class="kpi-label">Test Runs</span><span class="kpi-value">14</span><span class="kpi-sub">last: 2026-05-23</span></div>
+    <div class="kpi good"><span class="kpi-label">Last Result — Pass</span><span class="kpi-value">6</span><span class="kpi-sub">fail: 0, blocked: 0, never run: 71</span></div>
+    <div class="kpi"><span class="kpi-label">Requirements</span><span class="kpi-value">39</span><span class="kpi-sub">1 test plans</span></div>
+  </div>
+</section>
+
+<section>
+  <h2>Coverage Matrix (suite × priority)</h2>
+  <table>
+    <thead><tr><th>Suite</th><th class="num">P0</th><th class="num">P1</th><th class="num">P2</th><th class="num">P3</th><th class="num">Total</th><th class="num">Auto</th><th>Coverage</th></tr></thead>
+    <tbody>
+      <tr>
+          <td>a11y</td>
+          <td class="num">0</td>
+          <td class="num">0</td>
+          <td class="num">1</td>
+          <td class="num">0</td>
+          <td class="num"><strong>1</strong></td>
+          <td class="num">1</td>
+          <td><div class="bar-container"><div class="bar-fill" style="width:100%"></div></div><span class="meta" style="font-size:11px;margin-left:4px">100%</span></td>
+        </tr>
+<tr>
+          <td>ai</td>
+          <td class="num">0</td>
+          <td class="num">0</td>
+          <td class="num">1</td>
+          <td class="num">0</td>
+          <td class="num"><strong>1</strong></td>
+          <td class="num">0</td>
+          <td><div class="bar-container"><div class="bar-fill" style="width:0%"></div></div><span class="meta" style="font-size:11px;margin-left:4px">0%</span></td>
+        </tr>
+<tr>
+          <td>api-tests</td>
+          <td class="num">0</td>
+          <td class="num">3</td>
+          <td class="num">1</td>
+          <td class="num">0</td>
+          <td class="num"><strong>4</strong></td>
+          <td class="num">0</td>
+          <td><div class="bar-container"><div class="bar-fill" style="width:0%"></div></div><span class="meta" style="font-size:11px;margin-left:4px">0%</span></td>
+        </tr>
+<tr>
+          <td>approvals</td>
+          <td class="num">2</td>
+          <td class="num">3</td>
+          <td class="num">0</td>
+          <td class="num">0</td>
+          <td class="num"><strong>5</strong></td>
+          <td class="num">3</td>
+          <td><div class="bar-container"><div class="bar-fill" style="width:60%"></div></div><span class="meta" style="font-size:11px;margin-left:4px">60%</span></td>
+        </tr>
+<tr>
+          <td>auth</td>
+          <td class="num">6</td>
+          <td class="num">2</td>
+          <td class="num">0</td>
+          <td class="num">0</td>
+          <td class="num"><strong>8</strong></td>
+          <td class="num">7</td>
+          <td><div class="bar-container"><div class="bar-fill" style="width:88%"></div></div><span class="meta" style="font-size:11px;margin-left:4px">88%</span></td>
+        </tr>
+<tr>
+          <td>datasim</td>
+          <td class="num">0</td>
+          <td class="num">0</td>
+          <td class="num">1</td>
+          <td class="num">0</td>
+          <td class="num"><strong>1</strong></td>
+          <td class="num">0</td>
+          <td><div class="bar-container"><div class="bar-fill" style="width:0%"></div></div><span class="meta" style="font-size:11px;margin-left:4px">0%</span></td>
+        </tr>
+<tr>
+          <td>engine</td>
+          <td class="num">0</td>
+          <td class="num">2</td>
+          <td class="num">0</td>
+          <td class="num">0</td>
+          <td class="num"><strong>2</strong></td>
+          <td class="num">0</td>
+          <td><div class="bar-container"><div class="bar-fill" style="width:0%"></div></div><span class="meta" style="font-size:11px;margin-left:4px">0%</span></td>
+        </tr>
+<tr>
+          <td>executions</td>
+          <td class="num">2</td>
+          <td class="num">1</td>
+          <td class="num">2</td>
+          <td class="num">0</td>
+          <td class="num"><strong>5</strong></td>
+          <td class="num">1</td>
+          <td><div class="bar-container"><div class="bar-fill" style="width:20%"></div></div><span class="meta" style="font-size:11px;margin-left:4px">20%</span></td>
+        </tr>
+<tr>
+          <td>flows</td>
+          <td class="num">0</td>
+          <td class="num">0</td>
+          <td class="num">2</td>
+          <td class="num">0</td>
+          <td class="num"><strong>2</strong></td>
+          <td class="num">1</td>
+          <td><div class="bar-container"><div class="bar-fill" style="width:50%"></div></div><span class="meta" style="font-size:11px;margin-left:4px">50%</span></td>
+        </tr>
+<tr>
+          <td>imports</td>
+          <td class="num">1</td>
+          <td class="num">1</td>
+          <td class="num">1</td>
+          <td class="num">0</td>
+          <td class="num"><strong>3</strong></td>
+          <td class="num">3</td>
+          <td><div class="bar-container"><div class="bar-fill" style="width:100%"></div></div><span class="meta" style="font-size:11px;margin-left:4px">100%</span></td>
+        </tr>
+<tr>
+          <td>infrastructure</td>
+          <td class="num">2</td>
+          <td class="num">1</td>
+          <td class="num">0</td>
+          <td class="num">0</td>
+          <td class="num"><strong>3</strong></td>
+          <td class="num">0</td>
+          <td><div class="bar-container"><div class="bar-fill" style="width:0%"></div></div><span class="meta" style="font-size:11px;margin-left:4px">0%</span></td>
+        </tr>
+<tr>
+          <td>integrations</td>
+          <td class="num">0</td>
+          <td class="num">0</td>
+          <td class="num">2</td>
+          <td class="num">0</td>
+          <td class="num"><strong>2</strong></td>
+          <td class="num">0</td>
+          <td><div class="bar-container"><div class="bar-fill" style="width:0%"></div></div><span class="meta" style="font-size:11px;margin-left:4px">0%</span></td>
+        </tr>
+<tr>
+          <td>notifications</td>
+          <td class="num">0</td>
+          <td class="num">0</td>
+          <td class="num">1</td>
+          <td class="num">0</td>
+          <td class="num"><strong>1</strong></td>
+          <td class="num">0</td>
+          <td><div class="bar-container"><div class="bar-fill" style="width:0%"></div></div><span class="meta" style="font-size:11px;margin-left:4px">0%</span></td>
+        </tr>
+<tr>
+          <td>projects</td>
+          <td class="num">1</td>
+          <td class="num">4</td>
+          <td class="num">0</td>
+          <td class="num">1</td>
+          <td class="num"><strong>6</strong></td>
+          <td class="num">4</td>
+          <td><div class="bar-container"><div class="bar-fill" style="width:67%"></div></div><span class="meta" style="font-size:11px;margin-left:4px">67%</span></td>
+        </tr>
+<tr>
+          <td>qa-engine</td>
+          <td class="num">0</td>
+          <td class="num">0</td>
+          <td class="num">2</td>
+          <td class="num">1</td>
+          <td class="num"><strong>3</strong></td>
+          <td class="num">0</td>
+          <td><div class="bar-container"><div class="bar-fill" style="width:0%"></div></div><span class="meta" style="font-size:11px;margin-left:4px">0%</span></td>
+        </tr>
+<tr>
+          <td>recorder</td>
+          <td class="num">0</td>
+          <td class="num">0</td>
+          <td class="num">1</td>
+          <td class="num">0</td>
+          <td class="num"><strong>1</strong></td>
+          <td class="num">0</td>
+          <td><div class="bar-container"><div class="bar-fill" style="width:0%"></div></div><span class="meta" style="font-size:11px;margin-left:4px">0%</span></td>
+        </tr>
+<tr>
+          <td>regression</td>
+          <td class="num">0</td>
+          <td class="num">2</td>
+          <td class="num">2</td>
+          <td class="num">0</td>
+          <td class="num"><strong>4</strong></td>
+          <td class="num">2</td>
+          <td><div class="bar-container"><div class="bar-fill" style="width:50%"></div></div><span class="meta" style="font-size:11px;margin-left:4px">50%</span></td>
+        </tr>
+<tr>
+          <td>requirements</td>
+          <td class="num">0</td>
+          <td class="num">3</td>
+          <td class="num">1</td>
+          <td class="num">0</td>
+          <td class="num"><strong>4</strong></td>
+          <td class="num">0</td>
+          <td><div class="bar-container"><div class="bar-fill" style="width:0%"></div></div><span class="meta" style="font-size:11px;margin-left:4px">0%</span></td>
+        </tr>
+<tr>
+          <td>runs</td>
+          <td class="num">0</td>
+          <td class="num">2</td>
+          <td class="num">0</td>
+          <td class="num">0</td>
+          <td class="num"><strong>2</strong></td>
+          <td class="num">0</td>
+          <td><div class="bar-container"><div class="bar-fill" style="width:0%"></div></div><span class="meta" style="font-size:11px;margin-left:4px">0%</span></td>
+        </tr>
+<tr>
+          <td>scenarios</td>
+          <td class="num">3</td>
+          <td class="num">6</td>
+          <td class="num">0</td>
+          <td class="num">0</td>
+          <td class="num"><strong>9</strong></td>
+          <td class="num">6</td>
+          <td><div class="bar-container"><div class="bar-fill" style="width:67%"></div></div><span class="meta" style="font-size:11px;margin-left:4px">67%</span></td>
+        </tr>
+<tr>
+          <td>schedules</td>
+          <td class="num">0</td>
+          <td class="num">2</td>
+          <td class="num">1</td>
+          <td class="num">0</td>
+          <td class="num"><strong>3</strong></td>
+          <td class="num">0</td>
+          <td><div class="bar-container"><div class="bar-fill" style="width:0%"></div></div><span class="meta" style="font-size:11px;margin-left:4px">0%</span></td>
+        </tr>
+<tr>
+          <td>synthetic-data</td>
+          <td class="num">0</td>
+          <td class="num">5</td>
+          <td class="num">1</td>
+          <td class="num">0</td>
+          <td class="num"><strong>6</strong></td>
+          <td class="num">0</td>
+          <td><div class="bar-container"><div class="bar-fill" style="width:0%"></div></div><span class="meta" style="font-size:11px;margin-left:4px">0%</span></td>
+        </tr>
+<tr>
+          <td>visual-regression</td>
+          <td class="num">0</td>
+          <td class="num">0</td>
+          <td class="num">1</td>
+          <td class="num">0</td>
+          <td class="num"><strong>1</strong></td>
+          <td class="num">0</td>
+          <td><div class="bar-container"><div class="bar-fill" style="width:0%"></div></div><span class="meta" style="font-size:11px;margin-left:4px">0%</span></td>
+        </tr>
+    </tbody>
+  </table>
+</section>
+
+<section>
+  <h2>Recent Runs</h2>
+  <div class="run-row">
+        <div>
+          <strong>TR-2026-05-23-SMOKE-DAILY-001</strong>
+          <div class="meta">plan: smoke-daily · test@abc1234 · chromium staging</div>
+        </div>
+        <div class="run-meta">
+          <span class="meta">6/6</span>
+          <div class="run-bar" title="pass:6 fail:0 blocked:0 skipped:0">
+            <div style="width:100%;background:#3fb950"></div>
+            <div style="width:0%;background:#f85149"></div>
+            <div style="width:0%;background:#d29922"></div>
+            <div style="width:0%;background:#6e7682"></div>
+          </div>
+          <span class="meta">2026-05-23 09:15</span>
+        </div>
+      </div>
+<div class="run-row">
+        <div>
+          <strong>TR-2026-05-22-SMOKE-DAILY-001</strong>
+          <div class="meta">plan: smoke-daily · test@abc1234 · chromium staging</div>
+        </div>
+        <div class="run-meta">
+          <span class="meta">6/6</span>
+          <div class="run-bar" title="pass:6 fail:0 blocked:0 skipped:0">
+            <div style="width:100%;background:#3fb950"></div>
+            <div style="width:0%;background:#f85149"></div>
+            <div style="width:0%;background:#d29922"></div>
+            <div style="width:0%;background:#6e7682"></div>
+          </div>
+          <span class="meta">2026-05-22 09:15</span>
+        </div>
+      </div>
+<div class="run-row">
+        <div>
+          <strong>TR-2026-05-21-SMOKE-DAILY-001</strong>
+          <div class="meta">plan: smoke-daily · test@abc1234 · chromium staging</div>
+        </div>
+        <div class="run-meta">
+          <span class="meta">6/6</span>
+          <div class="run-bar" title="pass:6 fail:0 blocked:0 skipped:0">
+            <div style="width:100%;background:#3fb950"></div>
+            <div style="width:0%;background:#f85149"></div>
+            <div style="width:0%;background:#d29922"></div>
+            <div style="width:0%;background:#6e7682"></div>
+          </div>
+          <span class="meta">2026-05-21 09:15</span>
+        </div>
+      </div>
+<div class="run-row">
+        <div>
+          <strong>TR-2026-05-20-SMOKE-DAILY-001</strong>
+          <div class="meta">plan: smoke-daily · test@abc1234 · chromium staging</div>
+        </div>
+        <div class="run-meta">
+          <span class="meta">6/6</span>
+          <div class="run-bar" title="pass:6 fail:0 blocked:0 skipped:0">
+            <div style="width:100%;background:#3fb950"></div>
+            <div style="width:0%;background:#f85149"></div>
+            <div style="width:0%;background:#d29922"></div>
+            <div style="width:0%;background:#6e7682"></div>
+          </div>
+          <span class="meta">2026-05-20 09:15</span>
+        </div>
+      </div>
+<div class="run-row">
+        <div>
+          <strong>TR-2026-05-19-SMOKE-DAILY-001</strong>
+          <div class="meta">plan: smoke-daily · test@abc1234 · chromium staging</div>
+        </div>
+        <div class="run-meta">
+          <span class="meta">6/6</span>
+          <div class="run-bar" title="pass:6 fail:0 blocked:0 skipped:0">
+            <div style="width:100%;background:#3fb950"></div>
+            <div style="width:0%;background:#f85149"></div>
+            <div style="width:0%;background:#d29922"></div>
+            <div style="width:0%;background:#6e7682"></div>
+          </div>
+          <span class="meta">2026-05-19 09:15</span>
+        </div>
+      </div>
+<div class="run-row">
+        <div>
+          <strong>TR-2026-05-18-SMOKE-DAILY-001</strong>
+          <div class="meta">plan: smoke-daily · test@abc1234 · chromium staging</div>
+        </div>
+        <div class="run-meta">
+          <span class="meta">6/6</span>
+          <div class="run-bar" title="pass:6 fail:0 blocked:0 skipped:0">
+            <div style="width:100%;background:#3fb950"></div>
+            <div style="width:0%;background:#f85149"></div>
+            <div style="width:0%;background:#d29922"></div>
+            <div style="width:0%;background:#6e7682"></div>
+          </div>
+          <span class="meta">2026-05-18 09:15</span>
+        </div>
+      </div>
+<div class="run-row">
+        <div>
+          <strong>TR-2026-05-17-SMOKE-DAILY-001</strong>
+          <div class="meta">plan: smoke-daily · test@abc1234 · chromium staging</div>
+        </div>
+        <div class="run-meta">
+          <span class="meta">5/6</span>
+          <div class="run-bar" title="pass:5 fail:0 blocked:0 skipped:1">
+            <div style="width:83.33333333333334%;background:#3fb950"></div>
+            <div style="width:0%;background:#f85149"></div>
+            <div style="width:0%;background:#d29922"></div>
+            <div style="width:16.666666666666664%;background:#6e7682"></div>
+          </div>
+          <span class="meta">2026-05-17 09:15</span>
+        </div>
+      </div>
+<div class="run-row">
+        <div>
+          <strong>TR-2026-05-16-SMOKE-DAILY-001</strong>
+          <div class="meta">plan: smoke-daily · test@abc1234 · chromium staging</div>
+        </div>
+        <div class="run-meta">
+          <span class="meta">6/6</span>
+          <div class="run-bar" title="pass:6 fail:0 blocked:0 skipped:0">
+            <div style="width:100%;background:#3fb950"></div>
+            <div style="width:0%;background:#f85149"></div>
+            <div style="width:0%;background:#d29922"></div>
+            <div style="width:0%;background:#6e7682"></div>
+          </div>
+          <span class="meta">2026-05-16 09:15</span>
+        </div>
+      </div>
+<div class="run-row">
+        <div>
+          <strong>TR-2026-05-15-SMOKE-DAILY-001</strong>
+          <div class="meta">plan: smoke-daily · test@abc1234 · chromium staging</div>
+        </div>
+        <div class="run-meta">
+          <span class="meta">6/6</span>
+          <div class="run-bar" title="pass:6 fail:0 blocked:0 skipped:0">
+            <div style="width:100%;background:#3fb950"></div>
+            <div style="width:0%;background:#f85149"></div>
+            <div style="width:0%;background:#d29922"></div>
+            <div style="width:0%;background:#6e7682"></div>
+          </div>
+          <span class="meta">2026-05-15 09:15</span>
+        </div>
+      </div>
+<div class="run-row">
+        <div>
+          <strong>TR-2026-05-14-SMOKE-DAILY-001</strong>
+          <div class="meta">plan: smoke-daily · test@abc1234 · chromium staging</div>
+        </div>
+        <div class="run-meta">
+          <span class="meta">5/6</span>
+          <div class="run-bar" title="pass:5 fail:0 blocked:0 skipped:1">
+            <div style="width:83.33333333333334%;background:#3fb950"></div>
+            <div style="width:0%;background:#f85149"></div>
+            <div style="width:0%;background:#d29922"></div>
+            <div style="width:16.666666666666664%;background:#6e7682"></div>
+          </div>
+          <span class="meta">2026-05-14 09:15</span>
+        </div>
+      </div>
+</section>
+
+<section>
+  <h2>All Test Cases (77)</h2>
+  <div class="controls">
+    <input type="text" id="filter" placeholder="Filter by ID, title, suite, tag...">
+    <select id="prio-filter"><option value="">All priorities</option><option>P0</option><option>P1</option><option>P2</option><option>P3</option></select>
+    <select id="auto-filter"><option value="">All automation</option><option value="automated">Automated</option><option value="not-automated">Not automated</option><option value="in-progress">In progress</option><option value="out-of-scope">Out of scope</option></select>
+    <select id="last-filter"><option value="">All last status</option><option value="pass">Pass</option><option value="fail">Fail</option><option value="blocked">Blocked</option><option value="skipped">Skipped</option><option value="">Never run</option></select>
+  </div>
+  <table id="tc-table">
+    <thead><tr><th>ID</th><th>Title</th><th>Suite</th><th>Prio</th><th>Type</th><th>Automation</th><th>Last Run</th><th>Last Status</th><th class="num">Open Defects</th></tr></thead>
+    <tbody>
+      <tr data-prio="P2" data-auto="not-automated" data-last="" data-search="tc-ai-001 ai ile otomatik gherkin feature üretimi ai">
+        <td><code>TC-AI-001</code></td>
+        <td>AI ile otomatik Gherkin feature üretimi</td>
+        <td>ai</td>
+        <td><span class="badge b-P2">P2</span></td>
+        <td>functional+integration</td>
+        <td><span class="badge a-not-automated">not-automated</span></td>
+        <td><code style="font-size:11px"></code></td>
+        <td>—</td>
+        <td class="num"></td>
+      </tr>
+<tr data-prio="P2" data-auto="automated" data-last="" data-search="tc-a11y-001 wcag 2.1 erişilebilirlik taraması a11y">
+        <td><code>TC-A11Y-001</code></td>
+        <td>WCAG 2.1 erişilebilirlik taraması</td>
+        <td>a11y</td>
+        <td><span class="badge b-P2">P2</span></td>
+        <td>functional</td>
+        <td><span class="badge a-automated">automated</span></td>
+        <td><code style="font-size:11px"></code></td>
+        <td>—</td>
+        <td class="num"></td>
+      </tr>
+<tr data-prio="P1" data-auto="not-automated" data-last="" data-search="tc-api-001 yeni api test koleksiyonu oluşturma api-tests">
+        <td><code>TC-API-001</code></td>
+        <td>Yeni API test koleksiyonu oluşturma</td>
+        <td>api-tests</td>
+        <td><span class="badge b-P1">P1</span></td>
+        <td>functional</td>
+        <td><span class="badge a-not-automated">not-automated</span></td>
+        <td><code style="font-size:11px"></code></td>
+        <td>—</td>
+        <td class="num"></td>
+      </tr>
+<tr data-prio="P1" data-auto="not-automated" data-last="" data-search="tc-api-002 koleksiyona api isteği ekleme api-tests">
+        <td><code>TC-API-002</code></td>
+        <td>Koleksiyona API isteği ekleme</td>
+        <td>api-tests</td>
+        <td><span class="badge b-P1">P1</span></td>
+        <td>functional</td>
+        <td><span class="badge a-not-automated">not-automated</span></td>
+        <td><code style="font-size:11px"></code></td>
+        <td>—</td>
+        <td class="num"></td>
+      </tr>
+<tr data-prio="P1" data-auto="not-automated" data-last="" data-search="tc-api-003 koleksiyondaki tüm istekleri çalıştırma api-tests">
+        <td><code>TC-API-003</code></td>
+        <td>Koleksiyondaki tüm istekleri çalıştırma</td>
+        <td>api-tests</td>
+        <td><span class="badge b-P1">P1</span></td>
+        <td>functional+integration</td>
+        <td><span class="badge a-not-automated">not-automated</span></td>
+        <td><code style="font-size:11px"></code></td>
+        <td>—</td>
+        <td class="num"></td>
+      </tr>
+<tr data-prio="P2" data-auto="not-automated" data-last="" data-search="tc-api-004 api test koşu geçmişini sorgulama api-tests">
+        <td><code>TC-API-004</code></td>
+        <td>API test koşu geçmişini sorgulama</td>
+        <td>api-tests</td>
+        <td><span class="badge b-P2">P2</span></td>
+        <td>functional</td>
+        <td><span class="badge a-not-automated">not-automated</span></td>
+        <td><code style="font-size:11px"></code></td>
+        <td>—</td>
+        <td class="num"></td>
+      </tr>
+<tr data-prio="P2" data-auto="not-automated" data-last="" data-search="tc-dsm-001 test verisi simülasyonu oluşturma datasim">
+        <td><code>TC-DSM-001</code></td>
+        <td>Test verisi simülasyonu oluşturma</td>
+        <td>datasim</td>
+        <td><span class="badge b-P2">P2</span></td>
+        <td>functional</td>
+        <td><span class="badge a-not-automated">not-automated</span></td>
+        <td><code style="font-size:11px"></code></td>
+        <td>—</td>
+        <td class="num"></td>
+      </tr>
+<tr data-prio="P0" data-auto="automated" data-last="pass" data-search="tc-auth-001 geçerli kimlik bilgileri ile başarılı giriş auth">
+        <td><code>TC-AUTH-001</code></td>
+        <td>Geçerli kimlik bilgileri ile başarılı giriş</td>
+        <td>auth</td>
+        <td><span class="badge b-P0">P0</span></td>
+        <td>functional+smoke</td>
+        <td><span class="badge a-automated">automated</span></td>
+        <td><code style="font-size:11px">TR-2026-05-23-SMOKE-DAILY-001</code></td>
+        <td><span class="badge s-pass">pass</span></td>
+        <td class="num"></td>
+      </tr>
+<tr data-prio="P0" data-auto="automated" data-last="pass" data-search="tc-auth-002 hatalı parola ile giriş denemesi reddedilmeli auth">
+        <td><code>TC-AUTH-002</code></td>
+        <td>Hatalı parola ile giriş denemesi reddedilmeli</td>
+        <td>auth</td>
+        <td><span class="badge b-P0">P0</span></td>
+        <td>functional+smoke</td>
+        <td><span class="badge a-automated">automated</span></td>
+        <td><code style="font-size:11px">TR-2026-05-23-SMOKE-DAILY-001</code></td>
+        <td><span class="badge s-pass">pass</span></td>
+        <td class="num"></td>
+      </tr>
+<tr data-prio="P0" data-auto="automated" data-last="pass" data-search="tc-auth-003 sistemde olmayan e-posta ile giriş denemesi auth">
+        <td><code>TC-AUTH-003</code></td>
+        <td>Sistemde olmayan e-posta ile giriş denemesi</td>
+        <td>auth</td>
+        <td><span class="badge b-P0">P0</span></td>
+        <td>functional</td>
+        <td><span class="badge a-automated">automated</span></td>
+        <td><code style="font-size:11px">TR-2026-05-23-SMOKE-DAILY-001</code></td>
+        <td><span class="badge s-pass">pass</span></td>
+        <td class="num"></td>
+      </tr>
+<tr data-prio="P0" data-auto="automated" data-last="pass" data-search="tc-auth-004 devre dışı bırakılmış hesap ile giriş engellenmeli auth">
+        <td><code>TC-AUTH-004</code></td>
+        <td>Devre dışı bırakılmış hesap ile giriş engellenmeli</td>
+        <td>auth</td>
+        <td><span class="badge b-P0">P0</span></td>
+        <td>functional</td>
+        <td><span class="badge a-automated">automated</span></td>
+        <td><code style="font-size:11px">TR-2026-05-23-SMOKE-DAILY-001</code></td>
+        <td><span class="badge s-pass">pass</span></td>
+        <td class="num"></td>
+      </tr>
+<tr data-prio="P0" data-auto="automated" data-last="pass" data-search="tc-auth-005 /me endpoint'i ile oturum sahibi bilgileri auth">
+        <td><code>TC-AUTH-005</code></td>
+        <td>/me endpoint'i ile oturum sahibi bilgileri</td>
+        <td>auth</td>
+        <td><span class="badge b-P0">P0</span></td>
+        <td>functional+api</td>
+        <td><span class="badge a-automated">automated</span></td>
+        <td><code style="font-size:11px">TR-2026-05-23-SMOKE-DAILY-001</code></td>
+        <td><span class="badge s-pass">pass</span></td>
+        <td class="num"></td>
+      </tr>
+<tr data-prio="P0" data-auto="automated" data-last="pass" data-search="tc-auth-006 geçersiz token ile korumalı endpoint erişimi engellenmeli auth">
+        <td><code>TC-AUTH-006</code></td>
+        <td>Geçersiz token ile korumalı endpoint erişimi engellenmeli</td>
+        <td>auth</td>
+        <td><span class="badge b-P0">P0</span></td>
+        <td>functional+api</td>
+        <td><span class="badge a-automated">automated</span></td>
+        <td><code style="font-size:11px">TR-2026-05-23-SMOKE-DAILY-001</code></td>
+        <td><span class="badge s-pass">pass</span></td>
+        <td class="num"></td>
+      </tr>
+<tr data-prio="P1" data-auto="automated" data-last="" data-search="tc-auth-007 eksik alanlar ile giriş formu validasyonu auth">
+        <td><code>TC-AUTH-007</code></td>
+        <td>Eksik alanlar ile giriş formu validasyonu</td>
+        <td>auth</td>
+        <td><span class="badge b-P1">P1</span></td>
+        <td>functional+ui</td>
+        <td><span class="badge a-automated">automated</span></td>
+        <td><code style="font-size:11px"></code></td>
+        <td>—</td>
+        <td class="num"></td>
+      </tr>
+<tr data-prio="P1" data-auto="not-automated" data-last="" data-search="tc-auth-008 giriş alanlarında sql injection koruması auth">
+        <td><code>TC-AUTH-008</code></td>
+        <td>Giriş alanlarında SQL injection koruması</td>
+        <td>auth</td>
+        <td><span class="badge b-P1">P1</span></td>
+        <td>functional</td>
+        <td><span class="badge a-not-automated">not-automated</span></td>
+        <td><code style="font-size:11px"></code></td>
+        <td>—</td>
+        <td class="num"></td>
+      </tr>
+<tr data-prio="P1" data-auto="not-automated" data-last="" data-search="tc-eng-001 gherkin feature dosyalarını listeleme engine">
+        <td><code>TC-ENG-001</code></td>
+        <td>Gherkin feature dosyalarını listeleme</td>
+        <td>engine</td>
+        <td><span class="badge b-P1">P1</span></td>
+        <td>functional+integration</td>
+        <td><span class="badge a-not-automated">not-automated</span></td>
+        <td><code style="font-size:11px"></code></td>
+        <td>—</td>
+        <td class="num"></td>
+      </tr>
+<tr data-prio="P1" data-auto="not-automated" data-last="" data-search="tc-eng-002 yeni gherkin feature dosyası oluşturma engine">
+        <td><code>TC-ENG-002</code></td>
+        <td>Yeni Gherkin feature dosyası oluşturma</td>
+        <td>engine</td>
+        <td><span class="badge b-P1">P1</span></td>
+        <td>functional</td>
+        <td><span class="badge a-not-automated">not-automated</span></td>
+        <td><code style="font-size:11px"></code></td>
+        <td>—</td>
+        <td class="num"></td>
+      </tr>
+<tr data-prio="P0" data-auto="automated" data-last="" data-search="tc-exc-001 yeni test koşusu başlatma executions">
+        <td><code>TC-EXC-001</code></td>
+        <td>Yeni test koşusu başlatma</td>
+        <td>executions</td>
+        <td><span class="badge b-P0">P0</span></td>
+        <td>functional</td>
+        <td><span class="badge a-automated">automated</span></td>
+        <td><code style="font-size:11px"></code></td>
+        <td>—</td>
+        <td class="num"></td>
+      </tr>
+<tr data-prio="P0" data-auto="not-automated" data-last="" data-search="tc-exc-002 test sonucu durumunu güncelleme executions">
+        <td><code>TC-EXC-002</code></td>
+        <td>Test sonucu durumunu güncelleme</td>
+        <td>executions</td>
+        <td><span class="badge b-P0">P0</span></td>
+        <td>functional</td>
+        <td><span class="badge a-not-automated">not-automated</span></td>
+        <td><code style="font-size:11px"></code></td>
+        <td>—</td>
+        <td class="num"></td>
+      </tr>
+<tr data-prio="P1" data-auto="not-automated" data-last="" data-search="tc-exc-003 önceki koşuyu yeniden çalıştırma executions">
+        <td><code>TC-EXC-003</code></td>
+        <td>Önceki koşuyu yeniden çalıştırma</td>
+        <td>executions</td>
+        <td><span class="badge b-P1">P1</span></td>
+        <td>functional</td>
+        <td><span class="badge a-not-automated">not-automated</span></td>
+        <td><code style="font-size:11px"></code></td>
+        <td>—</td>
+        <td class="num"></td>
+      </tr>
+<tr data-prio="P2" data-auto="not-automated" data-last="" data-search="tc-exc-004 koşu trend verilerini sorgulama executions">
+        <td><code>TC-EXC-004</code></td>
+        <td>Koşu trend verilerini sorgulama</td>
+        <td>executions</td>
+        <td><span class="badge b-P2">P2</span></td>
+        <td>functional</td>
+        <td><span class="badge a-not-automated">not-automated</span></td>
+        <td><code style="font-size:11px"></code></td>
+        <td>—</td>
+        <td class="num"></td>
+      </tr>
+<tr data-prio="P2" data-auto="not-automated" data-last="" data-search="tc-exc-005 kararsız (flaky) testlerin tespiti executions">
+        <td><code>TC-EXC-005</code></td>
+        <td>Kararsız (flaky) testlerin tespiti</td>
+        <td>executions</td>
+        <td><span class="badge b-P2">P2</span></td>
+        <td>functional</td>
+        <td><span class="badge a-not-automated">not-automated</span></td>
+        <td><code style="font-size:11px"></code></td>
+        <td>—</td>
+        <td class="num"></td>
+      </tr>
+<tr data-prio="P2" data-auto="automated" data-last="" data-search="tc-flw-001 yeni test akışı oluşturma flows">
+        <td><code>TC-FLW-001</code></td>
+        <td>Yeni test akışı oluşturma</td>
+        <td>flows</td>
+        <td><span class="badge b-P2">P2</span></td>
+        <td>functional</td>
+        <td><span class="badge a-automated">automated</span></td>
+        <td><code style="font-size:11px"></code></td>
+        <td>—</td>
+        <td class="num"></td>
+      </tr>
+<tr data-prio="P2" data-auto="not-automated" data-last="" data-search="tc-flw-002 akış diyagramını (node/edge) güncelleme flows">
+        <td><code>TC-FLW-002</code></td>
+        <td>Akış diyagramını (node/edge) güncelleme</td>
+        <td>flows</td>
+        <td><span class="badge b-P2">P2</span></td>
+        <td>functional</td>
+        <td><span class="badge a-not-automated">not-automated</span></td>
+        <td><code style="font-size:11px"></code></td>
+        <td>—</td>
+        <td class="num"></td>
+      </tr>
+<tr data-prio="P0" data-auto="automated" data-last="" data-search="tc-imp-001 dosya ile içe aktarma başlatma imports">
+        <td><code>TC-IMP-001</code></td>
+        <td>Dosya ile içe aktarma başlatma</td>
+        <td>imports</td>
+        <td><span class="badge b-P0">P0</span></td>
+        <td>functional+smoke</td>
+        <td><span class="badge a-automated">automated</span></td>
+        <td><code style="font-size:11px"></code></td>
+        <td>—</td>
+        <td class="num"></td>
+      </tr>
+<tr data-prio="P1" data-auto="automated" data-last="" data-search="tc-imp-002 i̇çe aktarma sayfasında dosya yükleme akışı imports">
+        <td><code>TC-IMP-002</code></td>
+        <td>İçe aktarma sayfasında dosya yükleme akışı</td>
+        <td>imports</td>
+        <td><span class="badge b-P1">P1</span></td>
+        <td>ui</td>
+        <td><span class="badge a-automated">automated</span></td>
+        <td><code style="font-size:11px"></code></td>
+        <td>—</td>
+        <td class="num"></td>
+      </tr>
+<tr data-prio="P2" data-auto="automated" data-last="" data-search="tc-imp-003 desteklenmeyen dosya formatı kontrolü imports">
+        <td><code>TC-IMP-003</code></td>
+        <td>Desteklenmeyen dosya formatı kontrolü</td>
+        <td>imports</td>
+        <td><span class="badge b-P2">P2</span></td>
+        <td>functional</td>
+        <td><span class="badge a-automated">automated</span></td>
+        <td><code style="font-size:11px"></code></td>
+        <td>—</td>
+        <td class="num"></td>
+      </tr>
+<tr data-prio="P0" data-auto="not-automated" data-last="" data-search="tc-inf-001 backend sağlık endpoint kontrolü infrastructure">
+        <td><code>TC-INF-001</code></td>
+        <td>Backend sağlık endpoint kontrolü</td>
+        <td>infrastructure</td>
+        <td><span class="badge b-P0">P0</span></td>
+        <td>smoke</td>
+        <td><span class="badge a-not-automated">not-automated</span></td>
+        <td><code style="font-size:11px"></code></td>
+        <td>—</td>
+        <td class="num"></td>
+      </tr>
+<tr data-prio="P0" data-auto="not-automated" data-last="" data-search="tc-inf-002 veritabanı bağlantı ve hazırlık kontrolü infrastructure">
+        <td><code>TC-INF-002</code></td>
+        <td>Veritabanı bağlantı ve hazırlık kontrolü</td>
+        <td>infrastructure</td>
+        <td><span class="badge b-P0">P0</span></td>
+        <td>smoke</td>
+        <td><span class="badge a-not-automated">not-automated</span></td>
+        <td><code style="font-size:11px"></code></td>
+        <td>—</td>
+        <td class="num"></td>
+      </tr>
+<tr data-prio="P1" data-auto="not-automated" data-last="" data-search="tc-inf-003 postgresql kapalıyken ready endpoint davranışı infrastructure">
+        <td><code>TC-INF-003</code></td>
+        <td>PostgreSQL kapalıyken ready endpoint davranışı</td>
+        <td>infrastructure</td>
+        <td><span class="badge b-P1">P1</span></td>
+        <td>functional</td>
+        <td><span class="badge a-not-automated">not-automated</span></td>
+        <td><code style="font-size:11px"></code></td>
+        <td>—</td>
+        <td class="num"></td>
+      </tr>
+<tr data-prio="P2" data-auto="not-automated" data-last="" data-search="tc-int-001 yeni entegrasyon oluşturma (jira, jenkins vb.) integrations">
+        <td><code>TC-INT-001</code></td>
+        <td>Yeni entegrasyon oluşturma (Jira, Jenkins vb.)</td>
+        <td>integrations</td>
+        <td><span class="badge b-P2">P2</span></td>
+        <td>functional</td>
+        <td><span class="badge a-not-automated">not-automated</span></td>
+        <td><code style="font-size:11px"></code></td>
+        <td>—</td>
+        <td class="num"></td>
+      </tr>
+<tr data-prio="P2" data-auto="not-automated" data-last="" data-search="tc-int-002 entegrasyon senkronizasyonu tetikleme integrations">
+        <td><code>TC-INT-002</code></td>
+        <td>Entegrasyon senkronizasyonu tetikleme</td>
+        <td>integrations</td>
+        <td><span class="badge b-P2">P2</span></td>
+        <td>functional</td>
+        <td><span class="badge a-not-automated">not-automated</span></td>
+        <td><code style="font-size:11px"></code></td>
+        <td>—</td>
+        <td class="num"></td>
+      </tr>
+<tr data-prio="P2" data-auto="not-automated" data-last="" data-search="tc-ntf-001 kullanıcı bildirimlerini listeleme notifications">
+        <td><code>TC-NTF-001</code></td>
+        <td>Kullanıcı bildirimlerini listeleme</td>
+        <td>notifications</td>
+        <td><span class="badge b-P2">P2</span></td>
+        <td>functional</td>
+        <td><span class="badge a-not-automated">not-automated</span></td>
+        <td><code style="font-size:11px"></code></td>
+        <td>—</td>
+        <td class="num"></td>
+      </tr>
+<tr data-prio="P0" data-auto="automated" data-last="" data-search="tc-prj-001 başarılı proje oluşturma projects">
+        <td><code>TC-PRJ-001</code></td>
+        <td>Başarılı proje oluşturma</td>
+        <td>projects</td>
+        <td><span class="badge b-P0">P0</span></td>
+        <td>functional+smoke</td>
+        <td><span class="badge a-automated">automated</span></td>
+        <td><code style="font-size:11px"></code></td>
+        <td>—</td>
+        <td class="num"></td>
+      </tr>
+<tr data-prio="P1" data-auto="automated" data-last="" data-search="tc-prj-002 tüm projelerin listelenmesi projects">
+        <td><code>TC-PRJ-002</code></td>
+        <td>Tüm projelerin listelenmesi</td>
+        <td>projects</td>
+        <td><span class="badge b-P1">P1</span></td>
+        <td>functional+smoke</td>
+        <td><span class="badge a-automated">automated</span></td>
+        <td><code style="font-size:11px"></code></td>
+        <td>—</td>
+        <td class="num"></td>
+      </tr>
+<tr data-prio="P1" data-auto="automated" data-last="" data-search="tc-prj-003 proje dashboard verilerinin doğruluğu projects">
+        <td><code>TC-PRJ-003</code></td>
+        <td>Proje dashboard verilerinin doğruluğu</td>
+        <td>projects</td>
+        <td><span class="badge b-P1">P1</span></td>
+        <td>functional+integration</td>
+        <td><span class="badge a-automated">automated</span></td>
+        <td><code style="font-size:11px"></code></td>
+        <td>—</td>
+        <td class="num"></td>
+      </tr>
+<tr data-prio="P1" data-auto="automated" data-last="" data-search="tc-prj-004 geçersiz proje id ile 404 hatası projects">
+        <td><code>TC-PRJ-004</code></td>
+        <td>Geçersiz proje ID ile 404 hatası</td>
+        <td>projects</td>
+        <td><span class="badge b-P1">P1</span></td>
+        <td>functional+api</td>
+        <td><span class="badge a-automated">automated</span></td>
+        <td><code style="font-size:11px"></code></td>
+        <td>—</td>
+        <td class="num"></td>
+      </tr>
+<tr data-prio="P1" data-auto="not-automated" data-last="" data-search="tc-prj-005 projeye yeni üye ekleme projects">
+        <td><code>TC-PRJ-005</code></td>
+        <td>Projeye yeni üye ekleme</td>
+        <td>projects</td>
+        <td><span class="badge b-P1">P1</span></td>
+        <td>functional</td>
+        <td><span class="badge a-not-automated">not-automated</span></td>
+        <td><code style="font-size:11px"></code></td>
+        <td>—</td>
+        <td class="num"></td>
+      </tr>
+<tr data-prio="P3" data-auto="not-automated" data-last="" data-search="tc-prj-006 projeden üye çıkarma projects">
+        <td><code>TC-PRJ-006</code></td>
+        <td>Projeden üye çıkarma</td>
+        <td>projects</td>
+        <td><span class="badge b-P3">P3</span></td>
+        <td>functional</td>
+        <td><span class="badge a-not-automated">not-automated</span></td>
+        <td><code style="font-size:11px"></code></td>
+        <td>—</td>
+        <td class="num"></td>
+      </tr>
+<tr data-prio="P2" data-auto="not-automated" data-last="" data-search="tc-qa-001 otomatik test planı oluşturma qa-engine">
+        <td><code>TC-QA-001</code></td>
+        <td>Otomatik test planı oluşturma</td>
+        <td>qa-engine</td>
+        <td><span class="badge b-P2">P2</span></td>
+        <td>functional+api</td>
+        <td><span class="badge a-not-automated">not-automated</span></td>
+        <td><code style="font-size:11px"></code></td>
+        <td>—</td>
+        <td class="num"></td>
+      </tr>
+<tr data-prio="P2" data-auto="not-automated" data-last="" data-search="tc-qa-002 test otomasyonu kodu üretme qa-engine">
+        <td><code>TC-QA-002</code></td>
+        <td>Test otomasyonu kodu üretme</td>
+        <td>qa-engine</td>
+        <td><span class="badge b-P2">P2</span></td>
+        <td>functional</td>
+        <td><span class="badge a-not-automated">not-automated</span></td>
+        <td><code style="font-size:11px"></code></td>
+        <td>—</td>
+        <td class="num"></td>
+      </tr>
+<tr data-prio="P3" data-auto="not-automated" data-last="" data-search="tc-qa-003 rastgele tıklama/gezinme testi qa-engine">
+        <td><code>TC-QA-003</code></td>
+        <td>Rastgele tıklama/gezinme testi</td>
+        <td>qa-engine</td>
+        <td><span class="badge b-P3">P3</span></td>
+        <td>functional</td>
+        <td><span class="badge a-not-automated">not-automated</span></td>
+        <td><code style="font-size:11px"></code></td>
+        <td>—</td>
+        <td class="num"></td>
+      </tr>
+<tr data-prio="P2" data-auto="not-automated" data-last="" data-search="tc-rec-001 kullanıcı aksiyonlarını kaydedip test kodu üretme recorder">
+        <td><code>TC-REC-001</code></td>
+        <td>Kullanıcı aksiyonlarını kaydedip test kodu üretme</td>
+        <td>recorder</td>
+        <td><span class="badge b-P2">P2</span></td>
+        <td>functional</td>
+        <td><span class="badge a-not-automated">not-automated</span></td>
+        <td><code style="font-size:11px"></code></td>
+        <td>—</td>
+        <td class="num"></td>
+      </tr>
+<tr data-prio="P1" data-auto="automated" data-last="" data-search="tc-reg-001 yeni regresyon seti oluşturma regression">
+        <td><code>TC-REG-001</code></td>
+        <td>Yeni regresyon seti oluşturma</td>
+        <td>regression</td>
+        <td><span class="badge b-P1">P1</span></td>
+        <td>functional</td>
+        <td><span class="badge a-automated">automated</span></td>
+        <td><code style="font-size:11px"></code></td>
+        <td>—</td>
+        <td class="num"></td>
+      </tr>
+<tr data-prio="P1" data-auto="not-automated" data-last="" data-search="tc-reg-002 mevcut sete senaryo ekleme regression">
+        <td><code>TC-REG-002</code></td>
+        <td>Mevcut sete senaryo ekleme</td>
+        <td>regression</td>
+        <td><span class="badge b-P1">P1</span></td>
+        <td>functional</td>
+        <td><span class="badge a-not-automated">not-automated</span></td>
+        <td><code style="font-size:11px"></code></td>
+        <td>—</td>
+        <td class="num"></td>
+      </tr>
+<tr data-prio="P2" data-auto="automated" data-last="" data-search="tc-reg-003 ai destekli regresyon set önerisi regression">
+        <td><code>TC-REG-003</code></td>
+        <td>AI destekli regresyon set önerisi</td>
+        <td>regression</td>
+        <td><span class="badge b-P2">P2</span></td>
+        <td>functional+integration</td>
+        <td><span class="badge a-automated">automated</span></td>
+        <td><code style="font-size:11px"></code></td>
+        <td>—</td>
+        <td class="num"></td>
+      </tr>
+<tr data-prio="P2" data-auto="not-automated" data-last="" data-search="tc-reg-004 ai önerilerini toplu kabul etme regression">
+        <td><code>TC-REG-004</code></td>
+        <td>AI önerilerini toplu kabul etme</td>
+        <td>regression</td>
+        <td><span class="badge b-P2">P2</span></td>
+        <td>functional</td>
+        <td><span class="badge a-not-automated">not-automated</span></td>
+        <td><code style="font-size:11px"></code></td>
+        <td>—</td>
+        <td class="num"></td>
+      </tr>
+<tr data-prio="P1" data-auto="not-automated" data-last="" data-search="tc-req-001 yeni gereksinim oluşturma requirements">
+        <td><code>TC-REQ-001</code></td>
+        <td>Yeni gereksinim oluşturma</td>
+        <td>requirements</td>
+        <td><span class="badge b-P1">P1</span></td>
+        <td>functional</td>
+        <td><span class="badge a-not-automated">not-automated</span></td>
+        <td><code style="font-size:11px"></code></td>
+        <td>—</td>
+        <td class="num"></td>
+      </tr>
+<tr data-prio="P1" data-auto="not-automated" data-last="" data-search="tc-req-002 senaryoyu gereksinime bağlama requirements">
+        <td><code>TC-REQ-002</code></td>
+        <td>Senaryoyu gereksinime bağlama</td>
+        <td>requirements</td>
+        <td><span class="badge b-P1">P1</span></td>
+        <td>functional</td>
+        <td><span class="badge a-not-automated">not-automated</span></td>
+        <td><code style="font-size:11px"></code></td>
+        <td>—</td>
+        <td class="num"></td>
+      </tr>
+<tr data-prio="P1" data-auto="not-automated" data-last="" data-search="tc-req-003 gereksinim-senaryo kapsam matrisini sorgulama requirements">
+        <td><code>TC-REQ-003</code></td>
+        <td>Gereksinim-senaryo kapsam matrisini sorgulama</td>
+        <td>requirements</td>
+        <td><span class="badge b-P1">P1</span></td>
+        <td>functional</td>
+        <td><span class="badge a-not-automated">not-automated</span></td>
+        <td><code style="font-size:11px"></code></td>
+        <td>—</td>
+        <td class="num"></td>
+      </tr>
+<tr data-prio="P2" data-auto="not-automated" data-last="" data-search="tc-req-004 hiçbir senaryoya bağlı olmayan gereksinimleri bulma requirements">
+        <td><code>TC-REQ-004</code></td>
+        <td>Hiçbir senaryoya bağlı olmayan gereksinimleri bulma</td>
+        <td>requirements</td>
+        <td><span class="badge b-P2">P2</span></td>
+        <td>functional</td>
+        <td><span class="badge a-not-automated">not-automated</span></td>
+        <td><code style="font-size:11px"></code></td>
+        <td>—</td>
+        <td class="num"></td>
+      </tr>
+<tr data-prio="P1" data-auto="not-automated" data-last="" data-search="tc-run-001 engine üzerinden test koşusu başlatma runs">
+        <td><code>TC-RUN-001</code></td>
+        <td>Engine üzerinden test koşusu başlatma</td>
+        <td>runs</td>
+        <td><span class="badge b-P1">P1</span></td>
+        <td>functional+integration</td>
+        <td><span class="badge a-not-automated">not-automated</span></td>
+        <td><code style="font-size:11px"></code></td>
+        <td>—</td>
+        <td class="num"></td>
+      </tr>
+<tr data-prio="P1" data-auto="not-automated" data-last="" data-search="tc-run-002 regresyon seti içindeki testleri koşma runs">
+        <td><code>TC-RUN-002</code></td>
+        <td>Regresyon seti içindeki testleri koşma</td>
+        <td>runs</td>
+        <td><span class="badge b-P1">P1</span></td>
+        <td>functional</td>
+        <td><span class="badge a-not-automated">not-automated</span></td>
+        <td><code style="font-size:11px"></code></td>
+        <td>—</td>
+        <td class="num"></td>
+      </tr>
+<tr data-prio="P0" data-auto="automated" data-last="" data-search="tc-scn-001 projeye yeni test senaryosu ekleme scenarios">
+        <td><code>TC-SCN-001</code></td>
+        <td>Projeye yeni test senaryosu ekleme</td>
+        <td>scenarios</td>
+        <td><span class="badge b-P0">P0</span></td>
+        <td>functional+smoke</td>
+        <td><span class="badge a-automated">automated</span></td>
+        <td><code style="font-size:11px"></code></td>
+        <td>—</td>
+        <td class="num"></td>
+      </tr>
+<tr data-prio="P0" data-auto="automated" data-last="" data-search="tc-scn-002 senaryo güncellenince versiyon numarası artmalı scenarios">
+        <td><code>TC-SCN-002</code></td>
+        <td>Senaryo güncellenince versiyon numarası artmalı</td>
+        <td>scenarios</td>
+        <td><span class="badge b-P0">P0</span></td>
+        <td>functional</td>
+        <td><span class="badge a-automated">automated</span></td>
+        <td><code style="font-size:11px"></code></td>
+        <td>—</td>
+        <td class="num"></td>
+      </tr>
+<tr data-prio="P1" data-auto="automated" data-last="" data-search="tc-scn-003 senaryo listesinde arama filtrelemesi scenarios">
+        <td><code>TC-SCN-003</code></td>
+        <td>Senaryo listesinde arama filtrelemesi</td>
+        <td>scenarios</td>
+        <td><span class="badge b-P1">P1</span></td>
+        <td>functional</td>
+        <td><span class="badge a-automated">automated</span></td>
+        <td><code style="font-size:11px"></code></td>
+        <td>—</td>
+        <td class="num"></td>
+      </tr>
+<tr data-prio="P1" data-auto="automated" data-last="" data-search="tc-scn-004 birden fazla senaryonun toplu silinmesi scenarios">
+        <td><code>TC-SCN-004</code></td>
+        <td>Birden fazla senaryonun toplu silinmesi</td>
+        <td>scenarios</td>
+        <td><span class="badge b-P1">P1</span></td>
+        <td>functional</td>
+        <td><span class="badge a-automated">automated</span></td>
+        <td><code style="font-size:11px"></code></td>
+        <td>—</td>
+        <td class="num"></td>
+      </tr>
+<tr data-prio="P0" data-auto="not-automated" data-last="" data-search="tc-scn-005 analiz metninden bdd senaryosu üretme scenarios">
+        <td><code>TC-SCN-005</code></td>
+        <td>Analiz metninden BDD senaryosu üretme</td>
+        <td>scenarios</td>
+        <td><span class="badge b-P0">P0</span></td>
+        <td>functional+integration</td>
+        <td><span class="badge a-not-automated">not-automated</span></td>
+        <td><code style="font-size:11px"></code></td>
+        <td>—</td>
+        <td class="num"></td>
+      </tr>
+<tr data-prio="P1" data-auto="not-automated" data-last="" data-search="tc-scn-006 üretilen bdd senaryolarını veritabanına kaydetme scenarios">
+        <td><code>TC-SCN-006</code></td>
+        <td>Üretilen BDD senaryolarını veritabanına kaydetme</td>
+        <td>scenarios</td>
+        <td><span class="badge b-P1">P1</span></td>
+        <td>functional</td>
+        <td><span class="badge a-not-automated">not-automated</span></td>
+        <td><code style="font-size:11px"></code></td>
+        <td>—</td>
+        <td class="num"></td>
+      </tr>
+<tr data-prio="P1" data-auto="not-automated" data-last="" data-search="tc-scn-007 senaryo versiyon geçmişi sorgulama scenarios">
+        <td><code>TC-SCN-007</code></td>
+        <td>Senaryo versiyon geçmişi sorgulama</td>
+        <td>scenarios</td>
+        <td><span class="badge b-P1">P1</span></td>
+        <td>functional</td>
+        <td><span class="badge a-not-automated">not-automated</span></td>
+        <td><code style="font-size:11px"></code></td>
+        <td>—</td>
+        <td class="num"></td>
+      </tr>
+<tr data-prio="P1" data-auto="automated" data-last="" data-search="tc-scn-008 i̇ki versiyon arasındaki farkları görüntüleme scenarios">
+        <td><code>TC-SCN-008</code></td>
+        <td>İki versiyon arasındaki farkları görüntüleme</td>
+        <td>scenarios</td>
+        <td><span class="badge b-P1">P1</span></td>
+        <td>functional</td>
+        <td><span class="badge a-automated">automated</span></td>
+        <td><code style="font-size:11px"></code></td>
+        <td>—</td>
+        <td class="num"></td>
+      </tr>
+<tr data-prio="P1" data-auto="automated" data-last="" data-search="tc-scn-009 farklı projeye ait senaryo erişim kontrolü scenarios">
+        <td><code>TC-SCN-009</code></td>
+        <td>Farklı projeye ait senaryo erişim kontrolü</td>
+        <td>scenarios</td>
+        <td><span class="badge b-P1">P1</span></td>
+        <td>functional</td>
+        <td><span class="badge a-automated">automated</span></td>
+        <td><code style="font-size:11px"></code></td>
+        <td>—</td>
+        <td class="num"></td>
+      </tr>
+<tr data-prio="P1" data-auto="not-automated" data-last="" data-search="tc-sch-001 yeni zamanlama oluşturma schedules">
+        <td><code>TC-SCH-001</code></td>
+        <td>Yeni zamanlama oluşturma</td>
+        <td>schedules</td>
+        <td><span class="badge b-P1">P1</span></td>
+        <td>functional</td>
+        <td><span class="badge a-not-automated">not-automated</span></td>
+        <td><code style="font-size:11px"></code></td>
+        <td>—</td>
+        <td class="num"></td>
+      </tr>
+<tr data-prio="P1" data-auto="not-automated" data-last="" data-search="tc-sch-002 zamanlamayı manuel tetikleme schedules">
+        <td><code>TC-SCH-002</code></td>
+        <td>Zamanlamayı manuel tetikleme</td>
+        <td>schedules</td>
+        <td><span class="badge b-P1">P1</span></td>
+        <td>functional</td>
+        <td><span class="badge a-not-automated">not-automated</span></td>
+        <td><code style="font-size:11px"></code></td>
+        <td>—</td>
+        <td class="num"></td>
+      </tr>
+<tr data-prio="P2" data-auto="not-automated" data-last="" data-search="tc-sch-003 boş zamanlamayı tetikleme hatası schedules">
+        <td><code>TC-SCH-003</code></td>
+        <td>Boş zamanlamayı tetikleme hatası</td>
+        <td>schedules</td>
+        <td><span class="badge b-P2">P2</span></td>
+        <td>functional</td>
+        <td><span class="badge a-not-automated">not-automated</span></td>
+        <td><code style="font-size:11px"></code></td>
+        <td>—</td>
+        <td class="num"></td>
+      </tr>
+<tr data-prio="P1" data-auto="not-automated" data-last="" data-search="tc-syn-001 csv/json dosyası yükleme ve yapı analizi synthetic-data">
+        <td><code>TC-SYN-001</code></td>
+        <td>CSV/JSON dosyası yükleme ve yapı analizi</td>
+        <td>synthetic-data</td>
+        <td><span class="badge b-P1">P1</span></td>
+        <td>functional+api</td>
+        <td><span class="badge a-not-automated">not-automated</span></td>
+        <td><code style="font-size:11px"></code></td>
+        <td>—</td>
+        <td class="num"></td>
+      </tr>
+<tr data-prio="P1" data-auto="not-automated" data-last="" data-search="tc-syn-002 yüklenen veri setinden sentetik veri üretme synthetic-data">
+        <td><code>TC-SYN-002</code></td>
+        <td>Yüklenen veri setinden sentetik veri üretme</td>
+        <td>synthetic-data</td>
+        <td><span class="badge b-P1">P1</span></td>
+        <td>functional</td>
+        <td><span class="badge a-not-automated">not-automated</span></td>
+        <td><code style="font-size:11px"></code></td>
+        <td>—</td>
+        <td class="num"></td>
+      </tr>
+<tr data-prio="P1" data-auto="not-automated" data-last="" data-search="tc-syn-003 kişisel veri (pii) tespiti synthetic-data">
+        <td><code>TC-SYN-003</code></td>
+        <td>Kişisel veri (PII) tespiti</td>
+        <td>synthetic-data</td>
+        <td><span class="badge b-P1">P1</span></td>
+        <td>functional</td>
+        <td><span class="badge a-not-automated">not-automated</span></td>
+        <td><code style="font-size:11px"></code></td>
+        <td>—</td>
+        <td class="num"></td>
+      </tr>
+<tr data-prio="P2" data-auto="not-automated" data-last="" data-search="tc-syn-004 üretilen veri setini dışa aktarma synthetic-data">
+        <td><code>TC-SYN-004</code></td>
+        <td>Üretilen veri setini dışa aktarma</td>
+        <td>synthetic-data</td>
+        <td><span class="badge b-P2">P2</span></td>
+        <td>functional</td>
+        <td><span class="badge a-not-automated">not-automated</span></td>
+        <td><code style="font-size:11px"></code></td>
+        <td>—</td>
+        <td class="num"></td>
+      </tr>
+<tr data-prio="P1" data-auto="not-automated" data-last="" data-search="tc-syn-005 proje içi test veri seti oluşturma synthetic-data">
+        <td><code>TC-SYN-005</code></td>
+        <td>Proje içi test veri seti oluşturma</td>
+        <td>synthetic-data</td>
+        <td><span class="badge b-P1">P1</span></td>
+        <td>functional</td>
+        <td><span class="badge a-not-automated">not-automated</span></td>
+        <td><code style="font-size:11px"></code></td>
+        <td>—</td>
+        <td class="num"></td>
+      </tr>
+<tr data-prio="P1" data-auto="not-automated" data-last="" data-search="tc-syn-006 senaryoya parametrik test verisi bağlama synthetic-data">
+        <td><code>TC-SYN-006</code></td>
+        <td>Senaryoya parametrik test verisi bağlama</td>
+        <td>synthetic-data</td>
+        <td><span class="badge b-P1">P1</span></td>
+        <td>functional</td>
+        <td><span class="badge a-not-automated">not-automated</span></td>
+        <td><code style="font-size:11px"></code></td>
+        <td>—</td>
+        <td class="num"></td>
+      </tr>
+<tr data-prio="P2" data-auto="not-automated" data-last="" data-search="tc-vis-001 i̇ki ekran görüntüsü arasında ssim karşılaştırma visual-regression">
+        <td><code>TC-VIS-001</code></td>
+        <td>İki ekran görüntüsü arasında SSIM karşılaştırma</td>
+        <td>visual-regression</td>
+        <td><span class="badge b-P2">P2</span></td>
+        <td>functional</td>
+        <td><span class="badge a-not-automated">not-automated</span></td>
+        <td><code style="font-size:11px"></code></td>
+        <td>—</td>
+        <td class="num"></td>
+      </tr>
+<tr data-prio="P1" data-auto="automated" data-last="" data-search="tc-apr-001 proje onay kuyruğunu listeleme approvals">
+        <td><code>TC-APR-001</code></td>
+        <td>Proje onay kuyruğunu listeleme</td>
+        <td>approvals</td>
+        <td><span class="badge b-P1">P1</span></td>
+        <td>functional+smoke</td>
+        <td><span class="badge a-automated">automated</span></td>
+        <td><code style="font-size:11px"></code></td>
+        <td>—</td>
+        <td class="num"></td>
+      </tr>
+<tr data-prio="P0" data-auto="automated" data-last="" data-search="tc-apr-002 bekleyen onayı onaylama approvals">
+        <td><code>TC-APR-002</code></td>
+        <td>Bekleyen onayı onaylama</td>
+        <td>approvals</td>
+        <td><span class="badge b-P0">P0</span></td>
+        <td>functional</td>
+        <td><span class="badge a-automated">automated</span></td>
+        <td><code style="font-size:11px"></code></td>
+        <td>—</td>
+        <td class="num"></td>
+      </tr>
+<tr data-prio="P0" data-auto="automated" data-last="" data-search="tc-apr-003 bekleyen onayı reddetme approvals">
+        <td><code>TC-APR-003</code></td>
+        <td>Bekleyen onayı reddetme</td>
+        <td>approvals</td>
+        <td><span class="badge b-P0">P0</span></td>
+        <td>functional</td>
+        <td><span class="badge a-automated">automated</span></td>
+        <td><code style="font-size:11px"></code></td>
+        <td>—</td>
+        <td class="num"></td>
+      </tr>
+<tr data-prio="P1" data-auto="not-automated" data-last="" data-search="tc-apr-004 geçersiz onay id ile karar verme hatası approvals">
+        <td><code>TC-APR-004</code></td>
+        <td>Geçersiz onay ID ile karar verme hatası</td>
+        <td>approvals</td>
+        <td><span class="badge b-P1">P1</span></td>
+        <td>functional+api</td>
+        <td><span class="badge a-not-automated">not-automated</span></td>
+        <td><code style="font-size:11px"></code></td>
+        <td>—</td>
+        <td class="num"></td>
+      </tr>
+<tr data-prio="P1" data-auto="not-automated" data-last="" data-search="tc-apr-005 onay sayfasında kaynak ve ai taslağı yan yana görüntüleme approvals">
+        <td><code>TC-APR-005</code></td>
+        <td>Onay sayfasında kaynak ve AI taslağı yan yana görüntüleme</td>
+        <td>approvals</td>
+        <td><span class="badge b-P1">P1</span></td>
+        <td>ui</td>
+        <td><span class="badge a-not-automated">not-automated</span></td>
+        <td><code style="font-size:11px"></code></td>
+        <td>—</td>
+        <td class="num"></td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+</main>
+<footer>
+  qa/ Dashboard — produced by <code>tools/dashboard.mjs</code> · open-source workflow, no external trackers · 2026-05-23T20:10:33.865Z
+</footer>
+<script>
+const filter = document.getElementById("filter");
+const prio = document.getElementById("prio-filter");
+const auto = document.getElementById("auto-filter");
+const last = document.getElementById("last-filter");
+const rows = Array.from(document.querySelectorAll("#tc-table tbody tr"));
+function apply() {
+  const q = filter.value.toLowerCase();
+  const p = prio.value, a = auto.value, l = last.value;
+  for (const r of rows) {
+    const matchQ = !q || r.dataset.search.includes(q);
+    const matchP = !p || r.dataset.prio === p;
+    const matchA = !a || r.dataset.auto === a;
+    const matchL = l === "" ? true : r.dataset.last === l;
+    r.style.display = matchQ && matchP && matchA && matchL ? "" : "none";
+  }
+}
+[filter, prio, auto, last].forEach((el) => el.addEventListener("input", apply));
+</script>
+</body>
+</html>

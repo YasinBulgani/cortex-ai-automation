@@ -83,7 +83,7 @@ Karar:
 ## 4. Prompt ve Policy Yönetimi
 
 Kanonik prompt kaynağı:
-- [prompt_center/manifest.json](/Users/yasin_bulgan/Desktop/BGTS_Test_Donusum/prompt_center/manifest.json)
+- [prompt_center/manifest.json](/Users/yasin_bulgan/Desktop/Cortex_Ai_Automation/prompt_center/manifest.json)
 
 Yapı:
 - ortak policy parçaları

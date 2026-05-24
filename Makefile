@@ -13,8 +13,9 @@
         dsl-ai-warm dsl-ai-rebuild dsl-ai-info dsl-editor-config dsl-proposals
 
 SHELL := /bin/bash
-PYTHON := python3
-PIP := pip3
+VENV   := .venv
+PYTHON := $(VENV)/bin/python3
+PIP    := $(VENV)/bin/pip
 COMPOSE := $(shell if docker compose version >/dev/null 2>&1; then printf 'docker compose'; elif command -v docker-compose >/dev/null 2>&1; then printf 'docker-compose'; else printf 'docker compose'; fi)
 COMPOSE_BASE := $(COMPOSE) -f docker-compose.yml
 COMPOSE_AI := $(COMPOSE) -f docker-compose.yml -f docker-compose.ai.yml
@@ -71,11 +72,15 @@ help:
 	@echo ""
 
 # ─── Kurulum ──────────────────────────────────────────────────────────────────
-setup:
+$(VENV):
+	python3 -m venv $(VENV)
+	$(VENV)/bin/pip install --upgrade pip setuptools wheel
+
+setup: $(VENV)
 	npm ci
 	cd apps/web && npm ci
-	cd backend && $(PIP) install -r requirements.txt -r requirements-dev.txt
-	cd engine && $(PIP) install -r requirements.txt
+	$(PIP) install -r backend/requirements.txt -r backend/requirements-dev.txt
+	$(PIP) install -r engine/requirements.txt
 	npm run playwright:install
 
 seed:
@@ -259,6 +264,66 @@ cortex-rerun:
 cortex-clean:
 	cd $(CORTEX_DIR) && ./scripts/cortex clean
 
+# ─── Cortex Servis Orkestrasyonu (Onboarding) ────────────────────────────────
+# Bu target'lar Cortex Automation'ın çalışması için gerekli 4 servisi yönetir:
+# Ollama (11434) + Flask (5001) + Next.js Dashboard (3000) + Java JVM (on-demand)
+
+cortex-up: ## Tüm Cortex servislerini başlat (Ollama + Flask + Dashboard)
+	@echo "→ Ollama başlatılıyor..."
+	@if ! curl -s -m 1 http://127.0.0.1:11434/api/tags >/dev/null 2>&1; then \
+		nohup ollama serve > /tmp/cortex-ollama.log 2>&1 & \
+		echo "  Ollama spawn edildi (log: /tmp/cortex-ollama.log)"; \
+		sleep 3; \
+	else \
+		echo "  ✓ Ollama zaten çalışıyor"; \
+	fi
+	@echo "→ Flask API başlatılıyor..."
+	@if ! curl -s -m 1 http://127.0.0.1:5001/ >/dev/null 2>&1; then \
+		cd $(CORTEX_DIR) && nohup python3 python_server/flask_api.py > /tmp/cortex-flask.log 2>&1 & \
+		echo "  Flask spawn edildi (log: /tmp/cortex-flask.log)"; \
+		sleep 3; \
+	else \
+		echo "  ✓ Flask zaten çalışıyor"; \
+	fi
+	@echo "→ Next.js Dashboard başlatılıyor..."
+	@if ! curl -s -m 1 http://127.0.0.1:3000/ >/dev/null 2>&1; then \
+		cd apps/web && nohup npm run dev > /tmp/cortex-nextjs.log 2>&1 & \
+		echo "  Next.js spawn edildi (log: /tmp/cortex-nextjs.log)"; \
+		echo "  ~30sn ilk derleme süresi var..."; \
+	else \
+		echo "  ✓ Next.js zaten çalışıyor"; \
+	fi
+	@echo ""
+	@echo "Dashboard: http://localhost:3000/products/intelligence"
+	@echo "Durum kontrolü: make cortex-status"
+
+cortex-down: ## Tüm Cortex servislerini durdur (JVM + Flask + Next.js + Ollama)
+	@echo "→ Cortex servisleri durduruluyor..."
+	-@pkill -9 -f "exec:java" 2>/dev/null && echo "  ✓ Java JVM'ler kapatıldı" || echo "  - JVM yok"
+	-@pkill -9 -f "playwright-java" 2>/dev/null && echo "  ✓ Playwright helper'ları kapatıldı" || true
+	-@pkill -f "python_server/flask_api.py" 2>/dev/null && echo "  ✓ Flask kapatıldı" || echo "  - Flask yok"
+	-@pkill -f "next dev" 2>/dev/null && echo "  ✓ Next.js kapatıldı" || echo "  - Next.js yok"
+	@echo "  (Ollama: kapatmıyorum, başka uygulamalar kullanıyor olabilir)"
+	@echo "  Ollama'yı kapatmak için: pkill -f 'ollama serve'"
+
+cortex-status: ## Tüm Cortex servislerinin durumunu göster
+	@echo "Cortex Servis Durumu:"
+	@printf "  Flask   :5001   "
+	@if curl -s -m 1 http://127.0.0.1:5001/ >/dev/null 2>&1; then echo "✓ çalışıyor"; else echo "✗ kapalı"; fi
+	@printf "  Next.js :3000   "
+	@if curl -s -m 1 http://127.0.0.1:3000/ >/dev/null 2>&1; then echo "✓ çalışıyor"; else echo "✗ kapalı"; fi
+	@printf "  Ollama  :11434  "
+	@if curl -s -m 1 http://127.0.0.1:11434/api/tags >/dev/null 2>&1; then echo "✓ çalışıyor (AI polish aktif)"; else echo "○ kapalı (opsiyonel — AI polish devre dışı)"; fi
+	@printf "  Java JVM        "
+	@n=$$(ps -ax | grep "exec:java" | grep -v grep | wc -l | tr -d ' '); \
+	if [ "$$n" -gt 0 ]; then echo "● $$n aktif recorder JVM (cortex-down ile öldür)"; else echo "○ idle (recorder kullanılmıyor)"; fi
+	@printf "  Recorder server  "
+	@if curl -s -m 1 http://127.0.0.1:7700/status >/dev/null 2>&1; then echo "✓ :7700 dinliyor"; else echo "○ aktif değil"; fi
+
+cortex-feature: ## Tek bir .feature dosyasını çalıştır (FEATURE=path/to/file zorunlu)
+	@test -n "$(FEATURE)" || { echo "Kullanım: make cortex-feature FEATURE=src/test/resources/recordings/foo.feature"; exit 1; }
+	cd $(CORTEX_DIR) && ./scripts/cortex feature $(FEATURE)
+
 # ─── Raporlama ───────────────────────────────────────────────────────────────
 report:
 	npm run report:open
@@ -295,7 +360,7 @@ run-aday-degerlendirme:
 ## AI Gateway kurulumu (bağımlılıkları yükle)
 gateway-install:
 	@echo "📦 AI Gateway bağımlılıkları kuruluyor..."
-	cd ai-gateway && $(PIP) install -r requirements.txt --break-system-packages
+	cd ai-gateway && $(PIP) install -r requirements.txt
 	@echo "✅ AI Gateway kurulumu tamamlandı"
 	@echo ""
 	@echo "⚙️  API key'leri için:"

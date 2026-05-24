@@ -8,8 +8,8 @@
 
 | # | Proje | Yol | Boyut | Durum |
 |---|-------|-----|-------|-------|
-| A | **BGTS Test Dönüşüm (Desktop)** | `/Users/yasin_bulgan/Desktop/BGTS_Test_Donusum` | 3 GB | Ana platform — en olgun |
-| B | **BGTS Test Dönüşüm (Home)** | `/Users/yasin_bulgan/BGTS_Test_Donusum` | 34 MB | Yeni mimari temeli — bu repo |
+| A | **BGTS Test Dönüşüm (Desktop)** | `/Users/yasin_bulgan/Desktop/Cortex_Ai_Automation` | 3 GB | Ana platform — en olgun |
+| B | **BGTS Test Dönüşüm (Home)** | `/Users/yasin_bulgan/Cortex_Ai_Automation` | 34 MB | Yeni mimari temeli — bu repo |
 | C | **BGTS Test Otomasyon (BGTSFLo)** | `/Users/yasin_bulgan/BGTSFLo/.claude/worktrees/*/test-automation` | ~1.2 MB | Hafif Python motoru |
 
 **Karar:** Proje A birleşmenin **hedef reposu**, B ve C'nin benzersiz bileşenleri ona taşınacak.
@@ -108,16 +108,16 @@ ci_cd/ (GitLab CI)          → .gitlab-ci.yml
 
 ```bash
 # Mobile framework taşıma
-cp -r /Users/yasin_bulgan/BGTS_Test_Donusum/frameworks/mobile/ \
-      /Users/yasin_bulgan/Desktop/BGTS_Test_Donusum/engine/frameworks/mobile/
+cp -r /Users/yasin_bulgan/Cortex_Ai_Automation/frameworks/mobile/ \
+      /Users/yasin_bulgan/Desktop/Cortex_Ai_Automation/engine/frameworks/mobile/
 
 # Performance framework taşıma
-cp -r /Users/yasin_bulgan/BGTS_Test_Donusum/frameworks/performance/ \
-      /Users/yasin_bulgan/Desktop/BGTS_Test_Donusum/engine/frameworks/performance/
+cp -r /Users/yasin_bulgan/Cortex_Ai_Automation/frameworks/performance/ \
+      /Users/yasin_bulgan/Desktop/Cortex_Ai_Automation/engine/frameworks/performance/
 
 # API framework genişletme
-cp -r /Users/yasin_bulgan/BGTS_Test_Donusum/frameworks/api/ \
-      /Users/yasin_bulgan/Desktop/BGTS_Test_Donusum/engine/frameworks/api-extended/
+cp -r /Users/yasin_bulgan/Cortex_Ai_Automation/frameworks/api/ \
+      /Users/yasin_bulgan/Desktop/Cortex_Ai_Automation/engine/frameworks/api-extended/
 ```
 
 **Gerekli değişiklik:**
@@ -132,16 +132,16 @@ cp -r /Users/yasin_bulgan/BGTS_Test_Donusum/frameworks/api/ \
 
 ```bash
 # Dönüşüm senaryoları
-cp -r /Users/yasin_bulgan/BGTS_Test_Donusum/features/donusum/ \
-      /Users/yasin_bulgan/Desktop/BGTS_Test_Donusum/engine/features/donusum/
+cp -r /Users/yasin_bulgan/Cortex_Ai_Automation/features/donusum/ \
+      /Users/yasin_bulgan/Desktop/Cortex_Ai_Automation/engine/features/donusum/
 
 # Data-driven senaryolar
-cp -r /Users/yasin_bulgan/BGTS_Test_Donusum/features/data_driven/ \
-      /Users/yasin_bulgan/Desktop/BGTS_Test_Donusum/engine/features/data_driven/
+cp -r /Users/yasin_bulgan/Cortex_Ai_Automation/features/data_driven/ \
+      /Users/yasin_bulgan/Desktop/Cortex_Ai_Automation/engine/features/data_driven/
 
 # Raporlama senaryoları
-cp -r /Users/yasin_bulgan/BGTS_Test_Donusum/features/reporting/ \
-      /Users/yasin_bulgan/Desktop/BGTS_Test_Donusum/engine/features/reporting/
+cp -r /Users/yasin_bulgan/Cortex_Ai_Automation/features/reporting/ \
+      /Users/yasin_bulgan/Desktop/Cortex_Ai_Automation/engine/features/reporting/
 ```
 
 ---
@@ -166,13 +166,13 @@ core/typescript/steps/    → ai-engine/src/steps/
 **Hedef:** K8s deployment desteği ekle
 
 ```bash
-mkdir -p /Users/yasin_bulgan/Desktop/BGTS_Test_Donusum/infra/k8s/
+mkdir -p /Users/yasin_bulgan/Desktop/Cortex_Ai_Automation/infra/k8s/
 
-cp /Users/yasin_bulgan/BGTS_Test_Donusum/k8s/deployment.yaml \
-   /Users/yasin_bulgan/Desktop/BGTS_Test_Donusum/infra/k8s/deployment.yaml
+cp /Users/yasin_bulgan/Cortex_Ai_Automation/k8s/deployment.yaml \
+   /Users/yasin_bulgan/Desktop/Cortex_Ai_Automation/infra/k8s/deployment.yaml
 
-cp /Users/yasin_bulgan/BGTS_Test_Donusum/k8s/service.yaml \
-   /Users/yasin_bulgan/Desktop/BGTS_Test_Donusum/infra/k8s/service.yaml
+cp /Users/yasin_bulgan/Cortex_Ai_Automation/k8s/service.yaml \
+   /Users/yasin_bulgan/Desktop/Cortex_Ai_Automation/infra/k8s/service.yaml
 ```
 
 **Gerekli güncellemeler:**
@@ -187,8 +187,8 @@ cp /Users/yasin_bulgan/BGTS_Test_Donusum/k8s/service.yaml \
 **Hedef:** Mevcut GitHub Actions'a ek olarak GitLab CI desteği
 
 ```bash
-cp /Users/yasin_bulgan/BGTS_Test_Donusum/ci_cd/.gitlab-ci.yml \
-   /Users/yasin_bulgan/Desktop/BGTS_Test_Donusum/.gitlab-ci.yml
+cp /Users/yasin_bulgan/Cortex_Ai_Automation/ci_cd/.gitlab-ci.yml \
+   /Users/yasin_bulgan/Desktop/Cortex_Ai_Automation/.gitlab-ci.yml
 ```
 
 **Gerekli güncellemeler:**
@@ -225,7 +225,7 @@ Home'dakinin farklı/ek logic içerip içermediği incelenmeli.
 ## 6. Hedef Mimari (Birleştirme Sonrası)
 
 ```
-BGTS_Test_Donusum/ (Desktop — Hedef Repo)
+Cortex_Ai_Automation/ (Desktop — Hedef Repo)
 ├── apps/web/                    # Next.js 14 (mevcut)
 ├── backend/                     # FastAPI + 13 domain (mevcut)
 ├── engine/                      # Flask Test Motoru

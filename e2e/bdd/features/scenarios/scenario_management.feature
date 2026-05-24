@@ -7,6 +7,7 @@
     Diyelim ki kullanici sisteme giris yapmistir
     Ve aktif bir proje secilmistir
 
+  @TC-SCN-001
   Senaryo: Yeni senaryo olusturma
     Diyelim ki kullanici senaryolar sayfasindadir
     Ve yeni senaryo butonuna tiklar
@@ -14,6 +15,7 @@
     Ozaman kaydet butonuna tiklar
     Ve senaryo basariyla olusturulur
 
+  @TC-SCN-003
   Senaryo: Senaryo arama
     Diyelim ki kullanici senaryolar sayfasindadir
     Ve arama kutusuna "Login" yazar

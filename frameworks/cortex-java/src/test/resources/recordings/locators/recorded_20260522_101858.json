@@ -1,0 +1,22 @@
+[
+  {
+    "key": "cortexBigbannerClose",
+    "type": "id",
+    "value": "cortex-bigbanner-close"
+  },
+  {
+    "key": "email",
+    "type": "name",
+    "value": "email"
+  },
+  {
+    "key": "password",
+    "type": "name",
+    "value": "password"
+  },
+  {
+    "key": "girisYapButton",
+    "type": "xpath",
+    "value": "//button[normalize-space()\u003d\u0027Giriş Yap\u0027]"
+  }
+]

@@ -1,0 +1,48 @@
+name: qa/ validate
+
+on:
+  pull_request:
+    paths:
+      - "qa/**"
+      - ".github/workflows/qa-validate.yml"
+  push:
+    branches: [main, test]
+    paths:
+      - "qa/**"
+
+jobs:
+  validate:
+    name: Validate qa/ artifacts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: qa/package.json
+
+      - name: Install qa tooling
+        working-directory: qa
+        run: npm install --no-audit --no-fund
+
+      - name: Schema + ID + cross-reference validation
+        working-directory: qa
+        run: node tools/validate.mjs
+
+      - name: Traceability artifacts up-to-date
+        working-directory: qa
+        run: node tools/trace.mjs --check
+        continue-on-error: false
+
+      - name: Upload traceability snapshot (on PR)
+        if: github.event_name == 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: qa-traceability
+          path: |
+            qa/coverage/traceability.csv
+            qa/coverage/coverage-matrix.md
+            qa/coverage/orphans.md

@@ -1,0 +1,159 @@
+name: qa/ import test results
+
+# Bu workflow CI test koşumlarının çıktısını qa/runs/YYYY/MM/TR-*.yml olarak
+# repo'ya kaydeder. Manuel veya başka workflow'lardan workflow_call ile çağrılır.
+#
+# İki kullanım modu:
+#   1. workflow_call: Başka workflow'dan (örn. test pipeline) sonra çağırılır
+#   2. workflow_dispatch: Manuel tetikleme (mevcut report artifact'lerini içeri al)
+
+on:
+  workflow_call:
+    inputs:
+      run_name:
+        description: "Run name (e.g. 'nightly', 'ci-pr-123')"
+        type: string
+        default: "ci"
+      env_name:
+        description: "Environment (staging, prod, ...)"
+        type: string
+        default: "staging"
+      auto_commit:
+        description: "Auto-commit the produced run YAML to test branch"
+        type: boolean
+        default: true
+  workflow_dispatch:
+    inputs:
+      run_name:
+        description: "Run name"
+        type: string
+        default: "manual"
+      env_name:
+        description: "Environment"
+        type: string
+        default: "staging"
+
+permissions:
+  contents: write
+
+jobs:
+  import:
+    name: Import results → qa/runs/
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: qa/package.json
+
+      - name: Install qa tooling
+        working-directory: qa
+        run: npm install --no-audit --no-fund
+
+      - name: Download test artifacts (if any)
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+        continue-on-error: true
+
+      - name: Detect available reports
+        id: detect
+        run: |
+          PW_JSON=""
+          BDD_JSON=""
+          JUNIT_XML=""
+          ALLURE_DIR=""
+
+          if [[ -f reports/e2e-results.json ]]; then PW_JSON="--playwright=reports/e2e-results.json"; fi
+          if [[ -f reports/bdd/cucumber-report.json ]]; then BDD_JSON="--cucumber=reports/bdd/cucumber-report.json"; fi
+          if [[ -f reports/e2e-junit.xml ]]; then JUNIT_XML="--junit=reports/e2e-junit.xml"; fi
+          if [[ -d reports/allure-e2e-results ]] && ls reports/allure-e2e-results/*-result.json &>/dev/null; then
+            ALLURE_DIR="--allure=reports/allure-e2e-results"
+          fi
+          if [[ -d api-tests/allure-results ]] && ls api-tests/allure-results/*-result.json &>/dev/null; then
+            ALLURE_DIR="--allure=api-tests/allure-results"
+          fi
+
+          ALL_FLAGS="$PW_JSON $BDD_JSON $JUNIT_XML $ALLURE_DIR"
+          echo "flags=$ALL_FLAGS" >> $GITHUB_OUTPUT
+
+          if [[ -z "$ALL_FLAGS" ]]; then
+            echo "::warning::No supported report files found. Skipping import."
+            echo "skip=true" >> $GITHUB_OUTPUT
+          else
+            echo "skip=false" >> $GITHUB_OUTPUT
+            echo "Reports detected:$ALL_FLAGS"
+          fi
+
+      - name: Import results → run YAML
+        if: steps.detect.outputs.skip != 'true'
+        # Untrusted inputs (run_name, env_name) flow through env vars instead
+        # of direct ${{...}} interpolation in shell (Semgrep run-shell-injection).
+        env:
+          DETECTED_FLAGS: ${{ steps.detect.outputs.flags }}
+          RUN_NAME: ${{ inputs.run_name }}
+          ENV_NAME: ${{ inputs.env_name }}
+          RUN_ID: ${{ github.run_id }}
+        run: |
+          cd "$GITHUB_WORKSPACE"
+          # shellcheck disable=SC2086
+          node qa/tools/import-results.mjs \
+            $DETECTED_FLAGS \
+            --name="${RUN_NAME}-${RUN_ID}" \
+            --env="$ENV_NAME" \
+            --browser=chromium \
+            --plan=ci-auto
+
+      - name: Refresh traceability
+        if: steps.detect.outputs.skip != 'true'
+        working-directory: qa
+        run: node tools/trace.mjs
+
+      - name: Commit run YAML + coverage updates
+        if: steps.detect.outputs.skip != 'true' && (inputs.auto_commit == true || github.event_name == 'workflow_dispatch')
+        env:
+          RUN_NAME: ${{ inputs.run_name }}
+          RUN_ID: ${{ github.run_id }}
+          WORKFLOW: ${{ github.workflow }}
+          SHA: ${{ github.sha }}
+        run: |
+          git config user.email "qa-bot@cortex-ai-automation.local"
+          git config user.name "qa-bot"
+          git add qa/runs qa/coverage
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "qa(ci): import run results $(date -u +%Y-%m-%d) [skip ci]
+
+Run: ${RUN_NAME}-${RUN_ID}
+Source: ${WORKFLOW} @ ${SHA}
+"
+            git push
+          fi
+
+      - name: Generate dashboard (artifact)
+        if: steps.detect.outputs.skip != 'true'
+        working-directory: qa
+        run: node tools/dashboard.mjs --out=../reports/qa-dashboard/index.html
+
+      - name: Upload dashboard artifact
+        if: steps.detect.outputs.skip != 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: qa-dashboard
+          path: reports/qa-dashboard/
+
+      - name: Upload run snapshot
+        if: steps.detect.outputs.skip != 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: qa-run-snapshot
+          path: |
+            qa/runs/
+            qa/coverage/

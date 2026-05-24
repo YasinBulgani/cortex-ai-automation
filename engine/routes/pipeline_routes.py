@@ -184,8 +184,9 @@ def _mock_playwright(title: str, steps: list[dict], target_url: str = "") -> str
     lines = [
         "# [MOCK — AI anahtarı yapılandırılmamış]",
         "# Gerçek kod üretimi için OPENAI_API_KEY veya ANTHROPIC_API_KEY ekleyin.",
+        "import re",
         "import pytest",
-        "from playwright.sync_api import Page",
+        "from playwright.sync_api import Page, expect",
         "",
         "",
         f"def test_{slug}(page: Page):",
@@ -195,13 +196,36 @@ def _mock_playwright(title: str, steps: list[dict], target_url: str = "") -> str
     for i, s in enumerate(steps, 1):
         action = s.get("action", "").strip().replace('"', '\\"')
         expected = s.get("expected", "").strip().replace('"', '\\"')
+        al = action.lower()
         lines.append(f"    # Adım {i}: {action}")
-        lines.append(f"    # Beklenen: {expected}")
-        lines.append(f"    page.wait_for_timeout(500)  # TODO: gerçek selector ekle")
+        # Generate a best-effort Playwright call based on the action keyword
+        if any(kw in al for kw in ("navigate", "goto", "open", "url", "git", "ziyaret")):
+            lines.append(f"    page.goto(\"{url}\")")
+        elif any(kw in al for kw in ("click", "tıkla", "press", "tap", "bas")):
+            lines.append(f"    page.get_by_role(\"button\").filter(has_text=\"{action[:40]}\").click()")
+        elif any(kw in al for kw in ("fill", "type", "input", "enter", "yaz", "gir", "doldur")):
+            lines.append(f"    page.get_by_label(\"{action[:40]}\").fill(\"test_value\")")
+        elif any(kw in al for kw in ("select", "choose", "seç", "dropdown")):
+            lines.append(f"    page.get_by_label(\"{action[:40]}\").select_option(\"option\")")
+        elif any(kw in al for kw in ("check", "uncheck", "toggle", "işaretle")):
+            lines.append(f"    page.get_by_label(\"{action[:40]}\").check()")
+        elif any(kw in al for kw in ("wait", "bekle", "pause")):
+            lines.append(f"    page.wait_for_load_state(\"networkidle\")")
+        else:
+            lines.append(f"    page.wait_for_load_state(\"networkidle\")  # action: {action[:60]}")
+        # Inline assertion when expected is provided
+        if expected:
+            el = expected.lower()
+            if any(kw in el for kw in ("url", "yönlendir", "redirect", "navigate")):
+                lines.append(f"    expect(page).to_have_url(re.compile(r\"{expected[:60]}\"))")
+            elif any(kw in el for kw in ("title", "başlık")):
+                lines.append(f"    expect(page).to_have_title(re.compile(r\"{expected[:60]}\"))")
+            else:
+                lines.append(f"    expect(page.locator(\"body\")).to_contain_text(\"{expected[:80]}\")")
     lines += [
         "",
-        "    # TODO: Assertions buraya",
-        "    assert page.url is not None",
+        "    # Final state assertion",
+        "    expect(page.locator(\"body\")).to_be_visible()",
     ]
     return "\n".join(lines)
 

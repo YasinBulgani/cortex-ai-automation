@@ -20,7 +20,7 @@
 Mevcut BGTS monorepo yapısının AI ile ilgili kısımları:
 
 ```
-BGTS_Test_Donusum/
+Cortex_Ai_Automation/
 ├── apps/web/                          # Next.js 14 frontend
 ├── backend/                           # FastAPI backend
 ├── engine/                            # Flask otomasyon motoru
@@ -50,7 +50,7 @@ BGTS_Test_Donusum/
 Mevcut yapıyı bozmadan, AI modüllerinin eklenmesi gereken konumlar:
 
 ```
-BGTS_Test_Donusum/
+Cortex_Ai_Automation/
 │
 ├── apps/web/
 │   └── app/                                   # Next.js App Router (src/ yok)

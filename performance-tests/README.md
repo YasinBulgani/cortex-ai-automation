@@ -65,5 +65,5 @@ k6 JSON output → Prometheus/Grafana (`infra/grafana/`) veya k6 Cloud.
 
 ## İlgili
 
-- [docs/testing/TEST_STRATEGY.md](../docs/testing/TEST_STRATEGY.md) — test taksonomisi
+- [qa/strategy/test-strategy.md](../qa/strategy/test-strategy.md) — test taksonomisi
 - [ADR-0005](../docs/adr/0005-test-taksonomisi.md) — test katmanları kararı

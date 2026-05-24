@@ -7,6 +7,7 @@ import com.microsoft.playwright.Page;
 import com.microsoft.playwright.Playwright;
 import com.microsoft.playwright.Tracing;
 
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.concurrent.ConcurrentHashMap;
@@ -72,7 +73,7 @@ public final class PlaywrightFactory {
         if (pw == null) {
             pw = Playwright.create();
             PW.set(pw);
-            ALL_PW.put(Thread.currentThread().threadId(), pw);
+            ALL_PW.put(Thread.currentThread().getId(), pw);
         }
         Browser br = BROWSER.get();
         if (br == null) {
@@ -85,7 +86,7 @@ public final class PlaywrightFactory {
                     .setHeadless(PlaywrightConfig.headless())
                     .setSlowMo(PlaywrightConfig.slowMo()));
             BROWSER.set(br);
-            ALL_BR.put(Thread.currentThread().threadId(), br);
+            ALL_BR.put(Thread.currentThread().getId(), br);
         }
 
         // 2) per-scenario context + page
@@ -93,9 +94,38 @@ public final class PlaywrightFactory {
                 .setViewportSize(PlaywrightConfig.viewportWidth(), PlaywrightConfig.viewportHeight())
                 .setLocale("tr-TR");
 
+        // E25 fix — Mobile device emulation
+        // If -Dplaywright.device=<name> is set, override viewport + apply
+        // userAgent, deviceScaleFactor, isMobile, hasTouch from DevicePresets.
+        String deviceName = PlaywrightConfig.device();
+        if (!deviceName.isBlank()) {
+            DevicePresets.Device dev = DevicePresets.lookup(deviceName);
+            if (dev != null) {
+                DevicePresets.applyTo(opts, deviceName);
+                System.out.println("[PlaywrightFactory] Device emulation active: "
+                        + dev.name() + " (" + dev.viewportWidth() + "x" + dev.viewportHeight()
+                        + ", DPR=" + dev.deviceScaleFactor()
+                        + ", mobile=" + dev.isMobile() + ")");
+            } else {
+                System.err.println("[PlaywrightFactory] Unknown device: '" + deviceName
+                        + "' — falling back to desktop viewport. "
+                        + "Use one of: " + String.join(", ", DevicePresets.availableNames()));
+            }
+        }
+
         if (PlaywrightConfig.videoEnabled()) {
             opts.setRecordVideoDir(Paths.get("target/playwright-videos"));
         }
+
+        // E22: Load storage state (cookies + localStorage) if a saved file exists.
+        // The recorder saves state after recording; subsequent runs reuse it to skip login.
+        // Storage file location: recordings/<feature-name>/storage-state.json
+        // Sensitivity: this file is git-ignored — do NOT commit session tokens.
+        Path storageState = resolveStorageState(scenarioName);
+        if (storageState != null) {
+            opts.setStorageStatePath(storageState);
+        }
+
         BrowserContext ctx = br.newContext(opts);
         ctx.setDefaultTimeout(PlaywrightConfig.defaultTimeoutMs());
 
@@ -128,6 +158,33 @@ public final class PlaywrightFactory {
         try { if (ctx  != null) ctx.close();  } catch (Exception ignored) {}
         PAGE.remove();
         CTX.remove();
+    }
+
+    /**
+     * E22: Find a storage-state.json for this scenario.
+     *
+     * Lookup tier (first hit wins):
+     *   1. recordings/&lt;safe-scenario-name&gt;/storage-state.json      — scenario-specific (preferred)
+     *   2. recordings/shared-storage-state.json                          — suite-level pre-login
+     *   3. src/test/resources/projects/cortex/storage-states/latest.json — last recording auto-save
+     *
+     * Tier 3 lets the recorder's auto-saved session flow into replay without
+     * extra wiring: record once, every subsequent scenario inherits the login.
+     *
+     * Returns null if no state found (context is then created clean).
+     */
+    private static Path resolveStorageState(String scenarioName) {
+        if (scenarioName != null) {
+            String safe = scenarioName.replaceAll("[^A-Za-z0-9_-]", "_").toLowerCase();
+            Path scenarioSpecific = Paths.get("recordings").resolve(safe).resolve("storage-state.json");
+            if (Files.exists(scenarioSpecific)) return scenarioSpecific;
+        }
+        Path shared = Paths.get("recordings/shared-storage-state.json");
+        if (Files.exists(shared)) return shared;
+        // Recorder writes its session here as "latest.json" after every record.
+        Path recorderLatest = Paths.get("src/test/resources/projects/cortex/storage-states/latest.json");
+        if (Files.exists(recorderLatest)) return recorderLatest;
+        return null;
     }
 
     private static void shutdownAll() {

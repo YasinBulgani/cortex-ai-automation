@@ -33,11 +33,42 @@ public class ConfigManager {
 
     static {
         loadEnvFile();
+        loadEnvSpecificFile();   // E23 fix: env-specific override
         loadProperties();
     }
 
     private static void loadEnvFile() {
-        Path envPath = Paths.get(ENV_FILE);
+        loadEnvFileFrom(Paths.get(ENV_FILE));
+    }
+
+    /**
+     * E23 fix — multi-environment support.
+     *
+     * When {@code -Dcortex.env=staging} is passed (or {@code CORTEX_ENV=staging}
+     * in env vars), this loads <code>.env.staging</code> if present, with values
+     * overriding the generic <code>.env</code> file.
+     *
+     * Resolution order (high to low):
+     *   1. -D / env var (always wins)
+     *   2. .env.&lt;active-env&gt; (env-specific, this method)
+     *   3. .env (generic, loadEnvFile)
+     *   4. config.properties (loadProperties)
+     */
+    private static void loadEnvSpecificFile() {
+        String activeEnv = System.getProperty("cortex.env",
+                System.getenv().getOrDefault("CORTEX_ENV", ""));
+        if (activeEnv == null || activeEnv.isBlank()) return;
+        Path envPath = Paths.get(".env." + activeEnv);
+        if (!Files.exists(envPath)) {
+            System.err.println("WARN: cortex.env=" + activeEnv
+                    + " ama " + envPath + " bulunamadı");
+            return;
+        }
+        System.out.println("[Config] Loading env-specific overrides: " + envPath);
+        loadEnvFileFrom(envPath);
+    }
+
+    private static void loadEnvFileFrom(Path envPath) {
         if (!Files.exists(envPath)) return;
         try (BufferedReader br = Files.newBufferedReader(envPath)) {
             String line;
@@ -56,7 +87,7 @@ public class ConfigManager {
                 envFile.setProperty(k, v);
             }
         } catch (IOException e) {
-            System.err.println("WARN: cannot read .env: " + e.getMessage());
+            System.err.println("WARN: cannot read " + envPath + ": " + e.getMessage());
         }
     }
 

@@ -104,7 +104,7 @@ Bu rapor, piyasadaki 13 farklı AI test otomasyon yaklaşımını derinlemesine 
 | Özellik | Detay |
 |---------|-------|
 | **Tanım** | Güvenlik açıklarının otomatik tespiti ve penetrasyon testleri |
-| **BGTS Mevcut Durum** | Dokümantasyon seviyesinde (`docs/test-design/BGTS_Security_Tests.md`), pytest `security` marker'ı |
+| **BGTS Mevcut Durum** | Dokümantasyon seviyesinde (`qa/test-design/security.md`), pytest `security` marker'ı |
 | **AI Entegrasyon Alanları** | OWASP vulnerability scanning, AI fuzzing, LLM güvenlik testi, prompt injection testi |
 | **Hedef Araçlar** | Shannon (autonomous pentester), AISEC, ZAP + AI plugin |
 | **Öncelik** | Yüksek — bankacılık sektörü gereksinimleri |

@@ -6,9 +6,9 @@
 
 ## Özet
 
-| | test-automation | BGTS_Test_Donusum |
+| | test-automation | Cortex_Ai_Automation |
 |---|---|---|
-| **Yol** | `/Users/yasin_bulgan/test-automation` | `/Users/yasin_bulgan/Desktop/BGTS_Test_Donusum` |
+| **Yol** | `/Users/yasin_bulgan/test-automation` | `/Users/yasin_bulgan/Desktop/Cortex_Ai_Automation` |
 | **Boyut** | ~3.6 GB | ~1.9 GB |
 | **Tür** | Standalone Flask + pytest-bdd | Monorepo (FastAPI + Flask + Next.js) |
 | **Karar** | → Kaynak (taşınacak) | ← Hedef (ana proje) |
@@ -17,7 +17,7 @@
 
 ## Adım 1 — Benzersiz Route'ları Taşı
 
-`test-automation/routes/` → `BGTS_Test_Donusum/engine/routes/`
+`test-automation/routes/` → `Cortex_Ai_Automation/engine/routes/`
 
 | Dosya | Açıklama | Eylem |
 |---|---|---|
@@ -38,7 +38,7 @@ from routes.magic_test_routes import magic_test_bp
 
 ## Adım 2 — Benzersiz Core Modülleri Taşı
 
-`test-automation/core/` → `BGTS_Test_Donusum/engine/core/`
+`test-automation/core/` → `Cortex_Ai_Automation/engine/core/`
 
 | Dosya | Açıklama | Eylem |
 |---|---|---|
@@ -54,7 +54,7 @@ from routes.magic_test_routes import magic_test_bp
 
 ## Adım 3 — Banking/Sentetik Veri Modülünü Taşı
 
-`test-automation/core/banking/` → `BGTS_Test_Donusum/engine/core/banking/`
+`test-automation/core/banking/` → `Cortex_Ai_Automation/engine/core/banking/`
 
 Taşınacak dosyalar:
 - `core/banking/ai_data_generator.py`
@@ -67,7 +67,7 @@ Taşınacak dosyalar:
 
 ## Adım 4 — Sentetik Veri Platformlarını Birleştir
 
-`test-automation/` → `BGTS_Test_Donusum/backend/synthetic-data/`
+`test-automation/` → `Cortex_Ai_Automation/backend/synthetic-data/`
 
 | Kaynak | Hedef | Not |
 |---|---|---|
@@ -83,7 +83,7 @@ Taşınacak dosyalar:
 
 ## Adım 5 — Konfigürasyon Dosyalarını Birleştir
 
-`test-automation/config/` → `BGTS_Test_Donusum/engine/config/`
+`test-automation/config/` → `Cortex_Ai_Automation/engine/config/`
 
 | Dosya | Eylem |
 |---|---|
@@ -117,13 +117,13 @@ Taşınacak dosyalar:
 
 ## Adım 8 — Script'leri Birleştir
 
-`test-automation/scripts/` → `BGTS_Test_Donusum/engine/scripts/` (yeni/benzersiz olanlar)
+`test-automation/scripts/` → `Cortex_Ai_Automation/engine/scripts/` (yeni/benzersiz olanlar)
 
 ---
 
 ## Adım 9 — "Test Otomasyon" Klasörü
 
-`test-automation/Test Otomasyon/` → `BGTS_Test_Donusum/docs/test-otomasyon/`
+`test-automation/Test Otomasyon/` → `Cortex_Ai_Automation/docs/test-otomasyon/`
 
 Türkçe dokümantasyon/UI materyalleri merkezi docs klasörüne taşınır.
 
@@ -133,7 +133,7 @@ Türkçe dokümantasyon/UI materyalleri merkezi docs klasörüne taşınır.
 
 ```bash
 # BGTS ana repo'suna test-automation geçmişini ekle
-cd /Users/yasin_bulgan/Desktop/BGTS_Test_Donusum
+cd /Users/yasin_bulgan/Desktop/Cortex_Ai_Automation
 git remote add legacy-automation /Users/yasin_bulgan/test-automation
 git fetch legacy-automation
 # Her modülü git subtree ile taşı (geçmişi koruyarak)
@@ -180,7 +180,7 @@ git subtree add --prefix=engine/core/banking legacy-automation/main:core/banking
 
 ## docker-compose Entegrasyonu
 
-`BGTS_Test_Donusum/docker-compose.yml`'a sentetik veri servisi eklenecek:
+`Cortex_Ai_Automation/docker-compose.yml`'a sentetik veri servisi eklenecek:
 
 ```yaml
   synthetic-data:

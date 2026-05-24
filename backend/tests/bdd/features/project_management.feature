@@ -7,7 +7,7 @@ Feature: Proje Yönetimi
   Background:
     Given kullanıcı oturum açmış ve geçerli JWT token'a sahip
 
-  @critical @pozitif
+  @critical @pozitif @TC-PRJ-001
   Scenario: Geçerli bilgilerle yeni proje oluşturma
     Given proje oluşturma verisi hazırlanıyor
     And proje adı "Sprint-1 Test Projesi" olarak belirleniyor
@@ -32,20 +32,20 @@ Feature: Proje Yönetimi
     When POST "/api/v1/tspm/projects" isteği gönderilir
     Then yanıt kodu 201 olmalı
 
-  @medium @pozitif
+  @medium @pozitif @TC-PRJ-002
   Scenario: Projeler oluşturma tarihine göre ters sırada listelenir
     Given "İlk Proje" adıyla proje oluşturulmuş
     And 1 saniye sonra "İkinci Proje" adıyla proje oluşturulmuş
     When GET "/api/v1/tspm/projects" isteği gönderilir
     Then yanıt listesinde ilk öğe "İkinci Proje" olmalı
 
-  @high @negatif
+  @high @negatif @TC-PRJ-004
   Scenario: Var olmayan proje ID ile erişim 404 döner
     When GET "/api/v1/tspm/projects/00000000-0000-0000-0000-000000000000/dashboard" isteği gönderilir
     Then yanıt kodu 404 olmalı
     And yanıtta "Proje bulunamadı" mesajı olmalı
 
-  @high @pozitif
+  @high @pozitif @TC-PRJ-003
   Scenario: Boş proje dashboard'u sıfır değerler döner
     Given yeni boş bir proje oluşturulmuş
     When bu projenin dashboard endpoint'i çağrılır

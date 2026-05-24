@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "cortex.qa.pre-condition",
+  "title": "Pre-condition",
+  "type": "object",
+  "required": ["id", "title", "description", "setup_steps"],
+  "additionalProperties": false,
+  "properties": {
+    "id": { "type": "string", "pattern": "^PRE-\\d{3,}$" },
+    "title": { "type": "string", "minLength": 1 },
+    "description": { "type": "string" },
+    "setup_steps": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string" }
+    },
+    "teardown_steps": {
+      "type": "array",
+      "items": { "type": "string" }
+    }
+  }
+}

@@ -93,7 +93,19 @@ class TestSuggestionEngine:
             return _api_test_template(method, path)
         elif framework == "playwright" and gap.area == "ui":
             return _ui_test_template(gap.target)
-        return f"# TODO: {gap.description}"
+        # Generic fallback: generate a pytest stub with an xfail marker so it's
+        # visible in CI output but doesn't silently pass.
+        slug = gap.target.lower().replace(" ", "_").replace("/", "_").strip("_")
+        return (
+            f"import pytest\n\n"
+            f"@pytest.mark.xfail(reason=\"Coverage gap — implement: {gap.description}\", strict=False)\n"
+            f"def test_{slug}_coverage_gap():\n"
+            f'    """Auto-generated coverage-gap stub.\n'
+            f"    Target : {gap.target}\n"
+            f"    Area   : {gap.area}\n"
+            f'    Action : Implement this test to close the coverage gap."""\n'
+            f"    raise NotImplementedError(\"Coverage gap stub: {gap.description}\")\n"
+        )
 
 
 def _api_test_template(method: str, path: str) -> str:
@@ -114,8 +126,10 @@ def _ui_test_template(target: str) -> str:
     return f'''import {{ test, expect }} from '@playwright/test';
 
 test('{target} page loads', async ({{ page }}) => {{
-  await page.goto('/{target.lower().replace(" ", "-")}');
-  await expect(page).toHaveTitle(/.*/);
-  // TODO: Add specific assertions
+  const slug = '{target.lower().replace(" ", "-")}';
+  await page.goto(`/${{slug}}`);
+  await expect(page).toHaveTitle(/.+/);
+  await expect(page.locator('body')).toBeVisible();
+  await expect(page.locator('h1, h2, [data-testid="page-title"]')).toBeVisible();
 }});
 '''

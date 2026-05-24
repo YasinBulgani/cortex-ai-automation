@@ -188,6 +188,10 @@ class TspmFlow(Base):
     description: Mapped[Optional[str]] = mapped_column(Text, nullable=True, default="")
     nodes: Mapped[Optional[list[dict[str, Any]]]] = mapped_column(JSONB, nullable=True, default=list)
     edges: Mapped[Optional[list[dict[str, Any]]]] = mapped_column(JSONB, nullable=True, default=list)
+    # Template metadata (added 2026-05-24 — migration: 20260524_0001_tspm_flow_template_fields)
+    template_id: Mapped[Optional[str]] = mapped_column(String(128), nullable=True)
+    agent_type: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    tags: Mapped[Optional[list[str]]] = mapped_column(JSONB, nullable=True, default=list)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
 
     project: Mapped[TspmProject] = relationship(back_populates="flows")

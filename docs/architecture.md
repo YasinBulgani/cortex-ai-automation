@@ -99,7 +99,7 @@ BGTS Test Dönüşüm, **test yönetimi**, **sentetik veri üretimi** ve **AI de
 ## Dizin Yapısı
 
 ```
-BGTS_Test_Donusum/
+Cortex_Ai_Automation/
 ├── apps/
 │   └── web/                    # Next.js 14 Frontend
 │       ├── app/                # App Router sayfaları

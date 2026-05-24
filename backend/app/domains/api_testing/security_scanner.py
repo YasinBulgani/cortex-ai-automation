@@ -966,8 +966,8 @@ def scan_endpoint(
         spec = db.query(ApiSpec).filter(
             ApiSpec.id == endpoint.spec_id,
         ).first()
-    except Exception:
-        pass
+    except Exception as _exc:
+        logger.warning("ApiSpec sorgusu başarısız (spec_id=%s): %s", getattr(endpoint, "spec_id", "?"), _exc)
 
     # Run all OWASP checks
     all_findings = []  # type: List[Dict[str, Any]]

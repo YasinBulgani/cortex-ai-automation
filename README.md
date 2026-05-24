@@ -40,7 +40,7 @@ Cortex_Ai_Automation/
 ├── LICENSE.txt
 ├── .gitignore
 │
-├── framework/                     ← Java + Python (Cortex test framework)
+├── frameworks/cortex-java/                     ← Java + Python (Cortex test framework)
 │   ├── pom.xml, mvnw, mvnw.cmd
 │   ├── .mvn/                      — Maven wrapper conf
 │   ├── src/                       — Java source (Recorder, runner, steps, Playwright)
@@ -89,7 +89,7 @@ Cortex_Ai_Automation/
 - **Java 17+** ([Adoptium Temurin](https://adoptium.net))
 - **Python 3.10+** ([python.org](https://python.org))
 - **Node.js 18+** ([nodejs.org](https://nodejs.org))
-- **Maven** opsiyonel (`framework/mvnw` ile gelir)
+- **Maven** opsiyonel (`frameworks/cortex-java/mvnw` ile gelir)
 
 ### 1. Java framework + Flask dashboard
 ```bash
@@ -143,7 +143,7 @@ cd framework
                            │ rewrites: /api/cortex/* → :5001
                            ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│  Flask API + HTML Dashboard (framework/python_server)           │
+│  Flask API + HTML Dashboard (frameworks/cortex-java/python_server)           │
 │                                              localhost:5001     │
 │  • /api/cortex/recorder/* (start/stop/status/actions)           │
 │  • /api/cortex/files/* (in-dashboard IDE)                       │
@@ -153,7 +153,7 @@ cd framework
                            │ subprocess: mvn exec:java RecorderMain
                            ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│  Java Recorder (framework/src/recorder)      127.0.0.1:7700     │
+│  Java Recorder (frameworks/cortex-java/src/recorder)      127.0.0.1:7700     │
 │  • Playwright Chromium (CDP, exposeBinding __cortexSend)        │
 │  • Triple-channel transport (binding + console + HTTP)          │
 │  • Hibrit input/change/submit otomatik + click PICK             │

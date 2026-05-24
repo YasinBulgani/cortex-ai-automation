@@ -1,4 +1,4 @@
-# BGTS_Test_Donusum — Depo birleştirme ve sadeleştirme (ayrıntılı plan)
+# Cortex_Ai_Automation — Depo birleştirme ve sadeleştirme (ayrıntılı plan)
 
 Bu belge, monoreponun **tek kanonik kod ağacı** etrafında toplanması, tekrarların azaltılması ve operasyonel risklerin kontrol altına alınması için fazlara ayrılmış bir yol haritasıdır. Özet envanter: [`repository-inventory.md`](repository-inventory.md).
 

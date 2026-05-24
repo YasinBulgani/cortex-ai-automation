@@ -706,6 +706,6 @@ This comprehensive test automation platform consolidates best practices from:
 
 ---
 
-**BGTS_Test_Donusum** - Turkish for "Test Transformation"
+**Cortex_Ai_Automation** - Turkish for "Test Transformation"
 
 Transforming test automation with unified architecture, advanced features, and enterprise-grade implementation.

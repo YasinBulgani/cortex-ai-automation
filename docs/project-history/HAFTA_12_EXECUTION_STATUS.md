@@ -65,7 +65,7 @@ export OPENAI_API_KEY="sk-..."
 export ANTHROPIC_API_KEY="sk-..."
 
 # Option 2: Update .env file
-cd /Users/yasin_bulgan/BGTS_Test_Donusum
+cd /Users/yasin_bulgan/Cortex_Ai_Automation
 echo 'OPENAI_API_KEY=your-key-here' >> .env
 echo 'ANTHROPIC_API_KEY=your-key-here' >> .env
 
@@ -127,7 +127,7 @@ export AI_PROVIDER="mock"
 
 #### Step 1: Configure AI Integration (Optional - for AI features)
 ```bash
-cd /Users/yasin_bulgan/BGTS_Test_Donusum
+cd /Users/yasin_bulgan/Cortex_Ai_Automation
 
 # Either set API keys:
 export OPENAI_API_KEY="your-key-here"
@@ -154,7 +154,7 @@ python3 -m services.flask_app &
 
 #### Step 3: Start React Frontend (When ready for Phase 2)
 ```bash
-cd /Users/yasin_bulgan/BGTS_Test_Donusum/website/frontend
+cd /Users/yasin_bulgan/Cortex_Ai_Automation/website/frontend
 
 # Check Node.js is installed:
 node --version  # Should be v14+

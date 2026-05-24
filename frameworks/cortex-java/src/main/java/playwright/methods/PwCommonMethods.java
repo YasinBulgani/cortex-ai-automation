@@ -34,8 +34,11 @@ public class PwCommonMethods {
 
     public static void open(String url) {
         try {
+            // LOAD waits for the load event (DOMContentLoaded + all sub-resources).
+            // Was previously COMMIT, but the JS driver rejected that on this
+            // Playwright build, leaving the browser context in a broken state.
             page().navigate(url, new com.microsoft.playwright.Page.NavigateOptions()
-                    .setWaitUntil(com.microsoft.playwright.options.WaitUntilState.COMMIT));
+                    .setWaitUntil(com.microsoft.playwright.options.WaitUntilState.LOAD));
         } catch (com.microsoft.playwright.PlaywrightException e) {
             // Tolerate aborted navigations caused by immediate redirects (SPA login flow).
             System.out.println("[PwCommonMethods] navigate() warning (continuing): "
@@ -44,6 +47,12 @@ public class PwCommonMethods {
         try {
             page().waitForLoadState(LoadState.DOMCONTENTLOADED);
         } catch (com.microsoft.playwright.PlaywrightException ignored) {}
+        // NOTE: NETWORKIDLE wait was attempted but it interacts badly with SPAs
+        // that hold open connections (Sentry, websockets) — caused TargetClosedError.
+        // Instead, rely on locator-level auto-waiting (fill/click block until the
+        // element appears, up to playwright.timeout.ms). Bump that timeout via
+        //   -Dplaywright.timeout.ms=60000
+        // for SPAs that hydrate slowly.
     }
 
     public static void click(String key, Map<String, String> locators) {

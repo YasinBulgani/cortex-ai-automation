@@ -87,3 +87,8 @@ target/ai_*.html
 
 # --- Python ML model (regenerate with train_model.py) ---
 # python_server/final_model.pkl
+
+# --- Playwright session state (E22) ---
+# These files contain auth cookies and local storage — never commit.
+recordings/**/storage-state.json
+recordings/shared-storage-state.json

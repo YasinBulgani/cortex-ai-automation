@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { useKnowledgeBase, type KbArticle } from "@/lib/useKnowledgeBase";
 
@@ -109,13 +109,17 @@ export default function KnowledgeBasePage() {
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [seededOnce, setSeededOnce] = useState(false);
 
-  // Auto-seed sample articles on first load
-  if (articles.length === 0 && !seededOnce) {
-    setSeededOnce(true);
-    SEED_ARTICLES.forEach((a) =>
-      create({ ...a, author_id: "neurex", author_name: "Neurex" }),
-    );
-  }
+  // Auto-seed sample articles on first mount — moved to useEffect to avoid
+  // calling setState during render (infinite re-render loop risk).
+  useEffect(() => {
+    if (articles.length === 0 && !seededOnce) {
+      setSeededOnce(true);
+      SEED_ARTICLES.forEach((a) =>
+        create({ ...a, author_id: "neurex", author_name: "Neurex" }),
+      );
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const visible = query.trim()
     ? search(query)

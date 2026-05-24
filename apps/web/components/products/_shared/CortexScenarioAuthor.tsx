@@ -93,8 +93,9 @@ function RecorderTab({ onClose }: { onClose: () => void }) {
   const [url, setUrl] = useState("https://cortex-test.bgtsai.com/");
   const [featureName, setFeatureName] = useState("");
   const [browser, setBrowser] = useState("chromium");
-  // Recorder backend: "custom" = our recorder.js, "codegen" = Playwright official
-  const [backend, setBackend] = useState<"custom" | "codegen">("custom");
+  const [device, setDevice] = useState("Desktop");
+  // Recorder backend: "codegen" = Playwright official (daha sağlam, önerilen)
+  const [backend, setBackend] = useState<"custom" | "codegen">("codegen");
   const [codegenJobId, setCodegenJobId] = useState<string | null>(null);
 
   // Lifecycle: idle → starting → running → stopping → idle
@@ -105,6 +106,27 @@ function RecorderTab({ onClose }: { onClose: () => void }) {
   const [err, setErr] = useState<string | null>(null);
   const [busyStop, setBusyStop] = useState(false);
   const [busyUndo, setBusyUndo] = useState(false);
+  const [busyPause, setBusyPause] = useState(false);
+
+  // 🪄 AI Polish — local Ollama post-processing of the most-recent .feature.
+  // Triggered by the "AI Polish Son Kayıt" button in the idle view.
+  type PolishState = {
+    open: boolean;
+    loading: boolean;
+    saving?: boolean;
+    error?: string | null;
+    original?: string;
+    enhanced?: string;
+    streamingTokens?: string;
+    path?: string;
+    model: string;
+  };
+  const [polish, setPolish] = useState<PolishState>({
+    open: false,
+    loading: false,
+    model: "qwen2.5:14b",
+  });
+  const polishAbortRef = useRef<AbortController | null>(null);
   const [startedAt, setStartedAt] = useState<number | null>(null);
   const [now, setNow] = useState<number>(Date.now());
   useEffect(() => {
@@ -137,7 +159,15 @@ function RecorderTab({ onClose }: { onClose: () => void }) {
           const arr = await ar.json();
           if (Array.isArray(arr) && !cancelled) setActions(arr.slice(-12)); // last 12
         }
-      } catch {/* ignore — dashboard maybe restarting */}
+      } catch (e) {
+        // Don't toast every transient poll error, but surface persistent ones
+        // so the user sees them instead of staring at "0 aksiyon" forever.
+        console.warn("[recorder] poll error", e);
+        if (!cancelled) {
+          const msg = e instanceof Error ? e.message : String(e);
+          setErr((prev) => prev ?? `Backend bağlantısı koptu: ${msg}`);
+        }
+      }
     };
     poll();
     const id = setInterval(poll, 1500);
@@ -152,7 +182,10 @@ function RecorderTab({ onClose }: { onClose: () => void }) {
     // recording without cleanly stopping the previous one.
     try {
       await fetch(`${DASHBOARD_URL}/api/cortex/recorder/cleanup`, { method: "POST" });
-    } catch { /* best-effort */ }
+    } catch (e) {
+      // Best-effort, but log so we can debug "ghost Chromium" reports.
+      console.warn("[recorder] pre-launch cleanup failed", e);
+    }
 
     setPhase("starting"); setErr(null); setStartInfo(null); setActions([]); setStatus(null);
     setStartedAt(Date.now());
@@ -161,7 +194,7 @@ function RecorderTab({ onClose }: { onClose: () => void }) {
         // Playwright official codegen
         const r = await fetch(`${DASHBOARD_URL}/api/cortex/codegen/start`, {
           method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ url, target: "javascript", browser }),
+          body: JSON.stringify({ url, target: "javascript", browser, device: device !== "Desktop" ? device : undefined }),
         });
         const j = await r.json();
         if (!r.ok || !j.ok) {
@@ -175,7 +208,7 @@ function RecorderTab({ onClose }: { onClose: () => void }) {
         // Custom recorder.js + Java RecorderMain
         const r = await fetch(`${DASHBOARD_URL}/api/cortex/recorder/start`, {
           method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ url, feature_name: featureName || undefined, browser }),
+          body: JSON.stringify({ url, feature_name: featureName || undefined, browser, device: device !== "Desktop" ? device : undefined }),
         });
         const j = await r.json();
         if (!r.ok || !j.ok) {
@@ -232,21 +265,139 @@ function RecorderTab({ onClose }: { onClose: () => void }) {
     } finally { setBusyUndo(false); }
   };
 
+  /* ── AI Polish ───────────────────────────────────────────────
+   * Take the most-recently-saved .feature, hand it to local Ollama via SSE
+   * streaming so the user sees tokens arrive in real-time.
+   * Falls back to blocking /enhance if streaming fails.
+   */
+  const runPolish = async () => {
+    const abort = new AbortController();
+    polishAbortRef.current = abort;
+    setPolish((p) => ({
+      ...p,
+      open: true,
+      loading: true,
+      error: null,
+      original: undefined,
+      enhanced: undefined,
+      streamingTokens: "",
+      path: undefined,
+    }));
+    try {
+      const lr = await fetch(`${DASHBOARD_URL}/api/cortex/recorder/last-feature`);
+      const lj = await lr.json();
+      if (!lr.ok || !lj.ok) throw new Error(lj.error || "Son .feature bulunamadı");
+
+      // Use streaming endpoint for live token preview
+      const er = await fetch(`${DASHBOARD_URL}/api/cortex/recorder/enhance/stream`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ featurePath: lj.path, featureContent: lj.content, model: polish.model }),
+        signal: abort.signal,
+      });
+      if (!er.ok || !er.body) throw new Error("Streaming başlatılamadı");
+
+      const reader = er.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() ?? "";
+        for (const line of lines) {
+          if (!line.startsWith("data: ")) continue;
+          try {
+            const msg = JSON.parse(line.slice(6));
+            if (msg.error) throw new Error(msg.error);
+            if (msg.token) {
+              setPolish((p) => ({ ...p, streamingTokens: (p.streamingTokens ?? "") + msg.token }));
+            }
+            if (msg.done) {
+              setPolish((p) => ({
+                ...p,
+                loading: false,
+                streamingTokens: undefined,
+                original: msg.original ?? lj.content,
+                enhanced: msg.enhanced,
+                path: lj.path,
+              }));
+              return;
+            }
+          } catch (parseErr: unknown) {
+            throw parseErr instanceof Error ? parseErr : new Error(String(parseErr));
+          }
+        }
+      }
+    } catch (e: unknown) {
+      if ((e as Error).name === "AbortError") {
+        setPolish((p) => ({ ...p, loading: false, streamingTokens: undefined, error: "İptal edildi." }));
+        return;
+      }
+      setPolish((p) => ({
+        ...p,
+        loading: false,
+        streamingTokens: undefined,
+        error: e instanceof Error ? e.message : String(e),
+      }));
+    }
+  };
+
+  const cancelPolish = () => {
+    polishAbortRef.current?.abort();
+  };
+
+  const acceptPolish = async () => {
+    if (!polish.path || !polish.enhanced) return;
+    setPolish((p) => ({ ...p, saving: true, error: null }));
+    try {
+      const r = await fetch(`${DASHBOARD_URL}/api/cortex/files/write`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ path: polish.path, content: polish.enhanced }),
+      });
+      const j = await r.json().catch(() => ({} as Record<string, unknown>));
+      if (!r.ok) throw new Error(((j as { error?: string }).error) || "Dosya yazılamadı");
+      setPolish({ open: false, loading: false, model: polish.model });
+    } catch (e: unknown) {
+      setPolish((p) => ({
+        ...p,
+        saving: false,
+        error: e instanceof Error ? e.message : String(e),
+      }));
+    }
+  };
+
+  const closePolish = () => setPolish((p) => ({ ...p, open: false }));
+
   /* ── Render ──────────────────────────────────────────────── */
 
   if (phase === "running" || phase === "stopping") {
     return (
       <div className="space-y-4">
         {/* Status banner */}
-        <div className="rounded-xl bg-rose-500/10 border border-rose-500/30 p-4 flex items-center justify-between">
+        <div className={`rounded-xl p-4 flex items-center justify-between border ${
+          (status as {paused?: boolean} | null)?.paused
+            ? "bg-amber-500/10 border-amber-500/30"
+            : "bg-rose-500/10 border-rose-500/30"
+        }`}>
           <div className="flex items-center gap-3">
             <span className="relative flex h-3 w-3">
-              {phase === "running" && <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75" />}
-              <span className={`relative inline-flex rounded-full h-3 w-3 ${phase === "stopping" ? "bg-amber-400" : "bg-rose-500"}`} />
+              {phase === "running" && !(status as {paused?: boolean} | null)?.paused && (
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75" />
+              )}
+              <span className={`relative inline-flex rounded-full h-3 w-3 ${
+                phase === "stopping" ? "bg-amber-400"
+                : (status as {paused?: boolean} | null)?.paused ? "bg-amber-400"
+                : "bg-rose-500"
+              }`} />
             </span>
             <div>
               <p className="text-sm font-bold text-white">
-                {phase === "stopping" ? "Durduruluyor…" : "🔴 KAYIT YAPILIYOR"}
+                {phase === "stopping" ? "Durduruluyor…"
+                  : (status as {paused?: boolean} | null)?.paused ? "⏸ DURAKLATILDI"
+                  : "🔴 KAYIT YAPILIYOR"}
               </p>
               <p className="text-xs text-rose-200/80">
                 {phase === "stopping"
@@ -296,7 +447,7 @@ function RecorderTab({ onClose }: { onClose: () => void }) {
 
         {err && <div className="rounded-xl p-3 bg-rose-500/10 border border-rose-500/30 text-rose-300 text-sm">✗ {err}</div>}
 
-        {/* Control bar — STOP + UNDO + LOGS */}
+        {/* Control bar — PAUSE + STOP + UNDO + LOGS */}
         <div className="flex flex-wrap items-center gap-2 pt-1 sticky bottom-0 bg-slate-950 pb-1">
           <button
             onClick={undo}
@@ -315,6 +466,25 @@ function RecorderTab({ onClose }: { onClose: () => void }) {
             ↗ Cortex sekmesini öne getir
           </a>
           <div className="flex-1" />
+          {/* E06: Pause/Resume button */}
+          <button
+            onClick={async () => {
+              setBusyPause(true);
+              const isPaused = (status as {paused?: boolean} | null)?.paused;
+              try {
+                await fetch(`${DASHBOARD_URL}/api/cortex/recorder/${isPaused ? "resume" : "pause"}`, { method: "POST" });
+              } finally { setBusyPause(false); }
+            }}
+            disabled={busyPause || phase === "stopping"}
+            className={`px-4 py-2 rounded-lg text-sm font-medium border disabled:opacity-40 disabled:cursor-not-allowed ${
+              (status as {paused?: boolean} | null)?.paused
+                ? "bg-emerald-500/20 border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/30"
+                : "bg-amber-500/20 border-amber-500/40 text-amber-300 hover:bg-amber-500/30"
+            }`}
+            title={(status as {paused?: boolean} | null)?.paused ? "Kaydı devam ettir" : "Kaydı duraklat — telefon, e-posta bekleme vb."}
+          >
+            {busyPause ? "…" : (status as {paused?: boolean} | null)?.paused ? "▶ Devam Et" : "⏸ Duraklat"}
+          </button>
           <button
             onClick={stop}
             disabled={busyStop || phase === "stopping"}
@@ -341,8 +511,8 @@ function RecorderTab({ onClose }: { onClose: () => void }) {
       <FormField label="Kayıt motoru">
         <div className="grid grid-cols-2 gap-2 p-1 bg-slate-900 rounded-lg border border-slate-700">
           {([
-            { id: "custom",  label: "🎯 Custom Recorder",     hint: "Zengin UI, PICK mode, live action panel" },
-            { id: "codegen", label: "🤖 Playwright Codegen",  hint: "Microsoft official, Shadow DOM + popup safe" },
+            { id: "codegen", label: "🤖 Playwright Codegen",  hint: "Microsoft official — önerilir" },
+            { id: "custom",  label: "🎯 Custom Recorder",     hint: "Zengin UI, live action panel" },
           ] as const).map((b) => (
             <button
               key={b.id}
@@ -358,6 +528,26 @@ function RecorderTab({ onClose }: { onClose: () => void }) {
             </button>
           ))}
         </div>
+        {/* Karşılaştırma kılavuzu */}
+        <div className="mt-2 grid grid-cols-2 gap-2 text-[10px] text-slate-500">
+          <div className={`p-2 rounded border ${backend === "codegen" ? "border-fuchsia-500/40 text-slate-400" : "border-slate-800"}`}>
+            <p className="font-semibold text-fuchsia-400 mb-1">🤖 Codegen — ne zaman?</p>
+            <ul className="space-y-0.5 list-disc list-inside">
+              <li>React / Next.js / SPA siteler</li>
+              <li>Shadow DOM &amp; popup'lar</li>
+              <li>İlk defa kayıt alırken</li>
+              <li className="text-emerald-400 font-medium">← Genellikle bu seçin</li>
+            </ul>
+          </div>
+          <div className={`p-2 rounded border ${backend === "custom" ? "border-fuchsia-500/40 text-slate-400" : "border-slate-800"}`}>
+            <p className="font-semibold text-slate-400 mb-1">🎯 Custom — ne zaman?</p>
+            <ul className="space-y-0.5 list-disc list-inside">
+              <li>Live action panel lazımsa</li>
+              <li>PICK mode kullanmak için</li>
+              <li>Codegen'de sorun varsa</li>
+            </ul>
+          </div>
+        </div>
       </FormField>
 
       <FormField label="Hedef URL">
@@ -369,11 +559,47 @@ function RecorderTab({ onClose }: { onClose: () => void }) {
         </FormField>
         <FormField label="Tarayıcı">
           <select value={browser} onChange={(e) => setBrowser(e.target.value)} className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-white text-sm focus:border-fuchsia-500 focus:outline-none">
-            <option value="chromium">Chromium</option>
-            <option value="firefox">Firefox</option>
-            <option value="webkit">WebKit</option>
+            <option value="chromium">Chromium — en sağlam (önerilir)</option>
+            <option value="firefox">Firefox — SSO / OAuth testleri için</option>
+            <option value="webkit">WebKit — Safari uyumluluk testi için</option>
           </select>
+          {browser === "chromium" && (
+            <p className="mt-1 text-[10px] text-amber-400/80">
+              ⚠ Playwright'ın <strong>özel Chromium</strong>'u açılır — sisteminizin Chrome'u değil.
+              Açılan penceredeki mavi-gri ikon doğru pencereyi gösterir; oradan kayıt yapın.
+            </p>
+          )}
         </FormField>
+      </div>
+
+      {/* Device emulation — E25 */}
+      <div className="grid grid-cols-2 gap-3">
+        <FormField label="Cihaz Emülasyonu">
+          <select value={device} onChange={(e) => setDevice(e.target.value)} className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-white text-sm focus:border-fuchsia-500 focus:outline-none">
+            <optgroup label="Desktop">
+              <option value="Desktop">Desktop (varsayılan)</option>
+            </optgroup>
+            <optgroup label="iPhone">
+              <option value="iPhone 14">iPhone 14 (390×844, iOS Safari)</option>
+              <option value="iPhone 14 Pro">iPhone 14 Pro (393×852)</option>
+              <option value="iPhone SE">iPhone SE (375×667, küçük ekran)</option>
+            </optgroup>
+            <optgroup label="Android">
+              <option value="Pixel 7">Pixel 7 (412×915, Chrome Android)</option>
+              <option value="Galaxy S22">Galaxy S22 (360×780)</option>
+            </optgroup>
+            <optgroup label="Tablet">
+              <option value="iPad Pro">iPad Pro 12.9&quot; (1024×1366)</option>
+              <option value="iPad Mini">iPad Mini (768×1024)</option>
+            </optgroup>
+          </select>
+          {device !== "Desktop" && (
+            <p className="mt-1 text-[10px] text-fuchsia-300/80">
+              📱 <strong>{device}</strong> emülasyonu — viewport, user-agent ve touch desteği otomatik ayarlanır.
+            </p>
+          )}
+        </FormField>
+        <div /> {/* spacer */}
       </div>
 
       {err && (
@@ -383,12 +609,108 @@ function RecorderTab({ onClose }: { onClose: () => void }) {
         </div>
       )}
 
-      <div className="flex justify-end gap-2 pt-2">
+      <div className="flex justify-end gap-2 pt-2 flex-wrap">
         <button onClick={onClose} className="px-4 py-2 rounded-lg text-slate-400 hover:text-white text-sm">İptal</button>
+        <button
+          onClick={runPolish}
+          disabled={polish.loading}
+          className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-fuchsia-300 text-sm font-medium border border-fuchsia-500/30 disabled:opacity-50"
+          title="Son kaydedilen .feature dosyasını yerel Ollama ile temizle ve açıklamalandır"
+        >
+          🪄 {polish.loading ? "Polish yapılıyor…" : "AI Polish Son Kayıt"}
+        </button>
         <button onClick={start} disabled={phase === "starting"} className="px-5 py-2 rounded-lg bg-gradient-to-r from-fuchsia-500 to-purple-600 text-white text-sm font-semibold disabled:opacity-50">
           {phase === "starting" ? "Başlatılıyor (Maven derleniyor)…" : "🎬 Recorder'ı Başlat"}
         </button>
       </div>
+
+      {/* 🪄 AI Polish modal — overlays everything when open */}
+      {polish.open && (
+        <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4 sm:p-6">
+          <div className="bg-slate-950 border border-fuchsia-500/40 rounded-xl shadow-2xl w-full max-w-6xl max-h-[88vh] flex flex-col overflow-hidden">
+            <div className="px-4 py-3 border-b border-slate-800 flex items-start justify-between gap-3">
+              <div>
+                <h3 className="font-bold text-white text-base">🪄 AI Polish — Önizleme</h3>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  {polish.path ? polish.path.split("/").pop() : "son kayıt"}  ·  Model: <code className="text-fuchsia-300">{polish.model}</code>
+                </p>
+              </div>
+              <button onClick={closePolish} className="text-slate-400 hover:text-white text-2xl leading-none">×</button>
+            </div>
+
+            {polish.loading && (
+              <div className="flex-1 flex flex-col overflow-hidden">
+                {polish.streamingTokens ? (
+                  /* Live streaming preview */
+                  <div className="flex-1 flex flex-col overflow-hidden p-3">
+                    <div className="text-[11px] uppercase tracking-wide text-fuchsia-400 mb-1 font-semibold flex items-center gap-2">
+                      <span className="inline-block w-2 h-2 rounded-full bg-fuchsia-500 animate-pulse" />
+                      AI yazıyor…
+                    </div>
+                    <pre className="flex-1 overflow-auto bg-slate-900 border border-fuchsia-500/30 rounded-lg p-3 text-[11px] font-mono text-emerald-200 whitespace-pre-wrap">
+                      {polish.streamingTokens}
+                    </pre>
+                  </div>
+                ) : (
+                  <div className="flex-1 grid place-items-center text-slate-400 text-sm py-16 px-6 text-center">
+                    <div>
+                      <div className="text-3xl mb-3 animate-spin">⚙</div>
+                      <div>Ollama'ya bağlanılıyor…</div>
+                      <div className="text-xs text-slate-600 mt-2">İlk tokenler birkaç saniye içinde görünür</div>
+                    </div>
+                  </div>
+                )}
+                <div className="px-4 py-2 border-t border-slate-800 flex justify-end">
+                  <button
+                    onClick={cancelPolish}
+                    className="px-4 py-2 rounded-lg bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 text-sm border border-rose-500/30"
+                  >
+                    ✕ İptal Et
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {polish.error && !polish.loading && (
+              <div className="m-4 p-3 rounded-lg bg-rose-500/10 border border-rose-500/30 text-rose-300 text-sm">
+                ✗ {polish.error}
+                <div className="mt-1 text-xs text-slate-500">Ollama çalışıyor mu? <code>curl http://127.0.0.1:11434/api/tags</code></div>
+              </div>
+            )}
+
+            {!polish.loading && polish.original && polish.enhanced && (
+              <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-3 p-3 overflow-hidden min-h-0">
+                <div className="flex flex-col overflow-hidden min-h-0">
+                  <div className="text-[11px] uppercase tracking-wide text-slate-500 mb-1 font-semibold">Eski (kayıt)</div>
+                  <pre className="flex-1 overflow-auto bg-slate-900 border border-slate-800 rounded-lg p-3 text-[11px] font-mono text-slate-300 whitespace-pre-wrap">{polish.original}</pre>
+                </div>
+                <div className="flex flex-col overflow-hidden min-h-0">
+                  <div className="text-[11px] uppercase tracking-wide text-fuchsia-400 mb-1 font-semibold">Yeni (AI polish)</div>
+                  <pre className="flex-1 overflow-auto bg-slate-900 border border-fuchsia-500/30 rounded-lg p-3 text-[11px] font-mono text-emerald-200 whitespace-pre-wrap">{polish.enhanced}</pre>
+                </div>
+              </div>
+            )}
+
+            <div className="px-4 py-3 border-t border-slate-800 flex items-center justify-between gap-2 flex-wrap">
+              <span className="text-xs text-slate-500">
+                {polish.enhanced && !polish.loading
+                  ? "Kabul edersen mevcut .feature dosyası üzerine yazılır (geri alınamaz)."
+                  : ""}
+              </span>
+              <div className="flex gap-2 ml-auto">
+                <button onClick={closePolish} className="px-4 py-2 rounded-lg text-slate-400 hover:text-white text-sm">Kapat</button>
+                <button
+                  onClick={acceptPolish}
+                  disabled={!polish.enhanced || polish.saving || polish.loading}
+                  className="px-5 py-2 rounded-lg bg-gradient-to-r from-emerald-500 to-emerald-600 text-white text-sm font-bold disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {polish.saving ? "Yazılıyor…" : "✓ Kabul Et & Kaydet"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

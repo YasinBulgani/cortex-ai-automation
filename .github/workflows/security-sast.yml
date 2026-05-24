@@ -1,0 +1,95 @@
+name: Security — SAST & SCA
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+  schedule:
+    # Weekly full scan on Monday 06:00 UTC
+    - cron: '0 6 * * 1'
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  semgrep:
+    name: Semgrep SAST
+    runs-on: ubuntu-latest
+    container:
+      image: semgrep/semgrep
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Semgrep scan (OWASP + security-audit)
+        # continue-on-error removed — real findings should block the workflow.
+        # SEMGREP_APP_TOKEN is optional; semgrep runs in local mode when absent.
+        run: |
+          semgrep ci \
+            --config p/owasp-top-ten \
+            --config p/javascript \
+            --config p/typescript \
+            --config p/python \
+            --sarif-output semgrep.sarif \
+            --no-autofix
+        env:
+          SEMGREP_APP_TOKEN: ${{ secrets.SEMGREP_APP_TOKEN }}
+
+      - name: Upload SARIF to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()   # upload even if scan found issues (to populate Security tab)
+        with:
+          sarif_file: semgrep.sarif
+        continue-on-error: true  # SARIF upload may fail if file is missing; scan result is authoritative
+
+  osv-scanner:
+    name: OSV Scanner (SCA)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install OSV Scanner
+        run: |
+          curl -sSL \
+            "https://github.com/google/osv-scanner/releases/download/v2.0.2/osv-scanner_linux_amd64" \
+            -o /usr/local/bin/osv-scanner
+          chmod +x /usr/local/bin/osv-scanner
+
+      - name: OSV-Scanner — npm dependencies
+        run: |
+          osv-scanner --lockfile=package-lock.json || true
+          osv-scanner --lockfile=apps/web/package-lock.json || true
+        continue-on-error: true
+
+      - name: OSV-Scanner — Python dependencies
+        run: |
+          osv-scanner --lockfile=frameworks/cortex-java/python_server/requirements.txt || true
+        continue-on-error: true
+
+  trivy-container:
+    name: Trivy Container Scan
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build Docker image for scanning
+        run: docker build -t cortex-scan:${{ github.sha }} . || true
+
+      - name: Trivy vulnerability scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'cortex-scan:${{ github.sha }}'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          severity: 'CRITICAL,HIGH'
+          exit-code: '0'
+        continue-on-error: true
+
+      - name: Upload Trivy SARIF
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: trivy-results.sarif
+        continue-on-error: true

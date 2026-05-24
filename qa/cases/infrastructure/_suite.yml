@@ -1,0 +1,8 @@
+id: SUITE-INF
+title: "Infrastructure"
+description: "Auto-created during PR 3 migration. Update with real description."
+domain: infrastructure
+owner: "@unassigned"
+parent: null
+order: 99
+links: {}

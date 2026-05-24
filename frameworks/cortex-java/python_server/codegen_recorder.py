@@ -85,11 +85,13 @@ def is_codegen_available() -> tuple[bool, str]:
         return False, str(e)
 
 
-def start_codegen(url: str, target: str = "javascript", browser: str = "chromium") -> CodegenJob:
+def start_codegen(url: str, target: str = "javascript", browser: str = "chromium", device: str | None = None) -> CodegenJob:
     """
     Spawn `python -m playwright codegen` as background process.
 
     Returns the CodegenJob immediately. Poll status via get_job().
+    device: optional Playwright device preset (e.g. "iPhone 14"). When set,
+            browser is forced to "chromium" (Playwright devices requirement).
     """
     job_id = uuid.uuid4().hex[:12]
     out_dir = Path.home() / ".cortex" / "codegen"
@@ -111,8 +113,10 @@ def start_codegen(url: str, target: str = "javascript", browser: str = "chromium
         f"--target={target}",
         f"--browser={browser}",
         f"--output={output_file}",
-        url,
     ]
+    if device:
+        cmd.extend(["--device", device])
+    cmd.append(url)
 
     # Detach so it survives Flask reload; we still hold a handle.
     try:

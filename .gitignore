@@ -88,6 +88,15 @@ framework/screenshots/legacy/
 framework/screenshots/legacy_files/
 !framework/screenshots/.gitkeep
 !framework/screenshots/legacy/.gitkeep
+frameworks/cortex-java/screenshots/playwright/*.png
+frameworks/cortex-java/screenshots/playwright/*.jpg
+
+# Browser session state (may contain auth tokens — never commit)
+frameworks/cortex-java/src/test/resources/projects/*/storage-states/*.json
+**/storage-states/*.json
+
+# Flask runtime logs
+frameworks/cortex-java/logs/
 
 # Large media
 *.mp4

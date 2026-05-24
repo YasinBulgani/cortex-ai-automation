@@ -1,0 +1,8 @@
+id: SUITE-FLW
+title: "Flows"
+description: "Auto-created during PR 3 migration. Update with real description."
+domain: flows
+owner: "@unassigned"
+parent: null
+order: 99
+links: {}

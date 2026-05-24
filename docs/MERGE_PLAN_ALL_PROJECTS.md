@@ -1,7 +1,7 @@
 # BGTS Test Dönüşüm — Tüm Projeleri Birleştirme Planı & Analizi
 
 **Tarih:** 2026-04-06
-**Kapsam:** Paribu, NexusQATestOtomasyon, Aday Degerlendirme → BGTS_Test_Donusum
+**Kapsam:** Paribu, NexusQATestOtomasyon, Aday Degerlendirme → Cortex_Ai_Automation
 
 ---
 
@@ -165,7 +165,7 @@
 ## 3. HEDEF BGTS PROJE YAPISI (Birleşme Sonrası)
 
 ```
-BGTS_Test_Donusum/
+Cortex_Ai_Automation/
 │
 ├── frameworks/
 │   ├── playwright-cucumber-ts/          # TypeScript BDD Framework

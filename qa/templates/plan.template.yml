@@ -1,0 +1,19 @@
+id: TP-{YYYY}.Q{N}-{NAME}
+title: "{Plan başlığı}"
+milestone: R-{YYYY}.Q{N}
+owner: "@username"
+created: 2026-01-01
+scope:
+  include:
+    - suite: auth
+      priorities: [P0, P1]
+    - cases: [TC-AUTH-001, TC-AUTH-005]
+  exclude:
+    - tags: [deprecated]
+configurations:
+  matrix:
+    - { browser: chromium, env: staging }
+exit_criteria:
+  - "Tüm P0 pass"
+  - "P1 fail oranı < %5"
+  - "Açık S1 defect = 0"

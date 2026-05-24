@@ -1,0 +1,8 @@
+id: SUITE-PRJ
+title: "Projects"
+description: "Auto-created during PR 3 migration. Update with real description."
+domain: projects
+owner: "@unassigned"
+parent: null
+order: 99
+links: {}

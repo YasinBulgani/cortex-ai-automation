@@ -1,0 +1,42 @@
+[
+  {
+    "key": "cortexBigbannerClose",
+    "type": "id",
+    "value": "cortex-bigbanner-close"
+  },
+  {
+    "key": "cortexBigbannerClose_2",
+    "type": "id",
+    "value": "cortex-bigbanner-close"
+  },
+  {
+    "key": "email",
+    "type": "name",
+    "value": "email"
+  },
+  {
+    "key": "email_2",
+    "type": "name",
+    "value": "email"
+  },
+  {
+    "key": "elementLabel",
+    "type": "css",
+    "value": "div.w-full.max-w-md \u003e div.bg-white.dark\\:bg-slate-800:nth-of-type(2) \u003e form.space-y-5 \u003e div:nth-of-type(2) \u003e label.block.text-sm"
+  },
+  {
+    "key": "elementLabel_2",
+    "type": "css",
+    "value": "div.w-full.max-w-md \u003e div.bg-white.dark\\:bg-slate-800:nth-of-type(2) \u003e form.space-y-5 \u003e div:nth-of-type(2) \u003e label.block.text-sm"
+  },
+  {
+    "key": "password",
+    "type": "name",
+    "value": "password"
+  },
+  {
+    "key": "password_2",
+    "type": "name",
+    "value": "password"
+  }
+]

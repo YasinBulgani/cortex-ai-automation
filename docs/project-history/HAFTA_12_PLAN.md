@@ -54,7 +54,7 @@
 **1. Flask API Server Startup**
 ```bash
 # Start the backend
-cd /Users/yasin_bulgan/BGTS_Test_Donusum
+cd /Users/yasin_bulgan/Cortex_Ai_Automation
 python -m services.flask_app
 # Should run on http://localhost:8000
 ```

@@ -32,7 +32,7 @@ BGTS Test Dönüşüm projesinin test otomasyon platformu için kapsamlı kılav
 
 ```bash
 # 1. Repo'yu klonla
-git clone <repo-url> && cd BGTS_Test_Donusum
+git clone <repo-url> && cd Cortex_Ai_Automation
 
 # 2. Python bağımlılıklarını yükle
 cd engine
@@ -67,7 +67,7 @@ python bgts_runner.py --feature login
 ### Dizin Yapısı
 
 ```
-BGTS_Test_Donusum/
+Cortex_Ai_Automation/
 ├── engine/                          # Test otomasyon motoru
 │   ├── features/BGTS/              # BDD feature dosyaları (Gherkin)
 │   │   ├── login.feature

@@ -67,12 +67,14 @@ export const agentKeys = {
 
 // ── Hooks ────────────────────────────────────────────────────────────
 
-/** Agent bilgilerini getir. */
+/** Agent bilgilerini getir — hata durumunda boş liste döner (sayfa patlamaz). */
 export function useAgentInfo() {
   return useQuery({
     queryKey: agentKeys.info(),
-    queryFn: () => apiFetch<AgentInfo[]>("/api/v1/agents/banking/status"),
+    queryFn: () =>
+      apiFetch<AgentInfo[]>("/api/v1/agents/banking/status").catch(() => [] as AgentInfo[]),
     staleTime: 5 * 60 * 1000,
+    retry: 1,
   });
 }
 

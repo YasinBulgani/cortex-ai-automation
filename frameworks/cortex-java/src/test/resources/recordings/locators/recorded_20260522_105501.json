@@ -1,0 +1,22 @@
+[
+  {
+    "key": "element",
+    "type": "css",
+    "value": "div.min-h-screen.bg-gradient-to-br:nth-of-type(1) \u003e div.hidden.lg\\:flex:nth-of-type(1) \u003e div.relative.z-10:nth-of-type(2) \u003e div.mb-12:nth-of-type(2) \u003e h2.text-4xl.xl\\:text-5xl"
+  },
+  {
+    "key": "email",
+    "type": "name",
+    "value": "email"
+  },
+  {
+    "key": "elementLabel",
+    "type": "css",
+    "value": "div.w-full.max-w-md \u003e div.bg-white.dark\\:bg-slate-800:nth-of-type(2) \u003e form.space-y-5 \u003e div:nth-of-type(2) \u003e label.block.text-sm"
+  },
+  {
+    "key": "girisYapButton",
+    "type": "xpath",
+    "value": "//button[normalize-space()\u003d\u0027Giriş Yap\u0027]"
+  }
+]

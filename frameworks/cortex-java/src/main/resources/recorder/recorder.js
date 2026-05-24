@@ -9,6 +9,48 @@
  *  ===========================================================
  */
 (function () {
+  // ── NULL-SAFE DOM HELPERS ────────────────────────────────────────────
+  // Re-inject on SPA navigation can fire before document.documentElement /
+  // body exist, or with a partially-torn-down tree. Sites like cortex-test
+  // that use React Strict + heavy hydration hit this regularly.
+  // Without these guards we get:
+  //   - "Cannot read properties of null (reading 'setAttribute')"
+  //   - "Failed to execute 'observe' on 'MutationObserver': parameter 1 is not of type 'Node'"
+  // and the recorder stops capturing events even though the JVM is happy.
+  function _docRoot() {
+    return document.documentElement || document.body || null;
+  }
+  function _safeAppend(parent, child) {
+    try {
+      const p = parent || _docRoot();
+      if (p && child) { p.appendChild(child); return true; }
+    } catch (e) { console.warn('[cortex-rec] append failed', e); }
+    return false;
+  }
+  function _safeObserve(cb, target, opts) {
+    try {
+      const t = target || _docRoot();
+      if (!t || t.nodeType !== 1) {
+        console.warn('[cortex-rec] observe target missing, will retry');
+        return null;
+      }
+      const obs = new MutationObserver(cb);
+      obs.observe(t, opts || { childList: true, subtree: true });
+      return obs;
+    } catch (e) {
+      console.warn('[cortex-rec] observe failed', e);
+      return null;
+    }
+  }
+  // If the document is not yet usable, defer the entire IIFE body.
+  if (!document.documentElement) {
+    console.log('[cortex-rec] document not ready, waiting for DOMContentLoaded');
+    document.addEventListener('DOMContentLoaded', () => {
+      // Re-eval will be triggered by RecorderMain re-inject on next nav.
+    }, { once: true });
+    return;
+  }
+
   // ── EARLY PROBE — React-proof (attaches to <html>, observed) ────────
   try {
     document.documentElement.setAttribute('data-cortex-recorder', 'v3');
@@ -20,7 +62,7 @@
       probe.id = PROBE_ID;
       probe.style.cssText = 'position:fixed!important;top:0!important;left:0!important;right:0!important;height:4px!important;background:linear-gradient(90deg,#00ff99,#00cc66,#00ff99)!important;background-size:200% 100%!important;z-index:2147483647!important;pointer-events:none!important;box-shadow:0 0 12px rgba(0,255,153,0.7)!important;animation:cortex-rec-pulse 2s linear infinite!important;';
       // Attach to <html> directly so React rebuilding <body> can't remove it
-      document.documentElement.appendChild(probe);
+      _safeAppend(document.documentElement, probe);
     };
     ensureProbe();
 
@@ -33,7 +75,7 @@
     }
 
     // Re-attach probe if React/SPA removes it
-    new MutationObserver(() => ensureProbe()).observe(document.documentElement, { childList: true, subtree: true });
+    _safeObserve(() => ensureProbe(), document.documentElement, { childList: true, subtree: true });
 
     // Title marker so the user knows they're in the right Chromium window
     const setTitle = () => {
@@ -44,7 +86,7 @@
     setTitle();
     document.addEventListener('DOMContentLoaded', setTitle);
     // Also rewrite if SPA changes title
-    new MutationObserver(() => setTitle()).observe(document.head || document.documentElement, { childList: true, subtree: true });
+    _safeObserve(() => setTitle(), document.head || document.documentElement, { childList: true, subtree: true });
 
     // ── BIG "WRONG BROWSER" GUARD BANNER ──────────────────────────────
     // Auto-hides after 10 seconds OR when user clicks ✕.
@@ -425,10 +467,10 @@
 
   // Re-scan when the DOM changes substantially (SPA route, modal open, etc.)
   let __scanTimer = null;
-  new MutationObserver(() => {
+  _safeObserve(() => {
     clearTimeout(__scanTimer);
     __scanTimer = setTimeout(autoScanAndPush, 600);
-  }).observe(document.documentElement, { childList: true, subtree: true });
+  }, document.documentElement, { childList: true, subtree: true });
 
   // ----------------------------------------------------------
   //  Highlight feedback
@@ -633,7 +675,7 @@
   // R1: iframe enjeksiyonu (yeni eklenen iframe'lere recorder.js gir)
   // Playwright Page.addInitScript zaten her frame'e enjekte ediyor; bu
   // mevcut sayfada sonradan eklenen iframe'leri kapsiyor.
-  new MutationObserver((mutations) => {
+  _safeObserve((mutations) => {
     for (const m of mutations) {
       for (const node of m.addedNodes) {
         if (node.tagName === 'IFRAME') {
@@ -641,14 +683,13 @@
             const doc = node.contentDocument;
             if (doc && !doc.__cortexRecorderAttached) {
               doc.__cortexRecorderAttached = true;
-              // Olaylar zaten document'a tutuklu degil; bu satir bilgi amacli
               console.log('[Cortex Recorder] iframe detected:', node.src);
             }
           } catch (e) { /* cross-origin */ }
         }
       }
     }
-  }).observe(document.documentElement, { childList: true, subtree: true });
+  }, document.documentElement, { childList: true, subtree: true });
 
   // Initial navigate aksiyonu
   if (document.readyState === 'loading') {
@@ -700,10 +741,9 @@
 
     // Watch for removal and re-attach
     if (!window.__cortexDbgObserver) {
-      window.__cortexDbgObserver = new MutationObserver(() => {
+      window.__cortexDbgObserver = _safeObserve(() => {
         if (!document.getElementById('cortex-rec-debug')) installDebugOverlay();
-      });
-      window.__cortexDbgObserver.observe(document.documentElement, { childList: true, subtree: false });
+      }, document.documentElement, { childList: true, subtree: false });
     }
   }
   function updateDebugOverlay() {
@@ -1030,17 +1070,18 @@
       __hbCount++;
 
       // 1) Re-apply marker (React hydration may strip unknown <html> attrs)
-      if (document.documentElement.getAttribute('data-cortex-recorder') !== 'v3') {
-        document.documentElement.setAttribute('data-cortex-recorder', 'v3');
+      const _de = document.documentElement;
+      if (_de && _de.getAttribute('data-cortex-recorder') !== 'v3') {
+        try { _de.setAttribute('data-cortex-recorder', 'v3'); } catch (_) {}
       }
 
       // 2) Probe (top green bar)
-      if (!document.getElementById('cortex-rec-probe')) {
+      if (_de && !document.getElementById('cortex-rec-probe')) {
         try { /* re-trigger probe via the closure */
           const probe = document.createElement('div');
           probe.id = 'cortex-rec-probe';
           probe.style.cssText = 'position:fixed!important;top:0!important;left:0!important;right:0!important;height:4px!important;background:linear-gradient(90deg,#00ff99,#00cc66,#00ff99)!important;background-size:200% 100%!important;z-index:2147483647!important;pointer-events:none!important;box-shadow:0 0 12px rgba(0,255,153,0.7)!important;';
-          document.documentElement.appendChild(probe);
+          _safeAppend(_de, probe);
         } catch (_) {}
       }
 
