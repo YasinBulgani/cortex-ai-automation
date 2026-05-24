@@ -652,7 +652,7 @@ def mfa_setup(
     db_user.mfa_backup_codes = hash_backup_codes(backup_codes)
     db.commit()
 
-    log_audit(db, user_id=user.id, action="mfa.setup_initiated", resource="user", resource_id=user.id)
+    log_audit(db, actor_user_id=user.id, action="mfa.setup_initiated", resource_type="user", resource_id=user.id, payload=None, ip=None)
 
     return MfaSetupResponse(
         secret=secret,
@@ -688,7 +688,7 @@ def mfa_verify(
     db_user.mfa_enabled = True
     db.commit()
 
-    log_audit(db, user_id=user.id, action="mfa.enabled", resource="user", resource_id=user.id)
+    log_audit(db, actor_user_id=user.id, action="mfa.enabled", resource_type="user", resource_id=user.id, payload=None, ip=None)
     return {"detail": "MFA başarıyla etkinleştirildi"}
 
 
@@ -719,7 +719,7 @@ def mfa_disable(
     db_user.mfa_backup_codes = None
     db.commit()
 
-    log_audit(db, user_id=user.id, action="mfa.disabled", resource="user", resource_id=user.id)
+    log_audit(db, actor_user_id=user.id, action="mfa.disabled", resource_type="user", resource_id=user.id, payload=None, ip=None)
     return {"detail": "MFA devre dışı bırakıldı"}
 
 
@@ -748,5 +748,5 @@ def mfa_regenerate_backup_codes(
     db_user.mfa_backup_codes = hash_backup_codes(new_codes)
     db.commit()
 
-    log_audit(db, user_id=user.id, action="mfa.backup_codes_regenerated", resource="user", resource_id=user.id)
+    log_audit(db, actor_user_id=user.id, action="mfa.backup_codes_regenerated", resource_type="user", resource_id=user.id, payload=None, ip=None)
     return {"backup_codes": new_codes}
