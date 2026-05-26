@@ -5,8 +5,6 @@ from __future__ import annotations
 from datetime import datetime, timezone
 import uuid
 
-from fastapi import HTTPException, status
-
 from .coverage_parser import CoverageParser
 from .gap_detector import GapDetector
 from .repository import CoverageReportRepository
@@ -34,17 +32,11 @@ def create_report(
     try:
         parsed = CoverageParser.parse(body.format, body.report_data)
     except ValueError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(exc),
-        ) from exc
+        raise ValueError(str(exc)) from exc
 
     files = [FileCoverage(**item) for item in parsed.get("files", [])]
     if not files:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Rapor parse edilemedi veya bos. Format: {body.format}",
-        )
+        raise ValueError(f"Rapor parse edilemedi veya bos. Format: {body.format}")
 
     report = CoverageReport(
         report_id=str(uuid.uuid4())[:12],
@@ -68,10 +60,7 @@ def get_report_or_404(
 ) -> CoverageReport:
     report = repository.get_report(report_id, allowed_project_ids=allowed_project_ids)
     if report is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Rapor bulunamadi: {report_id}",
-        )
+        raise KeyError(f"Rapor bulunamadi: {report_id}")
     return report
 
 
@@ -165,10 +154,7 @@ def generate_tests(
             }
         )
         if not agent_result.success:
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"Test uretimi basarisiz: {agent_result.error}",
-            )
+            raise RuntimeError(f"Test uretimi basarisiz: {agent_result.error}")
 
         generated = [
             GeneratedTest(
@@ -189,13 +175,10 @@ def generate_tests(
             total_generated=len(generated),
             estimated_total_gain=agent_result.data.get("estimated_total_gain", 0.0),
         )
-    except HTTPException:
+    except (ValueError, KeyError, RuntimeError):
         raise
     except Exception as exc:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Test uretimi sirasinda hata: {str(exc)[:200]}",
-        ) from exc
+        raise RuntimeError(f"Test uretimi sirasinda hata: {str(exc)[:200]}") from exc
 
 
 def build_trend_response(points) -> TrendResponse:

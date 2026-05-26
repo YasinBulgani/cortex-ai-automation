@@ -104,8 +104,42 @@ async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONR
     )
 
 
+async def value_error_handler(request: Request, exc: ValueError) -> JSONResponse:
+    """Service layer ValueError → 400 Bad Request."""
+    detail = {
+        "code": "client.bad_request",
+        "title": "Bad Request",
+        "message": str(exc),
+        "suggestion": "İstek parametrelerini kontrol edin.",
+        "doc_url": None,
+    }
+    return JSONResponse(
+        status_code=400,
+        content=_build_body(detail, _request_id(request)),
+    )
+
+
+async def key_error_handler(request: Request, exc: KeyError) -> JSONResponse:
+    """Service layer KeyError → 404 Not Found."""
+    message = str(exc).strip("'\"")
+    detail = {
+        "code": "client.not_found",
+        "title": "Not Found",
+        "message": message,
+        "suggestion": "Belirtilen kayıt bulunamadı.",
+        "doc_url": None,
+    }
+    return JSONResponse(
+        status_code=404,
+        content=_build_body(detail, _request_id(request)),
+    )
+
+
 def register_exception_handlers(app: FastAPI) -> None:
     """FastAPI app'a tüm özel handler'ları bağla."""
     app.add_exception_handler(HTTPException, http_exception_handler)
     app.add_exception_handler(RequestValidationError, validation_exception_handler)
+    # Domain service layer — HTTP-agnostic exceptions mapped to HTTP status codes.
+    app.add_exception_handler(ValueError, value_error_handler)  # type: ignore[arg-type]
+    app.add_exception_handler(KeyError, key_error_handler)  # type: ignore[arg-type]
     app.add_exception_handler(Exception, unhandled_exception_handler)

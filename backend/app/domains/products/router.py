@@ -35,6 +35,9 @@ def _block_in_production(endpoint: str) -> None:
             headers={"X-Demo-Disabled": "true"},
         )
 
+# P0 #4: Replace with real aggregation from DB
+_DEMO_MODE = True  # TODO: Replace with real DB aggregation
+
 router = APIRouter(prefix="/products", tags=["products"])
 
 VALID_PRODUCT_IDS = {
@@ -169,7 +172,8 @@ AI_INSIGHTS: dict[str, list[dict[str, Any]]] = {
 
 
 @router.get("/{product_id}/telemetry", summary="Ürün telemetri verisi")
-def get_product_telemetry(product_id: str) -> dict[str, Any]:
+def get_product_telemetry(product_id: str) -> JSONResponse:
+    # P0 #4: Replace with real aggregation from DB
     if product_id not in VALID_PRODUCT_IDS:
         raise HTTPException(status_code=404, detail=f"Geçersiz product_id: {product_id}")
 
@@ -189,7 +193,7 @@ def get_product_telemetry(product_id: str) -> dict[str, Any]:
         for s in stats_template
     ]
 
-    return {
+    payload = {
         "productId": product_id,
         "stats": stats,
         "aiInsights": [
@@ -199,8 +203,11 @@ def get_product_telemetry(product_id: str) -> dict[str, Any]:
         "recentActivity": [],
         "onboarding": [],
         "lastUpdated": now,
-        "isDemo": False,
+        "isDemo": _DEMO_MODE,
+        "demo_mode": _DEMO_MODE,
     }
+    headers = {"X-Data-Mode": "demo"} if _DEMO_MODE else {}
+    return JSONResponse(content=payload, headers=headers)
 
 
 # ── Web product: karar destek endpoint'leri ──────────────────────────────────
@@ -215,7 +222,7 @@ _DEMO_NOTICE = (
     "dönen veriler statik örnektir. "
     "Bkz: backend/app/domains/products/router.py TODO yorumları."
 )
-_DEMO_HEADERS = {"X-Demo-Data": "true", "X-Demo-Notice": _DEMO_NOTICE}
+_DEMO_HEADERS = {"X-Data-Mode": "demo", "X-Demo-Data": "true", "X-Demo-Notice": _DEMO_NOTICE}
 
 
 def _now_iso() -> str:

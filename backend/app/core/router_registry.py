@@ -56,6 +56,36 @@ from app.domains.ingestion.router import router as ingestion_router
 from app.domains.knowledge_base.router import router as knowledge_base_router
 from app.domains.compliance.router import router as compliance_router
 
+# New domain routers (rbac, email, pr_bot, navigation) — defensive imports so
+# the backend still starts if any individual module has a problem.
+try:
+    from app.domains.rbac.router import router as rbac_router
+    _HAS_RBAC_ROUTER = True
+except ImportError:
+    rbac_router = None  # type: ignore[assignment]
+    _HAS_RBAC_ROUTER = False
+
+try:
+    from app.domains.email.router import router as email_router
+    _HAS_EMAIL_ROUTER = True
+except ImportError:
+    email_router = None  # type: ignore[assignment]
+    _HAS_EMAIL_ROUTER = False
+
+try:
+    from app.domains.pr_bot.router import router as pr_bot_router
+    _HAS_PR_BOT_ROUTER = True
+except ImportError:
+    pr_bot_router = None  # type: ignore[assignment]
+    _HAS_PR_BOT_ROUTER = False
+
+try:
+    from app.domains.navigation.router import router as navigation_router
+    _HAS_NAVIGATION_ROUTER = True
+except ImportError:
+    navigation_router = None  # type: ignore[assignment]
+    _HAS_NAVIGATION_ROUTER = False
+
 # DDD bounded context routers (new architecture)
 try:
     from app.contexts.projects.api import router as contexts_projects_router
@@ -147,6 +177,26 @@ def register_api_routers(app: FastAPI) -> None:
 
     # api_testing ayrı prefix: ekibin kararıyla /api/v1 dışında
     app.include_router(api_testing_router)
+
+    if _HAS_RBAC_ROUTER and rbac_router is not None:
+        app.include_router(rbac_router, prefix="/api/v1")
+    else:
+        logger.warning("rbac_router yüklenemedi; RBAC endpoint'leri devre dışı.")
+
+    if _HAS_EMAIL_ROUTER and email_router is not None:
+        app.include_router(email_router, prefix="/api/v1")
+    else:
+        logger.warning("email_router yüklenemedi; Email endpoint'leri devre dışı.")
+
+    if _HAS_PR_BOT_ROUTER and pr_bot_router is not None:
+        app.include_router(pr_bot_router, prefix="/api/v1")
+    else:
+        logger.warning("pr_bot_router yüklenemedi; PR Bot endpoint'leri devre dışı.")
+
+    if _HAS_NAVIGATION_ROUTER and navigation_router is not None:
+        app.include_router(navigation_router, prefix="/api/v1")
+    else:
+        logger.warning("navigation_router yüklenemedi; Navigation endpoint'leri devre dışı.")
 
     if _HAS_MOBILE_ROUTER and mobile_router is not None:
         app.include_router(mobile_router, prefix="/api/v1")

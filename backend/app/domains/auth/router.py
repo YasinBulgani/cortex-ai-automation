@@ -42,6 +42,25 @@ def _limit(rate: str):
     return _noop
 
 
+# Simple in-memory rate limiter fallback (used when slowapi is not available)
+import time as _time
+_login_attempts: dict[str, list[float]] = {}
+_RATE_LIMIT_WINDOW = 300  # 5 minutes
+_RATE_LIMIT_MAX = 10  # max 10 attempts per IP per window
+
+
+def _check_rate_limit(client_ip: str) -> None:
+    """Raise HTTPException 429 if rate limit exceeded."""
+    now = _time.time()
+    attempts = _login_attempts.get(client_ip, [])
+    # Remove old attempts outside the window
+    attempts = [t for t in attempts if now - t < _RATE_LIMIT_WINDOW]
+    if len(attempts) >= _RATE_LIMIT_MAX:
+        raise HTTPException(status_code=429, detail="Çok fazla giriş denemesi. 5 dakika bekleyin.")
+    attempts.append(now)
+    _login_attempts[client_ip] = attempts
+
+
 def _password_reset_url(token: str) -> str:
     frontend_base = (
         settings.cors_origin_list[0]
@@ -171,8 +190,20 @@ def login(
     - MFA etkinse: ``mfa_required: true`` ve kısa ömürlü ``mfa_session_token``
       döner.  İstemci bunu ``POST /auth/mfa/login`` çağrısında kullanmalıdır.
     """
+    # Rate limit check (fallback in-memory limiter when slowapi is absent)
+    if not (_has_limiter and limiter is not None):
+        _check_rate_limit(_request_ip(request) or "unknown")
+
     user = db.scalar(select(User).where(User.email == body.email))
-    if user is None or not verify_password(body.password, user.password_hash):
+    if user is None:
+        # Always verify against a dummy hash to prevent timing attacks
+        from app.domains.auth.service import _DUMMY_HASH
+        verify_password("dummy", _DUMMY_HASH)
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="E-posta veya parola hatalı",
+        )
+    if not verify_password(body.password, user.password_hash):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="E-posta veya parola hatalı",
@@ -284,7 +315,7 @@ def refresh_token(
         logger.warning("Refresh token verification failed: %s", e)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=str(e),
+            detail="Geçersiz veya süresi dolmuş token",
         ) from None
 
     # Eski refresh token'i iptal et (rotation)

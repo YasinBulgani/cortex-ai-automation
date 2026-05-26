@@ -1,4 +1,8 @@
-"""Service layer for Neurex Management."""
+"""Service layer for Neurex Management.
+
+HTTP-agnostic: raises ValueError (400 Bad Request) or KeyError (404 Not Found)
+instead of HTTPException so the service layer is framework-independent.
+"""
 
 from __future__ import annotations
 
@@ -7,7 +11,6 @@ from pathlib import Path
 from typing import Any, Iterable, Optional
 from datetime import datetime, timezone
 
-from fastapi import HTTPException, status
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
 
@@ -95,7 +98,7 @@ def ensure_project_for_tspm(db: Session, tspm_project_id: str, user: Any | None)
         return project
     tspm_project = db.get(TspmProject, tspm_project_id)
     if tspm_project is None:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Management projesi bulunamadı")
+        raise KeyError("Management projesi bulunamadı")
     project = TestManagementProject(
         name=f"{tspm_project.name} Management",
         key=_next_project_key(db, tspm_project.name),
@@ -139,7 +142,7 @@ def create_project(db: Session, payload: ManagementProjectCreate, user: Any | No
         )
     )
     if existing is not None:
-        raise HTTPException(status.HTTP_409_CONFLICT, "Management proje anahtarı zaten kullanılıyor")
+        raise ValueError("Management proje anahtarı zaten kullanılıyor")
     project = TestManagementProject(
         name=payload.name,
         key=key,
@@ -236,7 +239,7 @@ def _ensure_suite(db: Session, project_id: str, suite_id: str | None) -> TestSui
         return None
     suite = db.get(TestSuite, suite_id)
     if suite is None or suite.project_id != project_id:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Suite bulunamadı")
+        raise KeyError("Suite bulunamadı")
     return suite
 
 
@@ -245,7 +248,7 @@ def _ensure_folder(db: Session, project_id: str, folder_id: str | None) -> TestF
         return None
     folder = db.get(TestFolder, folder_id)
     if folder is None or folder.suite.project_id != project_id:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Folder bulunamadı")
+        raise KeyError("Folder bulunamadı")
     return folder
 
 
@@ -266,7 +269,7 @@ def create_folder(db: Session, project_id: str, payload: TestFolderCreate, user:
     if payload.parent_id is not None:
         parent = _ensure_folder(db, project_id, payload.parent_id)
         if parent is not None and parent.suite_id != payload.suite_id:
-            raise HTTPException(status.HTTP_400_BAD_REQUEST, "Parent folder aynı suite içinde olmalı")
+            raise ValueError("Parent folder aynı suite içinde olmalı")
     folder = TestFolder(
         suite_id=payload.suite_id,
         parent_id=payload.parent_id,
@@ -340,7 +343,7 @@ def create_case(db: Session, project_id: str, payload: TestCaseCreate, user: Any
     _ensure_suite(db, project_id, payload.suite_id)
     folder = _ensure_folder(db, project_id, payload.folder_id)
     if folder is not None and payload.suite_id is not None and folder.suite_id != payload.suite_id:
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Case folder ve suite aynı hiyerarşide olmalı")
+        raise ValueError("Case folder ve suite aynı hiyerarşide olmalı")
     case_suite_id = payload.suite_id or (folder.suite_id if folder is not None else None)
     case = TestCase(
         project_id=project_id,
@@ -391,7 +394,7 @@ def get_case(db: Session, project_id: str, case_id: str) -> TestCase:
         .where(TestCase.project_id == project_id, TestCase.id == case_id)
     )
     if case is None:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Test case bulunamadı")
+        raise KeyError("Test case bulunamadı")
     return case
 
 
@@ -440,7 +443,7 @@ def update_case(db: Session, project_id: str, case_id: str, payload: TestCaseUpd
         folder = _ensure_folder(db, project_id, data["folder_id"])
         next_suite_id = data.get("suite_id", case.suite_id)
         if folder is not None and next_suite_id is not None and folder.suite_id != next_suite_id:
-            raise HTTPException(status.HTTP_400_BAD_REQUEST, "Case folder ve suite aynı hiyerarşide olmalı")
+            raise ValueError("Case folder ve suite aynı hiyerarşide olmalı")
         if folder is not None and next_suite_id is None:
             data["suite_id"] = folder.suite_id
     for key, value in data.items():
@@ -508,7 +511,7 @@ def create_cycle(db: Session, project_id: str, payload: TestCycleCreate, user: A
     project_id = resolve_project_id(db, project_id)
     plan = db.get(TestPlan, payload.plan_id)
     if plan is None or plan.project_id != project_id:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Test plan bulunamadı")
+        raise KeyError("Test plan bulunamadı")
     cycle = TestCycle(plan_id=payload.plan_id, name=payload.name, environment=payload.environment, build_version=payload.build_version)
     db.add(cycle)
     db.flush()
@@ -737,10 +740,10 @@ def get_run(db: Session, project_id: str, run_id: str) -> TestRun:
         .where(TestRun.id == run_id)
     )
     if run is None:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Test run bulunamadı")
+        raise KeyError("Test run bulunamadı")
     # Verify project ownership through cycle→plan.
     if run.cycle.plan.project_id != project_id:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Test run bulunamadı")
+        raise KeyError("Test run bulunamadı")
     for run_case in run.run_cases:
         if not run_case.case_snapshot and run_case.case is not None:
             run_case.case_snapshot = _case_snapshot(run_case.case)
@@ -766,7 +769,7 @@ def create_run(db: Session, project_id: str, payload: TestRunCreate, user: Any |
     project_id = resolve_project_id(db, project_id)
     cycle = db.get(TestCycle, payload.cycle_id)
     if cycle is None or cycle.plan.project_id != project_id:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Test cycle bulunamadı")
+        raise KeyError("Test cycle bulunamadı")
     run = TestRun(
         cycle_id=payload.cycle_id,
         name=payload.name,
@@ -818,10 +821,10 @@ def update_step_result(db: Session, project_id: str, run_case_id: str, step_no: 
     project_id = resolve_project_id(db, project_id)
     run_case = db.get(TestRunCase, run_case_id)
     if run_case is None:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Run case bulunamadı")
+        raise KeyError("Run case bulunamadı")
     # Project guard through case.
     if run_case.case.project_id != project_id:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Run case bulunamadı")
+        raise KeyError("Run case bulunamadı")
     result = db.scalar(select(TestRunStepResult).where(TestRunStepResult.run_case_id == run_case_id, TestRunStepResult.step_no == step_no))
     if result is None:
         result = TestRunStepResult(run_case_id=run_case_id, step_no=step_no)
@@ -1070,7 +1073,7 @@ def create_requirement(db: Session, project_id: str, payload: RequirementCreate,
     project_id = resolve_project_id(db, project_id)
     existing = _find_requirement(db, project_id, payload.external_source, payload.external_key)
     if existing is not None:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Requirement key already exists")
+        raise ValueError("Requirement key already exists")
 
     requirement = Requirement(project_id=project_id, **payload.model_dump())
     db.add(requirement)
@@ -1191,7 +1194,7 @@ def create_requirement_link(db: Session, project_id: str, payload: RequirementLi
     if requirement_id:
         requirement = db.get(Requirement, requirement_id)
         if requirement is None or requirement.project_id != project_id:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Requirement not found")
+            raise KeyError("Requirement not found")
         data.update(
             external_source=requirement.external_source,
             external_key=requirement.external_key,
@@ -1240,7 +1243,7 @@ def create_defect_link(db: Session, project_id: str, payload: DefectLinkCreate, 
     project_id = resolve_project_id(db, project_id)
     run_case = db.get(TestRunCase, payload.run_case_id)
     if run_case is None or run_case.case.project_id != project_id:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Run case bulunamadı")
+        raise KeyError("Run case bulunamadı")
     link = DefectLink(**payload.model_dump())
     db.add(link)
     db.flush()
@@ -1254,10 +1257,10 @@ def update_defect_link(db: Session, project_id: str, defect_id: str, payload: De
     project_id = resolve_project_id(db, project_id)
     defect = db.get(DefectLink, defect_id)
     if defect is None:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Defect bağlantısı bulunamadı")
+        raise KeyError("Defect bağlantısı bulunamadı")
     run_case = db.get(TestRunCase, defect.run_case_id)
     if run_case is None or run_case.case.project_id != project_id:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Defect bağlantısı bulunamadı")
+        raise KeyError("Defect bağlantısı bulunamadı")
     changed: list[str] = []
     for key, value in payload.model_dump(exclude_unset=True).items():
         setattr(defect, key, value)
@@ -1295,7 +1298,7 @@ def list_evidence(db: Session, project_id: str, run_id: str, run_case_id: str) -
     project_id = resolve_project_id(db, project_id)
     run_case = db.get(TestRunCase, run_case_id)
     if run_case is None or run_case.run_id != run_id or run_case.case.project_id != project_id:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Run case bulunamadı")
+        raise KeyError("Run case bulunamadı")
     return [
         _evidence_out(evidence)
         for evidence in db.scalars(
@@ -1385,7 +1388,7 @@ def get_import_job(db: Session, project_id: str, job_id: str) -> TestImportJob:
     project_id = resolve_project_id(db, project_id)
     job = db.get(TestImportJob, job_id)
     if job is None or job.project_id != project_id:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Import job bulunamadı")
+        raise KeyError("Import job bulunamadı")
     return job
 
 
@@ -1394,7 +1397,7 @@ def commit_import_job(db: Session, project_id: str, job_id: str, user: Any | Non
     project_id = resolve_project_id(db, project_id)
     job = get_import_job(db, project_id, job_id)
     if job.status != "preview":
-        raise HTTPException(status.HTTP_409_CONFLICT, f"Import job zaten '{job.status}' durumunda — commit edilemez")
+        raise ValueError(f"Import job zaten '{job.status}' durumunda — commit edilemez")
 
     project = get_project(db, project_id)
     created = 0
@@ -1476,9 +1479,9 @@ def upload_evidence(
     storage_dir = os.environ.get("EVIDENCE_STORAGE_DIR", "reports/evidence")
     run_case = db.get(TestRunCase, run_case_id)
     if run_case is None:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Run case bulunamadı")
+        raise KeyError("Run case bulunamadı")
     if run_case.case.project_id != project_id or run_case.run_id != run_id:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Run case bulunamadı")
+        raise KeyError("Run case bulunamadı")
 
     # Write to disk.
     import uuid as _uuid_module
@@ -1500,6 +1503,3 @@ def upload_evidence(
     db.refresh(evidence)
 
     return _evidence_out(evidence)
-    RegressionCandidateOut,
-    RegressionSetCreate,
-    RegressionSelectionFilter,

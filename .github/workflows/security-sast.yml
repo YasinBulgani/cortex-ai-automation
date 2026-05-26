@@ -43,6 +43,29 @@ jobs:
           sarif_file: semgrep.sarif
         continue-on-error: true  # SARIF upload may fail if file is missing; scan result is authoritative
 
+  bandit-safety:
+    name: Bandit Python SAST + Safety
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Bandit Python SAST
+        run: pip install bandit && bandit -r backend/app/ -ll -ii --skip B101,B601
+        # -ll = medium+ severity, -ii = medium+ confidence, skip B101=assert, B601=shell
+
+      - name: Safety dependency check
+        run: pip install safety && safety check --ignore=70612
+        continue-on-error: true  # Only reporting, not blocking
+
+      - name: npm audit
+        working-directory: apps/web
+        run: npm audit --audit-level=moderate
+        continue-on-error: true  # Only reporting
+
   osv-scanner:
     name: OSV Scanner (SCA)
     runs-on: ubuntu-latest

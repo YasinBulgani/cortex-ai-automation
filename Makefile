@@ -2,7 +2,7 @@
 # TestwrightAI — Unified Test Runner
 # ═══════════════════════════════════════════════════════════════════════════════
 
-.PHONY: help setup seed test-smoke test-regression test-full test-service \
+.PHONY: help setup setup-venv seed test-smoke test-regression test-full test-service \
         test-backend test-engine test-e2e report clean docker-up docker-down \
         test-paribu test-nexusqa test-nexusqa-domain run-aday-analizi run-aday-degerlendirme \
         gateway-install gateway-dev gateway-test gateway-up gateway-down \
@@ -10,7 +10,8 @@
         ollama-status ollama-warm \
         prod-up prod-down prod-logs prod-status prod-deploy validate-env ssl-self-signed \
         test-mobile test-load \
-        dsl-ai-warm dsl-ai-rebuild dsl-ai-info dsl-editor-config dsl-proposals
+        dsl-ai-warm dsl-ai-rebuild dsl-ai-info dsl-editor-config dsl-proposals \
+        sec-audit eval tia
 
 SHELL := /bin/bash
 PYTHON := python3
@@ -77,6 +78,13 @@ setup:
 	cd backend && $(PIP) install -r requirements.txt -r requirements-dev.txt
 	cd engine && $(PIP) install -r requirements.txt
 	npm run playwright:install
+
+setup-venv:
+	python3 -m venv .venv
+	.venv/bin/pip install --upgrade pip
+	.venv/bin/pip install -r backend/requirements.txt -r backend/requirements-dev.txt
+	.venv/bin/pip install -r engine/requirements.txt
+	@echo "✓ Virtual environment ready. Run: source .venv/bin/activate"
 
 seed:
 	cd backend && PYTHONPATH=. $(PYTHON) scripts/seed.py

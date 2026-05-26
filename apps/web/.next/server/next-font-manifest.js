@@ -1,0 +1,1 @@
+self.__NEXT_FONT_MANIFEST="{\"pages\":{},\"app\":{\"/Users/yasin_bulgan/Desktop/Cortex_Ai_Automation/apps/web/app/layout\":[\"static/media/8e9860b6e62d6359-s.p.woff2\",\"static/media/e4af272ccee01ff0-s.p.woff2\",\"static/media/558ca1a6aa3cb55e-s.p.woff2\"]},\"appUsingSizeAdjust\":true,\"pagesUsingSizeAdjust\":false}"
