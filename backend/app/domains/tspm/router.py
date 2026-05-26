@@ -5,6 +5,7 @@ faz3: ai test case generation + bulk review."""
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
 import os
 import ipaddress
