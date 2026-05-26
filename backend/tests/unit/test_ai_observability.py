@@ -184,6 +184,21 @@ class TestTokenCounter:
 
 class TestRateLimitMonitor:
 
+    @pytest.fixture(autouse=True)
+    def _clear_state(self):
+        """Clear rate-limit state before and after each test to prevent cross-test pollution."""
+        try:
+            from app.domains.ai.rate_limit_monitor import clear_rate_limit
+            clear_rate_limit()
+        except Exception:
+            pass
+        yield
+        try:
+            from app.domains.ai.rate_limit_monitor import clear_rate_limit
+            clear_rate_limit()
+        except Exception:
+            pass
+
     def test_no_state_returns_no_throttle(self):
         from app.domains.ai.rate_limit_monitor import should_throttle, clear_rate_limit
         clear_rate_limit()
