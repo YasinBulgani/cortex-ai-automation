@@ -23,7 +23,11 @@ function isClosed(defect: DefectLink) {
 }
 
 function isReleaseBlocker(defect: DefectLink) {
-  return !isClosed(defect) && BLOCKER_PATTERN.test(`${defect.title} ${defect.status} ${defect.external_key}`);
+  return !isClosed(defect) && (
+    BLOCKER_PATTERN.test(`${defect.title} ${defect.status} ${defect.external_key}`) ||
+    ["blocker", "critical"].includes(defect.severity.toLowerCase()) ||
+    ["P0", "P1"].includes(defect.priority)
+  );
 }
 
 function daysSince(value?: string | null) {
@@ -62,6 +66,7 @@ export default function ManagementDefectsPage({ params }: { params: { projectId:
   const open = openRows.length;
   const blockers = rows.filter(isReleaseBlocker);
   const retestQueue = rows.filter((item) => RETEST_STATUSES.has(normalizedStatus(item.status)) && !["closed", "done"].includes(normalizedStatus(item.status)));
+  const unassigned = openRows.filter((item) => !item.assignee_id).length;
   const agingRows = openRows
     .map((defect) => ({ defect, age: daysSince(defect.created_at) }))
     .sort((left, right) => (right.age ?? -1) - (left.age ?? -1));
@@ -86,11 +91,12 @@ export default function ManagementDefectsPage({ params }: { params: { projectId:
       description="Failed veya blocked manuel run sonuçlarından gelen defect lifecycle, retest ve release-risk sinyalleri."
       active="management/defects"
     >
-      <div className="grid gap-4 md:grid-cols-5">
+      <div className="grid gap-4 md:grid-cols-6">
         <ManagementStat label="Open Defects" value={defects.isLoading ? "..." : String(open)} note="closed dışındaki kayıtlar" />
         <ManagementStat label="Release Blockers" value={defects.isLoading ? "..." : String(blockers.length)} note="critical / blocker sinyali" />
         <ManagementStat label="Retest Needed" value={defects.isLoading ? "..." : String(retestQueue.length || summary.data?.retest || 0)} note="fixed / resolved kuyruğu" />
         <ManagementStat label="Oldest Open" value={defects.isLoading ? "..." : `${oldestOpenAge}d`} note={`${staleOpen} item > ${AGING_TARGET_DAYS}d`} />
+        <ManagementStat label="Unassigned" value={defects.isLoading ? "..." : String(unassigned)} note="owner bekleyen açık defect" />
         <ManagementStat label="Total Links" value={defects.isLoading ? "..." : String(rows.length)} note="run result bağlantısı" />
       </div>
 
@@ -127,6 +133,11 @@ export default function ManagementDefectsPage({ params }: { params: { projectId:
                     {statusLabel(defect.status)}
                   </span>
                 </div>
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  <span className="rounded-full bg-slate-800 px-2 py-1 text-xs text-slate-300">{defect.priority}</span>
+                  <span className="rounded-full bg-slate-800 px-2 py-1 text-xs text-slate-300">{defect.severity}</span>
+                  <span className="rounded-full bg-rose-500/15 px-2 py-1 text-xs text-rose-200">{defect.retest_status}</span>
+                </div>
                 <p className="mt-2 line-clamp-2 text-sm text-slate-200">{defect.title}</p>
                 <button
                   type="button"
@@ -153,6 +164,9 @@ export default function ManagementDefectsPage({ params }: { params: { projectId:
                   <span className="text-xs text-slate-500">{daysSince(defect.created_at) ?? "-"}d old</span>
                 </div>
                 <p className="mt-2 line-clamp-2 text-sm text-slate-200">{defect.title}</p>
+                <p className="mt-1 text-xs text-slate-500">
+                  Retest: {defect.retest_status} {defect.resolved_at ? `· resolved ${new Date(defect.resolved_at).toLocaleDateString("tr-TR")}` : ""}
+                </p>
                 <div className="mt-3 flex gap-2">
                   <button
                     type="button"
@@ -202,8 +216,11 @@ export default function ManagementDefectsPage({ params }: { params: { projectId:
                 <th className="px-3 py-2">Key</th>
                 <th>Title</th>
                 <th>Status</th>
+                <th>Priority</th>
+                <th>Retest</th>
                 <th>Aging</th>
                 <th>Risk</th>
+                <th>Root Cause</th>
                 <th>Source</th>
                 <th>Created</th>
                 <th>Action</th>
@@ -225,6 +242,15 @@ export default function ManagementDefectsPage({ params }: { params: { projectId:
                       </span>
                     </td>
                     <td>
+                      <div className="flex flex-wrap gap-1">
+                        <span className="rounded-full bg-slate-800 px-2 py-1 text-xs text-slate-300">{defect.priority}</span>
+                        <span className="rounded-full bg-slate-800 px-2 py-1 text-xs text-slate-300">{defect.severity}</span>
+                      </div>
+                    </td>
+                    <td>
+                      <span className="rounded-full bg-cyan-500/15 px-2 py-1 text-xs text-cyan-200">{defect.retest_status}</span>
+                    </td>
+                    <td>
                       <span className={`rounded-full px-2 py-1 text-xs ring-1 ${ageTone(age, closed)}`}>
                         {closed ? "closed" : age === null ? "unknown" : `${age}d`}
                       </span>
@@ -236,6 +262,7 @@ export default function ManagementDefectsPage({ params }: { params: { projectId:
                         {!blocker && !needsRetest ? <span className="text-xs text-slate-600">watch</span> : null}
                       </div>
                     </td>
+                    <td className="max-w-40 truncate text-slate-500">{defect.root_cause ?? "-"}</td>
                     <td className="text-slate-500">{defect.external_source}</td>
                     <td className="text-slate-500">{new Date(defect.created_at).toLocaleDateString("tr-TR")}</td>
                     <td className="pr-3">
@@ -251,6 +278,28 @@ export default function ManagementDefectsPage({ params }: { params: { projectId:
                           <option value="blocked">blocked</option>
                           <option value="resolved">resolved</option>
                           <option value="closed">closed</option>
+                        </select>
+                        <select
+                          value={defect.priority}
+                          onChange={(event) => updateDefect.mutate({ defectId: defect.id, priority: event.target.value })}
+                          disabled={updateDefect.isPending}
+                          className="rounded-lg border border-slate-700 bg-slate-950 px-2 py-1 text-xs text-slate-300 focus:border-cyan-500 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          <option value="P0">P0</option>
+                          <option value="P1">P1</option>
+                          <option value="P2">P2</option>
+                          <option value="P3">P3</option>
+                        </select>
+                        <select
+                          value={defect.severity}
+                          onChange={(event) => updateDefect.mutate({ defectId: defect.id, severity: event.target.value })}
+                          disabled={updateDefect.isPending}
+                          className="rounded-lg border border-slate-700 bg-slate-950 px-2 py-1 text-xs text-slate-300 focus:border-cyan-500 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          <option value="blocker">blocker</option>
+                          <option value="critical">critical</option>
+                          <option value="major">major</option>
+                          <option value="minor">minor</option>
                         </select>
                         <button
                           type="button"
@@ -283,7 +332,7 @@ export default function ManagementDefectsPage({ params }: { params: { projectId:
               })}
               {!defects.isLoading && rows.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="px-3 py-8 text-center text-slate-500">
+                  <td colSpan={11} className="px-3 py-8 text-center text-slate-500">
                     Henüz defect bağlantısı yok.
                   </td>
                 </tr>

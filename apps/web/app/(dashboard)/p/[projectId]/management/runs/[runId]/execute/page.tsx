@@ -5,11 +5,8 @@ import {
   useCreateManagementDefect,
   useManagementEvidence,
   useManagementRun,
-  useManagementCases,
   useUpdateManagementStepResult,
   type RunCase,
-  type TestCase,
-  type TestCaseStep,
 } from "@/lib/hooks/use-management";
 import { apiFetch } from "@/lib/api-client";
 import { ManagementPanel, ManagementShell, ManagementStat } from "../../../_components/ManagementShell";
@@ -17,6 +14,21 @@ import { ManagementPanel, ManagementShell, ManagementStat } from "../../../_comp
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 type StepStatus = "not_run" | "passed" | "failed" | "blocked" | "skipped";
+
+type ExecutionStep = {
+  id: string;
+  step_no: number;
+  action: string;
+  expected_result: string;
+  test_data?: Record<string, unknown>;
+  notes?: string | null;
+  is_required?: boolean;
+};
+
+type SnapshotCase = {
+  case_key?: string | null;
+  title?: string | null;
+};
 
 const STEP_STATUSES: { value: StepStatus; label: string; color: string; bg: string }[] = [
   { value: "not_run",  label: "Not Run",  color: "text-slate-400",   bg: "bg-slate-700" },
@@ -44,7 +56,7 @@ function StepRow({
   existingStatus,
   existingActual,
 }: {
-  step: TestCaseStep;
+  step: ExecutionStep;
   runCaseId: string;
   projectId: string;
   runId: string;
@@ -280,12 +292,10 @@ function EvidenceUpload({
 
 function CasePanel({
   runCase,
-  caseData,
   projectId,
   runId,
 }: {
   runCase: RunCase;
-  caseData?: TestCase;
   projectId: string;
   runId: string;
 }) {
@@ -303,7 +313,20 @@ function CasePanel({
       ]),
     );
 
-  const steps: TestCaseStep[] = caseData?.steps ?? [];
+  const snapshot = runCase.case_snapshot as {
+    case?: SnapshotCase;
+    steps?: Array<Omit<ExecutionStep, "id"> & { id?: string }>;
+  };
+  const snapshotCase = snapshot.case ?? {};
+  const steps: ExecutionStep[] = (snapshot.steps ?? []).map((step) => ({
+    id: step.id ?? `${runCase.id}-${step.step_no}`,
+    step_no: step.step_no,
+    action: step.action,
+    expected_result: step.expected_result,
+    test_data: step.test_data,
+    notes: step.notes,
+    is_required: step.is_required,
+  }));
   const completedSteps = steps.filter((step) =>
     ["passed", "skipped"].includes(resultsByStepNo[step.step_no]?.status ?? ""),
   ).length;
@@ -330,8 +353,8 @@ function CasePanel({
         <span className={`h-3 w-3 flex-shrink-0 rounded-full ${dotClass}`} />
         <div className="flex-1 min-w-0">
           <p className="truncate text-sm font-medium text-white">
-            {caseData?.case_key ? <span className="mr-2 font-mono text-xs text-slate-500">{caseData.case_key}</span> : null}
-            {caseData?.title ?? runCase.case_id}
+            {snapshotCase.case_key ? <span className="mr-2 font-mono text-xs text-slate-500">{snapshotCase.case_key}</span> : null}
+            {snapshotCase.title ?? runCase.case_id}
           </p>
           <p className="text-xs text-slate-500">
             {runCase.step_results.length}/{steps.length} adım kaydedildi ·{" "}
@@ -397,14 +420,9 @@ export default function ManagementRunExecutePage({
 }) {
   const { projectId, runId } = params;
   const runQuery   = useManagementRun(projectId, runId);
-  const casesQuery = useManagementCases(projectId);
   const [statusFilter, setStatusFilter] = useState("all");
 
   const run   = runQuery.data;
-  const cases = casesQuery.data ?? [];
-
-  // Build a lookup from case_id → TestCase for rendering step definitions.
-  const caseById = Object.fromEntries(cases.map((c) => [c.id, c]));
 
   // Stats derived from run_cases.
   const runCases   = run?.run_cases ?? [];
@@ -416,7 +434,7 @@ export default function ManagementRunExecutePage({
     ? runCases
     : runCases.filter((rc) => rc.status === statusFilter);
 
-  const loading = runQuery.isLoading || casesQuery.isLoading;
+  const loading = runQuery.isLoading;
 
   return (
     <ManagementShell
@@ -493,7 +511,6 @@ export default function ManagementRunExecutePage({
             <CasePanel
               key={rc.id}
               runCase={rc}
-              caseData={caseById[rc.case_id]}
               projectId={projectId}
               runId={runId}
             />

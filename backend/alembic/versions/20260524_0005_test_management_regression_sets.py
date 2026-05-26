@@ -55,6 +55,23 @@ def upgrade() -> None:
     op.add_column("test_management_runs", sa.Column("source_type", sa.String(32), nullable=False, server_default="manual"))
     op.add_column("test_management_runs", sa.Column("source_ref", UUID(as_uuid=False), nullable=True))
     op.add_column("test_management_runs", sa.Column("scope_snapshot", JSONB, nullable=False, server_default="{}"))
+    op.add_column("test_management_run_cases", sa.Column("case_snapshot", JSONB, nullable=False, server_default="{}"))
+    op.add_column("test_management_defect_links", sa.Column("severity", sa.String(32), nullable=False, server_default="major"))
+    op.add_column("test_management_defect_links", sa.Column("priority", sa.String(32), nullable=False, server_default="P2"))
+    op.add_column("test_management_defect_links", sa.Column("assignee_id", UUID(as_uuid=False), nullable=True))
+    op.add_column("test_management_defect_links", sa.Column("root_cause", sa.String(100), nullable=True))
+    op.add_column("test_management_defect_links", sa.Column("retest_status", sa.String(32), nullable=False, server_default="not_ready"))
+    op.add_column("test_management_defect_links", sa.Column("resolved_at", sa.DateTime(timezone=True), nullable=True))
+    op.add_column("test_management_defect_links", sa.Column("verified_at", sa.DateTime(timezone=True), nullable=True))
+    op.add_column("test_management_defect_links", sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()))
+    op.create_foreign_key(
+        "fk_tm_defect_links_assignee_id",
+        "test_management_defect_links",
+        "sd_users",
+        ["assignee_id"],
+        ["id"],
+        ondelete="SET NULL",
+    )
     op.create_table(
         "test_management_release_signoffs",
         sa.Column("id", UUID(as_uuid=False), primary_key=True),
@@ -140,6 +157,16 @@ def downgrade() -> None:
     op.drop_column("test_management_runs", "scope_snapshot")
     op.drop_column("test_management_runs", "source_ref")
     op.drop_column("test_management_runs", "source_type")
+    op.drop_column("test_management_run_cases", "case_snapshot")
+    op.drop_constraint("fk_tm_defect_links_assignee_id", "test_management_defect_links", type_="foreignkey")
+    op.drop_column("test_management_defect_links", "updated_at")
+    op.drop_column("test_management_defect_links", "verified_at")
+    op.drop_column("test_management_defect_links", "resolved_at")
+    op.drop_column("test_management_defect_links", "retest_status")
+    op.drop_column("test_management_defect_links", "root_cause")
+    op.drop_column("test_management_defect_links", "assignee_id")
+    op.drop_column("test_management_defect_links", "priority")
+    op.drop_column("test_management_defect_links", "severity")
     op.execute("""
         ALTER TABLE test_management_release_signoffs DISABLE ROW LEVEL SECURITY;
         DROP POLICY IF EXISTS rls_tenant_isolation ON test_management_release_signoffs;

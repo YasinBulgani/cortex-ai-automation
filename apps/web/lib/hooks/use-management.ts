@@ -193,8 +193,31 @@ export interface DefectLink {
   external_key: string;
   title: string;
   status: string;
+  severity: string;
+  priority: string;
+  assignee_id?: string | null;
+  root_cause?: string | null;
+  retest_status: string;
   url?: string | null;
+  resolved_at?: string | null;
+  verified_at?: string | null;
   created_at: string;
+  updated_at: string;
+}
+
+export interface CreateDefectInput {
+  run_case_id: string;
+  step_result_id?: string | null;
+  external_source?: string;
+  external_key: string;
+  title: string;
+  status?: string;
+  severity?: string;
+  priority?: string;
+  assignee_id?: string | null;
+  root_cause?: string | null;
+  retest_status?: string;
+  url?: string | null;
 }
 
 export interface EvidenceFile {
@@ -222,6 +245,7 @@ export interface RunCase {
   run_id: string;
   case_id: string;
   case_version_no: number;
+  case_snapshot: Record<string, unknown>;
   assigned_to?: string | null;
   status: string;
   actual_result?: string | null;
@@ -905,7 +929,7 @@ export function useCreateRequirementCatalogItem(projectId: string) {
 export function useCreateManagementDefect(projectId: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (payload: Omit<DefectLink, "id" | "created_at">) =>
+    mutationFn: (payload: CreateDefectInput) =>
       apiFetch<DefectLink>(`${BASE(projectId)}/defects`, {
         method: "POST",
         json: payload,
@@ -920,7 +944,17 @@ export function useCreateManagementDefect(projectId: string) {
 export function useUpdateManagementDefect(projectId: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ defectId, ...payload }: { defectId: string; status?: string; title?: string; url?: string | null }) =>
+    mutationFn: ({ defectId, ...payload }: {
+      defectId: string;
+      status?: string;
+      title?: string;
+      severity?: string;
+      priority?: string;
+      assignee_id?: string | null;
+      root_cause?: string | null;
+      retest_status?: string;
+      url?: string | null;
+    }) =>
       apiFetch<DefectLink>(`${BASE(projectId)}/defects/${defectId}`, {
         method: "PATCH",
         json: payload,

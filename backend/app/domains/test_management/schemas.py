@@ -345,6 +345,7 @@ class RunCaseOut(BaseModel):
     run_id: str
     case_id: str
     case_version_no: int
+    case_snapshot: dict[str, Any] = Field(default_factory=dict)
     assigned_to: Optional[str] = None
     status: str
     actual_result: Optional[str] = None
@@ -493,12 +494,22 @@ class DefectLinkCreate(BaseModel):
     external_key: str = Field(..., min_length=1, max_length=200)
     title: str = Field(..., min_length=1, max_length=500)
     status: str = "open"
+    severity: str = "major"
+    priority: str = "P2"
+    assignee_id: Optional[str] = None
+    root_cause: Optional[str] = None
+    retest_status: str = "not_ready"
     url: Optional[str] = None
 
 
 class DefectLinkUpdate(BaseModel):
     status: Optional[str] = None
     title: Optional[str] = Field(default=None, min_length=1, max_length=500)
+    severity: Optional[str] = None
+    priority: Optional[str] = None
+    assignee_id: Optional[str] = None
+    root_cause: Optional[str] = None
+    retest_status: Optional[str] = None
     url: Optional[str] = None
 
 
@@ -512,8 +523,16 @@ class DefectLinkOut(BaseModel):
     external_key: str
     title: str
     status: str
+    severity: str
+    priority: str
+    assignee_id: Optional[str] = None
+    root_cause: Optional[str] = None
+    retest_status: str
     url: Optional[str] = None
+    resolved_at: Optional[datetime] = None
+    verified_at: Optional[datetime] = None
     created_at: datetime
+    updated_at: datetime
 
 
 class TestImportJobCreate(BaseModel):

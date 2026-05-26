@@ -741,6 +741,9 @@ def get_run(db: Session, project_id: str, run_id: str) -> TestRun:
     # Verify project ownership through cycle→plan.
     if run.cycle.plan.project_id != project_id:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Test run bulunamadı")
+    for run_case in run.run_cases:
+        if not run_case.case_snapshot and run_case.case is not None:
+            run_case.case_snapshot = _case_snapshot(run_case.case)
     return run
 
 
@@ -780,6 +783,7 @@ def create_run(db: Session, project_id: str, payload: TestRunCreate, user: Any |
                 run_id=run.id,
                 case_id=case.id,
                 case_version_no=case.current_version,
+                case_snapshot=_case_snapshot(case),
                 assigned_to=payload.assigned_to,
             )
         )
@@ -1258,6 +1262,16 @@ def update_defect_link(db: Session, project_id: str, defect_id: str, payload: De
     for key, value in payload.model_dump(exclude_unset=True).items():
         setattr(defect, key, value)
         changed.append(key)
+    if "status" in changed:
+        normalized = defect.status.strip().lower()
+        if normalized in {"resolved", "fixed"} and defect.resolved_at is None:
+            defect.resolved_at = utcnow()
+            defect.retest_status = "ready"
+        if normalized in {"closed", "done", "verified"} and defect.verified_at is None:
+            defect.verified_at = utcnow()
+            defect.retest_status = "passed"
+        if normalized in {"blocked", "reopened"}:
+            defect.retest_status = "blocked"
     if changed:
         audit(db, "defect_link.updated", "defect_link", defect.id, project_id, user, {"changed_fields": changed})
     db.commit()

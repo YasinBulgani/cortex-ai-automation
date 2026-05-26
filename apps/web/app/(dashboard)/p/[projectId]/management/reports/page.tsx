@@ -1,11 +1,14 @@
 "use client";
 
+import { useState } from "react";
 import {
+  useCreateReleaseSignoff,
   useExecutionSummary,
   useManagementDefects,
   useManagementRepository,
   useManagementRuns,
   useReleaseReport,
+  useReleaseSignoffs,
   useRequirementTraceability,
 } from "@/lib/hooks/use-management";
 
@@ -55,6 +58,86 @@ function checkTone(status: CheckStatus) {
 
 function percent(value: number) {
   return `${value.toFixed(0)}%`;
+}
+
+function SignoffPanel({
+  projectId,
+  decision,
+}: {
+  projectId: string;
+  decision: Decision;
+}) {
+  const signoffs = useReleaseSignoffs(projectId);
+  const createSignoff = useCreateReleaseSignoff(projectId);
+  const [releaseName, setReleaseName] = useState("");
+  const [comment, setComment] = useState("");
+  const latest = signoffs.data?.[0];
+
+  const submit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    await createSignoff.mutateAsync({
+      release_name: releaseName || null,
+      decision,
+      status: "signed",
+      comment: comment || null,
+    });
+    setReleaseName("");
+    setComment("");
+  };
+
+  return (
+    <ManagementPanel title="Release Signoff">
+      <div className="grid gap-4 lg:grid-cols-[1fr_1fr]">
+        <form onSubmit={submit} className="space-y-3">
+          <div className="rounded-lg border border-slate-800 bg-slate-950 p-3">
+            <p className="text-xs uppercase text-slate-500">Snapshot decision</p>
+            <p className="mt-1 text-2xl font-semibold text-white">{decision}</p>
+          </div>
+          <input
+            value={releaseName}
+            onChange={(event) => setReleaseName(event.target.value)}
+            placeholder="Release adı / build versiyonu"
+            className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white placeholder-slate-500 focus:border-teal-500/50 focus:outline-none"
+          />
+          <textarea
+            value={comment}
+            onChange={(event) => setComment(event.target.value)}
+            placeholder="Onay notu, risk kabulü veya aksiyon şartları"
+            className="min-h-24 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white placeholder-slate-500 focus:border-teal-500/50 focus:outline-none"
+          />
+          <button
+            type="submit"
+            disabled={createSignoff.isPending}
+            className="rounded-lg bg-teal-600 px-4 py-2 text-sm font-semibold text-white hover:bg-teal-500 disabled:opacity-40"
+          >
+            {createSignoff.isPending ? "İmzalanıyor..." : "Kararı Snapshot Olarak İmzala"}
+          </button>
+        </form>
+
+        <div className="space-y-3">
+          <div className="rounded-lg border border-slate-800 bg-slate-950 p-3">
+            <p className="text-xs uppercase text-slate-500">Son imza</p>
+            {signoffs.isLoading ? (
+              <p className="mt-2 text-sm text-slate-400">Yükleniyor...</p>
+            ) : latest ? (
+              <div className="mt-2">
+                <p className="text-sm font-semibold text-white">{latest.decision} · {latest.release_name || "Release adı yok"}</p>
+                <p className="mt-1 text-xs text-slate-500">{new Date(latest.signed_at).toLocaleString("tr-TR")}</p>
+                {latest.comment && <p className="mt-2 text-sm text-slate-400">{latest.comment}</p>}
+              </div>
+            ) : (
+              <p className="mt-2 text-sm text-slate-400">Henüz release signoff yok.</p>
+            )}
+          </div>
+          <div className="rounded-lg border border-slate-800 bg-slate-950 p-3">
+            <p className="text-xs uppercase text-slate-500">Signoff geçmişi</p>
+            <p className="mt-1 text-2xl font-semibold text-white">{signoffs.data?.length ?? 0}</p>
+            <p className="mt-1 text-xs text-slate-500">Her imza kendi report snapshotını saklar.</p>
+          </div>
+        </div>
+      </div>
+    </ManagementPanel>
+  );
 }
 
 export default function ManagementReportsPage({ params }: { params: { projectId: string } }) {
@@ -213,6 +296,10 @@ export default function ManagementReportsPage({ params }: { params: { projectId:
             ))}
           </div>
         </ManagementPanel>
+      </div>
+
+      <div className="mt-4">
+        <SignoffPanel projectId={params.projectId} decision={reportDecision} />
       </div>
 
       <div className="mt-4 grid gap-4 md:grid-cols-3">

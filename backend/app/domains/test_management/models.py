@@ -249,6 +249,7 @@ class TestRunCase(Base):
     run_id: Mapped[str] = mapped_column(UUID(as_uuid=False), ForeignKey("test_management_runs.id", ondelete="CASCADE"), nullable=False, index=True)
     case_id: Mapped[str] = mapped_column(UUID(as_uuid=False), ForeignKey("test_management_cases.id", ondelete="CASCADE"), nullable=False, index=True)
     case_version_no: Mapped[int] = mapped_column(Integer, nullable=False)
+    case_snapshot: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict, server_default="{}", nullable=False)
     assigned_to: Mapped[Optional[str]] = mapped_column(UUID(as_uuid=False), ForeignKey("sd_users.id", ondelete="SET NULL"), nullable=True)
     status: Mapped[str] = mapped_column(String(32), default="not_run", server_default="not_run", nullable=False)
     actual_result: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
@@ -358,8 +359,16 @@ class DefectLink(Base):
     external_key: Mapped[str] = mapped_column(String(200), nullable=False)
     title: Mapped[str] = mapped_column(String(500), nullable=False)
     status: Mapped[str] = mapped_column(String(100), default="open", server_default="open", nullable=False)
+    severity: Mapped[str] = mapped_column(String(32), default="major", server_default="major", nullable=False)
+    priority: Mapped[str] = mapped_column(String(32), default="P2", server_default="P2", nullable=False)
+    assignee_id: Mapped[Optional[str]] = mapped_column(UUID(as_uuid=False), ForeignKey("sd_users.id", ondelete="SET NULL"), nullable=True)
+    root_cause: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    retest_status: Mapped[str] = mapped_column(String(32), default="not_ready", server_default="not_ready", nullable=False)
     url: Mapped[Optional[str]] = mapped_column(String(1000), nullable=True)
+    resolved_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    verified_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow, nullable=False)
 
 
 class TestImportJob(Base):
