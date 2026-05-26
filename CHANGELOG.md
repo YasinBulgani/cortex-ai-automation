@@ -7,6 +7,33 @@ Kategoriler: `Added`, `Changed`, `Deprecated`, `Removed`, `Fixed`, `Security`.
 
 ## [Unreleased]
 
+### Added — Engine route testleri + Backend domain testleri Wave 3/4 (2026-05-26, Tur 5)
+
+**Engine — Route testleri (Wave 3 tamamlandı)**
+- `engine/tests/unit/test_analytics_routes.py` — 30 test; 8 test class, analytics/reporting blueprint tümü kapsandı.
+- `engine/tests/unit/test_reporting_routes.py` — 28 test; raporlama endpoint'leri (PDF/HTML/JSON export).
+- `engine/tests/unit/test_scheduler_routes.py` — 22 test; APScheduler CRUD, JSON file store, schedule list/add/delete.
+
+**Backend — Wave 3 domain unit testleri**
+- `backend/tests/unit/test_defects_service.py` — 13 test; state machine (open→awaiting_fix→verifying→closed), rejected path, jira_webhook_ingest, ADF flattening.
+- `backend/tests/unit/test_ingestion_service.py` — 11 test; ingest_text, get_requirement, list_requirements, jira_webhook_ingest.
+- `backend/tests/unit/test_knowledge_base_service.py` — 20 test; PermissionError non-author, admin bypass, sort/filter, view count, voting.
+- `backend/tests/unit/test_compliance_service.py` — 12 test; get_coverage_summary, list_controls standard filter, get_control, mappings_for.
+- `backend/tests/unit/test_visual_service.py` — 10 test; start_comparison compare_png mock, get_result, list_results.
+- `backend/tests/unit/test_marketplace_service.py` — 13 test; list_items, get_item, install_item.
+
+**Engine — Route testleri (Wave 4)**
+- `engine/tests/unit/test_feature_routes.py` — 20 test; feature file CRUD, glue content generation.
+- `engine/tests/unit/test_jira_routes.py` — 18 test; config CRUD, bug push, project list, testcase link.
+- `engine/tests/unit/test_lifecycle_routes.py` — 12 test; process-analyst endpoint, AI mock, save flow.
+- `engine/tests/unit/test_locators_routes.py` — 15 test; DB/JSON kaynak, save/delete, discover URL normalizasyonu.
+- `engine/tests/unit/test_monkey_routes.py` — 18 test; SSE dışı endpoint'ler, start/stop/status/report.
+- `engine/tests/unit/test_project_routes.py` — 20 test; CRUD, set-active, scaffold stub.
+- `engine/tests/unit/test_regression_routes.py` — 15 test; regression set CRUD, feature add/remove.
+- `engine/tests/unit/test_runner_routes.py` — 25 test; enqueue, SSE stream mock, cancel, status.
+- `engine/tests/unit/test_visual_ai_routes.py` — 15 test; compare, heal, AI analysis mock.
+- `engine/tests/unit/test_webhook_routes.py` — 12 test; GitHub/Jira webhook handlers, HMAC validation.
+
 ### Added — P1/P2 sprint devamı (2026-05-24, Tur 4, Neurex_QA port)
 
 **Backend — Kritik Bug Fix (Neurex_QA port)**
