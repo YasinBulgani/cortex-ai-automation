@@ -1,9 +1,22 @@
 # Docs Index — Neurex QA Platform
 
-**Son güncelleme:** 2026-05-24  
+**Son güncelleme:** 2026-05-26  
 **Kapsam:** `docs/` dizinindeki tüm dokümantasyon  
 
 > Bu dosya `docs/` içeriğinin haritası. Yeni bir doküman eklendiğinde bu dosyayı da güncelleyin.
+
+---
+
+## Son Güncellemeler (2026-05-26)
+
+Wave 11/12 kapsamında eklenen yeni belgeler:
+
+| Dosya | Konu | Tarih |
+|---|---|---|
+| [adr/ADR-0011-service-layer-ddd-pattern.md](./adr/ADR-0011-service-layer-ddd-pattern.md) | DDD servis katmanı kararı (Wave 11) | 2026-05-26 |
+| [testing-runbook.md](./testing-runbook.md) | Backend/engine/frontend test koşumu rehberi (Wave 11) | 2026-05-26 |
+| [backend-domain-coverage.md](./backend-domain-coverage.md) | 48 domain coverage matrisi (Wave 11) | 2026-05-26 |
+| [semgrep-secrets-runbook.md](./semgrep-secrets-runbook.md) | Semgrep secrets tarama runbook'u (Wave 11) | 2026-05-26 |
 
 ---
 
@@ -19,6 +32,7 @@
 | [0004](./adr/0004-legacy-silme-politikasi.md) | Legacy silme politikası (6 ay) | ✅ Kabul |
 | [0005](./adr/0005-test-taksonomisi.md) | Test katmanları ve konumları | ✅ Kabul |
 | [0006](./adr/0006-playwright-cucumber-framework-rolü.md) | Playwright-Cucumber framework rolü | ✅ Kabul |
+| [ADR-0011](./adr/ADR-0011-service-layer-ddd-pattern.md) | Servis katmanı DDD pattern kararı | ✅ Kabul |
 
 ---
 
@@ -56,6 +70,8 @@
 | [ai-workflow-release-signoff.md](./ai-workflow-release-signoff.md) | AI workflow release onay süreci |
 | [runtime-hardening-checklist.md](./runtime-hardening-checklist.md) | Runtime güvenlik kontrol listesi |
 | [REBRAND_DEPLOY_CHECKLIST.md](./REBRAND_DEPLOY_CHECKLIST.md) | Rebrand deploy kontrol listesi |
+| [testing-runbook.md](./testing-runbook.md) | Backend/engine/frontend test koşumu rehberi |
+| [semgrep-secrets-runbook.md](./semgrep-secrets-runbook.md) | Semgrep secrets tarama runbook'u |
 
 ---
 
@@ -70,6 +86,7 @@
 | [BRANCHING_WORKFLOW.md](./BRANCHING_WORKFLOW.md) | Git branch ve PR iş akışı |
 | [dependency-governance.md](./dependency-governance.md) | Bağımlılık yönetim politikası |
 | [web-route-onboarding.md](./web-route-onboarding.md) | Web route ekleme rehberi |
+| [backend-domain-coverage.md](./backend-domain-coverage.md) | 48 domain coverage matrisi |
 
 ---
 
