@@ -196,6 +196,7 @@ def _mock_playwright(title: str, steps: list[dict], target_url: str = "") -> str
     for i, s in enumerate(steps, 1):
         action = s.get("action", "").strip().replace('"', '\\"')
         expected = s.get("expected", "").strip().replace('"', '\\"')
+        al = action.lower()
         lines.append(f"    # Adım {i}: {action}")
         if expected:
             lines.append(f"    # Beklenen: {expected}")

@@ -234,12 +234,27 @@ class ActionRecorder:
             base_url=base_url,
         )
         self._start_time = datetime.now().timestamp()
+        self._paused: bool = False
+
+    def pause(self) -> None:
+        """Kaydı duraklatır — yeni aksiyonlar görmezden gelinir."""
+        self._paused = True
+
+    def resume(self) -> None:
+        """Duraklatılmış kaydı devam ettirir."""
+        self._paused = False
+
+    @property
+    def is_paused(self) -> bool:
+        return self._paused
 
     # ── Temel Aksiyon Ekleyiciler ─────────────────────────────────────────────
     def record(self, action_type: str, selector: str = "", value: str = "",
                selector_type: str = "css", element_info: dict | None = None,
                metadata: dict | None = None) -> RecordedAction:
-        """Ham aksiyon kaydeder."""
+        """Ham aksiyon kaydeder (duraklatılmışsa None döner)."""
+        if self._paused:
+            return None  # type: ignore[return-value]
         ei = element_info or {}
         element_name = SmartSelectorEngine.to_element_name(ei) if ei else (
             re.sub(r"[^a-z0-9_]", "_", selector.lower())[:30] or "element"
@@ -890,6 +905,23 @@ class TestRecorder:
         if self._recorder:
             self._session = self._recorder.stop()
         return self._session
+
+    def pause(self) -> "TestRecorder":
+        """Kaydı duraklatır — yeni aksiyonlar yok sayılır."""
+        if self._recorder:
+            self._recorder.pause()
+        return self
+
+    def resume(self) -> "TestRecorder":
+        """Duraklatılmış kaydı devam ettirir."""
+        if self._recorder:
+            self._recorder.resume()
+        return self
+
+    @property
+    def is_paused(self) -> bool:
+        """Kayıt şu an duraklatılmış mı?"""
+        return bool(self._recorder and self._recorder.is_paused)
 
     @property
     def session(self) -> RecordingSession:
