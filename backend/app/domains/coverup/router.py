@@ -197,7 +197,10 @@ def upload_coverage(
     user: CurrentUser,
 ) -> CoverageReport:
     """Coverage raporu yükle ve parse et."""
-    return create_report(_repository(db), body)
+    try:
+        return create_report(_repository(db), body)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
 
 
 @router.post("/analyze", response_model=AnalyzeResponse)
@@ -207,11 +210,14 @@ def analyze_coverage(
     user: CurrentUser,
 ) -> AnalyzeResponse:
     """Coverage gap'lerini analiz et ve hedefleri belirle."""
-    report = get_report_or_404(
-        _repository(db),
-        body.report_id,
-        allowed_project_ids=_accessible_project_ids(db, user),
-    )
+    try:
+        report = get_report_or_404(
+            _repository(db),
+            body.report_id,
+            allowed_project_ids=_accessible_project_ids(db, user),
+        )
+    except KeyError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
     return analyze_report(report, body)
 
 
@@ -222,11 +228,14 @@ def generate_coverage_tests(
     user: CurrentUser,
 ) -> GenerateTestResponse:
     """Kapsanmayan kod için test üret (AI destekli)."""
-    report = get_report_or_404(
-        _repository(db),
-        body.report_id,
-        allowed_project_ids=_accessible_project_ids(db, user),
-    )
+    try:
+        report = get_report_or_404(
+            _repository(db),
+            body.report_id,
+            allowed_project_ids=_accessible_project_ids(db, user),
+        )
+    except KeyError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
 
     # Hedefler belirtilmemisse high-risk hedefleri otomatik sec
     targets = body.targets
@@ -318,11 +327,14 @@ def get_report(
     user: CurrentUser,
 ) -> CoverageReport:
     """Belirli bir coverage raporunu getir."""
-    return get_report_or_404(
-        _repository(db),
-        report_id,
-        allowed_project_ids=_accessible_project_ids(db, user),
-    )
+    try:
+        return get_report_or_404(
+            _repository(db),
+            report_id,
+            allowed_project_ids=_accessible_project_ids(db, user),
+        )
+    except KeyError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
 
 
 @router.get("/trends", response_model=TrendResponse)
@@ -348,9 +360,12 @@ def banking_targets(
     user: CurrentUser,
 ) -> AnalyzeResponse:
     """Bankacilik-kritik kapsam hedeflerini belirle."""
-    report = get_report_or_404(
-        _repository(db),
-        body.report_id,
-        allowed_project_ids=_accessible_project_ids(db, user),
-    )
+    try:
+        report = get_report_or_404(
+            _repository(db),
+            body.report_id,
+            allowed_project_ids=_accessible_project_ids(db, user),
+        )
+    except KeyError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
     return analyze_report(report, body, banking_only=True)
