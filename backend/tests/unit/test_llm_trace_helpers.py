@@ -3,7 +3,7 @@
 Tests app/domains/ai/llm_trace.py — no DB, no external deps.
 Covers: _safe_row_get, _infer_provider, _estimate_tokens, _estimate_cost_usd,
         _status_from, _normalize_metadata, _normalize_task_type,
-        _normalize_phase, _empty_trace_stats.
+        _normalize_phase, _deserialize_metadata, _empty_trace_stats.
 """
 
 from __future__ import annotations
@@ -11,6 +11,7 @@ from __future__ import annotations
 import pytest
 
 from app.domains.ai.llm_trace import (
+    _deserialize_metadata,
     _empty_trace_stats,
     _estimate_cost_usd,
     _estimate_tokens,
@@ -302,3 +303,72 @@ class TestEmptyTraceStats:
         s2 = _empty_trace_stats()
         s1["total_calls"] = 99
         assert s2["total_calls"] == 0
+
+    def test_all_expected_keys_present(self) -> None:
+        stats = _empty_trace_stats()
+        expected_keys = {
+            "total_calls", "total_traces", "successful", "failed",
+            "success_rate", "avg_latency_ms", "max_latency_ms",
+            "unique_agents", "unique_models", "json_failures",
+            "timeout_count", "total_tokens", "total_cost_usd",
+            "top_agents", "top_models",
+        }
+        for key in expected_keys:
+            assert key in stats, f"Missing key: {key}"
+
+    def test_total_traces_mirrors_total_calls(self) -> None:
+        stats = _empty_trace_stats()
+        assert stats["total_traces"] == stats["total_calls"] == 0
+
+    def test_unique_counts_default_to_zero(self) -> None:
+        stats = _empty_trace_stats()
+        assert stats["unique_agents"] == 0
+        assert stats["unique_models"] == 0
+
+
+# ── _deserialize_metadata ─────────────────────────────────────────────────────
+
+
+class TestDeserializeMetadata:
+    def test_none_returns_empty_dict(self) -> None:
+        assert _deserialize_metadata(None) == {}
+
+    def test_empty_string_returns_empty_dict(self) -> None:
+        assert _deserialize_metadata("") == {}
+
+    def test_dict_passthrough(self) -> None:
+        d = {"key": "val", "num": 42}
+        result = _deserialize_metadata(d)
+        assert result == d
+        assert result is d  # same object — direct passthrough
+
+    def test_valid_json_string_returns_dict(self) -> None:
+        raw = '{"model": "gpt-4o", "tokens": 512}'
+        result = _deserialize_metadata(raw)
+        assert result == {"model": "gpt-4o", "tokens": 512}
+
+    def test_invalid_json_returns_empty_dict(self) -> None:
+        assert _deserialize_metadata("not-valid-json{{{") == {}
+
+    def test_json_array_returns_empty_dict(self) -> None:
+        # JSON array is valid JSON but not a dict — should return {}
+        result = _deserialize_metadata("[1, 2, 3]")
+        assert result == {}
+
+    def test_json_null_returns_empty_dict(self) -> None:
+        # "null" is valid JSON, but not a dict
+        result = _deserialize_metadata("null")
+        assert result == {}
+
+    def test_nested_dict_preserved(self) -> None:
+        raw = '{"outer": {"inner": true}}'
+        result = _deserialize_metadata(raw)
+        assert result["outer"] == {"inner": True}
+
+    def test_non_string_non_dict_returns_empty(self) -> None:
+        # Integer, list, etc. should return {}
+        assert _deserialize_metadata(42) == {}   # type: ignore[arg-type]
+        assert _deserialize_metadata([1, 2]) == {}  # type: ignore[arg-type]
+
+    def test_empty_dict_passthrough(self) -> None:
+        assert _deserialize_metadata({}) == {}
