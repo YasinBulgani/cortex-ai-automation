@@ -1,6 +1,6 @@
 """Artifacts router endpoint'leri — dosya indirme, yetki, path traversal.
 
-Gerçek FastAPI app + TestClient kullanır; DB bağımlılıkları monkeypatch'li.
+Gerçek FastAPI app + TestClient kullanır; DB bağımlılıkları dependency_overrides ile mock'lanmıştır.
 Router layer odaklıdır: HTTP durum kodları, yetki kontrolü, hata yönetimi.
 """
 from __future__ import annotations
@@ -24,8 +24,17 @@ except ImportError:
 # Helpers
 # ---------------------------------------------------------------------------
 
-def _app() -> TestClient:
+def _app(mock_db=None, mock_user=None) -> TestClient:
+    """Create a test client with dependency overrides for DB and current user."""
+    from app.infra.database import get_db
+    from app.deps import get_current_user
+
+    _mock_db = mock_db if mock_db is not None else MagicMock()
+    _mock_user = mock_user if mock_user is not None else _make_user()
+
     app = FastAPI()
+    app.dependency_overrides[get_db] = lambda: _mock_db
+    app.dependency_overrides[get_current_user] = lambda: _mock_user
     app.include_router(router)
     return TestClient(app, raise_server_exceptions=False)
 
@@ -93,52 +102,37 @@ def test_is_admin_user_empty_roles() -> None:
 def test_download_artifact_not_found_404() -> None:
     if not _IMPORT_OK:
         return
-    client = _app()
     mock_user = _make_user()
     mock_db = MagicMock()
     mock_db.get.return_value = None
-
-    with (
-        patch("app.domains.artifacts.router.get_db", return_value=mock_db),
-        patch("app.domains.artifacts.router.get_current_user", return_value=mock_user),
-    ):
-        r = client.get("/artifacts/nonexistent/download")
+    client = _app(mock_db=mock_db, mock_user=mock_user)
+    r = client.get("/artifacts/nonexistent/download")
     assert r.status_code == 404
 
 
 def test_download_artifact_forbidden_403() -> None:
     if not _IMPORT_OK:
         return
-    client = _app()
     # Non-admin user, artifact owned by different user
     mock_user = _make_user(is_admin=False)
     mock_user.id = "user-001"
     mock_artifact = _make_artifact(owner_id="other-user-999")
     mock_db = MagicMock()
     mock_db.get.return_value = mock_artifact
-
-    with (
-        patch("app.domains.artifacts.router.get_db", return_value=mock_db),
-        patch("app.domains.artifacts.router.get_current_user", return_value=mock_user),
-    ):
-        r = client.get("/artifacts/art-001/download")
+    client = _app(mock_db=mock_db, mock_user=mock_user)
+    r = client.get("/artifacts/art-001/download")
     assert r.status_code == 403
 
 
 def test_download_artifact_file_missing_on_disk_404() -> None:
     if not _IMPORT_OK:
         return
-    client = _app()
     mock_user = _make_user(is_admin=True)
     mock_artifact = _make_artifact(storage_path="/tmp/does_not_exist_xyz.bin")
     mock_db = MagicMock()
     mock_db.get.return_value = mock_artifact
-
-    with (
-        patch("app.domains.artifacts.router.get_db", return_value=mock_db),
-        patch("app.domains.artifacts.router.get_current_user", return_value=mock_user),
-    ):
-        r = client.get("/artifacts/art-001/download")
+    client = _app(mock_db=mock_db, mock_user=mock_user)
+    r = client.get("/artifacts/art-001/download")
     assert r.status_code == 404
 
 
@@ -147,18 +141,13 @@ def test_download_artifact_path_traversal_blocked() -> None:
     the test verifies the endpoint resolves via storage_path, not user input."""
     if not _IMPORT_OK:
         return
-    client = _app()
     mock_user = _make_user(is_admin=True)
     # Set storage_path to a traversal-like path — file won't exist → 404
     mock_artifact = _make_artifact(storage_path="../../etc/passwd")
     mock_db = MagicMock()
     mock_db.get.return_value = mock_artifact
-
-    with (
-        patch("app.domains.artifacts.router.get_db", return_value=mock_db),
-        patch("app.domains.artifacts.router.get_current_user", return_value=mock_user),
-    ):
-        r = client.get("/artifacts/art-001/download")
+    client = _app(mock_db=mock_db, mock_user=mock_user)
+    r = client.get("/artifacts/art-001/download")
     # Either 404 (file not found) or 200 (exists but served from storage_path only)
     # The critical thing: no 500 crash, no arbitrary path served from URL params
     assert r.status_code in (200, 404)
@@ -167,7 +156,6 @@ def test_download_artifact_path_traversal_blocked() -> None:
 def test_download_artifact_owner_can_download(tmp_path) -> None:
     if not _IMPORT_OK:
         return
-    client = _app()
     # Create a real temp file
     test_file = tmp_path / "sample.txt"
     test_file.write_text("artifact content")
@@ -177,19 +165,14 @@ def test_download_artifact_owner_can_download(tmp_path) -> None:
     mock_artifact = _make_artifact(storage_path=str(test_file), owner_id="user-001")
     mock_db = MagicMock()
     mock_db.get.return_value = mock_artifact
-
-    with (
-        patch("app.domains.artifacts.router.get_db", return_value=mock_db),
-        patch("app.domains.artifacts.router.get_current_user", return_value=mock_user),
-    ):
-        r = client.get("/artifacts/art-001/download")
+    client = _app(mock_db=mock_db, mock_user=mock_user)
+    r = client.get("/artifacts/art-001/download")
     assert r.status_code == 200
 
 
 def test_download_artifact_admin_can_download_any(tmp_path) -> None:
     if not _IMPORT_OK:
         return
-    client = _app()
     test_file = tmp_path / "admin_file.txt"
     test_file.write_text("admin artifact content")
 
@@ -197,12 +180,8 @@ def test_download_artifact_admin_can_download_any(tmp_path) -> None:
     mock_artifact = _make_artifact(storage_path=str(test_file), owner_id="other-user")
     mock_db = MagicMock()
     mock_db.get.return_value = mock_artifact
-
-    with (
-        patch("app.domains.artifacts.router.get_db", return_value=mock_db),
-        patch("app.domains.artifacts.router.get_current_user", return_value=mock_user),
-    ):
-        r = client.get("/artifacts/art-001/download")
+    client = _app(mock_db=mock_db, mock_user=mock_user)
+    r = client.get("/artifacts/art-001/download")
     assert r.status_code == 200
 
 
@@ -210,7 +189,6 @@ def test_download_artifact_no_job_owner_403() -> None:
     """Artifact with no associated job — non-admin gets 403."""
     if not _IMPORT_OK:
         return
-    client = _app()
     mock_user = _make_user(is_admin=False)
     mock_user.id = "user-001"
     mock_artifact = MagicMock()
@@ -219,10 +197,6 @@ def test_download_artifact_no_job_owner_403() -> None:
     mock_artifact.job = None  # no job
     mock_db = MagicMock()
     mock_db.get.return_value = mock_artifact
-
-    with (
-        patch("app.domains.artifacts.router.get_db", return_value=mock_db),
-        patch("app.domains.artifacts.router.get_current_user", return_value=mock_user),
-    ):
-        r = client.get("/artifacts/art-001/download")
+    client = _app(mock_db=mock_db, mock_user=mock_user)
+    r = client.get("/artifacts/art-001/download")
     assert r.status_code == 403

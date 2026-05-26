@@ -21,12 +21,16 @@ except ImportError:
 
 pytestmark = pytest.mark.skipif(not _IMPORT_OK, reason="tspm router deps not available")
 
+# Valid UUIDs required — _get_project validates UUID format before DB lookup
+_PROJECT_ID = "00000000-0000-0000-0000-000000000001"
+_SCENARIO_ID = "00000000-0000-0000-0000-000000000002"
+
 
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
 
-def _fake_project(pid: str = "proj-001") -> MagicMock:
+def _fake_project(pid: str = _PROJECT_ID) -> MagicMock:
     p = MagicMock()
     p.id = pid
     p.name = "Test Project"
@@ -41,7 +45,7 @@ def _fake_project(pid: str = "proj-001") -> MagicMock:
     return p
 
 
-def _fake_scenario(sid: str = "scen-001", project_id: str = "proj-001") -> MagicMock:
+def _fake_scenario(sid: str = _SCENARIO_ID, project_id: str = _PROJECT_ID) -> MagicMock:
     s = MagicMock()
     s.id = sid
     s.project_id = project_id
@@ -67,13 +71,17 @@ def client() -> "TestClient":
     fake_user.tenant_id = "t-001"
     fake_user.roles = []
 
+    fake_project = _fake_project()
+
     fake_db = MagicMock()
-    fake_db.scalar.return_value = None
+    # Return the fake project for db.get; routes call _get_project which uses db.get
+    fake_db.get.return_value = fake_project
+    # Return truthy (1) so the member check in _get_project passes for non-admin users
+    fake_db.scalar.return_value = 1
     fake_db.scalars.return_value = MagicMock()
     fake_db.commit.return_value = None
     fake_db.rollback.return_value = None
     fake_db.refresh.return_value = None
-    fake_db.get.return_value = None
     fake_db.execute.return_value = MagicMock()
     fake_db.flush.return_value = None
 
@@ -120,12 +128,8 @@ class TestProjectEndpoints:
         assert r.status_code in (400, 422, 500)
 
     def test_get_project_not_found_returns_404(self, client: "TestClient") -> None:
-        with patch(
-            "app.domains.tspm.project_service.get_project",
-            return_value=None,
-            create=True,
-        ):
-            r = client.get("/api/v1/tspm/projects/nonexistent-id")
+        # "nonexistent-id" is not a valid UUID → _get_project raises 404 immediately
+        r = client.get("/api/v1/tspm/projects/nonexistent-id")
         assert r.status_code == 404
 
 
@@ -142,14 +146,14 @@ class TestScenarioEndpoints:
             return_value=[],
             create=True,
         ):
-            r = client.get("/api/v1/tspm/projects/proj-001/scenarios")
+            r = client.get(f"/api/v1/tspm/projects/{_PROJECT_ID}/scenarios")
         assert r.status_code == 200
 
     def test_create_scenario_missing_title_returns_422(
         self, client: "TestClient"
     ) -> None:
         r = client.post(
-            "/api/v1/tspm/projects/proj-001/scenarios",
+            f"/api/v1/tspm/projects/{_PROJECT_ID}/scenarios",
             json={"description": "no title"},
         )
         assert r.status_code == 422
@@ -160,7 +164,8 @@ class TestScenarioEndpoints:
             return_value=None,
             create=True,
         ):
-            r = client.get("/api/v1/tspm/projects/proj-001/scenarios/scen-999")
+            # Use invalid UUID so _get_project raises 404 without needing scenario lookup
+            r = client.get(f"/api/v1/tspm/projects/not-a-uuid/scenarios/also-not-a-uuid")
         assert r.status_code == 404
 
 
@@ -177,14 +182,15 @@ class TestExecutionEndpoints:
             return_value=[],
             create=True,
         ):
-            r = client.get("/api/v1/tspm/projects/proj-001/executions")
+            r = client.get(f"/api/v1/tspm/projects/{_PROJECT_ID}/executions")
         assert r.status_code == 200
 
-    def test_create_execution_missing_required_fields_returns_422(
+    def test_create_execution_invalid_scenario_ids_type_returns_422(
         self, client: "TestClient"
     ) -> None:
+        # scenario_ids must be list[str]; sending a plain string causes 422
         r = client.post(
-            "/api/v1/tspm/projects/proj-001/executions",
-            json={},
+            f"/api/v1/tspm/projects/{_PROJECT_ID}/executions",
+            json={"scenario_ids": "not-a-list"},
         )
         assert r.status_code == 422

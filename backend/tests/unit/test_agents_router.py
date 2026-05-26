@@ -54,7 +54,17 @@ class TestIsAdminUser:
 # ---------------------------------------------------------------------------
 
 def _make_client() -> TestClient:
+    """Create a test client with a mock DB so get_current_user can fail with 401
+    (not 500) when no auth token is provided."""
+    from app.infra.database import get_db
+
+    mock_db = MagicMock()
+    mock_db.get.return_value = None  # no user found
+    mock_db.commit.return_value = None
+    mock_db.rollback.return_value = None
+
     app = FastAPI()
+    app.dependency_overrides[get_db] = lambda: mock_db
     app.include_router(router)
     return TestClient(app, raise_server_exceptions=False)
 

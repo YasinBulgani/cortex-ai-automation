@@ -215,12 +215,20 @@ class TestSecurityProperties:
         # the important thing is verify_password runs without crashing.
         assert isinstance(result, bool)
 
-    def test_create_access_token_very_short_expiry_expires(self):
-        """Token with expires_minutes=0 (or negative) should be expired immediately."""
-        import time
-        token = create_access_token(USER_ID, expires_minutes=0)
-        # Allow a tiny grace window for fast machines; token should be expired in < 5s
-        time.sleep(1)
+    def test_decode_already_expired_token_raises(self):
+        """A token with an already-past exp claim must be rejected by decode_token."""
+        import jwt as pyjwt
+        from app.config import settings
+        from datetime import datetime, timedelta, timezone
+        # Encode a token that expired 5 minutes ago
+        past = datetime.now(timezone.utc) - timedelta(minutes=5)
+        payload = {
+            "sub": USER_ID,
+            "iat": int(past.timestamp()),
+            "exp": int(past.timestamp()),
+            "jti": "short-lived-test",
+        }
+        token = pyjwt.encode(payload, settings.jwt_secret, algorithm=settings.jwt_algorithm)
         with pytest.raises(Exception):
             decode_token(token)
 

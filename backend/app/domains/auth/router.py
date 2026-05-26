@@ -20,7 +20,7 @@ from app.domains.auth.service import (
     create_access_token, verify_password, hash_password,
     revoke_token, create_password_reset_token, verify_password_reset_token,
     create_refresh_token, verify_refresh_token, revoke_refresh_token,
-    revoke_all_user_tokens,
+    revoke_all_user_tokens, _DUMMY_HASH,
 )
 from app.domains.audit.service import log_audit
 from app.config import settings
@@ -197,7 +197,6 @@ def login(
     user = db.scalar(select(User).where(User.email == body.email))
     if user is None:
         # Always verify against a dummy hash to prevent timing attacks
-        from app.domains.auth.service import _DUMMY_HASH
         verify_password("dummy", _DUMMY_HASH)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

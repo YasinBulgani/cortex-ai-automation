@@ -65,6 +65,7 @@ def generate(config: Dict[str, Any]) -> Dict[str, Any]:
 
     _datasets[dataset_id] = {
         "id": dataset_id,
+        "dataset_id": dataset_id,  # alias for API compatibility
         "generator_type": generator_type,
         "count": len(records),
         "records": records,
