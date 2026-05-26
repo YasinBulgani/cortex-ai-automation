@@ -14,7 +14,6 @@ try:
     from app.domains.automation_suite.service import (
         _RunRegistry,
         _match_gherkin_with_dsl,
-        _scale_to_monthly,
         get_run_status,
     )
     from app.domains.automation_suite.schemas import (
