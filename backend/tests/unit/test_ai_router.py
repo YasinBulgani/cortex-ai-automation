@@ -81,9 +81,34 @@ def ai_client():
 
     app = FastAPI()
 
+    # Override DB and auth dependencies so they don't crash with 500
+    try:
+        from app.infra.database import get_db
+        from app.deps import get_current_user
+        mock_user = MagicMock()
+        mock_user.id = "user-ai-test"
+        mock_user.tenant_id = "tenant-test"
+        mock_user.roles = []
+        # Return a mock session that belongs to mock_user so session routes don't 404
+        mock_session = MagicMock()
+        mock_session.user_id = mock_user.id
+        mock_session.session_id = "some-session"
+        mock_session.title = "Test Session"
+        mock_session.project_id = "proj-test"
+        mock_session.created_at = None
+        mock_db = MagicMock()
+        mock_db.get.return_value = mock_session
+        mock_db.scalar.return_value = 0
+        mock_db.scalars.return_value = iter([])
+        app.dependency_overrides[get_db] = lambda: mock_db
+        app.dependency_overrides[get_current_user] = lambda: mock_user
+    except Exception:
+        pass  # If imports fail, continue without overrides
+
     try:
         from app.domains.ai.router import router as ai_router
-        app.include_router(ai_router, prefix="/ai")
+        # The router already has prefix="/ai" built-in — don't add it again
+        app.include_router(ai_router)
     except Exception:
         pytest.skip("Could not mount AI router")
 

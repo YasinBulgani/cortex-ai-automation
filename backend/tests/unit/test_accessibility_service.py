@@ -159,14 +159,17 @@ class TestAnalyzeViolationsFlagOn:
         monkeypatch.setenv("AI_ACCESSIBILITY_ENABLED", "true")
         # The analyzer imports gateway_complete lazily inside analyze(); patch via sys.modules.
         import sys
+        import importlib
         from unittest.mock import MagicMock
         gw_module_path = "app.domains.ai.gateway_client"
         if gw_module_path not in sys.modules:
             fake_mod = MagicMock()
             fake_mod.gateway_complete = lambda **kw: return_value
             sys.modules[gw_module_path] = fake_mod
+            monkeypatch.setitem(sys.modules, gw_module_path, fake_mod)
         else:
-            sys.modules[gw_module_path].gateway_complete = lambda **kw: return_value
+            # Use monkeypatch.setattr so the change is properly undone after the test
+            monkeypatch.setattr(sys.modules[gw_module_path], "gateway_complete", lambda **kw: return_value)
 
     def test_successful_analysis_returns_remediations(self, monkeypatch):
         self._patch_gateway(monkeypatch, _valid_llm_response(["v-0"]))
@@ -180,9 +183,13 @@ class TestAnalyzeViolationsFlagOn:
         monkeypatch.setenv("AI_ACCESSIBILITY_ENABLED", "true")
         import sys
         from unittest.mock import MagicMock
-        fake_mod = MagicMock()
-        fake_mod.gateway_complete = MagicMock(side_effect=RuntimeError("gateway down"))
-        sys.modules["app.domains.ai.gateway_client"] = fake_mod
+        gw_module_path = "app.domains.ai.gateway_client"
+        if gw_module_path not in sys.modules:
+            fake_mod = MagicMock()
+            fake_mod.gateway_complete = MagicMock(side_effect=RuntimeError("gateway down"))
+            monkeypatch.setitem(sys.modules, gw_module_path, fake_mod)
+        else:
+            monkeypatch.setattr(sys.modules[gw_module_path], "gateway_complete", MagicMock(side_effect=RuntimeError("gateway down")))
 
         req = _make_request(1)
         resp = analyze_violations(req)

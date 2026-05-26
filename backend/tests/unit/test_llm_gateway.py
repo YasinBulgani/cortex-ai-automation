@@ -51,14 +51,23 @@ def _patch_settings(monkeypatch):
     if not _IMPORT_OK:
         yield
         return
-    monkeypatch.setattr(router.settings, "anthropic_api_key", "test-anthropic-key", raising=False)
-    monkeypatch.setattr(router.settings, "openai_api_key", "test-openai-key", raising=False)
-    monkeypatch.setattr(router.settings, "ai_routing_mode", "balanced", raising=False)
-    monkeypatch.setattr(router.settings, "openai_mini_model", "gpt-4o-mini", raising=False)
-    monkeypatch.setattr(router.settings, "openai_mid_model", "gpt-4o", raising=False)
-    monkeypatch.setattr(router.settings, "anthropic_premium_model", "claude-sonnet-4-20250514", raising=False)
-    monkeypatch.setattr(router.settings, "ollama_fallback_model", "qwen2.5:32b", raising=False)
-    monkeypatch.setattr(router.settings, "allow_provider_fallback", True, raising=False)
+
+    def _safe_setattr(obj, name, value):
+        """Pydantic Settings may reject unknown field names; only patch if field exists."""
+        if hasattr(obj, name):
+            try:
+                monkeypatch.setattr(obj, name, value, raising=False)
+            except (ValueError, AttributeError):
+                pass  # Ignore pydantic validation errors
+
+    _safe_setattr(router.settings, "anthropic_api_key", "test-anthropic-key")
+    _safe_setattr(router.settings, "openai_api_key", "test-openai-key")
+    _safe_setattr(router.settings, "ai_routing_mode", "balanced")
+    _safe_setattr(router.settings, "openai_mini_model", "gpt-4o-mini")
+    _safe_setattr(router.settings, "openai_mid_model", "gpt-4o")
+    _safe_setattr(router.settings, "anthropic_premium_model", "claude-sonnet-4-20250514")
+    _safe_setattr(router.settings, "ollama_fallback_model", "qwen2.5:32b")
+    _safe_setattr(router.settings, "allow_provider_fallback", True)
     yield
 
 
@@ -135,6 +144,21 @@ class TestPiiRedaction:
 # ══════════════════════════════════════════════════════════════════════════════
 
 class TestModelRouting:
+
+    @pytest.fixture(autouse=True)
+    def _clear_rate_limits(self):
+        """Clear module-level rate-limit state before each test to prevent pollution."""
+        try:
+            from app.domains.ai.rate_limit_monitor import clear_rate_limit
+            clear_rate_limit()
+        except Exception:
+            pass
+        yield
+        try:
+            from app.domains.ai.rate_limit_monitor import clear_rate_limit
+            clear_rate_limit()
+        except Exception:
+            pass
 
     def test_security_audit_critical_is_premium(self):
         """Kritik güvenlik analizi → PREMIUM tier secilmeli."""
