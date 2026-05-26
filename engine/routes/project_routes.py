@@ -13,6 +13,15 @@ import json
 import logging
 from datetime import datetime
 from config.settings import settings
+import importlib.util as _ilu
+import sys as _sys
+# Load scaffold_project by absolute path to avoid 'scripts' namespace shadowing.
+_scaffold_path = Path(__file__).resolve().parent.parent / "scripts" / "scaffold_project.py"
+if "scripts.scaffold_project" not in _sys.modules:
+    _spec = _ilu.spec_from_file_location("scripts.scaffold_project", _scaffold_path)
+    _mod = _ilu.module_from_spec(_spec)
+    _sys.modules["scripts.scaffold_project"] = _mod
+    _spec.loader.exec_module(_mod)
 from scripts.scaffold_project import ProjectScaffolder
 from core.db import create_project as db_create_project, get_projects as db_get_projects, get_project as db_get_project
 
