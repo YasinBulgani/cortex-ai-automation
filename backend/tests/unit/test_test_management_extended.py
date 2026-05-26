@@ -59,6 +59,15 @@ class TestRunSchema:
         r = TestRunCreate(name="Sprint 42 Regression", cycle_id="cycle-1")
         assert r.name == "Sprint 42 Regression"
 
+    def test_failed_step_requires_actual_result(self) -> None:
+        from pydantic import ValidationError
+        from app.domains.test_management.schemas import StepResultUpdate
+
+        with pytest.raises(ValidationError):
+            StepResultUpdate(status="failed")
+
+        assert StepResultUpdate(status="failed", actual_result="500 error shown").status == "failed"
+
 
 # ── Router surface ────────────────────────────────────────────────────────────
 

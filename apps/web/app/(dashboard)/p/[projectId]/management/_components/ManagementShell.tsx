@@ -6,6 +6,7 @@ import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 const tabs = [
   { href: "management", label: "Dashboard" },
   { href: "management/repository", label: "Repository" },
+  { href: "management/regression", label: "Regression" },
   { href: "management/plans", label: "Plans" },
   { href: "management/runs", label: "Runs" },
   { href: "management/requirements", label: "Requirements" },

@@ -168,6 +168,46 @@ class TestPlan(Base):
     cycles: Mapped[list["TestCycle"]] = relationship(back_populates="plan", cascade="all, delete-orphan")
 
 
+class RegressionSet(Base):
+    __tablename__ = "test_management_regression_sets"
+    __table_args__ = (UniqueConstraint("project_id", "name", name="uq_tm_regression_sets_project_name"),)
+
+    id: Mapped[str] = mapped_column(UUID(as_uuid=False), primary_key=True, default=_uuid)
+    project_id: Mapped[str] = mapped_column(UUID(as_uuid=False), ForeignKey("test_management_projects.id", ondelete="CASCADE"), nullable=False, index=True)
+    name: Mapped[str] = mapped_column(String(300), nullable=False)
+    set_type: Mapped[str] = mapped_column(String(32), default="regression", server_default="regression", nullable=False)
+    description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    source_filters: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict, server_default="{}", nullable=False)
+    selection_summary: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict, server_default="{}", nullable=False)
+    created_by: Mapped[Optional[str]] = mapped_column(UUID(as_uuid=False), ForeignKey("sd_users.id", ondelete="SET NULL"), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
+
+    project: Mapped[TestManagementProject] = relationship()
+    cases: Mapped[list["RegressionSetCase"]] = relationship(back_populates="regression_set", cascade="all, delete-orphan")
+
+
+class RegressionSetCase(Base):
+    __tablename__ = "test_management_regression_set_cases"
+    __table_args__ = (UniqueConstraint("regression_set_id", "case_id", name="uq_tm_regression_set_cases_set_case"),)
+
+    id: Mapped[str] = mapped_column(UUID(as_uuid=False), primary_key=True, default=_uuid)
+    regression_set_id: Mapped[str] = mapped_column(UUID(as_uuid=False), ForeignKey("test_management_regression_sets.id", ondelete="CASCADE"), nullable=False, index=True)
+    case_id: Mapped[str] = mapped_column(UUID(as_uuid=False), ForeignKey("test_management_cases.id", ondelete="CASCADE"), nullable=False, index=True)
+    case_version_no: Mapped[int] = mapped_column(Integer, default=1, server_default="1", nullable=False)
+    case_key_snapshot: Mapped[str] = mapped_column(String(64), nullable=False, server_default="")
+    title_snapshot: Mapped[str] = mapped_column(String(500), nullable=False, server_default="")
+    priority_snapshot: Mapped[str] = mapped_column(String(32), nullable=False, server_default="")
+    severity_snapshot: Mapped[str] = mapped_column(String(32), nullable=False, server_default="")
+    type_snapshot: Mapped[str] = mapped_column(String(64), nullable=False, server_default="")
+    order_index: Mapped[int] = mapped_column(Integer, default=0, server_default="0", nullable=False)
+    risk_score: Mapped[int] = mapped_column(Integer, default=0, server_default="0", nullable=False)
+    reason: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    include_mode: Mapped[str] = mapped_column(String(32), default="suggested", server_default="suggested", nullable=False)
+
+    regression_set: Mapped[RegressionSet] = relationship(back_populates="cases")
+    case: Mapped[TestCase] = relationship()
+
+
 class TestCycle(Base):
     __tablename__ = "test_management_cycles"
 
@@ -190,6 +230,9 @@ class TestRun(Base):
     cycle_id: Mapped[str] = mapped_column(UUID(as_uuid=False), ForeignKey("test_management_cycles.id", ondelete="CASCADE"), nullable=False, index=True)
     name: Mapped[str] = mapped_column(String(300), nullable=False)
     status: Mapped[str] = mapped_column(String(32), default="not_started", server_default="not_started", nullable=False)
+    source_type: Mapped[str] = mapped_column(String(32), default="manual", server_default="manual", nullable=False)
+    source_ref: Mapped[Optional[str]] = mapped_column(UUID(as_uuid=False), nullable=True)
+    scope_snapshot: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict, server_default="{}", nullable=False)
     started_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     completed_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
@@ -235,6 +278,21 @@ class TestRunStepResult(Base):
     run_case: Mapped[TestRunCase] = relationship(back_populates="step_results")
 
 
+class ReleaseSignoff(Base):
+    __tablename__ = "test_management_release_signoffs"
+
+    id: Mapped[str] = mapped_column(UUID(as_uuid=False), primary_key=True, default=_uuid)
+    project_id: Mapped[str] = mapped_column(UUID(as_uuid=False), ForeignKey("test_management_projects.id", ondelete="CASCADE"), nullable=False, index=True)
+    release_name: Mapped[Optional[str]] = mapped_column(String(200), nullable=True)
+    decision: Mapped[str] = mapped_column(String(32), nullable=False)
+    status: Mapped[str] = mapped_column(String(32), default="signed", server_default="signed", nullable=False)
+    comment: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    report_snapshot: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict, server_default="{}", nullable=False)
+    signed_by: Mapped[Optional[str]] = mapped_column(UUID(as_uuid=False), ForeignKey("sd_users.id", ondelete="SET NULL"), nullable=True)
+    signed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
+
+
 class ExecutionEvidence(Base):
     __tablename__ = "test_management_execution_evidence"
 
@@ -249,11 +307,36 @@ class ExecutionEvidence(Base):
     uploaded_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
 
 
+class Requirement(Base):
+    __tablename__ = "test_management_requirements"
+    __table_args__ = (UniqueConstraint("project_id", "external_source", "external_key", name="uq_tm_requirements_project_source_key"),)
+
+    id: Mapped[str] = mapped_column(UUID(as_uuid=False), primary_key=True, default=_uuid)
+    project_id: Mapped[str] = mapped_column(UUID(as_uuid=False), ForeignKey("test_management_projects.id", ondelete="CASCADE"), nullable=False, index=True)
+    external_source: Mapped[str] = mapped_column(String(32), default="internal", server_default="internal", nullable=False)
+    external_key: Mapped[str] = mapped_column(String(200), nullable=False)
+    title: Mapped[str] = mapped_column(String(500), nullable=False)
+    description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    priority: Mapped[str] = mapped_column(String(32), default="medium", server_default="medium", nullable=False)
+    status: Mapped[str] = mapped_column(String(32), default="active", server_default="active", nullable=False)
+    owner_id: Mapped[Optional[str]] = mapped_column(UUID(as_uuid=False), ForeignKey("sd_users.id", ondelete="SET NULL"), nullable=True)
+    url: Mapped[Optional[str]] = mapped_column(String(1000), nullable=True)
+    source_updated_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    version_no: Mapped[int] = mapped_column(Integer, default=1, server_default="1", nullable=False)
+    acceptance_criteria: Mapped[list[dict[str, Any]]] = mapped_column(JSONB, default=list, server_default="[]", nullable=False)
+    tags: Mapped[list[str]] = mapped_column(JSONB, default=list, server_default="[]", nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow, nullable=False)
+
+    links: Mapped[list["RequirementLink"]] = relationship(back_populates="requirement")
+
+
 class RequirementLink(Base):
     __tablename__ = "test_management_requirement_links"
 
     id: Mapped[str] = mapped_column(UUID(as_uuid=False), primary_key=True, default=_uuid)
     project_id: Mapped[str] = mapped_column(UUID(as_uuid=False), ForeignKey("test_management_projects.id", ondelete="CASCADE"), nullable=False, index=True)
+    requirement_id: Mapped[Optional[str]] = mapped_column(UUID(as_uuid=False), ForeignKey("test_management_requirements.id", ondelete="SET NULL"), nullable=True, index=True)
     case_id: Mapped[str] = mapped_column(UUID(as_uuid=False), ForeignKey("test_management_cases.id", ondelete="CASCADE"), nullable=False, index=True)
     external_source: Mapped[str] = mapped_column(String(32), default="internal", server_default="internal", nullable=False)
     external_key: Mapped[str] = mapped_column(String(200), nullable=False)
@@ -261,6 +344,8 @@ class RequirementLink(Base):
     url: Mapped[Optional[str]] = mapped_column(String(1000), nullable=True)
     source_updated_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     coverage_status: Mapped[str] = mapped_column(String(32), default="covered", server_default="covered", nullable=False)
+
+    requirement: Mapped[Optional[Requirement]] = relationship(back_populates="links")
 
 
 class DefectLink(Base):

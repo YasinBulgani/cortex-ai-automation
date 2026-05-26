@@ -12,15 +12,31 @@ def test_test_management_router_exposes_core_surfaces() -> None:
 
     assert "/test-management/health" in paths
     assert "/test-management/projects" in paths
+    assert "/test-management/projects/by-tspm/{tspm_project_id}/ensure" in paths
+    assert "/test-management/projects/{project_id}/settings" in paths
+    assert "/test-management/projects/{project_id}/audit-events" in paths
     assert "/test-management/projects/{project_id}/repository" in paths
     assert "/test-management/projects/{project_id}/cases" in paths
+    assert "/test-management/projects/{project_id}/cases/{case_id}/versions" in paths
     assert "/test-management/projects/{project_id}/plans" in paths
+    assert "/test-management/projects/{project_id}/cycles" in paths
+    assert "/test-management/projects/{project_id}/regression/suggest" in paths
+    assert "/test-management/projects/{project_id}/regression/sets" in paths
     assert "/test-management/projects/{project_id}/runs" in paths
+    assert "/test-management/projects/{project_id}/runs/{run_id}" in paths
+    assert "/test-management/projects/{project_id}/run-cases/{run_case_id}/steps/{step_no}" in paths
     assert "/test-management/projects/{project_id}/reports/execution-summary" in paths
+    assert "/test-management/projects/{project_id}/reports/release" in paths
+    assert "/test-management/projects/{project_id}/requirements/traceability" in paths
     assert "/test-management/projects/{project_id}/requirements" in paths
     assert "/test-management/projects/{project_id}/defects" in paths
+    assert "/test-management/projects/{project_id}/defects/{defect_id}" in paths
     assert "/test-management/projects/{project_id}/imports" in paths
+    assert "/test-management/projects/{project_id}/imports/{job_id}" in paths
+    assert "/test-management/projects/{project_id}/imports/{job_id}/commit" in paths
     assert "/test-management/projects/{project_id}/export" in paths
+    assert "/test-management/projects/{project_id}/cases/search-similar" in paths
+    assert "/test-management/projects/{project_id}/runs/{run_id}/cases/{run_case_id}/evidence" in paths
 
 
 def test_test_management_permissions_are_mapped_to_runtime_roles() -> None:

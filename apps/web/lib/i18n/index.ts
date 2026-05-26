@@ -21,6 +21,7 @@
 
 import {
   createContext,
+  createElement,
   useCallback,
   useContext,
   useEffect,
@@ -139,7 +140,7 @@ export function I18nProvider({ children }: { children: ReactNode }) {
     [locale, setLocale, t],
   );
 
-  return <I18nContext.Provider value={value}>{children}</I18nContext.Provider>;
+  return createElement(I18nContext.Provider, { value }, children);
 }
 
 // ── Hook ──────────────────────────────────────────────────────────────────────

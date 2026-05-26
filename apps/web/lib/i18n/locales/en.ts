@@ -79,11 +79,11 @@ export const en: TranslationDictionary = {
   management: {
     title: "Test Management",
     projects: "Projects",
-    cases: "Test Cases",
+    caseList: "Test Cases",
     suites: "Test Suites",
-    runs: "Test Runs",
+    runList: "Test Runs",
     plans: "Test Plans",
-    requirements: "Requirements",
+    requirementList: "Requirements",
     defects: "Defects",
     importExport: "Import / Export",
 

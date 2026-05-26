@@ -94,10 +94,10 @@ export function ManagementProductPage() {
               Test case repository, test plan, cycle, run, tester atama, evidence, defect ve coverage görünürlüğünü tek yönetim yüzeyinde topla.
             </p>
             <div className="flex flex-wrap gap-3">
-              <Link href="/portfolio" className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-teal-500 to-emerald-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-teal-500/20 transition-opacity hover:opacity-90">
-                Management Projesi Aç
+              <Link href="/p/00000000-0000-0000-0000-000000000001/management" className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-teal-500 to-emerald-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-teal-500/20 transition-opacity hover:opacity-90">
+                Management Alanını Aç
               </Link>
-              <Link href="/products/management" className="inline-flex items-center gap-2 rounded-xl border border-slate-800 bg-slate-800 px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-slate-700">
+              <Link href="/p/00000000-0000-0000-0000-000000000001/management/repository" className="inline-flex items-center gap-2 rounded-xl border border-slate-800 bg-slate-800 px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-slate-700">
                 Repository İncele
               </Link>
             </div>

@@ -1,6 +1,12 @@
 "use client";
 
-import { useExecutionSummary, useManagementCases, useManagementRuns } from "@/lib/hooks/use-management";
+import {
+  useEnsureManagementProject,
+  useExecutionSummary,
+  useManagementCases,
+  useManagementProjects,
+  useManagementRuns,
+} from "@/lib/hooks/use-management";
 import { ManagementPanel, ManagementShell, ManagementStat } from "./_components/ManagementShell";
 
 export default function ManagementDashboardPage({ params }: { params: { projectId: string } }) {
@@ -9,10 +15,15 @@ export default function ManagementDashboardPage({ params }: { params: { projectI
   const casesQuery  = useManagementCases(projectId);
   const summaryQuery = useExecutionSummary(projectId);
   const activeRuns  = useManagementRuns(projectId, "running");
+  const projectsQuery = useManagementProjects();
+  const ensureProject = useEnsureManagementProject(projectId);
 
   const totalCases  = casesQuery.data?.length ?? null;
   const activeCount = activeRuns.data?.length ?? null;
   const summary     = summaryQuery.data ?? null;
+  const managementProject = projectsQuery.data?.find(
+    (project) => project.id === projectId || project.tspm_project_id === projectId,
+  );
 
   // Release readiness rows derived from execution summary
   const readiness: [string, string, string][] = summary
@@ -54,8 +65,31 @@ export default function ManagementDashboardPage({ params }: { params: { projectI
       description="Manuel test repository, aktif run, blocked/failed risk ve tester workload durumunu tek ekranda izleyin."
       active="management"
     >
+      <ManagementPanel title="Management Workspace">
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div>
+            <p className="text-sm font-medium text-white">
+              {managementProject ? managementProject.name : projectsQuery.isLoading ? "Workspace kontrol ediliyor..." : "Bu TSPM projesi için Management workspace hazırlanmadı."}
+            </p>
+            <p className="mt-1 text-xs text-slate-500">
+              {managementProject
+                ? `Key: ${managementProject.key} · Canonical ID: ${managementProject.id}`
+                : "Repository, regression set, plan ve run verileri bu workspace altında tutulur."}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => ensureProject.mutate()}
+            disabled={ensureProject.isPending}
+            className="rounded-lg border border-teal-500/40 px-3 py-2 text-sm font-semibold text-teal-200 hover:bg-teal-500/10 disabled:opacity-40"
+          >
+            {ensureProject.isPending ? "Hazırlanıyor..." : managementProject ? "Workspace'i Doğrula" : "Workspace Oluştur"}
+          </button>
+        </div>
+      </ManagementPanel>
+
       {/* ── Top stat cards ── */}
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="mt-4 grid gap-4 md:grid-cols-4">
         <ManagementStat
           label="Manual Cases"
           value={loading ? "…" : (totalCases?.toLocaleString() ?? "—")}

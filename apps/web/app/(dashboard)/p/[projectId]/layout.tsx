@@ -56,6 +56,7 @@ const TAB_GROUPS: TabGroup[] = [
       { label: "Güvenlik",      segment: "security" },
       { label: "Önceliklendirme", segment: "prioritize" },
       { label: "PW Konsol",     segment: "playwright-console" },
+      { label: "Management",    segment: "management" },
     ],
   },
   {

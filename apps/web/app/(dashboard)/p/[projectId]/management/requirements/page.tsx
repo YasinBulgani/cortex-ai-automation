@@ -3,10 +3,13 @@
 import { useState } from "react";
 import {
   useRequirementTraceability,
+  useRequirementCatalog,
+  useCreateRequirementCatalogItem,
   useManagementRequirements,
   useCreateManagementRequirement,
+  useManagementCases,
+  type Requirement,
   type TraceabilityRow,
-  type TracedCase,
 } from "@/lib/hooks/use-management";
 import { ManagementPanel, ManagementShell, ManagementStat } from "../_components/ManagementShell";
 
@@ -116,6 +119,7 @@ function MatrixRow({ row }: { row: TraceabilityRow }) {
 function LinkRequirementForm({ projectId }: { projectId: string }) {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({
+    requirement_id: "",
     case_id: "",
     external_key: "",
     title_snapshot: "",
@@ -124,16 +128,31 @@ function LinkRequirementForm({ projectId }: { projectId: string }) {
     coverage_status: "covered",
   });
   const mutation = useCreateManagementRequirement(projectId);
+  const cases = useManagementCases(projectId);
+  const catalog = useRequirementCatalog(projectId);
+
+  const selectRequirement = (requirementId: string) => {
+    const requirement = (catalog.data ?? []).find((item) => item.id === requirementId);
+    setForm((current) => ({
+      ...current,
+      requirement_id: requirementId,
+      external_source: requirement?.external_source ?? current.external_source,
+      external_key: requirement?.external_key ?? current.external_key,
+      title_snapshot: requirement?.title ?? current.title_snapshot,
+      url: requirement?.url ?? current.url,
+    }));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     await mutation.mutateAsync({
       ...form,
+      requirement_id: form.requirement_id || null,
       case_id: form.case_id,
       external_key: form.external_key,
       title_snapshot: form.title_snapshot,
     });
-    setForm({ case_id: "", external_key: "", title_snapshot: "", url: "", external_source: "internal", coverage_status: "covered" });
+    setForm({ requirement_id: "", case_id: "", external_key: "", title_snapshot: "", url: "", external_source: "internal", coverage_status: "covered" });
     setOpen(false);
   };
 
@@ -149,10 +168,34 @@ function LinkRequirementForm({ projectId }: { projectId: string }) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-3 rounded-xl border border-slate-800 bg-slate-900 p-4">
+    <form onSubmit={handleSubmit} className="space-y-3 rounded-lg border border-slate-800 bg-slate-900 p-4">
       <p className="text-sm font-semibold text-white">Requirement Bağlantısı Ekle</p>
+      <select
+        value={form.requirement_id}
+        onChange={(e) => selectRequirement(e.target.value)}
+        className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white focus:border-teal-500/50 focus:outline-none"
+      >
+        <option value="">Katalogdan seç veya yeni key gir</option>
+        {(catalog.data ?? []).map((requirement) => (
+          <option key={requirement.id} value={requirement.id}>
+            {requirement.external_key} - {requirement.title}
+          </option>
+        ))}
+      </select>
+      <select
+        required
+        value={form.case_id}
+        onChange={(e) => setForm((f) => ({ ...f, case_id: e.target.value }))}
+        className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white focus:border-teal-500/50 focus:outline-none"
+      >
+        <option value="">Test case seç</option>
+        {(cases.data ?? []).map((testCase) => (
+          <option key={testCase.id} value={testCase.id}>
+            {testCase.case_key} - {testCase.title}
+          </option>
+        ))}
+      </select>
       {[
-        ["case_id", "Case ID (UUID)", "required"],
         ["external_key", "External Key (ör. REQ-001)", "required"],
         ["title_snapshot", "Requirement başlığı", "required"],
         ["url", "URL (opsiyonel)", ""],
@@ -197,6 +240,136 @@ function LinkRequirementForm({ projectId }: { projectId: string }) {
   );
 }
 
+function RequirementCatalogForm({ projectId }: { projectId: string }) {
+  const [open, setOpen] = useState(false);
+  const [form, setForm] = useState({
+    external_key: "",
+    title: "",
+    description: "",
+    external_source: "internal",
+    priority: "medium",
+    status: "active",
+    url: "",
+    tags: "",
+  });
+  const mutation = useCreateRequirementCatalogItem(projectId);
+
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    await mutation.mutateAsync({
+      external_source: form.external_source,
+      external_key: form.external_key,
+      title: form.title,
+      description: form.description || null,
+      priority: form.priority,
+      status: form.status,
+      url: form.url || null,
+      tags: form.tags
+        .split(",")
+        .map((tag) => tag.trim())
+        .filter(Boolean),
+    });
+    setForm({ external_key: "", title: "", description: "", external_source: "internal", priority: "medium", status: "active", url: "", tags: "" });
+    setOpen(false);
+  };
+
+  if (!open) {
+    return (
+      <button
+        onClick={() => setOpen(true)}
+        className="rounded-lg border border-slate-700 px-4 py-2 text-sm font-semibold text-slate-200 hover:bg-slate-800"
+      >
+        + Requirement Oluştur
+      </button>
+    );
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="grid gap-3 rounded-lg border border-slate-800 bg-slate-900 p-4 md:grid-cols-2">
+      <input
+        required
+        placeholder="REQ-001"
+        value={form.external_key}
+        onChange={(e) => setForm((value) => ({ ...value, external_key: e.target.value }))}
+        className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white placeholder-slate-500 focus:border-teal-500/50 focus:outline-none"
+      />
+      <input
+        required
+        placeholder="Requirement başlığı"
+        value={form.title}
+        onChange={(e) => setForm((value) => ({ ...value, title: e.target.value }))}
+        className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white placeholder-slate-500 focus:border-teal-500/50 focus:outline-none"
+      />
+      <textarea
+        placeholder="Açıklama / kabul notları"
+        value={form.description}
+        onChange={(e) => setForm((value) => ({ ...value, description: e.target.value }))}
+        className="min-h-24 rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white placeholder-slate-500 focus:border-teal-500/50 focus:outline-none md:col-span-2"
+      />
+      {[
+        ["external_source", "Kaynak"],
+        ["priority", "Priority"],
+        ["status", "Status"],
+        ["url", "URL"],
+        ["tags", "Virgülle tag"],
+      ].map(([field, placeholder]) => (
+        <input
+          key={field}
+          placeholder={placeholder}
+          value={(form as Record<string, string>)[field] ?? ""}
+          onChange={(e) => setForm((value) => ({ ...value, [field]: e.target.value }))}
+          className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white placeholder-slate-500 focus:border-teal-500/50 focus:outline-none"
+        />
+      ))}
+      <div className="flex gap-3 md:col-span-2">
+        <button
+          type="submit"
+          disabled={mutation.isPending}
+          className="rounded-lg bg-teal-600 px-4 py-2 text-sm font-semibold text-white hover:bg-teal-500 disabled:opacity-40"
+        >
+          {mutation.isPending ? "Kaydediliyor…" : "Kataloğa Ekle"}
+        </button>
+        <button
+          type="button"
+          onClick={() => setOpen(false)}
+          className="rounded-lg border border-slate-700 px-4 py-2 text-sm text-slate-400 hover:bg-slate-800"
+        >
+          İptal
+        </button>
+      </div>
+    </form>
+  );
+}
+
+function CatalogRow({ requirement }: { requirement: Requirement }) {
+  return (
+    <div className="rounded-lg border border-slate-800 bg-slate-950/70 p-3">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <p className="font-mono text-xs text-teal-300">{requirement.external_key}</p>
+          <p className="mt-1 text-sm font-semibold text-white">{requirement.title}</p>
+        </div>
+        <div className="flex gap-2 text-xs">
+          <span className="rounded-full bg-slate-800 px-2 py-1 text-slate-300">{requirement.priority}</span>
+          <span className="rounded-full bg-slate-800 px-2 py-1 text-slate-300">{requirement.status}</span>
+        </div>
+      </div>
+      {requirement.description && (
+        <p className="mt-2 line-clamp-2 text-xs text-slate-500">{requirement.description}</p>
+      )}
+      {requirement.tags.length > 0 && (
+        <div className="mt-3 flex flex-wrap gap-1.5">
+          {requirement.tags.map((tag) => (
+            <span key={tag} className="rounded bg-slate-800 px-1.5 py-0.5 text-[11px] text-slate-400">
+              {tag}
+            </span>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function ManagementRequirementsPage({
@@ -206,6 +379,8 @@ export default function ManagementRequirementsPage({
 }) {
   const { projectId } = params;
   const matrixQuery = useRequirementTraceability(projectId);
+  const catalogQuery = useRequirementCatalog(projectId);
+  const linkQuery = useManagementRequirements(projectId);
   const [filterCoverage, setFilterCoverage] = useState<"all" | "covered" | "not_covered" | "stale">("all");
   const [search, setSearch] = useState("");
 
@@ -223,6 +398,7 @@ export default function ManagementRequirementsPage({
   const totalReqs   = rows.length;
   const coveredReqs = rows.filter((r) => r.covered).length;
   const staleReqs   = rows.filter((r) => r.stale).length;
+  const linkedCases = new Set((linkQuery.data ?? []).map((link) => link.case_id)).size;
   const coveragePct = totalReqs > 0 ? ((coveredReqs / totalReqs) * 100).toFixed(1) : "—";
 
   return (
@@ -233,11 +409,11 @@ export default function ManagementRequirementsPage({
       active="management/requirements"
     >
       {/* Stats */}
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-4">
         <ManagementStat
           label="Requirements"
           value={matrixQuery.isLoading ? "…" : String(totalReqs)}
-          note="unique requirement keys"
+          note={`${catalogQuery.data?.length ?? 0} catalog item`}
         />
         <ManagementStat
           label="Covered"
@@ -249,11 +425,43 @@ export default function ManagementRequirementsPage({
           value={matrixQuery.isLoading ? "…" : String(staleReqs)}
           note="source updated after last run"
         />
+        <ManagementStat
+          label="Linked Cases"
+          value={linkQuery.isLoading ? "…" : String(linkedCases)}
+          note={`${linkQuery.data?.length ?? 0} trace links`}
+        />
       </div>
 
-      {/* Add requirement link */}
-      <div className="mt-6">
-        <LinkRequirementForm projectId={projectId} />
+      <div className="mt-6 grid gap-4 xl:grid-cols-[minmax(0,1fr)_420px]">
+        <ManagementPanel title="Requirement Catalog">
+          <div className="mb-4 flex flex-wrap gap-3">
+            <RequirementCatalogForm projectId={projectId} />
+            <LinkRequirementForm projectId={projectId} />
+          </div>
+          {catalogQuery.isLoading ? (
+            <div className="flex h-20 items-center justify-center">
+              <div className="h-5 w-5 animate-spin rounded-full border-2 border-slate-700 border-t-teal-400" />
+            </div>
+          ) : (catalogQuery.data ?? []).length === 0 ? (
+            <p className="py-4 text-sm text-slate-500">
+              Katalog boş. Requirement oluşturduğunuzda coverage matrisi artık test case bağlantısı olmadan da uncovered scope gösterecek.
+            </p>
+          ) : (
+            <div className="grid gap-3 lg:grid-cols-2">
+              {(catalogQuery.data ?? []).slice(0, 6).map((requirement) => (
+                <CatalogRow key={requirement.id} requirement={requirement} />
+              ))}
+            </div>
+          )}
+        </ManagementPanel>
+
+        <ManagementPanel title="Coverage Rules">
+          <div className="space-y-3 text-sm text-slate-400">
+            <p>Requirement katalogda durur; test case bağlantısı ayrı izlenir.</p>
+            <p>Bağlantısız katalog kaydı release raporunda uncovered requirement olarak görünür.</p>
+            <p>Kaynak güncellenirse son koşum tarihi eski kalan case satırı stale işaretlenir.</p>
+          </div>
+        </ManagementPanel>
       </div>
 
       {/* Matrix */}

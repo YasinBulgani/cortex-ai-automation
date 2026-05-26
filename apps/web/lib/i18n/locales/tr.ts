@@ -77,11 +77,11 @@ export const tr = {
   management: {
     title: "Test Yönetimi",
     projects: "Projeler",
-    cases: "Test Senaryoları",
+    caseList: "Test Senaryoları",
     suites: "Test Paketleri",
-    runs: "Test Koşuları",
+    runList: "Test Koşuları",
     plans: "Test Planları",
-    requirements: "Gereksinimler",
+    requirementList: "Gereksinimler",
     defects: "Hatalar",
     importExport: "İçe/Dışa Aktar",
 
@@ -194,4 +194,8 @@ export const tr = {
   },
 } as const;
 
-export type TranslationDictionary = typeof tr;
+type WidenTranslation<T> = T extends string
+  ? string
+  : { [K in keyof T]: WidenTranslation<T[K]> };
+
+export type TranslationDictionary = WidenTranslation<typeof tr>;

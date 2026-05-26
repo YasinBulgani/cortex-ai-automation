@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import {
+  useCreateManagementDefect,
+  useManagementEvidence,
   useManagementRun,
   useManagementCases,
   useUpdateManagementStepResult,
@@ -38,12 +40,14 @@ function StepRow({
   step,
   runCaseId,
   projectId,
+  runId,
   existingStatus,
   existingActual,
 }: {
   step: TestCaseStep;
   runCaseId: string;
   projectId: string;
+  runId: string;
   existingStatus: StepStatus;
   existingActual?: string | null;
 }) {
@@ -51,15 +55,26 @@ function StepRow({
   const [actual, setActual] = useState(existingActual ?? "");
   const [expanded, setExpanded] = useState(false);
   const [saved, setSaved] = useState(false);
-  const mutation = useUpdateManagementStepResult(projectId, runCaseId);
+  const [formError, setFormError] = useState("");
+  const [defectKey, setDefectKey] = useState("");
+  const [defectTitle, setDefectTitle] = useState("");
+  const [defectSaved, setDefectSaved] = useState(false);
+  const mutation = useUpdateManagementStepResult(projectId, runCaseId, runId);
+  const createDefect = useCreateManagementDefect(projectId);
 
   const handleSave = async () => {
+    setFormError("");
+    if ((status === "failed" || status === "blocked") && !actual.trim()) {
+      setFormError("Failed veya blocked adımda actual result zorunlu.");
+      return;
+    }
     await mutation.mutateAsync({ stepNo: step.step_no, status, actual_result: actual || null });
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   };
 
   const dotClass = STATUS_DOT[status] ?? "bg-slate-600";
+  const canLinkDefect = status === "failed" || status === "blocked";
 
   return (
     <div className="rounded-lg border border-slate-800 bg-slate-900">
@@ -132,7 +147,48 @@ function StepRow({
               placeholder="Gözlemlenen davranışı girin…"
               className="w-full resize-none rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white placeholder-slate-600 focus:border-blue-500/50 focus:outline-none"
             />
+            {formError ? <p className="mt-1 text-xs text-rose-300">{formError}</p> : null}
           </div>
+
+          {canLinkDefect ? (
+            <div className="rounded-lg border border-rose-500/20 bg-rose-500/5 p-3">
+              <p className="mb-2 text-xs font-medium uppercase tracking-wide text-rose-300">Defect Link</p>
+              <div className="grid gap-2 md:grid-cols-[0.6fr_1fr_auto]">
+                <input
+                  value={defectKey}
+                  onChange={(event) => setDefectKey(event.target.value)}
+                  placeholder="JIRA-123"
+                  className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white placeholder-slate-600 focus:border-rose-400/60 focus:outline-none"
+                />
+                <input
+                  value={defectTitle}
+                  onChange={(event) => setDefectTitle(event.target.value)}
+                  placeholder="Defect başlığı"
+                  className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white placeholder-slate-600 focus:border-rose-400/60 focus:outline-none"
+                />
+                <button
+                  onClick={async () => {
+                    if (!defectKey.trim() || !defectTitle.trim()) return;
+                    await createDefect.mutateAsync({
+                      run_case_id: runCaseId,
+                      external_source: "internal",
+                      external_key: defectKey.trim(),
+                      title: defectTitle.trim(),
+                      status: "open",
+                    });
+                    setDefectSaved(true);
+                    setDefectKey("");
+                    setDefectTitle("");
+                    setTimeout(() => setDefectSaved(false), 2000);
+                  }}
+                  disabled={createDefect.isPending || !defectKey.trim() || !defectTitle.trim()}
+                  className="rounded-lg bg-rose-500 px-3 py-2 text-sm font-semibold text-white transition hover:bg-rose-400 disabled:opacity-40"
+                >
+                  {createDefect.isPending ? "Bağlanıyor..." : defectSaved ? "Bağlandı" : "Defect Bağla"}
+                </button>
+              </div>
+            </div>
+          ) : null}
 
           {/* Save button */}
           <div className="flex justify-end">
@@ -163,6 +219,7 @@ function EvidenceUpload({
 }) {
   const [uploading, setUploading] = useState(false);
   const [uploaded, setUploaded] = useState<string[]>([]);
+  const evidence = useManagementEvidence(projectId, runId, runCaseId);
 
   const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -173,11 +230,12 @@ function EvidenceUpload({
       form.append("file", file);
       const res = await fetch(
         `/api/v1/test-management/projects/${projectId}/runs/${runId}/cases/${runCaseId}/evidence`,
-        { method: "POST", body: form },
+        { method: "POST", body: form, credentials: "include" },
       );
       if (res.ok) {
         const data = await res.json() as { filename: string };
         setUploaded((prev) => [...prev, data.filename]);
+        void evidence.refetch();
       }
     } finally {
       setUploading(false);
@@ -186,13 +244,33 @@ function EvidenceUpload({
   };
 
   return (
-    <div className="flex items-center gap-3">
-      <label className="cursor-pointer rounded-lg border border-slate-700 px-3 py-1.5 text-xs text-slate-400 hover:bg-slate-800">
-        {uploading ? "Yükleniyor…" : "📎 Evidence Yükle"}
-        <input type="file" className="hidden" onChange={handleFile} disabled={uploading} />
-      </label>
-      {uploaded.length > 0 && (
-        <span className="text-xs text-emerald-400">{uploaded.length} dosya yüklendi</span>
+    <div className="space-y-2">
+      <div className="flex items-center gap-3">
+        <label className="cursor-pointer rounded-lg border border-slate-700 px-3 py-1.5 text-xs text-slate-400 hover:bg-slate-800">
+          {uploading ? "Yükleniyor…" : "Evidence Yükle"}
+          <input type="file" className="hidden" onChange={handleFile} disabled={uploading} />
+        </label>
+        {uploaded.length > 0 && (
+          <span className="text-xs text-emerald-400">{uploaded.length} yeni dosya yüklendi</span>
+        )}
+      </div>
+      {(evidence.data ?? []).length ? (
+        <div className="grid gap-2 md:grid-cols-2">
+          {(evidence.data ?? []).map((item) => (
+            <a
+              key={item.id}
+              href={item.url}
+              target="_blank"
+              rel="noreferrer"
+              className="rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-xs text-slate-300 hover:border-teal-500/40"
+            >
+              <span className="block truncate font-medium text-slate-200">{item.filename}</span>
+              <span className="text-slate-500">{new Date(item.uploaded_at).toLocaleString("tr-TR")}</span>
+            </a>
+          ))}
+        </div>
+      ) : (
+        <p className="text-xs text-slate-500">Bu run case için evidence yok.</p>
       )}
     </div>
   );
@@ -212,7 +290,9 @@ function CasePanel({
   runId: string;
 }) {
   const [open, setOpen] = useState(false);
+  const [bulkSaved, setBulkSaved] = useState(false);
   const dotClass = STATUS_DOT[runCase.status] ?? "bg-slate-600";
+  const bulkMutation = useUpdateManagementStepResult(projectId, runCase.id, runId);
 
   // Map step_results to a lookup by step_no for quick access.
   const resultsByStepNo: Record<number, { status: StepStatus; actual_result?: string | null }> =
@@ -224,9 +304,24 @@ function CasePanel({
     );
 
   const steps: TestCaseStep[] = caseData?.steps ?? [];
+  const completedSteps = steps.filter((step) =>
+    ["passed", "skipped"].includes(resultsByStepNo[step.step_no]?.status ?? ""),
+  ).length;
+
+  const markCasePassed = async () => {
+    for (const step of steps) {
+      await bulkMutation.mutateAsync({
+        stepNo: step.step_no,
+        status: "passed",
+        actual_result: resultsByStepNo[step.step_no]?.actual_result ?? "Beklenen sonuç gözlendi.",
+      });
+    }
+    setBulkSaved(true);
+    setTimeout(() => setBulkSaved(false), 2000);
+  };
 
   return (
-    <div className="rounded-xl border border-slate-800 bg-slate-900/50">
+    <div className="rounded-lg border border-slate-800 bg-slate-900/50">
       {/* Case header */}
       <div
         className="flex cursor-pointer items-center gap-3 p-4"
@@ -242,6 +337,22 @@ function CasePanel({
             {runCase.step_results.length}/{steps.length} adım kaydedildi ·{" "}
             {runCase.status.replace("_", " ")}
           </p>
+        </div>
+        <div className="hidden shrink-0 items-center gap-2 md:flex">
+          <span className="rounded-full bg-slate-800 px-2 py-1 text-xs text-slate-400">
+            {completedSteps}/{steps.length} ok
+          </span>
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
+              void markCasePassed();
+            }}
+            disabled={bulkMutation.isPending || steps.length === 0}
+            className="rounded-lg border border-emerald-500/30 px-3 py-1.5 text-xs font-semibold text-emerald-300 hover:bg-emerald-500/10 disabled:opacity-40"
+          >
+            {bulkMutation.isPending ? "İşleniyor..." : bulkSaved ? "Kaydedildi" : "Case Pass"}
+          </button>
         </div>
         <svg
           className={`h-4 w-4 flex-shrink-0 text-slate-500 transition-transform ${open ? "rotate-180" : ""}`}
@@ -262,6 +373,7 @@ function CasePanel({
                 step={step}
                 runCaseId={runCase.id}
                 projectId={projectId}
+                runId={runId}
                 existingStatus={(resultsByStepNo[step.step_no]?.status as StepStatus) ?? "not_run"}
                 existingActual={resultsByStepNo[step.step_no]?.actual_result}
               />
@@ -286,6 +398,7 @@ export default function ManagementRunExecutePage({
   const { projectId, runId } = params;
   const runQuery   = useManagementRun(projectId, runId);
   const casesQuery = useManagementCases(projectId);
+  const [statusFilter, setStatusFilter] = useState("all");
 
   const run   = runQuery.data;
   const cases = casesQuery.data ?? [];
@@ -299,6 +412,9 @@ export default function ManagementRunExecutePage({
   const done       = runCases.filter((rc) => ["passed", "failed", "blocked", "skipped"].includes(rc.status)).length;
   const failed     = runCases.filter((rc) => rc.status === "failed").length;
   const notRun     = runCases.filter((rc) => rc.status === "not_run").length;
+  const filteredRunCases = statusFilter === "all"
+    ? runCases
+    : runCases.filter((rc) => rc.status === statusFilter);
 
   const loading = runQuery.isLoading || casesQuery.isLoading;
 
@@ -335,6 +451,31 @@ export default function ManagementRunExecutePage({
 
       {/* ── Case list ── */}
       <div className="mt-6 space-y-3">
+        <ManagementPanel title="Koşum Filtreleri">
+          <div className="flex flex-wrap gap-2">
+            {[
+              ["all", `Tümü (${runCases.length})`],
+              ["not_run", `Not Run (${notRun})`],
+              ["in_progress", `In Progress (${runCases.filter((rc) => rc.status === "in_progress").length})`],
+              ["passed", `Passed (${runCases.filter((rc) => rc.status === "passed").length})`],
+              ["failed", `Failed (${failed})`],
+              ["blocked", `Blocked (${runCases.filter((rc) => rc.status === "blocked").length})`],
+            ].map(([value, label]) => (
+              <button
+                key={value}
+                type="button"
+                onClick={() => setStatusFilter(value)}
+                className={`rounded-lg px-3 py-1.5 text-xs font-semibold ${
+                  statusFilter === value
+                    ? "bg-teal-500 text-slate-950"
+                    : "bg-slate-800 text-slate-300 hover:bg-slate-700"
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </ManagementPanel>
         {loading ? (
           <div className="flex h-32 items-center justify-center">
             <div className="h-6 w-6 animate-spin rounded-full border-2 border-slate-700 border-t-teal-400" />
@@ -343,8 +484,12 @@ export default function ManagementRunExecutePage({
           <ManagementPanel title="Koşum Case'leri">
             <p className="text-sm text-slate-500">Bu run'a henüz case eklenmemiş.</p>
           </ManagementPanel>
+        ) : filteredRunCases.length === 0 ? (
+          <ManagementPanel title="Koşum Case'leri">
+            <p className="text-sm text-slate-500">Bu filtrede case yok.</p>
+          </ManagementPanel>
         ) : (
-          runCases.map((rc) => (
+          filteredRunCases.map((rc) => (
             <CasePanel
               key={rc.id}
               runCase={rc}

@@ -15,17 +15,29 @@ from app.domains.test_management import service
 from fastapi import File, UploadFile
 
 from app.domains.test_management.schemas import (
+    AuditEventOut,
     DefectLinkCreate,
     DefectLinkOut,
+    DefectLinkUpdate,
     EvidenceOut,
     ExecutionSummaryOut,
     ImportJobDetailOut,
     ImportJobRowOut,
     ManagementProjectCreate,
     ManagementProjectOut,
+    ManagementSettingsOut,
+    RegressionCandidateOut,
+    RegressionSelectionFilter,
+    RegressionSetCreate,
+    RegressionSetOut,
+    ReleaseReportOut,
+    ReleaseSignoffCreate,
+    ReleaseSignoffOut,
     RepositoryOut,
+    RequirementCreate,
     RequirementLinkCreate,
     RequirementLinkOut,
+    RequirementOut,
     RunCaseOut,
     RunDetailOut,
     SimilarCaseQuery,
@@ -34,7 +46,9 @@ from app.domains.test_management.schemas import (
     TestCaseCreate,
     TestCaseOut,
     TestCaseUpdate,
+    TestCaseVersionOut,
     TestCycleCreate,
+    TestCycleOut,
     TestFolderCreate,
     TestFolderOut,
     TestImportJobCreate,
@@ -83,6 +97,30 @@ def get_project(project_id: str, db: DB, _user: ReadUser) -> ManagementProjectOu
     return service.get_project(db, project_id)
 
 
+@router.post(
+    "/projects/by-tspm/{tspm_project_id}/ensure",
+    response_model=ManagementProjectOut,
+    status_code=status.HTTP_200_OK,
+)
+def ensure_project_for_tspm(tspm_project_id: str, db: DB, user: WriteUser) -> ManagementProjectOut:
+    return service.ensure_project_for_tspm(db, tspm_project_id, user)
+
+
+@router.get("/projects/{project_id}/settings", response_model=ManagementSettingsOut)
+def get_settings(project_id: str, db: DB, _user: ReadUser) -> ManagementSettingsOut:
+    return service.management_settings(db, project_id)  # type: ignore[return-value]
+
+
+@router.get("/projects/{project_id}/audit-events", response_model=list[AuditEventOut])
+def list_audit_events(
+    project_id: str,
+    db: DB,
+    _user: ReadUser,
+    limit: int = Query(default=50, ge=1, le=200),
+) -> list[AuditEventOut]:
+    return service.list_audit_events(db, project_id, limit=limit)
+
+
 @router.get("/projects/{project_id}/repository", response_model=RepositoryOut)
 def repository(project_id: str, db: DB, _user: ReadUser) -> RepositoryOut:
     return service.repository(db, project_id)
@@ -124,6 +162,11 @@ def get_case(project_id: str, case_id: str, db: DB, _user: ReadUser) -> TestCase
     return service.get_case(db, project_id, case_id)
 
 
+@router.get("/projects/{project_id}/cases/{case_id}/versions", response_model=list[TestCaseVersionOut])
+def list_case_versions(project_id: str, case_id: str, db: DB, _user: ReadUser) -> list[TestCaseVersionOut]:
+    return service.list_case_versions(db, project_id, case_id)
+
+
 @router.patch("/projects/{project_id}/cases/{case_id}", response_model=TestCaseOut)
 def update_case(project_id: str, case_id: str, payload: TestCaseUpdate, db: DB, user: WriteUser) -> TestCaseOut:
     return service.update_case(db, project_id, case_id, payload, user)
@@ -139,10 +182,53 @@ def create_plan(project_id: str, payload: TestPlanCreate, db: DB, user: WriteUse
     return service.create_plan(db, project_id, payload, user)
 
 
-@router.post("/projects/{project_id}/cycles", status_code=status.HTTP_201_CREATED)
-def create_cycle(project_id: str, payload: TestCycleCreate, db: DB, user: WriteUser) -> dict[str, str]:
-    cycle = service.create_cycle(db, project_id, payload, user)
-    return {"id": cycle.id, "status": cycle.status}
+@router.get("/projects/{project_id}/plans", response_model=list[TestPlanOut])
+def list_plans(project_id: str, db: DB, _user: ReadUser) -> list[TestPlanOut]:
+    return service.list_plans(db, project_id)
+
+
+@router.get("/projects/{project_id}/cycles", response_model=list[TestCycleOut])
+def list_cycles(
+    project_id: str,
+    db: DB,
+    _user: ReadUser,
+    plan_id: Optional[str] = Query(default=None),
+) -> list[TestCycleOut]:
+    return service.list_cycles(db, project_id, plan_id=plan_id)
+
+
+@router.post("/projects/{project_id}/cycles", response_model=TestCycleOut, status_code=status.HTTP_201_CREATED)
+def create_cycle(project_id: str, payload: TestCycleCreate, db: DB, user: WriteUser) -> TestCycleOut:
+    return service.create_cycle(db, project_id, payload, user)
+
+
+@router.post("/projects/{project_id}/regression/suggest", response_model=list[RegressionCandidateOut])
+def suggest_regression_candidates(
+    project_id: str,
+    payload: RegressionSelectionFilter,
+    db: DB,
+    _user: ReadUser,
+) -> list[RegressionCandidateOut]:
+    return service.suggest_regression_candidates(db, project_id, payload)
+
+
+@router.get("/projects/{project_id}/regression/sets", response_model=list[RegressionSetOut])
+def list_regression_sets(project_id: str, db: DB, _user: ReadUser) -> list[RegressionSetOut]:
+    return service.list_regression_sets(db, project_id)  # type: ignore[return-value]
+
+
+@router.post(
+    "/projects/{project_id}/regression/sets",
+    response_model=RegressionSetOut,
+    status_code=status.HTTP_201_CREATED,
+)
+def create_regression_set(
+    project_id: str,
+    payload: RegressionSetCreate,
+    db: DB,
+    user: WriteUser,
+) -> RegressionSetOut:
+    return service.create_regression_set(db, project_id, payload, user)  # type: ignore[return-value]
 
 
 @router.get("/projects/{project_id}/runs", response_model=list[TestRunOut])
@@ -182,10 +268,53 @@ def execution_summary(project_id: str, db: DB, _user: ReadUser) -> ExecutionSumm
     return service.execution_summary(db, project_id)
 
 
+@router.get("/projects/{project_id}/reports/release", response_model=ReleaseReportOut)
+def release_report(project_id: str, db: DB, _user: ReadUser) -> ReleaseReportOut:
+    return service.release_report(db, project_id)
+
+
+@router.get("/projects/{project_id}/reports/release/signoffs", response_model=list[ReleaseSignoffOut])
+def list_release_signoffs(project_id: str, db: DB, _user: ReadUser) -> list[ReleaseSignoffOut]:
+    return service.list_release_signoffs(db, project_id)
+
+
+@router.post(
+    "/projects/{project_id}/reports/release/signoffs",
+    response_model=ReleaseSignoffOut,
+    status_code=status.HTTP_201_CREATED,
+)
+def create_release_signoff(
+    project_id: str,
+    payload: ReleaseSignoffCreate,
+    db: DB,
+    user: WriteUser,
+) -> ReleaseSignoffOut:
+    return service.create_release_signoff(db, project_id, payload, user)
+
+
 @router.get("/projects/{project_id}/requirements/traceability", response_model=list[TraceabilityRow])
 def requirement_traceability(project_id: str, db: DB, _user: ReadUser) -> list[TraceabilityRow]:
     """Return the requirements ↔ test-case traceability matrix."""
     return service.requirement_traceability(db, project_id)  # type: ignore[return-value]
+
+
+@router.get("/projects/{project_id}/requirements/catalog", response_model=list[RequirementOut])
+def list_requirements(project_id: str, db: DB, _user: ReadUser) -> list[RequirementOut]:
+    return service.list_requirements(db, project_id)
+
+
+@router.post(
+    "/projects/{project_id}/requirements/catalog",
+    response_model=RequirementOut,
+    status_code=status.HTTP_201_CREATED,
+)
+def create_requirement(
+    project_id: str,
+    payload: RequirementCreate,
+    db: DB,
+    user: WriteUser,
+) -> RequirementOut:
+    return service.create_requirement(db, project_id, payload, user)
 
 
 @router.get("/projects/{project_id}/requirements", response_model=list[RequirementLinkOut])
@@ -224,6 +353,17 @@ def list_defect_links(project_id: str, db: DB, _user: ReadUser) -> list[DefectLi
 )
 def create_defect_link(project_id: str, payload: DefectLinkCreate, db: DB, user: WriteUser) -> DefectLinkOut:
     return service.create_defect_link(db, project_id, payload, user)
+
+
+@router.patch("/projects/{project_id}/defects/{defect_id}", response_model=DefectLinkOut)
+def update_defect_link(
+    project_id: str,
+    defect_id: str,
+    payload: DefectLinkUpdate,
+    db: DB,
+    user: WriteUser,
+) -> DefectLinkOut:
+    return service.update_defect_link(db, project_id, defect_id, payload, user)
 
 
 @router.get("/projects/{project_id}/imports", response_model=list[TestImportJobOut])
@@ -304,16 +444,33 @@ async def upload_evidence(
     run_id: str,
     run_case_id: str,
     db: DB,
-    _user: ExecuteUser,
+    user: ExecuteUser,
     file: UploadFile = File(...),
 ) -> EvidenceOut:
     content = await file.read()
     result = service.upload_evidence(
         db,
         project_id=project_id,
+        run_id=run_id,
         run_case_id=run_case_id,
         filename=file.filename or "evidence",
         content_type=file.content_type or "application/octet-stream",
         content=content,
+        user=user,
     )
     return EvidenceOut(**result)
+
+
+@router.get(
+    "/projects/{project_id}/runs/{run_id}/cases/{run_case_id}/evidence",
+    response_model=list[EvidenceOut],
+    summary="List evidence files for a run case",
+)
+def list_evidence(
+    project_id: str,
+    run_id: str,
+    run_case_id: str,
+    db: DB,
+    _user: ReadUser,
+) -> list[EvidenceOut]:
+    return [EvidenceOut(**item) for item in service.list_evidence(db, project_id, run_id, run_case_id)]
