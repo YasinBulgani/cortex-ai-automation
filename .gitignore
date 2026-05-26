@@ -115,3 +115,4 @@ frameworks/cortex-java/logs/
 # Stray nested checkout (not part of project)
 cortex-otomasyon/
 package-lock.json
+apps/web/.next/
