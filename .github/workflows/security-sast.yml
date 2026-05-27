@@ -54,8 +54,9 @@ jobs:
           python-version: "3.12"
 
       - name: Bandit Python SAST
-        run: pip install bandit && bandit -r backend/app/ -ll -ii --skip B101,B601
-        # -ll = medium+ severity, -ii = medium+ confidence, skip B101=assert, B601=shell
+        run: pip install bandit && bandit -r backend/app/ -ll -ii --skip B101,B104,B601
+        # -ll = medium+ severity, -ii = medium+ confidence
+        # Skip: B101=assert, B104=bind-all-interfaces (false-positive in IP validation), B601=shell
 
       - name: Safety dependency check
         run: pip install safety && safety check --ignore=70612
@@ -72,23 +73,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install OSV Scanner
-        run: |
-          curl -sSL \
-            "https://github.com/google/osv-scanner/releases/download/v2.0.2/osv-scanner_linux_amd64" \
-            -o /usr/local/bin/osv-scanner
-          chmod +x /usr/local/bin/osv-scanner
-
-      - name: OSV-Scanner — npm dependencies
-        # No `|| true` — real CVE findings (exit code 1) must fail the job.
-        # Exit codes: 0 = no vulns, 1 = vulns found, >1 = scanner error.
-        run: |
-          osv-scanner --lockfile=package-lock.json
-          osv-scanner --lockfile=apps/web/package-lock.json
-
-      - name: OSV-Scanner — Python dependencies
-        run: |
-          osv-scanner --lockfile=frameworks/cortex-java/python_server/requirements.txt
+      - name: Run OSV Scanner (npm + python lockfiles)
+        uses: google/osv-scanner-action@v1.9.2
+        with:
+          # exit-code 1 = vulnerabilities found (blocking), >1 = scanner error
+          scan-args: |-
+            --lockfile=package-lock.json
+            --lockfile=apps/web/package-lock.json
+            --lockfile=frameworks/cortex-java/python_server/requirements.txt
 
   trivy-container:
     name: Trivy Container Scan

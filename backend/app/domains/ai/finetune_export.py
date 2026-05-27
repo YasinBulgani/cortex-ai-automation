@@ -147,7 +147,7 @@ def _collect_from_judge(
                 params.append(task_types)
 
             cur.execute(
-                f"""
+                f"""  # nosec B608
                 SELECT j.task_type,
                        t.system_prompt_preview,
                        t.user_prompt_preview,

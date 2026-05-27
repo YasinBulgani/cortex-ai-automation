@@ -150,7 +150,7 @@ def _fingerprint_for(
     aria: str | None, text: str | None, parent: str | None,
 ) -> str:
     key = "|".join([tag or "", testid or "", role or "", aria or "", (text or "")[:40], parent or ""])
-    h = hashlib.md5(key.encode("utf-8")).hexdigest()[:12]
+    h = hashlib.md5(key.encode("utf-8"), usedforsecurity=False).hexdigest()[:12]  # nosec B324
     return f"el_{h}"
 
 
