@@ -37,7 +37,7 @@ def test_build_workflow_excel_report(tmp_path, monkeypatch):
             {
                 "kind": "junit_xml",
                 "name": "junit.xml",
-                "storage_path": "/tmp/junit.xml",
+                "storage_path": "/tmp/junit.xml",  # nosec B108
                 "mime_type": "application/xml",
                 "size_bytes": 42,
                 "metadata": {"sha256": "abc123"},

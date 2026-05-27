@@ -78,3 +78,55 @@ def test_datasets_list_with_token(client: TestClient, db_ready: bool) -> None:
     )
     assert r.status_code == 200
     assert isinstance(r.json(), list)
+
+
+# ── Yeni kayıt edilen router'lar (2026-05-24 fix) ─────────────────────────
+
+def test_events_requires_auth(client: TestClient) -> None:
+    """events router artık kayıtlı — 401 olmalı, 404 değil."""
+    r = client.get("/api/v1/events")
+    assert r.status_code in (401, 403, 405), f"events endpoint 404 döndü — router kaydı kontrol et (got {r.status_code})"
+
+
+def test_defects_requires_auth(client: TestClient) -> None:
+    """defects router artık kayıtlı — 401 olmalı, 404 değil."""
+    r = client.get("/api/v1/defects")
+    assert r.status_code in (401, 403, 405), f"defects endpoint 404 döndü — router kaydı kontrol et (got {r.status_code})"
+
+
+def test_kb_requires_auth(client: TestClient) -> None:
+    """knowledge_base router artık kayıtlı — 401 olmalı, 404 değil."""
+    r = client.get("/api/v1/kb")
+    assert r.status_code in (401, 403, 405), f"kb endpoint 404 döndü — router kaydı kontrol et (got {r.status_code})"
+
+
+def test_pilot_requires_auth(client: TestClient) -> None:
+    """pilot router artık kayıtlı — 401 olmalı, 404 değil."""
+    r = client.get("/api/v1/pilot/sessions")
+    assert r.status_code in (401, 403, 405), f"pilot endpoint 404 döndü — router kaydı kontrol et (got {r.status_code})"
+
+
+# ── Wave 12 router'ları (2026-05-26) ──────────────────────────────────────
+
+def test_rbac_router_registered(client: TestClient) -> None:
+    spec = client.get("/openapi.json").json()
+    paths = list(spec.get("paths", {}).keys())
+    assert any(p.startswith("/api/v1/rbac") for p in paths)
+
+
+def test_navigation_router_registered(client: TestClient) -> None:
+    spec = client.get("/openapi.json").json()
+    paths = list(spec.get("paths", {}).keys())
+    assert any(p.startswith("/api/v1/navigation") for p in paths)
+
+
+def test_email_router_registered(client: TestClient) -> None:
+    spec = client.get("/openapi.json").json()
+    paths = list(spec.get("paths", {}).keys())
+    assert any(p.startswith("/api/v1/email") for p in paths)
+
+
+def test_pr_bot_router_registered(client: TestClient) -> None:
+    spec = client.get("/openapi.json").json()
+    paths = list(spec.get("paths", {}).keys())
+    assert any(p.startswith("/api/v1/pr-bot") for p in paths)

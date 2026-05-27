@@ -1,79 +1,103 @@
-"""Public service facade for the evals domain.
+"""Evals domain service facade.
 
-Wraps the runner, loader, and reporting modules so that callers outside this
-domain only need to import from here.
+Thin facade over the eval sub-modules (``loader``, ``runner``,
+``reporting``, ``scorers``, ``adapters``).  Callers outside the HTTP
+layer — CI scripts, other domains, the job scheduler — import from
+here for a stable, documented entry-point.
+
+Exposed API
+-----------
+run_eval_suite(suite_name, max_workers) -> SuiteResult
+    Load and run a single named eval suite.
+
+run_all_suites(suite_names, max_workers) -> list[SuiteResult]
+    Run every suite (or a named subset) and persist the reports.
+
+get_history(limit) -> list[dict]
+    Return the last *limit* run records from the report store.
+
+get_latest() -> dict | None
+    Return the most recent run record, or None if no runs exist yet.
+
+list_suite_names() -> list[str]
+    Return the names of all available eval suites.
 """
 from __future__ import annotations
 
-import logging
+from typing import List, Optional
 
-from app.domains.evals.loader import (
-    default_suites_dir,
-    load_suite_file,
-    load_suites,
-)
-from app.domains.evals.reporting import (
-    history_report,
-    history_summary,
-    latest_report,
-    write_reports,
-)
-from app.domains.evals.runner import run_suite
-
-logger = logging.getLogger(__name__)
-
-__all__ = [
-    # loader
-    "load_suite_file",
-    "load_suites",
-    "default_suites_dir",
-    # runner
-    "run_suite",
-    # reporting
-    "write_reports",
-    "latest_report",
-    "history_report",
-    "history_summary",
-    # stubs
-    "run_eval_suite",
-    "get_eval_results",
-]
+from .adapters import list_adapters
+from .loader import load_suites
+from .reporting import history_report, latest_report, write_reports
+from .runner import run_suite
+from .schemas import SuiteResult
+from .scorers import list_scorers
 
 
-def run_eval_suite(suite_name: str, *, project_id: str) -> dict:
-    """Run a named eval suite by looking it up in the suite registry.
-
-    This higher-level wrapper resolves the suite by name, executes it via
-    the runner, and persists the results — unlike the low-level
-    :func:`run_suite` which requires a pre-loaded ``Suite`` object.
+def run_eval_suite(
+    suite_name: str,
+    max_workers: Optional[int] = None,
+) -> SuiteResult:
+    """Load and run a single named eval suite synchronously.
 
     Args:
-        suite_name: Name of the YAML suite to execute.
-        project_id: The owning project's identifier.
+        suite_name:  Exact name of the suite as declared in the suites
+                     directory (case-sensitive).
+        max_workers: Thread-pool size for parallel case execution.
+                     ``None`` uses the runner default.
 
     Returns:
-        A dict with ``run_id``, ``passed``, and aggregate metrics.
+        ``SuiteResult`` with per-case scores, pass/fail flag, and
+        aggregate metrics.
 
     Raises:
-        NotImplementedError: Until suite-name resolution + persistence is done.
+        ValueError: if no suite with *suite_name* exists.
     """
-    raise NotImplementedError(
-        "TODO: implement run_eval_suite — see docs/planning/END_USER_GAPS_PLAN.md"
-    )
+    suites = load_suites(names=[suite_name])
+    if not suites:
+        raise ValueError(f"Eval suite not found: {suite_name!r}")
+    result = run_suite(suites[0], max_workers=max_workers)
+    write_reports([result])
+    return result
 
 
-def get_eval_results(run_id: str) -> dict:
-    """Return the full results for a completed eval run.
+def run_all_suites(
+    suite_names: Optional[List[str]] = None,
+    max_workers: Optional[int] = None,
+) -> List[SuiteResult]:
+    """Run all suites (or a named subset) and persist the reports.
 
     Args:
-        run_id: Identifier returned by :func:`run_eval_suite`.
+        suite_names: Optional allow-list of suite names.  ``None`` runs
+                     every registered suite.
+        max_workers: Thread-pool size forwarded to each suite runner.
 
     Returns:
-        Serialised :class:`~app.domains.evals.schemas.SuiteResult`.
-
-    Raises:
-        NotImplementedError: Until result persistence is implemented.
+        List of ``SuiteResult`` objects, one per suite, in load order.
     """
-    raise NotImplementedError(
-        "TODO: implement get_eval_results — see docs/planning/END_USER_GAPS_PLAN.md"
-    )
+    suites = load_suites(names=suite_names)
+    results = [run_suite(s, max_workers=max_workers) for s in suites]
+    write_reports(results)
+    return results
+
+
+def get_history(limit: int = 50) -> List[dict]:
+    """Return recent run records from the report store.
+
+    Args:
+        limit: Maximum number of records to return (clamped 1–500).
+
+    Returns:
+        List of run dicts ordered newest-first.
+    """
+    return history_report(limit=max(1, min(limit, 500)))
+
+
+def get_latest() -> Optional[dict]:
+    """Return the most recent run record, or ``None`` if no runs exist."""
+    return latest_report()
+
+
+def list_suite_names() -> List[str]:
+    """Return the names of all available eval suites."""
+    return [s.name for s in load_suites()]

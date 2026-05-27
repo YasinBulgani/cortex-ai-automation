@@ -1,0 +1,31 @@
+{
+  "manifest_version": 3,
+  "name": "Cortex Recorder",
+  "version": "2.0.0",
+  "description": "Cortex Recorder — capture page actions from inside any tab and produce Gherkin .feature files. Pairs with the local Cortex Java server.",
+  "host_permissions": [
+    "http://127.0.0.1/*",
+    "http://localhost/*",
+    "<all_urls>"
+  ],
+  "permissions": [
+    "activeTab",
+    "tabs",
+    "storage"
+  ],
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"],
+      "run_at": "document_idle",
+      "all_frames": false
+    }
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Cortex Recorder"
+  }
+}

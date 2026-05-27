@@ -57,9 +57,19 @@ def _make_completion(content: str = '{"ok": true}'):
     return resp
 
 
+class _ConcreteAgent(BaseAgent):
+    """Test double: BaseAgent'ı somutlaştırmak için minimal subclass.
+
+    run() @abstractmethod olduğundan doğrudan BaseAgent() instantiate edilemez.
+    Bu sınıf test için gerçek bir alt sınıf simüle eder.
+    """
+    def run(self, context: dict):
+        return AgentResult(status="completed", output={"test": True})
+
+
 def _new_agent(**overrides):
-    """Create a fresh BaseAgent with optional attribute overrides."""
-    agent = BaseAgent()
+    """Create a fresh _ConcreteAgent with optional attribute overrides."""
+    agent = _ConcreteAgent()
     for k, v in overrides.items():
         setattr(agent, k, v)
     return agent
@@ -703,7 +713,7 @@ class TestGetClient:
     @patch("app.domains.agents.banking_team.base_agent.settings", _FAKE_SETTINGS)
     def test_ollama_client_uses_ollama_url(self):
         with patch("openai.OpenAI") as MockOpenAI:
-            agent = BaseAgent()
+            agent = _ConcreteAgent()
             agent._get_client()
             MockOpenAI.assert_called_once_with(
                 api_key="ollama",
@@ -722,7 +732,7 @@ class TestGetClient:
             patch.object(_svc, "_openai_client", None),
             patch("openai.OpenAI") as MockOpenAI,
         ):
-            agent = BaseAgent()
+            agent = _ConcreteAgent()
             agent._get_client()
             MockOpenAI.assert_called_once_with(
                 api_key="sk-test",
@@ -734,8 +744,14 @@ class TestGetClient:
         import app.domains.ai.service as _svc
         with patch("openai.OpenAI") as MockOpenAI, \
              patch.object(_svc, "_ollama_client", None):
-            agent = BaseAgent()
+            agent = _ConcreteAgent()
             c1 = agent._get_client()
             c2 = agent._get_client()
             assert c1 is c2
             MockOpenAI.assert_called_once()
+
+    def test_base_agent_is_abstract(self):
+        """BaseAgent doğrudan instantiate edilemez — @abstractmethod run() zorunlu."""
+        import pytest
+        with pytest.raises(TypeError, match="abstract"):
+            BaseAgent()  # type: ignore[abstract]

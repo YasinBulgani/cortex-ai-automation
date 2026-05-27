@@ -28,6 +28,7 @@ from app.domains.api_testing.feedback_loop import (
     enrich_generation_prompt,
     learn_from_execution,
 )
+from app.domains.agents.banking_team.service_test_agent import ServiceTestAgent
 
 logger = logging.getLogger(__name__)
 
@@ -133,8 +134,6 @@ def generate_tests_with_ai(
 
     Returns: {mode, generated_count, test_cases, warnings, ai_model, duration_ms}
     """
-    from app.domains.agents.banking_team.service_test_agent import ServiceTestAgent
-
     t_start = time.time()
     warnings: List[str] = []
 

@@ -492,14 +492,20 @@ class CodeGenerator:
             target = action.metadata.get("target", "")
             return f"{sel_expr}.drag_to(page.locator({repr(target)}))"
 
-        # Fallback: generate a generic interaction comment that is at least
-        # syntactically valid Python (playwright wait) so the script runs.
-        # The comment documents what was originally recorded for manual review.
-        return (
-            f"# NOTE: unsupported action type '{at}' — manual implementation needed\n"
-            f"# Selector: {action.selector!r}\n"
-            f"page.wait_for_timeout(500)  # placeholder: replace with real action"
-        )
+        # Kalan action türleri için genelleştirilmiş şablonlar
+        if at in ("right_click", "double_click"):
+            method = "dblclick" if at == "double_click" else "click(button='right')"
+            return f"{sel_expr}.{method}()"
+        if at in ("check", "uncheck"):
+            return f"{sel_expr}.{'check' if at == 'check' else 'uncheck'}()"
+        if at in ("focus", "blur"):
+            return f"{sel_expr}.{'focus' if at == 'focus' else 'blur'}()"
+        if at == "press_key":
+            return f"page.keyboard.press({repr(action.value or 'Tab')})"
+        if at == "multi_select":
+            return f"{sel_expr}.select_option({repr(action.value)})"
+        # Truly unknown — emit a loud comment that the developer will notice
+        return f"raise NotImplementedError('⚠ RECORDER: {at} action desteklenmiyor — {action.selector}')  # noqa"
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -511,18 +517,29 @@ class CucumberGenerator:
     """
 
     TR_KEYWORDS = {
-        "navigate": "Kullanıcı {url} sayfasına gider",
-        "click":    "Kullanıcı {element} üzerine tıklar",
-        "type":     "Kullanıcı {element} alanına \"{value}\" yazar",
-        "select":   "Kullanıcı {element} alanından \"{value}\" seçer",
+        "navigate":       "Kullanıcı {url} sayfasına gider",
+        "click":          "Kullanıcı {element} üzerine tıklar",
+        "type":           "Kullanıcı {element} alanına \"{value}\" yazar",
+        "select":         "Kullanıcı {element} alanından \"{value}\" seçer",
         "assert_text":    "Sayfa \"{value}\" metnini içermelidir",
         "assert_visible": "{element} görünür olmalıdır",
         "assert_url":     "URL \"{value}\" olmalıdır",
-        "wait":     "Sistem yanıt vermesini bekler",
-        "scroll":   "Kullanıcı sayfayı kaydırır",
-        "hover":    "Kullanıcı {element} üzerine gelir",
-        "upload":   "Kullanıcı {element} alanına dosya yükler",
-        "screenshot": "Ekran görüntüsü alınır",
+        "wait":           "Sistem yanıt vermesini bekler",
+        "scroll":         "Kullanıcı sayfayı kaydırır",
+        "hover":          "Kullanıcı {element} üzerine gelir",
+        "upload":         "Kullanıcı {element} alanına dosya yükler",
+        "screenshot":     "Ekran görüntüsü alınır",
+        # Daha önce `# TODO` olarak düşen action türleri — artık Gherkin adımı üretilir
+        "drag_drop":      "Kullanıcı {element} öğesini sürükleyip bırakır",
+        "multi_select":   "Kullanıcı {element} listesinden birden fazla öğe seçer",
+        "right_click":    "Kullanıcı {element} üzerine sağ tıklar",
+        "double_click":   "Kullanıcı {element} üzerine çift tıklar",
+        "clear":          "Kullanıcı {element} alanını temizler",
+        "press_key":      "Kullanıcı \"{value}\" tuşuna basar",
+        "check":          "Kullanıcı {element} onay kutusunu işaretler",
+        "uncheck":        "Kullanıcı {element} onay kutusunun işaretini kaldırır",
+        "focus":          "Kullanıcı {element} alanına odaklanır",
+        "blur":           "Kullanıcı {element} alanından çıkar",
     }
 
     def generate(self, session: RecordingSession, feature_title: str = "") -> str:
@@ -579,9 +596,10 @@ class CucumberGenerator:
 
     def _action_to_step(self, action: RecordedAction, keyword: str = "Ve") -> str:
         """Aksiyonu Gherkin adımına dönüştürür."""
+        # Bilinmeyen action türleri için görünür uyarı adımı
         tmpl = self.TR_KEYWORDS.get(
             action.action_type,
-            "Bilinmeyen aksiyon ({action_type}) — manuel adım gerekli",
+            "⚠ MANUEL GEREKLİ: {action_type} adımı otomatik dönüştürülemedi",
         )
         element = action.element_name or action.selector[:30]
         value = action.value

@@ -38,7 +38,7 @@ class BaseCheck(ABC):
 
     @abstractmethod
     def run(self, summary: dict) -> CheckResult:
-        """Alt sınıflar override eder — quality gate kontrolünü uygular."""
+        """Alt sınıflar bu metodu override etmek zorundadır."""
 
 
 class PassRateCheck(BaseCheck):

@@ -233,17 +233,13 @@ class TestCostEstimate:
 
 class TestFeatureFlag:
 
-    def test_flag_disabled_returns_safe_mini(self):
-        try:
-            from app.domains.feature_flags.service import feature_flags
-            from app.domains.feature_flags.schemas import FlagUpdate
-            feature_flags.set_flag(
-                "ai.router.v2",
-                FlagUpdate(enabled=False, percent=0),
-                actor="test",
-            )
-        except Exception:
-            pytest.skip("feature_flags not available")
+    def test_flag_disabled_returns_safe_mini(self, feature_flags):
+        from app.domains.feature_flags.schemas import FlagUpdate
+        feature_flags.set_flag(
+            "ai.router.v2",
+            FlagUpdate(enabled=False, percent=0),
+            actor="test",
+        )
 
         rec = route_model("security_audit", risk_level="critical")
         # Normalde PREMIUM dondururdu; flag kapaliyken MINI

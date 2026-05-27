@@ -200,8 +200,9 @@ def get_quality_metrics(
             ``engine/evals/reports/``.
         history_limit: Kaç geçmiş rapor dahil edilsin.
     """
-    # Support both names; ENGINE_EVAL_REPORTS_DIR takes precedence for back-compat
-    env_dir = os.environ.get("ENGINE_EVAL_REPORTS_DIR") or os.environ.get("EVAL_REPORTS_DIR")
+    # Canonical ENV: EVAL_REPORTS_DIR (evals/reporting.py ile aynı isim).
+    # ENGINE_EVAL_REPORTS_DIR de fallback olarak desteklenir — geriye dönük uyumluluk.
+    env_dir = os.environ.get("EVAL_REPORTS_DIR") or os.environ.get("ENGINE_EVAL_REPORTS_DIR")
     root = reports_dir or (Path(env_dir) if env_dir else _DEFAULT_REPORTS_DIR)
 
     latest = _read_latest_report(root)

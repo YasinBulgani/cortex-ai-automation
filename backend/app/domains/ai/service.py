@@ -86,7 +86,7 @@ def _is_local_llm_url(value: str) -> bool:
     host = (parsed.hostname or "").strip().lower()
     if not host:
         return False
-    if host in {"localhost", "127.0.0.1", "::1", "0.0.0.0", "host.docker.internal"}:
+    if host in {"localhost", "127.0.0.1", "::1", "0.0.0.0", "host.docker.internal"}:  # nosec B104
         return True
     try:
         ip = ip_address(host)

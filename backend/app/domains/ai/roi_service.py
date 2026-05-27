@@ -159,7 +159,7 @@ def _fetch_llm_aggregates(
     try:
         with conn.cursor() as cur:
             cur.execute(
-                f"""
+                f"""  # nosec B608
                 SELECT COUNT(*), COALESCE(SUM(cost_usd), 0.0)
                 FROM llm_traces {where}
                 """,

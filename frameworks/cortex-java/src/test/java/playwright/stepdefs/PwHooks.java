@@ -1,9 +1,13 @@
 package playwright.stepdefs;
 
 import com.microsoft.playwright.Page;
+import crypto.CredentialPreflightChecker;
+import crypto.FeatureVault;
+import crypto.VaultContext;
 import io.cucumber.java.After;
 import io.cucumber.java.AfterStep;
 import io.cucumber.java.Before;
+import io.cucumber.java.BeforeAll;
 import io.cucumber.java.Scenario;
 import playwright.PlaywrightFactory;
 
@@ -34,6 +38,20 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public class PwHooks {
 
+    // ── Pre-flight credential validation (Recorder #8) ──────────────────
+    // Runs once before any scenario. Fails fast if aliases referenced in
+    // feature files are missing from password.properties or their env vars
+    // are unset. Set CORTEX_PREFLIGHT=warn to downgrade to a warning.
+    @BeforeAll
+    public static void credentialPreflight() {
+        String mode = System.getenv("CORTEX_PREFLIGHT");
+        CredentialPreflightChecker.Mode checkMode =
+            "warn".equalsIgnoreCase(mode)
+                ? CredentialPreflightChecker.Mode.WARN
+                : CredentialPreflightChecker.Mode.FAIL_FAST;
+        CredentialPreflightChecker.check("src/test/resources", checkMode);
+    }
+
     // Thread-local run dir and step counter so parallel scenarios stay isolated.
     private static final ThreadLocal<Path> RUN_DIR = new ThreadLocal<>();
     private static final ThreadLocal<AtomicInteger> STEP_CTR = new ThreadLocal<>();
@@ -50,6 +68,11 @@ public class PwHooks {
         }
         String featureName = extractFeatureName(featureFile);
         PwConfigSteps.loadLocators("src/main/resources/locators", featureName);
+
+        // ── Per-feature credential vault (Recorder #6) ───────────────────
+        // Activate the feature-scoped vault so DecryptUtil resolves credentials
+        // from <featureName>.vault.properties first, then falls back to global.
+        VaultContext.set(new FeatureVault(featureName));
 
         // Create run-level directory
         String ts = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm"));
@@ -110,6 +133,9 @@ public class PwHooks {
                 Files.write(runDir.resolve("result.json"), json.getBytes(StandardCharsets.UTF_8));
             }
         } catch (Exception ignored) {}
+
+        // Clear per-feature vault to avoid cross-scenario credential leakage.
+        VaultContext.clear();
 
         PlaywrightFactory.closeContext(scenario.getName(), scenario.isFailed());
         RUN_DIR.remove();

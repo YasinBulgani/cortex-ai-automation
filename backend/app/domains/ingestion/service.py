@@ -132,8 +132,11 @@ def _publish_ingested(req: IngestedRequirement) -> None:
             },
             project_id=req.project_id,
         ))
-    except Exception as _exc:
-        logger.warning("requirement.ingested event publish edilemedi: %s", _exc)
+    except Exception:
+        import logging as _logging
+        _logging.getLogger(__name__).warning(
+            "requirement.ingested event yayımlanamadı", exc_info=True
+        )
 
 
 # ── Public API ─────────────────────────────────────────────────────────────

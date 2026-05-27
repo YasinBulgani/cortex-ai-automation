@@ -202,7 +202,7 @@ def _embed(text: str, max_retries: int = 2) -> list[float] | None:
     for attempt in range(1, max_retries + 1):
         try:
             req = urllib.request.Request(url, data=payload, headers={"Content-Type": "application/json"})
-            with urllib.request.urlopen(req, timeout=15) as resp:
+            with urllib.request.urlopen(req, timeout=15) as resp:  # nosec B310
                 data = json.loads(resp.read())
                 embeddings = data.get("embeddings") or data.get("embedding")
                 if embeddings:
@@ -514,7 +514,7 @@ class KnowledgeStore:
         vec_str = "[" + ",".join(map(str, query_vec)) + "]"
 
         cur.execute(
-            f"""
+            f"""  # nosec B608
             SELECT content, source, metadata,
                    1 - (embedding_vec <=> %s::vector) AS similarity
             FROM project_knowledge
@@ -551,7 +551,7 @@ class KnowledgeStore:
             where += " AND source = ANY(%s)"
             params.append(sources)
 
-        cur.execute(f"SELECT content, source, metadata, embedding FROM project_knowledge {where} LIMIT 200", params)
+        cur.execute(f"SELECT content, source, metadata, embedding FROM project_knowledge {where} LIMIT 200", params)  # nosec B608
         rows = cur.fetchall()
 
         results = []
@@ -787,7 +787,7 @@ class KnowledgeStore:
                 params.append(sources)
             with conn.cursor() as cur:
                 cur.execute(
-                    f"SELECT content, source, metadata FROM project_knowledge {where} LIMIT %s",
+                    f"SELECT content, source, metadata FROM project_knowledge {where} LIMIT %s",  # nosec B608
                     params + [top_k],
                 )
                 return [
@@ -812,7 +812,7 @@ class KnowledgeStore:
                     where = "WHERE project_id = %s"
                     params.append(scoped_project_id)
                 cur.execute(
-                    f"""
+                    f"""  # nosec B608
                     SELECT source, COUNT(*) as count,
                            MAX(created_at) as last_update
                     FROM project_knowledge

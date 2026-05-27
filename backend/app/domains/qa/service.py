@@ -36,9 +36,28 @@ QA_ROOT = REPO_ROOT / "qa"
 
 
 def _load_yaml(path: Path) -> dict:
-    """js-yaml JSON_SCHEMA ile uyumlu yükleme (date'leri string olarak tut)."""
+    """js-yaml JSON_SCHEMA ile uyumlu yükleme (date'leri string olarak tut).
+
+    PyYAML safe_load default'unda `2026-05-22` → `datetime.date` object'i
+    döner. Pydantic `str` field'larında bu validation fail eder. Tüm
+    date/datetime değerlerini ISO string'e çevirip döndürüyoruz.
+    """
+    from datetime import date, datetime as _dt
     text = path.read_text(encoding="utf-8")
-    return yaml.safe_load(text) or {}
+    data = yaml.safe_load(text) or {}
+    return _stringify_dates(data)
+
+
+def _stringify_dates(obj):
+    """Date / datetime / time object'lerini ISO string'e dönüştür (recursive)."""
+    from datetime import date, datetime as _dt, time
+    if isinstance(obj, dict):
+        return {k: _stringify_dates(v) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [_stringify_dates(v) for v in obj]
+    if isinstance(obj, (_dt, date, time)):
+        return obj.isoformat()
+    return obj
 
 
 def _parse_frontmatter(text: str) -> Tuple[Dict[str, Any], str]:

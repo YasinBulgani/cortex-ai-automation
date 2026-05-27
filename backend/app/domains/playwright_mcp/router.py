@@ -371,6 +371,111 @@ async def heal_verify(
         ) from exc
 
 
+# ── Frontend-compatibility alias endpoints ───────────────────────────────────
+# The frontend hook (use-playwright-mcp.ts) uses shorter path conventions.
+# These thin aliases keep the canonical paths AND satisfy the frontend.
+
+
+@router.get(
+    "/sessions/{session_id}/screenshot", response_model=ScreenshotResponse
+)
+async def take_screenshot_get(session_id: str, user: CurrentUser):
+    """GET alias — no-body screenshot for live preview (full_page=False default)."""
+    try:
+        await _ensure_session_access(session_id, user)
+        result = await _get_manager().screenshot(
+            session_id, selector=None, full_page=False, fmt="png", quality=None
+        )
+        return ScreenshotResponse(**result)
+    except KeyError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+
+
+@router.post(
+    "/sessions/{session_id}/dom-snapshot", response_model=DOMSnapshotResponse
+)
+async def get_dom_snapshot_alias(
+    session_id: str, body: DOMSnapshotRequest, user: CurrentUser
+):
+    """POST alias for /dom — frontend uses /dom-snapshot path."""
+    try:
+        await _ensure_session_access(session_id, user)
+        result = await _get_manager().get_dom_snapshot(
+            session_id,
+            selector=body.selector,
+            max_depth=body.max_depth,
+            include_styles=body.include_styles,
+            include_hidden=body.include_hidden,
+        )
+        return DOMSnapshotResponse(**result)
+    except KeyError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+
+
+@router.post(
+    "/sessions/{session_id}/validate-selectors",
+    response_model=SelectorValidateResponse,
+)
+async def validate_selectors_alias(
+    session_id: str, body: SelectorValidateRequest, user: CurrentUser
+):
+    """POST alias for /selectors/validate — frontend uses /validate-selectors path."""
+    try:
+        await _ensure_session_access(session_id, user)
+        result = await _get_manager().validate_selectors(
+            session_id, body.selectors, timeout_ms=body.timeout_ms
+        )
+        return SelectorValidateResponse(**result)
+    except KeyError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+
+
+@router.post(
+    "/sessions/{session_id}/suggest-selectors",
+    response_model=SelectorSuggestResponse,
+)
+async def suggest_selectors_alias(
+    session_id: str, body: SelectorSuggestRequest, user: CurrentUser
+):
+    """POST alias for /selectors/suggest — frontend uses /suggest-selectors path."""
+    try:
+        await _ensure_session_access(session_id, user)
+        suggestions = await _get_manager().suggest_selectors(
+            session_id, body.target_description
+        )
+        from .schemas import SelectorResult
+        return SelectorSuggestResponse(
+            suggestions=[SelectorResult(**s) for s in suggestions],
+            ai_analysis=None,
+        )
+    except KeyError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+
+
+@router.post(
+    "/sessions/{session_id}/verify-heal",
+    response_model=HealVerifyResponse,
+)
+async def heal_verify_alias(
+    session_id: str, body: HealVerifyRequest, user: CurrentUser
+):
+    """POST alias for /heal/verify — frontend uses /verify-heal path."""
+    try:
+        await _ensure_session_access(session_id, user)
+        result = await _get_manager().heal_verify(
+            session_id,
+            body.original_selector,
+            body.healed_selector,
+            expected_tag=body.expected_tag,
+            expected_text=body.expected_text,
+        )
+        return HealVerifyResponse(**result)
+    except KeyError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+
+
 # ── Health Check ─────────────────────────────────────────────────────────────
 
 

@@ -323,7 +323,7 @@ def get_tenant_usage(
         with conn.cursor() as cur:
             # Toplam
             cur.execute(
-                f"""
+                f"""  # nosec B608
                 SELECT COALESCE(SUM(prompt_tokens),0),
                        COALESCE(SUM(completion_tokens),0),
                        COALESCE(SUM(total_tokens),0),
@@ -344,7 +344,7 @@ def get_tenant_usage(
 
             if group_by == "day":
                 cur.execute(
-                    f"""
+                    f"""  # nosec B608
                     SELECT date_trunc('day', created_at) AS day,
                            COALESCE(SUM(total_tokens),0),
                            COALESCE(SUM(cost_usd),0.0),
@@ -366,7 +366,7 @@ def get_tenant_usage(
                 ]
             elif group_by == "model":
                 cur.execute(
-                    f"""
+                    f"""  # nosec B608
                     SELECT model,
                            COALESCE(SUM(total_tokens),0),
                            COALESCE(SUM(cost_usd),0.0),

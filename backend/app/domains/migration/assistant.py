@@ -178,21 +178,66 @@ _JAVA_STEP_TRANSLATIONS: List[Tuple[re.Pattern[str], str, str]] = [
         "await page.locator(selector).setInputFiles(path);",
         "en_upload",
     ),
+    # ── Turkish step patterns (TR) ─────────────────────────────────────────
+    (
+        re.compile(r"kullan[ıi]c[ıi]\s+.*sayfada(?:d[ıi]r)?|sayfas[ıi]nda(?:d[ıi]r)?", re.I),
+        "await page.waitForURL('**');",
+        "en_wait_url",
+    ),
+    (
+        re.compile(r"kullan[ıi]c[ıi]\s+.*butonuna\s+t[ıi]klar|butona\s+t[ıi]klar?", re.I),
+        "await page.getByRole('button').click();",
+        "click_text",
+    ),
+    (
+        re.compile(r"kullan[ıi]c[ıi]\s+.*(?:t[ıi]klar?|ba(?:s|s)ar?)", re.I),
+        "await page.getByText(text).click();",
+        "click_text",
+    ),
+    (
+        re.compile(r"kullan[ıi]c[ıi]\s+.*(?:giriş|giris|login)\s+yapar?", re.I),
+        "await page.fill('[name=email]', email);\nawait page.fill('[name=password]', password);\nawait page.getByRole('button', { name: /giriş|login/i }).click();",
+        "en_login",
+    ),
+    (
+        re.compile(r"kullan[ıi]c[ıi]\s+.*(?:doldurur?|yazar?|girer?)", re.I),
+        "await page.getByLabel(fieldName).fill(value);",
+        "fill_input",
+    ),
+    (
+        re.compile(r"(?:sayfa|ekran)\s+.*g[öo]r[üu]n[üu]r?|g[öo]r[üu]nt[üu]lenir?", re.I),
+        "await expect(page.getByText(text)).toBeVisible();",
+        None,
+    ),
+    (
+        re.compile(r"kullan[ıi]c[ıi]\s+.*bekler?|y[üu]klenir?", re.I),
+        "await page.waitForLoadState('networkidle');",
+        "en_wait",
+    ),
+    (
+        re.compile(r"kullan[ıi]c[ıi]\s+.*se[çc]er?|se[çc]ilir?", re.I),
+        "await page.locator(selector).selectOption(value);",
+        "en_select",
+    ),
 ]
 
 
 def _translate_step_body(pattern: str) -> Tuple[str, Optional[str]]:
-    """Gherkin pattern → TS snippet + DSL action (eşleşme varsa)."""
+    """Gherkin pattern → TS snippet + DSL action (eşleşme varsa).
+
+    Eşleşme bulunamazsa sessiz TODO üretmek yerine açıkça başarısız olan
+    (test çalışınca throw eden) bir yer tutucu döner. Bu sayede migration
+    çıktısı dosyada bulunur ama hiçbir test bu satırı sessizce geçemez.
+    """
     for pat, ts, dsl in _JAVA_STEP_TRANSLATIONS:
         if pat.search(pattern):
             return ts, dsl
-    # No pattern matched — return a stub that throws at runtime so the developer
-    # knows immediately which step needs work (not a silent TODO comment).
-    escaped = pattern.replace("'", "\\'")
+    # Bilinçli hata: sessiz TODO yerine runtime'da patlayan stub.
+    safe_pattern = pattern.replace("'", "\\'")
     return (
-        f"throw new Error('MIGRATION_NEEDED: step not auto-translated — "
-        f"implement: {escaped}');"
-    ), None
+        f"throw new Error('⚠ MIGRATION_REQUIRED: Bu adım otomatik dönüştürülemedi → \"{safe_pattern}\" — lütfen elle implemente edin');",
+        None,
+    )
 
 
 def migrate_selenium_java(source: str, *, source_file: Optional[str] = None) -> MigrationResult:
@@ -218,7 +263,7 @@ def migrate_selenium_java(source: str, *, source_file: Optional[str] = None) -> 
         result.steps_total += 1
 
         ts_body, dsl = _translate_step_body(pattern)
-        if ts_body.startswith("// TODO"):
+        if "MIGRATION_REQUIRED" in ts_body:
             result.steps_unhandled += 1
             result.unhandled.append(
                 UnhandledStep(
@@ -306,9 +351,9 @@ def migrate_selenium_py(source: str, *, source_file: Optional[str] = None) -> Mi
         func_name = m.group(3)
         result.steps_total += 1
 
-        # Default: raise at runtime so the developer knows immediately (not a silent comment)
-        escaped_pattern = pattern.replace('"', '\\"')
-        translated = f'    raise NotImplementedError("MIGRATION_NEEDED: {escaped_pattern}")'
+        # Bilinçli hata: sessiz TODO yerine pytest.fail() ile patlayan stub.
+        safe_pat = pattern.replace("'", "\\'")
+        translated = f"    pytest.fail('⚠ MIGRATION_REQUIRED: \"{safe_pat}\" adımı otomatik dönüştürülemedi — lütfen elle implemente edin')"
         dsl = None
         for pat, body, mapped_dsl in _PY_STEP_TRANSLATIONS:
             if pat.search(func_name) or pat.search(pattern):
@@ -316,7 +361,7 @@ def migrate_selenium_py(source: str, *, source_file: Optional[str] = None) -> Mi
                 dsl = mapped_dsl
                 break
 
-        if "TODO" in translated:
+        if "MIGRATION_REQUIRED" in translated:
             result.steps_unhandled += 1
             result.unhandled.append(
                 UnhandledStep(
@@ -391,7 +436,9 @@ def migrate_katalon(source: str, *, source_file: Optional[str] = None) -> Migrat
                     reason=f"Desteklenmeyen Katalon komutu: {action}",
                 )
             )
-            ts_lines.append(f"  throw new Error('MIGRATION_NEEDED: WebUI.{action}({args[:60]}...)');")
+            safe_action = action.replace("'", "\\'")
+            ts_lines.append(f"  throw new Error('⚠ MIGRATION_REQUIRED: WebUI.{safe_action}() desteklenmiyor — lütfen elle implemente edin // orijinal: {args[:60]}...');")
+
             continue
 
         result.steps_migrated += 1

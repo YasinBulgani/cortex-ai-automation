@@ -1,46 +1,43 @@
-"""Public service facade for the accessibility domain.
+"""Accessibility domain service facade — UX-F3-306.
 
-Single entry point for other domains that need accessibility analysis.
-Direct imports of internal modules (analyzer, schemas) should be avoided
-outside this module.
+Thin facade over the core ``analyzer`` module.  The router delegates
+here; callers outside the HTTP layer (tests, scripts, other domains)
+can also import from this module without touching FastAPI internals.
+
+Exposed API
+-----------
+analyze_violations(request) -> AnalyzeA11yResponse
+    Feed a list of axe-core / Pa11y / Lighthouse violations to the AI
+    gateway and receive Turkish-language remediation suggestions.
+
+analyzer_info() -> dict
+    Return the current feature-flag state and telemetry counters for
+    the accessibility analyzer.
 """
 from __future__ import annotations
 
-import logging
-
-from app.domains.accessibility.analyzer import (
-    AccessibilityAnalyzer,
-    accessibility_analyzer,
-)
+from app.domains.accessibility.analyzer import accessibility_analyzer
 from app.domains.accessibility.schemas import (
     AnalyzeA11yRequest,
     AnalyzeA11yResponse,
 )
 
-logger = logging.getLogger(__name__)
 
-__all__ = [
-    "AccessibilityAnalyzer",
-    "accessibility_analyzer",
-    "AnalyzeA11yRequest",
-    "AnalyzeA11yResponse",
-    "run_accessibility_scan",
-]
+def analyze_violations(request: AnalyzeA11yRequest) -> AnalyzeA11yResponse:
+    """Analyze WCAG violations and return Turkish remediation suggestions.
 
-
-def run_accessibility_scan(url: str, project_id: str) -> dict:
-    """Trigger a full accessibility scan for a URL and persist results.
-
-    Args:
-        url: The page URL to scan.
-        project_id: The owning project's identifier.
-
-    Returns:
-        A dict with scan findings keyed by WCAG criterion.
-
-    Raises:
-        NotImplementedError: Until the crawler + persistence layer is wired up.
+    Delegates to ``AccessibilityAnalyzer.analyze``.  When the feature
+    flag ``AI_ACCESSIBILITY_ENABLED`` is *false* the call is a no-op
+    that returns ``ok=True`` with an empty remediations list.
     """
-    raise NotImplementedError(
-        "TODO: implement run_accessibility_scan — see docs/planning/END_USER_GAPS_PLAN.md"
-    )
+    return accessibility_analyzer.analyze(request)
+
+
+def analyzer_info() -> dict:
+    """Return feature-flag state and telemetry counters.
+
+    Intended for the ``GET /accessibility/status`` endpoint and for
+    health-check dashboards that want to know whether AI remediation
+    is active.
+    """
+    return accessibility_analyzer.info()

@@ -1,0 +1,24 @@
+{
+  "name": "@cortex/sdk",
+  "version": "0.1.0",
+  "description": "Cortex AI Automation — public TypeScript SDK for the backend API",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./management": "./src/management/index.ts",
+    "./automation": "./src/automation/index.ts",
+    "./projects": "./src/projects/index.ts"
+  },
+  "scripts": {
+    "lint": "eslint . --ext .ts --max-warnings=0",
+    "type-check": "tsc --noEmit",
+    "test": "vitest run --passWithNoTests",
+    "clean": "rm -rf dist .turbo coverage"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0",
+    "vitest": "^2.1.0"
+  }
+}

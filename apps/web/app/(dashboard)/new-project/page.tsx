@@ -856,24 +856,25 @@ export default function NewProjectPage() {
           const body = trimmed.slice(kw.length).trim();
           const pattern = body.replace(/"[^"]*"/g, '{string}');
           const escaped = pattern.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-          // Generate a runnable skeleton based on the keyword/action hint in the step text
-          const bodyLower = body.toLowerCase();
-          let impl: string;
-          if (kw === "Given" || bodyLower.includes("navigate") || bodyLower.includes("açık") || bodyLower.includes("git")) {
-            const urlMatch = body.match(/"([^"]+)"/);
-            impl = urlMatch
-              ? `  await this.page.goto('${urlMatch[1]}');`
-              : `  await this.page.goto(testData.baseUrl ?? '/');`;
-          } else if (bodyLower.includes("click") || bodyLower.includes("tıkla") || bodyLower.includes("bas")) {
-            impl = `  await this.page.click(locators['${pattern.split(/\s+/).slice(-1)[0]?.replace(/[^a-zA-Z0-9]/g, '')}'] ?? '[data-testid="unknown"]');`;
-          } else if (bodyLower.includes("fill") || bodyLower.includes("type") || bodyLower.includes("gir") || bodyLower.includes("yaz")) {
-            impl = `  await this.page.fill(locators['input'] ?? 'input', {string});`;
-          } else if (kw === "Then" || bodyLower.includes("see") || bodyLower.includes("görün") || bodyLower.includes("expect") || bodyLower.includes("doğrula")) {
-            impl = `  await expect(this.page.locator(locators['result'] ?? 'body')).toBeVisible();`;
+          // Generate a meaningful action skeleton from the step text
+          const lc = body.toLowerCase();
+          let actionCode: string;
+          if (/\b(tıkla|click|bas|button|link|buton)\b/.test(lc)) {
+            actionCode = "await this.page.getByRole('button', { name: {string} }).click();";
+          } else if (/\b(gir|doldur|yaz|fill|type|input|text)\b/.test(lc)) {
+            actionCode = "await this.page.getByLabel({string}).fill({string});";
+          } else if (/\b(gör|görün|visible|bekliyorum|assert|doğrula|kontrol)\b/.test(lc)) {
+            actionCode = "await expect(this.page.getByText({string})).toBeVisible();";
+          } else if (/\b(git|navigate|aç|open|url|sayfa)\b/.test(lc)) {
+            actionCode = "await this.page.goto({string});";
+          } else if (/\b(bekle|wait|yüklen|load)\b/.test(lc)) {
+            actionCode = "await this.page.waitForLoadState('networkidle');";
+          } else if (/\b(seç|select|dropdown|option)\b/.test(lc)) {
+            actionCode = "await this.page.getByLabel({string}).selectOption({string});";
           } else {
-            impl = `  // Action: ${kw} ${body}\n  await this.page.waitForLoadState('networkidle');`;
+            actionCode = "await this.page.waitForLoadState('networkidle'); // ⚠ manuel implementasyon gerekebilir";
           }
-          return `${kw}(/^${escaped}$/, async function () {\n${impl}\n});`;
+          return `${kw}(/^${escaped}$/, async function () {\n  ${actionCode}\n});`;
         })
         .join("\n\n");
       files.push({

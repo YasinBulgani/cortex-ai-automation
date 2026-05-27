@@ -56,7 +56,13 @@ public class PwCommonMethods {
     }
 
     public static void click(String key, Map<String, String> locators) {
-        locator(key, locators).click();
+        // E20: self-heal kicks in only when -Dcortex.selfheal=true; otherwise
+        // this collapses to the original locator(key).click() with zero overhead.
+        if (playwright.SelfHeal.enabled()) {
+            playwright.SelfHeal.attempt("click", key, locators, null, Locator::click);
+        } else {
+            locator(key, locators).click();
+        }
     }
 
     public static void clickIfPresent(String key, Map<String, String> locators) {

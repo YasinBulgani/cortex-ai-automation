@@ -20,7 +20,8 @@ public class EncryptionManager {
                 );
             }
 
-            String encryptedPassword = EncryptUtil.encrypt(plainPassword, aesKey);
+            // Yeni sifrelemeler v2 (AES/GCM) — DecryptUtil prefix'e bakarak otomatik mod secer.
+            String encryptedPassword = EncryptUtil.encryptGcm(plainPassword, aesKey);
 
             PasswordManager.setPassword(alias, encryptedPassword);
             PasswordManager.save();

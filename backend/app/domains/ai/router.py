@@ -2106,3 +2106,150 @@ def nl_test_validate(
     except Exception as e:
         _logger.exception("NL test validate hatasi")
         raise HTTPException(500, f"Kod dogrulama hatasi: {str(e)[:300]}")
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# B4 — AI Quality Dashboard  GET /api/v1/ai/quality/dashboard
+# ─────────────────────────────────────────────────────────────────────────────
+
+@router.get(
+    "/quality/dashboard",
+    summary="AI Quality dashboard — unified metrics, judge scores, routing & ingestion stats",
+    tags=["ai-quality"],
+)
+def ai_quality_dashboard(
+    days: int = 30,
+    user: CurrentUser = None,
+) -> Dict[str, Any]:
+    """Unified dashboard payload consumed by ``apps/web/.../ai-quality/page.tsx``.
+
+    Aggregates:
+    * LLM call metrics (overview, by_model, regression alerts, recommendations)
+    * Quality-judge scores (correctness, completeness, domain_fit, format)
+    * Smart model router state (routing mode, tiers, circuit breakers)
+    * RAG ingestion statistics (sources, total docs)
+    * Latest eval-suite run
+
+    All sub-calls are defensive — a failing sub-module returns empty data rather
+    than a 500, so the dashboard degrades gracefully while the rest still renders.
+    """
+    days = max(1, min(days, 365))
+
+    # 1. LLM quality metrics (overview, by_model, regressions, recommendations)
+    try:
+        from app.domains.ai.quality_metrics import get_llm_quality_metrics
+        raw = get_llm_quality_metrics(days=days)
+    except Exception as exc:
+        _logger.warning("quality_metrics unavailable: %s", exc)
+        raw = {}
+
+    overview_raw = raw.get("overview", {})
+    # Map internal field names → frontend contract
+    overview: Dict[str, Any] = {
+        "total_calls":          overview_raw.get("total_calls"),
+        "success_rate":         overview_raw.get("success_rate"),
+        "json_parse_rate":      overview_raw.get("json_parse_rate"),
+        "avg_latency_ms":       overview_raw.get("avg_latency_ms"),
+        "total_cost_usd":       overview_raw.get("total_cost_usd"),
+        "avg_cost_usd":         overview_raw.get("avg_cost_usd"),
+        "cost_per_1k_calls_usd": overview_raw.get("cost_per_1k_calls_usd"),
+    }
+
+    # by_model: ensure frontend-expected keys exist
+    by_model_raw: list = raw.get("by_model", [])
+    by_model = [
+        {
+            "model":           m.get("model", "unknown"),
+            "calls":           m.get("calls", 0),
+            "success_rate":    m.get("success_rate", 0.0),
+            "json_parse_rate": m.get("json_parse_rate", 0.0),
+            "avg_latency_ms":  m.get("avg_latency_ms", 0),
+            "p95_latency_ms":  m.get("p95_latency_ms", 0),
+            "total_cost_usd":  m.get("total_cost_usd"),
+            "avg_cost_usd":    m.get("avg_cost_usd"),
+        }
+        for m in by_model_raw
+    ]
+
+    regression_alerts: list = raw.get("regression_alerts", [])
+    recommendations: list   = raw.get("recommendations", [])
+
+    # 2. Quality-judge scores
+    try:
+        from app.domains.ai.quality_judge import get_judge_stats
+        judge_raw = get_judge_stats(days=days)
+    except Exception as exc:
+        _logger.warning("quality_judge unavailable: %s", exc)
+        judge_raw = {}
+
+    judge: Dict[str, Any] = {
+        "total":              judge_raw.get("total"),
+        "avg_overall":        judge_raw.get("avg_overall"),
+        "avg_correctness":    judge_raw.get("avg_correctness"),
+        "avg_completeness":   judge_raw.get("avg_completeness"),
+        "avg_domain_fit":     judge_raw.get("avg_domain_fit"),
+        "avg_format_validity": judge_raw.get("avg_format_validity"),
+        "by_task":            judge_raw.get("by_task", []),
+    }
+
+    # 3. Smart model router state
+    try:
+        from app.domains.ai.smart_model_router import get_routing_stats, _circuit_state
+        routing_raw = get_routing_stats()
+        circuit_snapshot = {
+            model: {"failures": state[0], "last_failure_ts": int(state[1])}
+            for model, state in _circuit_state.items()
+        }
+    except Exception as exc:
+        _logger.warning("smart_model_router unavailable: %s", exc)
+        routing_raw = {}
+        circuit_snapshot = {}
+
+    routing: Dict[str, Any] = {
+        "routing_mode":         routing_raw.get("routing_mode"),
+        "tiers":                routing_raw.get("tiers"),
+        "provider_availability": routing_raw.get("provider_availability"),
+        "fallback_chain":       routing_raw.get("fallback_chain"),
+        "circuit_state":        circuit_snapshot,
+    }
+
+    # 4. RAG ingestion statistics
+    try:
+        from app.domains.ai.rag_ingestion import get_ingestion_stats
+        ingestion_raw = get_ingestion_stats()
+    except Exception as exc:
+        _logger.warning("rag_ingestion unavailable: %s", exc)
+        ingestion_raw = {}
+
+    ingestion: Dict[str, Any] = {
+        "total":   ingestion_raw.get("total"),
+        "sources": ingestion_raw.get("sources", []),
+    }
+
+    # 5. Latest eval-suite run
+    try:
+        from app.domains.ai.eval_suite import get_latest_eval_report
+        eval_raw = get_latest_eval_report()
+    except Exception as exc:
+        _logger.warning("eval_suite unavailable: %s", exc)
+        eval_raw = {}
+
+    eval_latest: Dict[str, Any] = {
+        "suite":      eval_raw.get("suite"),
+        "total":      eval_raw.get("total"),
+        "pass_count": eval_raw.get("pass_count"),
+        "pass_rate":  eval_raw.get("pass_rate"),
+        "results":    eval_raw.get("results", []),
+    }
+
+    return {
+        "period_days":       days,
+        "overview":          overview,
+        "by_model":          by_model,
+        "regression_alerts": regression_alerts,
+        "recommendations":   recommendations,
+        "judge":             judge,
+        "routing":           routing,
+        "ingestion":         ingestion,
+        "eval_latest":       eval_latest,
+    }

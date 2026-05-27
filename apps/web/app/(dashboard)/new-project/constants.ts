@@ -61,6 +61,11 @@ export const PRODUCT_FLOW_GUIDE: Record<ProductFamilyId, { title: string; descri
     description: "Sentetik veri, masking ve test verisi baglama adımlarini daha erken asamada guclendir.",
     recommendedPath: "test-data",
   },
+  management: {
+    title: "Manuel QA operasyonunu kur",
+    description: "Test case havuzu, plan, run, tester atamasi ve kanit saklama akislarini proje basinda netlestir.",
+    recommendedPath: "management",
+  },
   intelligence: {
     title: "AI kalite katmanini etkinlestir",
     description: "Copilot, kalite metrikleri ve yonlendirilmis AI akislarini proje merkezine yerlestir.",
@@ -131,6 +136,14 @@ export const PRODUCT_WIZARD_PROFILE: Record<
     dbNote: "Data odaginda DB iliskileri ve veri baglami genelde daha yuksek deger üretir.",
     automationPrimary: false,
     automationNote: "Bu urunde asil hedef veri ve privacy akislarini guclendirmek; web otomasyonu ikincil kalabilir.",
+  },
+  management: {
+    analysisSeed: "Manuel test case havuzu, tester atamasi, test run, evidence, defect ve requirement coverage baglamini one cikar.",
+    analysisFocus: ["manuel test hafizasi", "test run yonetimi", "defect ve coverage"],
+    dbPriorityLabel: "Yuksek oncelik",
+    dbNote: "Management odaginda kalici test case, run sonucu ve evidence saklama icin DB modeli kritik.",
+    automationPrimary: false,
+    automationNote: "Bu urunde asil hedef manuel QA operasyonudur; otomasyon baglantisi sonraki fazda eklenir.",
   },
   intelligence: {
     analysisSeed: "AI copilot, explanation quality, source grounding ve kalite metriklerini dusunen senaryolar da cikar.",
