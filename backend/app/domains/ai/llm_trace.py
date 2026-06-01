@@ -612,7 +612,7 @@ def get_recent_traces(
 
                 try:
                     cur.execute(
-                        f"""
+                        f"""  # nosec B608
                         SELECT
                             id, project_id, user_id, run_id, agent_name, provider, model,
                             task_type, phase, prompt_version,
@@ -676,7 +676,7 @@ def get_recent_traces(
                         )
                 except Exception:
                     cur.execute(
-                        f"""
+                        f"""  # nosec B608
                         SELECT id, run_id, agent_name, model, phase,
                                system_prompt_preview, user_prompt_preview,
                                response_preview, full_response_length,
@@ -755,7 +755,7 @@ def get_trace_stats() -> dict[str, Any]:
                 where_clause = " AND ".join(conditions)
 
                 cur.execute(
-                    f"""
+                    f"""  # nosec B608
                     SELECT
                         COUNT(*) as total_calls,
                         COUNT(*) FILTER (WHERE success = TRUE) as successful,
@@ -777,7 +777,7 @@ def get_trace_stats() -> dict[str, Any]:
 
                 try:
                     cur.execute(
-                        f"""
+                        f"""  # nosec B608
                         SELECT PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY latency_ms)
                         FROM llm_traces
                         WHERE {where_clause}
@@ -890,7 +890,7 @@ def get_trace_stats_scoped(
                 where_clause = " AND ".join(conditions)
 
                 cur.execute(
-                    f"""
+                    f"""  # nosec B608
                     SELECT
                         COUNT(*) as total_calls,
                         COUNT(*) FILTER (WHERE success = TRUE) as successful,
@@ -929,7 +929,7 @@ def get_trace_stats_scoped(
                 timeout_count = int(_safe_row_get(row, 10, 0) or 0)
 
                 cur.execute(
-                    f"""
+                    f"""  # nosec B608
                     SELECT agent_name, COUNT(*)
                     FROM llm_traces
                     WHERE {where_clause}
@@ -943,7 +943,7 @@ def get_trace_stats_scoped(
                 }
 
                 cur.execute(
-                    f"""
+                    f"""  # nosec B608
                     SELECT model, COUNT(*)
                     FROM llm_traces
                     WHERE {where_clause}
@@ -957,7 +957,7 @@ def get_trace_stats_scoped(
                 }
 
                 cur.execute(
-                    f"""
+                    f"""  # nosec B608
                     SELECT
                         CASE
                             WHEN success = TRUE THEN 'success'

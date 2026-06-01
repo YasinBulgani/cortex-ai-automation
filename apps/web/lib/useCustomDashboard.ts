@@ -33,6 +33,7 @@ export type Dashboard = {
 };
 
 const STORAGE_KEY = "neurex_dashboards_v1";
+const DASHBOARDS_API_BASE = "/api/v1/dashboards";
 
 function readStorage(): Dashboard[] {
   try {
@@ -53,6 +54,24 @@ function writeStorage(items: Dashboard[]) {
   }
 }
 
+// Backend-first with localStorage fallback.
+// Tries to fetch dashboards from the backend API first; if unavailable or
+// the project has no server-side dashboards yet, falls back to localStorage
+// so existing user data is never lost.
+async function fetchFromBackend(projectId: string): Promise<Dashboard[] | null> {
+  try {
+    const res = await fetch(`${DASHBOARDS_API_BASE}?project_id=${projectId}`, {
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+    });
+    if (!res.ok) return null; // backend unavailable or auth required → use localStorage
+    const data: Dashboard[] = await res.json();
+    return Array.isArray(data) ? data : null;
+  } catch {
+    return null; // network error → graceful fallback
+  }
+}
+
 function newId(): string {
   return `dash-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
@@ -64,21 +83,32 @@ function newWidgetId(): string {
 /**
  * Hook for managing user-customised dashboards.
  *
- * Storage: localStorage (per-browser). Cross-device sync would require a
- * backend dashboards table — separate work.
+ * Storage: backend-first (GET /api/v1/dashboards?project_id=...) with
+ * localStorage fallback for offline use and when the backend is unavailable.
+ * Mutations still write to localStorage; backend write-back is planned.
  */
 export function useCustomDashboard(projectId: string) {
   const [dashboards, setDashboards] = useState<Dashboard[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
 
-  // Initial load
+  // Initial load: localStorage first for instant paint, then backend overrides
   useEffect(() => {
-    const all = readStorage();
-    const owned = all.filter((d) => d.id.startsWith("dash-"));
-    setDashboards(owned);
-    if (owned.length > 0 && activeId === null) {
-      setActiveId(owned[0].id);
+    const local = readStorage().filter((d) => d.id.startsWith("dash-"));
+    if (local.length > 0) {
+      setDashboards(local);
+      setActiveId((prev) => (prev === null && local.length > 0 ? local[0].id : prev));
     }
+
+    // Then try backend — if it responds, prefer its data (authoritative source)
+    fetchFromBackend(projectId).then((backendData) => {
+      if (backendData && backendData.length > 0) {
+        setDashboards(backendData);
+        writeStorage(backendData); // sync to localStorage for offline use
+        setActiveId((prev) => (prev === null ? backendData[0].id : prev));
+      } else if (local.length === 0) {
+        setDashboards([]); // both empty
+      }
+    });
   }, [projectId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const persist = useCallback((next: Dashboard[]) => {

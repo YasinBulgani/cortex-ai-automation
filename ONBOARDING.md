@@ -69,8 +69,9 @@ Bu komut şunları başlatır:
 Dashboard: http://localhost:3000/products/intelligence
 ```
 
-> Ollama kuruluysa ek satır görürsün: `✓ Ollama 11434`
-> Ollama kurulu değilse bu satır çıkmaz — bu normaldir, diğer özellikler çalışmaya devam eder.
+> `make cortex-status` Ollama için şunu gösterir:
+> * **`✓ çalışıyor (AI polish aktif)`** — Ollama ayakta, AI özellikler kullanılabilir.
+> * **`○ kapalı (opsiyonel — AI polish devre dışı)`** — Ollama kurulu değil veya çalışmıyor. Bu normaldir; kayıt ve BDD üretimi için Ollama gerekmez.
 
 > ⚠ Port çakışması: Mevcut bir servis varsa `make cortex-down` ile kapat, sonra `cortex-up` çalıştır.
 

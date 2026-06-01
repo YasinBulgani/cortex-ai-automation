@@ -205,3 +205,67 @@ def get_seed(scenario_id: str) -> SeedScenario:
     if not s:
         raise HTTPException(404, "Seed senaryo bulunamadı")
     return s
+
+
+# ── Device Farm (external cloud providers) ─────────────────────────────────────
+
+@router.get("/farm/devices", summary="List devices from active farm provider")
+def list_farm_devices(
+    platform: str | None = None,
+    os_version: str | None = None,
+) -> list[dict]:
+    """Return available devices from the configured external device farm.
+
+    Provider is determined by the DEVICE_FARM_PROVIDER env var:
+    ``local`` (default), ``aws``, ``browserstack``, or ``saucelabs``.
+    """
+    from .device_farm_adapters import get_device_farm
+    from dataclasses import asdict
+
+    farm = get_device_farm()
+    devices = farm.list_devices(platform=platform, os_version=os_version)
+    return [asdict(d) for d in devices]
+
+
+@router.post("/farm/sessions", summary="Start a farm session on an external device")
+def start_farm_session(
+    device_id: str,
+    app_path: str,
+    capabilities: dict = {},
+) -> dict:
+    """Start a test session on the specified device via the active farm provider.
+
+    Returns session details including the Appium endpoint URL (if applicable).
+    """
+    from .device_farm_adapters import get_device_farm
+    from dataclasses import asdict
+
+    farm = get_device_farm()
+    session = farm.start_session(device_id, app_path, capabilities)
+    return asdict(session)
+
+
+@router.get("/farm/sessions/{session_id}", summary="Get farm session status")
+def get_farm_session(session_id: str) -> dict:
+    from .device_farm_adapters import get_device_farm
+    from dataclasses import asdict
+
+    farm = get_device_farm()
+    session = farm.get_session(session_id)
+    return asdict(session)
+
+
+@router.delete("/farm/sessions/{session_id}", summary="Stop a farm session")
+def stop_farm_session(session_id: str) -> dict[str, str]:
+    from .device_farm_adapters import get_device_farm
+
+    farm = get_device_farm()
+    farm.stop_session(session_id)
+    return {"status": "stopped", "session_id": session_id}
+
+
+@router.get("/farm/health", summary="External device farm provider health")
+def farm_health() -> dict:
+    from .device_farm_adapters import get_device_farm
+
+    return get_device_farm().health()

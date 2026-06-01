@@ -691,3 +691,17 @@ Sadece JSON döndür.
         except Exception as e:
             console.print(f"[red]Servis Test Ayrıştırma Hatası: {e}[/red]")
             return []
+
+
+# Module-level singleton factory — allows routes to call get_ai_engine()
+# without importing the class directly.
+_ai_engine_instance: "AIEngine | None" = None
+
+
+def get_ai_engine() -> "AIEngine":
+    """Return (or create) the module-level AIEngine singleton."""
+    global _ai_engine_instance
+    if _ai_engine_instance is None:
+        _ai_engine_instance = AIEngine()
+    return _ai_engine_instance
+

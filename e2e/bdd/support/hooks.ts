@@ -1,13 +1,18 @@
 import {
   Before,
   After,
+  AfterStep,
   BeforeAll,
   AfterAll,
+  setDefaultTimeout,
   Status,
 } from "@cucumber/cucumber";
 import { PlaywrightWorld } from "./world";
 import * as fs from "fs";
 import * as path from "path";
+
+// Playwright operasyonları 30 sn timeout; CI'da yavaş olabilir
+setDefaultTimeout(30_000);
 
 const REPORTS_DIR = path.join(process.cwd(), "reports", "bdd");
 const SCREENSHOTS_DIR = path.join(REPORTS_DIR, "screenshots");
@@ -21,7 +26,10 @@ Before(async function (this: PlaywrightWorld) {
 });
 
 After(async function (this: PlaywrightWorld, scenario) {
-  if (scenario.result?.status === Status.FAILED) {
+  const failed = scenario.result?.status === Status.FAILED;
+
+  if (failed) {
+    // Ekran görüntüsü — hata orijinalini maskelememeli
     try {
       const screenshot = await this.page.screenshot({ fullPage: true });
       const filename = scenario.pickle.name
@@ -33,7 +41,12 @@ After(async function (this: PlaywrightWorld, scenario) {
       );
       fs.writeFileSync(screenshotPath, screenshot);
       this.attach(screenshot, "image/png");
+    } catch {
+      // screenshot failure — orijinal hatayı maskeleme
+    }
 
+    // Self-healing denemesi
+    try {
       const healResult = await this.selfHealing.attemptHeal(
         scenario.pickle.name,
       );
@@ -44,13 +57,14 @@ After(async function (this: PlaywrightWorld, scenario) {
         );
       }
     } catch {
-      // screenshot/heal failure should not mask the original error
+      // healing failure — orijinal hatayı maskeleme
     }
   }
 
+  // Cleanup — her zaman çalışır; bireysel hatalar fırlatılmaz
   await this.cleanup();
 });
 
 AfterAll(async function () {
-  // final cleanup
+  // final cleanup placeholder — gerekirse suite-seviye kaynak serbest bırakma
 });

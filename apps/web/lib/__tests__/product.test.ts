@@ -19,7 +19,7 @@ import {
 
 describe("isValidProductFamilyId", () => {
   it("returns true for all defined product IDs", () => {
-    const ids = ["one", "studio", "service", "web", "mobile", "data", "intelligence", "nexus-code"];
+    const ids = ["one", "studio", "service", "web", "mobile", "data", "management", "intelligence", "nexus-code"];
     ids.forEach((id) => expect(isValidProductFamilyId(id)).toBe(true));
   });
 
@@ -64,8 +64,8 @@ describe("getProductFamilyMember", () => {
     });
   });
 
-  it("PRODUCT_FAMILY has 8 members", () => {
-    expect(PRODUCT_FAMILY).toHaveLength(8);
+  it("PRODUCT_FAMILY has 9 members", () => {
+    expect(PRODUCT_FAMILY).toHaveLength(9);
   });
 
   it("DEFAULT_PRODUCT_FAMILY_ID is 'one'", () => {
@@ -234,8 +234,9 @@ describe("NAV_GROUP_ORDER", () => {
 });
 
 describe("PRODUCT_FAMILY_BY_ID", () => {
-  it("contains all 8 products keyed by id", () => {
-    expect(Object.keys(PRODUCT_FAMILY_BY_ID)).toHaveLength(8);
+  it("contains all 9 products keyed by id", () => {
+    expect(Object.keys(PRODUCT_FAMILY_BY_ID)).toHaveLength(9);
     expect(PRODUCT_FAMILY_BY_ID["mobile"].name).toBe("Neurex Mobile");
+    expect(PRODUCT_FAMILY_BY_ID["management"].name).toBe("Neurex Management");
   });
 });

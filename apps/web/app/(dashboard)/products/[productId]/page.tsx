@@ -6,6 +6,7 @@ import { ServiceProductPage } from "@/components/products/ServiceProductPage";
 import { WebProductPage } from "@/components/products/WebProductPage";
 import { MobileProductPage } from "@/components/products/MobileProductPage";
 import { DataProductPage } from "@/components/products/DataProductPage";
+import { ManagementProductPage } from "@/components/products/ManagementProductPage";
 import { IntelligenceProductPage } from "@/components/products/IntelligenceProductPage";
 import { NexusCodeProductPage } from "@/components/products/NexusCodeProductPage";
 
@@ -16,6 +17,7 @@ const PAGE_MAP: Record<ProductFamilyId, React.ComponentType> = {
   web:          WebProductPage,
   mobile:       MobileProductPage,
   data:         DataProductPage,
+  management:   ManagementProductPage,
   intelligence: IntelligenceProductPage,
   "nexus-code": NexusCodeProductPage,
 };

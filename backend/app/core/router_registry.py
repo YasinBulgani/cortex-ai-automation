@@ -47,6 +47,44 @@ from app.domains.rules.router import router as rules_router
 from app.domains.tspm.router import router as tspm_router
 from app.domains.nexus_repo.router import router as nexus_repo_router
 from app.domains.products.router import router as products_router
+from app.domains.events.router import router as events_router
+from app.domains.marketplace.router import router as marketplace_router
+from app.domains.visual.router import router as visual_router
+from app.domains.pilot.router import router as pilot_router
+from app.domains.defects.router import router as defects_router
+from app.domains.ingestion.router import router as ingestion_router
+from app.domains.knowledge_base.router import router as knowledge_base_router
+from app.domains.compliance.router import router as compliance_router
+
+# New domain routers (rbac, email, pr_bot, navigation) — defensive imports so
+# the backend still starts if any individual module has a problem.
+try:
+    from app.domains.rbac.router import router as rbac_router
+    _HAS_RBAC_ROUTER = True
+except ImportError:
+    rbac_router = None  # type: ignore[assignment]
+    _HAS_RBAC_ROUTER = False
+
+try:
+    from app.domains.email.router import router as email_router
+    _HAS_EMAIL_ROUTER = True
+except ImportError:
+    email_router = None  # type: ignore[assignment]
+    _HAS_EMAIL_ROUTER = False
+
+try:
+    from app.domains.pr_bot.router import router as pr_bot_router
+    _HAS_PR_BOT_ROUTER = True
+except ImportError:
+    pr_bot_router = None  # type: ignore[assignment]
+    _HAS_PR_BOT_ROUTER = False
+
+try:
+    from app.domains.navigation.router import router as navigation_router
+    _HAS_NAVIGATION_ROUTER = True
+except ImportError:
+    navigation_router = None  # type: ignore[assignment]
+    _HAS_NAVIGATION_ROUTER = False
 
 # qa/ git-native test management — yeni domain (PR 41)
 try:
@@ -112,6 +150,14 @@ _PREFIXED_ROUTERS = [
     quality_router,
     onboarding_router,
     nexus_repo_router,
+    events_router,
+    marketplace_router,
+    visual_router,
+    pilot_router,
+    defects_router,
+    ingestion_router,
+    knowledge_base_router,
+    compliance_router,
 ]
 
 if _HAS_QA_ROUTER and qa_router is not None:
@@ -142,6 +188,26 @@ def register_api_routers(app: FastAPI) -> None:
 
     # api_testing ayrı prefix: ekibin kararıyla /api/v1 dışında
     app.include_router(api_testing_router)
+
+    if _HAS_RBAC_ROUTER and rbac_router is not None:
+        app.include_router(rbac_router, prefix="/api/v1")
+    else:
+        logger.warning("rbac_router yüklenemedi; RBAC endpoint'leri devre dışı.")
+
+    if _HAS_EMAIL_ROUTER and email_router is not None:
+        app.include_router(email_router, prefix="/api/v1")
+    else:
+        logger.warning("email_router yüklenemedi; Email endpoint'leri devre dışı.")
+
+    if _HAS_PR_BOT_ROUTER and pr_bot_router is not None:
+        app.include_router(pr_bot_router, prefix="/api/v1")
+    else:
+        logger.warning("pr_bot_router yüklenemedi; PR Bot endpoint'leri devre dışı.")
+
+    if _HAS_NAVIGATION_ROUTER and navigation_router is not None:
+        app.include_router(navigation_router, prefix="/api/v1")
+    else:
+        logger.warning("navigation_router yüklenemedi; Navigation endpoint'leri devre dışı.")
 
     if _HAS_MOBILE_ROUTER and mobile_router is not None:
         app.include_router(mobile_router, prefix="/api/v1")

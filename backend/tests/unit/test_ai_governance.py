@@ -57,19 +57,14 @@ class TestRouterLearning:
         result = router_learning.aggregate_stats(days=7)
         assert result == []
 
-    def test_get_learned_preference_flag_off_returns_none(self):
+    def test_get_learned_preference_flag_off_returns_none(self, feature_flags):
         """Flag kapalı → preference yok."""
-        try:
-            from app.domains.feature_flags.service import feature_flags
-            from app.domains.feature_flags.schemas import FlagUpdate
-            feature_flags.set_flag(
-                "ai.routing.learned",
-                FlagUpdate(enabled=False, percent=0),
-                actor="test",
-            )
-        except Exception:
-            pytest.skip("feature_flags missing")
-
+        from app.domains.feature_flags.schemas import FlagUpdate
+        feature_flags.set_flag(
+            "ai.routing.learned",
+            FlagUpdate(enabled=False, percent=0),
+            actor="test",
+        )
         from app.domains.ai.router_learning import get_learned_preference
         assert get_learned_preference("test_generation") is None
 
@@ -120,38 +115,28 @@ class TestTools:
         assert result["ok"] is False
         assert "unknown_tool" in result["error"]
 
-    def test_execute_disabled_tool_blocks(self):
+    def test_execute_disabled_tool_blocks(self, feature_flags):
         """Flag kapalı → tools_disabled_by_flag."""
-        try:
-            from app.domains.feature_flags.service import feature_flags
-            from app.domains.feature_flags.schemas import FlagUpdate
-            feature_flags.set_flag(
-                "ai.tools",
-                FlagUpdate(enabled=False, percent=0),
-                actor="test",
-            )
-        except Exception:
-            pytest.skip("feature_flags missing")
-
+        from app.domains.feature_flags.schemas import FlagUpdate
+        feature_flags.set_flag(
+            "ai.tools",
+            FlagUpdate(enabled=False, percent=0),
+            actor="test",
+        )
         from app.domains.ai.tools import execute_tool
 
         result = execute_tool("get_project_stats", {"project_id": "abc"})
         assert result["ok"] is False
         assert "tools_disabled" in result["error"]
 
-    def test_execute_validation_error(self):
+    def test_execute_validation_error(self, feature_flags):
         """Flag açık ama parametre eksik → validation_error."""
-        try:
-            from app.domains.feature_flags.service import feature_flags
-            from app.domains.feature_flags.schemas import FlagUpdate
-            feature_flags.set_flag(
-                "ai.tools",
-                FlagUpdate(enabled=True, percent=100),
-                actor="test",
-            )
-        except Exception:
-            pytest.skip("feature_flags missing")
-
+        from app.domains.feature_flags.schemas import FlagUpdate
+        feature_flags.set_flag(
+            "ai.tools",
+            FlagUpdate(enabled=True, percent=100),
+            actor="test",
+        )
         from app.domains.ai.tools import execute_tool
 
         # project_id zorunlu, yok -> validation_error
@@ -194,53 +179,38 @@ class TestReviewQueue:
         # Pattern sadece 0/0.X/1.X ile uyuştuğu için 2.5 match etmez -> None
         assert extract_confidence('"confidence": 2.5') is None
 
-    def test_should_queue_flag_off(self):
+    def test_should_queue_flag_off(self, feature_flags):
         """Flag kapalı → asla queue'ya atmaz."""
-        try:
-            from app.domains.feature_flags.service import feature_flags
-            from app.domains.feature_flags.schemas import FlagUpdate
-            feature_flags.set_flag(
-                "ai.review.queue",
-                FlagUpdate(enabled=False, percent=0),
-                actor="test",
-            )
-        except Exception:
-            pytest.skip("feature_flags missing")
-
+        from app.domains.feature_flags.schemas import FlagUpdate
+        feature_flags.set_flag(
+            "ai.review.queue",
+            FlagUpdate(enabled=False, percent=0),
+            actor="test",
+        )
         from app.domains.ai.review_queue import should_queue_for_review
         queue, reason, _ = should_queue_for_review("security_audit", "...")
         assert queue is False
         assert reason == "flag_disabled"
 
-    def test_should_queue_security_audit_always(self):
-        try:
-            from app.domains.feature_flags.service import feature_flags
-            from app.domains.feature_flags.schemas import FlagUpdate
-            feature_flags.set_flag(
-                "ai.review.queue",
-                FlagUpdate(enabled=True, percent=100),
-                actor="test",
-            )
-        except Exception:
-            pytest.skip("feature_flags missing")
-
+    def test_should_queue_security_audit_always(self, feature_flags):
+        from app.domains.feature_flags.schemas import FlagUpdate
+        feature_flags.set_flag(
+            "ai.review.queue",
+            FlagUpdate(enabled=True, percent=100),
+            actor="test",
+        )
         from app.domains.ai.review_queue import should_queue_for_review
         queue, reason, _ = should_queue_for_review("security_audit", "yuksek kalite cevap")
         assert queue is True
         assert "security_audit" in reason
 
-    def test_should_queue_low_confidence(self):
-        try:
-            from app.domains.feature_flags.service import feature_flags
-            from app.domains.feature_flags.schemas import FlagUpdate
-            feature_flags.set_flag(
-                "ai.review.queue",
-                FlagUpdate(enabled=True, percent=100),
-                actor="test",
-            )
-        except Exception:
-            pytest.skip("feature_flags missing")
-
+    def test_should_queue_low_confidence(self, feature_flags):
+        from app.domains.feature_flags.schemas import FlagUpdate
+        feature_flags.set_flag(
+            "ai.review.queue",
+            FlagUpdate(enabled=True, percent=100),
+            actor="test",
+        )
         from app.domains.ai.review_queue import should_queue_for_review
         queue, reason, conf = should_queue_for_review(
             "test_generation",
@@ -251,18 +221,13 @@ class TestReviewQueue:
         assert "low_confidence" in reason
         assert conf == 0.3
 
-    def test_should_queue_high_confidence_passes(self):
-        try:
-            from app.domains.feature_flags.service import feature_flags
-            from app.domains.feature_flags.schemas import FlagUpdate
-            feature_flags.set_flag(
-                "ai.review.queue",
-                FlagUpdate(enabled=True, percent=100),
-                actor="test",
-            )
-        except Exception:
-            pytest.skip("feature_flags missing")
-
+    def test_should_queue_high_confidence_passes(self, feature_flags):
+        from app.domains.feature_flags.schemas import FlagUpdate
+        feature_flags.set_flag(
+            "ai.review.queue",
+            FlagUpdate(enabled=True, percent=100),
+            actor="test",
+        )
         from app.domains.ai.review_queue import should_queue_for_review
         queue, _, _ = should_queue_for_review(
             "test_generation",
@@ -270,18 +235,13 @@ class TestReviewQueue:
         )
         assert queue is False
 
-    def test_should_queue_low_judge_score(self):
-        try:
-            from app.domains.feature_flags.service import feature_flags
-            from app.domains.feature_flags.schemas import FlagUpdate
-            feature_flags.set_flag(
-                "ai.review.queue",
-                FlagUpdate(enabled=True, percent=100),
-                actor="test",
-            )
-        except Exception:
-            pytest.skip("feature_flags missing")
-
+    def test_should_queue_low_judge_score(self, feature_flags):
+        from app.domains.feature_flags.schemas import FlagUpdate
+        feature_flags.set_flag(
+            "ai.review.queue",
+            FlagUpdate(enabled=True, percent=100),
+            actor="test",
+        )
         from app.domains.ai.review_queue import should_queue_for_review
         queue, reason, _ = should_queue_for_review(
             "chat",

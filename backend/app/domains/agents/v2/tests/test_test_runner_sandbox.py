@@ -24,4 +24,4 @@ def test_container_path_requires_workdir_boundary(tmp_path):
     spec.write_text("test('x', () => {})", encoding="utf-8")
 
     assert _container_path_for(spec, tmp_path) == "/work/tests/flow.spec.ts"
-    assert _container_path_for(Path("/tmp/outside.spec.ts"), tmp_path) is None
+    assert _container_path_for(Path("/tmp/outside.spec.ts"), tmp_path) is None  # nosec B108

@@ -16,6 +16,8 @@ export const manifest: ProductPackage["manifest"] = {
     "api-tests", "page-objects", "device-manager", "manual-to-automation",
     "runs", "schedules", "cicd", "reports", "flaky", "healing", "executions", "analytics", "test-history", "debug-report",
     "visual", "accessibility", "monkey", "security", "prioritize", "playwright-console", "regression", "coverage",
+    "management-dashboard", "management-repository", "management-test-plans", "management-test-runs",
+    "management-requirements", "management-defects", "management-reports", "management-import-export", "management-settings",
     "synthetic", "test-data", "privacy",
     "environments", "integrations", "settings", "dsl-catalog-project", "workflows", "banking-team",
     "ai-chat", "nl-test-gen", "qa-orchestrator", "ai-metrics",

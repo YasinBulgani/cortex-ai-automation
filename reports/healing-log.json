@@ -782,5 +782,397 @@
     "new_locator": "[data-testid='fresh']",
     "strategy": "llm_assisted",
     "page_url": ""
+  },
+  {
+    "timestamp": "2026-05-26T09:36:15.718967",
+    "old_locator": "[data-testid='old-btn']",
+    "new_locator": "[data-testid='login-btn-submit']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-05-26T09:36:15.721273",
+    "old_locator": ".old1",
+    "new_locator": "[data-testid='btn1']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-05-26T09:36:15.722916",
+    "old_locator": ".old",
+    "new_locator": "[data-testid='new']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-05-26T09:36:15.724868",
+    "old_locator": ".old",
+    "new_locator": "[data-testid='new']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-05-26T09:36:15.732755",
+    "old_locator": ".old",
+    "new_locator": "[data-testid='new']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-05-26T09:36:15.734549",
+    "old_locator": ".old",
+    "new_locator": "[data-testid='new']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-05-26T09:36:15.736628",
+    "old_locator": ".old",
+    "new_locator": "[data-testid='x']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-05-26T09:36:15.738632",
+    "old_locator": ".old",
+    "new_locator": "[data-testid='fresh']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-05-26T09:47:55.671061",
+    "old_locator": "[data-testid='old-btn']",
+    "new_locator": "[data-testid='login-btn-submit']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-05-26T09:47:55.672761",
+    "old_locator": ".old1",
+    "new_locator": "[data-testid='btn1']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-05-26T09:47:55.674419",
+    "old_locator": ".old",
+    "new_locator": "[data-testid='new']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-05-26T09:47:55.676574",
+    "old_locator": ".old",
+    "new_locator": "[data-testid='new']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-05-26T09:47:55.684626",
+    "old_locator": ".old",
+    "new_locator": "[data-testid='new']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-05-26T09:47:55.686531",
+    "old_locator": ".old",
+    "new_locator": "[data-testid='new']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-05-26T09:47:55.688530",
+    "old_locator": ".old",
+    "new_locator": "[data-testid='x']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-05-26T09:47:55.690271",
+    "old_locator": ".old",
+    "new_locator": "[data-testid='fresh']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-05-26T09:48:07.569986",
+    "old_locator": "[data-testid='old-btn']",
+    "new_locator": "[data-testid='login-btn-submit']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-05-26T09:48:07.571664",
+    "old_locator": ".old1",
+    "new_locator": "[data-testid='btn1']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-05-26T09:48:07.573293",
+    "old_locator": ".old",
+    "new_locator": "[data-testid='new']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-05-26T09:48:07.575394",
+    "old_locator": ".old",
+    "new_locator": "[data-testid='new']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-05-26T09:48:07.582811",
+    "old_locator": ".old",
+    "new_locator": "[data-testid='new']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-05-26T09:48:07.585030",
+    "old_locator": ".old",
+    "new_locator": "[data-testid='new']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-05-26T09:48:07.587442",
+    "old_locator": ".old",
+    "new_locator": "[data-testid='x']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-05-26T09:48:07.589737",
+    "old_locator": ".old",
+    "new_locator": "[data-testid='fresh']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-05-26T09:48:19.051157",
+    "old_locator": "[data-testid='old-btn']",
+    "new_locator": "[data-testid='login-btn-submit']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-05-26T09:48:19.052939",
+    "old_locator": ".old1",
+    "new_locator": "[data-testid='btn1']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-05-26T09:48:19.054592",
+    "old_locator": ".old",
+    "new_locator": "[data-testid='new']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-05-26T09:48:19.056576",
+    "old_locator": ".old",
+    "new_locator": "[data-testid='new']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-05-26T09:48:19.064105",
+    "old_locator": ".old",
+    "new_locator": "[data-testid='new']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-05-26T09:48:19.065931",
+    "old_locator": ".old",
+    "new_locator": "[data-testid='new']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-05-26T09:48:19.068270",
+    "old_locator": ".old",
+    "new_locator": "[data-testid='x']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-05-26T09:48:19.070140",
+    "old_locator": ".old",
+    "new_locator": "[data-testid='fresh']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-05-26T09:48:30.757248",
+    "old_locator": "[data-testid='old-btn']",
+    "new_locator": "[data-testid='login-btn-submit']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-05-26T09:48:30.759484",
+    "old_locator": ".old1",
+    "new_locator": "[data-testid='btn1']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-05-26T09:48:30.761308",
+    "old_locator": ".old",
+    "new_locator": "[data-testid='new']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-05-26T09:48:30.763371",
+    "old_locator": ".old",
+    "new_locator": "[data-testid='new']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-05-26T09:48:30.771327",
+    "old_locator": ".old",
+    "new_locator": "[data-testid='new']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-05-26T09:48:30.773219",
+    "old_locator": ".old",
+    "new_locator": "[data-testid='new']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-05-26T09:48:30.775639",
+    "old_locator": ".old",
+    "new_locator": "[data-testid='x']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-05-26T09:48:30.777639",
+    "old_locator": ".old",
+    "new_locator": "[data-testid='fresh']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-05-26T09:59:24.088699",
+    "old_locator": "[data-testid='old-btn']",
+    "new_locator": "[data-testid='login-btn-submit']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-05-26T09:59:24.090757",
+    "old_locator": ".old1",
+    "new_locator": "[data-testid='btn1']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-05-26T09:59:24.092629",
+    "old_locator": ".old",
+    "new_locator": "[data-testid='new']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-05-26T09:59:24.094703",
+    "old_locator": ".old",
+    "new_locator": "[data-testid='new']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-05-26T09:59:24.102476",
+    "old_locator": ".old",
+    "new_locator": "[data-testid='new']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-05-26T09:59:24.104377",
+    "old_locator": ".old",
+    "new_locator": "[data-testid='new']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-05-26T09:59:24.106707",
+    "old_locator": ".old",
+    "new_locator": "[data-testid='x']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-05-26T09:59:24.108705",
+    "old_locator": ".old",
+    "new_locator": "[data-testid='fresh']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-05-26T09:59:37.314072",
+    "old_locator": "[data-testid='old-btn']",
+    "new_locator": "[data-testid='login-btn-submit']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-05-26T09:59:37.316617",
+    "old_locator": ".old1",
+    "new_locator": "[data-testid='btn1']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-05-26T09:59:37.319304",
+    "old_locator": ".old",
+    "new_locator": "[data-testid='new']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-05-26T09:59:37.321470",
+    "old_locator": ".old",
+    "new_locator": "[data-testid='new']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-05-26T09:59:37.330098",
+    "old_locator": ".old",
+    "new_locator": "[data-testid='new']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-05-26T09:59:37.332178",
+    "old_locator": ".old",
+    "new_locator": "[data-testid='new']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-05-26T09:59:37.334508",
+    "old_locator": ".old",
+    "new_locator": "[data-testid='x']",
+    "strategy": "llm_assisted",
+    "page_url": ""
+  },
+  {
+    "timestamp": "2026-05-26T09:59:37.336409",
+    "old_locator": ".old",
+    "new_locator": "[data-testid='fresh']",
+    "strategy": "llm_assisted",
+    "page_url": ""
   }
 ]

@@ -25,7 +25,7 @@ import sys
 import threading
 import time
 import uuid
-from dataclasses import dataclass, field, asdict
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Optional
 
@@ -43,9 +43,16 @@ class CodegenJob:
     _proc: Optional[subprocess.Popen] = None  # not serialized
 
     def to_dict(self) -> dict:
-        d = asdict(self)
-        d.pop("_proc", None)
-        return d
+        return {
+            "id": self.id,
+            "url": self.url,
+            "output_file": self.output_file,
+            "pid": self.pid,
+            "started_at": self.started_at,
+            "stopped_at": self.stopped_at,
+            "status": self.status,
+            "error": self.error,
+        }
 
 
 # Module-level job registry

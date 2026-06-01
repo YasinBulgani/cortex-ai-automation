@@ -70,8 +70,11 @@ class PromptShieldAdapter:
         try:
             from app.domains.ai.pii_redactor import redact
             masked = redact(attack_text)
-        except Exception as _pii_exc:
-            logger.debug("PII redactor mevcut değil, maskeleme atlandı: %s", _pii_exc)
+        except Exception:
+            import logging as _logging
+            _logging.getLogger(__name__).warning(
+                "PII redactor başarısız oldu — ham metin kullanılıyor", exc_info=True
+            )
 
         # scan objesi dict veya nesne olabilir; esnek ol
         def _get(obj, key, default=None):

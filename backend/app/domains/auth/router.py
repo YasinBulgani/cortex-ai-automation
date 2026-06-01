@@ -13,12 +13,14 @@ from app.domains.auth.schemas import (
     ProfileUpdateRequest, ProfileOut, PasswordChangeRequest,
     ForgotPasswordRequest, RegisterRequest, RefreshRequest, ResetPasswordRequest,
     UserListOut, UserCreateRequest, UserUpdateRequest,
+    MfaSetupResponse, MfaVerifyRequest, MfaStatusResponse, MfaDisableRequest,
+    MfaLoginRequest, LoginResponse,
 )
 from app.domains.auth.service import (
     create_access_token, verify_password, hash_password,
     revoke_token, create_password_reset_token, verify_password_reset_token,
     create_refresh_token, verify_refresh_token, revoke_refresh_token,
-    revoke_all_user_tokens,
+    revoke_all_user_tokens, _DUMMY_HASH,
 )
 from app.domains.audit.service import log_audit
 from app.config import settings
@@ -38,6 +40,25 @@ def _limit(rate: str):
     def _noop(func):
         return func
     return _noop
+
+
+# Simple in-memory rate limiter fallback (used when slowapi is not available)
+import time as _time
+_login_attempts: dict[str, list[float]] = {}
+_RATE_LIMIT_WINDOW = 300  # 5 minutes
+_RATE_LIMIT_MAX = 10  # max 10 attempts per IP per window
+
+
+def _check_rate_limit(client_ip: str) -> None:
+    """Raise HTTPException 429 if rate limit exceeded."""
+    now = _time.time()
+    attempts = _login_attempts.get(client_ip, [])
+    # Remove old attempts outside the window
+    attempts = [t for t in attempts if now - t < _RATE_LIMIT_WINDOW]
+    if len(attempts) >= _RATE_LIMIT_MAX:
+        raise HTTPException(status_code=429, detail="Çok fazla giriş denemesi. 5 dakika bekleyin.")
+    attempts.append(now)
+    _login_attempts[client_ip] = attempts
 
 
 def _password_reset_url(token: str) -> str:
@@ -125,22 +146,35 @@ def _request_ip(request: Request) -> Optional[str]:
 
 @router.post(
     "/login",
-    response_model=TokenResponse,
+    response_model=LoginResponse,
     responses={
         200: {
-            "description": "Basarili giris",
+            "description": "Başarılı giriş veya MFA challenge",
             "content": {
                 "application/json": {
-                    "example": {
-                        "access_token": "eyJhbGciOiJIUzI1NiIs...",
-                        "refresh_token": "eyJhbGciOiJIUzI1NiIs...",
-                        "expires_in": 1800,
+                    "examples": {
+                        "no_mfa": {
+                            "summary": "MFA devre dışı",
+                            "value": {
+                                "access_token": "eyJhbGciOiJIUzI1NiIs...",
+                                "refresh_token": "eyJhbGciOiJIUzI1NiIs...",
+                                "expires_in": 1800,
+                                "mfa_required": False,
+                            },
+                        },
+                        "mfa_required": {
+                            "summary": "MFA etkin — ikinci adım gerekli",
+                            "value": {
+                                "mfa_required": True,
+                                "mfa_session_token": "eyJhbGciOiJIUzI1NiIs...",
+                            },
+                        },
                     }
                 }
             },
         },
-        401: {"description": "Hatali e-posta veya parola"},
-        422: {"description": "Gecersiz istek formati"},
+        401: {"description": "Hatalı e-posta veya parola"},
+        422: {"description": "Geçersiz istek formatı"},
     },
 )
 @_limit(settings.rate_limit_login)
@@ -149,10 +183,26 @@ def login(
     response: Response,
     body: LoginRequest,
     db: Annotated[Session, Depends(get_db)],
-) -> TokenResponse:
-    """Kullanici girisi yapar ve JWT token doner."""
+) -> LoginResponse:
+    """Kullanıcı girişi yapar.
+
+    - MFA devre dışıysa: access + refresh token döner.
+    - MFA etkinse: ``mfa_required: true`` ve kısa ömürlü ``mfa_session_token``
+      döner.  İstemci bunu ``POST /auth/mfa/login`` çağrısında kullanmalıdır.
+    """
+    # Rate limit check (fallback in-memory limiter when slowapi is absent)
+    if not (_has_limiter and limiter is not None):
+        _check_rate_limit(_request_ip(request) or "unknown")
+
     user = db.scalar(select(User).where(User.email == body.email))
-    if user is None or not verify_password(body.password, user.password_hash):
+    if user is None:
+        # Always verify against a dummy hash to prevent timing attacks
+        verify_password("dummy", _DUMMY_HASH)
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="E-posta veya parola hatalı",
+        )
+    if not verify_password(body.password, user.password_hash):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="E-posta veya parola hatalı",
@@ -160,7 +210,25 @@ def login(
     if not user.is_active:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Hesap devre dışı")
 
-    # "Beni hatırla" seçiliyse daha uzun TTL (default 7 gün) kullan.
+    # ── MFA challenge ──────────────────────────────────────────────────────────
+    if getattr(user, "mfa_enabled", False):
+        # Issue a short-lived (5-minute) session token for the MFA step.
+        # It carries purpose=mfa_challenge so it cannot be used as a normal access token.
+        mfa_session = create_access_token(
+            user.id,
+            extra_claims={
+                "purpose": "mfa_challenge",
+                "tenant": getattr(user, "tenant_id", "00000000-0000-0000-0000-000000000001"),
+                "remember_me": body.remember_me,
+            },
+            expires_minutes=5,
+        )
+        return LoginResponse(
+            mfa_required=True,
+            mfa_session_token=mfa_session,
+        )
+
+    # ── Normal login (no MFA) ─────────────────────────────────────────────────
     ttl_minutes = (
         settings.access_token_expire_minutes_remember_me
         if body.remember_me
@@ -188,15 +256,13 @@ def login(
         # Audit/commit (şema uyumsuzluğu vb.) başarısızsa oturum açılışını engelleme.
         db.rollback()
 
-    # SECURITY: httpOnly cookie üzerinden auth — XSS'e karşı koruma.
-    # Token response body'sinde de döner (geri uyumluluk için, frontend
-    # migrasyonu tamamlanınca kaldırılabilir).
     _set_auth_cookies(response, request, access, refresh)
 
-    return TokenResponse(
+    return LoginResponse(
         access_token=access,
         refresh_token=refresh,
         expires_in=ttl_minutes * 60,
+        mfa_required=False,
     )
 
 
@@ -248,7 +314,7 @@ def refresh_token(
         logger.warning("Refresh token verification failed: %s", e)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=str(e),
+            detail="Geçersiz veya süresi dolmuş token",
         ) from None
 
     # Eski refresh token'i iptal et (rotation)
@@ -602,3 +668,246 @@ def delete_user(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Kullanıcı bulunamadı")
     target.is_active = False
     db.commit()
+
+
+# ── MFA / TOTP endpoints ──────────────────────────────────────────────────────
+
+@router.get("/mfa/status", response_model=MfaStatusResponse, tags=["auth", "mfa"])
+def mfa_status(
+    user: Annotated[User, Depends(get_current_user)],
+) -> MfaStatusResponse:
+    """Return current MFA status for the authenticated user."""
+    import json
+    backup_remaining: Optional[int] = None
+    if user.mfa_enabled and user.mfa_backup_codes:
+        try:
+            backup_remaining = len(json.loads(user.mfa_backup_codes))
+        except Exception:
+            backup_remaining = 0
+    return MfaStatusResponse(
+        mfa_enabled=bool(user.mfa_enabled),
+        backup_codes_remaining=backup_remaining,
+    )
+
+
+@router.post("/mfa/setup", response_model=MfaSetupResponse, tags=["auth", "mfa"])
+def mfa_setup(
+    user: Annotated[User, Depends(get_current_user)],
+    db: Session = Depends(get_db),
+) -> MfaSetupResponse:
+    """
+    Initiate TOTP setup for the authenticated user.
+
+    Generates a new secret and backup codes.  MFA is **not** yet enabled —
+    the user must confirm with POST /auth/mfa/verify.
+    """
+    from app.domains.auth.mfa_service import (
+        generate_totp_secret, totp_provisioning_uri,
+        generate_backup_codes, hash_backup_codes,
+    )
+
+    secret = generate_totp_secret()
+    backup_codes = generate_backup_codes()
+
+    # Store secret and hashed backup codes; mfa_enabled stays False until verify
+    db_user = db.get(User, user.id)
+    if db_user is None:
+        raise HTTPException(status_code=404, detail="Kullanıcı bulunamadı")
+    db_user.totp_secret = secret
+    db_user.mfa_backup_codes = hash_backup_codes(backup_codes)
+    db.commit()
+
+    log_audit(db, actor_user_id=user.id, action="mfa.setup_initiated", resource_type="user", resource_id=user.id, payload=None, ip=None)
+
+    return MfaSetupResponse(
+        secret=secret,
+        provisioning_uri=totp_provisioning_uri(secret, user.email),
+        backup_codes=backup_codes,
+    )
+
+
+@router.post("/mfa/verify", tags=["auth", "mfa"])
+def mfa_verify(
+    req: MfaVerifyRequest,
+    user: Annotated[User, Depends(get_current_user)],
+    db: Session = Depends(get_db),
+) -> dict:
+    """
+    Confirm TOTP setup by verifying the first code from the authenticator app.
+
+    After this call succeeds, MFA is fully enabled for the account.
+    """
+    from app.domains.auth.mfa_service import verify_totp
+
+    db_user = db.get(User, user.id)
+    if db_user is None:
+        raise HTTPException(status_code=404, detail="Kullanıcı bulunamadı")
+    if not db_user.totp_secret:
+        raise HTTPException(status_code=400, detail="Önce /auth/mfa/setup çağrısı yapın")
+    if db_user.mfa_enabled:
+        raise HTTPException(status_code=409, detail="MFA zaten etkin")
+
+    if not verify_totp(db_user.totp_secret, req.code):
+        raise HTTPException(status_code=422, detail="Geçersiz TOTP kodu")
+
+    db_user.mfa_enabled = True
+    db.commit()
+
+    log_audit(db, actor_user_id=user.id, action="mfa.enabled", resource_type="user", resource_id=user.id, payload=None, ip=None)
+    return {"detail": "MFA başarıyla etkinleştirildi"}
+
+
+@router.post("/mfa/disable", tags=["auth", "mfa"])
+def mfa_disable(
+    req: MfaDisableRequest,
+    user: Annotated[User, Depends(get_current_user)],
+    db: Session = Depends(get_db),
+) -> dict:
+    """
+    Disable MFA.  Requires current password + valid TOTP code as confirmation.
+    """
+    from app.domains.auth.mfa_service import verify_totp
+
+    db_user = db.get(User, user.id)
+    if db_user is None:
+        raise HTTPException(status_code=404, detail="Kullanıcı bulunamadı")
+    if not db_user.mfa_enabled:
+        raise HTTPException(status_code=409, detail="MFA zaten devre dışı")
+
+    if not verify_password(req.password, db_user.password_hash):
+        raise HTTPException(status_code=401, detail="Mevcut parola yanlış")
+    if not verify_totp(db_user.totp_secret or "", req.code):
+        raise HTTPException(status_code=422, detail="Geçersiz TOTP kodu")
+
+    db_user.mfa_enabled = False
+    db_user.totp_secret = None
+    db_user.mfa_backup_codes = None
+    db.commit()
+
+    log_audit(db, actor_user_id=user.id, action="mfa.disabled", resource_type="user", resource_id=user.id, payload=None, ip=None)
+    return {"detail": "MFA devre dışı bırakıldı"}
+
+
+@router.post("/mfa/backup-codes/regenerate", tags=["auth", "mfa"])
+def mfa_regenerate_backup_codes(
+    req: MfaVerifyRequest,  # require TOTP confirmation before regenerating
+    user: Annotated[User, Depends(get_current_user)],
+    db: Session = Depends(get_db),
+) -> dict:
+    """
+    Regenerate backup codes (invalidates old ones).  Requires a valid TOTP code.
+    """
+    from app.domains.auth.mfa_service import (
+        verify_totp, generate_backup_codes, hash_backup_codes,
+    )
+
+    db_user = db.get(User, user.id)
+    if db_user is None:
+        raise HTTPException(status_code=404, detail="Kullanıcı bulunamadı")
+    if not db_user.mfa_enabled:
+        raise HTTPException(status_code=409, detail="MFA etkin değil")
+    if not verify_totp(db_user.totp_secret or "", req.code):
+        raise HTTPException(status_code=422, detail="Geçersiz TOTP kodu")
+
+    new_codes = generate_backup_codes()
+    db_user.mfa_backup_codes = hash_backup_codes(new_codes)
+    db.commit()
+
+    log_audit(db, actor_user_id=user.id, action="mfa.backup_codes_regenerated", resource_type="user", resource_id=user.id, payload=None, ip=None)
+    return {"backup_codes": new_codes}
+
+
+@router.post("/mfa/login", response_model=LoginResponse, tags=["auth", "mfa"])
+@_limit("5/minute")
+def mfa_login(
+    req: MfaLoginRequest,
+    request: Request,
+    response: Response,
+    db: Session = Depends(get_db),
+) -> LoginResponse:
+    """
+    Step-2 login: verify TOTP code using the MFA session token from /auth/login.
+
+    Accepts a TOTP code OR a backup code.
+    On success, issues the full access + refresh token pair.
+    """
+    import jwt as _jwt
+    from app.domains.auth.mfa_service import verify_totp, verify_backup_code
+
+    # ── Validate the MFA session token ────────────────────────────────────────
+    try:
+        payload = _jwt.decode(
+            req.session_token,
+            settings.secret_key,
+            algorithms=["HS256"],
+        )
+    except _jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="MFA oturumu süresi doldu, lütfen tekrar giriş yapın")
+    except _jwt.InvalidTokenError:
+        raise HTTPException(status_code=401, detail="Geçersiz MFA oturumu")
+
+    if payload.get("purpose") != "mfa_challenge":
+        raise HTTPException(status_code=401, detail="Geçersiz token amacı")
+
+    user_id: str = payload.get("sub") or ""
+    db_user = db.get(User, user_id)
+    if db_user is None or not db_user.is_active:
+        raise HTTPException(status_code=401, detail="Kullanıcı bulunamadı veya devre dışı")
+    if not db_user.mfa_enabled:
+        raise HTTPException(status_code=409, detail="Bu hesapta MFA etkin değil")
+
+    # ── Verify code (TOTP or backup) ──────────────────────────────────────────
+    code = req.code.upper().replace("-", "").replace(" ", "")
+    code_ok = False
+
+    if len(code) == 6 and code.isdigit():
+        # Try TOTP first
+        code_ok = verify_totp(db_user.totp_secret or "", code)
+
+    if not code_ok and db_user.mfa_backup_codes:
+        # Try backup code
+        matched, updated_codes = verify_backup_code(db_user.mfa_backup_codes, code)
+        if matched:
+            db_user.mfa_backup_codes = updated_codes
+            code_ok = True
+
+    if not code_ok:
+        raise HTTPException(status_code=422, detail="Geçersiz TOTP veya yedek kod")
+
+    # ── Issue full tokens ─────────────────────────────────────────────────────
+    remember_me: bool = payload.get("remember_me", False)
+    ttl_minutes = (
+        settings.access_token_expire_minutes_remember_me
+        if remember_me
+        else settings.access_token_expire_minutes
+    )
+    access = create_access_token(
+        db_user.id,
+        extra_claims={"tenant": getattr(db_user, "tenant_id", "00000000-0000-0000-0000-000000000001")},
+        expires_minutes=ttl_minutes,
+    )
+    user_agent = request.headers.get("user-agent", "")
+    refresh = create_refresh_token(db_user.id, db, user_agent=user_agent)
+
+    try:
+        log_audit(
+            db,
+            actor_user_id=db_user.id,
+            action="auth.mfa_login",
+            resource_type="user",
+            resource_id=db_user.id,
+            payload={"backup_code_used": not (len(code) == 6 and code.isdigit())},
+            ip=None,
+        )
+        db.commit()
+    except Exception:
+        db.rollback()
+
+    _set_auth_cookies(response, request, access, refresh)
+
+    return LoginResponse(
+        access_token=access,
+        refresh_token=refresh,
+        expires_in=ttl_minutes * 60,
+        mfa_required=False,
+    )

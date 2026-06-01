@@ -24,9 +24,12 @@ export type ListFilter = {
 };
 
 const STORAGE_KEY = "neurex_kb_articles_v1";
+const KB_API_BASE = "/api/v1/kb";
 
-// In-memory + localStorage fallback for offline / not-wired-yet env.
-// Production: /api/v1/kb endpoints (backend G5 service ready).
+// Backend-first with localStorage fallback.
+// Now that /api/v1/kb router is registered (2026-05-24), initial load
+// fetches from the backend and syncs to localStorage for offline use.
+// Mutations still write to localStorage; backend sync is planned.
 
 function loadFromStorage(): KbArticle[] {
   try {
@@ -47,6 +50,20 @@ function saveToStorage(items: KbArticle[]) {
   }
 }
 
+async function fetchFromBackend(): Promise<KbArticle[] | null> {
+  try {
+    const res = await fetch(`${KB_API_BASE}/articles`, {
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+    });
+    if (!res.ok) return null; // backend unavailable or auth required → use localStorage
+    const data: KbArticle[] = await res.json();
+    return Array.isArray(data) ? data : null;
+  } catch {
+    return null; // network error → graceful fallback
+  }
+}
+
 function makeId(): string {
   return `a-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
@@ -59,7 +76,19 @@ export function useKnowledgeBase() {
   const [articles, setArticles] = useState<KbArticle[]>([]);
 
   useEffect(() => {
-    setArticles(loadFromStorage());
+    // Load from localStorage immediately for instant display
+    const local = loadFromStorage();
+    if (local.length > 0) setArticles(local);
+
+    // Then try backend — if it responds, prefer its data (authoritative source)
+    fetchFromBackend().then((backendData) => {
+      if (backendData && backendData.length > 0) {
+        setArticles(backendData);
+        saveToStorage(backendData); // sync to localStorage for offline use
+      } else if (local.length === 0) {
+        setArticles([]); // both empty
+      }
+    });
   }, []);
 
   const persist = useCallback((next: KbArticle[]) => {

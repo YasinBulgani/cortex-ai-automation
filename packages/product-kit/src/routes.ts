@@ -76,6 +76,15 @@ export const ROUTE_CATALOG: RouteCatalogEntry[] = [
   { key: "playwright-console", path: "playwright-console", segment: "playwright-console", label: "Playwright Konsol", group: "Kalite" },
   { key: "regression", path: "regression", segment: "regression", label: "Regresyon Setleri", group: "Kalite" },
   { key: "coverage", path: "coverage", segment: "coverage", label: "Kapsam", group: "Kalite" },
+  { key: "management-dashboard", path: "management", segment: "management", label: "Management", group: "Kalite" },
+  { key: "management-repository", path: "management/repository", segment: "management", label: "Test Repository", group: "Kalite" },
+  { key: "management-test-plans", path: "management/plans", segment: "management", label: "Test Planları", group: "Kalite" },
+  { key: "management-test-runs", path: "management/runs", segment: "management", label: "Test Runs", group: "Kalite" },
+  { key: "management-requirements", path: "management/requirements", segment: "management", label: "Requirement Coverage", group: "Kalite" },
+  { key: "management-defects", path: "management/defects", segment: "management", label: "Defects", group: "Kalite" },
+  { key: "management-reports", path: "management/reports", segment: "management", label: "Management Reports", group: "Kalite" },
+  { key: "management-import-export", path: "management/import-export", segment: "management", label: "Import / Export", group: "Kalite" },
+  { key: "management-settings", path: "management/settings", segment: "management", label: "Management Ayarları", group: "Kalite" },
 
   // Veri
   { key: "synthetic", path: "synthetic", segment: "synthetic", label: "Sentetik Veri", group: "Veri" },

@@ -312,17 +312,82 @@ async def upload_source_file(
     }
 
 
+# Frontend mirror: `apps/web/.../ai-agents/agents-data.ts` ile aynı ID'ler ve
+# aynı metadata seti. Frontend AIAgent tipinin tüm alanları (id, name, emoji,
+# category, tagline, description, projectRouteSegment, globalHref?, availability,
+# features) backend'den de geliyor — kart yarım render olmaz.
+# DEGISIRSE: agents-data.ts'i de senkron tut, aksi halde demo modu kafa karistirir.
 _AGENT_CATALOG = [
-    {"id": "monkey-testing",     "name": "Monkey Testing",        "category": "test-quality",   "availability": "active",       "tagline": "Rastgele tıklama ile UI keşfi"},
-    {"id": "self-healing",       "name": "Self-Healing",          "category": "test-quality",   "availability": "active",       "tagline": "Otomatik test onarımı"},
-    {"id": "smart-locator",      "name": "Smart Locator",         "category": "test-quality",   "availability": "active",       "tagline": "XPath / CSS otomatik bulma"},
-    {"id": "coverage-analysis",  "name": "Coverage Analysis",     "category": "code-analysis",  "availability": "active",       "tagline": "Test kapsama boşluk analizi"},
-    {"id": "bdd-generator",      "name": "BDD Generator",         "category": "test-quality",   "availability": "active",       "tagline": "Gherkin senaryo üretimi"},
-    {"id": "synthetic-data",     "name": "Synthetic Data",        "category": "data",           "availability": "active",       "tagline": "KVKK-uyumlu test verisi"},
-    {"id": "ai-test-generator",  "name": "AI Test Generator",     "category": "automation",     "availability": "active",       "tagline": "URL'den otomatik test üretimi"},
-    {"id": "regression-suite",   "name": "Regression Suite",      "category": "automation",     "availability": "beta",         "tagline": "Otomatik regresyon paketi"},
-    {"id": "otel-trace",         "name": "OTel Trace Analyzer",   "category": "observability",  "availability": "experimental", "tagline": "Trace anomali tespiti"},
-    {"id": "banking-safety",     "name": "Banking Safety Guard",  "category": "test-quality",   "availability": "active",       "tagline": "BRSA uyumluluk kontrolleri"},
+    {
+        "id": "monkey-testing", "name": "Monkey Testing", "emoji": "🐒",
+        "category": "test-quality", "tagline": "Rastgele tıklama ile UI keşfi",
+        "description": "AI destekli monkey test — rastgele kullanıcı etkileşimleriyle uygulamayı tarar, beklenmedik hataları, kararsız akışları ve UX boşluklarını bulur.",
+        "projectRouteSegment": "monkey", "availability": "active",
+        "features": ["Rastgele tıklama / kaydırma / yazı girişi", "Stability score", "Bug raporu ve sınıflandırma", "Senaryo önerisi üretimi"],
+    },
+    {
+        "id": "self-healing", "name": "Self-Healing", "emoji": "🩹",
+        "category": "test-quality", "tagline": "Otomatik test onarımı",
+        "description": "Testler kırıldığında otomatik kategorize eder (timeout, auth expired, rate limit, server error) ve akıllı yeniden deneme stratejisi uygular.",
+        "projectRouteSegment": "healing", "availability": "active",
+        "features": ["Hata kategorizasyonu", "Akıllı retry", "Başarısızlık root-cause", "İyileştirme istatistikleri"],
+    },
+    {
+        "id": "flaky-management", "name": "Flaky Test Yönetimi", "emoji": "🔄",
+        "category": "test-quality", "tagline": "Kararsız test tespiti ve karantina",
+        "description": "Tutarsız başarı/başarısızlık gösteren testleri tespit eder, karantinaya alır ve trend analiziyle kalıcı çözüm önerir.",
+        "projectRouteSegment": "flaky", "availability": "active",
+        "features": ["Flaky tespit algoritması", "Otomatik karantina", "Trend grafiği", "Çözüm önerileri"],
+    },
+    {
+        "id": "prioritize", "name": "Test Önceliklendirme", "emoji": "🎯",
+        "category": "test-quality", "tagline": "Risk-tabanlı test seçimi",
+        "description": "Kod değişikliklerine göre etkilenebilecek testleri analiz eder, risk skorlamasıyla sıralar. Regression koşusu için kritik testleri öne çıkarır.",
+        "projectRouteSegment": "prioritize", "availability": "beta",
+        "features": ["Risk skorlaması", "Test impact analysis (TIA)", "Akıllı sıralama", "Kritik path tespiti"],
+    },
+    {
+        "id": "monkey-screen", "name": "Visual Regression", "emoji": "📸",
+        "category": "test-quality", "tagline": "Görsel değişim tespiti",
+        "description": "Ekran görüntülerini her sürümle karşılaştırır, görsel regresyonları AI ile sınıflandırır (gerçek bug vs. küçük varyasyon).",
+        "projectRouteSegment": "visual", "availability": "active",
+        "features": ["Pixel-perfect karşılaştırma", "AI anomaly detection", "Diff vurgulama", "Onay akışı"],
+    },
+    {
+        "id": "accessibility", "name": "Erişilebilirlik Denetimi", "emoji": "♿",
+        "category": "test-quality", "tagline": "WCAG uyumluluk taraması",
+        "description": "Uygulamanın WCAG 2.1 AA standartlarına uygunluğunu otomatik denetler. Renk kontrast, klavye navigasyonu, ekran okuyucu uyumluluğunu raporlar.",
+        "projectRouteSegment": "accessibility", "availability": "active",
+        "features": ["WCAG 2.1 AA tarama", "Renk kontrast", "Klavye navigasyonu", "Screen reader uyumluluğu"],
+    },
+    {
+        "id": "security", "name": "Güvenlik Taraması", "emoji": "🔒",
+        "category": "test-quality", "tagline": "Otomatik güvenlik denetimi",
+        "description": "API ve UI üzerinden güvenlik açıklarını tarar — XSS, SQL injection, CSRF, kimlik doğrulama bypass denemeleri yapar.",
+        "projectRouteSegment": "security", "availability": "beta",
+        "features": ["XSS / SQLi taraması", "Auth bypass denemeleri", "OWASP Top 10", "Detaylı bug raporu"],
+    },
+    {
+        "id": "code-analyzer", "name": "Nexus Code Agent", "emoji": "🤖",
+        "category": "code-analysis", "tagline": "Koddan QA analizi üretici",
+        "description": "Kaynak kodu veya web sayfası URL'i ver — sayfa analizi, manuel test senaryoları, bug tahminleri ve otomasyon önerilerini tek seferde üretir. Lokal Ollama üzerinde çalışır.",
+        "projectRouteSegment": None, "globalHref": "/nexus-code", "availability": "beta",
+        "features": ["Sayfa yapısı analizi", "Manuel test senaryoları", "Bug tahmini", "Otomasyon önerileri"],
+    },
+    {
+        "id": "llm-quality", "name": "AI Quality Dashboard", "emoji": "📊",
+        "category": "observability", "tagline": "LLM metrikleri & router",
+        "description": "Tüm AI çağrılarının metriklerini izle: latency, başarı oranı, JSON parse rate, maliyet. Smart router, judge skorları, eval ve RAG istatistikleri tek panelde.",
+        "projectRouteSegment": None, "globalHref": "/ai-quality", "availability": "active",
+        "features": ["LLM call metrics", "Maliyet takibi", "LLM-as-Judge", "Smart router state", "RAG istatistikleri"],
+    },
+    {
+        "id": "data-simulator", "name": "Sentetik Veri Üretici", "emoji": "🪐",
+        "category": "data", "tagline": "AI destekli sentetik veri",
+        "description": "DB şemanı yapıştır — AI ilişkileri anlar, gerçekçi sentetik veri üretir. Privacy-safe test verisi için Veri Üretici aracı.",
+        "projectRouteSegment": None, "globalHref": "/veri-kaynagi", "availability": "active",
+        "features": ["Sentetik veri", "Şema çıkarımı", "İlişkili tablolar", "Privacy-safe"],
+    },
 ]
 
 

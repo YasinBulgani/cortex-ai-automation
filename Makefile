@@ -2,15 +2,16 @@
 # TestwrightAI — Unified Test Runner
 # ═══════════════════════════════════════════════════════════════════════════════
 
-.PHONY: help setup seed test-smoke test-regression test-full test-service \
+.PHONY: help setup setup-venv seed test-smoke test-regression test-full test-service \
         test-backend test-engine test-e2e report clean docker-up docker-down \
         test-paribu test-nexusqa test-nexusqa-domain run-aday-analizi run-aday-degerlendirme \
         gateway-install gateway-dev gateway-test gateway-up gateway-down \
         nexusqa-dev nexusqa-up nexusqa-up-ui nexusqa-down nexusqa-status nexusqa-smoke \
         ollama-status ollama-warm \
-        prod-up prod-down prod-logs prod-status prod-deploy ssl-self-signed \
+        prod-up prod-down prod-logs prod-status prod-deploy validate-env ssl-self-signed \
         test-mobile test-load \
-        dsl-ai-warm dsl-ai-rebuild dsl-ai-info dsl-editor-config dsl-proposals
+        dsl-ai-warm dsl-ai-rebuild dsl-ai-info dsl-editor-config dsl-proposals \
+        sec-audit eval tia
 
 SHELL := /bin/bash
 VENV   := .venv
@@ -82,6 +83,13 @@ setup: $(VENV)
 	$(PIP) install -r backend/requirements.txt -r backend/requirements-dev.txt
 	$(PIP) install -r engine/requirements.txt
 	npm run playwright:install
+
+setup-venv:
+	python3 -m venv .venv
+	.venv/bin/pip install --upgrade pip
+	.venv/bin/pip install -r backend/requirements.txt -r backend/requirements-dev.txt
+	.venv/bin/pip install -r engine/requirements.txt
+	@echo "✓ Virtual environment ready. Run: source .venv/bin/activate"
 
 seed:
 	cd backend && PYTHONPATH=. $(PYTHON) scripts/seed.py
@@ -522,8 +530,12 @@ prod-status:
 	@curl -sk https://localhost/health 2>/dev/null | python3 -m json.tool 2>/dev/null || echo "   Backend: UNREACHABLE"
 	@curl -sk http://localhost:9090/-/healthy 2>/dev/null && echo "   Prometheus: OK" || echo "   Prometheus: UNREACHABLE"
 
+## Production ENV değişkenlerini doğrula (deployment öncesi)
+validate-env:
+	@bash scripts/validate-prod-env.sh $(ENV_FILE)
+
 ## Yeni image'ı sıfır downtime ile deploy et (rolling update)
-prod-deploy:
+prod-deploy: validate-env
 	@echo "🔄 Rolling deploy başlatılıyor (IMAGE_TAG=$(IMAGE_TAG:-latest))..."
 	$(COMPOSE_PROD) pull
 	$(COMPOSE_PROD) up -d --no-deps --scale backend=2 backend

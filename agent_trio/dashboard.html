@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agent Trio – Cortex AI</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;900&family=JetBrains+Mono:wght@400;600&display=swap');
+  :root {
+    --bg: #050812; --surface: #0d1117; --card: #161b22; --border: #21262d;
+    --idea: #f59e0b; --dev: #3b82f6; --test: #10b981;
+    --text: #e6edf3; --muted: #7d8590;
+    --pass: #10b981; --fail: #ef4444; --needs: #f59e0b;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; min-height: 100vh; }
+
+  /* Header */
+  header {
+    background: linear-gradient(135deg, #0d1117 0%, #161b22 100%);
+    border-bottom: 1px solid var(--border);
+    padding: 1rem 2rem;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .logo { display: flex; align-items: center; gap: 0.75rem; }
+  .logo h1 { font-size: 1.4rem; font-weight: 900; background: linear-gradient(90deg, #f59e0b, #3b82f6, #10b981); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  .badge { background: #1f6feb22; border: 1px solid #1f6feb; color: #58a6ff; font-size: 0.7rem; padding: 0.2rem 0.6rem; border-radius: 20px; font-weight: 600; }
+
+  /* Timer */
+  .timer-bar { display: flex; align-items: center; gap: 1rem; }
+  .timer { font-family: 'JetBrains Mono', monospace; font-size: 1.5rem; font-weight: 700; color: #58a6ff; }
+  .progress-wrap { width: 180px; height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; }
+  .progress-fill { height: 100%; background: linear-gradient(90deg, #1f6feb, #58a6ff); border-radius: 3px; transition: width 1s; }
+
+  /* Main grid */
+  main { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1.5rem; padding: 1.5rem 2rem; }
+
+  /* Agent cards */
+  .agent-card {
+    background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+    display: flex; flex-direction: column; min-height: 400px; overflow: hidden;
+    transition: border-color 0.3s;
+  }
+  .agent-card.active-idea { border-color: var(--idea); box-shadow: 0 0 20px #f59e0b22; }
+  .agent-card.active-dev  { border-color: var(--dev);  box-shadow: 0 0 20px #3b82f622; }
+  .agent-card.active-test { border-color: var(--test); box-shadow: 0 0 20px #10b98122; }
+
+  .agent-header {
+    padding: 1rem 1.2rem; display: flex; align-items: center; gap: 0.75rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .agent-icon { font-size: 1.6rem; }
+  .agent-name { font-weight: 700; font-size: 0.95rem; }
+  .agent-model { font-size: 0.7rem; color: var(--muted); font-family: 'JetBrains Mono', monospace; margin-top: 2px; }
+  .agent-status { margin-left: auto; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
+  .dot.active { background: #3fb950; animation: pulse 1s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:0.4;} }
+
+  .agent-body { padding: 1rem; flex: 1; overflow-y: auto; font-size: 0.82rem; line-height: 1.6; }
+  .agent-body::-webkit-scrollbar { width: 4px; }
+  .agent-body::-webkit-scrollbar-track { background: transparent; }
+  .agent-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .thinking { color: var(--muted); font-style: italic; display: flex; align-items: center; gap: 0.5rem; }
+  .thinking::before { content: '▶'; font-size: 0.6rem; animation: blink 1s infinite; }
+  @keyframes blink { 0%,100%{opacity:1;} 50%{opacity:0;} }
+
+  .stream-text { font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; color: #cdd9e5; white-space: pre-wrap; word-break: break-word; }
+
+  /* Result panels */
+  .result-idea { border-left: 3px solid var(--idea); padding: 0.8rem; margin-bottom: 0.8rem; background: #f59e0b0a; border-radius: 0 8px 8px 0; }
+  .result-impl { border-left: 3px solid var(--dev); padding: 0.8rem; margin-bottom: 0.8rem; background: #3b82f60a; border-radius: 0 8px 8px 0; }
+  .result-test { border-left: 3px solid var(--test); padding: 0.8rem; margin-bottom: 0.8rem; background: #10b9810a; border-radius: 0 8px 8px 0; }
+
+  .result-title { font-weight: 700; font-size: 0.85rem; margin-bottom: 0.4rem; }
+  .tag { display: inline-block; font-size: 0.65rem; padding: 0.1rem 0.5rem; border-radius: 10px; margin: 0.1rem; font-weight: 600; }
+  .tag-idea { background: #f59e0b22; color: var(--idea); }
+  .tag-dev  { background: #3b82f622; color: var(--dev); }
+  .tag-pass { background: #10b98122; color: var(--pass); }
+  .tag-fail { background: #ef444422; color: var(--fail); }
+  .tag-needs{ background: #f59e0b22; color: var(--needs); }
+
+  code { font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; background: #1c2128; padding: 0.15rem 0.4rem; border-radius: 4px; color: #79c0ff; }
+
+  /* Bottom log */
+  .bottom-panel { grid-column: 1 / -1; background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 1rem; }
+  .bottom-panel h3 { font-size: 0.85rem; color: var(--muted); margin-bottom: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; }
+  .log-list { display: flex; flex-direction: column; gap: 0.3rem; max-height: 160px; overflow-y: auto; }
+  .log-list::-webkit-scrollbar { width: 4px; }
+  .log-list::-webkit-scrollbar-thumb { background: var(--border); }
+  .log-item { font-size: 0.78rem; color: var(--muted); display: flex; gap: 0.75rem; align-items: baseline; }
+  .log-time { font-family: 'JetBrains Mono', monospace; font-size: 0.68rem; color: #444c56; flex-shrink: 0; }
+  .log-msg { color: var(--text); }
+
+  /* Rounds summary */
+  .rounds-row { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 0.75rem; }
+  .round-chip {
+    background: var(--card); border: 1px solid var(--border); border-radius: 8px;
+    padding: 0.5rem 0.8rem; font-size: 0.75rem; min-width: 160px;
+    display: flex; flex-direction: column; gap: 0.3rem;
+  }
+  .round-chip .rn { font-weight: 700; color: #58a6ff; }
+  .round-chip .rtitle { color: var(--text); font-size: 0.72rem; }
+  .round-chip .rverdict { font-weight: 700; font-size: 0.7rem; }
+  .verdict-pass  { color: var(--pass); }
+  .verdict-fail  { color: var(--fail); }
+  .verdict-needs { color: var(--needs); }
+
+  /* Start button */
+  .start-btn {
+    background: linear-gradient(135deg, #238636, #2ea043);
+    border: none; color: #fff; font-family: 'Inter', sans-serif;
+    font-weight: 700; font-size: 0.9rem; padding: 0.6rem 1.5rem;
+    border-radius: 8px; cursor: pointer; transition: opacity 0.2s;
+  }
+  .start-btn:hover { opacity: 0.85; }
+  .start-btn:disabled { opacity: 0.4; cursor: default; }
+
+  .model-pills { display: flex; gap: 0.4rem; flex-wrap: wrap; }
+  .model-pill { background: #1c2128; border: 1px solid var(--border); border-radius: 6px; font-size: 0.65rem; padding: 0.15rem 0.5rem; color: #79c0ff; font-family: 'JetBrains Mono', monospace; }
+
+  /* Coverage bar */
+  .cov-bar { height: 4px; background: var(--border); border-radius: 2px; margin-top: 0.4rem; overflow: hidden; }
+  .cov-fill { height: 100%; background: linear-gradient(90deg, var(--test), #059669); border-radius: 2px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <span style="font-size:1.8rem">🤖</span>
+    <div>
+      <h1>Agent Trio</h1>
+      <div style="font-size:0.7rem;color:var(--muted)">Cortex AI · Otonom 3-Ajan Sistemi</div>
+    </div>
+    <span class="badge" id="status-badge">HAZIR</span>
+  </div>
+  <div class="timer-bar">
+    <div>
+      <div style="font-size:0.65rem;color:var(--muted);margin-bottom:2px">KALAN SÜRE</div>
+      <div class="timer" id="timer">20:00</div>
+    </div>
+    <div>
+      <div style="font-size:0.65rem;color:var(--muted);margin-bottom:2px">İLERLEME</div>
+      <div class="progress-wrap"><div class="progress-fill" id="prog" style="width:0%"></div></div>
+    </div>
+    <button class="start-btn" id="start-btn" onclick="startSession()">▶ Başlat</button>
+  </div>
+</header>
+
+<main>
+  <!-- Agent Cards -->
+  <div class="agent-card" id="card-idea">
+    <div class="agent-header">
+      <span class="agent-icon">💡</span>
+      <div>
+        <div class="agent-name">Fikir Ajanı</div>
+        <div class="agent-model" id="model-idea">—</div>
+      </div>
+      <div class="agent-status"><div class="dot" id="dot-idea"></div></div>
+    </div>
+    <div class="agent-body" id="body-idea">
+      <div style="color:var(--muted);font-size:0.8rem">Ajan başlatılmayı bekliyor...</div>
+    </div>
+  </div>
+
+  <div class="agent-card" id="card-dev">
+    <div class="agent-header">
+      <span class="agent-icon">💻</span>
+      <div>
+        <div class="agent-name">Geliştirici Ajanı</div>
+        <div class="agent-model" id="model-dev">—</div>
+      </div>
+      <div class="agent-status"><div class="dot" id="dot-dev"></div></div>
+    </div>
+    <div class="agent-body" id="body-dev">
+      <div style="color:var(--muted);font-size:0.8rem">Ajan başlatılmayı bekliyor...</div>
+    </div>
+  </div>
+
+  <div class="agent-card" id="card-test">
+    <div class="agent-header">
+      <span class="agent-icon">🧪</span>
+      <div>
+        <div class="agent-name">Test Ajanı</div>
+        <div class="agent-model" id="model-test">—</div>
+      </div>
+      <div class="agent-status"><div class="dot" id="dot-test"></div></div>
+    </div>
+    <div class="agent-body" id="body-test">
+      <div style="color:var(--muted);font-size:0.8rem">Ajan başlatılmayı bekliyor...</div>
+    </div>
+  </div>
+
+  <!-- Rounds Summary -->
+  <div class="rounds-row" id="rounds-row" style="display:none">
+    <div style="grid-column:1/-1;font-size:0.78rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;font-weight:600">Tamamlanan Roundlar</div>
+  </div>
+
+  <!-- Event Log -->
+  <div class="bottom-panel">
+    <h3>📋 Olay Günlüğü</h3>
+    <div class="log-list" id="log-list"></div>
+  </div>
+</main>
+
+<script>
+const TOTAL = 20 * 60;
+let elapsed = 0, timerInterval = null, streamBuffers = {idea:'',dev:'',test:''};
+let activeAgent = null, roundsData = [];
+
+function $(id){ return document.getElementById(id); }
+
+function pad(n){ return String(n).padStart(2,'0'); }
+
+function startTimer(){
+  timerInterval = setInterval(()=>{
+    elapsed++;
+    const rem = Math.max(0, TOTAL - elapsed);
+    $('timer').textContent = pad(Math.floor(rem/60))+':'+pad(rem%60);
+    $('prog').style.width = Math.min(100, elapsed/TOTAL*100)+'%';
+    if(rem<=0) clearInterval(timerInterval);
+  }, 1000);
+}
+
+function log(msg, cls=''){
+  const el = document.createElement('div');
+  el.className = 'log-item';
+  const now = new Date();
+  el.innerHTML = `<span class="log-time">${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}</span><span class="log-msg ${cls}">${msg}</span>`;
+  const list = $('log-list');
+  list.prepend(el);
+  while(list.children.length > 60) list.removeChild(list.lastChild);
+}
+
+function setDot(agent, active){
+  const dot = $('dot-'+agent);
+  if(!dot) return;
+  dot.className = 'dot' + (active?' active':'');
+}
+
+function setCardActive(agent){
+  ['idea','dev','test'].forEach(a=>{
+    const c = $('card-'+a);
+    c.className = 'agent-card' + (a===agent?' active-'+a:'');
+  });
+}
+
+function clearStream(agent){
+  streamBuffers[agent] = '';
+}
+
+function appendStream(agent, chunk){
+  streamBuffers[agent] += chunk;
+  const body = $('body-'+agent);
+  let el = body.querySelector('.stream-text');
+  if(!el){ el = document.createElement('div'); el.className='stream-text'; body.appendChild(el); }
+  el.textContent = streamBuffers[agent];
+  body.scrollTop = body.scrollHeight;
+}
+
+function renderIdea(data){
+  const body = $('body-idea');
+  body.innerHTML = `
+    <div class="result-idea">
+      <div class="result-title">💡 ${data.title}</div>
+      <div style="margin:.4rem 0">
+        <span class="tag tag-idea">${data.module}</span>
+        <span class="tag tag-idea">${data.complexity}</span>
+        ${(data.tags||[]).map(t=>`<span class="tag tag-idea">${t}</span>`).join('')}
+      </div>
+      <div style="color:var(--muted);font-size:.78rem;line-height:1.6">${data.description}</div>
+    </div>`;
+}
+
+function renderImpl(data){
+  const body = $('body-dev');
+  body.innerHTML = `
+    <div class="result-impl">
+      <div class="result-title">📄 <code>${data.file_path}</code></div>
+      <div style="margin:.3rem 0"><span class="tag tag-dev">${data.language}</span><span class="tag tag-dev">${data.lines} satır</span></div>
+      <div style="color:var(--muted);font-size:.75rem;margin:.4rem 0">${data.explanation||''}</div>
+      <pre class="stream-text" style="margin-top:.5rem;max-height:180px;overflow-y:auto;background:#1c2128;padding:.6rem;border-radius:6px">${escHtml(data.code_preview)}</pre>
+    </div>`;
+}
+
+function renderReport(data){
+  const vc = data.verdict==='pass'?'verdict-pass':data.verdict==='fail'?'verdict-fail':'verdict-needs';
+  const tc = data.verdict==='pass'?'tag-pass':data.verdict==='fail'?'tag-fail':'tag-needs';
+  const body = $('body-test');
+  body.innerHTML = `
+    <div class="result-test">
+      <div class="result-title">🧪 Test Raporu <span class="tag ${tc}">${data.verdict.toUpperCase()}</span></div>
+      <div style="font-size:.75rem;color:var(--muted);margin:.3rem 0">${data.summary||''}</div>
+      <div class="cov-bar"><div class="cov-fill" style="width:${data.coverage_estimate||60}%"></div></div>
+      <div style="font-size:.68rem;color:var(--muted);margin:.2rem 0">Kapsam tahmini: %${data.coverage_estimate}</div>
+      ${data.bugs_found?.length?`<div style="margin-top:.5rem"><div style="font-size:.72rem;color:#ef4444;font-weight:700">🐛 Hatalar</div>${data.bugs_found.map(b=>`<div style="font-size:.72rem;color:var(--muted);padding:.15rem 0">• ${b}</div>`).join('')}</div>`:''}
+      ${data.improvements?.length?`<div style="margin-top:.5rem"><div style="font-size:.72rem;color:#f59e0b;font-weight:700">💡 Öneriler</div>${data.improvements.map(i=>`<div style="font-size:.72rem;color:var(--muted);padding:.15rem 0">• ${i}</div>`).join('')}</div>`:''}
+      ${data.test_preview?`<pre class="stream-text" style="margin-top:.6rem;max-height:120px;overflow-y:auto;background:#1c2128;padding:.6rem;border-radius:6px">${escHtml(data.test_preview)}</pre>`:''}
+    </div>`;
+}
+
+function addRoundChip(summary){
+  const row = $('rounds-row');
+  row.style.display = 'flex';
+  const vc = summary.verdict==='pass'?'verdict-pass':summary.verdict==='fail'?'verdict-fail':'verdict-needs';
+  const chip = document.createElement('div');
+  chip.className = 'round-chip';
+  chip.innerHTML = `
+    <div class="rn">Round ${summary.round}</div>
+    <div class="rtitle">${summary.idea_title}</div>
+    <div style="display:flex;gap:.3rem;align-items:center">
+      <span class="tag tag-idea" style="font-size:.6rem">${summary.module}</span>
+      <span class="rverdict ${vc}">${summary.verdict?.toUpperCase()}</span>
+    </div>
+    <div style="font-size:.65rem;color:var(--muted)">%${summary.coverage} kapsam · ${summary.bugs} hata</div>`;
+  row.appendChild(chip);
+}
+
+function escHtml(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function handleEvent(ev){
+  const t = ev.type;
+
+  if(t==='session_start'){
+    log('🚀 '+ev.message); startTimer();
+    $('status-badge').textContent='ÇALIŞIYOR';
+    $('start-btn').disabled = true;
+  }
+  else if(t==='models_detected'){
+    log(ev.message);
+    const pills = (ev.models||[]).slice(0,4).map(m=>`<span class="model-pill">${m}</span>`).join('');
+    $('model-idea').innerHTML = pills || '—';
+    $('model-dev').innerHTML  = pills || '—';
+    $('model-test').innerHTML = pills || '—';
+  }
+  else if(t==='round_start'){
+    log(`🔄 ${ev.message}`,''); roundsData=[];
+    setCardActive(null);
+  }
+  else if(t==='phase_start'){
+    const map={idea:'idea',develop:'dev',test:'test'};
+    activeAgent = map[ev.phase]||null;
+    if(activeAgent){
+      setDot(activeAgent,true);
+      setCardActive(activeAgent);
+      clearStream(activeAgent);
+      const body = $('body-'+activeAgent);
+      body.innerHTML = `<div class="thinking">Düşünüyor...</div>`;
+    }
+  }
+  else if(t==='agent_thinking'){
+    const map={'💡 Fikir Ajanı':'idea','💻 Geliştirici Ajanı':'dev','🧪 Test Ajanı':'test'};
+    const a = map[ev.agent]||activeAgent;
+    if(a){ const body=$('body-'+a); body.innerHTML=`<div class="thinking">${ev.message}</div>`; }
+  }
+  else if(t==='agent_streaming'){
+    const map={'💡 Fikir Ajanı':'idea','💻 Geliştirici Ajanı':'dev','🧪 Test Ajanı':'test'};
+    const a = map[ev.agent]||activeAgent;
+    if(a){ appendStream(a, ev.chunk||''); }
+  }
+  else if(t==='idea_complete'){
+    setDot('idea',false); renderIdea(ev.idea); log(`💡 Fikir: "${ev.idea?.title}"`);
+  }
+  else if(t==='impl_complete'){
+    setDot('dev',false); renderImpl(ev.implementation); log(`💻 Kod: ${ev.implementation?.lines} satır (${ev.implementation?.language})`);
+  }
+  else if(t==='test_complete'){
+    setDot('test',false); renderReport(ev.report);
+    const v=ev.report?.verdict; const icon=v==='pass'?'✅':v==='fail'?'❌':'⚠️';
+    log(`${icon} Test: ${v?.toUpperCase()} | Kapsam %${ev.report?.coverage_estimate}`);
+  }
+  else if(t==='round_complete'){
+    ['idea','dev','test'].forEach(a=>setDot(a,false));
+    setCardActive(null);
+    addRoundChip(ev.summary);
+    log(`✅ ${ev.message}`);
+  }
+  else if(t==='round_error'){
+    log(`⚠️ Round ${ev.round} hata: ${ev.error}`);
+  }
+  else if(t==='session_end'){
+    clearInterval(timerInterval);
+    $('timer').textContent='00:00';
+    $('prog').style.width='100%';
+    $('status-badge').textContent='TAMAMLANDI';
+    $('start-btn').disabled=false;
+    log(`🏁 ${ev.message}`);
+  }
+  else if(t==='error'){
+    log(`❌ ${ev.message}`);
+  }
+}
+
+function connectSSE(){
+  const es = new EventSource('/events');
+  es.onmessage = e => { try{ handleEvent(JSON.parse(e.data)); }catch(_){} };
+  es.onerror = () => setTimeout(connectSSE, 3000);
+}
+
+async function startSession(){
+  try{
+    const r = await fetch('/start', {method:'POST'});
+    const d = await r.json();
+    if(d.status==='already_running') log('⚠️ Oturum zaten çalışıyor!');
+  }catch(e){ log('❌ Sunucuya bağlanılamadı: '+e.message); }
+}
+
+// Init
+connectSSE();
+log('🔌 Agent Trio dashboard hazır. "Başlat" butonuna basın.');
+</script>
+</body>
+</html>

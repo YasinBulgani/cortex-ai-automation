@@ -1,7 +1,13 @@
 import importlib
 import sys
+from pathlib import Path
 
 import pytest
+
+# Ensure engine root is on sys.path so all route/core modules are importable.
+_ENGINE_ROOT = str(Path(__file__).resolve().parent.parent.parent)
+if _ENGINE_ROOT not in sys.path:
+    sys.path.insert(0, _ENGINE_ROOT)
 
 
 @pytest.fixture
@@ -10,7 +16,10 @@ def engine_client(monkeypatch):
     monkeypatch.setenv("ENGINE_SECRET_KEY", "test-engine-secret")
     monkeypatch.setenv("ENGINE_INTERNAL_KEY", "test-engine-internal")
 
-    sys.modules.pop("app", None)
+    # Clear cached modules so env vars take effect on re-import.
+    for mod in list(sys.modules.keys()):
+        if mod in ("app", "routes.ai_routes", "core.ai_engine"):
+            sys.modules.pop(mod, None)
     module = importlib.import_module("app")
     module.app.config["TESTING"] = True
 
@@ -89,6 +98,10 @@ def test_flask_debug_disabled_in_ci_even_if_requested(monkeypatch):
     monkeypatch.setenv("ENGINE_DEBUG", "1")
     monkeypatch.setenv("ENGINE_SECRET_KEY", "test-engine-secret")
     monkeypatch.setenv("ENGINE_INTERNAL_KEY", "test-engine-internal")
+    # Ensure engine root is on path before clearing cached modules.
+    if _ENGINE_ROOT not in sys.path:
+        sys.path.insert(0, _ENGINE_ROOT)
+    # Clear app module only — leave route modules cached to avoid re-import chain.
     sys.modules.pop("app", None)
 
     module = importlib.import_module("app")

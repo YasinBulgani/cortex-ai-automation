@@ -18,6 +18,10 @@ logger = logging.getLogger(__name__)
 _ACCESS_REVOKE_PREFIX = "bgts:auth:revoked-access:"
 _PASSWORD_RESET_PREFIX = "bgts:auth:password-reset:"
 
+# Timing-attack prevention: dummy hash used when user is not found so that
+# verify_password always runs a full bcrypt round regardless.
+_DUMMY_HASH = bcrypt.hashpw(b"neurex-dummy-password-timing-safe", bcrypt.gensalt()).decode()
+
 # Redis yoksa gelistirme/test için process-local fallback.
 _revoked_tokens: dict[str, int] = {}
 _password_reset_tokens: dict[str, tuple[str, int]] = {}

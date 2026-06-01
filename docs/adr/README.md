@@ -2,15 +2,20 @@
 
 Bu dizin, **Neurex QA** için önemli mimari kararların kayıtlarını içerir.
 
-## Active ADRs
+## Aktif ADR'lar
 
-| # | Title | Status |
-|---|-------|--------|
-| [0001](./0001-monorepo-turborepo.md) | Monorepo with Turborepo | ✅ Accepted |
-| [0002](./0002-httponly-cookie-auth.md) | httpOnly Cookie Authentication 🔒 | ✅ Accepted |
-| [0003](./0003-ddd-bounded-contexts.md) | DDD Bounded Contexts in Backend | ✅ Accepted |
-| [0004](./0004-outbox-pattern-events.md) | Outbox Pattern for Reliable Events | ✅ Accepted |
-| [0005](./0005-engine-consolidation.md) | Flask Engine → FastAPI Consolidation | 🔄 In Progress |
+| # | Başlık | Durum | Tarih |
+|---|---|---|---|
+| [0001](./0001-monorepo-yapisi.md) | Monorepo yapısı (Turborepo) | ✅ Kabul edildi | 2026-04-19 |
+| [0002](./0002-engine-vs-backend-ayirimi.md) | Engine (Flask) ve Backend (FastAPI) ayrı kalıyor | ✅ Kabul edildi | 2026-04-19 |
+| [0003](./0003-synthetic-data-konsolidasyonu.md) | Synthetic-data v4 ana platform | ✅ Kabul edildi | 2026-04-19 |
+| [0004](./0004-legacy-silme-politikasi.md) | Legacy silme politikası (6 ay) | ✅ Kabul edildi | 2026-04-19 |
+| [0005](./0005-test-taksonomisi.md) | Test katmanları ve konumları | ✅ Kabul edildi | 2026-04-19 |
+| [0006](./0006-playwright-cucumber-framework-rolü.md) | `frameworks/playwright-cucumber-ts` rolü — DSL referansı | ✅ Kabul edildi | 2026-04-19 |
+
+## Arşivlenenler
+
+> [`archive/`](./archive/) dizininde: içerik çakışması veya scope değişikliği nedeniyle arşivlenen eski ADR taslakları.
 
 ## Arşivlenmiş (Eski Türkçe ADR'ler)
 
@@ -45,7 +50,8 @@ Bir **Architecture Decision Record**, belirli bir zamanda alınan önemli bir mi
 
 ## Şablon
 
-Yeni ADR için: `docs/adr/NNNN-kisa-baslik.md`
+Yeni ADR için: `docs/adr/NNNN-kisa-baslik.md`  
+Mevcut en yüksek numara: **0006** → yeni ADR için **0007** kullan.
 
 ```markdown
 # ADR-NNNN: Başlık
@@ -79,18 +85,7 @@ Ne yapıyoruz?
 - [ ] ...
 ```
 
-## ADR indeksi
-
-| # | Başlık | Durum | Tarih |
-|---|---|---|---|
-| [0001](0001-monorepo-yapisi.md) | Monorepo yapısı | Kabul edildi | 2026-04-19 |
-| [0002](0002-engine-vs-backend-ayirimi.md) | Engine (Flask) ve Backend (FastAPI) ayrı kalıyor | Kabul edildi | 2026-04-19 |
-| [0003](0003-synthetic-data-konsolidasyonu.md) | Synthetic-data v4 ana platform | Kabul edildi | 2026-04-19 |
-| [0004](0004-legacy-silme-politikasi.md) | Legacy silme politikası (6 ay) | Kabul edildi | 2026-04-19 |
-| [0005](0005-test-taksonomisi.md) | Test katmanları ve konumları | Kabul edildi | 2026-04-19 |
-| [0006](0006-playwright-cucumber-framework-rolü.md) | `frameworks/playwright-cucumber-ts` rolü — DSL referansı | Kabul edildi | 2026-04-19 |
-
-## Ek kaynaklar
+## Kaynaklar
 
 - [Michael Nygard: Documenting Architecture Decisions](https://cognitect.com/blog/2011/11/15/documenting-architecture-decisions)
 - [adr.github.io](https://adr.github.io/)

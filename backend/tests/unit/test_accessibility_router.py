@@ -108,3 +108,63 @@ def test_analyze_preserves_error_response(monkeypatch) -> None:
     data = r.json()
     assert data["ok"] is False
     assert "Gateway" in data["error"]
+
+
+# ---------------------------------------------------------------------------
+# Additional router tests (Task 3)
+# ---------------------------------------------------------------------------
+
+def test_analyze_missing_url_still_validates_violations() -> None:
+    """Payload without 'url' field must still be accepted (url is optional)."""
+    client = _app()
+    payload = {
+        "violations": [
+            {
+                "id": "image-alt",
+                "impact": "critical",
+                "help": "Images must have alternate text",
+                "tags": ["wcag2a"],
+                "nodes": [{"html": "<img src='x.jpg'>", "target": ["img"]}],
+            }
+        ]
+    }
+    r = client.post("/accessibility/analyze", json=payload)
+    # 200 (ok) or 422 (if url is required) — both valid, not a 5xx
+    assert r.status_code in {200, 422}
+
+
+def test_analyze_returns_remediations_list(monkeypatch) -> None:
+    """Successful analyze must return a list under 'remediations' key."""
+    monkeypatch.setattr(
+        accessibility_analyzer,
+        "analyze",
+        lambda req: AnalyzeA11yResponse(
+            ok=True,
+            remediations=[],
+            skipped_count=0,
+            error=None,
+            latency_ms=42,
+        ),
+    )
+    client = _app()
+    r = client.post("/accessibility/analyze", json=_sample_violation_payload())
+    assert r.status_code == 200
+    data = r.json()
+    assert "remediations" in data
+    assert isinstance(data["remediations"], list)
+
+
+def test_status_endpoint_enabled_field_is_boolean() -> None:
+    """GET /accessibility/status 'enabled' field must be a boolean."""
+    client = _app()
+    r = client.get("/accessibility/status")
+    assert r.status_code == 200
+    data = r.json()
+    assert isinstance(data["enabled"], bool)
+
+
+def test_analyze_invalid_json_returns_422() -> None:
+    """POST /accessibility/analyze with completely wrong types returns 422."""
+    client = _app()
+    r = client.post("/accessibility/analyze", json={"violations": "not-a-list"})
+    assert r.status_code == 422

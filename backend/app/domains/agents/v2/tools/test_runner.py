@@ -205,7 +205,7 @@ def parse_junit_xml(
         )
 
     try:
-        tree = ET.parse(junit_path)
+        tree = ET.parse(junit_path)  # nosec B314 - JUnit output file, not user-supplied XML
         root = tree.getroot()
     except Exception:
         return RunResult(

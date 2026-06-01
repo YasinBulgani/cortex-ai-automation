@@ -3,8 +3,10 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { apiFetch } from "@/lib/api";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 
 type ProjectOut = { id: string; name: string };
+type ManagementProjectOut = { id: string; key: string; name: string };
 
 // ── Step definitions ──────────────────────────────────────────────────────────
 const STEPS = [
@@ -12,30 +14,38 @@ const STEPS = [
   { id: 2, title: "İlk Proje", icon: "📁" },
   { id: 3, title: "API Spec", icon: "📄" },
   { id: 4, title: "AI Tercih", icon: "🤖" },
-  { id: 5, title: "Hazır!", icon: "🚀" },
+  { id: 5, title: "Test Yönetimi", icon: "🧪" },
+  { id: 6, title: "Hazır!", icon: "🚀" },
 ];
 
 const TEAM_ROLES = [
-  { value: "qa-engineer", label: "QA Mühendisi", emoji: "🧪" },
-  { value: "developer", label: "Geliştirici", emoji: "💻" },
-  { value: "manager", label: "Yönetici", emoji: "📊" },
-  { value: "team-lead", label: "Takım Lideri", emoji: "🎯" },
+  { value: "qa-engineer",  label: "QA Mühendisi",   emoji: "🧪" },
+  { value: "developer",    label: "Geliştirici",     emoji: "💻" },
+  { value: "manager",      label: "Yönetici",        emoji: "📊" },
+  { value: "team-lead",    label: "Takım Lideri",    emoji: "🎯" },
 ];
 
 const TEAM_SIZES = ["1-5", "6-15", "16-50", "50+"];
 
 const DOMAINS = [
-  { value: "banking", label: "Bankacılık & Fintech" },
-  { value: "ecommerce", label: "E-Ticaret" },
+  { value: "banking",    label: "Bankacılık & Fintech" },
+  { value: "ecommerce",  label: "E-Ticaret" },
   { value: "healthcare", label: "Sağlık" },
-  { value: "general", label: "Genel" },
+  { value: "general",    label: "Genel" },
 ];
 
 const AI_PROVIDERS = [
-  { value: "groq", label: "Groq (Llama 3.3)", fast: true },
-  { value: "gemini", label: "Google Gemini", fast: false },
-  { value: "ollama", label: "Ollama (Yerel)", fast: false },
-  { value: "any", label: "Otomatik Seç", fast: true },
+  { value: "groq",    label: "Groq (Llama 3.3)",   fast: true  },
+  { value: "gemini",  label: "Google Gemini",       fast: false },
+  { value: "ollama",  label: "Ollama (Yerel)",      fast: false },
+  { value: "any",     label: "Otomatik Seç",        fast: true  },
+];
+
+const MGMT_GOALS = [
+  { value: "manual",    label: "Manuel test yönetimi",         icon: "📋" },
+  { value: "automated", label: "Otomasyon + manuel karışık",   icon: "⚙️" },
+  { value: "tracking",  label: "Yalnızca hata takibi",         icon: "🐛" },
+  { value: "skip",      label: "Şimdilik geç",                 icon: "⏭️" },
 ];
 
 interface WizardState {
@@ -47,23 +57,44 @@ interface WizardState {
   specUrl: string;
   specSkipped: boolean;
   aiProvider: string;
+  mgmtGoal: string;
+  mgmtProjectKey: string;
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+function slugify(s: string): string {
+  return s
+    .toUpperCase()
+    .replace(/[^A-Z0-9]/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "")
+    .slice(0, 8);
 }
 
 // ── Progress indicator ────────────────────────────────────────────────────────
 function StepProgress({ current }: { current: number }) {
   return (
-    <div className="flex items-center gap-2 mb-8">
+    <div className="flex items-center gap-1.5 mb-8">
       {STEPS.map((s, i) => (
-        <div key={s.id} className="flex items-center gap-2 flex-1 last:flex-none">
-          <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold transition-all ${
-            s.id < current ? "bg-emerald-500 text-white" :
-            s.id === current ? "bg-violet-600 text-white ring-4 ring-violet-500/30" :
-            "bg-slate-800 text-slate-500"
-          }`}>
+        <div key={s.id} className="flex items-center gap-1.5 flex-1 last:flex-none">
+          <div
+            className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[11px] font-bold transition-all ${
+              s.id < current
+                ? "bg-emerald-500 text-white"
+                : s.id === current
+                  ? "bg-violet-600 text-white ring-4 ring-violet-500/30"
+                  : "bg-slate-800 text-slate-500"
+            }`}
+          >
             {s.id < current ? "✓" : s.id}
           </div>
           {i < STEPS.length - 1 && (
-            <div className={`h-0.5 flex-1 rounded-full transition-all ${s.id < current ? "bg-emerald-500" : "bg-slate-800"}`} />
+            <div
+              className={`h-0.5 flex-1 rounded-full transition-all ${
+                s.id < current ? "bg-emerald-500" : "bg-slate-800"
+              }`}
+            />
           )}
         </div>
       ))}
@@ -72,7 +103,15 @@ function StepProgress({ current }: { current: number }) {
 }
 
 // ── Step 1: Profile ───────────────────────────────────────────────────────────
-function StepProfile({ state, setState, onNext }: { state: WizardState; setState: (s: Partial<WizardState>) => void; onNext: () => void }) {
+function StepProfile({
+  state,
+  setState,
+  onNext,
+}: {
+  state: WizardState;
+  setState: (s: Partial<WizardState>) => void;
+  onNext: () => void;
+}) {
   return (
     <div className="space-y-5">
       <div>
@@ -128,14 +167,27 @@ function StepProfile({ state, setState, onNext }: { state: WizardState; setState
 }
 
 // ── Step 2: First Project ─────────────────────────────────────────────────────
-function StepProject({ state, setState, onNext, onBack }: { state: WizardState; setState: (s: Partial<WizardState>) => void; onNext: () => void; onBack: () => void }) {
-  const inputCls = "w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2.5 text-sm text-white placeholder-slate-600 focus:border-violet-500 focus:outline-none focus:ring-1 focus:ring-violet-500";
+function StepProject({
+  state,
+  setState,
+  onNext,
+  onBack,
+}: {
+  state: WizardState;
+  setState: (s: Partial<WizardState>) => void;
+  onNext: () => void;
+  onBack: () => void;
+}) {
+  const inputCls =
+    "w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2.5 text-sm text-white placeholder-slate-600 focus:border-violet-500 focus:outline-none focus:ring-1 focus:ring-violet-500";
 
   return (
     <div className="space-y-4">
       <div>
         <h2 className="text-lg font-bold text-white">İlk projenizi oluşturun</h2>
-        <p className="text-sm text-slate-400 mt-1">Test otomasyonuna başlamak için en az bir proje gereklidir</p>
+        <p className="text-sm text-slate-400 mt-1">
+          Test otomasyonuna başlamak için en az bir proje gereklidir
+        </p>
       </div>
 
       <div>
@@ -143,7 +195,12 @@ function StepProject({ state, setState, onNext, onBack }: { state: WizardState; 
         <input
           type="text"
           value={state.projectName}
-          onChange={(e) => setState({ projectName: e.target.value })}
+          onChange={(e) => {
+            setState({
+              projectName: e.target.value,
+              mgmtProjectKey: slugify(e.target.value),
+            });
+          }}
           placeholder="Örn: Ödeme API v2"
           className={inputCls}
           autoFocus
@@ -181,7 +238,10 @@ function StepProject({ state, setState, onNext, onBack }: { state: WizardState; 
       </div>
 
       <div className="flex gap-2 pt-2">
-        <button onClick={onBack} className="flex-1 rounded-xl border border-slate-700 py-3 text-sm text-slate-400 hover:text-white transition-colors">
+        <button
+          onClick={onBack}
+          className="flex-1 rounded-xl border border-slate-700 py-3 text-sm text-slate-400 hover:text-white transition-colors"
+        >
           ← Geri
         </button>
         <button
@@ -197,16 +257,30 @@ function StepProject({ state, setState, onNext, onBack }: { state: WizardState; 
 }
 
 // ── Step 3: API Spec ──────────────────────────────────────────────────────────
-function StepSpec({ state, setState, onNext, onBack }: { state: WizardState; setState: (s: Partial<WizardState>) => void; onNext: () => void; onBack: () => void }) {
+function StepSpec({
+  state,
+  setState,
+  onNext,
+  onBack,
+}: {
+  state: WizardState;
+  setState: (s: Partial<WizardState>) => void;
+  onNext: () => void;
+  onBack: () => void;
+}) {
   return (
     <div className="space-y-4">
       <div>
         <h2 className="text-lg font-bold text-white">API Spec bağlayın</h2>
-        <p className="text-sm text-slate-400 mt-1">Swagger/OpenAPI URL'si verirseniz testler otomatik üretilir</p>
+        <p className="text-sm text-slate-400 mt-1">
+          Swagger/OpenAPI URL'si verirseniz testler otomatik üretilir
+        </p>
       </div>
 
       <div>
-        <label className="block text-xs font-medium text-slate-400 mb-1.5">Swagger / OpenAPI URL</label>
+        <label className="block text-xs font-medium text-slate-400 mb-1.5">
+          Swagger / OpenAPI URL
+        </label>
         <input
           type="url"
           value={state.specUrl}
@@ -218,15 +292,24 @@ function StepSpec({ state, setState, onNext, onBack }: { state: WizardState; set
 
       <div className="rounded-xl border border-blue-400/20 bg-blue-500/5 p-4">
         <p className="text-xs text-blue-200 font-semibold mb-1">💡 Ne işe yarar?</p>
-        <p className="text-xs text-slate-400">Spec dosyası yüklendikten sonra AI, endpointleri analiz eder ve test senaryoları önerir. Daha sonra da ekleyebilirsiniz.</p>
+        <p className="text-xs text-slate-400">
+          Spec dosyası yüklendikten sonra AI, endpointleri analiz eder ve test senaryoları önerir.
+          Daha sonra da ekleyebilirsiniz.
+        </p>
       </div>
 
       <div className="flex gap-2 pt-2">
-        <button onClick={onBack} className="flex-1 rounded-xl border border-slate-700 py-3 text-sm text-slate-400 hover:text-white transition-colors">
+        <button
+          onClick={onBack}
+          className="flex-1 rounded-xl border border-slate-700 py-3 text-sm text-slate-400 hover:text-white transition-colors"
+        >
           ← Geri
         </button>
         <button
-          onClick={() => { setState({ specSkipped: true }); onNext(); }}
+          onClick={() => {
+            setState({ specSkipped: true });
+            onNext();
+          }}
           className="rounded-xl border border-slate-700 px-4 py-3 text-sm text-slate-400 hover:text-white transition-colors"
         >
           Atla
@@ -243,7 +326,17 @@ function StepSpec({ state, setState, onNext, onBack }: { state: WizardState; set
 }
 
 // ── Step 4: AI Preferences ────────────────────────────────────────────────────
-function StepAI({ state, setState, onNext, onBack }: { state: WizardState; setState: (s: Partial<WizardState>) => void; onNext: () => void; onBack: () => void }) {
+function StepAI({
+  state,
+  setState,
+  onNext,
+  onBack,
+}: {
+  state: WizardState;
+  setState: (s: Partial<WizardState>) => void;
+  onNext: () => void;
+  onBack: () => void;
+}) {
   return (
     <div className="space-y-4">
       <div>
@@ -262,19 +355,32 @@ function StepAI({ state, setState, onNext, onBack }: { state: WizardState; setSt
                 : "border-slate-700 bg-slate-800/50 hover:border-slate-600"
             }`}
           >
-            <div>
-              <p className={`text-sm font-medium ${state.aiProvider === p.value ? "text-white" : "text-slate-300"}`}>{p.label}</p>
-            </div>
+            <p
+              className={`text-sm font-medium ${
+                state.aiProvider === p.value ? "text-white" : "text-slate-300"
+              }`}
+            >
+              {p.label}
+            </p>
             <div className="flex items-center gap-2">
-              {p.fast && <span className="rounded-full bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 text-[10px] text-emerald-400">Hızlı</span>}
-              {state.aiProvider === p.value && <span className="text-violet-400 text-sm">✓</span>}
+              {p.fast && (
+                <span className="rounded-full bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 text-[10px] text-emerald-400">
+                  Hızlı
+                </span>
+              )}
+              {state.aiProvider === p.value && (
+                <span className="text-violet-400 text-sm">✓</span>
+              )}
             </div>
           </button>
         ))}
       </div>
 
       <div className="flex gap-2 pt-2">
-        <button onClick={onBack} className="flex-1 rounded-xl border border-slate-700 py-3 text-sm text-slate-400 hover:text-white transition-colors">
+        <button
+          onClick={onBack}
+          className="flex-1 rounded-xl border border-slate-700 py-3 text-sm text-slate-400 hover:text-white transition-colors"
+        >
           ← Geri
         </button>
         <button
@@ -288,8 +394,104 @@ function StepAI({ state, setState, onNext, onBack }: { state: WizardState; setSt
   );
 }
 
-// ── Step 5: Launch ────────────────────────────────────────────────────────────
-function StepLaunch({ state, onLaunch, loading, error, onBack }: {
+// ── Step 5: Test Management Setup ─────────────────────────────────────────────
+function StepManagement({
+  state,
+  setState,
+  onNext,
+  onBack,
+}: {
+  state: WizardState;
+  setState: (s: Partial<WizardState>) => void;
+  onNext: () => void;
+  onBack: () => void;
+}) {
+  const inputCls =
+    "w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2.5 text-sm text-white placeholder-slate-600 focus:border-violet-500 focus:outline-none focus:ring-1 focus:ring-violet-500 font-mono";
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <h2 className="text-lg font-bold text-white">Test Yönetimi</h2>
+        <p className="text-sm text-slate-400 mt-1">
+          Manuel test planları, senaryolar ve koşular için Neurex Management kurulumu
+        </p>
+      </div>
+
+      <div className="space-y-2">
+        {MGMT_GOALS.map((g) => (
+          <button
+            key={g.value}
+            onClick={() => setState({ mgmtGoal: g.value })}
+            className={`flex w-full items-center gap-3 rounded-xl border p-3.5 text-left transition-all ${
+              state.mgmtGoal === g.value
+                ? "border-violet-500/60 bg-violet-500/10"
+                : "border-slate-700 bg-slate-800/50 hover:border-slate-600"
+            }`}
+          >
+            <span className="text-xl">{g.icon}</span>
+            <span
+              className={`text-sm font-medium ${
+                state.mgmtGoal === g.value ? "text-white" : "text-slate-300"
+              }`}
+            >
+              {g.label}
+            </span>
+            {state.mgmtGoal === g.value && (
+              <span className="ml-auto text-violet-400 text-sm">✓</span>
+            )}
+          </button>
+        ))}
+      </div>
+
+      {state.mgmtGoal && state.mgmtGoal !== "skip" && (
+        <div>
+          <label className="block text-xs font-medium text-slate-400 mb-1.5">
+            Proje Anahtarı (max 8 karakter)
+          </label>
+          <input
+            type="text"
+            value={state.mgmtProjectKey}
+            onChange={(e) =>
+              setState({ mgmtProjectKey: slugify(e.target.value.toUpperCase()) })
+            }
+            placeholder="ÖRNEK"
+            maxLength={8}
+            className={inputCls}
+          />
+          <p className="text-xs text-slate-500 mt-1">
+            Senaryo anahtarlarında kullanılır: {state.mgmtProjectKey || "PRJCT"}-001
+          </p>
+        </div>
+      )}
+
+      <div className="flex gap-2 pt-2">
+        <button
+          onClick={onBack}
+          className="flex-1 rounded-xl border border-slate-700 py-3 text-sm text-slate-400 hover:text-white transition-colors"
+        >
+          ← Geri
+        </button>
+        <button
+          onClick={onNext}
+          disabled={!state.mgmtGoal}
+          className="flex-1 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 py-3 text-sm font-semibold text-white disabled:opacity-40 hover:opacity-90 transition-opacity"
+        >
+          Devam →
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ── Step 6: Launch ────────────────────────────────────────────────────────────
+function StepLaunch({
+  state,
+  onLaunch,
+  loading,
+  error,
+  onBack,
+}: {
   state: WizardState;
   onLaunch: () => void;
   loading: boolean;
@@ -298,6 +500,27 @@ function StepLaunch({ state, onLaunch, loading, error, onBack }: {
 }) {
   const roleLabel = TEAM_ROLES.find((r) => r.value === state.role)?.label ?? state.role;
   const aiLabel = AI_PROVIDERS.find((p) => p.value === state.aiProvider)?.label ?? "Otomatik";
+  const mgmtLabel =
+    MGMT_GOALS.find((g) => g.value === state.mgmtGoal)?.label ?? "—";
+
+  const summaryRows = [
+    { label: "Rol", value: roleLabel },
+    { label: "Proje", value: state.projectName },
+    state.projectUrl ? { label: "Hedef URL", value: state.projectUrl } : null,
+    {
+      label: "Domain",
+      value:
+        DOMAINS.find((d) => d.value === state.projectDomain)?.label ??
+        state.projectDomain ??
+        "Genel",
+    },
+    !state.specSkipped && state.specUrl ? { label: "API Spec", value: "Bağlanacak" } : null,
+    { label: "AI Sağlayıcı", value: aiLabel },
+    { label: "Test Yönetimi", value: mgmtLabel },
+    state.mgmtGoal !== "skip" && state.mgmtProjectKey
+      ? { label: "Mgmt Anahtarı", value: state.mgmtProjectKey }
+      : null,
+  ].filter(Boolean) as { label: string; value: string }[];
 
   return (
     <div className="space-y-5">
@@ -308,27 +531,27 @@ function StepLaunch({ state, onLaunch, loading, error, onBack }: {
       </div>
 
       <div className="rounded-xl border border-slate-700 bg-slate-800/50 divide-y divide-slate-700">
-        {[
-          { label: "Rol", value: roleLabel },
-          { label: "Proje", value: state.projectName },
-          state.projectUrl ? { label: "Hedef URL", value: state.projectUrl } : null,
-          { label: "Domain", value: (DOMAINS.find((d) => d.value === state.projectDomain)?.label ?? state.projectDomain) || "Genel" },
-          !state.specSkipped && state.specUrl ? { label: "API Spec", value: "Bağlanacak" } : null,
-          { label: "AI Sağlayıcı", value: aiLabel },
-        ].filter(Boolean).map((row) => row && (
+        {summaryRows.map((row) => (
           <div key={row.label} className="flex items-center justify-between px-4 py-3">
             <span className="text-xs text-slate-500">{row.label}</span>
-            <span className="text-sm font-medium text-white truncate max-w-[200px]">{row.value}</span>
+            <span className="text-sm font-medium text-white truncate max-w-[200px]">
+              {row.value}
+            </span>
           </div>
         ))}
       </div>
 
       {error && (
-        <p className="rounded-lg border border-red-400/20 bg-red-500/10 px-3 py-2 text-xs text-red-300">{error}</p>
+        <p className="rounded-lg border border-red-400/20 bg-red-500/10 px-3 py-2 text-xs text-red-300">
+          {error}
+        </p>
       )}
 
       <div className="flex gap-2">
-        <button onClick={onBack} className="flex-1 rounded-xl border border-slate-700 py-3 text-sm text-slate-400 hover:text-white transition-colors">
+        <button
+          onClick={onBack}
+          className="flex-1 rounded-xl border border-slate-700 py-3 text-sm text-slate-400 hover:text-white transition-colors"
+        >
           ← Geri
         </button>
         <button
@@ -359,14 +582,18 @@ export default function OnboardingPage() {
     specUrl: "",
     specSkipped: false,
     aiProvider: "any",
+    mgmtGoal: "",
+    mgmtProjectKey: "",
   });
 
-  const setState = (patch: Partial<WizardState>) => setStateRaw((prev) => ({ ...prev, ...patch }));
+  const setState = (patch: Partial<WizardState>) =>
+    setStateRaw((prev) => ({ ...prev, ...patch }));
 
   async function handleLaunch() {
     setLoading(true);
     setError("");
     try {
+      // 1. Create the TSPM automation project
       const p = await apiFetch<ProjectOut>("/api/v1/tspm/projects", {
         method: "POST",
         json: {
@@ -376,7 +603,7 @@ export default function OnboardingPage() {
         },
       });
 
-      // Import spec if provided
+      // 2. Import spec if provided
       if (!state.specSkipped && state.specUrl.trim()) {
         try {
           await apiFetch(`/api/v1/tspm/projects/${p.id}/api-specs/import`, {
@@ -388,12 +615,44 @@ export default function OnboardingPage() {
         }
       }
 
+      // 3. Create Neurex Management project if not skipped
+      let mgmtProjectId: string | null = null;
+      if (state.mgmtGoal && state.mgmtGoal !== "skip") {
+        try {
+          const mp = await apiFetch<ManagementProjectOut>(
+            "/api/v1/test-management/projects",
+            {
+              method: "POST",
+              json: {
+                key: state.mgmtProjectKey || slugify(state.projectName) || "PRJCT",
+                name: state.projectName.trim(),
+                description: `${state.mgmtGoal} · ${state.projectDomain}`,
+                tspm_project_id: p.id,
+              },
+            },
+          );
+          mgmtProjectId = mp.id;
+        } catch {
+          // non-fatal — management project can be created later
+        }
+      }
+
+      // 4. Persist preferences
       if (typeof window !== "undefined") {
         localStorage.setItem("onboarded", "true");
         localStorage.setItem("nexus_onboarding_role", state.role);
         localStorage.setItem("nexus_ai_provider", state.aiProvider);
+        if (mgmtProjectId) {
+          localStorage.setItem("nexus_mgmt_project_id", mgmtProjectId);
+        }
       }
-      router.push(`/p/${p.id}/scenarios`);
+
+      // 5. Redirect — prefer management dashboard if a management project was created
+      if (mgmtProjectId) {
+        router.push(`/p/${p.id}/management`);
+      } else {
+        router.push(`/p/${p.id}/scenarios`);
+      }
     } catch (e: unknown) {
       setError((e instanceof Error ? e.message : null) ?? "Proje oluşturulamadı.");
     } finally {
@@ -402,16 +661,24 @@ export default function OnboardingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center px-4 py-12" data-testid="onboarding-page">
-      {/* Logo */}
-      <div className="mb-8 text-center">
+    <div
+      className="min-h-screen bg-slate-950 flex flex-col items-center justify-center px-4 py-12"
+      data-testid="onboarding-page"
+    >
+      {/* Header with language switcher */}
+      <div className="mb-8 text-center relative w-full max-w-md">
+        <div className="absolute right-0 top-0">
+          <LanguageSwitcher />
+        </div>
         <div className="inline-flex h-16 w-16 items-center justify-center rounded-2xl border border-violet-400/30 bg-violet-500/10 text-3xl mb-4">
           ⚡
         </div>
         <h1 className="text-2xl font-bold text-white tracking-tight">
           <span className="text-violet-400">Neurex</span> QA
         </h1>
-        <p className="text-slate-400 text-sm mt-1">İlk kurulumu tamamlayın — yalnızca 2 dakika</p>
+        <p className="text-slate-400 text-sm mt-1">
+          İlk kurulumu tamamlayın — yalnızca 2 dakika
+        </p>
       </div>
 
       <div className="w-full max-w-md">
@@ -421,17 +688,57 @@ export default function OnboardingPage() {
         {/* Step label */}
         <div className="mb-5 text-center">
           <span className="text-[10px] font-semibold uppercase tracking-widest text-slate-600">
-            Adım {step} / {STEPS.length} — {STEPS[step - 1].icon} {STEPS[step - 1].title}
+            Adım {step} / {STEPS.length} — {STEPS[step - 1].icon}{" "}
+            {STEPS[step - 1].title}
           </span>
         </div>
 
         {/* Step content */}
         <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-2xl">
-          {step === 1 && <StepProfile state={state} setState={setState} onNext={() => setStep(2)} />}
-          {step === 2 && <StepProject state={state} setState={setState} onNext={() => setStep(3)} onBack={() => setStep(1)} />}
-          {step === 3 && <StepSpec state={state} setState={setState} onNext={() => setStep(4)} onBack={() => setStep(2)} />}
-          {step === 4 && <StepAI state={state} setState={setState} onNext={() => setStep(5)} onBack={() => setStep(3)} />}
-          {step === 5 && <StepLaunch state={state} onLaunch={handleLaunch} loading={loading} error={error} onBack={() => setStep(4)} />}
+          {step === 1 && (
+            <StepProfile state={state} setState={setState} onNext={() => setStep(2)} />
+          )}
+          {step === 2 && (
+            <StepProject
+              state={state}
+              setState={setState}
+              onNext={() => setStep(3)}
+              onBack={() => setStep(1)}
+            />
+          )}
+          {step === 3 && (
+            <StepSpec
+              state={state}
+              setState={setState}
+              onNext={() => setStep(4)}
+              onBack={() => setStep(2)}
+            />
+          )}
+          {step === 4 && (
+            <StepAI
+              state={state}
+              setState={setState}
+              onNext={() => setStep(5)}
+              onBack={() => setStep(3)}
+            />
+          )}
+          {step === 5 && (
+            <StepManagement
+              state={state}
+              setState={setState}
+              onNext={() => setStep(6)}
+              onBack={() => setStep(4)}
+            />
+          )}
+          {step === 6 && (
+            <StepLaunch
+              state={state}
+              onLaunch={handleLaunch}
+              loading={loading}
+              error={error}
+              onBack={() => setStep(5)}
+            />
+          )}
         </div>
 
         {/* Skip onboarding link */}

@@ -2077,6 +2077,176 @@ def cortex_recordings_list():
     return jsonify({"ok": True, "total": len(all_recordings), "limit": limit, "offset": offset, "recordings": paginated})
 
 
+# ───────────────────────────────────────────────────────────────────────────
+#  E19 minimal — shareable recording bundles
+#  Single-file portable format so a tester can copy/paste a recording into
+#  Slack or email. The recipient pastes the same blob into /import and
+#  immediately has the .feature + locator JSON in their checkout.
+#
+#  Format is deliberately base64-of-json so it survives chat clients that
+#  mangle whitespace, and so any single-token leak is obviously a bundle.
+# ───────────────────────────────────────────────────────────────────────────
+import base64 as _b64
+
+def _safe_name(s: str) -> str:
+    """Lowercase, alnum + underscore only — same convention as Java side."""
+    out = []
+    for ch in (s or "").strip().lower():
+        if ch.isalnum() or ch == "_":
+            out.append(ch)
+        elif ch in (" ", "-", "."):
+            out.append("_")
+    safe = "".join(out).strip("_")
+    return safe or "untitled"
+
+
+def _find_feature(name: str):
+    """Locate a feature file across both recordings dirs. Returns Path or None."""
+    cortex_dir = Path(__file__).resolve().parent.parent
+    candidates = [
+        cortex_dir / "src" / "test" / "resources" / "recordings" / f"{name}.feature",
+        (RECORDINGS_DIR / f"{name}.feature") if RECORDINGS_DIR else None,
+    ]
+    for c in candidates:
+        if c and c.exists():
+            return c
+    return None
+
+
+@app.route("/api/cortex/recordings/<name>/bundle", methods=["GET"])
+def cortex_recordings_bundle(name):
+    """Export a recording as a portable base64 bundle (E19 MVP).
+
+    Returns a single base64-encoded JSON blob containing the .feature text,
+    its companion locator JSON (if present), and minimal metadata. Recipients
+    paste the blob into /import to materialise the recording on their machine.
+
+    Use case: tester A finishes a recording, clicks "Share" in the dashboard,
+    copies the blob, pastes in Slack. Tester B pastes blob into their own
+    dashboard's import dialog and now has the same .feature + locators.
+
+    Query: none. Returns: { ok, name, bundle: str, scenarios, tags }
+    """
+    safe = _safe_name(name)
+    feature_path = _find_feature(safe)
+    if not feature_path:
+        return jsonify({"ok": False, "error": f"recording not found: {safe}"}), 404
+
+    feature_text = feature_path.read_text(encoding="utf-8", errors="replace")
+    # Pull tags + scenario count for caller-side preview
+    scenarios = sum(1 for l in feature_text.splitlines() if l.strip().startswith("Scenario"))
+    tags = list({w.lstrip("@") for line in feature_text.splitlines()
+                  if line.strip().startswith("@")
+                  for w in line.split() if w.startswith("@")})
+
+    locator_path = feature_path.parent / f"{safe}.locators.json"
+    locator_blob = None
+    if locator_path.exists():
+        try:
+            locator_blob = json.loads(locator_path.read_text(encoding="utf-8"))
+        except Exception:
+            locator_blob = None
+
+    payload = {
+        "v": 1,
+        "name": safe,
+        "feature": feature_text,
+        "locators": locator_blob,
+        "exported_at": int(time.time()),
+        "exported_by": os.environ.get("USER", "anonymous"),
+    }
+    bundle = _b64.b64encode(
+        json.dumps(payload, ensure_ascii=False).encode("utf-8")
+    ).decode("ascii")
+
+    return jsonify({
+        "ok": True,
+        "name": safe,
+        "scenarios": scenarios,
+        "tags": tags,
+        "bundle_bytes": len(bundle),
+        "bundle": bundle,
+        "instructions": (
+            "Paste this entire 'bundle' string into the recipient's "
+            "Cortex dashboard via POST /api/cortex/recordings/import "
+            "(or the Share modal's 'Bundle al' field)."
+        ),
+    })
+
+
+@app.route("/api/cortex/recordings/import", methods=["POST"])
+def cortex_recordings_import():
+    """Materialise a shared recording bundle on disk (E19 MVP).
+
+    Body: { bundle: str, overwrite?: bool = false }
+    Returns: { ok, name, paths, overwritten }
+
+    Refuses to clobber an existing recording unless overwrite=true is set —
+    the caller (dashboard) prompts the user to confirm. The bundle is
+    base64-decoded, validated for shape, then written into the canonical
+    recordings dir alongside its locator JSON.
+    """
+    data = request.get_json(silent=True) or {}
+    bundle_str = (data.get("bundle") or "").strip()
+    overwrite = bool(data.get("overwrite"))
+    if not bundle_str:
+        return jsonify({"ok": False, "error": "bundle string required"}), 400
+
+    try:
+        decoded = _b64.b64decode(bundle_str, validate=True).decode("utf-8")
+        payload = json.loads(decoded)
+    except Exception as e:
+        return jsonify({"ok": False, "error": f"bundle parse failed: {e}"}), 400
+
+    if not isinstance(payload, dict) or payload.get("v") != 1:
+        return jsonify({"ok": False, "error": "unrecognized bundle version"}), 400
+
+    name = _safe_name(payload.get("name", ""))
+    feature_text = payload.get("feature")
+    locator_blob = payload.get("locators")
+    if not name or not isinstance(feature_text, str) or not feature_text.strip():
+        return jsonify({"ok": False, "error": "bundle missing name or feature"}), 400
+
+    target_dir = RECORDINGS_DIR or (
+        Path(__file__).resolve().parent.parent
+        / "src" / "test" / "resources" / "recordings"
+    )
+    target_dir.mkdir(parents=True, exist_ok=True)
+    feature_path = target_dir / f"{name}.feature"
+    locator_path = target_dir / f"{name}.locators.json"
+
+    overwritten = []
+    if feature_path.exists() and not overwrite:
+        return jsonify({
+            "ok": False,
+            "error": "recording exists — pass overwrite=true to replace",
+            "existing_path": str(feature_path),
+        }), 409
+    if feature_path.exists():
+        overwritten.append(str(feature_path))
+    feature_path.write_text(feature_text, encoding="utf-8")
+
+    if isinstance(locator_blob, dict):
+        if locator_path.exists() and overwrite:
+            overwritten.append(str(locator_path))
+        locator_path.write_text(
+            json.dumps(locator_blob, ensure_ascii=False, indent=2),
+            encoding="utf-8",
+        )
+
+    return jsonify({
+        "ok": True,
+        "name": name,
+        "paths": {
+            "feature": str(feature_path),
+            "locators": str(locator_path) if isinstance(locator_blob, dict) else None,
+        },
+        "overwritten": overwritten,
+        "exported_by": payload.get("exported_by"),
+        "exported_at": payload.get("exported_at"),
+    })
+
+
 @app.route("/api/cortex/llm/models", methods=["GET"])
 def cortex_llm_models():
     """List available Ollama models (E15 fix).

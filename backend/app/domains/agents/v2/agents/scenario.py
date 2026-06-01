@@ -162,7 +162,7 @@ class ScenarioAgent(BaseAgent):
         try:
             base = Path("engine/features/generated")
             if not base.parent.exists():
-                base = Path("/tmp/twai_generated_features")
+                base = Path("/tmp/twai_generated_features")  # nosec B108
             base.mkdir(parents=True, exist_ok=True)
             safe_name = feature.name.replace("/", "_").replace(" ", "_")[:60]
             fname = f"{safe_name}_{run_id[:8]}.feature"

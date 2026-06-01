@@ -1,7 +1,11 @@
+> ⚠️ **ARŞİV** — Bu ADR 2026-05-24 tarihinde [`../0005-engine-consolidation.md`](../0005-engine-consolidation.md) tarafından supersede edilmiştir.
+> Aktif kararlar için ADR-0005'e bakın.
+
 # ADR-001: Backend (FastAPI) ve Engine (Flask) ayrı süreçler olarak kalması
 
-- **Durum:** Kabul edildi (varsayılan)
+- **Durum:** ~~Kabul edildi~~ → **Arşivlendi** (bkz. ADR-0005)
 - **Tarih:** 2026-04-04
+- **Arşiv tarihi:** 2026-05-24
 - **Bağlam:** [`REPO_CONSOLIDATION_PLAN.md`](REPO_CONSOLIDATION_PLAN.md) Faz 5
 
 ## Bağlam

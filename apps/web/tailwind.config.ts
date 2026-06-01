@@ -48,6 +48,7 @@ const config: Config = {
           web:          "var(--product-web)",
           mobile:       "var(--product-mobile)",
           data:         "var(--product-data)",
+          management:   "var(--product-management)",
           intelligence: "var(--product-intelligence)",
           code:         "var(--product-code)",
         },

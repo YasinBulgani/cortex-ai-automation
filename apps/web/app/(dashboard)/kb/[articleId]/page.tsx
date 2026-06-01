@@ -13,7 +13,7 @@ function renderMarkdown(md: string): string {
     .replace(/^### (.*)$/gm, '<h3 class="mt-4 mb-2 text-base font-semibold">$1</h3>')
     .replace(/^## (.*)$/gm, '<h2 class="mt-5 mb-2 text-lg font-bold">$1</h2>')
     .replace(/^# (.*)$/gm, '<h1 class="mt-5 mb-3 text-xl font-bold">$1</h1>')
-    .replace(/```([^`]+)```/gs, '<pre class="my-3 overflow-auto rounded bg-slate-800 p-3 text-xs"><code>$1</code></pre>')
+    .replace(/```([\s\S]*?)```/g, '<pre class="my-3 overflow-auto rounded bg-slate-800 p-3 text-xs"><code>$1</code></pre>')
     .replace(/`([^`]+)`/g, '<code class="rounded bg-slate-800 px-1 py-0.5 text-xs">$1</code>')
     .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
     .replace(/^- (.*)$/gm, '<li class="ml-5 list-disc">$1</li>')

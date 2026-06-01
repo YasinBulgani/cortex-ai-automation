@@ -1,75 +1,61 @@
-"""Public service facade for the compliance domain.
+"""Compliance domain service facade.
 
-Exposes KVKK/BDDK/ISO-27001 control mappings and provides the interface for
-programmatic compliance checks and report generation.
+Thin facade over ``mapping.py``.  The router and any non-HTTP callers
+(CLI, tests, scheduled jobs) should import from here rather than
+reaching into the mapping module directly.
+
+Exposed API
+-----------
+list_controls(standard)       -> list[Control]
+get_control(control_id)       -> Control | None
+mappings_for(control_id)      -> list[Mapping]
+build_evidence_pack()         -> dict
+export_evidence(target)       -> Path
+unmapped_controls()           -> list[Control]
+controls_for_feature(feature) -> list[Control]
 """
 from __future__ import annotations
 
-import logging
+from pathlib import Path
+from typing import Dict, List, Optional
 
 from app.domains.compliance.mapping import (
     Control,
     Mapping,
+    build_evidence_pack,
     controls_for_feature,
+    export_evidence,
     get_control,
     list_controls,
     mappings_for,
     unmapped_controls,
 )
 
-logger = logging.getLogger(__name__)
-
 __all__ = [
-    # mapping
     "Control",
     "Mapping",
-    "get_control",
     "list_controls",
+    "get_control",
     "mappings_for",
     "controls_for_feature",
     "unmapped_controls",
-    # stubs
-    "run_compliance_check",
-    "get_compliance_report",
+    "build_evidence_pack",
+    "export_evidence",
 ]
 
 
-def run_compliance_check(
-    project_id: str,
-    *,
-    standards: list[str] | None = None,
-) -> dict:
-    """Run automated compliance checks against the registered control mappings.
+def get_coverage_summary() -> Dict[str, object]:
+    """Return a high-level coverage dict suitable for dashboards and CI gates.
 
-    Args:
-        project_id: The project to check.
-        standards: Optional list of standards to limit the check to
-            (e.g. ``["KVKK", "BDDK"]``). Defaults to all standards.
-
-    Returns:
-        A dict with ``passed``, ``failed``, and per-control details.
-
-    Raises:
-        NotImplementedError: Until automated check execution is implemented.
+    Convenience wrapper around ``build_evidence_pack`` that keeps the
+    router lean.  Includes ``total_controls``, ``total_mappings``,
+    ``unmapped`` ids, ``coverage_pct``, and ``standards``.
     """
-    raise NotImplementedError(
-        "TODO: implement run_compliance_check — see docs/planning/END_USER_GAPS_PLAN.md"
-    )
-
-
-def get_compliance_report(project_id: str, *, format: str = "json") -> dict:
-    """Generate a compliance evidence report for a project.
-
-    Args:
-        project_id: The project to report on.
-        format: Output format — ``"json"`` or ``"html"``.
-
-    Returns:
-        A dict with report metadata and the rendered report content.
-
-    Raises:
-        NotImplementedError: Until report generation is implemented.
-    """
-    raise NotImplementedError(
-        "TODO: implement get_compliance_report — see docs/planning/END_USER_GAPS_PLAN.md"
-    )
+    pack = build_evidence_pack()
+    return {
+        "total_controls": len(pack["controls"]),
+        "total_mappings": len(pack["mappings"]),
+        "unmapped": list(pack["unmapped"]),
+        "coverage_pct": pack["coverage_pct"],
+        "standards": pack["generated_standards"],
+    }

@@ -160,3 +160,46 @@ class UserUpdateRequest(BaseModel):
     department: Optional[str] = None
     is_active: Optional[bool] = None
     role: Optional[str] = None
+
+
+# ── MFA / TOTP schemas ────────────────────────────────────────────────────────
+
+
+class MfaSetupResponse(BaseModel):
+    """Returned when the user initiates MFA setup."""
+    secret: str                  # Base32 secret — shown ONCE, user saves it
+    provisioning_uri: str        # otpauth:// URI for QR code rendering
+    backup_codes: list[str]      # 8 single-use backup codes — shown ONCE
+
+
+class MfaVerifyRequest(BaseModel):
+    """User submits their first TOTP code to confirm setup."""
+    code: str = Field(min_length=6, max_length=6, pattern=r"^\d{6}$")
+
+
+class MfaLoginRequest(BaseModel):
+    """Used when MFA is required during login (step 2)."""
+    session_token: str           # short-lived JWT with purpose=mfa_challenge
+    code: str = Field(min_length=6, max_length=8)  # TOTP or backup code
+    remember_me: bool = False
+
+
+class MfaStatusResponse(BaseModel):
+    mfa_enabled: bool
+    backup_codes_remaining: Optional[int] = None
+
+
+class MfaDisableRequest(BaseModel):
+    """Confirm current password + TOTP before disabling MFA."""
+    password: str = Field(min_length=1)
+    code: str = Field(min_length=6, max_length=8)
+
+
+class LoginResponse(BaseModel):
+    """Extended login response that may indicate MFA is required."""
+    access_token: Optional[str] = None
+    refresh_token: Optional[str] = None
+    token_type: str = "bearer"
+    expires_in: Optional[int] = None
+    mfa_required: bool = False
+    mfa_session_token: Optional[str] = None  # short-lived token for MFA step

@@ -20,8 +20,9 @@ Test liderleri, kalite mühendisleri ve otomasyon ekipleri; çok projeli, denetl
 | Senaryo oluştur/düzenle | `/p/[projectId]/scenarios/new`, `.../edit/[id]` | Tek sayfa form + önizleme. |
 | Onaylar | `/p/[projectId]/approvals` | Kuyruk; split view: kaynak ↔ AI taslağı. |
 | İçe aktarma | `/p/[projectId]/import` | Kaynak seçimi, yükleme, durum ve log. |
+| Neurex Management | `/p/[projectId]/management` | Manuel test repository, test plan/run, tester atama ve kalite raporları. |
 
-Faz 2+: akış editörü (`/flows`), execution (`/executions`), asistan, gelişmiş RBAC.
+Faz 2+: akış editörü (`/flows`), execution (`/executions`), asistan, gelişmiş RBAC. Manuel QA operasyonu için Neurex Management ayrı ürün yüzeyi olarak büyür; senaryo tasarımı Studio/TSPM tarafında, manuel koşum hafızası Management tarafında tutulur.
 
 ## Temel kullanıcı akışları
 
@@ -37,6 +38,8 @@ Bol beyaz alan, güçlü tipografi, tek birincil aksiyon rengi, düşük gürül
 ## API yüzeyi (özet)
 
 Premium domain REST API, mevcut legacy rotalarla çakışmaması için **`/api/v1/tspm/*`** altında toplanır: projeler, senaryolar (bulk), onaylar, importlar, `POST .../ai/runs`, imzalı `POST .../webhooks/n8n/...` callback’leri.
+
+Neurex Management için manuel test operasyon API'si ayrı prefix kullanır: **`/api/v1/test-management/*`**. Bu sınır test case repository, test plan/cycle/run, execution evidence, defect link ve manuel QA raporlarını kapsar.
 
 ## MVP kapsamı (Faz 1)
 

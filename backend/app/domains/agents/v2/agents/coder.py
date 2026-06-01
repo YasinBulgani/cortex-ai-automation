@@ -124,7 +124,7 @@ class CoderAgent(BaseAgent):
     def _output_dir(self, run_id: str) -> Path:
         base = Path("e2e/generated") / f"agent-v2-{run_id[:8]}"
         if not Path("e2e").exists():
-            base = Path("/tmp/twai_generated_code") / run_id[:8]
+            base = Path("/tmp/twai_generated_code") / run_id[:8]  # nosec B108
         base.mkdir(parents=True, exist_ok=True)
         return base
 

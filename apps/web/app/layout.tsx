@@ -4,6 +4,8 @@ import { QueryProvider } from "@/lib/query-provider";
 import { PLATFORM_BRAND, PRODUCT_NAME } from "@/lib/product";
 import AuthBootstrap from "@/components/AuthBootstrap";
 import { PWARegister } from "@/components/PWARegister";
+import { I18nProvider } from "@/lib/i18n";
+import { CookieConsentBanner } from "@/components/CookieConsentBanner";
 import "./globals.css";
 
 const inter = Inter({
@@ -55,7 +57,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="font-sans antialiased">
         <AuthBootstrap />
         <PWARegister />
-        <QueryProvider>{children}</QueryProvider>
+        <I18nProvider>
+          <QueryProvider>{children}</QueryProvider>
+        </I18nProvider>
+        <CookieConsentBanner />
       </body>
     </html>
   );
