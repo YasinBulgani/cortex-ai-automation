@@ -20,18 +20,9 @@ depends_on = None
 
 
 def upgrade() -> None:
-    op.add_column(
-        "tspm_flows",
-        sa.Column("template_id", sa.String(128), nullable=True, server_default=None),
-    )
-    op.add_column(
-        "tspm_flows",
-        sa.Column("agent_type", sa.String(64), nullable=True, server_default=None),
-    )
-    op.add_column(
-        "tspm_flows",
-        sa.Column("tags", JSONB, nullable=True, server_default="[]"),
-    )
+    op.execute("ALTER TABLE tspm_flows ADD COLUMN IF NOT EXISTS template_id VARCHAR(128)")
+    op.execute("ALTER TABLE tspm_flows ADD COLUMN IF NOT EXISTS agent_type VARCHAR(64)")
+    op.execute("ALTER TABLE tspm_flows ADD COLUMN IF NOT EXISTS tags JSONB DEFAULT '[]'")
 
 
 def downgrade() -> None:

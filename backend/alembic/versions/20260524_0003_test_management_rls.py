@@ -105,7 +105,7 @@ def upgrade() -> None:
 
                 DROP POLICY IF EXISTS rls_tenant_isolation ON {_DIRECT_TENANT_TABLE};
                 CREATE POLICY rls_tenant_isolation ON {_DIRECT_TENANT_TABLE}
-                    USING (tenant_id = current_tenant_id());
+                    USING (tenant_id = current_tenant_id()::text);
 
                 CREATE INDEX IF NOT EXISTS idx_{_DIRECT_TENANT_TABLE}_tenant_id
                     ON {_DIRECT_TENANT_TABLE}(tenant_id);
@@ -132,7 +132,7 @@ def upgrade() -> None:
                         USING (
                             project_id IN (
                                 SELECT id FROM test_management_projects
-                                WHERE tenant_id = current_tenant_id()
+                                WHERE tenant_id = current_tenant_id()::text
                             )
                         );
 
