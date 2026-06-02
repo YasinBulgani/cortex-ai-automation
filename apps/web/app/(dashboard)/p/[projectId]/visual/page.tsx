@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { useRouteParam } from "@/lib/use-route-param";
 import { PageHeader } from "@/components/nexus/PageHeader";
@@ -57,48 +58,44 @@ function DiffBar({ pct }: { pct: number }) {
 
 export default function VisualRegressionPage() {
   const projectId = useRouteParam("projectId");
-  const [baselines, setBaselines] = useState<Baseline[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
+  const baselinesQK = ["visual", "baselines", projectId] as const;
+
   const [url, setUrl] = useState("");
   const [selectedPage, setSelectedPage] = useState("");
-  const [comparing, setComparing] = useState(false);
   const [result, setResult] = useState<CompareResult | null>(null);
   const [error, setError] = useState("");
 
-  const loadBaselines = useCallback(() => {
-    setLoading(true);
-    apiFetch<Baseline[]>(`/api/v1/tspm/projects/${projectId}/visual/baselines`)
-      .then(data => setBaselines(data || []))
-      .catch(() => setBaselines([]))
-      .finally(() => setLoading(false));
-  }, [projectId]);
+  const { data: baselines = [], isLoading: loading } = useQuery<Baseline[]>({
+    queryKey: baselinesQK,
+    queryFn: () => apiFetch<Baseline[]>(`/api/v1/tspm/projects/${projectId}/visual/baselines`),
+    enabled: !!projectId,
+    staleTime: 60 * 1000,
+    gcTime: 5 * 60 * 1000,
+  });
 
-  useEffect(() => { loadBaselines(); }, [loadBaselines]);
+  const compareMut = useMutation({
+    mutationFn: () => apiFetch<CompareResult>(`/api/v1/tspm/projects/${projectId}/visual/compare`, {
+      method: "POST", json: { url: url.trim(), page_name: selectedPage, threshold: 1.0 },
+    }),
+    onSuccess: (res) => setResult(res),
+    onError: (e) => setError(e instanceof Error ? e.message : "Karşılaştırma hatası"),
+  });
 
-  async function handleCompare() {
+  const deleteMut = useMutation({
+    mutationFn: (id: string) =>
+      apiFetch(`/api/v1/tspm/projects/${projectId}/visual/baselines/${id}`, { method: "DELETE" }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: baselinesQK }),
+  });
+
+  function handleCompare() {
     if (!url.trim() || !selectedPage) { setError("URL ve sayfa seçimi gerekli"); return; }
-    setComparing(true);
     setError("");
     setResult(null);
-    try {
-      const res = await apiFetch<CompareResult>(
-        `/api/v1/tspm/projects/${projectId}/visual/compare`,
-        { method: "POST", json: { url: url.trim(), page_name: selectedPage, threshold: 1.0 } },
-      );
-      setResult(res);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Karşılaştırma hatası");
-    } finally {
-      setComparing(false);
-    }
+    compareMut.mutate();
   }
 
-  async function handleDelete(id: string) {
-    try {
-      await apiFetch(`/api/v1/tspm/projects/${projectId}/visual/baselines/${id}`, { method: "DELETE" });
-      loadBaselines();
-    } catch { /* ignore */ }
-  }
+  const comparing = compareMut.isPending;
 
   return (
     <div className="min-h-screen bg-slate-950 p-6 flex flex-col gap-4" data-testid="visual-regression-page">
@@ -118,7 +115,7 @@ export default function VisualRegressionPage() {
         projectId={projectId}
         stage="observe"
         title="Gorsel kalite ve regresyon akisi"
-        description="Önce baseline’ları sabitleyin, sonra hedef sayfaları karşılaştırıp diff sinyalini raporlara taşıyın."
+        description="Önce baseline'ları sabitleyin, sonra hedef sayfaları karşılaştırıp diff sinyalini raporlara taşıyın."
         nextLabel="Raporlari ac"
         nextHref={`/p/${projectId}/reports`}
         supportLinks={[
@@ -188,7 +185,7 @@ export default function VisualRegressionPage() {
                   <td className="px-4 py-2.5 text-white text-xs font-medium">{b.page}</td>
                   <td className="px-4 py-2.5 text-xs text-slate-500">{new Date(b.created_at).toLocaleDateString("tr-TR")}</td>
                   <td className="px-4 py-2.5">
-                    <button onClick={() => handleDelete(b.id)}
+                    <button onClick={() => deleteMut.mutate(b.id)}
                       className="text-xs text-red-400 hover:text-red-300 transition">Sil</button>
                   </td>
                 </tr>

@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/api";
 import { PageHeader } from "@/components/nexus/PageHeader";
 import { SectionCard } from "@/components/nexus/SectionCard";
@@ -50,6 +51,20 @@ const PLAN_INFO: Record<string, { label: string; color: string; features: string
 
 const PLANS = ["free", "starter", "pro", "enterprise"];
 
+const FALLBACK_STATS: UsageStats = {
+  plan: "starter",
+  scenario_count: 47,
+  scenario_limit: 500,
+  run_count_month: 312,
+  run_limit_month: 1000,
+  ai_token_spend_usd: 4.23,
+  ai_token_limit_usd: 20,
+  team_size: 5,
+  team_limit: 10,
+  storage_mb: 1240,
+  storage_limit_mb: 10240,
+};
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function UsageBar({ used, limit, label }: { used: number; limit: number; label: string }) {
@@ -72,37 +87,18 @@ function UsageBar({ used, limit, label }: { used: number; limit: number; label: 
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function BillingPage() {
-  const [stats, setStats] = useState<UsageStats | null>(null);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
+
+  const { data: stats = null, isLoading: loading } = useQuery<UsageStats>({
+    queryKey: ["admin", "billing", "usage"],
+    queryFn: () => apiFetch<UsageStats>("/api/v1/admin/billing/usage").catch(() => FALLBACK_STATS),
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+  });
+
   const [showUpgrade, setShowUpgrade] = useState(false);
   const [changingPlan, setChangingPlan] = useState<string | null>(null);
   const [planError, setPlanError] = useState<string | null>(null);
-
-  const loadUsage = () => {
-    apiFetch<UsageStats>("/api/v1/admin/billing/usage")
-      .then(setStats)
-      .catch(() => {
-        // Fallback demo values when endpoint not available
-        setStats({
-          plan: "starter",
-          scenario_count: 47,
-          scenario_limit: 500,
-          run_count_month: 312,
-          run_limit_month: 1000,
-          ai_token_spend_usd: 4.23,
-          ai_token_limit_usd: 20,
-          team_size: 5,
-          team_limit: 10,
-          storage_mb: 1240,
-          storage_limit_mb: 10240,
-        });
-      })
-      .finally(() => setLoading(false));
-  };
-
-  useEffect(() => {
-    loadUsage();
-  }, []);
 
   const handlePlanChange = async (planCode: string) => {
     if (planCode === "enterprise") {
@@ -141,7 +137,7 @@ export default function BillingPage() {
         method: "POST",
         body: JSON.stringify({ plan_code: planCode }),
       });
-      loadUsage();
+      queryClient.invalidateQueries({ queryKey: ["admin", "billing", "usage"] });
     } catch (e) {
       setPlanError(
         e instanceof Error ? e.message : "Plan değiştirilemedi. Lütfen tekrar deneyin.",

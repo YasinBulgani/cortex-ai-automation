@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+
 import {
   type DefectLink,
   useExecutionSummary,
@@ -7,6 +9,7 @@ import {
   useUpdateManagementDefect,
 } from "@/lib/hooks/use-management";
 
+import { CommentThread } from "../_components/CommentThread";
 import { ManagementPanel, ManagementShell, ManagementStat } from "../_components/ManagementShell";
 
 const CLOSED_STATUSES = new Set(["closed", "done", "resolved", "fixed", "verified"]);
@@ -62,6 +65,8 @@ export default function ManagementDefectsPage({ params }: { params: { projectId:
   const summary = useExecutionSummary(params.projectId);
   const updateDefect = useUpdateManagementDefect(params.projectId);
   const rows = defects.data ?? [];
+  const [discussionDefectId, setDiscussionDefectId] = useState<string | null>(null);
+  const activeDiscussionId = discussionDefectId ?? rows[0]?.id ?? null;
   const openRows = rows.filter((item) => !isClosed(item));
   const open = openRows.length;
   const blockers = rows.filter(isReleaseBlocker);
@@ -340,6 +345,42 @@ export default function ManagementDefectsPage({ params }: { params: { projectId:
             </tbody>
           </table>
         </div>
+      </ManagementPanel>
+
+      <ManagementPanel title="Discussion">
+        {rows.length === 0 ? (
+          <p className="text-sm text-slate-500">
+            Tartışma için henüz defect yok.
+          </p>
+        ) : (
+          <div className="space-y-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <label className="text-xs text-slate-400" htmlFor="defect-discussion-select">
+                Defect:
+              </label>
+              <select
+                id="defect-discussion-select"
+                value={activeDiscussionId ?? ""}
+                onChange={(event) => setDiscussionDefectId(event.target.value || null)}
+                className="rounded-lg border border-slate-700 bg-slate-950 px-2 py-1 text-xs text-slate-200 focus:border-cyan-500 focus:outline-none"
+              >
+                {rows.map((defect) => (
+                  <option key={defect.id} value={defect.id}>
+                    {defect.external_key} — {defect.title.slice(0, 60)}
+                  </option>
+                ))}
+              </select>
+            </div>
+            {activeDiscussionId ? (
+              <CommentThread
+                entityType="defect"
+                entityId={activeDiscussionId}
+                projectId={params.projectId}
+                title="Defect Discussion"
+              />
+            ) : null}
+          </div>
+        )}
       </ManagementPanel>
     </ManagementShell>
   );

@@ -5,7 +5,6 @@ from __future__ import annotations
 from collections import defaultdict
 from datetime import datetime, timedelta, timezone
 
-from fastapi import HTTPException, status
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
@@ -173,7 +172,7 @@ def compare_executions_for_project(
         or execution_one.project_id != project_id
         or execution_two.project_id != project_id
     ):
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Koşu bulunamadı")
+        raise KeyError("Koşu bulunamadı")
 
     results1 = {
         result.scenario_id: result.status
@@ -225,7 +224,7 @@ def get_execution_detail_for_project(
 ) -> ExecutionDetailOut:
     execution = db.get(TspmExecution, run_id)
     if execution is None or execution.project_id != project_id:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Koşu bulunamadı")
+        raise KeyError("Koşu bulunamadı")
 
     results = list(
         db.scalars(select(TspmExecutionResult).where(TspmExecutionResult.execution_id == run_id))
@@ -258,7 +257,7 @@ def get_execution_detail_for_project(
 def update_execution_result_status(db: Session, run_id: str, result_id: str, status_value: str) -> dict:
     result = db.get(TspmExecutionResult, result_id)
     if result is None or result.execution_id != run_id:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Sonuç bulunamadı")
+        raise KeyError("Sonuç bulunamadı")
     result.status = status_value
     db.commit()
     return {"ok": True}
@@ -267,7 +266,7 @@ def update_execution_result_status(db: Session, run_id: str, result_id: str, sta
 def rerun_execution_for_project(db: Session, project_id: str, run_id: str) -> ExecutionOut:
     old_execution = db.get(TspmExecution, run_id)
     if old_execution is None or old_execution.project_id != project_id:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Koşu bulunamadı")
+        raise KeyError("Koşu bulunamadı")
 
     old_results = list(
         db.scalars(select(TspmExecutionResult).where(TspmExecutionResult.execution_id == run_id))

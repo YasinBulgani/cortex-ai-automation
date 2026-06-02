@@ -11,6 +11,7 @@ import {
   useRegressionSets,
 } from "@/lib/hooks/use-management";
 
+import { CommentThread } from "../_components/CommentThread";
 import { ManagementPanel, ManagementShell, ManagementStat } from "../_components/ManagementShell";
 
 export default function ManagementPlansPage({ params }: { params: { projectId: string } }) {
@@ -32,6 +33,7 @@ export default function ManagementPlansPage({ params }: { params: { projectId: s
   const [cyclePlanId, setCyclePlanId] = useState("");
   const [environment, setEnvironment] = useState("");
   const [buildVersion, setBuildVersion] = useState("");
+  const [discussionPlanId, setDiscussionPlanId] = useState<string>("");
   const activePlans = plans.data?.filter((plan) => plan.status !== "archived").length ?? 0;
   const caseCount = repository.data?.cases.length ?? 0;
   const readyCases = repository.data?.cases.filter((item) => ["ready", "active"].includes(item.status)).length ?? 0;
@@ -260,6 +262,40 @@ export default function ManagementPlansPage({ params }: { params: { projectId: s
             </table>
           </div>
         </div>
+      </ManagementPanel>
+
+      <ManagementPanel title="Plan Discussion">
+        {(plans.data ?? []).length === 0 ? (
+          <p className="text-sm text-slate-500">Tartışma için henüz plan yok.</p>
+        ) : (
+          <div className="space-y-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <label className="text-xs text-slate-400" htmlFor="plan-discussion-select">
+                Plan:
+              </label>
+              <select
+                id="plan-discussion-select"
+                value={discussionPlanId || (plans.data?.[0]?.id ?? "")}
+                onChange={(event) => setDiscussionPlanId(event.target.value)}
+                className="rounded-lg border border-slate-700 bg-slate-950 px-2 py-1 text-xs text-slate-200 focus:border-cyan-500 focus:outline-none"
+              >
+                {(plans.data ?? []).map((plan) => (
+                  <option key={plan.id} value={plan.id}>
+                    {plan.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            {(discussionPlanId || plans.data?.[0]?.id) ? (
+              <CommentThread
+                entityType="plan"
+                entityId={discussionPlanId || (plans.data?.[0]?.id as string)}
+                projectId={params.projectId}
+                title="Plan Discussion"
+              />
+            ) : null}
+          </div>
+        )}
       </ManagementPanel>
     </ManagementShell>
   );

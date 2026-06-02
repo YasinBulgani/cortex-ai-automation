@@ -10,6 +10,7 @@ import {
 } from "@/lib/hooks/use-management";
 import { apiFetch } from "@/lib/api-client";
 import { ManagementPanel, ManagementShell, ManagementStat } from "../../../_components/ManagementShell";
+import { EvidenceModal } from "../../../_components/EvidenceModal";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -301,6 +302,7 @@ function CasePanel({
 }) {
   const [open, setOpen] = useState(false);
   const [bulkSaved, setBulkSaved] = useState(false);
+  const [showEvidenceModal, setShowEvidenceModal] = useState(false);
   const dotClass = STATUS_DOT[runCase.status] ?? "bg-slate-600";
   const bulkMutation = useUpdateManagementStepResult(projectId, runCase.id, runId);
 
@@ -376,6 +378,13 @@ function CasePanel({
           >
             {bulkMutation.isPending ? "İşleniyor..." : bulkSaved ? "Kaydedildi" : "Case Pass"}
           </button>
+          <button
+            type="button"
+            onClick={(event) => { event.stopPropagation(); setShowEvidenceModal(true); }}
+            className="rounded-lg border border-rose-500/30 px-3 py-1.5 text-xs font-semibold text-rose-300 hover:bg-rose-500/10"
+          >
+            Case Fail + Evidence
+          </button>
         </div>
         <svg
           className={`h-4 w-4 flex-shrink-0 text-slate-500 transition-transform ${open ? "rotate-180" : ""}`}
@@ -406,6 +415,17 @@ function CasePanel({
             <EvidenceUpload projectId={projectId} runId={runId} runCaseId={runCase.id} />
           </div>
         </div>
+      )}
+
+      {showEvidenceModal && (
+        <EvidenceModal
+          projectId={projectId}
+          runId={runId}
+          runCaseId={runCase.id}
+          caseKey={(snapshotCase as SnapshotCase).case_key ?? undefined}
+          caseTitle={(snapshotCase as SnapshotCase).title ?? undefined}
+          onClose={() => setShowEvidenceModal(false)}
+        />
       )}
     </div>
   );

@@ -8,7 +8,7 @@ import logging
 import os
 from typing import Dict, Any
 
-from core.python.visual_ai import get_visual_ai_analyzer, SmartBaselineManager
+from core.visual_ai import get_visual_ai_analyzer, SmartBaselineManager
 
 logger = logging.getLogger(__name__)
 

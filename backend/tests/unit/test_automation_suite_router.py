@@ -67,7 +67,7 @@ class TestGenerateEndpoint:
         ):
             r = client.post(
                 "/api/v1/automation-suite/generate",
-                json={"manual_test": "Login as admin", "language": "python"},
+                json={"manual_test_id": 1},
             )
         assert r.status_code == 200
 
@@ -78,7 +78,7 @@ class TestGenerateEndpoint:
         ):
             r = client.post(
                 "/api/v1/automation-suite/generate",
-                json={"manual_test": "Click login", "language": "python"},
+                json={"manual_test_id": 1},
             )
         assert r.status_code == 502
 
@@ -89,7 +89,7 @@ class TestGenerateEndpoint:
         ):
             r = client.post(
                 "/api/v1/automation-suite/generate",
-                json={"manual_test": "", "language": "python"},
+                json={"manual_test_id": 1},
             )
         assert r.status_code == 400
 
@@ -192,7 +192,7 @@ class TestMobileGenerateEndpoint:
         ):
             r = client.post(
                 "/api/v1/automation-suite/mobile/generate",
-                json={"description": "tap login", "device": "iPhone 14"},
+                json={"description": "tap login button", "device": {"name": "iPhone 14"}},
             )
         assert r.status_code == 200
 
@@ -203,7 +203,7 @@ class TestMobileGenerateEndpoint:
         ):
             r = client.post(
                 "/api/v1/automation-suite/mobile/generate",
-                json={"description": "tap logout", "device": "Pixel 7"},
+                json={"description": "tap logout button", "device": {"name": "Pixel 7"}},
             )
         assert r.status_code == 502
 
@@ -214,6 +214,6 @@ class TestMobileGenerateEndpoint:
         ):
             r = client.post(
                 "/api/v1/automation-suite/mobile/generate",
-                json={"description": "", "device": "Pixel 7"},
+                json={"description": "tap login button", "device": {"name": "Pixel 7"}},
             )
         assert r.status_code == 400

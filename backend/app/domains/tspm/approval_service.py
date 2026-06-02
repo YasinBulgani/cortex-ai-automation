@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -60,7 +59,7 @@ def decide_approval_for_project(
 ) -> dict:
     approval = db.get(TspmApproval, approval_id)
     if approval is None or approval.project_id != project_id:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Onay bulunamadı")
+        raise KeyError("Onay bulunamadı")
 
     approval.status = body.decision
     approval.decided_at = utcnow()

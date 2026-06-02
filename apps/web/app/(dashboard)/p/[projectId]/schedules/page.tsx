@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { useRouteParam } from "@/lib/use-route-param";
 import { apiFetch, ENGINE_BASE } from "@/lib/api";
@@ -553,62 +554,73 @@ function EngineSchedulerPanel({ projectId }: { projectId: string }) {
   );
 }
 
+const schedulesQK = (projectId: string) => ["schedules", "list", projectId] as const;
+
 /* ── Main Page ────────────────────────────────────────────────────────────── */
 export default function SchedulesPage() {
   const projectId = useRouteParam("projectId");
-  const [schedules, setSchedules] = useState<Schedule[]>([]);
+  const queryClient = useQueryClient();
   const [form, setForm] = useState<Form>(emptyForm);
-  const [loading, setLoading] = useState(false);
   const [triggering, setTriggering] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
 
-  const load = useCallback(() => {
-    apiFetch<Schedule[]>(`/api/v1/tspm/projects/${projectId}/schedules`)
-      .then(setSchedules)
-      .catch((err) => console.warn("[schedules]:", err));
-  }, [projectId]);
+  const { data: schedules = [] } = useQuery<Schedule[]>({
+    queryKey: schedulesQK(projectId ?? ""),
+    queryFn: () => apiFetch<Schedule[]>(`/api/v1/tspm/projects/${projectId}/schedules`),
+    enabled: !!projectId,
+    staleTime: 30 * 1000,
+    gcTime: 5 * 60 * 1000,
+  });
 
-  useEffect(() => { load(); }, [load]);
+  const invalidate = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: schedulesQK(projectId ?? "") });
+  }, [queryClient, projectId]);
+
+  const createMut = useMutation({
+    mutationFn: (body: { name: string; cron_expression: string; scenario_ids: string[]; platform?: string; device_name?: string }) =>
+      apiFetch(`/api/v1/tspm/projects/${projectId}/schedules`, { method: "POST", json: body }),
+    onSuccess: () => { invalidate(); setForm(emptyForm); setShowForm(false); },
+  });
+
+  const toggleMut = useMutation({
+    mutationFn: (s: Schedule) =>
+      apiFetch(`/api/v1/tspm/projects/${projectId}/schedules/${s.id}`, {
+        method: "PUT",
+        json: { is_active: !s.is_active },
+      }),
+    onSuccess: invalidate,
+  });
+
+  const deleteMut = useMutation({
+    mutationFn: (id: string) =>
+      apiFetch(`/api/v1/tspm/projects/${projectId}/schedules/${id}`, { method: "DELETE" }),
+    onSuccess: invalidate,
+  });
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
-    setLoading(true);
-    try {
-      await apiFetch(`/api/v1/tspm/projects/${projectId}/schedules`, {
-        method: "POST",
-        json: {
-          name: form.name,
-          cron_expression: form.cron_expression,
-          scenario_ids: form.scenario_ids.split(",").map((s) => s.trim()).filter(Boolean),
-        },
-      });
-      setForm(emptyForm);
-      setShowForm(false);
-      load();
-    } finally {
-      setLoading(false);
-    }
+    createMut.mutate({
+      name: form.name,
+      cron_expression: form.cron_expression,
+      scenario_ids: form.scenario_ids.split(",").map((s) => s.trim()).filter(Boolean),
+    });
   }
 
   async function toggleActive(s: Schedule) {
-    await apiFetch(`/api/v1/tspm/projects/${projectId}/schedules/${s.id}`, {
-      method: "PUT",
-      json: { is_active: !s.is_active },
-    });
-    load();
+    toggleMut.mutate(s);
   }
 
   async function triggerNow(id: string) {
     setTriggering(id);
     await apiFetch(`/api/v1/tspm/projects/${projectId}/schedules/${id}/trigger`, { method: "POST" }).catch((err) => console.warn("[schedules]:", err));
-    setTimeout(() => { setTriggering(null); load(); }, 1000);
+    setTimeout(() => { setTriggering(null); invalidate(); }, 1000);
   }
 
   async function handleDelete(id: string) {
-    await apiFetch(`/api/v1/tspm/projects/${projectId}/schedules/${id}`, { method: "DELETE" });
-    load();
+    deleteMut.mutate(id);
   }
 
+  const loading = createMut.isPending;
   const active = schedules.filter((s) => s.is_active).length;
   const mobileSchedules = schedules.filter((s) => s.platform != null);
 

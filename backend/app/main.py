@@ -126,8 +126,18 @@ def create_app() -> FastAPI:
         rate_limit_handler=_rate_limit_handler,
     )
     register_request_tracing(app)
+
+    # i18n middleware (locale from ?lang / X-Locale / Accept-Language)
+    from app.core.i18n import LocaleMiddleware
+    app.add_middleware(LocaleMiddleware)
+
     register_probe_routes(app, has_rate_limit=_has_rate_limit)
     register_api_routers(app)
+
+    # Production yapilandirma dogrulamalari (dev'de no-op)
+    from app.infra.prod_checks import assert_production_invariants
+    assert_production_invariants()
+
     return app
 
 

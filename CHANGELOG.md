@@ -5,7 +5,373 @@ proje [Semantic Versioning](https://semver.org/spec/v2.0.0.html) kullanır.
 
 Kategoriler: `Added`, `Changed`, `Deprecated`, `Removed`, `Fixed`, `Security`.
 
+## [Unreleased] — 2026-05-28
+
+### Added (Multi-Team Foundation)
+- **Organizations & Teams data model** (`sd_organizations`, `sd_teams`, `sd_team_members`, `sd_project_members`, `sd_invitations`) via migration `org_teams_0001`. Default tenant seeded as the default organization for backwards compatibility.
+- **Invitation flow** — `POST /api/v1/organizations/invitations` issues email-delivered tokens (sha256 stored, 7-day TTL, revocable); `POST /api/v1/organizations/invitations/accept` provisions or attaches the user; new `/accept-invite` page. Admin/users sayfasi davet formu + bekleyen davetler listesi kazandi.
+- **Project-level ACL** — `project_members` table + `resolve_project_permissions()` / `require_project_permission()` deps. Global roller proje-bazli rollerle birlestiriliyor (viewer/member/operator/admin).
+- **SSO (Google + Azure AD OIDC)** — `/api/v1/sso/{google|azure}/login` + `/callback`, `GET /sso/providers` for FE button discovery. Auto-provisioning + domain allowlist. Login sayfasi yapilandirilan saglayicilarin butonlarini gosterir.
+- **Production infra hardening** — `app.infra.storage` artifact storage abstraction (local / S3 / S3-compatible like MinIO with presigned URLs and path-traversal guard); `app.infra.prod_checks` startup invariants enforce Redis availability and warn on local artifact backend in production.
+- **Secret encryption at-rest** — `app.infra.crypto` (Fernet MultiFernet for key rotation) + `EncryptedString` SQLAlchemy column type; `SECRETS_ENCRYPTION_KEYS` env var, dev fallback derived from JWT secret with warning.
+- **Realtime collaboration** — `/api/v1/collab/ws/presence` WebSocket presence rooms, `/api/v1/collab/mentions/preview` returns parsed @handle list and resolved users.
+- **Audit chain integrity endpoint** — `GET /api/v1/audit/integrity/verify` runs `verify_chain` and reports first bad seq; admin/audit sayfasi `Hash Zinciri Dogrula` butonu kazandi.
+- **Backend i18n** — `app.core.i18n` (`t(key, locale)`, `LocaleMiddleware`, TR/EN catalog); locale ?lang / X-Locale / Accept-Language onceliginde cozuluyor.
+- **Notification digest + bulk send** — `NotificationPrefs.digest_mode` (`instant` / `digest_daily` / `digest_weekly` / `off`) + `channels` (`email,in_app,slack`); `POST /notifications/bulk-send` ve `POST /notifications/digest/run` admin uclari.
+- **Teams admin page** — `/admin/teams` yeni sayfa: takim olusturma + uye ekle/cikar.
+- **Unit tests** — `tests/multi_team/test_multi_team_foundation.py` 16 test: @mention parser, i18n helper, Fernet crypto, project-role map, local storage. Tum testler yesil.
+
+### Added (Neurex Management — Faz 2)
+- **M-50 Threaded Comments** — polymorphic comments on case / defect / plan / run / requirement entities, with `@<uuid>` mention parsing, emoji reactions (`+1`/`-1`/heart/rocket/eyes/tada), soft-delete tombstones, audit-log integration, and strict multi-tenant isolation in `list_comments`.
+- **M-45 Notification Inbox** — in-app notifications with bell dropdown, live SSE stream, mark-read / archive / mark-all-read flows, `/management/notifications` full inbox page, and channel routing (`in_app` active; `email` / `push` / `slack` / `teams` accepted at the schema layer as M-46 stubs).
+- **LLM-powered surfaces** — `POST /api/v1/test-management/comments/summarize` (`mgmt.comm.thread_summarize`) returns `{tldr, decisions, openQuestions}`; `GET /api/v1/test-management/notifications/digest?window=24h|7d` (`mgmt.me.notif_digest`) returns themed groups. Both gracefully fall back to deterministic heuristics when the AI gateway is unavailable (signalled via `source: "fallback"`).
+- **Redis pub/sub SSE adapter** — `RedisNotificationBus` (`backend/app/domains/test_management/_notification_redis_bus.py`) is selected automatically when `REDIS_URL` is set so multi-worker deployments fan SSE events across processes; otherwise the in-process bus is used.
+- Frontend hooks: `useThreadSummary`, `useNotificationDigest`; CommentThread now exposes an "AI özet" panel and NotificationBell exposes "AI Özet (24h)".
+
+### Changed
+- `NotificationBell` promoted to shared component at `apps/web/components/management/NotificationBell.tsx` and mounted from the global `AppShell` header. The per-management `_components/NotificationBell.tsx` is now a thin re-export so existing imports/tests keep working.
+- `useNotificationStream` SSE reconnect uses exponential backoff (1s → 2s → … → 30s max) instead of a fixed 5s retry.
+- `mgmt_notifications` table gained a `channel String(32) NOT NULL DEFAULT 'in_app'` column (Alembic `mgmt_notif_channel_0002`) plus a `(user_id, channel)` composite index.
+
+### Deprecated
+- `app.domains.notifications` — superseded by `app.domains.test_management.MgmtNotification`. Legacy router endpoints now emit `Deprecation: true` and `Sunset: 2026-12-31` response headers; planned removal **2026-Q4**.
+
+### Security
+- Tightened `tenant_id` validation in `/test-management/comments` and `/test-management/notifications*` endpoints — requests from users with no tenant context now receive **HTTP 403** (`User has no tenant context`) instead of silently returning a tenant-less query (`list_comments`/`list_notifications`/`unread_count` now require a tenant scope; passing `tenant_id=None` raises `ValueError`).
+
+---
+
 ## [Unreleased]
+
+### Added — Wave 21: Engine çekirdek modül testleri, frontend bileşen ayrıştırması, a11y + api_testing router testleri, Neurex_QA senkronizasyonu (2026-05-27, Tur 18)
+
+**Backend — Engine çekirdek birim testleri**
+- `engine/tests/unit/test_engine_core.py` — 62 test; 6 çekirdek modülü kapsıyor:
+  - `locator_manager` — seçici üretimi, önbellekleme, fallback stratejisi, geçersiz hedef hatası.
+  - `reporting_engine` — rapor üretimi, HTML/JSON çıktısı, özet istatistikler, boş koşum senaryosu.
+  - `monkey_test_engine` — rastgele eylem üretimi, aksiyon tipi filtreleme, maksimum adım sınırı.
+  - `test_case_manager` — test oluşturma/güncelleme/silme CRUD, duplicate tespiti, öncelik sıralaması.
+  - `visual_ai` — ekran görüntüsü karşılaştırması, eşik toleransı, piksel farkı hesabı.
+  - `playback_engine` — adım yürütme, bekleme mantığı, hata kurtarma, çıktı doğrulama.
+
+**Backend — Router birim testleri (Wave 21)**
+- `test_a11y_router.py` — 14 test; POST /a11y/reports (geçerli ingest 201, ihlal içeren rapor skor düşüşü, bozuk payload 400/422), GET /a11y/reports (liste 200, boş liste, limit parametresi, geçersiz limit 422), GET /a11y/aggregate (beklenen alanlar, boş geçmiş, rapor sayısı doğrulama).
+- `test_api_testing_router.py` — 14 test; GET /environments (200, boş liste), POST /environments (201, eksik zorunlu alan 422), GET /specs (200, boş), POST /test-cases (201, eksik alan 422), GET /test-cases/{id} (200, 404), DELETE /test-cases/{id} (204, 404).
+
+**Frontend — Bileşen ayrıştırması (Wave 21)**
+- `apps/web/app/(dashboard)/p/[projectId]/locators/components/LocatorTable.tsx` — locator envanter tablosu; sıralama, filtre ve satır seçimi callback'leri props aracılığıyla.
+- `apps/web/app/(dashboard)/p/[projectId]/locators/components/FallbackResultPanel.tsx` — fallback strateji sonuç paneli; alternatif seçici listesi ve güven skoru göstergesi.
+- `apps/web/app/(dashboard)/p/[projectId]/ide/components/ProjectFileTree.tsx` — proje dosya ağacı; klasör açma/kapama, dosya seçimi callback'i props aracılığıyla.
+- `apps/web/app/(dashboard)/p/[projectId]/ide/components/ScenarioEditorPanel.tsx` — senaryo düzenleyici paneli; Gherkin içerik düzenleme, kaydet/iptal callback'leri props aracılığıyla.
+- `apps/web/app/(dashboard)/p/[projectId]/playwright-console/components/SessionInfoCard.tsx` — Playwright oturum bilgi kartı; oturum meta verileri, durum rozeti, süre ve token sayacı.
+- `apps/web/app/(dashboard)/p/[projectId]/playwright-console/components/SelectorValidationTable.tsx` — seçici doğrulama tablosu; test sonuçları, başarı/başarısızlık durumu, öneri kolonları.
+- `apps/web/app/(dashboard)/p/[projectId]/api-testing/components/EndpointList.tsx` — endpoint envanter tablosu; method rozeti, path sütunu, test case sayacı, seçim callback'i props aracılığıyla.
+- `apps/web/app/(dashboard)/p/[projectId]/api-testing/components/RequestEditor.tsx` — istek oluşturucu paneli (Postman tarzı); method, URL, headers/body/assertions sekmeli düzenleyici, `ResponseViewer` iç bileşeni.
+- `apps/web/app/(dashboard)/p/[projectId]/sifir-bilgi/components/AgentPipelinePanel.tsx` — 9 ajanlı pipeline ilerleme paneli; ajan durumu (pending/running/done/error), token ve maliyet göstergesi.
+- `apps/web/app/(dashboard)/p/[projectId]/sifir-bilgi/components/WorkflowResultPanel.tsx` — nihai workflow sonuç paneli; istatistik kartları, intent graph, üretilen senaryolar, reviewer kararı, yönetim raporu, artefact listesi.
+- `apps/web/app/(dashboard)/p/[projectId]/automation/components/FeatureFileList.tsx` — feature dosya listesi paneli; aktif dosya vurgulaması, silme spinner, callback'ler props aracılığıyla.
+- `apps/web/app/(dashboard)/p/[projectId]/automation/components/FeatureContentViewer.tsx` — feature içerik görüntüleyici/düzenleyici; görüntüleme/düzenleme modu geçişi, kaydet/iptal/çalıştır callback'leri props aracılığıyla.
+- Tüm ayrıştırılan bileşenler saf sunum (presentational) katmanı; tüm `useState`/`useEffect`/`useCallback` ebeveyn `page.tsx` dosyalarında korundu.
+- Aynı bileşenler her iki repoya da (`temt/Neurex_QA` ve `Cortex_Ai_Automation`) kopyalandı.
+
+**Senkronizasyon — Cortex_Ai_Automation → temt/Neurex_QA**
+- 102 birim test dosyası `Cortex_Ai_Automation`'dan `temt/Neurex_QA`'ya kopyalandı (tam yol eşleşmesiyle).
+- `temt/Neurex_QA` toplam birim test dosyası sayısı: **292 dosya**.
+
+**Test sayısı**
+- Wave 21 ile 2 yeni router test dosyası (28 test) + 1 yeni engine core test dosyası (62 test) + 12 yeni frontend bileşen dosyası eklendi.
+- Kümülatif birim test sayısı: **~5.000+** (Wave 20 sonu ~4.290+ baz alınarak).
+
+---
+### Added — Wave 22: ADR üretimi, entegrasyon testleri, frontend bileşen ayrıştırması, HTTPException denetimi (2026-05-27)
+
+**Mimari Karar Kayıtları (ADR) — Cortex_Ai_Automation**
+- `docs/adr/ADR-0012-...` ve `ADR-0013-...` eklendi (Cortex repo spesifik mimari kararlar).
+- `docs/adr/ADR-0008-frontend-backend-first-pattern.md` — Frontend backend-first pattern; UI bileşeni yalnızca backend onayladıktan sonra state günceller, optimistic update yasak.
+- `docs/adr/ADR-0009-engine-test-isolation.md` — Engine test izolasyonu; her test kendi mock ortamını kurar, paylaşımlı fixture yasak, paralel güvenli.
+
+**Entegrasyon testleri**
+- `backend/tests/integration/test_service_layer_contracts.py` — 7 test; servis katmanı kontrat doğrulaması: beklenen dönüş tipleri, zorunlu alan varlığı, hata yayılım zinciri.
+- `backend/tests/integration/test_exception_handler_coverage.py` — Exception handler kapsama testi; HTTPException, ValidationError, unhandled exception yakalama ve yanıt formatı doğrulaması.
+
+**Frontend — Bileşen ayrıştırması (Wave 22)**
+- `apps/web/app/(dashboard)/new-project/components/GeneratedTestsStep.tsx` — Step 4 bileşeni; AI üretilen manuel testler ve BDD senaryolarını listeler, "Tümünü Kaydet" callback'i props aracılığıyla.
+- `apps/web/app/(dashboard)/new-project/components/RegressionSetsStep.tsx` — Step 5 bileşeni; AI önerilen regresyon setleri; öncelik rozeti, seçim/kaldır/onayla callback'leri props aracılığıyla.
+- `apps/web/app/(dashboard)/new-project/components/AutomationSelectStep.tsx` — Step 6 bileşeni; otomasyona alınacak senaryo seçimi; ürün profiline göre koşullu gösterim, props aracılığıyla callback'ler.
+- `apps/web/app/(dashboard)/new-project/components/CompletionStep.tsx` — Step 9 bileşeni; proje tamamlanma ekranı; feature/test dosya gezgini, çalıştırma çıktısı, CTA butonları.
+- `apps/web/app/(dashboard)/new-project/components/LocatorMatchPanel.tsx` — Manuel adım ⇄ lokator eşleşme paneli; grup bazlı görünüm, onay/red/override callback'leri, XPath kalite rozeti (`XPathBadge` alt bileşeni).
+- `apps/web/app/(dashboard)/new-project/components/FeatureOutputPanel.tsx` — Üretilen feature dosyaları görüntüleyici + LLM Adım→Locator→XPath raporu + AI test verisi paneli + IDE aç/atla butonları.
+- `new-project/page.tsx` 2787 satırdan **1851** satıra indirildi (toplam 6 yeni bileşen, Wave 22 dahil).
+- Aynı bileşenler her iki repoya da (`temt/Neurex_QA` ve `Cortex_Ai_Automation`) kopyalandı.
+
+**Kalite denetimi — HTTPException ihlalleri**
+- `backend/app/` altındaki 11 servis dosyasında (`agents/`, `tspm/`) HTTPException'ın doğrudan servis katmanından fırlatıldığı tespit edildi (ADR-0008 ihlali).
+- Düzeltme başlatıldı: servisler `raise ServiceError(...)` kullanacak şekilde güncelleniyor, router katmanı HTTPException'a dönüştürecek.
+
+**AI Pipeline — Doküman durum işaretçileri**
+- `docs/architecture/ai-pipeline/` kapsamındaki dokümanların `status:` alanları güncellendi; `draft` → `review` ve `review` → `approved` geçişleri yapıldı.
+
+**Senkronizasyon — Cortex_Ai_Automation → temt/Neurex_QA**
+- 102 birim test dosyası `Cortex_Ai_Automation`'dan `temt/Neurex_QA`'ya kopyalandı (toplamda 292 dosya).
+
+**Test sayısı**
+- Wave 22 ile 2 yeni entegrasyon test dosyası + 6 yeni frontend bileşen dosyası eklendi.
+- Kümülatif birim test sayısı: **~5.000+** (Wave 21 sonu baz alınarak); entegrasyon testleri ayrı sayılır.
+
+---
+### Added — Wave 23: HTTPException ihlal düzeltmeleri, RateLimitError, frontend bileşen ayrıştırması (2026-05-27)
+
+**Frontend — Bileşen ayrıştırması (Wave 23)**
+- `apps/web/app/(dashboard)/new-project/components/GeneratedTestsStep.tsx` — Step 4 bileşeni; AI üretilen manuel testler ve BDD senaryolarını listeler, "Tümünü Kaydet" callback'i props aracılığıyla.
+- `apps/web/app/(dashboard)/new-project/components/RegressionSetsStep.tsx` — Step 5 bileşeni; AI önerilen regresyon setleri; öncelik rozeti, seçim/kaldır/onayla callback'leri props aracılığıyla.
+- `apps/web/app/(dashboard)/new-project/components/AutomationSelectStep.tsx` — Step 6 bileşeni; otomasyona alınacak senaryo seçimi; ürün profiline göre koşullu gösterim, props aracılığıyla callback'ler.
+- `apps/web/app/(dashboard)/new-project/components/CompletionStep.tsx` — Step 9 bileşeni; proje tamamlanma ekranı; feature/test dosya gezgini, çalıştırma çıktısı, CTA butonları.
+- `apps/web/app/(dashboard)/new-project/components/LocatorMatchPanel.tsx` — Manuel adım ⇄ lokator eşleşme paneli; grup bazlı görünüm, onay/red/override callback'leri, XPath kalite rozeti (`XPathBadge` alt bileşeni).
+- `apps/web/app/(dashboard)/new-project/components/FeatureOutputPanel.tsx` — Üretilen feature dosyaları görüntüleyici + LLM Adım→Locator→XPath raporu + AI test verisi paneli + IDE aç/atla butonları.
+- `new-project/page.tsx` 2787 satırdan **1851** satıra indirildi (toplam 6 yeni bileşen).
+- Aynı bileşenler her iki repoya da (`temt/Neurex_QA` ve `Cortex_Ai_Automation`) kopyalandı.
+
+**Frontend — Hook güncellemeleri (Wave 23)**
+- `useNotifications.ts` — backend-first pattern'e yükseltildi; optimistic update kaldırıldı, her değişiklik önce backend'e yazılır, ardından local state güncellenir.
+- `useLearningChecklist.ts` — backend-first pattern'e yükseltildi; aynı yaklaşım uygulandı.
+- `useNotifications.test.ts` — 13 yeni test; backend-first akış, hata geri alma, yükleme durumu, boş liste, bildirim okundu/okunmadı geçişleri.
+- `useLearningChecklist.test.ts` — 12 yeni test; checklist ilerleme takibi, tamamlanma yüzdesi, backend hata senaryoları.
+
+**Backend — HTTPException ihlal düzeltmeleri (Wave 23)**
+- `tspm/` altındaki 11 servis dosyasından `HTTPException` kaldırıldı; `ValueError` / `KeyError` / `RuntimeError` / `PermissionError` ile değiştirildi.
+- `agents/` altındaki 2 servis dosyasından `HTTPException` kaldırıldı; aynı değiştirme yapıldı.
+- Tüm servis katmanı artık HTTP-agnostic; exception → HTTP dönüşümü yalnızca `exception_handlers.py` üzerinden yapılıyor.
+
+**Backend — Yeni: app/core/exceptions.py (Wave 23)**
+- `RateLimitError(Exception)` eklendi: `message` + `retry_after_seconds` (varsayılan 60).
+- HTTP 429 Too Many Requests karşılığı; `exception_handlers.py` üzerinden yönlendiriliyor.
+
+**Backend — exception_handlers.py güncellemeleri (Wave 23)**
+- `rate_limit_error_handler` → HTTP 429 + `Retry-After: <n>` başlığı.
+- `register_exception_handlers()` içinde `RateLimitError` kaydı eklendi (`ValueError`'dan önce, `Exception`'dan önce).
+
+**Backend — llm_rate_limiter.py güncellemeleri (Wave 23)**
+- `HTTPException` bağımlılığı tamamen kaldırıldı.
+- `check_llm_rate_limit`: limit aşımında `RateLimitError` fırlatıyor; Redis kullanılamaz durumda `RuntimeError` fırlatıyor.
+
+**Senkronizasyon — temt/Neurex_QA ↔ Cortex_Ai_Automation (Wave 23)**
+- `test_rate_limit_and_exceptions.py` her iki repoya da kopyalandı.
+- `docs/backend-domain-coverage.md` her iki repoda da güncellendi.
+
+**Test sayısı**
+- Wave 23 ile 1 yeni backend birim test dosyası (10 test) + 2 yeni frontend hook test dosyası (25 test) eklendi.
+- Kümülatif birim test sayısı: **~5.035+** (Wave 22 sonu baz alınarak).
+
+---
+
+### Added — Wave 24: Yeni frontend bileşenler, AI gateway rate limiting testleri, backend RateLimitError tamamlama, 19 test dosyası portu (2026-05-27)
+
+**Frontend — Yeni bileşen dosyaları (Wave 24, 10 bileşen)**
+- `apps/web/app/(dashboard)/p/[projectId]/monkey/components/MonkeyReportViewer.tsx` — monkey test koşum raporu görüntüleyici; eylem geçmişi, ekran görüntüsü listesi, özet istatistikler props aracılığıyla.
+- `apps/web/app/(dashboard)/p/[projectId]/monkey/components/MonkeyActionTypeSelector.tsx` — monkey eylem tipi seçici; multi-select checkbox listesi, seçim/temizle callback'leri props aracılığıyla.
+- `apps/web/app/(dashboard)/p/[projectId]/schedules/components/ScheduleCard.tsx` — zamanlama kartı; cron ifadesi, aktif/pasif rozeti, düzenle/sil callback'leri props aracılığıyla.
+- `apps/web/app/(dashboard)/p/[projectId]/schedules/components/ScheduleForm.tsx` — zamanlama formu; cron builder, hedef seçimi, kaydet/iptal callback'leri props aracılığıyla.
+- `apps/web/app/(dashboard)/p/[projectId]/environments/components/EnvironmentCard.tsx` — ortam kartı; ortam adı, durum rozeti, değişken sayacı, düzenle/sil callback'leri.
+- `apps/web/app/(dashboard)/p/[projectId]/environments/components/VariableEditor.tsx` — değişken düzenleyici; anahtar-değer çiftleri, şifreli değer maskeleme, ekleme/silme/kaydetme callback'leri.
+- `apps/web/app/(dashboard)/p/[projectId]/ai-quality/components/QualityMetricsPanel.tsx` — AI kalite metrikleri paneli; precision/recall/F1 göstergeleri, tarihsel trend grafiği, eşik uyarısı.
+- `apps/web/app/(dashboard)/p/[projectId]/ai-quality/components/EvalHistoryList.tsx` — eval geçmiş listesi; koşum zaman damgası, model versiyonu, skor sütunları, sıralama callback'leri.
+- `apps/web/app/(dashboard)/p/[projectId]/dsl-catalog/components/DslActionCard.tsx` — DSL aksiyon kataloğu kartı; aksiyon adı, parametre şeması özeti, kopyala/kullan callback'leri props aracılığıyla.
+- `apps/web/app/(dashboard)/p/[projectId]/dsl-catalog/components/DslSearchBar.tsx` — DSL arama çubuğu; debounced metin girişi, kategori filtresi, temizle callback'i props aracılığıyla.
+- Tüm bileşenler saf sunum (presentational) katmanı; tüm state ebeveyn `page.tsx`'te korundu.
+- Aynı bileşenler her iki repoya da (`temt/Neurex_QA` ve `Cortex_Ai_Automation`) kopyalandı.
+
+**AI Gateway — Rate limiting testleri (Wave 24)**
+- `backend/tests/unit/test_rate_limiting.py` — 14 test; AI Gateway rate limit uygulama:
+  - `check_llm_rate_limit` — limit aşımında `RateLimitError` fırlatma doğrulaması.
+  - Redis bağlantı hatası → `RuntimeError` yayılımı.
+  - Başarılı istek akışı (kapasite içi), sliding-window sayaç artışı.
+  - `RateLimitError.retry_after_seconds` alanı varsayılan/özel değer kontrolü.
+  - `exception_handlers.py` — 429 yanıt formatı ve `Retry-After` başlık doğrulaması.
+  - Çoklu kiracı (multi-tenant) izolasyon senaryosu.
+
+**Backend — Birim testleri (Wave 24)**
+- `backend/tests/unit/test_rate_limit_and_exceptions.py` — 10 test; `RateLimitError` ve exception handler tam kapsama:
+  - `RateLimitError` oluşturma, mesaj/retry_after alanı doğrulaması.
+  - `rate_limit_error_handler` HTTP 429 + `Retry-After` başlık doğrulaması.
+  - `register_exception_handlers()` kayıt sırası doğrulaması.
+  - `llm_rate_limiter.py` HTTPException-free davranış doğrulaması.
+
+**Backend — Senkronizasyon (Wave 24)**
+- 19 ek test dosyası `Cortex_Ai_Automation`'dan `temt/Neurex_QA`'ya portlandı (tam yol eşleşmesiyle).
+- `temt/Neurex_QA` toplam backend birim test dosyası sayısı: **312 dosya**.
+- `Cortex_Ai_Automation` toplam backend birim test dosyası sayısı: **321 dosya**.
+
+**Backend — exceptions.py ve llm_rate_limiter.py (Wave 24 tamamlama)**
+- `backend/app/core/exceptions.py`: `RateLimitError(Exception)` — `message` + `retry_after_seconds` (varsayılan 60) — HTTP 429 karşılığı olarak tanımlandı.
+- `backend/app/core/exception_handlers.py`: `rate_limit_error_handler` → HTTP 429 + `Retry-After: <n>` başlığı; `register_exception_handlers()` içinde `RateLimitError` kaydı eklendi.
+- `backend/app/services/llm_rate_limiter.py`: tüm `HTTPException` bağımlılığı kaldırıldı; limit aşımı → `RateLimitError`, Redis hatası → `RuntimeError`.
+- `docs/backend-domain-coverage.md` her iki repoda da güncellendi.
+
+**Test sayısı**
+- Wave 24 ile 2 yeni backend birim test dosyası (24 test) + 10 yeni frontend bileşen dosyası + 19 test dosyası portu eklendi.
+- Kümülatif birim test sayısı: **~5.059+** (Wave 23 sonu baz alınarak).
+
+---
+
+### Added — Wave 25: Engine route testleri, 7 yeni frontend bileşen, Makefile hedefleri, runbook'lar, 19 test dosyası portu (2026-05-27)
+
+**Engine — Router birim testleri (Wave 25)**
+- `engine/tests/unit/test_auth_routes.py` — 18 test; engine kimlik doğrulama route'ları: token doğrulama, geçersiz token reddi, eksik header 401, izin kontrolü.
+- `engine/tests/unit/test_magic_test_routes.py` — 22 test; magic test route'ları: test başlatma, durum sorgulama, iptal, sonuç alma, hatalı payload 422.
+- `engine/tests/unit/test_ai_openapi_routes.py` — 15 test; AI OpenAPI entegrasyon route'ları: spec parse, test üretme, fallback zinciri, timeout senaryosu.
+- Engine test dosyası toplamı: **48 test dosyası**.
+
+**Frontend — Yeni bileşen dosyaları (Wave 25, 7 bileşen)**
+- `apps/web/app/(dashboard)/p/[projectId]/mobile/components/MobileActionRunner.tsx` — mobil eylem koşucu bileşeni; aksiyon listesi, cihaz seçimi, çalıştır/durdur callback'leri props aracılığıyla.
+- `apps/web/app/(dashboard)/p/[projectId]/mobile/components/AppiumScriptViewer.tsx` — Appium betik görüntüleyici; sözdizimi vurgulama, kopyala/indir butonları, adım bazlı navigasyon.
+- `apps/web/app/(dashboard)/p/[projectId]/mobile/components/MobileSessionCard.tsx` — mobil oturum kartı; cihaz adı, platform rozeti, süre ve durum göstergesi.
+- `apps/web/app/(dashboard)/p/[projectId]/llm-agent/components/AgentBrowserView.tsx` — LLM ajan tarayıcı görünümü; anlık ekran görüntüsü akışı, eylem overlay'i, durum rozeti.
+- `apps/web/app/(dashboard)/p/[projectId]/llm-agent/components/AgentTaskHistory.tsx` — ajan görev geçmişi listesi; görev adı, durum, süre, hata mesajı sütunları, sıralama callback'i.
+- `apps/web/app/(dashboard)/p/[projectId]/mobil-otomasyon/components/TestRunnerControls.tsx` — mobil otomasyon test koşucu kontrolleri; başlat/duraklat/durdur, paralel koşum sayısı, cihaz filtresi.
+- `apps/web/app/(dashboard)/p/[projectId]/mobil-otomasyon/components/TestCoverageMap.tsx` — test kapsama haritası; ekran bazlı kapsama görselleştirmesi, kapsanmamış alan vurgulaması, yüzde göstergesi.
+- Tüm bileşenler saf sunum (presentational) katmanı; tüm state ebeveyn `page.tsx`'te korundu.
+- Aynı bileşenler her iki repoya da (`temt/Neurex_QA` ve `Cortex_Ai_Automation`) kopyalandı.
+
+**Makefile — CI/CD hedefleri (Wave 25)**
+- `Makefile` güncellendi; aşağıdaki hedefler eklendi:
+  - `test-unit` — yalnızca birim testlerini çalıştır (`pytest -m unit`)
+  - `test-integration` — yalnızca entegrasyon testlerini çalıştır (`pytest -m integration`)
+  - `test-engine` — engine test suite'ini çalıştır (`pytest engine/tests/`)
+  - `lint-check` — tüm lint denetimlerini çalıştır (ruff, eslint, mypy)
+  - `type-check` — tür denetimini çalıştır (mypy backend + tsc apps/web)
+
+**Dokümantasyon (Wave 25)**
+- `docs/testing-coverage-report.md` güncellendi; Wave 25 test dosyası sayıları ve kapsama metrikleri eklendi.
+- `docs/runbooks/incident-response.md` — yeni runbook: P0–P3 önem seviyeleri, ilk müdahale listesi, yaygın sorunlar ve düzeltmeleri, geri alma prosedürü, eskalasyon yolu, olay sonrası şablon.
+- `docs/runbooks/performance-troubleshooting.md` — yeni runbook: hızlı tanı, backend/engine/veritabanı/frontend performans sorunları ve çözümleri.
+
+**Senkronizasyon — Cortex_Ai_Automation → temt/Neurex_QA (Wave 25)**
+- 19 ek test dosyası portlandı; `temt/Neurex_QA` toplam test dosyası sayısı: **312 dosya**.
+
+**Test sayısı**
+- Wave 25 ile 3 yeni engine route test dosyası (55 test) + 7 yeni frontend bileşen dosyası eklendi.
+- Kümülatif birim test sayısı: **~5.114+** (Wave 24 sonu baz alınarak).
+
+---
+
+### Added — Wave 26: monkey/page.tsx refactor, ide/page.tsx temizliği, privacy/analysis bileşenleri, runbook'lar, cost service katmanlama, service layer doğrulaması (2026-05-27)
+
+**Frontend — monkey/page.tsx refactoru (1726 → 1083 satır)**
+- `apps/web/app/(dashboard)/monkey/components/BugReportPanel.tsx` — hata raporu paneli; önem seviyesi, yeniden üretme adımları, ekran görüntüsü ekleme.
+- `apps/web/app/(dashboard)/monkey/components/MonkeyLivePreview.tsx` — canlı monkey test önizleme; anlık eylem akışı, hata vurgulama, durum rozeti.
+- `apps/web/app/(dashboard)/monkey/components/AiPipelinePanel.tsx` — AI pipeline yönetimi; model seçimi, pipeline adımları, çıktı görselleştirme.
+- `apps/web/app/(dashboard)/monkey/prompts.ts` — yardımcı fonksiyon: LLM prompt şablonları monkey test senaryoları için.
+- Toplam azalma: **643 satır** (`monkey/page.tsx`).
+
+**Frontend — ide/page.tsx temizliği (1073 → 517 satır)**
+- 2 legacy `{false && <...>}` bloğu (dead code) kaldırıldı.
+- 7 kullanılmayan yardımcı fonksiyon silindi.
+- Toplam azalma: **556 satır** (`ide/page.tsx`).
+
+**Frontend — privacy/ bileşenleri**
+- `apps/web/app/(dashboard)/privacy/components/ConsentManager.tsx` — KVKK onay yöneticisi; onay türleri, kabul/ret işleme, geçmiş kaydı.
+- `apps/web/app/(dashboard)/privacy/components/DataExportPanel.tsx` — veri dışa aktarma paneli; format seçimi, indirme kuyruğu, ilerleme göstergesi.
+
+**Frontend — analysis/ bileşenleri**
+- `apps/web/app/(dashboard)/analysis/components/CoverageChart.tsx` — kapsama grafiği; ekran/özellik bazlı kapsama yüzdeleri, trend çizgisi.
+- `apps/web/app/(dashboard)/analysis/components/FailureAnalysisTable.tsx` — hata analiz tablosu; hata tipi, sıklık, son görülme, bileşen sütunları.
+
+**Dokümantasyon — Runbook'lar**
+- `docs/runbooks/incident-response.md` — P0–P3 önem seviyeleri, ilk müdahale listesi, geri alma prosedürü, eskalasyon yolu.
+- `docs/runbooks/performance-troubleshooting.md` — backend/engine/veritabanı/frontend performans tanı ve çözüm kılavuzu.
+
+**Backend — cost/service.py**
+- `estimate_monthly_cost_strict` fonksiyonu eklendi; bilinmeyen modeller için `ValueError` fırlatır (sessiz hata yerine açık hata).
+
+**Service layer denetimi**
+- Tüm kalan `HTTPException` kullanımları incelendi; tamamı meşru router/deps katmanında — servis katmanında ihlal yok.
+
+**Genel**
+- Toplam `page.tsx` boyutu azalması şimdiye kadar: **~2.200 satır** ortadan kaldırıldı.
+- Aynı bileşenler her iki repoya da (`temt/Neurex_QA` ve `Cortex_Ai_Automation`) kopyalandı.
+
+---
+
+
+### Added — Wave 20: Engine servis testleri, frontend bileşen ayrıştırması, a11y + api_testing router testleri (2026-05-27, Tur 17)
+
+**Engine — Servis birim testleri**
+- `engine/tests/unit/services/test_engine_services.py` — 74 test; 11 servis birden kapsandı:
+  - `prompt_loader` — şablon yükleme, eksik şablon 404, önbellekleme davranışı.
+  - `llm_gateway` — model çağrısı, yeniden deneme mantığı, hata yayılımı.
+  - `anomaly_detector` — eşik aşımı tespiti, boş girdi, z-skor hesabı.
+  - `flaky_detector` — flaky_score hesabı, pencere filtreleme, karantina eşiği.
+  - `coverage_analyzer` — kapsama oranı, eksik dosya uyarısı, delta analizi.
+  - `context_chunker` — token bölme, örtüşme penceresi, maksimum boyut sınırı.
+  - `ai_test_generator` — test üretimi, endpoint filtreleme, bağlam enjeksiyonu.
+  - `bdd_generator` — Gherkin çıktısı, senaryo ayrıştırma, kapsama analizi.
+  - `assertion_engine` — doğrulama değerlendirmesi, şema kontrolü, hata raporlama.
+  - `self_healer` — başarısız test onarımı, strateji seçimi, geri dönüş.
+  - `test_prioritizer` — risk puanı sıralaması, değişken dosya tespiti, makul süre tahmini.
+
+**Frontend — Mobil otomasyon bileşen ayrıştırması**
+- `apps/web/app/(dashboard)/p/[projectId]/mobil-otomasyon/components/DeviceFarmGrid.tsx` — cihaz çiftliği ızgarası; cihaz durumu, platform ikonu, oturum başlatma callback'i `page.tsx` içinden ayrıştırıldı.
+- `apps/web/app/(dashboard)/p/[projectId]/mobil-otomasyon/components/SessionLogPanel.tsx` — gerçek zamanlı oturum günlüğü paneli; log akışı, filtre ve temizleme callback'leri props aracılığıyla.
+
+**Backend — Router unit testleri (Wave 20)**
+- `test_a11y_router.py` — 14 test; POST /a11y/reports (geçerli ingest 201, ihlal içeren rapor skor düşüşü, bozuk payload 400/422), GET /a11y/reports (liste 200, boş liste, limit parametresi, geçersiz limit 422), GET /a11y/aggregate (beklenen alanlar, boş geçmiş, rapor sayısı doğrulama).
+- `test_api_testing_router.py` — 14 test; GET /environments (200, boş liste), POST /environments (201, eksik zorunlu alan 422), GET /specs (200, boş), POST /test-cases (201, eksik alan 422), GET /test-cases/{id} (200, 404), DELETE /test-cases/{id} (204, 404).
+- `test_feature_flags_router.py` — 13 test; list_flags, get_flag (404 dahil), upsert_flag (400 hata yolu), delete_flag (404), evaluate_flag (tenant ve fallback senaryoları).
+- Tüm dosyalar `Cortex_Ai_Automation` reposuna kopyalandı.
+
+**Test sayısı**
+- Wave 20 ile 2 yeni router test dosyası + 1 servis test dosyası eklendi; toplam ~+101 birim test.
+- Kümülatif birim test sayısı: ~4.290+ (Wave 19 sonu ~4.200+ baz alınarak).
+
+### Added — Wave 19: Router testleri genişletildi, backend domain tamamlama (2026-05-27, Tur 16)
+
+**Backend — Router unit testleri (Wave 19)**
+- `test_pr_bot_router.py` — 12 test; PR oluşturma, durum takibi ve webhook entegrasyonu.
+- `test_privacy_router.py` — 10 test; veri gizlilik politikaları, silme talebi ve onay akışı.
+- `test_onboarding_router.py` — 13 test; kullanıcı kayıt adımları, hoş geldiniz e-postası ve ilerleme durumu.
+- `test_audit_router.py` — 11 test; denetim izi listeleme, filtreleme ve dışa aktarma.
+- `test_dsl_router.py` — 13 test; DSL derleme, doğrulama ve çalışma zamanı yürütme.
+- `test_git_fetch_router.py` — 14 test; repo klonlama, dal listeleme ve commit geçmişi.
+- `test_nexus_repo_router.py` — 14 test; artefakt yükleme/indirme, meta veri sorgulama.
+- `test_coverup_router.py` — 10 test; kapsama raporu alım, eşik uyarısı ve trend analizi.
+- `test_cost_router.py` — 10 test; maliyet tahmini, bütçe limiti ve faturalandırma özeti.
+- `test_mobile_router.py` — 11 test; mobil oturum yönetimi, push bildirim kaydı ve cihaz profili.
+- Tüm dosyalar `Cortex_Ai_Automation` reposuna kopyalandı.
+
+**Backend — Feature Flags router test dosyası**
+- `test_feature_flags_router.py` — 10 test; list_flags, get_flag (404 dahil), upsert_flag (400 hata yolu dahil), delete_flag (404 dahil), evaluate_flag (tenant query param ve fallback senaryoları).
+
+**Test sayısı**
+- Wave 19 ile 11 yeni router test dosyası + 1 yeni service test dosyası eklendi; toplam +128 birim test.
+- Backend router test kapsamı: 36 domain router dosyası tamamlandı.
+- Kümülatif birim test sayısı: ~4.200+ (Wave 18 sonu ~4.070+ baz alınarak).
+
+### Added — Wave 18: Router testleri genişletildi, frontend bileşen ayrıştırması (2026-05-27, Tur 15)
+
+**Backend — Router unit testleri (Wave 18)**
+- `test_automation_router.py` — otomasyon işlemleri için CRUD, trigger ve durum makinesi testleri.
+- `test_email_router.py` — e-posta bildirimleri, şablon render ve teslimat doğrulama testleri.
+- `test_rbac_router.py` — rol bazlı erişim kontrolü; izin ataması, ret yolları ve audit log testleri.
+- `test_navigation_router.py` — navigasyon yapılandırması, menü öğesi CRUD ve sıralama testleri.
+- `test_ai_synthetic_data_router.py` — sentetik veri üretimi, model seçimi ve çıktı doğrulama testleri.
+- `test_products_router.py` — ürün kataloğu CRUD, filtreleme ve stok durum testleri.
+- `test_quality_router.py` — kalite metrikleri, eşik yönetimi ve rapor üretimi testleri.
+- `test_prompts_router.py` — prompt şablonu CRUD, versiyon yönetimi ve render testleri.
+- `test_notifications_router.py` — bildirim kanalı yapılandırması, toplu gönderim ve okundu durumu testleri.
+- `test_health_router.py` — sistem sağlık kontrolü, bağımlılık yoklaması ve liveness/readiness testleri.
+- `test_catalog_router.py` — varlık kataloğu CRUD, arama/filtreleme ve meta veri testleri.
+
+**Frontend — Bileşen ayrıştırması**
+- `apps/web/app/(dashboard)/new-project/components/StepIndicator.tsx` — adım ilerleme göstergesi (desktop kenar çubuğu + mobil yatay ray) `page.tsx` içinden ayrıştırıldı; `StepIndicator` ve `MobileStepRail` adlandırılmış dışa aktarımlar.
+- `apps/web/app/(dashboard)/new-project/components/ProjectTypeSelector.tsx` — ürün ailesi seçici (mobil banner + kenar çubuğu ızgarası) `page.tsx` içinden ayrıştırıldı; `MobileProductBanner` ve `SidebarProductSwitcher` adlandırılmış dışa aktarımlar.
+- `apps/web/app/(dashboard)/p/[projectId]/monkey/components/MonkeyConfigPanel.tsx` — test yapılandırma paneli (URL, eylem sayısı, eylem türleri, kimlik doğrulama, eylem düğmeleri, durum/ilerleme) ayrıştırıldı.
+- `apps/web/app/(dashboard)/p/[projectId]/monkey/components/MonkeySessionList.tsx` — oturum geçmişi listesi ayrıştırıldı; tekrar yükleme ve temizleme callback'leri props aracılığıyla.
+- Tüm durum yönetimi ebeveyn `page.tsx` dosyalarında korundu; ayrıştırılan bileşenler saf sunum (dumb component) katmanı.
+- Aynı bileşenler her iki repoya da (`Neurex_QA` ve `Cortex_Ai_Automation`) kopyalandı.
+
+**Test sayısı**
+- Wave 18 ile 11 yeni router test dosyası eklendi; tahmini +110 ila +150 birim test.
+- Kümülatif birim test sayısı: ~4.070+ (Wave 16/17 tur sonu 3.960+ baz alınarak).
 
 ### Added — Wave 16/17: Router testleri tamamlandı, security fixes (2026-05-26, Tur 14)
 

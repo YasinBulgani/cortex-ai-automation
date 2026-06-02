@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useMemo } from "react";
+import { useQueries } from "@tanstack/react-query";
 
 import { useRouteParam } from "@/lib/use-route-param";
 import { apiFetch } from "@/lib/api";
@@ -56,57 +57,46 @@ function statusLabel(s: StageStatus): string {
 
 export default function PipelinePage() {
   const projectId = useRouteParam("projectId");
-  const [summary, setSummary] = useState<PipelineSummary | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    let cancelled = false;
-    setLoading(true);
+  // Reuse shared cache keys (same as scenarios and executions pages)
+  const [scenariosQ, executionsQ] = useQueries({
+    queries: [
+      {
+        queryKey: ["scenarios", "list", projectId] as const,
+        queryFn: () => apiFetch<any[]>(`/api/v1/tspm/projects/${projectId}/scenarios`),
+        enabled: !!projectId,
+        staleTime: 60 * 1000,
+      },
+      {
+        queryKey: ["executions", "list", projectId] as const,
+        queryFn: () => apiFetch<any[]>(`/api/v1/tspm/projects/${projectId}/executions`),
+        enabled: !!projectId,
+        staleTime: 15 * 1000,
+      },
+    ],
+  });
 
-    Promise.allSettled([
-      apiFetch<any[]>(`/api/v1/tspm/projects/${projectId}/scenarios`),
-      apiFetch<any[]>(`/api/v1/tspm/projects/${projectId}/executions`),
-    ])
-      .then(([scenariosResult, executionsResult]) => {
-        if (cancelled) return;
-        const scenarios = scenariosResult.status === "fulfilled" ? scenariosResult.value : [];
-        const executions = executionsResult.status === "fulfilled" ? executionsResult.value : [];
+  const loading = scenariosQ.isLoading || executionsQ.isLoading;
+  const error = scenariosQ.error ? String(scenariosQ.error) : executionsQ.error ? String(executionsQ.error) : null;
 
-        const lastRun = executions[0];
-        const passRate =
-          lastRun && lastRun.scenario_total > 0
-            ? Math.round((100 * (lastRun.passed_count ?? 0)) / lastRun.scenario_total)
-            : null;
-
-        const openFailures = executions.reduce(
-          (acc: number, e: any) => acc + (e.failed_count ?? 0),
-          0,
-        );
-
-        setSummary({
-          project_id: projectId,
-          total_scenarios: scenarios.length,
-          total_executions: executions.length,
-          last_run_pass_rate: passRate,
-          open_failures: openFailures,
-          ai_generated_count: scenarios.filter((s: any) =>
-            (s.tags || []).includes("ai-generated"),
-          ).length,
-        });
-        setError(null);
-      })
-      .catch((e: any) => {
-        if (!cancelled) setError(e?.message ?? "Veri yüklenemedi");
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-
-    return () => {
-      cancelled = true;
+  const summary = useMemo<PipelineSummary | null>(() => {
+    const scenarios = scenariosQ.data ?? [];
+    const executions = executionsQ.data ?? [];
+    if (scenarios.length === 0 && executions.length === 0) return null;
+    const lastRun = executions[0];
+    const passRate = lastRun && lastRun.scenario_total > 0
+      ? Math.round((100 * (lastRun.passed_count ?? 0)) / lastRun.scenario_total)
+      : null;
+    const openFailures = executions.reduce((acc: number, e: any) => acc + (e.failed_count ?? 0), 0);
+    return {
+      project_id: projectId,
+      total_scenarios: scenarios.length,
+      total_executions: executions.length,
+      last_run_pass_rate: passRate,
+      open_failures: openFailures,
+      ai_generated_count: scenarios.filter((s: any) => (s.tags || []).includes("ai-generated")).length,
     };
-  }, [projectId]);
+  }, [scenariosQ.data, executionsQ.data, projectId]);
 
   const stages: Stage[] = [
     {

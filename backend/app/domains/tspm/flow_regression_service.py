@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -59,7 +58,7 @@ def create_flow_for_project(db: Session, project_id: str, body: FlowCreate) -> T
 def get_flow_or_404(db: Session, project_id: str, flow_id: str) -> TspmFlow:
     flow = db.get(TspmFlow, flow_id)
     if flow is None or flow.project_id != project_id:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Akış bulunamadı")
+        raise KeyError("Akış bulunamadı")
     return flow
 
 
@@ -183,10 +182,7 @@ def suggest_regression_sets_for_project(
         )
     )
     if not scenarios:
-        raise HTTPException(
-            status.HTTP_400_BAD_REQUEST,
-            "Öneri yapılabilmesi için projede en az bir senaryo olmalı.",
-        )
+        raise ValueError("Öneri yapılabilmesi için projede en az bir senaryo olmalı.")
     scenario_dicts = [
         {
             "id": scenario.id,
@@ -243,5 +239,5 @@ def _get_regression_set_or_404(
 ) -> TspmRegressionSet:
     regression_set = db.get(TspmRegressionSet, set_id)
     if regression_set is None or regression_set.project_id != project_id:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Set bulunamadı")
+        raise KeyError("Set bulunamadı")
     return regression_set

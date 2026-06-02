@@ -1,7 +1,7 @@
 # Backend Domain Coverage Summary
 
-**Güncelleme:** 2026-05-26  
-**Toplam Domain Sayısı:** 48  
+**Güncelleme:** 2026-05-27
+**Toplam Domain Sayısı:** 48
 **Kaynak:** `backend/app/domains/` + `backend/tests/unit/`
 
 ## Kapsam Tablosu
@@ -10,7 +10,7 @@
 |---|---|---|---|---|
 | a11y | ✅ | ✅ | ✅ | `test_a11y_service.py` mevcut |
 | accessibility | ✅ | ✅ | ✅ | `test_accessibility_service.py` + `test_accessibility_router.py` + `test_accessibility_analyzer.py` |
-| agents | ✅ | ✅ | ✅ | `test_agents_service.py` mevcut |
+| agents | ✅ | ✅ | ✅ | `test_agents_service.py` mevcut; HTTPException → ValueError/KeyError/RuntimeError/PermissionError (Wave 23) |
 | ai | ✅ | ✅ | ✅ | `test_ai_service.py` + helpers mevcut |
 | ai_synthetic_data | ✅ | ✅ | ✅ | `test_ai_synthetic_data_service.py` mevcut |
 | api_testing | ✅ | ✅ | ✅ | `test_api_testing_service.py` + feedback helpers |
@@ -54,7 +54,7 @@
 | quality | ✅ | ✅ | ✅ | `test_quality_service.py` + `test_quality_metrics.py` |
 | rbac | ✅ | ✅ | ✅ | `service.py` + `router.py` tamamlandı (Wave 12); `test_rbac_service.py` mevcut |
 | rules | ✅ | ✅ | ✅ | `test_rules_service.py` mevcut |
-| tspm | ✅ | ✅ | ✅ | `test_tspm_service.py` + db schema/reporting/scheduler/xpath/test case helpers |
+| tspm | ✅ | ✅ | ✅ | `test_tspm_service.py` + db schema/reporting/scheduler/xpath/test case helpers; HTTPException → ValueError/KeyError/RuntimeError/PermissionError (Wave 23) |
 | visual | ✅ | ✅ | ✅ | `test_visual_service.py` + `test_visual_compare.py` + eval helpers |
 
 ## Özet
@@ -66,3 +66,29 @@
 | **Toplam** | **48** |
 
 > Wave 12 tamamlandı — tüm 6 eksik domain (rbac, email, pr_bot, navigation, automation_templates, migration) servis ve testleriyle teslim edildi.
+
+## Güncel Durum (Wave 23 — 2026-05-27)
+
+### Test Altyapısı
+- **temt/Neurex_QA toplam birim test dosyası:** 292 dosya
+- **Entegrasyon testleri:** `test_service_layer_contracts.py` (AST-tabanlı kontrat zorlama, 7 test)
+
+### HTTPException İhlal Düzeltmeleri (Wave 23)
+- **11 tspm/* servis dosyası** — `HTTPException` kaldırıldı; `ValueError` / `KeyError` / `RuntimeError` / `PermissionError` ile değiştirildi.
+- **2 agents/* servis dosyası** — aynı düzeltme uygulandı.
+- Tüm servis katmanı artık HTTP-agnostic; exception → HTTP dönüşümü yalnızca `exception_handlers.py` üzerinden yapılıyor.
+
+### Yeni: app/core/exceptions.py
+- `RateLimitError(Exception)` eklendi: `message` + `retry_after_seconds` (varsayılan 60).
+- HTTP 429 Too Many Requests karşılığı; `exception_handlers.py` üzerinden yönlendiriliyor.
+
+### Yeni: exception_handlers.py güncellemeleri
+- `rate_limit_error_handler` → HTTP 429 + `Retry-After: <n>` başlığı.
+- `register_exception_handlers()` içinde `RateLimitError` kaydı eklendi (`ValueError`'dan önce, `Exception`'dan önce).
+
+### Yeni: llm_rate_limiter.py güncellemeleri
+- `HTTPException` bağımlılığı tamamen kaldırıldı.
+- `check_llm_rate_limit`: limit aşımında `RateLimitError` fırlatıyor, Redis kullanılamaz durumda `RuntimeError` fırlatıyor.
+
+### Test Kapsamı
+- `test_rate_limit_and_exceptions.py` — 10 test; `RateLimitError` sınıfı (5 test), `check_llm_rate_limit` (3 test), `exception_handlers` (2 test).

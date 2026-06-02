@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useRouteParam } from "@/lib/use-route-param";
 import { apiFetch } from "@/lib/api";
+import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -36,6 +37,7 @@ const PIPELINE_STAGES: PipelineStage[] = [
 export default function NewScenarioPage() {
   const router = useRouter();
   const projectId = useRouteParam("projectId");
+  const queryClient = useQueryClient();
   // useSearchParams test ortamında mock'lanmamış olabilir — defensive call
   let initialSource: string | null = null;
   try {
@@ -80,6 +82,7 @@ export default function NewScenarioPage() {
         method: "POST",
         json: { title, description, status: "draft", steps },
       });
+      queryClient.invalidateQueries({ queryKey: ["scenarios", "list", projectId] });
       router.push(`/p/${projectId}/scenarios/${created.id}`);
     } catch (e: unknown) {
       setErr(e instanceof Error ? e.message : "Hata");

@@ -1,0 +1,447 @@
+"use client";
+
+import { useMemo, useState } from "react";
+
+import {
+  buildCommentTree,
+  type CommentEntityType,
+  type CommentNode,
+  type MgmtComment,
+  useComments,
+  useCreateComment,
+  useDeleteComment,
+  useReactToComment,
+  useThreadSummary,
+  useUpdateComment,
+} from "@/lib/hooks/use-mgmt-comments";
+
+const REACTION_PALETTE: readonly string[] = ["+1", "-1", "heart", "rocket", "eyes", "tada"];
+
+const REACTION_ICON: Record<string, string> = {
+  "+1": "👍",
+  "-1": "👎",
+  heart: "❤️",
+  rocket: "🚀",
+  eyes: "👀",
+  tada: "🎉",
+};
+
+export interface CommentThreadProps {
+  entityType: CommentEntityType;
+  entityId: string;
+  projectId?: string | null;
+  currentUserId?: string | null;
+  /** Map user id → display label, used to render @mentions. */
+  userDirectory?: Record<string, string>;
+  /** Override the header title. */
+  title?: string;
+}
+
+export function CommentThread({
+  entityType,
+  entityId,
+  projectId = null,
+  currentUserId = null,
+  userDirectory,
+  title = "Comments",
+}: CommentThreadProps) {
+  const { data, isLoading, isError, error } = useComments(entityType, entityId);
+  const tree = useMemo(() => buildCommentTree(data ?? []), [data]);
+  const createMutation = useCreateComment();
+  const updateMutation = useUpdateComment(entityType, entityId);
+  const deleteMutation = useDeleteComment(entityType, entityId);
+  const reactMutation = useReactToComment(entityType, entityId);
+
+  const [draft, setDraft] = useState("");
+  const [summaryOpen, setSummaryOpen] = useState(false);
+  const summary = useThreadSummary(entityType, entityId, summaryOpen);
+
+  const submitRoot = async () => {
+    const body = draft.trim();
+    if (!body) return;
+    await createMutation.mutateAsync({
+      entity_type: entityType,
+      entity_id: entityId,
+      project_id: projectId,
+      body_md: body,
+    });
+    setDraft("");
+  };
+
+  return (
+    <section className="rounded-lg border border-slate-800 bg-slate-900 p-5">
+      <header className="mb-4 flex items-center justify-between">
+        <h2 className="text-sm font-semibold text-white">{title}</h2>
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => setSummaryOpen((v) => !v)}
+            aria-pressed={summaryOpen}
+            className={`rounded-md border px-2 py-1 text-[11px] transition ${
+              summaryOpen
+                ? "border-teal-400 bg-teal-500/15 text-teal-200"
+                : "border-slate-700 text-slate-300 hover:border-teal-500 hover:text-teal-200"
+            }`}
+          >
+            {summaryOpen ? "Hide AI özet" : "AI özet"}
+          </button>
+          <span className="text-xs text-slate-500">{data?.length ?? 0} comment(s)</span>
+        </div>
+      </header>
+
+      {summaryOpen ? (
+        <div className="mb-4 rounded-md border border-teal-500/30 bg-teal-500/5 p-3">
+          <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-teal-300">
+            AI thread summary
+          </p>
+          {summary.isLoading ? (
+            <p className="text-xs text-slate-400">Generating…</p>
+          ) : summary.isError ? (
+            <p className="text-xs text-rose-200">
+              Summary unavailable: {(summary.error as Error)?.message ?? "unknown error"}
+            </p>
+          ) : summary.data ? (
+            <div className="space-y-2 text-xs text-slate-200">
+              <p>
+                <span className="font-semibold text-teal-200">TL;DR — </span>
+                {summary.data.tldr || "(no summary)"}
+              </p>
+              {summary.data.decisions.length > 0 ? (
+                <div>
+                  <p className="font-semibold text-teal-200">Decisions</p>
+                  <ul className="ml-4 list-disc space-y-0.5">
+                    {summary.data.decisions.map((d, i) => (
+                      <li key={`d-${i}`}>{d}</li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+              {summary.data.openQuestions.length > 0 ? (
+                <div>
+                  <p className="font-semibold text-teal-200">Open questions</p>
+                  <ul className="ml-4 list-disc space-y-0.5">
+                    {summary.data.openQuestions.map((q, i) => (
+                      <li key={`q-${i}`}>{q}</li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+              {summary.data.source === "fallback" ? (
+                <p className="text-[10px] italic text-slate-500">
+                  (heuristic fallback — LLM unavailable)
+                </p>
+              ) : null}
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+
+      {isError ? (
+        <p className="rounded border border-rose-800 bg-rose-950/40 p-3 text-xs text-rose-200">
+          Failed to load comments: {(error as Error)?.message ?? "unknown error"}
+        </p>
+      ) : null}
+
+      {isLoading ? (
+        <p className="text-xs text-slate-500">Loading…</p>
+      ) : tree.length === 0 ? (
+        <p className="rounded border border-dashed border-slate-700 bg-slate-950/40 p-3 text-xs text-slate-500">
+          No comments yet.
+        </p>
+      ) : (
+        <ul className="space-y-3">
+          {tree.map((node) => (
+            <li key={node.id}>
+              <CommentItem
+                node={node}
+                depth={0}
+                entityType={entityType}
+                entityId={entityId}
+                projectId={projectId}
+                currentUserId={currentUserId}
+                userDirectory={userDirectory}
+                onReply={(parentId, body) =>
+                  createMutation.mutateAsync({
+                    entity_type: entityType,
+                    entity_id: entityId,
+                    project_id: projectId,
+                    parent_id: parentId,
+                    body_md: body,
+                  })
+                }
+                onEdit={(commentId, body) =>
+                  updateMutation.mutateAsync({ commentId, body_md: body })
+                }
+                onDelete={(commentId) => deleteMutation.mutateAsync(commentId)}
+                onReact={(commentId, emoji, currentlyReacted) =>
+                  reactMutation.mutateAsync({ commentId, emoji, add: !currentlyReacted })
+                }
+              />
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <div className="mt-4 border-t border-slate-800 pt-4">
+        <textarea
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          placeholder="Write a comment… Use @<user-uuid> to mention a teammate."
+          rows={3}
+          className="w-full resize-y rounded-md border border-slate-700 bg-slate-950 p-2 text-sm text-slate-100 outline-none focus:border-teal-500"
+        />
+        <div className="mt-2 flex items-center justify-between">
+          <span className="text-[11px] text-slate-500">
+            Markdown supported. Mentions trigger notifications.
+          </span>
+          <button
+            type="button"
+            onClick={() => void submitRoot()}
+            disabled={!draft.trim() || createMutation.isPending}
+            className="rounded-md bg-teal-500 px-3 py-1.5 text-xs font-semibold text-slate-950 transition hover:bg-teal-400 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {createMutation.isPending ? "Posting…" : "Post comment"}
+          </button>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+interface CommentItemProps {
+  node: CommentNode;
+  depth: number;
+  entityType: CommentEntityType;
+  entityId: string;
+  projectId: string | null;
+  currentUserId: string | null;
+  userDirectory: Record<string, string> | undefined;
+  onReply: (parentId: string, body: string) => Promise<MgmtComment>;
+  onEdit: (commentId: string, body: string) => Promise<MgmtComment>;
+  onDelete: (commentId: string) => Promise<MgmtComment>;
+  onReact: (
+    commentId: string,
+    emoji: string,
+    currentlyReacted: boolean,
+  ) => Promise<MgmtComment>;
+}
+
+function CommentItem({
+  node,
+  depth,
+  entityType,
+  entityId,
+  projectId,
+  currentUserId,
+  userDirectory,
+  onReply,
+  onEdit,
+  onDelete,
+  onReact,
+}: CommentItemProps) {
+  const [replying, setReplying] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState("");
+  const [editDraft, setEditDraft] = useState(node.body_md);
+
+  const isAuthor = currentUserId !== null && node.author_id === currentUserId;
+  const isDeleted = !!node.deleted_at;
+  const authorLabel =
+    (node.author_id && userDirectory?.[node.author_id]) ?? node.author_id?.slice(0, 8) ?? "unknown";
+
+  return (
+    <div
+      className="rounded-md border border-slate-800 bg-slate-950/60 p-3"
+      style={{ marginLeft: depth > 0 ? Math.min(depth, 4) * 16 : 0 }}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-xs text-slate-400">
+            <span className="font-semibold text-slate-200">{authorLabel}</span>{" "}
+            <span className="text-slate-500">
+              · {new Date(node.created_at).toLocaleString()}
+              {node.edited_at ? " · edited" : ""}
+              {isDeleted ? " · deleted" : ""}
+            </span>
+          </p>
+          {editing ? (
+            <div className="mt-2">
+              <textarea
+                value={editDraft}
+                onChange={(e) => setEditDraft(e.target.value)}
+                rows={3}
+                className="w-full resize-y rounded-md border border-slate-700 bg-slate-950 p-2 text-sm text-slate-100 outline-none focus:border-teal-500"
+              />
+              <div className="mt-2 flex gap-2">
+                <button
+                  type="button"
+                  className="rounded-md bg-teal-500 px-2.5 py-1 text-[11px] font-semibold text-slate-950 hover:bg-teal-400"
+                  onClick={async () => {
+                    const trimmed = editDraft.trim();
+                    if (!trimmed) return;
+                    await onEdit(node.id, trimmed);
+                    setEditing(false);
+                  }}
+                >
+                  Save
+                </button>
+                <button
+                  type="button"
+                  className="rounded-md border border-slate-700 px-2.5 py-1 text-[11px] text-slate-300 hover:bg-slate-900"
+                  onClick={() => {
+                    setEditing(false);
+                    setEditDraft(node.body_md);
+                  }}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          ) : (
+            <p
+              className={`mt-1 whitespace-pre-wrap text-sm ${
+                isDeleted ? "italic text-slate-500" : "text-slate-100"
+              }`}
+            >
+              {isDeleted ? "[comment removed]" : renderBody(node.body_md, userDirectory)}
+            </p>
+          )}
+        </div>
+      </div>
+
+      {!isDeleted ? (
+        <div className="mt-2 flex flex-wrap items-center gap-2">
+          {REACTION_PALETTE.map((emoji) => {
+            const userIds = node.reactions[emoji] ?? [];
+            const count = userIds.length;
+            const reacted = currentUserId ? userIds.includes(currentUserId) : false;
+            return (
+              <button
+                key={emoji}
+                type="button"
+                onClick={() => void onReact(node.id, emoji, reacted)}
+                className={`flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] transition ${
+                  reacted
+                    ? "border-teal-400 bg-teal-500/15 text-teal-200"
+                    : "border-slate-700 text-slate-400 hover:border-slate-500"
+                }`}
+                aria-pressed={reacted}
+                aria-label={`React with ${emoji}`}
+              >
+                <span>{REACTION_ICON[emoji] ?? emoji}</span>
+                {count > 0 ? <span className="font-semibold">{count}</span> : null}
+              </button>
+            );
+          })}
+          <button
+            type="button"
+            className="ml-auto text-[11px] text-slate-400 hover:text-slate-200"
+            onClick={() => setReplying((v) => !v)}
+          >
+            {replying ? "Cancel reply" : "Reply"}
+          </button>
+          {isAuthor ? (
+            <>
+              <button
+                type="button"
+                className="text-[11px] text-slate-400 hover:text-slate-200"
+                onClick={() => {
+                  setEditing(true);
+                  setEditDraft(node.body_md);
+                }}
+              >
+                Edit
+              </button>
+              <button
+                type="button"
+                className="text-[11px] text-rose-300 hover:text-rose-100"
+                onClick={() => void onDelete(node.id)}
+              >
+                Delete
+              </button>
+            </>
+          ) : null}
+        </div>
+      ) : null}
+
+      {replying ? (
+        <div className="mt-2 rounded border border-slate-800 bg-slate-950 p-2">
+          <textarea
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            rows={2}
+            placeholder="Write a reply…"
+            className="w-full resize-y rounded-md border border-slate-700 bg-slate-950 p-2 text-sm text-slate-100 outline-none focus:border-teal-500"
+          />
+          <div className="mt-2 flex gap-2">
+            <button
+              type="button"
+              className="rounded-md bg-teal-500 px-2.5 py-1 text-[11px] font-semibold text-slate-950 hover:bg-teal-400"
+              onClick={async () => {
+                const trimmed = draft.trim();
+                if (!trimmed) return;
+                await onReply(node.id, trimmed);
+                setDraft("");
+                setReplying(false);
+              }}
+            >
+              Reply
+            </button>
+          </div>
+        </div>
+      ) : null}
+
+      {node.children.length > 0 ? (
+        <ul className="mt-3 space-y-2">
+          {node.children.map((child) => (
+            <li key={child.id}>
+              <CommentItem
+                node={child}
+                depth={depth + 1}
+                entityType={entityType}
+                entityId={entityId}
+                projectId={projectId}
+                currentUserId={currentUserId}
+                userDirectory={userDirectory}
+                onReply={onReply}
+                onEdit={onEdit}
+                onDelete={onDelete}
+                onReact={onReact}
+              />
+            </li>
+          ))}
+        </ul>
+      ) : null}
+    </div>
+  );
+}
+
+const MENTION_RE = /@([0-9a-fA-F-]{36})/g;
+
+function renderBody(body: string, dir: Record<string, string> | undefined): React.ReactNode {
+  if (!body) return null;
+  const parts: React.ReactNode[] = [];
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+  let key = 0;
+  while ((match = MENTION_RE.exec(body)) !== null) {
+    if (match.index > lastIndex) {
+      parts.push(body.slice(lastIndex, match.index));
+    }
+    const uid = match[1];
+    const label = (dir?.[uid] ?? uid.slice(0, 8));
+    parts.push(
+      <span
+        key={`m-${key++}`}
+        className="rounded bg-teal-500/15 px-1 py-0.5 text-teal-200"
+      >
+        @{label}
+      </span>,
+    );
+    lastIndex = match.index + match[0].length;
+  }
+  if (lastIndex < body.length) {
+    parts.push(body.slice(lastIndex));
+  }
+  return parts;
+}

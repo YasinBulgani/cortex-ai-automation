@@ -1,8 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouteParam } from "@/lib/use-route-param";
 import { apiFetch } from "@/lib/api";
 import {
@@ -19,35 +20,44 @@ type FlowRow = {
   created_at: string | null;
 };
 
+const flowsQK = (projectId: string) => ["flows", "list", projectId] as const;
+
 export default function FlowsListPage() {
   const router = useRouter();
   const projectId = useRouteParam("projectId");
-  const [rows, setRows] = useState<FlowRow[]>([]);
+  const queryClient = useQueryClient();
   const [name, setName] = useState("");
-  const [creating, setCreating] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
-  const load = useCallback(() => {
-    apiFetch<FlowRow[]>(`/api/v1/tspm/projects/${projectId}/flows`).then(setRows).catch((err) => console.warn("[flows]:", err));
-  }, [projectId]);
+  const { data: rows = [] } = useQuery<FlowRow[]>({
+    queryKey: flowsQK(projectId ?? ""),
+    queryFn: () => apiFetch<FlowRow[]>(`/api/v1/tspm/projects/${projectId}/flows`),
+    enabled: !!projectId,
+    staleTime: 60 * 1000,
+    gcTime: 5 * 60 * 1000,
+  });
 
-  useEffect(() => { load(); }, [load]);
+  const createMut = useMutation({
+    mutationFn: (flowName: string) =>
+      apiFetch<{ id: string }>(`/api/v1/tspm/projects/${projectId}/flows`, {
+        method: "POST",
+        json: { name: flowName },
+      }),
+    onSuccess: (f) => {
+      queryClient.invalidateQueries({ queryKey: flowsQK(projectId ?? "") });
+      setName("");
+      router.push(`/p/${projectId}/flows/${f.id}`);
+    },
+    onError: (e: unknown) => setErr(e instanceof Error ? e.message : "Hata"),
+  });
 
   async function create(e: React.FormEvent) {
     e.preventDefault();
     setErr(null);
-    setCreating(true);
-    try {
-      const f = await apiFetch<{ id: string }>(`/api/v1/tspm/projects/${projectId}/flows`, {
-        method: "POST",
-        json: { name: name.trim() || "Yeni akış" },
-      });
-      setName("");
-      router.push(`/p/${projectId}/flows/${f.id}`);
-    } catch (e: unknown) {
-      setErr(e instanceof Error ? e.message : "Hata");
-    } finally { setCreating(false); }
+    createMut.mutate(name.trim() || "Yeni akış");
   }
+
+  const creating = createMut.isPending;
 
   return (
     <div className="min-h-screen bg-slate-950 p-6 flex flex-col gap-6" data-testid="flows-page">

@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from fastapi import HTTPException
-
 from app.domains.agents.banking_team.heal_schemas import (
     HealHistoryEntry,
     HealHistoryResponse,
@@ -15,7 +13,7 @@ from app.domains.agents.banking_team.locator_schemas import TrendAnalysisRespons
 def _require_project_id(project_id: str) -> str:
     project_id = project_id.strip()
     if not project_id:
-        raise HTTPException(400, "project_id query parametresi gerekli")
+        raise ValueError("project_id query parametresi gerekli")
     return project_id
 
 

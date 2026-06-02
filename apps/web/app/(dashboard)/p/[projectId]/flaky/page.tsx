@@ -2,7 +2,8 @@
 
 import { PageFeedbackWidget } from "@/components/PageFeedbackWidget";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { useRouteParam } from "@/lib/use-route-param";
 import { apiFetch } from "@/lib/api";
 import {
@@ -70,31 +71,33 @@ const TABS: { id: TabId; label: string }[] = [
 export default function FlakyTestsPage() {
   const projectId = useRouteParam("projectId");
   const [activeTab, setActiveTab] = useState<TabId>("list");
-  const [tests, setTests] = useState<FlakyTest[]>([]);
   const [anomalyReport, setAnomalyReport] = useState<AnomalyReport | null>(null);
-  const [analyzing, setAnalyzing] = useState(false);
+
+  const { data: tests = [] } = useQuery<FlakyTest[]>({
+    queryKey: ["flaky", "tspm", projectId],
+    queryFn: () => apiFetch<FlakyTest[]>(`/api/v1/tspm/projects/${projectId}/flaky-tests`),
+    enabled: !!projectId,
+    staleTime: 2 * 60 * 1000,
+    gcTime: 5 * 60 * 1000,
+  });
 
   const { data: apiFlaky = [], isLoading: flakyLoading } = useFlakyTests(projectId);
   const { data: quarantined = [], isLoading: qLoading } = useQuarantineList(projectId);
   const quarantineMut = useQuarantineTest(projectId);
 
-  useEffect(() => {
-    apiFetch<FlakyTest[]>(`/api/v1/tspm/projects/${projectId}/flaky-tests`).then(setTests).catch((err) => console.warn("[flaky]:", err));
-  }, [projectId]);
-
   const highFlip = tests.filter(t => t.flip_count >= 3).length;
+
+  const anomalyMut = useMutation({
+    mutationFn: () => apiFetch<AnomalyReport>(`/api/v1/tspm/projects/${projectId}/flaky-anomaly`, { method: "POST" }),
+    onSuccess: (report) => { setAnomalyReport(report); setActiveTab("anomaly"); },
+  });
 
   async function runAnomalyDetection() {
     if (tests.length === 0) return;
-    setAnalyzing(true);
-    try {
-      const report = await apiFetch<AnomalyReport>(`/api/v1/tspm/projects/${projectId}/flaky-anomaly`, { method: "POST" });
-      setAnomalyReport(report);
-      setActiveTab("anomaly");
-    } catch { /* ignore */ } finally {
-      setAnalyzing(false);
-    }
+    anomalyMut.mutate();
   }
+
+  const analyzing = anomalyMut.isPending;
 
   return (
     <div className="min-h-screen bg-slate-950 p-6 flex flex-col gap-4" data-testid="flaky-page">

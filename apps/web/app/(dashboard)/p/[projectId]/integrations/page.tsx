@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { useRouteParam } from "@/lib/use-route-param";
 import { apiFetch } from "@/lib/api";
@@ -37,33 +38,40 @@ const inputCls = "w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py
 
 export default function IntegrationsPage() {
   const projectId = useRouteParam("projectId");
-  const [integrations, setIntegrations] = useState<Integration[]>([]);
+  const queryClient = useQueryClient();
+  const integrationsQK = ["integrations", "list", projectId] as const;
+
   const [form, setForm] = useState<Form>(emptyForm);
-  const [loading, setLoading] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [testing, setTesting] = useState<string | null>(null);
 
-  const load = useCallback(() => {
-    apiFetch<Integration[]>(`/api/v1/tspm/projects/${projectId}/integrations`)
-      .then(setIntegrations).catch((err) => console.warn("[integrations]:", err));
-  }, [projectId]);
+  const { data: integrations = [] } = useQuery<Integration[]>({
+    queryKey: integrationsQK,
+    queryFn: () => apiFetch<Integration[]>(`/api/v1/tspm/projects/${projectId}/integrations`),
+    enabled: !!projectId,
+    staleTime: 60 * 1000,
+    gcTime: 5 * 60 * 1000,
+  });
 
-  useEffect(() => { load(); }, [load]);
+  const createMut = useMutation({
+    mutationFn: (config: Record<string, string>) =>
+      apiFetch(`/api/v1/tspm/projects/${projectId}/integrations`, {
+        method: "POST", json: { provider: form.provider, config },
+      }),
+    onSuccess: () => {
+      setForm(emptyForm);
+      setShowForm(false);
+      queryClient.invalidateQueries({ queryKey: integrationsQK });
+    },
+  });
+  const loading = createMut.isPending;
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
-    setLoading(true);
-    try {
-      const config = WEBHOOK_PROVIDERS.has(form.provider)
-        ? { webhook_url: form.base_url }
-        : { base_url: form.base_url, api_token: form.api_token, project_key: form.project_key };
-      await apiFetch(`/api/v1/tspm/projects/${projectId}/integrations`, {
-        method: "POST", json: { provider: form.provider, config },
-      });
-      setForm(emptyForm);
-      setShowForm(false);
-      load();
-    } finally { setLoading(false); }
+    const config: Record<string, string> = WEBHOOK_PROVIDERS.has(form.provider)
+      ? { webhook_url: form.base_url }
+      : { base_url: form.base_url, api_token: form.api_token, project_key: form.project_key };
+    createMut.mutate(config);
   }
 
   async function testNotification(id: string) {
@@ -75,21 +83,36 @@ export default function IntegrationsPage() {
     finally { setTesting(null); }
   }
 
-  async function toggleActive(integ: Integration) {
-    await apiFetch(`/api/v1/tspm/projects/${projectId}/integrations/${integ.id}`, {
-      method: "PUT", json: { is_active: !integ.is_active },
-    });
-    load();
+  const toggleMut = useMutation({
+    mutationFn: (integ: Integration) =>
+      apiFetch(`/api/v1/tspm/projects/${projectId}/integrations/${integ.id}`, {
+        method: "PUT", json: { is_active: !integ.is_active },
+      }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: integrationsQK }),
+  });
+
+  function toggleActive(integ: Integration) {
+    toggleMut.mutate(integ);
   }
 
-  async function sync(id: string) {
-    await apiFetch(`/api/v1/tspm/projects/${projectId}/integrations/${id}/sync`, { method: "POST" });
-    load();
+  const syncMut = useMutation({
+    mutationFn: (id: string) =>
+      apiFetch(`/api/v1/tspm/projects/${projectId}/integrations/${id}/sync`, { method: "POST" }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: integrationsQK }),
+  });
+
+  function sync(id: string) {
+    syncMut.mutate(id);
   }
 
-  async function handleDelete(id: string) {
-    await apiFetch(`/api/v1/tspm/projects/${projectId}/integrations/${id}`, { method: "DELETE" });
-    load();
+  const deleteMut = useMutation({
+    mutationFn: (id: string) =>
+      apiFetch(`/api/v1/tspm/projects/${projectId}/integrations/${id}`, { method: "DELETE" }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: integrationsQK }),
+  });
+
+  function handleDelete(id: string) {
+    deleteMut.mutate(id);
   }
 
   return (

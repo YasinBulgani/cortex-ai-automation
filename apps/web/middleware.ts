@@ -48,6 +48,13 @@ function isPublicPath(pathname: string): boolean {
 const AUTH_DISABLED = false;
 
 export function middleware(req: NextRequest): NextResponse {
+  if (req.nextUrl.pathname.startsWith("/p/00000000-0000-0000-0000-000000000001/management")) {
+    const managementUrl = req.nextUrl.clone();
+    managementUrl.pathname = "/management";
+    managementUrl.search = "";
+    return NextResponse.redirect(managementUrl);
+  }
+
   if (AUTH_DISABLED || process.env.NEXT_PUBLIC_AUTH_MIDDLEWARE_ENABLED === "false") {
     return NextResponse.next();
   }

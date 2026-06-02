@@ -10,7 +10,7 @@ const variants = cva(
   {
     variants: {
       variant: {
-        primary: "bg-blue-600 text-blue-400-fg hover:opacity-90",
+        primary: "bg-teal-600 text-white hover:bg-teal-700",
         secondary:
           "border border-slate-800 bg-transparent text-white hover:bg-black/5 dark:hover:bg-white/10",
         outline:

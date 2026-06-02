@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/api";
 import { PageHeader } from "@/components/nexus/PageHeader";
 
@@ -16,52 +17,99 @@ type UserRow = {
 
 const inputCls = "w-full rounded-xl border border-slate-700 bg-slate-900 px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500/50 transition-colors";
 
+const usersQK = ["admin", "users"] as const;
+const invitesQK = ["admin", "invitations"] as const;
+
+type InvitationRow = {
+  id: string;
+  email: string;
+  role: string;
+  team_id: string | null;
+  expires_at: string;
+  created_at: string;
+};
+
 export default function AdminUsersPage() {
-  const [users, setUsers] = useState<UserRow[]>([]);
+  const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [email, setEmail] = useState("");
   const [pw, setPw] = useState("");
   const [fullName, setFullName] = useState("");
   const [role, setRole] = useState("viewer");
   const [err, setErr] = useState<string | null>(null);
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteRole, setInviteRole] = useState("member");
+  const [inviteErr, setInviteErr] = useState<string | null>(null);
+
+  const { data: users = [] } = useQuery<UserRow[]>({
+    queryKey: usersQK,
+    queryFn: () => apiFetch<UserRow[]>("/api/v1/auth/users"),
+    staleTime: 2 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+  });
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
     if (!q) return users;
     return users.filter(
-      (u) =>
-        u.email.toLowerCase().includes(q) ||
-        (u.full_name ?? "").toLowerCase().includes(q)
+      (u) => u.email.toLowerCase().includes(q) || (u.full_name ?? "").toLowerCase().includes(q)
     );
   }, [users, search]);
 
-  function load() {
-    apiFetch<UserRow[]>("/api/v1/auth/users").then(setUsers).catch((err) => console.warn("[users]:", err));
-  }
+  const createMut = useMutation({
+    mutationFn: () =>
+      apiFetch("/api/v1/auth/users", {
+        method: "POST",
+        json: { email, password: pw, full_name: fullName, role },
+      }),
+    onSuccess: () => {
+      setEmail(""); setPw(""); setFullName("");
+      queryClient.invalidateQueries({ queryKey: usersQK });
+    },
+    onError: (e: unknown) => setErr(e instanceof Error ? e.message : "Hata"),
+  });
 
-  useEffect(() => { load(); }, []);
+  const { data: invitations = [] } = useQuery<InvitationRow[]>({
+    queryKey: invitesQK,
+    queryFn: () => apiFetch<InvitationRow[]>("/api/v1/organizations/invitations"),
+    staleTime: 60 * 1000,
+  });
+
+  const inviteMut = useMutation({
+    mutationFn: () =>
+      apiFetch("/api/v1/organizations/invitations", {
+        method: "POST",
+        json: { email: inviteEmail, role: inviteRole },
+      }),
+    onSuccess: () => {
+      setInviteEmail("");
+      setInviteErr(null);
+      queryClient.invalidateQueries({ queryKey: invitesQK });
+    },
+    onError: (e: unknown) =>
+      setInviteErr(e instanceof Error ? e.message : "Davet gonderilemedi"),
+  });
+
+  const revokeInviteMut = useMutation({
+    mutationFn: (id: string) =>
+      apiFetch(`/api/v1/organizations/invitations/${id}`, { method: "DELETE" }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: invitesQK }),
+  });
+
+  const toggleMut = useMutation({
+    mutationFn: (u: UserRow) =>
+      apiFetch(`/api/v1/auth/users/${u.id}`, { method: "PUT", json: { is_active: !u.is_active } }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: usersQK }),
+  });
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
     setErr(null);
-    try {
-      await apiFetch("/api/v1/auth/users", {
-        method: "POST",
-        json: { email, password: pw, full_name: fullName, role },
-      });
-      setEmail(""); setPw(""); setFullName("");
-      load();
-    } catch (err: unknown) {
-      setErr(err instanceof Error ? err.message : "Hata");
-    }
+    createMut.mutate();
   }
 
-  async function toggleActive(u: UserRow) {
-    await apiFetch(`/api/v1/auth/users/${u.id}`, {
-      method: "PUT",
-      json: { is_active: !u.is_active },
-    });
-    load();
+  function toggleActive(u: UserRow) {
+    toggleMut.mutate(u);
   }
 
   return (
@@ -113,6 +161,74 @@ export default function AdminUsersPage() {
           </button>
         </form>
         {err && <p className="mt-3 text-sm text-red-400" data-testid="admin-users-alert-error">{err}</p>}
+      </div>
+
+      <div className="rounded-xl border border-slate-800 bg-slate-900/40 p-5">
+        <h2 className="text-sm font-semibold text-slate-300 mb-4">Ekip Daveti</h2>
+        <form
+          onSubmit={(e) => { e.preventDefault(); inviteMut.mutate(); }}
+          className="flex flex-wrap items-end gap-3"
+          data-testid="admin-invite-form"
+        >
+          <div className="min-w-[200px] flex-1 flex flex-col gap-1.5">
+            <label className="text-xs font-medium text-slate-400">E-posta</label>
+            <input
+              value={inviteEmail}
+              onChange={(e) => setInviteEmail(e.target.value)}
+              required
+              type="email"
+              className={inputCls}
+              data-testid="admin-invite-input-email"
+            />
+          </div>
+          <div className="min-w-[120px] flex flex-col gap-1.5">
+            <label htmlFor="invite-role-select" className="text-xs font-medium text-slate-400">Rol</label>
+            <select
+              id="invite-role-select"
+              value={inviteRole}
+              onChange={(e) => setInviteRole(e.target.value)}
+              className={inputCls}
+              data-testid="admin-invite-select-role"
+            >
+              <option value="viewer">Viewer</option>
+              <option value="member">Member</option>
+              <option value="operator">Operator</option>
+              <option value="admin">Admin</option>
+            </select>
+          </div>
+          <button
+            type="submit"
+            disabled={inviteMut.isPending}
+            data-testid="admin-invite-btn-send"
+            className="px-4 py-2.5 text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-500 rounded-xl transition-colors disabled:opacity-50"
+          >
+            {inviteMut.isPending ? "Gonderiliyor..." : "Davet Gonder"}
+          </button>
+        </form>
+        {inviteErr && <p className="mt-3 text-sm text-red-400">{inviteErr}</p>}
+
+        {invitations.length > 0 && (
+          <div className="mt-5">
+            <h3 className="text-xs font-semibold text-slate-400 mb-2">Bekleyen Davetler ({invitations.length})</h3>
+            <div className="rounded-lg border border-slate-800 divide-y divide-slate-800">
+              {invitations.map((inv) => (
+                <div key={inv.id} className="flex items-center justify-between px-3 py-2 text-xs">
+                  <div className="flex items-center gap-3">
+                    <span className="text-white">{inv.email}</span>
+                    <span className="rounded-full border border-blue-500/20 bg-blue-500/10 px-2 py-0.5 text-blue-400">{inv.role}</span>
+                    <span className="text-slate-500">Sonlanir: {new Date(inv.expires_at).toLocaleDateString("tr-TR")}</span>
+                  </div>
+                  <button
+                    onClick={() => revokeInviteMut.mutate(inv.id)}
+                    className="text-red-400 hover:text-red-300"
+                  >
+                    Iptal
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="rounded-xl border border-slate-800 bg-slate-900/40 overflow-hidden">

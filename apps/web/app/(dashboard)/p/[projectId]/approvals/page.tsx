@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { useRouteParam } from "@/lib/use-route-param";
 import { apiFetch } from "@/lib/api";
@@ -123,38 +124,47 @@ function SortableCard({
   );
 }
 
+const approvalsQK = (projectId: string) => ["approvals", "list", projectId] as const;
+
 /* ── Main Page ────────────────────────────────────────────────────────────── */
 export default function ApprovalsPage() {
   const projectId = useRouteParam("projectId");
-  const [rows, setRows] = useState<Approval[]>([]);
+  const queryClient = useQueryClient();
   const [active, setActive] = useState<Approval | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
-  const [deciding, setDeciding] = useState(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
 
-  const load = useCallback(() => {
-    apiFetch<Approval[]>(`/api/v1/tspm/projects/${projectId}/approvals`).then(setRows).catch((err) => console.warn("[approvals]:", err));
-  }, [projectId]);
+  const { data: rows = [] } = useQuery<Approval[]>({
+    queryKey: approvalsQK(projectId ?? ""),
+    queryFn: () => apiFetch<Approval[]>(`/api/v1/tspm/projects/${projectId}/approvals`),
+    enabled: !!projectId,
+    staleTime: 30 * 1000,
+    gcTime: 5 * 60 * 1000,
+  });
 
-  useEffect(() => { load(); }, [load]);
+  const invalidate = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: approvalsQK(projectId ?? "") });
+  }, [queryClient, projectId]);
+
+  const decideMut = useMutation({
+    mutationFn: ({ approvalId, decision }: { approvalId: string; decision: string }) =>
+      apiFetch(`/api/v1/tspm/projects/${projectId}/approvals/${approvalId}/decide`, {
+        method: "POST", json: { decision, notes: "" },
+      }),
+    onSuccess: () => { setActive(null); invalidate(); },
+  });
 
   const columnData = COLUMNS.map(col => ({
     ...col,
     items: rows.filter(r => mapStatusToColumn(r.status, (r.decision_trace?.decision as string | null) ?? null) === col.id),
   }));
 
-  async function decide(approvalId: string, decision: "approved" | "rejected" | "edited") {
-    setDeciding(true);
-    try {
-      await apiFetch(`/api/v1/tspm/projects/${projectId}/approvals/${approvalId}/decide`, {
-        method: "POST", json: { decision, notes: "" },
-      });
-      setActive(null); load();
-    } finally { setDeciding(false); }
+  function decide(approvalId: string, decision: "approved" | "rejected" | "edited") {
+    decideMut.mutate({ approvalId, decision });
   }
 
   async function batchApprove() {
@@ -164,8 +174,10 @@ export default function ApprovalsPage() {
         method: "POST", json: { decision: "approved", notes: "" },
       });
     }
-    load();
+    invalidate();
   }
+
+  const deciding = decideMut.isPending;
 
   function findColumnForItem(itemId: string): ColumnId | undefined {
     const item = rows.find(r => r.id === itemId);

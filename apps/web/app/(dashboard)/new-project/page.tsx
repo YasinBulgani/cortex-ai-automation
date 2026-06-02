@@ -54,6 +54,8 @@ import {
 import { MaviyakaFeatureViewer } from "./MaviyakaFeatureViewer";
 
 import { IdeWorkbench } from "./IdeWorkbench";
+import { StepIndicator, MobileStepRail } from "./components/StepIndicator";
+import { MobileProductBanner, SidebarProductSwitcher } from "./components/ProjectTypeSelector";
 
 
 // ── Component ────────────────────────────────────────────────────────────────
@@ -1159,133 +1161,23 @@ export default function NewProjectPage() {
         )}
 
         {/* Mobile ürün bandı — sadece md altı */}
-        <div className="mb-6 rounded-2xl border border-violet-500/20 bg-gradient-to-br from-violet-500/10 via-slate-900 to-slate-950 p-4 md:hidden">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-violet-200/80">Neurex Product Focus</p>
-          <div className="mt-2 flex items-center gap-2">
-            <h2 className="text-lg font-semibold text-white">{selectedProduct.name}</h2>
-            <span className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold ${PRODUCT_AVAILABILITY_META[selectedProduct.availability].className}`}>
-              {PRODUCT_AVAILABILITY_META[selectedProduct.availability].label}
-            </span>
-          </div>
-          <p className="mt-1 text-sm text-violet-200/90">{selectedProduct.tagline}</p>
-          <div className="mt-3 grid grid-cols-2 gap-1.5">
-            {PRODUCT_FAMILY.map((product) => (
-              <button
-                key={product.id}
-                type="button"
-                onClick={() => applyProduct(product.id)}
-                className={`rounded-lg border px-2 py-1.5 text-left transition ${
-                  product.id === selectedProduct.id
-                    ? "border-violet-300/40 bg-violet-400/15 text-violet-50"
-                    : "border-slate-800 bg-slate-900/60 text-slate-300"
-                }`}
-              >
-                <span className="block text-[10px] font-semibold uppercase tracking-[0.16em]">{product.shortName}</span>
-                <span className="mt-0.5 block text-[11px] leading-snug">{product.tagline}</span>
-              </button>
-            ))}
-          </div>
-        </div>
+        <MobileProductBanner
+          selectedProductId={selectedProduct.id}
+          selectedProductName={selectedProduct.name}
+          selectedProductTagline={selectedProduct.tagline}
+          selectedProductAvailability={selectedProduct.availability}
+          onProductChange={applyProduct}
+        />
 
         {/* Mobile horizontal step rail — sadece md altı */}
-        <div className="mb-6 overflow-x-auto pb-1 md:hidden">
-          <div className="flex items-center min-w-max">
-            {STEPS.map((s, i) => (
-              <div key={s.id} className="flex items-center">
-                <div className="flex flex-col items-center">
-                  <div
-                    className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold
-                      ${step === s.id ? "bg-blue-600 ring-2 ring-blue-600/30 text-white" :
-                        step > s.id  ? "bg-emerald-600 text-white" :
-                                       "bg-slate-800 text-slate-500"}`}
-                  >
-                    {step > s.id ? (
-                      <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                      </svg>
-                    ) : s.id}
-                  </div>
-                  <span className={`mt-1 w-14 text-center text-[9px] leading-tight
-                    ${step === s.id ? "text-blue-400 font-medium" : step > s.id ? "text-emerald-600" : "text-slate-700"}`}>
-                    {s.label}
-                  </span>
-                </div>
-                {i < STEPS.length - 1 && (
-                  <div className={`mx-0.5 mb-4 h-px w-5 shrink-0 ${step > s.id ? "bg-emerald-600" : "bg-slate-800"}`} />
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
+        <MobileStepRail currentStep={step} />
 
         {/* 3-kolon grid: sol step rail | orta form | sağ context paneli */}
         <div className="grid gap-6 md:grid-cols-[220px_minmax(0,1fr)] xl:grid-cols-[240px_minmax(0,1fr)_320px] xl:gap-8 2xl:grid-cols-[280px_minmax(0,1fr)_360px]">
           {/* Sol sticky step rail (md+) */}
           <aside className="hidden md:block">
             <div className="sticky top-6 space-y-4">
-              <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-4">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-slate-500">
-                  Kurulum Adımları
-                </p>
-                <ol className="mt-3 space-y-1">
-                  {STEPS.map((s) => {
-                    const isActive = step === s.id;
-                    const isDone = step > s.id;
-                    return (
-                      <li key={s.id}>
-                        <button
-                          type="button"
-                          onClick={() => { if (isDone) setStep(s.id); }}
-                          disabled={!isDone}
-                          className={`flex w-full items-center gap-3 rounded-lg px-2.5 py-2 text-left transition ${
-                            isActive
-                              ? "bg-blue-500/10 ring-1 ring-inset ring-blue-500/30"
-                              : isDone
-                                ? "hover:bg-slate-800/60 cursor-pointer"
-                                : "opacity-60 cursor-not-allowed"
-                          }`}
-                        >
-                          <span
-                            className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold
-                              ${isActive ? "bg-blue-600 text-white ring-2 ring-blue-600/30" :
-                                isDone  ? "bg-emerald-600 text-white" :
-                                          "bg-slate-800 text-slate-500"}`}
-                          >
-                            {isDone ? (
-                              <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                              </svg>
-                            ) : s.id}
-                          </span>
-                          <span className="min-w-0 flex-1">
-                            <span className={`block text-xs font-semibold leading-tight ${
-                              isActive ? "text-blue-300" : isDone ? "text-emerald-400" : "text-slate-300"
-                            }`}>
-                              {s.label}
-                            </span>
-                            <span className="mt-0.5 block text-[10px] leading-tight text-slate-500">
-                              {s.desc}
-                            </span>
-                          </span>
-                        </button>
-                      </li>
-                    );
-                  })}
-                </ol>
-                <div className="mt-3 border-t border-slate-800 pt-3">
-                  <div className="flex items-center gap-2">
-                    <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-slate-800">
-                      <div
-                        className="h-full rounded-full bg-gradient-to-r from-blue-500 to-violet-500 transition-all"
-                        style={{ width: `${(step / STEPS.length) * 100}%` }}
-                      />
-                    </div>
-                    <span className="text-[10px] font-semibold text-slate-400">
-                      {Math.round((step / STEPS.length) * 100)}%
-                    </span>
-                  </div>
-                </div>
-              </div>
+              <StepIndicator currentStep={step} onStepClick={(id) => setStep(id)} />
             </div>
           </aside>
 
@@ -2801,30 +2693,10 @@ export default function NewProjectPage() {
               </div>
 
               {/* Ürün değiştirici */}
-              <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-4">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-slate-500">
-                  Ürünü değiştir
-                </p>
-                <div className="mt-3 grid grid-cols-2 gap-1.5">
-                  {PRODUCT_FAMILY.map((product) => (
-                    <button
-                      key={product.id}
-                      type="button"
-                      onClick={() => applyProduct(product.id)}
-                      className={`rounded-lg border px-2 py-1.5 text-left transition ${
-                        product.id === selectedProduct.id
-                          ? "border-violet-300/40 bg-violet-400/15 text-violet-50"
-                          : "border-slate-800 bg-slate-900/60 text-slate-400 hover:border-slate-700 hover:text-slate-200"
-                      }`}
-                    >
-                      <span className="block text-[9px] font-semibold uppercase tracking-[0.14em]">
-                        {product.shortName}
-                      </span>
-                      <span className="mt-0.5 block text-[10px] leading-tight">{product.tagline}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
+              <SidebarProductSwitcher
+                selectedProductId={selectedProduct.id}
+                onProductChange={applyProduct}
+              />
 
               {/* Bu adımda kartı */}
               <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-4">

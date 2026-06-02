@@ -29,16 +29,16 @@
   --border-subtle: #f1f5f9;
 
   /* ── Brand: Neurex (default) ─────────────────────────────────────────── */
-  --brand-primary:    #6366f1;
-  --brand-secondary:  #8b5cf6;
-  --brand-soft:       #eef2ff;
+  --brand-primary:    #0d9488;
+  --brand-secondary:  #0f766e;
+  --brand-soft:       #f0fdfa;
   --brand-fg:         #ffffff;
   --accent:           var(--brand-primary);
   --accent-fg:        var(--brand-fg);
   --accent-subtle:    var(--brand-soft);
 
   /* ── Per-Ürün renkleri ───────────────────────────────────────────────── */
-  --product-one:          #6366f1;
+  --product-one:          #0d9488;
   --product-studio:       #f59e0b;
   --product-service:      #10b981;
   --product-web:          #3b82f6;
@@ -113,7 +113,7 @@
   --shadow-elevated: 0 1px 3px rgb(0 0 0 / 0.06), 0 8px 24px rgb(0 0 0 / 0.06);
   --shadow-lg:       0 4px 6px rgb(0 0 0 / 0.05), 0 20px 40px rgb(0 0 0 / 0.08);
   --shadow-xl:       0 24px 48px rgb(0 0 0 / 0.12);
-  --shadow-glow:     0 0 0 4px rgb(99 102 241 / 0.15);
+  --shadow-glow:     0 0 0 4px rgb(13 148 136 / 0.15);
 
   /* ── Z-index sahneleme ───────────────────────────────────────────────── */
   --z-base:    1;
@@ -142,10 +142,10 @@
 }
 
 .dark {
-  --surface-base:    #0c0e14;
-  --surface-raised:  #131720;
-  --surface-overlay: #1c2230;
-  --surface-accent:  #252d3d;
+  --surface-base:    #0a0f1e;
+  --surface-raised:  #111827;
+  --surface-overlay: #1a2235;
+  --surface-accent:  #233047;
 
   --bg:        var(--surface-base);
   --bg-subtle: var(--surface-overlay);
@@ -157,19 +157,19 @@
   --muted:       #94a3b8;
   --muted-fg:    #64748b;
 
-  --border:        #1e2535;
-  --border-strong: #2d3748;
-  --border-subtle: #131720;
+  --border:        #1c2540;
+  --border-strong: #2a3555;
+  --border-subtle: #111827;
 
-  --brand-primary:   #818cf8;
-  --brand-secondary: #a78bfa;
-  --brand-soft:      rgb(99 102 241 / 0.15);
-  --brand-fg:        #0c0e14;
+  --brand-primary:   #2dd4bf;
+  --brand-secondary: #14b8a6;
+  --brand-soft:      rgb(13 148 136 / 0.15);
+  --brand-fg:        #0a0f1e;
   --accent:          var(--brand-primary);
   --accent-fg:       #ffffff;
   --accent-subtle:   var(--brand-soft);
 
-  --product-one:          #818cf8;
+  --product-one:          #2dd4bf;
   --product-studio:       #fbbf24;
   --product-service:      #34d399;
   --product-web:          #60a5fa;
@@ -201,11 +201,11 @@
   --shadow-elevated: 0 1px 3px rgb(0 0 0 / 0.4), 0 8px 24px rgb(0 0 0 / 0.35);
   --shadow-lg:       0 4px 6px rgb(0 0 0 / 0.3), 0 20px 40px rgb(0 0 0 / 0.4);
   --shadow-xl:       0 24px 48px rgb(0 0 0 / 0.5);
-  --shadow-glow:     0 0 0 4px rgb(129 140 248 / 0.25);
+  --shadow-glow:     0 0 0 4px rgb(45 212 191 / 0.25);
 }
 
 /* ── Per-product theme override ──────────────────────────────────────────── */
-[data-product="one"]          { --brand-primary: var(--product-one);          --brand-soft: rgb(99 102 241 / 0.15); }
+[data-product="one"]          { --brand-primary: var(--product-one);          --brand-soft: rgb(13 148 136 / 0.15); }
 [data-product="studio"]       { --brand-primary: var(--product-studio);       --brand-soft: rgb(245 158 11 / 0.15); }
 [data-product="service"]      { --brand-primary: var(--product-service);      --brand-soft: rgb(16 185 129 / 0.15); }
 [data-product="web"]          { --brand-primary: var(--product-web);          --brand-soft: rgb(59 130 246 / 0.15); }

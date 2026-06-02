@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { useRouteParam } from "@/lib/use-route-param";
 import { FlowGuideCard } from "@/components/FlowGuideCard";
-import { useFetch } from "@/lib/useFetch";
 import { apiFetch, ENGINE_BASE } from "@/lib/api";
 import {
   PageHeader,
@@ -323,32 +323,47 @@ function EngineWebhookPanel() {
 
 export default function CicdPage() {
   const projectId = useRouteParam("projectId");
+  const queryClient = useQueryClient();
   const [filter, setFilter] = useState<string>("all");
-  const [triggering, setTriggering] = useState(false);
   const [triggerResult, setTriggerResult] = useState<{ ok: boolean; msg: string } | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
 
-  const { data, loading, refresh } = useFetch<{ events: CicdEvent[]; total: number }>(
-    `/api/v1/cicd/events${filter !== "all" ? `?source=${filter}` : ""}`
-  );
+  const cicdEventsQK = ["cicd", "events", filter] as const;
+
+  const { data, isLoading: loading } = useQuery<{ events: CicdEvent[]; total: number }>({
+    queryKey: cicdEventsQK,
+    queryFn: () => apiFetch<{ events: CicdEvent[]; total: number }>(
+      `/api/v1/cicd/events${filter !== "all" ? `?source=${filter}` : ""}`
+    ),
+    staleTime: 30 * 1000,
+    gcTime: 5 * 60 * 1000,
+  });
   const events = data?.events ?? [];
 
   const backendBase = typeof window !== "undefined"
     ? `${window.location.protocol}//${window.location.hostname}:8000`
     : "http://localhost:8000";
 
-  async function handleManualTrigger() {
-    setTriggering(true);
-    setTriggerResult(null);
-    try {
-      const res = await apiFetch<{ triggered?: boolean; error?: string }>(`/api/v1/cicd/trigger/${projectId}`, {
-        method: "POST", json: { source: "manual", tag: "smoke" },
-      });
+  const triggerMut = useMutation({
+    mutationFn: () => apiFetch<{ triggered?: boolean; error?: string }>(`/api/v1/cicd/trigger/${projectId}`, {
+      method: "POST", json: { source: "manual", tag: "smoke" },
+    }),
+    onSuccess: (res) => {
       setTriggerResult({ ok: !!res.triggered, msg: res.triggered ? "Smoke testleri başlatıldı" : `Hata: ${res.error}` });
-      refresh();
-    } catch (e: unknown) {
-      setTriggerResult({ ok: false, msg: `Hata: ${e instanceof Error ? e.message : String(e)}` });
-    } finally { setTriggering(false); }
+      queryClient.invalidateQueries({ queryKey: ["cicd", "events"] });
+    },
+    onError: (e) => setTriggerResult({ ok: false, msg: `Hata: ${e instanceof Error ? e.message : String(e)}` }),
+  });
+
+  function handleManualTrigger() {
+    setTriggerResult(null);
+    triggerMut.mutate();
+  }
+
+  const triggering = triggerMut.isPending;
+
+  function refresh() {
+    queryClient.invalidateQueries({ queryKey: ["cicd", "events"] });
   }
 
   function copyUrl(url: string) {

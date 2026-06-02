@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useQuery } from "@tanstack/react-query";
 
 import { useRouteParam } from "@/lib/use-route-param";
 import { apiFetch } from "@/lib/api";
@@ -19,13 +19,16 @@ type Detail = {
 export default function ScenarioDetailPage() {
   const projectId = useRouteParam("projectId");
   const id = useRouteParam("id");
-  const [s, setS] = useState<Detail | null>(null);
 
-  useEffect(() => {
-    apiFetch<Detail>(`/api/v1/tspm/projects/${projectId}/scenarios/${id}`).then(setS).catch((err) => console.warn("[page]:", err));
-  }, [projectId, id]);
+  const { data: s, isLoading } = useQuery<Detail>({
+    queryKey: ["scenarios", "detail", projectId, id],
+    queryFn: () => apiFetch<Detail>(`/api/v1/tspm/projects/${projectId}/scenarios/${id}`),
+    enabled: !!projectId && !!id,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+  });
 
-  if (!s) return <p className="text-sm text-slate-400">Yükleniyor…</p>;
+  if (isLoading || !s) return <p className="text-sm text-slate-400">Yükleniyor…</p>;
 
   return (
     <div className="mx-auto max-w-3xl space-y-6" data-testid="scenario-detail-page">

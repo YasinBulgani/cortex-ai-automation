@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from typing import Annotated, Optional
 
-from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect, Query
+from fastapi import APIRouter, Depends, Response, WebSocket, WebSocketDisconnect, Query
 from pydantic import BaseModel, field_validator
 from sqlalchemy.orm import Session
 
@@ -14,7 +14,21 @@ from app.infra.models import User
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(tags=["notifications"])
+def _mark_deprecated(response: Response) -> None:
+    """Tag every HTTP response from this legacy router with deprecation hints.
+
+    Callers should migrate to ``/api/v1/test-management/notifications/*``
+    (see :mod:`app.domains.test_management`). Planned removal: 2026-Q4.
+    """
+    response.headers["Deprecation"] = "true"
+    response.headers["Sunset"] = "Wed, 31 Dec 2026 23:59:59 GMT"
+    response.headers["Link"] = (
+        '</api/v1/test-management/notifications>; '
+        'rel="successor-version"'
+    )
+
+
+router = APIRouter(tags=["notifications"], dependencies=[Depends(_mark_deprecated)])
 
 DB = Annotated[Session, Depends(get_db)]
 CurrentUser = Annotated[User, Depends(get_current_user)]
@@ -41,6 +55,8 @@ class NotificationPrefsOut(BaseModel):
     notify_on_complete: bool
     notify_on_failure: bool
     slack_webhook_url: Optional[str]
+    digest_mode: str = "instant"
+    channels: str = "email,in_app"
 
     model_config = {"from_attributes": True}
 
@@ -49,6 +65,16 @@ class NotificationPrefsIn(BaseModel):
     notify_on_complete: bool = True
     notify_on_failure: bool = True
     slack_webhook_url: Optional[str] = None
+    digest_mode: str = "instant"
+    channels: str = "email,in_app"
+
+    @field_validator("digest_mode")
+    @classmethod
+    def _validate_digest(cls, v: str) -> str:
+        allowed = {"instant", "digest_daily", "digest_weekly", "off"}
+        if v not in allowed:
+            raise ValueError(f"digest_mode must be one of {allowed}")
+        return v
 
     @field_validator("slack_webhook_url")
     @classmethod
@@ -112,6 +138,8 @@ def get_notification_prefs(db: DB, current_user: CurrentUser):
         notify_on_complete=prefs.notify_on_complete,
         notify_on_failure=prefs.notify_on_failure,
         slack_webhook_url=prefs.slack_webhook_url,
+        digest_mode=getattr(prefs, "digest_mode", "instant") or "instant",
+        channels=getattr(prefs, "channels", "email,in_app") or "email,in_app",
     )
 
 
@@ -130,6 +158,8 @@ def upsert_notification_prefs(body: NotificationPrefsIn, db: DB, current_user: C
     prefs.notify_on_complete = body.notify_on_complete
     prefs.notify_on_failure = body.notify_on_failure
     prefs.slack_webhook_url = body.slack_webhook_url
+    prefs.digest_mode = body.digest_mode
+    prefs.channels = body.channels
     prefs.updated_at = datetime.now(timezone.utc)
 
     try:
@@ -144,3 +174,42 @@ def upsert_notification_prefs(body: NotificationPrefsIn, db: DB, current_user: C
         raise HTTPException(status_code=500, detail="Bildirim tercihleri kaydedilemedi.") from exc
 
     return prefs
+
+
+# ── Bulk send + Digest (admin) ────────────────────────────────────────────────
+
+class BulkSendRequest(BaseModel):
+    user_ids: list[str]
+    subject: str
+    html_body: str
+    plain_text: Optional[str] = None
+
+
+@router.post("/notifications/bulk-send")
+def bulk_send_notifications(body: BulkSendRequest, db: DB, current_user: CurrentUser):
+    """Admin: kullanici listesine bildirim gonder (her birinin tercihleri saygi gorur)."""
+    from app.deps import _user_permissions
+    from fastapi import HTTPException
+    perms = _user_permissions(current_user)
+    if "admin.*" not in perms:
+        raise HTTPException(403, detail="Sadece admin")
+    from app.domains.notifications.digest_service import bulk_send
+    return bulk_send(
+        db,
+        user_ids=body.user_ids,
+        subject=body.subject,
+        html_body=body.html_body,
+        plain_text=body.plain_text,
+    )
+
+
+@router.post("/notifications/digest/run")
+def trigger_daily_digest(db: DB, current_user: CurrentUser, lookback_hours: int = Query(24, ge=1, le=168)):
+    """Admin/cron: gunluk digest job'ini calistir."""
+    from app.deps import _user_permissions
+    from fastapi import HTTPException
+    perms = _user_permissions(current_user)
+    if "admin.*" not in perms:
+        raise HTTPException(403, detail="Sadece admin")
+    from app.domains.notifications.digest_service import run_daily_digest
+    return run_daily_digest(db, lookback_hours=lookback_hours)

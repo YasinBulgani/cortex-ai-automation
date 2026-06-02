@@ -226,9 +226,9 @@ class TestAnalyzeReport:
         report = _make_report()
         body = AnalyzeRequest(report_id="rpt-001", min_risk_score=0.0, max_targets=10)
         targets_raw = [
-            {"file_path": "a.py", "risk_score": 0.8, "risk_factors": [], "missed_lines": [], "function_name": None},
-            {"file_path": "b.py", "risk_score": 0.5, "risk_factors": [], "missed_lines": [], "function_name": None},
-            {"file_path": "c.py", "risk_score": 0.2, "risk_factors": [], "missed_lines": [], "function_name": None},
+            {"file_path": "a.py", "risk_score": 0.8, "risk_factors": [], "function_name": None, "start_line": 1, "end_line": 10, "gap_type": "line"},
+            {"file_path": "b.py", "risk_score": 0.5, "risk_factors": [], "function_name": None, "start_line": 1, "end_line": 10, "gap_type": "line"},
+            {"file_path": "c.py", "risk_score": 0.2, "risk_factors": [], "function_name": None, "start_line": 1, "end_line": 10, "gap_type": "line"},
         ]
         with patch.object(coverup_service.GapDetector, "detect_gaps", return_value=targets_raw):
             with patch.object(coverup_service.GapDetector, "identify_banking_critical_paths",
@@ -240,8 +240,8 @@ class TestAnalyzeReport:
         report = _make_report()
         body = AnalyzeRequest(report_id="rpt-001", min_risk_score=0.0, max_targets=10)
         targets_raw = [
-            {"file_path": "auth/login.py", "risk_score": 0.6, "risk_factors": [], "missed_lines": [], "function_name": None},
-            {"file_path": "utils/helper.py", "risk_score": 0.6, "risk_factors": [], "missed_lines": [], "function_name": None},
+            {"file_path": "auth/login.py", "risk_score": 0.6, "risk_factors": [], "function_name": None, "start_line": 1, "end_line": 10, "gap_type": "line"},
+            {"file_path": "utils/helper.py", "risk_score": 0.6, "risk_factors": [], "function_name": None, "start_line": 1, "end_line": 10, "gap_type": "line"},
         ]
         with patch.object(coverup_service.GapDetector, "detect_gaps", return_value=targets_raw):
             with patch.object(coverup_service.GapDetector, "identify_banking_critical_paths",
@@ -254,6 +254,24 @@ class TestAnalyzeReport:
 # build_trend_response
 # ---------------------------------------------------------------------------
 
+def _make_trend_point(**kwargs):
+    from app.domains.coverup.schemas import TrendPoint
+    defaults = dict(
+        report_id="rpt-trend",
+        project_id="proj-001",
+        commit_sha="abc",
+        branch="main",
+        created_at=datetime.now(timezone.utc).isoformat(),
+        line_rate=0.5,
+        branch_rate=0.4,
+        function_rate=0.6,
+        total_lines=100,
+        covered_lines=50,
+    )
+    defaults.update(kwargs)
+    return TrendPoint(**defaults)
+
+
 class TestBuildTrendResponse:
     def test_empty_points_returns_stable(self):
         result = build_trend_response([])
@@ -261,22 +279,19 @@ class TestBuildTrendResponse:
         assert result.current_line_rate == 0.0
 
     def test_improving_trend(self):
-        p1, p2 = MagicMock(), MagicMock()
-        p1.line_rate = 0.5
-        p2.line_rate = 0.6
+        p1 = _make_trend_point(line_rate=0.5)
+        p2 = _make_trend_point(line_rate=0.6)
         result = build_trend_response([p1, p2])
         assert result.direction == "improving"
 
     def test_degrading_trend(self):
-        p1, p2 = MagicMock(), MagicMock()
-        p1.line_rate = 0.7
-        p2.line_rate = 0.5
+        p1 = _make_trend_point(line_rate=0.7)
+        p2 = _make_trend_point(line_rate=0.5)
         result = build_trend_response([p1, p2])
         assert result.direction == "degrading"
 
     def test_single_point_is_stable(self):
-        p = MagicMock()
-        p.line_rate = 0.65
+        p = _make_trend_point(line_rate=0.65)
         result = build_trend_response([p])
         assert result.direction == "stable"
         assert result.current_line_rate == 0.65

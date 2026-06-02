@@ -1,10 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import Link from "next/link";
 
 import { useRouteParam } from "@/lib/use-route-param";
 import { apiFetch } from "@/lib/api";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   DndContext, closestCenter, KeyboardSensor, PointerSensor,
   useSensor, useSensors, DragEndEvent, DragStartEvent, DragOverlay,
@@ -145,11 +146,27 @@ function SortableRow({
   );
 }
 
+/* ── Query key factory ───────────────────────────────────────────────────── */
+const scenarioQK = (projectId: string) => ["scenarios", "list", projectId] as const;
+
 /* ── Main Page ────────────────────────────────────────────────────────────── */
 export default function ScenariosPage() {
   const projectId = useRouteParam("projectId");
-  const [scenarios, setScenarios] = useState<Scenario[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
+
+  // React Query: önbellek, otomatik yenileme ve background refetch
+  const { data: fetchedScenarios = [], isLoading: loading } = useQuery({
+    queryKey: scenarioQK(projectId ?? ""),
+    queryFn: () => apiFetch<Scenario[]>(`/api/v1/tspm/projects/${projectId}/scenarios`),
+    enabled: !!projectId,
+    staleTime: 60 * 1000, // 1 dk — sık ziyaret edilen sayfa
+    gcTime: 5 * 60 * 1000,
+  });
+
+  // Sürükleme sırasında optimistic update için yerel kopya
+  const [localOrder, setLocalOrder] = useState<Scenario[] | null>(null);
+  const scenarios = localOrder ?? fetchedScenarios;
+
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -160,17 +177,6 @@ export default function ScenariosPage() {
     useSensor(PointerSensor),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
-
-  const load = useCallback(async () => {
-    try {
-      setLoading(true);
-      const data = await apiFetch<Scenario[]>(`/api/v1/tspm/projects/${projectId}/scenarios`);
-      setScenarios(data);
-    } catch { /* ignore */ }
-    finally { setLoading(false); }
-  }, [projectId]);
-
-  useEffect(() => { load(); }, [load]);
 
   const filtered = scenarios.filter(s =>
     s.title.toLowerCase().includes(search.toLowerCase()) &&
@@ -191,18 +197,28 @@ export default function ScenariosPage() {
     const oldIdx = scenarios.findIndex(s => s.id === active.id);
     const newIdx = scenarios.findIndex(s => s.id === over.id);
     const prev = scenarios;
-    const next = arrayMove(scenarios, oldIdx, newIdx);
-    setScenarios(next);
+    const next = arrayMove(scenarios as Scenario[], oldIdx, newIdx);
+    // Optimistic update — yerel sırayı hemen güncelle
+    setLocalOrder(next);
+    queryClient.setQueryData(scenarioQK(projectId ?? ""), next);
     setReorderError(null);
     apiFetch(`/api/v1/tspm/projects/${projectId}/scenarios/reorder`, {
       method: "POST",
       json: { order: next.map(s => s.id) },
     }).catch(() => {
-      setScenarios(prev);
+      // Hata durumunda önceki sırayı geri yükle
+      setLocalOrder(prev as Scenario[]);
+      queryClient.setQueryData(scenarioQK(projectId ?? ""), prev);
       setReorderError("Sıralama kaydedilemedi — değişiklik geri alındı.");
       setTimeout(() => setReorderError(null), 4000);
+    }).finally(() => {
+      setLocalOrder(null); // Sunucu verisiyle senkronize et
     });
   }
+
+  const invalidateScenarios = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: scenarioQK(projectId ?? "") });
+  }, [queryClient, projectId]);
 
   const handleGenerate = async () => {
     const ids = selected.size > 0 ? [...selected] : scenarios.map(s => s.id);
@@ -213,7 +229,7 @@ export default function ScenariosPage() {
         method: "POST",
         json: { scenario_ids: ids },
       });
-      await load();
+      invalidateScenarios();
     } catch { /* ignore */ }
     finally { setGenerating(false); }
   };
@@ -222,16 +238,19 @@ export default function ScenariosPage() {
     if (selected.size === 0) return;
     const ids = [...selected];
     const previous = scenarios;
-    setScenarios((current) => current.filter((scenario) => !selected.has(scenario.id)));
+    // Optimistic delete
+    const optimistic = (scenarios as Scenario[]).filter(s => !selected.has(s.id));
+    queryClient.setQueryData(scenarioQK(projectId ?? ""), optimistic);
     setSelected(new Set());
     try {
       await apiFetch(`/api/v1/tspm/projects/${projectId}/scenarios/bulk-delete`, {
         method: "POST",
         json: { ids },
       });
-      await load();
+      invalidateScenarios();
     } catch {
-      setScenarios(previous);
+      // Hata durumunda önceki listeyi geri yükle
+      queryClient.setQueryData(scenarioQK(projectId ?? ""), previous);
       setReorderError("Seçilen senaryolar silinemedi.");
       setTimeout(() => setReorderError(null), 4000);
     }
@@ -290,6 +309,45 @@ export default function ScenariosPage() {
 
       <div className="mb-5">
         <FlowGuideCard projectId={projectId} stage="design" />
+      </div>
+
+      <div className="mb-5 rounded-xl border border-slate-800 bg-slate-900/45 p-4" data-testid="scenarios-management-workspace">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="rounded-full border border-teal-500/30 bg-teal-500/10 px-2 py-1 text-xs font-semibold text-teal-200">
+                Management Repository
+              </span>
+              <span className="rounded-full border border-slate-700 px-2 py-1 text-xs text-slate-400">
+                Suite → Folder → Case → Regression Set
+              </span>
+            </div>
+            <h2 className="mt-3 text-base font-semibold text-white">Klasör, suite ve regresyon setleri için ana ekran Test Repository.</h2>
+            <p className="mt-1 max-w-3xl text-sm text-slate-400">
+              Bu sayfa BDD/tasarım senaryoları içindir; management tarafında kalıcı test hafızası, klasör yapısı, set ve plan akışı repository üzerinden yönetilir.
+            </p>
+          </div>
+          <div className="grid gap-2 sm:grid-cols-3 lg:min-w-[560px]">
+            <Link
+              href={`/p/${projectId}/management/repository`}
+              className="rounded-lg border border-teal-500/30 bg-teal-500/10 px-3 py-2 text-sm font-semibold text-teal-100 hover:bg-teal-500/20"
+            >
+              Suite / Folder Oluştur
+            </Link>
+            <Link
+              href={`/p/${projectId}/management/regression`}
+              className="rounded-lg border border-indigo-500/30 bg-indigo-500/10 px-3 py-2 text-sm font-semibold text-indigo-100 hover:bg-indigo-500/20"
+            >
+              Regresyon Seti Oluştur
+            </Link>
+            <Link
+              href={`/p/${projectId}/management/plans`}
+              className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm font-semibold text-slate-200 hover:border-slate-500"
+            >
+              Test Planı Oluştur
+            </Link>
+          </div>
+        </div>
       </div>
 
       {/* Pilot + Jira hızlı erişim banner — Yeni Senaryo akışına yönlendirir */}

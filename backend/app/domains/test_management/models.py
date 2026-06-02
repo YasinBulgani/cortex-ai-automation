@@ -6,7 +6,7 @@ import uuid
 from datetime import datetime, timezone
 from typing import Any, Optional
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, Text, UniqueConstraint
+from sqlalchemy import Boolean, DateTime, ForeignKey, Index, Integer, String, Text, UniqueConstraint
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -233,6 +233,7 @@ class TestRun(Base):
     source_type: Mapped[str] = mapped_column(String(32), default="manual", server_default="manual", nullable=False)
     source_ref: Mapped[Optional[str]] = mapped_column(UUID(as_uuid=False), nullable=True)
     scope_snapshot: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict, server_default="{}", nullable=False)
+    environment: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
     started_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     completed_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
@@ -369,6 +370,238 @@ class DefectLink(Base):
     verified_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow, nullable=False)
+
+
+class MgmtComment(Base):
+    """Polymorphic threaded comment for management entities (case/defect/plan/run/requirement)."""
+
+    __tablename__ = "mgmt_comments"
+    __table_args__ = (
+        Index("ix_mgmt_comments_entity", "entity_type", "entity_id"),
+        Index("ix_mgmt_comments_tenant_created", "tenant_id", "created_at"),
+        Index("ix_mgmt_comments_parent", "parent_id"),
+    )
+
+    id: Mapped[str] = mapped_column(UUID(as_uuid=False), primary_key=True, default=_uuid)
+    tenant_id: Mapped[str] = mapped_column(
+        String(36), default=DEFAULT_TENANT_ID, server_default=DEFAULT_TENANT_ID, nullable=False, index=True
+    )
+    project_id: Mapped[Optional[str]] = mapped_column(
+        UUID(as_uuid=False),
+        ForeignKey("test_management_projects.id", ondelete="CASCADE"),
+        nullable=True,
+        index=True,
+    )
+    entity_type: Mapped[str] = mapped_column(String(64), nullable=False)
+    entity_id: Mapped[str] = mapped_column(UUID(as_uuid=False), nullable=False)
+    author_id: Mapped[Optional[str]] = mapped_column(
+        UUID(as_uuid=False), ForeignKey("sd_users.id", ondelete="SET NULL"), nullable=True
+    )
+    parent_id: Mapped[Optional[str]] = mapped_column(
+        UUID(as_uuid=False), ForeignKey("mgmt_comments.id", ondelete="CASCADE"), nullable=True
+    )
+    body_md: Mapped[str] = mapped_column(Text, nullable=False)
+    mentions: Mapped[list[str]] = mapped_column(JSONB, default=list, server_default="[]", nullable=False)
+    reactions: Mapped[dict[str, list[str]]] = mapped_column(
+        JSONB, default=dict, server_default="{}", nullable=False
+    )
+    edited_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    deleted_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
+
+
+class MgmtNotification(Base):
+    """In-app notification destined for a single user."""
+
+    __tablename__ = "mgmt_notifications"
+    __table_args__ = (
+        Index("ix_mgmt_notif_user_unread", "user_id", "read_at"),
+        Index("ix_mgmt_notif_created", "created_at"),
+        Index("ix_mgmt_notif_user_archived", "user_id", "archived_at"),
+        Index("ix_mgmt_notif_user_channel", "user_id", "channel"),
+    )
+
+    id: Mapped[str] = mapped_column(UUID(as_uuid=False), primary_key=True, default=_uuid)
+    tenant_id: Mapped[str] = mapped_column(
+        String(36), default=DEFAULT_TENANT_ID, server_default=DEFAULT_TENANT_ID, nullable=False, index=True
+    )
+    user_id: Mapped[str] = mapped_column(
+        UUID(as_uuid=False), ForeignKey("sd_users.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    project_id: Mapped[Optional[str]] = mapped_column(
+        UUID(as_uuid=False),
+        ForeignKey("test_management_projects.id", ondelete="CASCADE"),
+        nullable=True,
+        index=True,
+    )
+    kind: Mapped[str] = mapped_column(String(64), nullable=False)
+    title: Mapped[str] = mapped_column(String(256), nullable=False)
+    body: Mapped[str] = mapped_column(Text, nullable=False)
+    link_path: Mapped[Optional[str]] = mapped_column(String(512), nullable=True)
+    severity: Mapped[str] = mapped_column(String(16), default="info", server_default="info", nullable=False)
+    channel: Mapped[str] = mapped_column(
+        String(32), default="in_app", server_default="in_app", nullable=False
+    )
+    # ↑ delivery channel: in_app | email | push | slack | teams
+    source_trace: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict, server_default="{}", nullable=False)
+    read_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    archived_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
+
+
+class MgmtDesignTechniqueRun(Base):
+    """M-1/M-2/M-9: AI-driven test design technique runs (BVA, EQ, DT, ...).
+
+    Captures the spec (input fields), the generated case drafts, and the
+    LLM trace id so promotions back to ``TestCase`` are auditable.
+    """
+
+    __tablename__ = "mgmt_design_technique_runs"
+    __table_args__ = (
+        Index("ix_mgmt_design_runs_tenant_tech", "tenant_id", "technique"),
+        Index("ix_mgmt_design_runs_req", "requirement_id"),
+    )
+
+    id: Mapped[str] = mapped_column(UUID(as_uuid=False), primary_key=True, default=_uuid)
+    tenant_id: Mapped[str] = mapped_column(
+        String(36), default=DEFAULT_TENANT_ID, server_default=DEFAULT_TENANT_ID, nullable=False, index=True
+    )
+    project_id: Mapped[Optional[str]] = mapped_column(
+        UUID(as_uuid=False),
+        ForeignKey("test_management_projects.id", ondelete="CASCADE"),
+        nullable=True,
+    )
+    requirement_id: Mapped[Optional[str]] = mapped_column(
+        UUID(as_uuid=False),
+        ForeignKey("test_management_requirements.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    technique: Mapped[str] = mapped_column(String(16), nullable=False)
+    # technique: BVA | EQ | DT | STD | PAIRWISE | CEG
+    input_spec: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict, server_default="{}", nullable=False)
+    generated_cases: Mapped[list[dict[str, Any]]] = mapped_column(
+        JSONB, default=list, server_default="[]", nullable=False
+    )
+    llm_trace_id: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    source: Mapped[str] = mapped_column(
+        String(16), default="manual", server_default="manual", nullable=False
+    )  # llm | manual | fallback
+    created_by: Mapped[Optional[str]] = mapped_column(
+        UUID(as_uuid=False), ForeignKey("sd_users.id", ondelete="SET NULL"), nullable=True
+    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
+
+    fields: Mapped[list["MgmtDesignInputField"]] = relationship(
+        back_populates="run", cascade="all, delete-orphan"
+    )
+    partitions: Mapped[list["MgmtDesignPartition"]] = relationship(
+        back_populates="run", cascade="all, delete-orphan"
+    )
+
+
+class MgmtDesignInputField(Base):
+    """A single input field spec attached to a design run."""
+
+    __tablename__ = "mgmt_design_input_fields"
+
+    id: Mapped[str] = mapped_column(UUID(as_uuid=False), primary_key=True, default=_uuid)
+    run_id: Mapped[str] = mapped_column(
+        UUID(as_uuid=False),
+        ForeignKey("mgmt_design_technique_runs.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    name: Mapped[str] = mapped_column(String(128), nullable=False)
+    data_type: Mapped[str] = mapped_column(String(32), nullable=False)
+    # data_type: int | float | string | date | bool | enum
+    min_value: Mapped[Optional[str]] = mapped_column(String(128), nullable=True)
+    max_value: Mapped[Optional[str]] = mapped_column(String(128), nullable=True)
+    allowed_set: Mapped[Optional[list[Any]]] = mapped_column(JSONB, nullable=True)
+    nullable: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false", nullable=False)
+
+    run: Mapped[MgmtDesignTechniqueRun] = relationship(back_populates="fields")
+    partitions: Mapped[list["MgmtDesignPartition"]] = relationship(
+        back_populates="field", cascade="all, delete-orphan"
+    )
+
+
+class MgmtDesignPartition(Base):
+    """A single equivalence-partition derived for a field (M-2)."""
+
+    __tablename__ = "mgmt_design_partitions"
+
+    id: Mapped[str] = mapped_column(UUID(as_uuid=False), primary_key=True, default=_uuid)
+    run_id: Mapped[str] = mapped_column(
+        UUID(as_uuid=False),
+        ForeignKey("mgmt_design_technique_runs.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    field_id: Mapped[str] = mapped_column(
+        UUID(as_uuid=False),
+        ForeignKey("mgmt_design_input_fields.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    partition_label: Mapped[str] = mapped_column(String(128), nullable=False)
+    is_valid: Mapped[bool] = mapped_column(Boolean, default=True, server_default="true", nullable=False)
+    sample_value: Mapped[Optional[str]] = mapped_column(String(256), nullable=True)
+
+    run: Mapped[MgmtDesignTechniqueRun] = relationship(back_populates="partitions")
+    field: Mapped[MgmtDesignInputField] = relationship(back_populates="partitions")
+
+
+class MgmtCaseParamSet(Base):
+    """M-9: parameter schema attached to a TestCase for data-driven expansion."""
+
+    __tablename__ = "mgmt_case_param_sets"
+
+    id: Mapped[str] = mapped_column(UUID(as_uuid=False), primary_key=True, default=_uuid)
+    tenant_id: Mapped[str] = mapped_column(
+        String(36), default=DEFAULT_TENANT_ID, server_default=DEFAULT_TENANT_ID, nullable=False, index=True
+    )
+    case_id: Mapped[str] = mapped_column(
+        UUID(as_uuid=False),
+        ForeignKey("test_management_cases.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    schema_json: Mapped[dict[str, Any]] = mapped_column(
+        JSONB, default=dict, server_default="{}", nullable=False
+    )  # {fields:[{name,type,required}]}
+    created_by: Mapped[Optional[str]] = mapped_column(
+        UUID(as_uuid=False), ForeignKey("sd_users.id", ondelete="SET NULL"), nullable=True
+    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
+
+    rows: Mapped[list["MgmtCaseDataRow"]] = relationship(
+        back_populates="param_set", cascade="all, delete-orphan"
+    )
+
+
+class MgmtCaseDataRow(Base):
+    """A single row of values for a `MgmtCaseParamSet`."""
+
+    __tablename__ = "mgmt_case_data_rows"
+
+    id: Mapped[str] = mapped_column(UUID(as_uuid=False), primary_key=True, default=_uuid)
+    param_set_id: Mapped[str] = mapped_column(
+        UUID(as_uuid=False),
+        ForeignKey("mgmt_case_param_sets.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    values: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False)
+    expected: Mapped[dict[str, Any]] = mapped_column(
+        JSONB, default=dict, server_default="{}", nullable=False
+    )
+    source_type: Mapped[str] = mapped_column(
+        String(16), default="manual", server_default="manual", nullable=False
+    )  # manual | csv | llm
+    category: Mapped[Optional[str]] = mapped_column(String(32), nullable=True)
+    # category: boundary | typical | invalid
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
+
+    param_set: Mapped[MgmtCaseParamSet] = relationship(back_populates="rows")
 
 
 class TestImportJob(Base):

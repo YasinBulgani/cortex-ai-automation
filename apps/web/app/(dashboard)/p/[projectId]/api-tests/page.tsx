@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 
 import { useRouteParam } from "@/lib/use-route-param";
@@ -88,12 +89,40 @@ export default function ApiTestsPage() {
   const projectId = useRouteParam("projectId");
   const basePath = `/api/v1/tspm/projects/${projectId}/api-tests`;
 
-  const [collections, setCollections] = useState<Collection[]>([]);
+  const queryClient = useQueryClient();
+  const collectionsQK = ["api-tests", "collections", projectId] as const;
+  const requestsQK = (cid: string) => ["api-tests", "requests", projectId, cid] as const;
+  const runsQK = ["api-tests", "runs", projectId] as const;
+
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [requests, setRequests] = useState<ApiRequest[]>([]);
-  const [runs, setRuns] = useState<Run[]>([]);
   const [runResults, setRunResults] = useState<RunResult[] | null>(null);
-  const [running, setRunning] = useState(false);
+
+  const { data: collections = [] } = useQuery<Collection[]>({
+    queryKey: collectionsQK,
+    queryFn: () => apiFetch<Collection[]>(`${basePath}/collections`),
+    enabled: !!projectId,
+    staleTime: 60 * 1000,
+    gcTime: 5 * 60 * 1000,
+  });
+
+  const { data: fetchedRequests = [] } = useQuery<ApiRequest[]>({
+    queryKey: requestsQK(selectedId ?? ""),
+    queryFn: () => apiFetch<ApiRequest[]>(`${basePath}/collections/${selectedId}/requests`),
+    enabled: !!projectId && !!selectedId,
+    staleTime: 60 * 1000,
+    gcTime: 5 * 60 * 1000,
+  });
+
+  const { data: runs = [] } = useQuery<Run[]>({
+    queryKey: runsQK,
+    queryFn: () => apiFetch<Run[]>(`${basePath}/runs`),
+    enabled: !!projectId,
+    staleTime: 30 * 1000,
+    gcTime: 5 * 60 * 1000,
+  });
+
+  const [localOrder, setLocalOrder] = useState<ApiRequest[] | null>(null);
+  const requests = localOrder ?? fetchedRequests;
 
   const [newCol, setNewCol] = useState({ name: "", base_url: "" });
   const [showColForm, setShowColForm] = useState(false);
@@ -104,6 +133,21 @@ export default function ApiTestsPage() {
   const [activeRequest, setActiveRequest] = useState<ApiRequest | null>(null);
 
   const latestRun = runs.length > 0 ? runs[0] : null;
+
+  const runCollectionMut = useMutation({
+    mutationFn: () => apiFetch<{ results: RunResult[] }>(`${basePath}/collections/${selectedId}/run`, { method: "POST" }),
+    onSuccess: (res) => {
+      setRunResults(res.results);
+      queryClient.invalidateQueries({ queryKey: runsQK });
+    },
+  });
+  const running = runCollectionMut.isPending;
+
+  function runCollection() {
+    if (!selectedId) return;
+    setRunResults(null);
+    runCollectionMut.mutate();
+  }
 
   const stageCards = [
     { id: "setup" as const, label: "1. Kurulum", title: "Koleksiyon ve İstekleri Ayarla", meta: `${requests.length} istek` },
@@ -125,56 +169,37 @@ export default function ApiTestsPage() {
     setActiveRequest(null);
     const { active, over } = event;
     if (over && active.id !== over.id) {
-      setRequests(prev => {
-        const oldIndex = prev.findIndex(r => r.id === active.id);
-        const newIndex = prev.findIndex(r => r.id === over.id);
-        return arrayMove(prev, oldIndex, newIndex);
-      });
+      const oldIndex = requests.findIndex(r => r.id === active.id);
+      const newIndex = requests.findIndex(r => r.id === over.id);
+      setLocalOrder(arrayMove(requests, oldIndex, newIndex));
     }
   }
 
-  const loadCollections = useCallback(() => {
-    apiFetch<Collection[]>(`${basePath}/collections`).then(setCollections).catch(() => {});
-  }, [basePath]);
-
-  const loadRequests = useCallback((cid: string) => {
-    apiFetch<ApiRequest[]>(`${basePath}/collections/${cid}/requests`).then(setRequests).catch(() => {});
-  }, [basePath]);
-
-  const loadRuns = useCallback(() => {
-    apiFetch<Run[]>(`${basePath}/runs`).then(setRuns).catch(() => {});
-  }, [basePath]);
-
-  async function createRequest() {
-    if (!selectedId || !newReq.name.trim()) return;
-    await apiFetch(`${basePath}/collections/${selectedId}/requests`, { method: "POST", json: newReq });
-    setNewReq({ name: "", method: "GET", path: "", body: "", assertions: "" });
-    setShowReqForm(false);
-    loadRequests(selectedId);
-  }
-
-  useEffect(() => { loadCollections(); loadRuns(); }, [loadCollections, loadRuns]);
-  useEffect(() => { if (selectedId) { loadRequests(selectedId); setRunResults(null); } }, [selectedId, loadRequests]);
-
+  const createCollectionMut = useMutation({
+    mutationFn: () => apiFetch(`${basePath}/collections`, { method: "POST", json: newCol }),
+    onSuccess: () => {
+      setNewCol({ name: "", base_url: "" });
+      setShowColForm(false);
+      queryClient.invalidateQueries({ queryKey: collectionsQK });
+    },
+  });
   async function createCollection() {
     if (!newCol.name.trim()) return;
-    await apiFetch(`${basePath}/collections`, { method: "POST", json: newCol });
-    setNewCol({ name: "", base_url: "" });
-    setShowColForm(false);
-    loadCollections();
+    createCollectionMut.mutate();
   }
 
-  async function runCollection() {
-    if (!selectedId) return;
-    setRunning(true);
-    setRunResults(null);
-    try {
-      const res = await apiFetch<{ results: RunResult[] }>(`${basePath}/collections/${selectedId}/run`, { method: "POST" });
-      setRunResults(res.results);
-      loadRuns();
-    } finally {
-      setRunning(false);
-    }
+  const createRequestMut = useMutation({
+    mutationFn: () => apiFetch(`${basePath}/collections/${selectedId}/requests`, { method: "POST", json: newReq }),
+    onSuccess: () => {
+      setNewReq({ name: "", method: "GET", path: "", body: "", assertions: "" });
+      setShowReqForm(false);
+      setLocalOrder(null);
+      queryClient.invalidateQueries({ queryKey: requestsQK(selectedId ?? "") });
+    },
+  });
+  async function createRequest() {
+    if (!selectedId || !newReq.name.trim()) return;
+    createRequestMut.mutate();
   }
 
   const selected = collections.find((c) => c.id === selectedId);

@@ -101,39 +101,44 @@ def _redis_usage_snapshot(redis_client, user_id: str, now: float) -> tuple[int, 
 
 
 def check_llm_rate_limit(user_id: str) -> None:
-    """Check whether user can issue a new LLM request."""
-    from fastapi import HTTPException
+    """Check whether user can issue a new LLM request.
+
+    Raises:
+        RateLimitError: when request or token limits are exceeded (→ HTTP 429).
+        RuntimeError:   when the rate limiter backend is unavailable (→ HTTP 500).
+    """
+    from app.core.exceptions import RateLimitError
 
     now = time.time()
     try:
         redis_client = _get_redis_client()
     except RuntimeError as exc:
         logger.error("LLM rate limiter backend unavailable: %s", exc)
-        raise HTTPException(503, "LLM rate limiter backend ulasilamaz durumda") from exc
+        raise RuntimeError("LLM rate limiter backend ulasilamaz durumda") from exc
 
     if redis_client is not None:
         try:
             minute_reqs, hour_tokens, day_tokens = _redis_usage_snapshot(redis_client, user_id, now)
         except Exception as exc:
             if _redis_required():
-                raise HTTPException(503, "LLM rate limiter backend ulasilamaz durumda") from exc
+                raise RuntimeError("LLM rate limiter backend ulasilamaz durumda") from exc
             logger.warning("LLM redis limiter okunamadi, memory fallback kullanilacak: %s", exc)
             redis_client = None
         else:
             if minute_reqs >= MAX_REQUESTS_PER_MINUTE:
-                raise HTTPException(
-                    status_code=429,
-                    detail=f"LLM istek limiti asildi ({MAX_REQUESTS_PER_MINUTE}/dakika). Lutfen biraz bekleyin.",
+                raise RateLimitError(
+                    f"LLM istek limiti asildi ({MAX_REQUESTS_PER_MINUTE}/dakika). Lutfen biraz bekleyin.",
+                    retry_after_seconds=60,
                 )
             if hour_tokens >= MAX_TOKENS_PER_HOUR:
-                raise HTTPException(
-                    status_code=429,
-                    detail=f"Saatlik token limiti asildi ({MAX_TOKENS_PER_HOUR:,} token). Bir saat sonra tekrar deneyin.",
+                raise RateLimitError(
+                    f"Saatlik token limiti asildi ({MAX_TOKENS_PER_HOUR:,} token). Bir saat sonra tekrar deneyin.",
+                    retry_after_seconds=3600,
                 )
             if day_tokens >= MAX_TOKENS_PER_DAY:
-                raise HTTPException(
-                    status_code=429,
-                    detail=f"Gunluk token limiti asildi ({MAX_TOKENS_PER_DAY:,} token). Yarin tekrar deneyin.",
+                raise RateLimitError(
+                    f"Gunluk token limiti asildi ({MAX_TOKENS_PER_DAY:,} token). Yarin tekrar deneyin.",
+                    retry_after_seconds=86400,
                 )
             return
 
@@ -141,22 +146,22 @@ def check_llm_rate_limit(user_id: str) -> None:
         _cleanup_old_entries(user_id, now)
         minute_reqs = _minute_counters.get(user_id, [])
         if len(minute_reqs) >= MAX_REQUESTS_PER_MINUTE:
-            raise HTTPException(
-                status_code=429,
-                detail=f"LLM istek limiti asildi ({MAX_REQUESTS_PER_MINUTE}/dakika). Lutfen biraz bekleyin.",
+            raise RateLimitError(
+                f"LLM istek limiti asildi ({MAX_REQUESTS_PER_MINUTE}/dakika). Lutfen biraz bekleyin.",
+                retry_after_seconds=60,
             )
         hour_cutoff = now - 3600
         hour_tokens = sum(tok for ts, tok in _usage_log.get(user_id, []) if ts > hour_cutoff)
         if hour_tokens >= MAX_TOKENS_PER_HOUR:
-            raise HTTPException(
-                status_code=429,
-                detail=f"Saatlik token limiti asildi ({MAX_TOKENS_PER_HOUR:,} token). Bir saat sonra tekrar deneyin.",
+            raise RateLimitError(
+                f"Saatlik token limiti asildi ({MAX_TOKENS_PER_HOUR:,} token). Bir saat sonra tekrar deneyin.",
+                retry_after_seconds=3600,
             )
         day_tokens = sum(tok for _, tok in _usage_log.get(user_id, []))
         if day_tokens >= MAX_TOKENS_PER_DAY:
-            raise HTTPException(
-                status_code=429,
-                detail=f"Gunluk token limiti asildi ({MAX_TOKENS_PER_DAY:,} token). Yarin tekrar deneyin.",
+            raise RateLimitError(
+                f"Gunluk token limiti asildi ({MAX_TOKENS_PER_DAY:,} token). Yarin tekrar deneyin.",
+                retry_after_seconds=86400,
             )
 
 

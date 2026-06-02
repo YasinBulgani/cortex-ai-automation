@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useRouteParam } from "@/lib/use-route-param";
@@ -119,25 +120,60 @@ function SortableSetRow({ row, projectId }: { row: SetRow; projectId: string }) 
 }
 
 /* ── Main Page ────────────────────────────────────────────────────────────── */
+const regressionQK = (projectId: string) => ["regression-sets", "list", projectId] as const;
+
 export default function RegressionSetsPage() {
   const router = useRouter();
   const projectId = useRouteParam("projectId");
-  const [rows, setRows] = useState<SetRow[]>([]);
+  const queryClient = useQueryClient();
+  const [localOrder, setLocalOrder] = useState<SetRow[] | null>(null);
   const [name, setName] = useState("");
   const [err, setErr] = useState<string | null>(null);
   const [sortMode, setSortMode] = useState(false);
   const [activeItem, setActiveItem] = useState<SetRow | null>(null);
-  const [suggesting, setSuggesting] = useState(false);
   const [suggestions, setSuggestions] = useState<SuggestedSet[] | null>(null);
   const [selected, setSelected] = useState<Set<number>>(new Set());
-  const [accepting, setAccepting] = useState(false);
   const [extraInstructions, setExtraInstructions] = useState("");
 
-  const load = useCallback(() => {
-    apiFetch<SetRow[]>(`/api/v1/tspm/projects/${projectId}/regression-sets`).then(setRows).catch(() => {});
-  }, [projectId]);
+  const { data: fetchedRows = [] } = useQuery<SetRow[]>({
+    queryKey: regressionQK(projectId ?? ""),
+    queryFn: () => apiFetch<SetRow[]>(`/api/v1/tspm/projects/${projectId}/regression-sets`),
+    enabled: !!projectId,
+    staleTime: 60 * 1000,
+    gcTime: 5 * 60 * 1000,
+  });
 
-  useEffect(() => { load(); }, [load]);
+  const rows = localOrder ?? fetchedRows;
+
+  const invalidate = useCallback(() => {
+    setLocalOrder(null);
+    queryClient.invalidateQueries({ queryKey: regressionQK(projectId ?? "") });
+  }, [queryClient, projectId]);
+
+  const suggestMut = useMutation({
+    mutationFn: () => apiFetch<SuggestedSet[]>(
+      `/api/v1/tspm/projects/${projectId}/regression-sets/suggest`,
+      { method: "POST", json: { extra: extraInstructions } },
+    ),
+    onSuccess: (result) => { setSuggestions(result); setSelected(new Set()); },
+  });
+
+  const suggesting = suggestMut.isPending;
+
+  const acceptMut = useMutation({
+    mutationFn: (chosen: SuggestedSet[]) =>
+      Promise.all(
+        chosen.map(s =>
+          apiFetch(`/api/v1/tspm/projects/${projectId}/regression-sets`, {
+            method: "POST",
+            json: { name: s.name, description: s.description },
+          }),
+        ),
+      ),
+    onSuccess: () => { setSuggestions(null); setSelected(new Set()); invalidate(); },
+  });
+
+  const accepting = acceptMut.isPending;
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -153,65 +189,42 @@ export default function RegressionSetsPage() {
     const { active, over } = event;
     setActiveItem(null);
     if (!over || active.id === over.id) return;
-    setRows(prev => {
-      const oldIdx = prev.findIndex(r => r.id === active.id);
-      const newIdx = prev.findIndex(r => r.id === over.id);
-      return arrayMove(prev, oldIdx, newIdx);
+    setLocalOrder(prev => {
+      const source = prev ?? fetchedRows;
+      const oldIdx = source.findIndex(r => r.id === active.id);
+      const newIdx = source.findIndex(r => r.id === over.id);
+      return arrayMove(source, oldIdx, newIdx);
     });
   }
 
-  async function handleSuggest() {
-    setSuggesting(true);
-    try {
-      const result = await apiFetch<SuggestedSet[]>(
-        `/api/v1/tspm/projects/${projectId}/regression-sets/suggest`,
-        { method: "POST", json: { extra: extraInstructions } },
-      );
-      setSuggestions(result);
-      setSelected(new Set());
-    } catch {
-      // silent
-    } finally {
-      setSuggesting(false);
-    }
+  function handleSuggest() {
+    suggestMut.mutate();
   }
 
-  async function acceptSelected() {
+  function acceptSelected() {
     if (!suggestions) return;
-    setAccepting(true);
-    try {
-      const chosen = suggestions.filter((_, i) => selected.has(i));
-      await Promise.all(
-        chosen.map(s =>
-          apiFetch(`/api/v1/tspm/projects/${projectId}/regression-sets`, {
-            method: "POST",
-            json: { name: s.name, description: s.description },
-          }),
-        ),
-      );
-      setSuggestions(null);
-      setSelected(new Set());
-      load();
-    } catch {
-      // silent
-    } finally {
-      setAccepting(false);
-    }
+    const chosen = suggestions.filter((_, i) => selected.has(i));
+    acceptMut.mutate(chosen);
   }
+
+  const createMut = useMutation({
+    mutationFn: (newName: string) =>
+      apiFetch<{ id: string }>(`/api/v1/tspm/projects/${projectId}/regression-sets`, {
+        method: "POST",
+        json: { name: newName || "Regresyon seti" },
+      }),
+    onSuccess: (rs) => {
+      invalidate();
+      setName("");
+      router.push(`/p/${projectId}/regression/${rs.id}`);
+    },
+    onError: (e: unknown) => setErr(e instanceof Error ? e.message : "Hata"),
+  });
 
   async function create(e: React.FormEvent) {
     e.preventDefault();
     setErr(null);
-    try {
-      const rs = await apiFetch<{ id: string }>(`/api/v1/tspm/projects/${projectId}/regression-sets`, {
-        method: "POST",
-        json: { name: name.trim() || "Regresyon seti" },
-      });
-      setName("");
-      router.push(`/p/${projectId}/regression/${rs.id}`);
-    } catch (e: unknown) {
-      setErr(e instanceof Error ? e.message : "Hata");
-    }
+    createMut.mutate(name.trim());
   }
 
   const totalScenarios = rows.reduce((a, r) => a + (r.scenario_count ?? r.item_count ?? 0), 0);

@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouteParam } from "@/lib/use-route-param";
 import { apiFetch } from "@/lib/api";
 import { FlowGuideCard } from "@/components/FlowGuideCard";
@@ -46,16 +47,20 @@ export default function TestDataPage() {
   const projectId = useRouteParam("projectId");
   const basePath = `/api/v1/tspm/projects/${projectId}/test-data`;
 
-  const [dataSets, setDataSets] = useState<DataSet[]>([]);
+  const queryClient = useQueryClient();
+  const testDataQK = ["test-data", "list", projectId] as const;
+
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [showCreate, setShowCreate] = useState(false);
   const [newDs, setNewDs] = useState({ name: "", description: "" });
 
-  const load = useCallback(() => {
-    apiFetch<DataSet[]>(basePath).then(setDataSets).catch((err) => console.warn("[test-data]:", err));
-  }, [basePath]);
-
-  useEffect(() => { load(); }, [load]);
+  const { data: dataSets = [] } = useQuery<DataSet[]>({
+    queryKey: testDataQK,
+    queryFn: () => apiFetch<DataSet[]>(basePath),
+    enabled: !!projectId,
+    staleTime: 60 * 1000,
+    gcTime: 5 * 60 * 1000,
+  });
 
   const selected = dataSets.find(d => d.id === selectedId);
   const [saving, setSaving] = useState(false);
@@ -66,31 +71,42 @@ export default function TestDataPage() {
   const [activeRowId, setActiveRowId] = useState<string | null>(null);
   const inputCls = "rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500/50";
 
+  const createMut = useMutation({
+    mutationFn: () => apiFetch(basePath, { method: "POST", json: newDs }),
+    onSuccess: () => {
+      setNewDs({ name: "", description: "" });
+      setShowCreate(false);
+      queryClient.invalidateQueries({ queryKey: testDataQK });
+    },
+  });
   async function createDataSet() {
     if (!newDs.name.trim()) return;
-    await apiFetch(basePath, { method: "POST", json: newDs });
-    setNewDs({ name: "", description: "" });
-    setShowCreate(false);
-    load();
+    createMut.mutate();
   }
 
+  const deleteMut = useMutation({
+    mutationFn: (id: string) => apiFetch(`${basePath}/${id}`, { method: "DELETE" }),
+    onSuccess: (_, id) => {
+      if (selectedId === id) setSelectedId(null);
+      queryClient.invalidateQueries({ queryKey: testDataQK });
+    },
+  });
   async function deleteDataSet(id: string) {
     if (!confirm("Bu veri setini silmek istediğinize emin misiniz?")) return;
-    await apiFetch(`${basePath}/${id}`, { method: "DELETE" });
-    if (selectedId === id) setSelectedId(null);
-    load();
+    deleteMut.mutate(id);
   }
 
+  const saveMut = useMutation({
+    mutationFn: () => apiFetch(`${basePath}/${selectedId}`, {
+      method: "PUT",
+      json: { columns, rows: rowsWithIds.map(r => r.cells) },
+    }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: testDataQK }),
+  });
   async function saveDataSet() {
     if (!selectedId) return;
     setSaving(true);
-    try {
-      await apiFetch(`${basePath}/${selectedId}`, {
-        method: "PUT",
-        json: { columns, rows: rowsWithIds.map(r => r.cells) },
-      });
-      load();
-    } finally { setSaving(false); }
+    try { saveMut.mutate(); } finally { setSaving(false); }
   }
 
   function addColumn() {
@@ -148,14 +164,18 @@ export default function TestDataPage() {
     URL.revokeObjectURL(a.href);
   }
 
+  const maskMut = useMutation({
+    mutationFn: (columnsToMask: string[]) =>
+      apiFetch(`/api/v1/tspm/projects/${projectId}/test-data/${selectedId}/mask`, {
+        method: "POST",
+        json: { columns_to_mask: columnsToMask, mask_type: "asterisk" },
+      }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: testDataQK }),
+  });
   async function maskColumns(columnsToMask: string[]) {
     if (!selectedId || columnsToMask.length === 0) return;
     if (!confirm(`${columnsToMask.join(", ")} sütunları maskelensin mi?`)) return;
-    await apiFetch(`/api/v1/tspm/projects/${projectId}/test-data/${selectedId}/mask`, {
-      method: "POST",
-      json: { columns_to_mask: columnsToMask, mask_type: "asterisk" },
-    });
-    load();
+    maskMut.mutate(columnsToMask);
   }
 
   return (

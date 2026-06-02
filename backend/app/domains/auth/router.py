@@ -558,14 +558,19 @@ def list_users(
     user: Annotated[User, Depends(get_current_user)],
     db: Annotated[Session, Depends(get_db)],
 ):
-    """Kullanicilari listeler."""
+    """Kullanicilari listeler. 120s cache (admin only)."""
+    from app.infra.cache import cache_get, cache_set, make_key
     perms = _user_permissions(user)
     if "admin.*" not in perms:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin yetkisi gerekli")
+    _cache_key = make_key("admin", "users", "list")
+    cached = cache_get(_cache_key)
+    if cached is not None:
+        return [UserListOut(**item) if isinstance(item, dict) else item for item in cached]
     users = list(db.scalars(
         select(User).options(joinedload(User.roles)).order_by(User.created_at.desc())
     ))
-    return [
+    result = [
         UserListOut(
             id=u.id, email=u.email, full_name=u.full_name,
             department=u.department, is_active=u.is_active,
@@ -574,6 +579,11 @@ def list_users(
         )
         for u in users
     ]
+    try:
+        cache_set(_cache_key, [r.model_dump(mode="json") for r in result], ttl=120)
+    except Exception:
+        pass
+    return result
 
 
 @router.post("/users", response_model=UserListOut, status_code=201)
@@ -609,6 +619,11 @@ def create_user(
         db.execute(sd_user_roles.insert().values(user_id=new_user.id, role_id=target_role.id))
     db.commit()
     db.refresh(new_user)
+    from app.infra.cache import cache_delete, make_key
+    try:
+        cache_delete(make_key("admin", "users", "list"))
+    except Exception:
+        pass
     return UserListOut(
         id=new_user.id, email=new_user.email, full_name=new_user.full_name,
         department=new_user.department, is_active=new_user.is_active,
@@ -645,6 +660,11 @@ def update_user(
             db.execute(sd_user_roles.insert().values(user_id=user_id, role_id=new_role.id))
     db.commit()
     db.refresh(target)
+    from app.infra.cache import cache_delete, make_key
+    try:
+        cache_delete(make_key("admin", "users", "list"))
+    except Exception:
+        pass
     return UserListOut(
         id=target.id, email=target.email, full_name=target.full_name,
         department=target.department, is_active=target.is_active,
@@ -668,6 +688,11 @@ def delete_user(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Kullanıcı bulunamadı")
     target.is_active = False
     db.commit()
+    from app.infra.cache import cache_delete, make_key
+    try:
+        cache_delete(make_key("admin", "users", "list"))
+    except Exception:
+        pass
 
 
 # ── MFA / TOTP endpoints ──────────────────────────────────────────────────────

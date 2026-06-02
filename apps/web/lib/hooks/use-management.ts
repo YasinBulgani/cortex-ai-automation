@@ -708,6 +708,7 @@ export function useCreateManagementRun(projectId: string) {
       source_type?: string;
       source_ref?: string | null;
       scope_snapshot?: Record<string, unknown>;
+      environment?: string | null;
     }) => apiFetch<TestRun>(`${BASE(projectId)}/runs`, { method: "POST", json: payload }),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: managementKeys.runs(projectId) });
@@ -847,6 +848,32 @@ export function useUpdateManagementCase(projectId: string, caseId: string) {
       }),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: managementKeys.case(projectId, caseId) });
+      void qc.invalidateQueries({ queryKey: managementKeys.repository(projectId) });
+      void qc.invalidateQueries({ queryKey: managementKeys.cases(projectId) });
+    },
+  });
+}
+
+export function useMoveManagementCase(projectId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: {
+      caseId: string;
+      suite_id?: string | null;
+      folder_id?: string | null;
+      change_summary?: string;
+    }) => {
+      const { caseId, ...body } = payload;
+      return apiFetch<TestCase>(`${BASE(projectId)}/cases/${caseId}`, {
+        method: "PATCH",
+        json: {
+          ...body,
+          change_summary: body.change_summary ?? "Moved by drag and drop",
+        },
+      });
+    },
+    onSuccess: (updatedCase) => {
+      void qc.invalidateQueries({ queryKey: managementKeys.case(projectId, updatedCase.id) });
       void qc.invalidateQueries({ queryKey: managementKeys.repository(projectId) });
       void qc.invalidateQueries({ queryKey: managementKeys.cases(projectId) });
     },

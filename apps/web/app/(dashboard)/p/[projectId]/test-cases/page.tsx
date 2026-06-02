@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouteParam } from "@/lib/use-route-param";
 import { PageHeader } from "@/components/nexus/PageHeader";
 import { apiFetch } from "@/lib/api";
@@ -77,59 +78,49 @@ function StatusBadge({ status }: { status: string }) {
 
 export default function TestCasesPage() {
   const projectId = useRouteParam("projectId");
+  const queryClient = useQueryClient();
+  const testCasesQK = ["test-cases", "list", projectId] as const;
 
   const [analysisText, setAnalysisText] = useState("");
-  const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
-  const [testCases, setTestCases] = useState<TestCase[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [generatedCases, setGeneratedCases] = useState<TestCase[] | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
-  const loadTestCases = useCallback(async () => {
-    setLoading(true);
-    try {
-      const data = await apiFetch<TestCase[]>(
-        `/api/v1/tspm/projects/${projectId}/test-cases`,
-      );
-      setTestCases(data || []);
-    } catch {
-      setTestCases([]);
-    } finally {
-      setLoading(false);
-    }
-  }, [projectId]);
+  const { data: fetchedCases = [], isLoading: loading } = useQuery<TestCase[]>({
+    queryKey: testCasesQK,
+    queryFn: () => apiFetch<TestCase[]>(`/api/v1/tspm/projects/${projectId}/test-cases`),
+    enabled: !!projectId,
+    staleTime: 60 * 1000,
+    gcTime: 5 * 60 * 1000,
+  });
 
-  useEffect(() => {
-    loadTestCases();
-  }, [loadTestCases]);
+  // Show generated results immediately after AI generation; fall back to fetched list
+  const testCases = generatedCases ?? fetchedCases;
 
-  const handleGenerate = async () => {
+  const generateMut = useMutation({
+    mutationFn: (text: string) =>
+      apiFetch<GenerateResponse>(`/api/v1/tspm/projects/${projectId}/test-cases/generate`, {
+        method: "POST",
+        json: { source_type: "text", source_name: "Manuel giriş", analysis_text: text },
+      }),
+    onSuccess: (res) => {
+      setMessage(res.message);
+      setGeneratedCases(res.test_cases);
+      setAnalysisText("");
+      queryClient.invalidateQueries({ queryKey: testCasesQK });
+    },
+    onError: (e) => setError(e instanceof Error ? e.message : "Üretim başarısız"),
+  });
+
+  const handleGenerate = () => {
     if (!analysisText.trim()) return;
-    setGenerating(true);
     setError(null);
     setMessage(null);
-    try {
-      const res = await apiFetch<GenerateResponse>(
-        `/api/v1/tspm/projects/${projectId}/test-cases/generate`,
-        {
-          method: "POST",
-          json: {
-            source_type: "text",
-            source_name: "Manuel giriş",
-            analysis_text: analysisText,
-          },
-        },
-      );
-      setMessage(res.message);
-      setTestCases(res.test_cases);
-      setAnalysisText("");
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Üretim başarısız");
-    } finally {
-      setGenerating(false);
-    }
+    generateMut.mutate(analysisText);
   };
+
+  const generating = generateMut.isPending;
 
   const totalCount = testCases.length;
   const approvedCount = testCases.filter(

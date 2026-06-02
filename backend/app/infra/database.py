@@ -3,7 +3,7 @@
 from collections.abc import Generator
 
 from fastapi import Request
-from sqlalchemy import create_engine, text
+from sqlalchemy import create_engine, event, text
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
 from app.config import settings
@@ -17,13 +17,26 @@ class Base(DeclarativeBase):
 
 engine = create_engine(
     settings.database_url,
-    pool_pre_ping=True,
+    pool_pre_ping=True,           # bağlantı sağlığını doğrula
     future=True,
-    pool_size=20,
-    max_overflow=10,
-    pool_recycle=3600,
-    pool_timeout=30,
+    pool_size=20,                 # eşzamanlı bağlantı havuzu
+    max_overflow=10,              # pike'ta ek bağlantı izni
+    pool_recycle=3600,            # 1 saatte bir bağlantıları yenile (firewall drop önlemi)
+    pool_timeout=30,              # bağlantı bekleme süre aşımı
 )
+
+
+@event.listens_for(engine, "connect")
+def _set_pg_session_defaults(dbapi_conn, connection_record):
+    """Her yeni bağlantıda oturum bazlı Postgres performans ayarları.
+
+    work_mem: Sıralama (ORDER BY) ve hash join için ayrılan bellek.
+    Varsayılan 4MB çok düşük; dashboard GROUP BY sorgularında geçici disk
+    yazımını önlemek için 8MB'a çıkarıldı.
+    """
+    with dbapi_conn.cursor() as cur:
+        cur.execute("SET work_mem = '8MB'")
+
 
 SessionLocal = sessionmaker(
     bind=engine,

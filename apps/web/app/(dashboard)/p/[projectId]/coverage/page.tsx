@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
 
 import { EmptyState, MetricRow, PageHeader, SectionCard, StatCard } from "@/components/nexus";
 import { apiFetch } from "@/lib/api";
@@ -16,26 +17,13 @@ type Requirement = {
 
 export default function CoveragePage() {
   const projectId = useRouteParam("projectId");
-  const [requirements, setRequirements] = useState<Requirement[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  const load = useCallback(async () => {
-    if (!projectId) return;
-    setLoading(true);
-    try {
-      const data = await apiFetch<Requirement[]>(`/api/v1/tspm/projects/${projectId}/requirements`);
-      setRequirements(data);
-    } catch (err) {
-      console.warn("[coverage]:", err);
-      setRequirements([]);
-    } finally {
-      setLoading(false);
-    }
-  }, [projectId]);
-
-  useEffect(() => {
-    void load();
-  }, [load]);
+  const { data: requirements = [], isLoading: loading } = useQuery<Requirement[]>({
+    queryKey: ["requirements", "list", projectId],
+    queryFn: () => apiFetch<Requirement[]>(`/api/v1/tspm/projects/${projectId}/requirements`),
+    enabled: !!projectId,
+    staleTime: 60 * 1000,
+    gcTime: 5 * 60 * 1000,
+  });
 
   const covered = requirements.filter((requirement) => requirement.scenario_count > 0).length;
   const gaps = useMemo(

@@ -24,16 +24,87 @@ import {
   type DOMNode,
   type RunHealPipelineRequest,
 } from "@/lib/hooks/use-playwright-mcp";
-import {
-  TAB_KEYS,
-  TAB_LABELS,
-  stabilityColor,
-  confidenceColor,
-  Spinner,
-  RetryButton,
-  PlaywrightUnavailable,
-  type TabKey,
-} from "./_components/helpers";
+import { SelectorValidationTable } from "./components/SelectorValidationTable";
+import { SessionInfoCard } from "./components/SessionInfoCard";
+
+// ── Helpers ──────────────────────────────────────────────────────────
+
+const TAB_KEYS = ["session", "selectors", "dom", "heal"] as const;
+type TabKey = (typeof TAB_KEYS)[number];
+
+const TAB_LABELS: Record<TabKey, string> = {
+  session: "Oturum & Navigasyon",
+  selectors: "Selector Dogrulama",
+  dom: "DOM Keşfet",
+  heal: "Heal Dogrulama",
+};
+
+function stabilityColor(score: number) {
+  if (score >= 5) return "bg-emerald-500/15 border-emerald-500/30 text-emerald-400";
+  if (score >= 4) return "bg-blue-500/15 border-blue-500/30 text-blue-400";
+  if (score >= 3) return "bg-amber-500/15 border-amber-500/30 text-amber-400";
+  if (score >= 2) return "bg-orange-500/15 border-orange-500/30 text-orange-400";
+  return "bg-red-500/15 border-red-500/30 text-red-400";
+}
+
+function confidenceColor(c: number) {
+  if (c >= 0.8) return "text-emerald-400";
+  if (c >= 0.5) return "text-amber-400";
+  return "text-red-400";
+}
+
+function Spinner({ className = "" }: { className?: string }) {
+  return (
+    <div
+      className={cn(
+        "h-4 w-4 animate-spin rounded-full border-2 border-slate-700 border-t-emerald-400",
+        className,
+      )}
+    />
+  );
+}
+
+function RetryButton({ onClick, label = "Tekrar Dene" }: { onClick: () => void; label?: string }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-1.5 text-xs font-medium text-red-400 hover:bg-red-500/20 transition-colors"
+    >
+      {label}
+    </button>
+  );
+}
+
+// ── Unavailable Banner ───────────────────────────────────────────────
+
+function PlaywrightUnavailable() {
+  return (
+    <SectionCard
+      title="Playwright Bulunamadi"
+      icon={
+        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      }
+    >
+      <div className="space-y-3">
+        <p className="text-sm text-slate-300">
+          Playwright MCP servisi su anda kullanilamiyor. Backend sunucusunda Playwright kurulu oldugundan emin olun.
+        </p>
+        <div className="rounded-lg border border-slate-700 bg-slate-950 p-3">
+          <p className="mb-1 text-xs font-semibold text-slate-400">Kurulum:</p>
+          <code className="block text-xs text-emerald-400 font-mono">
+            pip install playwright && playwright install chromium
+          </code>
+        </div>
+        <p className="text-xs text-slate-500">
+          Kurulumdan sonra backend servisini yeniden başlatmaniz gerekebilir.
+        </p>
+      </div>
+    </SectionCard>
+  );
+}
 
 // ── Tab 1: Session & Navigation ──────────────────────────────────────
 
@@ -140,91 +211,16 @@ function SessionTab({
         <p className="text-xs text-red-400">Navigasyon basarisiz: {(navigate.error as Error).message}</p>
       )}
 
-      {/* Session info */}
-      <SectionCard
-        title="Oturum Bilgisi"
-        icon={
-          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-          </svg>
-        }
-        right={
-          <button
-            type="button"
-            onClick={handleClose}
-            disabled={closeSession.isPending}
-            className="rounded border border-red-500/30 bg-red-500/10 px-2 py-1 text-xs text-red-400 hover:bg-red-500/20 transition-colors"
-          >
-            {closeSession.isPending ? "Kapatiliyor..." : "Oturumu Kapat"}
-          </button>
-        }
-      >
-        <div className="grid grid-cols-2 gap-3 text-sm">
-          <div>
-            <span className="text-slate-500">ID:</span>{" "}
-            <span className="text-slate-300 font-mono text-xs">{activeSession.session_id.slice(0, 12)}...</span>
-          </div>
-          <div>
-            <span className="text-slate-500">Durum:</span>{" "}
-            <span className={activeSession.status === "active" ? "text-emerald-400" : "text-red-400"}>
-              {activeSession.status === "active" ? "Aktif" : "Kapalı"}
-            </span>
-          </div>
-          <div>
-            <span className="text-slate-500">URL:</span>{" "}
-            <span className="text-blue-400 truncate">{activeSession.url ?? "—"}</span>
-          </div>
-          <div>
-            <span className="text-slate-500">Baslik:</span>{" "}
-            <span className="text-slate-300">{activeSession.title ?? "—"}</span>
-          </div>
-          <div className="col-span-2">
-            <span className="text-slate-500">Olusturulma:</span>{" "}
-            <span className="text-slate-300">{new Date(activeSession.created_at).toLocaleString("tr-TR")}</span>
-          </div>
-        </div>
-      </SectionCard>
-
-      {/* Screenshot */}
-      <SectionCard
-        title="Sayfa Görüntüsu"
-        icon={
-          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-          </svg>
-        }
-        right={
-          <button
-            type="button"
-            onClick={handleRefreshScreenshot}
-            className="flex items-center gap-1 rounded border border-slate-700 bg-slate-800 px-2 py-1 text-xs text-slate-300 hover:bg-slate-700 transition-colors"
-          >
-            <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-            </svg>
-            Yenile
-          </button>
-        }
-      >
-        {ssLoading ? (
-          <div className="flex items-center justify-center py-12">
-            <Spinner className="h-6 w-6" />
-          </div>
-        ) : screenshot?.image_base64 ? (
-          <div className="overflow-hidden rounded-lg border border-slate-700">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={`data:image/${screenshot.format ?? "png"};base64,${screenshot.image_base64}`}
-              alt="Sayfa görüntüsu"
-              className="w-full"
-            />
-          </div>
-        ) : (
-          <p className="py-6 text-center text-sm text-slate-500">
-            Henuz görüntü yok. Bir sayfaya gidin.
-          </p>
-        )}
-      </SectionCard>
+      {/* Session info + Screenshot — extracted to SessionInfoCard */}
+      <SessionInfoCard
+        session={activeSession}
+        screenshotBase64={screenshot?.image_base64}
+        screenshotFormat={screenshot?.format}
+        screenshotLoading={ssLoading}
+        closePending={closeSession.isPending}
+        onClose={handleClose}
+        onRefreshScreenshot={handleRefreshScreenshot}
+      />
     </div>
   );
 }
@@ -278,64 +274,8 @@ function SelectorTab({ sessionId }: { sessionId: string }) {
 
       {results && results.length > 0 && (
         <SectionCard title="Dogrulama Sonuçlari" noPad>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-slate-800 text-left">
-                  <th className="px-4 py-2 text-xs font-semibold text-slate-400">Selector</th>
-                  <th className="px-4 py-2 text-xs font-semibold text-slate-400 text-center">Bulundu</th>
-                  <th className="px-4 py-2 text-xs font-semibold text-slate-400 text-center">Adet</th>
-                  <th className="px-4 py-2 text-xs font-semibold text-slate-400 text-center">Gorunur</th>
-                  <th className="px-4 py-2 text-xs font-semibold text-slate-400">Tag</th>
-                  <th className="px-4 py-2 text-xs font-semibold text-slate-400 text-center">Stabilite</th>
-                  <th className="px-4 py-2 text-xs font-semibold text-slate-400">Alternatifler</th>
-                </tr>
-              </thead>
-              <tbody>
-                {results.map((r: SelectorValidationItem) => (
-                  <tr key={r.selector} className="border-b border-slate-800/60 hover:bg-slate-800/30">
-                    <td className="px-4 py-2 font-mono text-xs text-slate-300 max-w-[200px] truncate" title={r.selector}>
-                      {r.selector}
-                    </td>
-                    <td className="px-4 py-2 text-center">
-                      {r.found ? (
-                        <span className="text-emerald-400 text-base">&#10003;</span>
-                      ) : (
-                        <span className="text-red-400 text-base">&#10007;</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-2 text-center text-slate-300">{r.count}</td>
-                    <td className="px-4 py-2 text-center">
-                      {r.visible ? (
-                        <span className="text-emerald-400 text-base">&#10003;</span>
-                      ) : (
-                        <span className="text-slate-600 text-base">&#10007;</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-2 text-xs text-slate-400">{r.tag ?? "—"}</td>
-                    <td className="px-4 py-2 text-center">
-                      <span className={cn("inline-block rounded-full border px-2 py-0.5 text-xs font-semibold", stabilityColor(r.stability_score))}>
-                        {r.stability_score}/5
-                      </span>
-                    </td>
-                    <td className="px-4 py-2">
-                      {r.alternatives && r.alternatives.length > 0 ? (
-                        <div className="flex flex-wrap gap-1">
-                          {r.alternatives.slice(0, 3).map((alt) => (
-                            <span key={alt} className="rounded bg-slate-800 px-1.5 py-0.5 font-mono text-[10px] text-slate-400">
-                              {alt}
-                            </span>
-                          ))}
-                        </div>
-                      ) : (
-                        <span className="text-xs text-slate-600">—</span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          {/* Extracted to SelectorValidationTable */}
+          <SelectorValidationTable results={results} />
         </SectionCard>
       )}
     </div>

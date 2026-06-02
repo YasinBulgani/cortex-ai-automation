@@ -27,161 +27,102 @@ import {
   type BreakagePrediction,
   type TrendResponse,
 } from "@/lib/hooks/use-locator-intelligence";
+import { LocatorTable } from "./components/LocatorTable";
+import { FallbackResultPanel } from "./components/FallbackResultPanel";
 
-import type { Locator, TabId } from "./_components/constants";
-import {
-  STATUS_STYLES,
-  TYPE_COLORS,
-  TABS,
-  BTN_PRIMARY,
-  INPUT_CLS,
-  TEXTAREA_CLS,
-  getScoreColor,
-} from "./_components/constants";
-import { Spinner, ConfidenceBar, RiskBar, CopyButton } from "./_components/MicroComponents";
+// ── Types ────────────────────────────────────────────────────────────
 
-// ── (Types and constants moved to ./_components/constants.ts) ────────────────
-// ── (Micro-components moved to ./_components/MicroComponents.tsx) ────────────
+type Locator = {
+  id: string;
+  name: string;
+  selector: string;
+  type: string;
+  page: string;
+  status: string;
+};
 
-function TabManagement({ locators, loading, refresh, projectId }: { locators: Locator[]; loading: boolean; refresh: () => void; projectId: string }) {
-  const healthy = locators.filter((l) => l.status === "healthy").length;
-  const broken  = locators.filter((l) => l.status === "broken").length;
-  const [showForm, setShowForm] = useState(false);
-  const [search, setSearch] = useState("");
-  const [creating, setCreating] = useState(false);
-  const [form, setForm] = useState({ name: "", selector: "", page: "", type: "css" });
+const STATUS_STYLES: Record<string, { color: string; dot: string; label: string }> = {
+  healthy: { color: "bg-emerald-500/10 border-emerald-500/20 text-emerald-400", dot: "bg-emerald-400", label: "Saglikli" },
+  broken:  { color: "bg-red-500/10 border-red-500/20 text-red-400",            dot: "bg-red-400",     label: "Kırık" },
+  warning: { color: "bg-amber-500/10 border-amber-500/20 text-amber-400",      dot: "bg-amber-400",   label: "Uyari" },
+};
 
-  async function createLocator(e: React.FormEvent) {
-    e.preventDefault();
-    if (!form.name || !form.selector) return;
-    setCreating(true);
-    try {
-      await apiFetch(`/api/v1/tspm/projects/${projectId}/locators`, { method: "POST", json: form });
-      setForm({ name: "", selector: "", page: "", type: "css" });
-      setShowForm(false);
-      refresh();
-    } catch { /* ignore */ } finally {
-      setCreating(false);
-    }
-  }
+const TYPE_COLORS: Record<string, string> = {
+  css:    "bg-blue-500/10 border-blue-500/20 text-blue-400",
+  xpath:  "bg-amber-500/10 border-amber-500/20 text-amber-400",
+  testid: "bg-violet-500/10 border-violet-500/20 text-violet-400",
+  text:   "bg-slate-800 border-slate-700 text-slate-300",
+};
 
+type TabId = "management" | "stability" | "fallback" | "pom" | "breakage";
+const TABS = [
+  { id: "management" as TabId, label: "Yönetim" },
+  { id: "stability" as TabId, label: "Stabilite" },
+  { id: "fallback" as TabId, label: "Fallback" },
+  { id: "pom" as TabId, label: "POM" },
+  { id: "breakage" as TabId, label: "Kırılma" },
+];
+const BTN_PRIMARY = "inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-500 disabled:opacity-40 disabled:cursor-not-allowed transition-all";
+const INPUT_CLS = "w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500/50";
+const TEXTAREA_CLS = "w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500/50 resize-none font-mono";
+
+function getScoreColor(score: number): string {
+  if (score >= 4) return "bg-emerald-500/10 border-emerald-500/20 text-emerald-400";
+  if (score >= 3) return "bg-blue-500/10 border-blue-500/20 text-blue-400";
+  if (score >= 2) return "bg-amber-500/10 border-amber-500/20 text-amber-400";
+  return "bg-red-500/10 border-red-500/20 text-red-400";
+}
+
+function Spinner({ className = "w-5 h-5" }: { className?: string }) {
+  return <div className={`border-2 border-slate-700 border-t-blue-400 rounded-full animate-spin ${className}`} />;
+}
+
+function ConfidenceBar({ value, max = 1 }: { value: number; max?: number }) {
+  const pct = Math.min(100, (value / max) * 100);
+  const color = pct >= 70 ? "bg-emerald-500" : pct >= 40 ? "bg-amber-500" : "bg-red-500";
   return (
-    <div className="flex flex-col gap-4">
-      {/* Stats */}
-      <div className="grid grid-cols-3 gap-3">
-        <StatCard label="Toplam" value={locators.length} />
-        <StatCard label="Saglikli" value={healthy} color="emerald" />
-        <StatCard label="Kırık" value={broken} color="red" />
-      </div>
-
-      {/* Create form */}
-      {showForm && (
-        <SectionCard
-          title="Yeni Locator"
-          icon={<svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>}
-        >
-          <form onSubmit={createLocator} className="space-y-3">
-            <div className="grid gap-3 sm:grid-cols-2">
-              <input placeholder="Ad (orn. loginButton)" value={form.name} onChange={e => setForm({...form, name: e.target.value})} required className={INPUT_CLS} />
-              <input placeholder="Selector (orn. [data-testid='login'])" value={form.selector} onChange={e => setForm({...form, selector: e.target.value})} required className={`${INPUT_CLS} font-mono`} />
-              <input placeholder="Sayfa (orn. Login)" value={form.page} onChange={e => setForm({...form, page: e.target.value})} className={INPUT_CLS} />
-              <select value={form.type} onChange={e => setForm({...form, type: e.target.value})}
-                className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500/50">
-                <option value="css">CSS</option>
-                <option value="xpath">XPath</option>
-                <option value="testid">Test ID</option>
-                <option value="text">Metin</option>
-              </select>
-            </div>
-            <div className="flex gap-2">
-              <button type="submit" disabled={creating || !form.name || !form.selector} className={BTN_PRIMARY}>
-                {creating ? "Kaydediliyor..." : "Kaydet"}
-              </button>
-              <button type="button" onClick={() => setShowForm(false)}
-                className="px-4 py-2 text-sm text-slate-400 hover:text-white transition-colors">Iptal</button>
-            </div>
-          </form>
-        </SectionCard>
-      )}
-
-      {/* Search */}
-      <div className="relative">
-        <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-        </svg>
-        <input
-          placeholder="Locator ara..."
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          className="w-full max-w-sm rounded-xl border border-slate-700 bg-slate-900/40 pl-9 pr-4 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500/50"
-        />
-      </div>
-
-      {/* Table */}
-      <div className="rounded-xl border border-slate-700 bg-slate-900/40 overflow-hidden">
-        <div className="flex items-center justify-between border-b border-slate-800 px-4 py-3">
-          <h3 className="text-sm font-semibold">Locator Listesi</h3>
-          <span className="text-xs text-slate-500">{locators.length} locator</span>
-        </div>
-
-        {loading ? (
-          <div className="py-16 text-center text-slate-500 text-sm flex items-center justify-center gap-2">
-            <Spinner /> Yükleniyor...
-          </div>
-        ) : locators.length === 0 ? (
-          <div className="p-8">
-            <EmptyState
-              icon="🎯"
-              title={search ? "Sonuç yok" : "Henuz locator yok"}
-              description={search ? "Arama kriterini değiştirin" : "Element konumlandiricilarini ekleyin"}
-              action={!search ? (
-                <button onClick={() => setShowForm(true)} className={BTN_PRIMARY}>Locator Ekle</button>
-              ) : undefined}
-            />
-          </div>
-        ) : (
-          <table className="w-full" data-testid="locators-table">
-            <thead>
-              <tr className="border-b border-slate-800">
-                <th className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-slate-400">Ad</th>
-                <th className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-slate-400">Selector</th>
-                <th className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-slate-400">Tip</th>
-                <th className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-slate-400">Sayfa</th>
-                <th className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-slate-400">Durum</th>
-                <th className="px-4 py-2.5" />
-              </tr>
-            </thead>
-            <tbody>
-              {locators.map((l) => {
-                const st = STATUS_STYLES[l.status] ?? STATUS_STYLES.warning;
-                const tc = TYPE_COLORS[l.type] ?? TYPE_COLORS.text;
-                return (
-                  <tr key={l.id} className="border-b border-slate-800 last:border-0 hover:bg-slate-800/30">
-                    <td className="px-4 py-3 font-mono text-xs font-medium text-white">{l.name}</td>
-                    <td className="px-4 py-3 font-mono text-xs text-slate-400 max-w-xs truncate" title={l.selector}>
-                      {l.selector}
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded border text-xs font-medium ${tc}`}>
-                        {l.type}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-sm text-slate-400">{l.page || "—"}</td>
-                    <td className="px-4 py-3">
-                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-xs font-medium ${st.color}`}>
-                        <span className={`w-1.5 h-1.5 rounded-full ${st.dot}`} />
-                        {st.label}
-                      </span>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        )}
-      </div>
+    <div className="h-1.5 rounded-full bg-slate-700 overflow-hidden">
+      <div className={`h-full rounded-full ${color}`} style={{ width: `${pct}%` }} />
     </div>
   );
+}
+
+function RiskBar({ value }: { value: number }) {
+  const pct = Math.min(100, value * 100);
+  const color = pct >= 70 ? "bg-red-500" : pct >= 40 ? "bg-amber-500" : "bg-emerald-500";
+  return (
+    <div className="flex items-center gap-2">
+      <div className="h-1.5 w-24 rounded-full bg-slate-700 overflow-hidden">
+        <div className={`h-full rounded-full ${color}`} style={{ width: `${pct}%` }} />
+      </div>
+      <span className="text-xs font-mono text-slate-400">{(value * 100).toFixed(0)}%</span>
+    </div>
+  );
+}
+
+function CopyButton({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false);
+  return (
+    <button
+      onClick={() => { void navigator.clipboard.writeText(text); setCopied(true); setTimeout(() => setCopied(false), 2000); }}
+      className="rounded p-1 text-slate-400 hover:text-white hover:bg-slate-700 transition-all"
+      title="Kopyala"
+    >
+      {copied ? (
+        <svg className="w-3.5 h-3.5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+        </svg>
+      ) : (
+        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+        </svg>
+      )}
+    </button>
+  );
+}
+
+function TabManagement({ locators, loading, refresh, projectId }: { locators: Locator[]; loading: boolean; refresh: () => void; projectId: string }) {
+  return <LocatorTable locators={locators} loading={loading} refresh={refresh} projectId={projectId} />;
 }
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -430,138 +371,7 @@ function TabFallback() {
       )}
 
       {/* Results */}
-      {result && (
-        <>
-          {/* Success/Fail banner */}
-          <div className={`rounded-xl border px-4 py-4 ${
-            result.success
-              ? "border-emerald-500/30 bg-emerald-500/10"
-              : "border-red-500/30 bg-red-500/10"
-          }`}>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                {result.success ? (
-                  <svg className="w-6 h-6 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                ) : (
-                  <svg className="w-6 h-6 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                )}
-                <div>
-                  <p className={`text-sm font-semibold ${result.success ? "text-emerald-300" : "text-red-300"}`}>
-                    {result.success ? "Çözüm bulundu!" : "Çözüm bulunamadi"}
-                  </p>
-                  {result.best_selector && (
-                    <p className="font-mono text-xs text-white mt-1">{result.best_selector}</p>
-                  )}
-                </div>
-              </div>
-              {result.best_selector && <CopyButton text={result.best_selector} />}
-            </div>
-            <div className="mt-3 flex gap-4 text-xs text-slate-400">
-              <span>Strateji: <strong className="text-white">{result.strategies_tried}</strong> denendi</span>
-              <span>Toplam: <strong className="text-white">{result.total_latency_ms}ms</strong></span>
-              {result.best_strategy && <span>Kazanan: <strong className="text-white">{result.best_strategy}</strong></span>}
-            </div>
-          </div>
-
-          {/* Strategy chain visualization */}
-          <SectionCard
-            title="Strateji Zinciri"
-            icon={<svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>}
-          >
-            <div className="flex gap-3 overflow-x-auto pb-2">
-              {result.all_results.map((r: FallbackResult, i: number) => {
-                const isWinner = result.success && r.strategy === result.best_strategy && r.found;
-                return (
-                  <div
-                    key={i}
-                    className={`flex-shrink-0 w-56 rounded-xl border p-4 ${
-                      isWinner
-                        ? "border-emerald-500/40 bg-emerald-500/10 ring-1 ring-emerald-500/30"
-                        : r.found
-                        ? "border-blue-500/30 bg-blue-500/5"
-                        : "border-slate-700 bg-slate-900/40"
-                    }`}
-                  >
-                    {/* Strategy name + found icon */}
-                    <div className="flex items-center justify-between mb-2">
-                      <span className={`text-xs font-bold uppercase tracking-wider ${
-                        isWinner ? "text-emerald-400" : "text-slate-300"
-                      }`}>
-                        {r.strategy}
-                      </span>
-                      {r.found ? (
-                        <svg className="w-4 h-4 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                        </svg>
-                      ) : (
-                        <svg className="w-4 h-4 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                      )}
-                    </div>
-
-                    {/* Selector */}
-                    <p className="font-mono text-[10px] text-slate-400 truncate mb-2" title={r.selector}>{r.selector}</p>
-
-                    {/* Confidence bar */}
-                    <p className="text-[10px] text-slate-500 mb-1">Guven</p>
-                    <ConfidenceBar value={r.confidence} />
-
-                    {/* Latency */}
-                    <div className="mt-2 flex items-center justify-between text-[10px] text-slate-500">
-                      <span>Gecikme</span>
-                      <span className="font-mono text-slate-400">{r.latency_ms}ms</span>
-                    </div>
-
-                    {/* Reason */}
-                    <p className="mt-2 text-[10px] text-slate-500 line-clamp-2">{r.reason}</p>
-
-                    {isWinner && (
-                      <div className="mt-2 rounded-full bg-emerald-500/20 px-2 py-0.5 text-center text-[10px] font-bold text-emerald-400 uppercase tracking-wider">
-                        Kazanan
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </SectionCard>
-
-          {/* Best result detail */}
-          {result.success && result.best_selector && (
-            <SectionCard
-              title="En Iyi Sonuç"
-              icon={<svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" /></svg>}
-            >
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div>
-                  <p className="text-xs text-slate-500 mb-1">Selector</p>
-                  <div className="flex items-center gap-2">
-                    <code className="font-mono text-sm text-emerald-300 bg-emerald-500/10 px-2 py-1 rounded border border-emerald-500/20 flex-1 truncate">{result.best_selector}</code>
-                    <CopyButton text={result.best_selector} />
-                  </div>
-                </div>
-                <div>
-                  <p className="text-xs text-slate-500 mb-1">Strateji</p>
-                  <p className="text-sm font-medium text-white">{result.best_strategy}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-slate-500 mb-1">Guven Skoru</p>
-                  <ConfidenceBar value={result.best_confidence} />
-                </div>
-                <div>
-                  <p className="text-xs text-slate-500 mb-1">Stabilite Skoru</p>
-                  <ConfidenceBar value={result.best_stability} max={5} />
-                </div>
-              </div>
-            </SectionCard>
-          )}
-        </>
-      )}
+      {result && <FallbackResultPanel result={result} />}
     </div>
   );
 }

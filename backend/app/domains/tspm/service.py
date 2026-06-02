@@ -11,7 +11,7 @@ from typing import Any, Dict, List, Optional
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.domains.tspm.models import TspmProject, TspmScenario, utcnow
+from app.domains.tspm.models import TspmProject, TspmProjectMember, TspmScenario, utcnow
 
 logger = logging.getLogger(__name__)
 
@@ -34,7 +34,9 @@ def list_projects(
     limit = min(int(limit), 500)
     q = select(TspmProject).order_by(TspmProject.created_at.desc()).limit(limit)
     if owner_id:
-        q = q.where(TspmProject.owner_id == owner_id)
+        q = q.join(TspmProjectMember, TspmProjectMember.project_id == TspmProject.id).where(
+            TspmProjectMember.user_id == owner_id
+        )
     projects = list(db.scalars(q).all())
     return [{c.key: getattr(p, c.key) for c in p.__table__.columns} for p in projects]
 

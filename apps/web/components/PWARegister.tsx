@@ -22,6 +22,20 @@ export function PWARegister() {
       process.env.NODE_ENV === "development" ||
       window.location.hostname === "localhost" ||
       window.location.hostname.startsWith("127.");
+    if (isDev) {
+      if ("serviceWorker" in navigator) {
+        navigator.serviceWorker
+          .getRegistrations()
+          .then((registrations) => Promise.all(registrations.map((registration) => registration.unregister())))
+          .catch(() => {});
+      }
+      if ("caches" in window) {
+        caches
+          .keys()
+          .then((keys) => Promise.all(keys.map((key) => caches.delete(key))))
+          .catch(() => {});
+      }
+    }
     if (!isDev && "serviceWorker" in navigator) {
       navigator.serviceWorker.register("/sw.js").catch((err) => {
         // Silently swallow — SW failures should not break the app

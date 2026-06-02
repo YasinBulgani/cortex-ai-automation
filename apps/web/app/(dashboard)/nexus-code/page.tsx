@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { nexusCodeStream, type NexusCodeInput } from "@/lib/ai-gateway";
-import * as XLSX from "xlsx";
+// xlsx dinamik yükleme — dışa aktarma butonu tıklandığında ~1MB paket yüklenir,
+// sayfa ilk açıldığında değil. Bu sayfa yüklenme süresi önemli ölçüde iyileşir.
 
 type Mode = "code" | "web" | "bitbucket";
 type Domain = "banking" | "finance" | "general";
@@ -267,8 +268,11 @@ export default function NexusCodePage() {
   const stopAnalysis = () => { abortRef.current?.abort(); setStatus("idle"); };
   const copyOutput = () => { navigator.clipboard.writeText(output).catch(() => null); };
 
-  const exportExcel = useCallback(() => {
+  const exportExcel = useCallback(async () => {
     if (!output) return;
+
+    // xlsx dinamik import — ilk kullanımda indirilir (~1MB), sayfa yükünü artırmaz
+    const XLSX = await import("xlsx");
 
     // Test senaryolarını parse et — "Test ID:" ile başlayan bloklar
     const blocks = output.split(/(?=\*\*Test ID:|Test ID:)/g).filter((b) => b.trim());

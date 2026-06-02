@@ -8,13 +8,10 @@ import re
 import string
 from typing import Any
 
-from fastapi import HTTPException
-
-
 def parse_schema_from_ddl(body: dict) -> dict:
     ddl = (body.get("ddl") or "").strip()
     if not ddl:
-        raise HTTPException(400, "ddl alanı gerekli")
+        raise ValueError("ddl alanı gerekli")
     from app.domains.tspm.db_schema_parser import parse_ddl
 
     return parse_ddl(ddl)
@@ -23,7 +20,7 @@ def parse_schema_from_ddl(body: dict) -> dict:
 def parse_schema_from_csv(body: dict) -> dict:
     csv_text = (body.get("csv_text") or "").strip()
     if not csv_text:
-        raise HTTPException(400, "csv_text alanı gerekli")
+        raise ValueError("csv_text alanı gerekli")
     table_name = body.get("table_name", "imported_table")
     has_header = bool(body.get("has_header", True))
     from app.domains.tspm.db_schema_parser import parse_csv
@@ -34,19 +31,19 @@ def parse_schema_from_csv(body: dict) -> dict:
 def parse_schema_from_natural_language(body: dict) -> dict:
     description = (body.get("description") or "").strip()
     if len(description) < 10:
-        raise HTTPException(400, "description en az 10 karakter olmalı")
+        raise ValueError("description en az 10 karakter olmalı")
     try:
         from app.domains.tspm.db_schema_parser import parse_natural_language
 
         return parse_natural_language(description)
     except ValueError as exc:
-        raise HTTPException(503, str(exc)) from exc
+        raise RuntimeError(str(exc)) from exc
 
 
 def parse_schema_from_db(body: dict) -> dict:
     conn_str = (body.get("connection_string") or "").strip()
     if not conn_str:
-        raise HTTPException(400, "connection_string alanı gerekli")
+        raise ValueError("connection_string alanı gerekli")
 
     _validate_supported_connection(conn_str, "Yalnızca PostgreSQL ve SQLite bağlantı stringleri desteklenir.")
     conn_str = _rewrite_localhost_for_docker(conn_str)
@@ -59,13 +56,13 @@ def parse_schema_from_db(body: dict) -> dict:
     try:
         return parse_db_connection(conn_str, schema_name, exclude_tables)
     except ValueError as exc:
-        raise HTTPException(503, str(exc)) from exc
+        raise RuntimeError(str(exc)) from exc
 
 
 def standalone_simulate(body: dict) -> dict:
     tables_def = body.get("tables") or []
     if not tables_def:
-        raise HTTPException(400, "tables dizisi gerekli")
+        raise ValueError("tables dizisi gerekli")
     return _simulate_tables(
         tables_def=tables_def,
         locale=body.get("locale", "tr_TR"),
@@ -77,17 +74,17 @@ def standalone_simulate(body: dict) -> dict:
 def write_simulated_to_db(body: dict) -> dict:
     conn_str = (body.get("connection_string") or "").strip()
     if not conn_str:
-        raise HTTPException(400, "connection_string gerekli")
+        raise ValueError("connection_string gerekli")
     _validate_supported_connection(conn_str, "Yalnızca PostgreSQL ve SQLite desteklenir.")
 
     tables_data: dict = body.get("tables") or {}
     if not tables_data:
-        raise HTTPException(400, "tables verisi gerekli")
+        raise ValueError("tables verisi gerekli")
 
     try:
         from sqlalchemy import create_engine, text
     except ImportError as exc:
-        raise HTTPException(500, "sqlalchemy paketi yüklü değil.") from exc
+        raise RuntimeError("sqlalchemy paketi yüklü değil.") from exc
 
     try:
         engine = create_engine(
@@ -96,14 +93,13 @@ def write_simulated_to_db(body: dict) -> dict:
             connect_args={"connect_timeout": 10},
         )
     except Exception as exc:
-        raise HTTPException(422, f"Bağlantı oluşturulamadı: {exc}") from exc
+        raise ValueError(f"Bağlantı oluşturulamadı: {exc}") from exc
 
     safe_identifier = re.compile(r"^[A-Za-z_][A-Za-z0-9_]{0,62}$")
 
     def _validate_identifier(name: str, kind: str) -> None:
         if not safe_identifier.match(name):
-            raise HTTPException(
-                400,
+            raise ValueError(
                 f"Güvensiz {kind} adı: '{name}'. Yalnızca harf, rakam ve alt çizgi kullanılabilir.",
             )
 
@@ -133,7 +129,7 @@ def write_simulated_to_db(body: dict) -> dict:
                 except Exception as exc:
                     errors.append(f"{table_name}: {exc}")
     except Exception as exc:
-        raise HTTPException(422, f"Yazma hatası: {exc}") from exc
+        raise RuntimeError(f"Yazma hatası: {exc}") from exc
     finally:
         engine.dispose()
 
@@ -148,7 +144,7 @@ def write_simulated_to_db(body: dict) -> dict:
 def ai_enrich_schema(body: dict) -> dict:
     tables = body.get("tables") or []
     if not tables:
-        raise HTTPException(400, "tables dizisi gerekli")
+        raise ValueError("tables dizisi gerekli")
     from app.domains.tspm.db_schema_parser import enrich_schema
 
     return enrich_schema(tables, body.get("domain_hint", ""))
@@ -157,7 +153,7 @@ def ai_enrich_schema(body: dict) -> dict:
 def full_simulate(body: dict) -> dict:
     tables_def = body.get("tables") or []
     if not tables_def:
-        raise HTTPException(400, "tables dizisi gerekli")
+        raise ValueError("tables dizisi gerekli")
     return _simulate_tables(
         tables_def=tables_def,
         locale=body.get("locale", "tr_TR"),
@@ -169,7 +165,7 @@ def full_simulate(body: dict) -> dict:
 def simulate_schema_for_project(body: dict) -> dict:
     tables_def = body.get("tables") or []
     if not tables_def:
-        raise HTTPException(400, "tables dizisi gerekli")
+        raise ValueError("tables dizisi gerekli")
     return _simulate_tables(
         tables_def=tables_def,
         locale=body.get("locale", "tr_TR"),
@@ -369,7 +365,7 @@ def _expand_simple_regex(pattern: str) -> str:
 def _validate_supported_connection(conn_str: str, message: str) -> None:
     allowed = ("postgresql://", "postgresql+psycopg2://", "sqlite:///")
     if not any(conn_str.startswith(prefix) for prefix in allowed):
-        raise HTTPException(400, message)
+        raise ValueError(message)
 
 
 def _rewrite_localhost_for_docker(conn_str: str) -> str:
@@ -390,5 +386,5 @@ def _require_faker():
     try:
         from faker import Faker
     except ImportError as exc:
-        raise HTTPException(500, "faker paketi yüklü değil.") from exc
+        raise RuntimeError("faker paketi yüklü değil.") from exc
     return Faker

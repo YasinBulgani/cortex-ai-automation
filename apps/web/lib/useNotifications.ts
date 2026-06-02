@@ -17,6 +17,7 @@ export type Notification = {
 
 const STORAGE_KEY = "neurex_notifications_v1";
 const MAX_NOTIFICATIONS = 100;
+const NOTIFICATIONS_API_BASE = "/api/v1/notifications";
 
 function readStorage(): Notification[] {
   try {
@@ -40,11 +41,29 @@ function writeStorage(items: Notification[]) {
   }
 }
 
+// Backend-first with localStorage fallback.
+// Fetches notifications from the backend API; if unavailable or auth required,
+// falls back to localStorage so existing notifications are never lost.
+async function fetchFromBackend(): Promise<Notification[] | null> {
+  try {
+    const res = await fetch(`${NOTIFICATIONS_API_BASE}`, {
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+    });
+    if (!res.ok) return null; // backend unavailable or auth required → use localStorage
+    const data: Notification[] = await res.json();
+    return Array.isArray(data) ? data : null;
+  } catch {
+    return null; // network error → graceful fallback
+  }
+}
+
 /**
  * In-app notification center hook.
  *
- * Storage: localStorage (per-browser; cross-device sync ayrı iş — server-side
- * notification table + WebSocket push gerekli).
+ * Storage: backend-first (GET /api/v1/notifications) with localStorage
+ * fallback for offline use and when the backend is unavailable.
+ * Mutations still write to localStorage; backend write-back is planned.
  *
  * Cross-tab sync: storage event listener — başka tab notification eklerse
  * bu tab da görür.
@@ -52,9 +71,23 @@ function writeStorage(items: Notification[]) {
 export function useNotifications() {
   const [items, setItems] = useState<Notification[]>([]);
 
-  // Initial load + cross-tab sync
+  // Initial load: localStorage first for instant display, then backend overrides
   useEffect(() => {
-    setItems(readStorage());
+    // 1. Load localStorage immediately for instant display
+    const local = readStorage();
+    if (local.length > 0) setItems(local);
+
+    // 2. Then fetch from backend — if it responds, prefer its data (authoritative source)
+    fetchFromBackend().then((backendData) => {
+      if (backendData && backendData.length > 0) {
+        setItems(backendData);
+        writeStorage(backendData); // sync to localStorage for offline use
+      } else if (local.length === 0) {
+        setItems([]); // both empty
+      }
+    });
+
+    // Cross-tab sync via storage events
     const onStorage = (e: StorageEvent) => {
       if (e.key === STORAGE_KEY) {
         setItems(readStorage());

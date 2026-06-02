@@ -55,7 +55,7 @@ def migrate(
             f"Unsupported framework: {framework!r}. "
             f"Supported: {SUPPORTED_FRAMEWORKS}"
         )
-    result = migrate_source(source_code, framework=framework, source_file=source_file)  # type: ignore[arg-type]
+    result = migrate_source(framework, source_code, source_file=source_file)  # type: ignore[arg-type]
     return result.to_dict()
 
 

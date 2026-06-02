@@ -7,10 +7,65 @@ const backendTarget = process.env.API_PROXY_TARGET || "http://127.0.0.1:8000";
 
 const nextConfig = {
   reactStrictMode: true,
+
+  // ── Performans: X-Powered-By header'ını kaldır (güvenlik + boyut) ──
+  poweredByHeader: false,
+
+  // ── Performans: Gzip/Brotli sıkıştırma ─────────────────────────────
+  compress: true,
+
   env: {
     NEXT_PUBLIC_APP_NAME: "Neurex QA",
     NEXT_PUBLIC_APP_VERSION: "1.0.0",
   },
+
+  // ── Performans: Ağır paketlerin tree-shaking'ini zorla ─────────────
+  // Bu sayede yalnızca kullanılan ikonlar/bileşenler bundle'a girer.
+  experimental: {
+    optimizePackageImports: [
+      "lucide-react",
+      "framer-motion",
+      "recharts",
+      "@radix-ui/react-dialog",
+      "@radix-ui/react-popover",
+      "@radix-ui/react-select",
+      "@radix-ui/react-tabs",
+      "@radix-ui/react-tooltip",
+      "@radix-ui/react-slot",
+      "@tanstack/react-query",
+      "@tanstack/react-virtual",
+      "@dnd-kit/core",
+      "@dnd-kit/sortable",
+    ],
+  },
+
+  // ── Performans: HTTP Cache headers — statik varlıklar uzun süre cache ─
+  async headers() {
+    return [
+      {
+        // Next.js'in ürettiği statik dosyalar (/_next/static/*)
+        // 1 yıl boyunca immutable olarak cache'lenir (content-hash ile)
+        source: "/_next/static/:path*",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=31536000, immutable",
+          },
+        ],
+      },
+      {
+        // Public klasöründeki statik varlıklar (favicon, images, icons)
+        source: "/static/:path*",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=86400, stale-while-revalidate=3600",
+          },
+        ],
+      },
+    ];
+  },
+
   async rewrites() {
     // Proxy /api/v1/* to the backend so cookies stay on the same origin.
     // Uses API_PROXY_TARGET (server-only) when NEXT_PUBLIC_API_BASE is blank,

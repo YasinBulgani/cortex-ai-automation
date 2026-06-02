@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { useRouteParam } from "@/lib/use-route-param";
 import { apiFetch } from "@/lib/api";
@@ -105,35 +106,56 @@ function SortableRequirementRow({ requirement, onDelete }: { requirement: Requir
 
 export default function RequirementsPage() {
   const projectId = useRouteParam("projectId");
-  const [requirements, setRequirements] = useState<Requirement[]>([]);
+  const queryClient = useQueryClient();
+  const requirementsQK = ["requirements", "list", projectId] as const;
+
   const [form, setForm] = useState<Form>(emptyForm);
-  const [loading, setLoading] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [priorityFilter, setPriorityFilter] = useState("");
+  const [localOrder, setLocalOrder] = useState<Requirement[] | null>(null);
+
+  const { data: fetchedRequirements = [] } = useQuery<Requirement[]>({
+    queryKey: requirementsQK,
+    queryFn: () => apiFetch<Requirement[]>(`/api/v1/tspm/projects/${projectId}/requirements`),
+    enabled: !!projectId,
+    staleTime: 60 * 1000,
+    gcTime: 5 * 60 * 1000,
+  });
+
+  const requirements = localOrder ?? fetchedRequirements;
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
 
-  const load = useCallback(() => {
-    apiFetch<Requirement[]>(`/api/v1/tspm/projects/${projectId}/requirements`).then(setRequirements).catch((err) => console.warn("[requirements]:", err));
-  }, [projectId]);
-
-  useEffect(() => { load(); }, [load]);
+  const createMut = useMutation({
+    mutationFn: (f: Form) => apiFetch(`/api/v1/tspm/projects/${projectId}/requirements`, { method: "POST", json: f }),
+    onSuccess: () => {
+      setForm(emptyForm);
+      setShowForm(false);
+      setLocalOrder(null);
+      queryClient.invalidateQueries({ queryKey: requirementsQK });
+    },
+  });
+  const loading = createMut.isPending;
 
   async function handleCreate(e: React.FormEvent) {
-    e.preventDefault(); setLoading(true);
-    try {
-      await apiFetch(`/api/v1/tspm/projects/${projectId}/requirements`, { method: "POST", json: form });
-      setForm(emptyForm); setShowForm(false); load();
-    } finally { setLoading(false); }
+    e.preventDefault();
+    createMut.mutate(form);
   }
 
-  async function handleDelete(id: string) {
-    await apiFetch(`/api/v1/tspm/projects/${projectId}/requirements/${id}`, { method: "DELETE" });
-    load();
+  const deleteMut = useMutation({
+    mutationFn: (id: string) => apiFetch(`/api/v1/tspm/projects/${projectId}/requirements/${id}`, { method: "DELETE" }),
+    onSuccess: () => {
+      setLocalOrder(null);
+      queryClient.invalidateQueries({ queryKey: requirementsQK });
+    },
+  });
+
+  function handleDelete(id: string) {
+    deleteMut.mutate(id);
   }
 
   function handleDragStart(e: DragStartEvent) { setActiveId(e.active.id as string); }
@@ -143,7 +165,7 @@ export default function RequirementsPage() {
     if (over && active.id !== over.id) {
       const oi = requirements.findIndex(i => i.id === active.id);
       const ni = requirements.findIndex(i => i.id === over.id);
-      setRequirements(arrayMove(requirements, oi, ni));
+      setLocalOrder(arrayMove(requirements, oi, ni));
     }
   }
 

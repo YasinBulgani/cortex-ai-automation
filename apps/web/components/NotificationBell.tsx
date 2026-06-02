@@ -1,4 +1,8 @@
 "use client";
+// @deprecated — use @/components/management/NotificationBell
+// This WebSocket-only bell is retained for the legacy test suite
+// (`components/__tests__/more-components.test.tsx`) and as a fallback
+// when the Neurex Management notifications API is unavailable.
 import { useState } from "react";
 import { useWebSocket } from "@/lib/useWebSocket";
 

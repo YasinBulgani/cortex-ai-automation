@@ -60,6 +60,22 @@ class Settings(BaseSettings):
     allow_self_registration: bool = False
 
     artifacts_dir: str = "./data/artifacts"
+    # ── Artifact storage backend ──────────────────────────────────────
+    # "local" | "s3"  — prod multi-instance icin "s3" zorunlu
+    artifact_storage_backend: str = "local"
+    s3_bucket: str = ""
+    s3_region: str = "us-east-1"
+    s3_endpoint_url: str = ""  # MinIO/Localstack icin override; bos = AWS
+    s3_access_key_id: str = ""
+    s3_secret_access_key: str = ""
+    s3_prefix: str = "artifacts/"
+    # Production'da Redis zorunlu mu? (multi-instance icin true)
+    require_redis_in_production: bool = True
+
+    # ── Secrets encryption at-rest (Fernet) ───────────────────────────
+    # Generate: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+    # Rotate by adding new key to head; old keys remain for decrypt.
+    secrets_encryption_keys: str = ""  # comma-separated; first = current
     ai_workflow_artifact_retention_days: int = 30
     rq_queue_name: str = "syndata_jobs"
     ai_rq_queue_name: str = "ai_workflows"
@@ -151,6 +167,19 @@ class Settings(BaseSettings):
     ai_gateway_required: bool = False
     ai_budget_preflight_required: bool = False
     ai_structured_output_fail_closed: bool = False
+
+    # ── SSO / OAuth (OIDC) ────────────────────────────────────────────
+    # Google: client_id from console.cloud.google.com -> APIs & Services
+    sso_google_client_id: str = ""
+    sso_google_client_secret: str = ""
+    # Azure AD: tenant + client app registration
+    sso_azure_tenant_id: str = ""
+    sso_azure_client_id: str = ""
+    sso_azure_client_secret: str = ""
+    # Allow auto-provisioning new users from SSO (true) or require existing acct (false)
+    sso_auto_provision: bool = True
+    # If set, restrict SSO login to these email domains (comma-sep)
+    sso_allowed_email_domains: str = ""
 
     # ── Stripe (faturalama) ───────────────────────────────────────────
     # Empty values disable the integration; checkout/portal endpoints

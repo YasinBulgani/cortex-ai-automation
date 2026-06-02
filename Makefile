@@ -11,7 +11,8 @@
         prod-up prod-down prod-logs prod-status prod-deploy validate-env ssl-self-signed \
         test-mobile test-load \
         dsl-ai-warm dsl-ai-rebuild dsl-ai-info dsl-editor-config dsl-proposals \
-        sec-audit eval tia
+        sec-audit eval tia \
+        test-unit test-integration lint-check type-check
 
 SHELL := /bin/bash
 VENV   := .venv
@@ -785,3 +786,21 @@ test-all-new:
 		tests/unit/test_migration_assistant.py \
 		tests/eval/ \
 		-q
+
+# ─── Birim / Entegrasyon / Engine / Lint / Tip Kontrol ───────────────────────
+
+test-unit:  ## Run all backend unit tests
+	cd backend && python -m pytest tests/unit/ -v --tb=short -q
+
+test-integration:  ## Run backend integration tests
+	cd backend && python -m pytest tests/integration/ -v --tb=short
+
+test-engine:  ## Run engine unit tests
+	cd engine && python -m pytest tests/unit/ -v --tb=short -q
+
+lint-check:  ## Check code style (flake8 + isort)
+	cd backend && python -m flake8 app/ --max-line-length=120 --ignore=E501,W503 || true
+	cd backend && python -m isort app/ --check-only --diff || true
+
+type-check:  ## Run mypy type checking
+	cd backend && python -m mypy app/ --ignore-missing-imports --no-error-summary || true

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouteParam } from "@/lib/use-route-param";
 import { apiFetch } from "@/lib/api";
 
@@ -15,57 +16,79 @@ type Project = {
 export default function SettingsPage() {
   const projectId = useRouteParam("projectId");
   const router = useRouter();
+  const queryClient = useQueryClient();
 
   const [form, setForm] = useState<{ name: string; description: string; base_url: string }>({
     name: "",
     description: "",
     base_url: "",
   });
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [deleting, setDeleting] = useState(false);
   const [saveMsg, setSaveMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
+  const { isLoading: loading } = useQuery<Project>({
+    queryKey: ["projects", "detail", projectId],
+    queryFn: () => apiFetch<Project>(`/api/v1/tspm/projects/${projectId}`),
+    enabled: !!projectId,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  // Sync form when project data is fetched
+  const { data: project } = useQuery<Project>({
+    queryKey: ["projects", "detail", projectId],
+    queryFn: () => apiFetch<Project>(`/api/v1/tspm/projects/${projectId}`),
+    enabled: !!projectId,
+    staleTime: 5 * 60 * 1000,
+  });
+
   useEffect(() => {
-    apiFetch<Project>(`/api/v1/tspm/projects/${projectId}`)
-      .then((p) => {
-        setForm({ name: p.name ?? "", description: p.description ?? "", base_url: p.base_url ?? "" });
-        setLoading(false);
-      })
-      .catch(() => setLoading(false));
-  }, [projectId]);
+    if (project) {
+      setForm({
+        name: project.name ?? "",
+        description: project.description ?? "",
+        base_url: project.base_url ?? "",
+      });
+    }
+  }, [project]);
+
+  const saveMut = useMutation({
+    mutationFn: () =>
+      apiFetch<Project>(`/api/v1/tspm/projects/${projectId}`, {
+        method: "PUT",
+        json: { name: form.name, description: form.description, base_url: form.base_url },
+      }),
+    onSuccess: (updated) => {
+      setSaveMsg({ ok: true, text: "Proje ayarları kaydedildi." });
+      queryClient.setQueryData(["projects", "detail", projectId], updated);
+      queryClient.invalidateQueries({ queryKey: ["projects", "list"] });
+    },
+    onError: () => setSaveMsg({ ok: false, text: "Kaydetme başarısız. Lütfen tekrar deneyin." }),
+  });
+
+  const deleteMut = useMutation({
+    mutationFn: () => apiFetch(`/api/v1/tspm/projects/${projectId}`, { method: "DELETE" }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["projects", "list"] });
+      router.push("/portfolio");
+    },
+    onError: () => alert("Proje silinemedi. Lütfen tekrar deneyin."),
+  });
 
   async function save(e: React.FormEvent) {
     e.preventDefault();
-    setSaving(true);
     setSaveMsg(null);
-    try {
-      await apiFetch(`/api/v1/tspm/projects/${projectId}`, {
-        method: "PUT",
-        json: { name: form.name, description: form.description, base_url: form.base_url },
-      });
-      setSaveMsg({ ok: true, text: "Proje ayarları kaydedildi." });
-    } catch {
-      setSaveMsg({ ok: false, text: "Kaydetme başarısız. Lütfen tekrar deneyin." });
-    } finally {
-      setSaving(false);
-    }
+    saveMut.mutate();
   }
 
-  async function deleteProject() {
+  function deleteProject() {
     const confirmed = window.confirm(
       `"${form.name}" projesini silmek istediğinizden emin misiniz?\n\nBu işlem geri alınamaz.`
     );
     if (!confirmed) return;
-    setDeleting(true);
-    try {
-      await apiFetch(`/api/v1/tspm/projects/${projectId}`, { method: "DELETE" });
-      router.push("/portfolio");
-    } catch {
-      alert("Proje silinemedi. Lütfen tekrar deneyin.");
-      setDeleting(false);
-    }
+    deleteMut.mutate();
   }
+
+  const saving = saveMut.isPending;
+  const deleting = deleteMut.isPending;
 
   if (loading) {
     return (

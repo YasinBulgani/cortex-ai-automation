@@ -50,7 +50,7 @@ def _make_tc_md(
         type:
           - {tc_type}
         status: {status}
-        owner: {owner}
+        owner: "{owner}"
         created: "2026-01-01"
         updated: "2026-01-01"
         estimated_minutes: 5

@@ -178,6 +178,79 @@ def estimate_monthly_cost(usages: List[UsagePeriod]) -> CostEstimate:
     )
 
 
+def estimate_monthly_cost_strict(usages: List[UsagePeriodInput]) -> CostEstimate:
+    """``estimate_monthly_cost`` ile aynı mantık; ancak bilinmeyen model için
+    pesimistik fallback yerine ``ValueError`` fırlatır.
+
+    Pydantic ``UsagePeriodInput`` listesi kabul eder — router'dan doğrudan
+    çağrılabilir.
+
+    Args:
+        usages: Bir veya daha fazla kullanım dönemi.
+
+    Returns:
+        CostEstimate toplam ve model bazlı döküm.
+
+    Raises:
+        ValueError: ``usages`` listesindeki herhangi bir modelin adı
+            ``PRICING_CATALOG``'da bulunamadıysa.
+    """
+    usd_try = _usd_to_try_rate()
+    breakdown: List[ProviderCost] = []
+    total_usd = 0.0
+    total_days_max = 0
+
+    for u in usages:
+        if u.model not in PRICING_CATALOG:
+            # Normalize edilmiş anahtar kontrolü (Ollama quant suffix'leri)
+            key = u.model.lower().strip()
+            found = False
+            if ":" in key:
+                base, _, rest = key.partition(":")
+                first_tok = rest.split("-")[0]
+                normalized = f"{base}:{first_tok}"
+                found = normalized in PRICING_CATALOG
+            if not found:
+                raise ValueError(
+                    f"Bilinmeyen model: '{u.model}'. "
+                    f"Desteklenen modeller: {sorted(PRICING_CATALOG.keys())}"
+                )
+
+        pricing: PricingEntry = get_pricing(u.model)
+        cost_usd = estimate_cost_usd(
+            u.model, input_tokens=u.input_tokens, output_tokens=u.output_tokens
+        )
+        total_usd += cost_usd
+        total_days_max = max(total_days_max, u.days)
+        breakdown.append(
+            ProviderCost(
+                model=u.model,
+                provider=pricing.provider,
+                input_tokens=u.input_tokens,
+                output_tokens=u.output_tokens,
+                call_count=u.call_count,
+                days=u.days,
+                cost_usd=round(cost_usd, 4),
+                cost_try=round(cost_usd * usd_try, 2),
+                is_local=pricing.is_local,
+            )
+        )
+
+    local_alt = 0.0
+    projected = _scale_to_monthly(total_usd, total_days_max or 30)
+
+    return CostEstimate(
+        total_cost_usd=round(total_usd, 4),
+        total_cost_try=round(total_usd * usd_try, 2),
+        usd_to_try_rate=usd_try,
+        breakdown=breakdown,
+        local_alternative_cost_usd=local_alt,
+        potential_monthly_savings_usd=round(projected - local_alt, 4),
+        period_days=total_days_max or 30,
+        projected_monthly_usd=projected,
+    )
+
+
 def to_pydantic(est: CostEstimate) -> CostEstimateModel:
     """CostEstimate → Pydantic (HTTP response için)."""
     data = asdict(est)

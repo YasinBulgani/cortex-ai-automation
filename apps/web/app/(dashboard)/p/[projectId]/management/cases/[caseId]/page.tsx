@@ -12,6 +12,8 @@ import {
 } from "@/lib/hooks/use-management";
 
 import { ManagementPanel, ManagementShell, ManagementStat } from "../../_components/ManagementShell";
+import { CommentThread } from "../../_components/CommentThread";
+import { ParameterizedCasesPanel } from "../../_components/ParameterizedCasesPanel";
 
 export default function ManagementCaseDetailPage({
   params,
@@ -283,6 +285,14 @@ export default function ManagementCaseDetailPage({
             <p className="text-sm text-slate-500">Henüz versiyon kaydı yok.</p>
           )}
         </ManagementPanel>
+        <CommentThread
+          entityType="case"
+          entityId={params.caseId}
+          projectId={params.projectId}
+        />
+      </div>
+      <div className="mt-4">
+        <ParameterizedCasesPanel caseId={params.caseId} />
       </div>
     </ManagementShell>
   );

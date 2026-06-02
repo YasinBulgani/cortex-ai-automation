@@ -4,30 +4,270 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { apiFetch, ApiError } from "@/lib/api";
-import type {
-  AppiumAction,
-  BackendDevice,
-  BackendStepResp,
-  Device,
-  DeviceKind,
-  DeviceStatus,
-  LogEntry,
-  Platform,
-  SeedScenario,
-  Session,
-} from "./_components/types";
-import { INITIAL_DEVICES, SAMPLE_PROMPTS } from "./_components/types";
-import {
-  rnd,
-  rndInt,
-  fmtMs,
-  mockLLMStepper,
-  fromBackendDevice,
-  statusPill,
-  platformBadge,
-} from "./_components/helpers";
-import { PhysicalEnrollForm } from "./_components/PhysicalEnrollForm";
+import { DeviceFarmGrid } from "./components/DeviceFarmGrid";
+import { SessionLogPanel } from "./components/SessionLogPanel";
+import { LLMScenarioGenerator } from "./components/LLMScenarioGenerator";
+import { ScenarioTemplateGallery } from "./components/ScenarioTemplateGallery";
+import { DeviceScreenModal } from "./components/DeviceScreenModal";
+import { ResearchReportPanel } from "./components/ResearchReportPanel";
 
+/* ─────────────────────────────────────────────────────────────
+ * MOBİL OTOMASYON — Neurex QA
+ * ─────────────────────────────────────────────────────────────
+ *  - 10 sanal cihaz (6 Android AVD + 4 iOS Simulator)
+ *  - LLM destekli doğal dil → Appium adımları
+ *  - Paralel koşu simülasyonu (session orchestrator, canlı loglar)
+ *  - Fiziksel cihaz kayıt (onboarding modal)
+ *  - Araştırma raporu özeti + tam rapora link
+ *
+ *  Not: Backend endpoint'leri (F1 fazında) şöyle olacak:
+ *    GET  /api/v1/mobile/devices
+ *    POST /api/v1/mobile/sessions
+ *    POST /api/v1/mobile/generate-from-prompt
+ *  Şu an prototip — mock state + client-side simülasyon.
+ * ─────────────────────────────────────────────────────────── */
+
+type Platform = "android" | "ios";
+type DeviceKind = "emulator" | "simulator" | "physical";
+type DeviceStatus = "idle" | "running" | "booting" | "offline" | "error";
+
+type Device = {
+  id: string;
+  name: string;
+  platform: Platform;
+  osVersion: string;
+  profile: string;
+  kind: DeviceKind;
+  status: DeviceStatus;
+  battery: number;
+  cpuPct: number;
+  ramPct: number;
+  appiumPort: number;
+  currentStep?: string;
+  stepsDone: number;
+  stepsTotal: number;
+  healStreak: number;
+};
+
+type AppiumAction = {
+  action: "launch" | "find" | "tap" | "sendKeys" | "verifyVisible" | "wait" | "swipe";
+  by?: "accessibilityId" | "xpath" | "predicate";
+  value?: string;
+  text?: string;
+  timeout?: number;
+  ms?: number;
+  direction?: "up" | "down" | "left" | "right";
+};
+
+type Session = {
+  id: string;
+  deviceId: string;
+  scenarioName: string;
+  status: "queued" | "running" | "passed" | "failed";
+  startedAt: number;
+  finishedAt?: number;
+  healed: number;
+};
+
+type LogEntry = {
+  id: number;
+  ts: number;
+  level: "info" | "warn" | "error" | "llm" | "heal";
+  deviceId?: string;
+  sessionId?: string;
+  message: string;
+};
+
+/* ─── Seed device farm (10 cihaz) ────────────────────────────── */
+const INITIAL_DEVICES: Device[] = [
+  { id: "and-01", name: "Pixel 8",             platform: "android", osVersion: "14", profile: "pixel_8",       kind: "emulator",  status: "idle",    battery: 92, cpuPct: 8,  ramPct: 34, appiumPort: 4723, stepsDone: 0, stepsTotal: 0, healStreak: 0 },
+  { id: "and-02", name: "Pixel 8 Pro",         platform: "android", osVersion: "14", profile: "pixel_8_pro",   kind: "emulator",  status: "idle",    battery: 88, cpuPct: 6,  ramPct: 38, appiumPort: 4724, stepsDone: 0, stepsTotal: 0, healStreak: 0 },
+  { id: "and-03", name: "Galaxy S23 (OneUI)",  platform: "android", osVersion: "13", profile: "galaxy_s23",    kind: "emulator",  status: "idle",    battery: 74, cpuPct: 12, ramPct: 42, appiumPort: 4725, stepsDone: 0, stepsTotal: 0, healStreak: 0 },
+  { id: "and-04", name: "Pixel 6",             platform: "android", osVersion: "12", profile: "pixel_6",       kind: "emulator",  status: "idle",    battery: 100,cpuPct: 4,  ramPct: 30, appiumPort: 4726, stepsDone: 0, stepsTotal: 0, healStreak: 0 },
+  { id: "and-05", name: "Pixel 5 (legacy)",    platform: "android", osVersion: "11", profile: "pixel_5",       kind: "emulator",  status: "idle",    battery: 67, cpuPct: 9,  ramPct: 40, appiumPort: 4727, stepsDone: 0, stepsTotal: 0, healStreak: 0 },
+  { id: "and-06", name: "Nexus 5X (legacy)",   platform: "android", osVersion: "9",  profile: "nexus_5x",      kind: "emulator",  status: "offline", battery: 0,  cpuPct: 0,  ramPct: 0,  appiumPort: 4728, stepsDone: 0, stepsTotal: 0, healStreak: 0 },
+  { id: "ios-01", name: "iPhone 15 Pro",       platform: "ios",     osVersion: "17", profile: "iphone_15_pro", kind: "simulator", status: "idle",    battery: 95, cpuPct: 5,  ramPct: 28, appiumPort: 4730, stepsDone: 0, stepsTotal: 0, healStreak: 0 },
+  { id: "ios-02", name: "iPhone 15",           platform: "ios",     osVersion: "17", profile: "iphone_15",     kind: "simulator", status: "idle",    battery: 84, cpuPct: 7,  ramPct: 31, appiumPort: 4731, stepsDone: 0, stepsTotal: 0, healStreak: 0 },
+  { id: "ios-03", name: "iPhone 14",           platform: "ios",     osVersion: "16", profile: "iphone_14",     kind: "simulator", status: "idle",    battery: 62, cpuPct: 11, ramPct: 36, appiumPort: 4732, stepsDone: 0, stepsTotal: 0, healStreak: 0 },
+  { id: "ios-04", name: "iPhone SE (3rd)",     platform: "ios",     osVersion: "15", profile: "iphone_se_3",   kind: "simulator", status: "idle",    battery: 77, cpuPct: 6,  ramPct: 29, appiumPort: 4733, stepsDone: 0, stepsTotal: 0, healStreak: 0 },
+];
+
+/* ─── Örnek senaryolar ──────────────────────────────────────── */
+const SAMPLE_PROMPTS = [
+  "Uygulamayı aç, Giriş yap butonuna bas, email alanına test@bgts.ai yaz, şifre alanına Test123! yaz, Devam'a bas, ana sayfanın yüklendiğini doğrula.",
+  "Onboarding ekranlarını geç, bildirim izinlerini reddet, dil olarak Türkçe seç, hesap oluştur sayfasının açıldığını doğrula.",
+  "Ürün arama kutusuna 'kahve' yaz, filtreyi 'fiyat artan' yap, ilk ürünü sepete ekle, sepet sayacının 1 olduğunu doğrula.",
+  "Profil sayfasına git, 'Çıkış Yap' butonuna bas, onay dialog'unda 'Evet' seç, login sayfasına döndüğünü doğrula.",
+];
+
+/* ─── LLM adım dönüştürme — istemci tarafı mock ─────────────── */
+function mockLLMStepper(prompt: string, platform: Platform): AppiumAction[] {
+  const steps: AppiumAction[] = [{ action: "launch" }];
+  const lower = prompt.toLowerCase();
+  // Basit kural tabanlı mock — gerçek LLM çağrısına ikame
+  if (lower.includes("giriş yap") || lower.includes("login")) {
+    steps.push(
+      { action: "find", by: "accessibilityId", value: "login_button", timeout: 5000 },
+      { action: "tap" },
+    );
+  }
+  if (lower.includes("email")) {
+    const m = prompt.match(/[\w.+-]+@[\w-]+\.[\w.-]+/);
+    steps.push(
+      { action: "find", by: "accessibilityId", value: "email_input" },
+      { action: "sendKeys", text: m?.[0] ?? "test@example.com" },
+    );
+  }
+  if (lower.includes("şifre") || lower.includes("password")) {
+    steps.push(
+      { action: "find", by: "accessibilityId", value: "password_input" },
+      { action: "sendKeys", text: "Test123!" },
+    );
+  }
+  if (lower.includes("devam") || lower.includes("gönder") || lower.includes("submit")) {
+    steps.push(
+      { action: "find", by: "accessibilityId", value: "submit_button" },
+      { action: "tap" },
+    );
+  }
+  if (lower.includes("onboarding") || lower.includes("dil")) {
+    steps.push(
+      { action: "find", by: platform === "ios" ? "predicate" : "accessibilityId", value: "onboarding_skip" },
+      { action: "tap" },
+      { action: "wait", ms: 500 },
+      { action: "find", by: "accessibilityId", value: "lang_tr" },
+      { action: "tap" },
+    );
+  }
+  if (lower.includes("ara") || lower.includes("arama") || lower.includes("search")) {
+    const q = prompt.match(/'([^']+)'/)?.[1] ?? "kahve";
+    steps.push(
+      { action: "find", by: "accessibilityId", value: "search_input" },
+      { action: "sendKeys", text: q },
+    );
+  }
+  if (lower.includes("sepet")) {
+    steps.push(
+      { action: "find", by: "accessibilityId", value: "add_to_cart" },
+      { action: "tap" },
+      { action: "verifyVisible", by: "accessibilityId", value: "cart_badge_1", timeout: 3000 },
+    );
+  }
+  if (lower.includes("çıkış")) {
+    steps.push(
+      { action: "find", by: "accessibilityId", value: "profile_tab" },
+      { action: "tap" },
+      { action: "find", by: "accessibilityId", value: "logout_button" },
+      { action: "tap" },
+      { action: "find", by: "accessibilityId", value: "confirm_yes" },
+      { action: "tap" },
+      { action: "verifyVisible", by: "accessibilityId", value: "login_screen", timeout: 5000 },
+    );
+  }
+  if (lower.includes("ana sayfa") || lower.includes("doğrula")) {
+    steps.push({ action: "verifyVisible", by: "accessibilityId", value: "home_screen", timeout: 8000 });
+  }
+  // Eğer kurallar hiç eşleşmediyse, makul bir fallback
+  if (steps.length === 1) {
+    steps.push(
+      { action: "wait", ms: 1000 },
+      { action: "verifyVisible", by: "accessibilityId", value: "app_root", timeout: 5000 },
+    );
+  }
+  return steps;
+}
+
+/* ─── Yardımcılar ───────────────────────────────────────────── */
+const rnd = (min: number, max: number) => Math.random() * (max - min) + min;
+const rndInt = (min: number, max: number) => Math.floor(rnd(min, max));
+const fmtMs = (ms: number) => (ms < 1000 ? `${ms}ms` : `${(ms / 1000).toFixed(1)}s`);
+
+function statusPill(s: DeviceStatus) {
+  const map: Record<DeviceStatus, string> = {
+    idle:    "bg-slate-500/15 text-slate-300 border-slate-500/30",
+    running: "bg-blue-500/15 text-blue-300 border-blue-500/30 animate-pulse",
+    booting: "bg-amber-500/15 text-amber-300 border-amber-500/30",
+    offline: "bg-slate-700/40 text-slate-500 border-slate-600/40",
+    error:   "bg-red-500/15 text-red-300 border-red-500/30",
+  };
+  const label: Record<DeviceStatus, string> = {
+    idle: "hazır", running: "çalışıyor", booting: "açılıyor", offline: "kapalı", error: "hata",
+  };
+  return <span className={`rounded-full border px-2 py-0.5 text-[10px] font-medium ${map[s]}`}>{label[s]}</span>;
+}
+
+function platformBadge(p: Platform, os: string, kind: DeviceKind) {
+  const color = p === "ios" ? "text-slate-200" : "text-emerald-300";
+  const icon  = p === "ios" ? "" : "🤖";
+  const kindLabel = kind === "emulator" ? "emu" : kind === "simulator" ? "sim" : "fiz";
+  return (
+    <span className={`inline-flex items-center gap-1 text-[11px] ${color}`}>
+      <span className="text-sm leading-none">{icon}</span>
+      <span className="font-medium">{p === "ios" ? "iOS" : "Android"} {os}</span>
+      <span className="rounded bg-slate-800 px-1 text-[9px] uppercase tracking-wide text-slate-400">{kindLabel}</span>
+    </span>
+  );
+}
+
+/* ─── Backend ↔ UI tip adaptörü ────────────────────────────── */
+type BackendDevice = {
+  id: string;
+  name: string;
+  platform: Platform;
+  os_version: string;
+  profile: string;
+  kind: DeviceKind;
+  status: DeviceStatus;
+  battery: number;
+  cpu_pct: number;
+  ram_pct: number;
+  current_step?: string | null;
+  steps_done: number;
+  steps_total: number;
+  heal_streak: number;
+  appium_url: string;
+};
+
+function fromBackendDevice(d: BackendDevice): Device {
+  const portMatch = d.appium_url?.match(/:(\d+)/);
+  return {
+    id: d.id,
+    name: d.name,
+    platform: d.platform,
+    osVersion: d.os_version,
+    profile: d.profile,
+    kind: d.kind,
+    status: d.status,
+    battery: d.battery,
+    cpuPct: d.cpu_pct,
+    ramPct: d.ram_pct,
+    appiumPort: portMatch ? Number(portMatch[1]) : 4723,
+    currentStep: d.current_step ?? undefined,
+    stepsDone: d.steps_done,
+    stepsTotal: d.steps_total,
+    healStreak: d.heal_streak,
+  };
+}
+
+type BackendStepResp = {
+  steps: AppiumAction[];
+  model: string;
+  fallback_used: boolean;
+};
+
+type SeedScenario = {
+  id: string;
+  title: string;
+  category: string;
+  difficulty: "kolay" | "orta" | "zor";
+  platforms: string[];
+  description: string;
+  prompt: string;
+  expected_steps: number;
+  tags: string[];
+};
+
+/* ═══════════════════════════════════════════════════════════════ */
 export default function MobilOtomasyonPage() {
   const [devices, setDevices] = useState<Device[]>(INITIAL_DEVICES);
   const [sessions, setSessions] = useState<Session[]>([]);
@@ -414,49 +654,7 @@ export default function MobilOtomasyonPage() {
 
       {/* Rapor paneli (in-UI özet) */}
       {showReportPanel && (
-        <section className="rounded-lg border border-blue-500/30 bg-blue-500/5 p-5 space-y-3">
-          <div className="flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-blue-300">Araştırma Raporu — Özet</h2>
-            <button type="button" onClick={() => setShowReportPanel(false)} className="text-xs text-slate-400 hover:text-white">✕ Kapat</button>
-          </div>
-          <p className="text-xs text-slate-300 leading-relaxed">
-            Neurex QA için <b>Appium 2.x + LLM</b> üçlü katmanlı mimari önerilir: (1) NL→Appium stepper, (2) self-healing
-            locator, (3) multimodal görsel doğrulayıcı. Şu an 10 sanal cihaz (6 Android AVD, 4 iOS Sim);
-            fiziksel geçiş için Mac Mini M2 + USB-Hub15 + 10 telefon (~464K ₺ CAPEX).
-            Rakiplerden (BrowserStack, Kobiton, Sofy) farkınız: <b>on-prem + KVKK + Türkçe + sentetik veri entegre</b>.
-          </p>
-          <div className="flex flex-wrap gap-2 pt-1">
-            {[
-              ["Mimari", "Appium 2 + Device Broker + LLM Gateway"],
-              ["LLM 1", "Senaryo Yazıcı (NL→Gherkin→Appium)"],
-              ["LLM 2", "Self-Healing Locator"],
-              ["LLM 3", "Görsel Doğrulayıcı (GPT-4o/Gemini)"],
-              ["Faz 1", "4 hafta — 10 sanal cihaz MVP"],
-              ["Faz 3", "6 hafta — 10 fiziksel cihaz"],
-              ["Maliyet/1K test", "~$10 (Gemini Flash)"],
-            ].map(([k, v]) => (
-              <div key={k} className="rounded border border-slate-800 bg-slate-950/40 px-3 py-1.5">
-                <span className="block text-[10px] uppercase tracking-wide text-slate-500">{k}</span>
-                <span className="block text-[11px] text-slate-200">{v}</span>
-              </div>
-            ))}
-          </div>
-          <div className="flex items-center gap-4 pt-2 border-t border-slate-800/50">
-            <a
-              href="/docs/mobil-otomasyon-rapor"
-              className="text-xs text-blue-400 hover:underline"
-              onClick={(e) => {
-                e.preventDefault();
-                window.open("/docs/MOBIL_OTOMASYON_ARASTIRMA_RAPORU.md", "_blank");
-              }}
-            >
-              📖 Tam Raporu Aç (18 bölüm, ~9K kelime)
-            </a>
-            <span className="text-[11px] text-slate-500">
-              • Dosya: <code className="font-mono">docs/MOBIL_OTOMASYON_ARASTIRMA_RAPORU.md</code>
-            </span>
-          </div>
-        </section>
+        <ResearchReportPanel onClose={() => setShowReportPanel(false)} />
       )}
 
       {/* ── Stats row ── */}
@@ -479,478 +677,85 @@ export default function MobilOtomasyonPage() {
       {/* ═══════════════════════════════════════════════ */}
       {/* LLM senaryo üretici                             */}
       {/* ═══════════════════════════════════════════════ */}
-      <section className="rounded-lg border border-slate-800 overflow-hidden">
-        <div className="border-b border-slate-800 bg-slate-900/40 px-4 py-3 flex items-center justify-between">
-          <div>
-            <h2 className="text-sm font-semibold">🧠 LLM Senaryo Üretici</h2>
-            <p className="text-xs text-slate-400 mt-0.5">
-              Doğal dil → Gherkin → Appium aksiyonları. AI Gateway üzerinden GPT-4o / Gemini Flash.
-            </p>
-          </div>
-          <div className="flex items-center gap-1">
-            {(["both", "android", "ios"] as const).map((p) => (
-              <button
-                key={p}
-                type="button"
-                onClick={() => setTargetPlatform(p)}
-                className={`rounded px-2.5 py-1 text-[11px] font-medium border transition-colors
-                  ${targetPlatform === p
-                    ? "border-blue-500/60 bg-blue-500/10 text-blue-300"
-                    : "border-slate-800 text-slate-400 hover:border-slate-600"}`}
-              >
-                {p === "both" ? "Tümü" : p === "ios" ? "iOS" : "Android"}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="p-4 grid gap-4 lg:grid-cols-[1fr_360px]">
-          {/* Prompt alanı */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-between gap-2">
-              <label className="text-xs text-slate-400">Senaryo Adı</label>
-              <div className="flex gap-1.5 flex-wrap">
-                {SAMPLE_PROMPTS.map((s, i) => (
-                  <button
-                    key={i}
-                    type="button"
-                    onClick={() => { setPrompt(s); setScenarioName(["Login", "Onboarding", "Arama+Sepet", "Çıkış"][i]); }}
-                    className="rounded border border-slate-800 px-2 py-0.5 text-[10px] text-slate-400 hover:border-blue-500/40 hover:text-blue-300"
-                  >
-                    örnek {i + 1}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <Input value={scenarioName} onChange={(e) => setScenarioName(e.target.value)} placeholder="Senaryo adı" />
-            <textarea
-              rows={5}
-              value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
-              placeholder="Örn: Uygulamayı aç, giriş yap butonuna bas, email alanına test@bgts.ai yaz…"
-              className="w-full rounded border border-slate-800 bg-slate-900 px-3 py-2 text-sm resize-none focus:outline-none focus:ring-1 focus:ring-blue-500"
-            />
-            <div className="flex flex-wrap items-center gap-4">
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-slate-400">Paralel:</span>
-                <input
-                  type="number" min={1} max={10} value={parallel}
-                  onChange={(e) => setParallel(Math.max(1, Math.min(10, Number(e.target.value))))}
-                  className="h-8 w-16 rounded border border-slate-800 bg-slate-900 px-2 text-xs"
-                />
-              </div>
-              <div className="flex items-center gap-2 min-w-[180px]">
-                <span className="text-xs text-slate-400">Başarı %{passRate}</span>
-                <input type="range" min={30} max={100} value={passRate} onChange={(e) => setPassRate(Number(e.target.value))} className="flex-1 accent-blue-500" />
-              </div>
-              <div className="flex items-center gap-2 min-w-[180px]">
-                <span className="text-xs text-slate-400">Heal %{healRate}</span>
-                <input type="range" min={0} max={80} value={healRate} onChange={(e) => setHealRate(Number(e.target.value))} className="flex-1 accent-amber-500" />
-              </div>
-              <div className="flex gap-2 ml-auto">
-                <Button type="button" variant="secondary" onClick={handleGenerate}>✨ Adımları Üret</Button>
-                <Button type="button" onClick={handleRunSuite}>🚀 Paralel Koş</Button>
-              </div>
-            </div>
-          </div>
-
-          {/* Üretilen adımlar */}
-          <div className="rounded-lg border border-slate-800 bg-slate-950/50 p-3 max-h-[340px] overflow-y-auto">
-            <p className="text-[11px] uppercase tracking-wide text-slate-500 mb-2">Üretilen Appium Adımları</p>
-            {!generatedSteps ? (
-              <p className="text-xs text-slate-500 italic">Henüz üretilmedi — "Adımları Üret"e basın.</p>
-            ) : (
-              <ol className="space-y-1">
-                {generatedSteps.map((s, i) => (
-                  <li key={i} className="text-[11px] font-mono flex gap-2">
-                    <span className="text-slate-600">{String(i + 1).padStart(2, "0")}</span>
-                    <span className="text-blue-300">{s.action}</span>
-                    {s.by && <span className="text-slate-500">by={s.by}</span>}
-                    {s.value && <span className="text-emerald-300 truncate">"{s.value}"</span>}
-                    {s.text && <span className="text-amber-300 truncate">"{s.text}"</span>}
-                    {s.ms && <span className="text-slate-500">{s.ms}ms</span>}
-                  </li>
-                ))}
-              </ol>
-            )}
-          </div>
-        </div>
-      </section>
+      <LLMScenarioGenerator
+        prompt={prompt}
+        onPromptChange={setPrompt}
+        scenarioName={scenarioName}
+        onScenarioNameChange={setScenarioName}
+        targetPlatform={targetPlatform}
+        onTargetPlatformChange={setTargetPlatform}
+        parallel={parallel}
+        onParallelChange={setParallel}
+        passRate={passRate}
+        onPassRateChange={setPassRate}
+        healRate={healRate}
+        onHealRateChange={setHealRate}
+        generatedSteps={generatedSteps}
+        onGenerate={handleGenerate}
+        onRunSuite={handleRunSuite}
+      />
 
       {/* ═══════════════════════════════════════════════ */}
       {/* Seed Senaryo Galerisi                           */}
       {/* ═══════════════════════════════════════════════ */}
-      {seedScenarios.length > 0 && (
-        <section className="rounded-lg border border-slate-800 overflow-hidden">
-          <div className="border-b border-slate-800 bg-slate-900/40 px-4 py-3 flex items-center justify-between flex-wrap gap-2">
-            <div>
-              <h2 className="text-sm font-semibold">📚 Senaryo Galerisi</h2>
-              <p className="text-xs text-slate-400 mt-0.5">
-                Production-benzeri {seedScenarios.length} hazır senaryo — tıkla, prompt otomatik dolsun
-              </p>
-            </div>
-            <div className="flex gap-1 flex-wrap">
-              {["all", ...Array.from(new Set(seedScenarios.map((s) => s.category)))].map((cat) => (
-                <button
-                  key={cat}
-                  type="button"
-                  onClick={() => setSeedFilter(cat)}
-                  className={`rounded-full border px-2.5 py-0.5 text-[10px] font-medium transition-colors
-                    ${seedFilter === cat
-                      ? "border-blue-500/60 bg-blue-500/10 text-blue-300"
-                      : "border-slate-800 text-slate-400 hover:border-slate-600"}`}
-                >
-                  {cat === "all" ? "Tümü" : cat}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div className="p-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-            {seedScenarios
-              .filter((s) => seedFilter === "all" || s.category === seedFilter)
-              .map((s) => {
-                const diffColor = s.difficulty === "kolay"
-                  ? "text-emerald-300 border-emerald-500/30 bg-emerald-500/5"
-                  : s.difficulty === "orta"
-                    ? "text-amber-300 border-amber-500/30 bg-amber-500/5"
-                    : "text-red-300 border-red-500/30 bg-red-500/5";
-                return (
-                  <button
-                    key={s.id}
-                    type="button"
-                    onClick={() => {
-                      setPrompt(s.prompt);
-                      setScenarioName(s.title);
-                      setGeneratedSteps(null);
-                      pushLog({ level: "info", message: `📚 Seed yüklendi: "${s.title}"` });
-                      document.querySelector('[data-testid="mobil-otomasyon-page"] textarea')
-                        ?.scrollIntoView({ behavior: "smooth", block: "center" });
-                    }}
-                    className="group rounded-lg border border-slate-800 bg-slate-900/20 hover:border-blue-500/40 hover:bg-blue-500/5 p-3 text-left transition-colors space-y-1.5"
-                  >
-                    <div className="flex items-start justify-between gap-1">
-                      <p className="text-[12px] font-semibold truncate group-hover:text-blue-300">{s.title}</p>
-                      <span className={`shrink-0 rounded border px-1.5 text-[9px] font-medium ${diffColor}`}>
-                        {s.difficulty}
-                      </span>
-                    </div>
-                    <p className="text-[10px] text-slate-400 leading-snug line-clamp-2">{s.description}</p>
-                    <div className="flex items-center gap-1 flex-wrap pt-1">
-                      <span className="rounded bg-slate-800/60 px-1.5 py-0.5 text-[9px] text-slate-400">{s.category}</span>
-                      {s.platforms.map((p) => (
-                        <span key={p} className="text-[10px]">{p === "ios" ? "" : "🤖"}</span>
-                      ))}
-                      <span className="ml-auto text-[9px] text-slate-500">~{s.expected_steps} adım</span>
-                    </div>
-                  </button>
-                );
-              })}
-          </div>
-        </section>
-      )}
+      <ScenarioTemplateGallery
+        seedScenarios={seedScenarios}
+        seedFilter={seedFilter}
+        onFilterChange={setSeedFilter}
+        onSelectScenario={(s) => {
+          setPrompt(s.prompt);
+          setScenarioName(s.title);
+          setGeneratedSteps(null);
+          pushLog({ level: "info", message: `📚 Seed yüklendi: "${s.title}"` });
+          document.querySelector('[data-testid="mobil-otomasyon-page"] textarea')
+            ?.scrollIntoView({ behavior: "smooth", block: "center" });
+        }}
+      />
 
       {/* ═══════════════════════════════════════════════ */}
       {/* Device Farm                                     */}
       {/* ═══════════════════════════════════════════════ */}
-      <section className="rounded-lg border border-slate-800 overflow-hidden">
-        <div className="border-b border-slate-800 bg-slate-900/40 px-4 py-3">
-          <h2 className="text-sm font-semibold">🖥️ Cihaz Farm'ı (10 sanal)</h2>
-          <p className="text-xs text-slate-400 mt-0.5">
-            Appium port eşlemesi 4723–4728 (Android), 4730–4733 (iOS). Canlı CPU/RAM metriği her 1.5 sn güncellenir.
-          </p>
-        </div>
-        <div className="p-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-          {devices.map((d) => {
-            const progress = d.stepsTotal ? Math.round((d.stepsDone / d.stepsTotal) * 100) : 0;
-            return (
-              <div
-                key={d.id}
-                onClick={() => setActiveDeviceId(d.id === activeDeviceId ? null : d.id)}
-                className={`cursor-pointer rounded-lg border p-3 space-y-2 transition-colors
-                  ${activeDeviceId === d.id
-                    ? "border-blue-500/60 bg-blue-500/5"
-                    : "border-slate-800 bg-slate-900/20 hover:border-slate-700"}`}
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <p className="text-xs font-semibold truncate">{d.name}</p>
-                    {platformBadge(d.platform, d.osVersion, d.kind)}
-                  </div>
-                  {statusPill(d.status)}
-                </div>
-
-                {/* Mini "phone frame" */}
-                <div className={`relative mx-auto aspect-[9/19] w-[70px] rounded-[10px] border border-slate-700
-                                  ${d.status === "offline" ? "bg-slate-900" : "bg-gradient-to-b from-slate-800 to-slate-950"}
-                                  flex items-center justify-center overflow-hidden`}>
-                  <div className="absolute left-1/2 top-0.5 h-1 w-5 -translate-x-1/2 rounded-full bg-slate-700" />
-                  {d.status === "running" && (
-                    <div className="absolute inset-0 flex items-end justify-center pb-2">
-                      <div className="h-0.5 w-[80%] bg-slate-800 rounded overflow-hidden">
-                        <div className="h-full bg-blue-500 transition-all" style={{ width: `${progress}%` }} />
-                      </div>
-                    </div>
-                  )}
-                  {d.status === "booting" && (
-                    <div className="text-[8px] text-amber-400 animate-pulse">boot…</div>
-                  )}
-                  {d.status === "error" && <div className="text-[8px] text-red-400">err</div>}
-                  {d.status === "offline" && <div className="text-[8px] text-slate-600">off</div>}
-                  {d.status === "idle" && <div className="text-[8px] text-slate-500">idle</div>}
-                </div>
-
-                {/* Metrikler */}
-                <div className="grid grid-cols-3 gap-1 text-[10px]">
-                  <div className="rounded bg-slate-950/60 px-1.5 py-1 text-center">
-                    <p className="text-slate-500">CPU</p>
-                    <p className="font-mono text-slate-300">{d.cpuPct}%</p>
-                  </div>
-                  <div className="rounded bg-slate-950/60 px-1.5 py-1 text-center">
-                    <p className="text-slate-500">RAM</p>
-                    <p className="font-mono text-slate-300">{d.ramPct}%</p>
-                  </div>
-                  <div className="rounded bg-slate-950/60 px-1.5 py-1 text-center">
-                    <p className="text-slate-500">🔋</p>
-                    <p className="font-mono text-slate-300">{d.battery}%</p>
-                  </div>
-                </div>
-
-                {/* Durum satırı */}
-                <div className="flex items-center justify-between text-[10px]">
-                  <span className="text-slate-500">:{d.appiumPort}</span>
-                  {d.status === "running" ? (
-                    <span className="text-blue-300 truncate">{d.stepsDone}/{d.stepsTotal} · {d.currentStep}</span>
-                  ) : d.healStreak > 0 ? (
-                    <span className="text-amber-300">🔧 {d.healStreak} heal</span>
-                  ) : (
-                    <span className="text-slate-600">—</span>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Seçili cihaz detay paneli */}
-        {activeDevice && (
-          <div className="border-t border-slate-800 bg-slate-950/40 p-4 grid gap-4 md:grid-cols-[1fr_auto]">
-            <div>
-              <div className="flex items-center gap-3 mb-2">
-                <p className="text-sm font-semibold">{activeDevice.name}</p>
-                {statusPill(activeDevice.status)}
-                {platformBadge(activeDevice.platform, activeDevice.osVersion, activeDevice.kind)}
-              </div>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px]">
-                <div>
-                  <span className="text-slate-500">Profile:</span>{" "}
-                  <span className="font-mono text-slate-300">{activeDevice.profile}</span>
-                </div>
-                <div>
-                  <span className="text-slate-500">Kind:</span>{" "}
-                  <span className="font-mono text-slate-300">{activeDevice.kind}</span>
-                </div>
-                <div>
-                  <span className="text-slate-500">Appium URL:</span>{" "}
-                  <span className="font-mono text-slate-300">http://127.0.0.1:{activeDevice.appiumPort}</span>
-                </div>
-                <div>
-                  <span className="text-slate-500">ID:</span>{" "}
-                  <span className="font-mono text-slate-300">{activeDevice.id}</span>
-                </div>
-              </div>
-            </div>
-            <div className="flex gap-2 flex-wrap">
-              <Button type="button" variant="secondary" onClick={() => setShowDeviceScreen(true)}>
-                📱 Ekranı Aç
-              </Button>
-              <Button type="button" variant="secondary" onClick={() => rebootDevice(activeDevice.id)}>
-                🔄 Reboot
-              </Button>
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={() => {
-                  pushLog({ level: "info", deviceId: activeDevice.id, message: `Screenshot alındı (mock)` });
-                }}
-              >
-                📸 Screenshot
-              </Button>
-              <Button
-                type="button"
-                onClick={() => {
-                  const steps = generatedSteps ?? mockLLMStepper(prompt, activeDevice.platform);
-                  const sessionId = `s_${Date.now()}_${activeDevice.id}`;
-                  setSessions((p) => [
-                    { id: sessionId, deviceId: activeDevice.id, scenarioName, status: "running", startedAt: Date.now(), healed: 0 },
-                    ...p,
-                  ]);
-                  setDevices((p) => p.map((x) => x.id === activeDevice.id
-                    ? { ...x, status: "running", stepsDone: 0, stepsTotal: steps.length, currentStep: steps[0].action }
-                    : x));
-                  pushLog({ level: "info", deviceId: activeDevice.id, sessionId, message: `[${activeDevice.name}] tek cihaz koşusu başladı` });
-                  void runSession(activeDevice, steps, sessionId);
-                }}
-              >
-                ▶️ Bu cihazda koş
-              </Button>
-            </div>
-          </div>
-        )}
-      </section>
+      <DeviceFarmGrid
+        devices={devices}
+        activeDeviceId={activeDeviceId}
+        onSelectDevice={(id) => setActiveDeviceId(id)}
+        onReboot={(id) => rebootDevice(id)}
+        onOpenScreen={() => setShowDeviceScreen(true)}
+        onScreenshot={() => {
+          if (activeDevice) {
+            pushLog({ level: "info", deviceId: activeDevice.id, message: `Screenshot alındı (mock)` });
+          }
+        }}
+        onRunDevice={() => {
+          if (!activeDevice) return;
+          const steps = generatedSteps ?? mockLLMStepper(prompt, activeDevice.platform);
+          const sessionId = `s_${Date.now()}_${activeDevice.id}`;
+          setSessions((p) => [
+            { id: sessionId, deviceId: activeDevice.id, scenarioName, status: "running", startedAt: Date.now(), healed: 0 },
+            ...p,
+          ]);
+          setDevices((p) => p.map((x) => x.id === activeDevice.id
+            ? { ...x, status: "running", stepsDone: 0, stepsTotal: steps.length, currentStep: steps[0].action }
+            : x));
+          pushLog({ level: "info", deviceId: activeDevice.id, sessionId, message: `[${activeDevice.name}] tek cihaz koşusu başladı` });
+          void runSession(activeDevice, steps, sessionId);
+        }}
+      />
 
       {/* Mock Cihaz Ekranı Modal */}
       {showDeviceScreen && activeDevice && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4" onClick={() => setShowDeviceScreen(false)}>
-          <div className="flex max-h-full max-w-md flex-col overflow-hidden rounded-3xl border border-slate-700 bg-slate-950 shadow-2xl" onClick={(e) => e.stopPropagation()}>
-            {/* Header */}
-            <div className="flex items-center justify-between border-b border-slate-800 px-4 py-3">
-              <div>
-                <p className="text-sm font-semibold text-white">{activeDevice.name}</p>
-                <p className="text-[10px] text-slate-500">
-                  {activeDevice.platform === "ios" ? "iOS" : "Android"} {activeDevice.osVersion} · {activeDevice.profile} · :{activeDevice.appiumPort}
-                </p>
-              </div>
-              <button type="button" onClick={() => setShowDeviceScreen(false)} className="rounded-lg border border-slate-700 px-3 py-1 text-xs text-slate-300 hover:bg-slate-800">
-                ✕ Kapat
-              </button>
-            </div>
-
-            {/* Device Frame */}
-            <div className="flex-1 overflow-auto bg-slate-900/40 p-6">
-              <div className="relative mx-auto w-[280px]">
-                {/* Phone bezel */}
-                <div className="rounded-[40px] border-4 border-slate-800 bg-slate-950 p-2 shadow-[0_0_60px_rgba(124,58,237,0.15)]">
-                  {/* Notch */}
-                  <div className="relative mx-auto h-5 w-24 -translate-y-0.5 rounded-b-2xl bg-slate-950 z-10" />
-                  {/* Screen */}
-                  <div className="relative aspect-[9/19.5] overflow-hidden rounded-[28px] bg-gradient-to-b from-slate-900 to-slate-950">
-                    {/* Status bar */}
-                    <div className="flex items-center justify-between bg-slate-900/80 px-4 py-2 text-[10px] text-slate-300">
-                      <span>{new Date().toTimeString().slice(0, 5)}</span>
-                      <span className="flex items-center gap-1">📶 📶 🔋{activeDevice.battery}%</span>
-                    </div>
-                    {/* Mock App Content */}
-                    <div className="flex h-full flex-col items-center justify-center px-4 text-center text-white">
-                      <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-violet-500/20 text-3xl">
-                        📱
-                      </div>
-                      <p className="text-sm font-semibold">{activeDevice.status === "running" ? "Test Koşuyor" : "Cihaz Hazır"}</p>
-                      <p className="mt-1 text-[10px] text-slate-400">
-                        {activeDevice.status === "running"
-                          ? `${activeDevice.stepsDone}/${activeDevice.stepsTotal} adım`
-                          : "Otomasyon başlatın"}
-                      </p>
-                      {activeDevice.status === "running" && activeDevice.currentStep && (
-                        <p className="mt-3 rounded-lg bg-slate-800/60 px-3 py-1.5 text-[10px] font-mono text-violet-200">
-                          {activeDevice.currentStep}
-                        </p>
-                      )}
-                      <div className="mt-6 grid grid-cols-3 gap-2 w-full max-w-[200px]">
-                        {["💬", "📷", "🎮", "🛒", "📧", "⚙️"].map((emoji, i) => (
-                          <div key={i} className="aspect-square flex items-center justify-center rounded-xl bg-slate-800/50 text-2xl">
-                            {emoji}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Home indicator */}
-                <div className="mx-auto mt-3 h-1 w-24 rounded-full bg-slate-700" />
-              </div>
-            </div>
-
-            {/* Footer info */}
-            <div className="border-t border-slate-800 bg-slate-900/40 px-4 py-3">
-              <p className="text-[11px] text-amber-200/80">
-                ⚠️ Bu mock bir görünümdür. Gerçek ekran mirroring için Appium Inspector veya scrcpy kullanın.
-              </p>
-              <p className="mt-1 text-[10px] text-slate-500 font-mono">
-                Appium: http://127.0.0.1:{activeDevice.appiumPort}
-              </p>
-            </div>
-          </div>
-        </div>
+        <DeviceScreenModal device={activeDevice} onClose={() => setShowDeviceScreen(false)} />
       )}
 
       {/* ═══════════════════════════════════════════════ */}
       {/* Sessions + Live Logs (2 kolon)                  */}
       {/* ═══════════════════════════════════════════════ */}
-      <div className="grid gap-4 lg:grid-cols-2">
-        <section className="rounded-lg border border-slate-800 overflow-hidden">
-          <div className="border-b border-slate-800 bg-slate-900/40 px-4 py-3">
-            <h2 className="text-sm font-semibold">📊 Koşular</h2>
-            <p className="text-xs text-slate-400 mt-0.5">Son {sessions.length} session</p>
-          </div>
-          <div className="max-h-[380px] overflow-y-auto divide-y divide-slate-800/60">
-            {sessions.length === 0 ? (
-              <div className="p-6 text-center text-xs text-slate-500">Henüz koşu yok</div>
-            ) : sessions.map((s) => {
-              const d = devices.find((x) => x.id === s.deviceId);
-              const dur = s.finishedAt ? s.finishedAt - s.startedAt : Date.now() - s.startedAt;
-              const color = s.status === "passed" ? "text-emerald-400"
-                         : s.status === "failed" ? "text-red-400"
-                         : "text-blue-400";
-              return (
-                <div key={s.id} className="flex items-center gap-3 px-4 py-2 text-xs">
-                  <span className={`w-14 font-semibold uppercase ${color}`}>{s.status}</span>
-                  <span className="flex-1 truncate">
-                    <span className="font-medium">{s.scenarioName}</span>
-                    {" · "}
-                    <span className="text-slate-400">{d?.name ?? s.deviceId}</span>
-                  </span>
-                  {s.healed > 0 && <span className="text-amber-400">🔧{s.healed}</span>}
-                  <span className="text-slate-500 font-mono">{fmtMs(dur)}</span>
-                </div>
-              );
-            })}
-          </div>
-        </section>
-
-        <section className="rounded-lg border border-slate-800 overflow-hidden">
-          <div className="border-b border-slate-800 bg-slate-900/40 px-4 py-3 flex items-center justify-between">
-            <div>
-              <h2 className="text-sm font-semibold">📜 Canlı Loglar</h2>
-              <p className="text-xs text-slate-400 mt-0.5">Son {logs.length} olay</p>
-            </div>
-            <button
-              type="button"
-              onClick={() => setLogs([])}
-              className="text-[11px] text-slate-400 hover:text-white"
-            >
-              Temizle
-            </button>
-          </div>
-          <div className="max-h-[380px] overflow-y-auto bg-slate-950/60">
-            {logs.length === 0 ? (
-              <div className="p-6 text-center text-xs text-slate-500">Henüz log yok</div>
-            ) : (
-              <ul className="divide-y divide-slate-800/40">
-                {logs.map((l) => {
-                  const color = l.level === "error" ? "text-red-400"
-                              : l.level === "warn"  ? "text-amber-400"
-                              : l.level === "llm"   ? "text-violet-300"
-                              : l.level === "heal"  ? "text-amber-300"
-                              : "text-slate-300";
-                  const icon  = l.level === "error" ? "✕"
-                              : l.level === "warn"  ? "⚠"
-                              : l.level === "llm"   ? "🧠"
-                              : l.level === "heal"  ? "🔧"
-                              : "›";
-                  return (
-                    <li key={l.id} className="flex gap-2 px-3 py-1.5 text-[11px] font-mono">
-                      <span className="text-slate-600 shrink-0">{new Date(l.ts).toLocaleTimeString("tr-TR")}</span>
-                      <span className={`${color} shrink-0 w-3`}>{icon}</span>
-                      <span className={`${color} truncate`}>{l.message}</span>
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
-          </div>
-        </section>
-      </div>
+      <SessionLogPanel
+        sessions={sessions}
+        logs={logs}
+        devices={devices}
+        onClearLogs={() => setLogs([])}
+      />
 
       {/* ═══════════════════════════════════════════════ */}
       {/* Mimari (görsel)                                 */}
@@ -1045,3 +850,108 @@ export default function MobilOtomasyonPage() {
 /* ═══════════════════════════════════════════════════════════════
  * PhysicalEnrollForm
  * ─────────────────────────────────────────────────────────────── */
+function PhysicalEnrollForm({
+  onSubmitted,
+  backendMode,
+}: {
+  onSubmitted: (name: string) => void;
+  backendMode: "probing" | "connected" | "mock";
+}) {
+  const [name, setName] = useState("");
+  const [platform, setPlatform] = useState<Platform>("android");
+  const [udid, setUdid] = useState("");
+  const [osVersion, setOsVersion] = useState("14");
+  const [appiumUrl, setAppiumUrl] = useState("http://lab-node-1.bgts.internal:4750");
+  const [submitting, setSubmitting] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  async function submit() {
+    if (!name.trim() || !udid.trim()) {
+      setErr("Cihaz adı ve UDID/Serial zorunlu");
+      return;
+    }
+    setErr(null);
+    setSubmitting(true);
+    try {
+      if (backendMode === "connected") {
+        await apiFetch("/api/v1/mobile/enroll-physical", {
+          method: "POST",
+          json: {
+            name: name.trim(),
+            platform,
+            os_version: osVersion.trim(),
+            udid: udid.trim(),
+            appium_url: appiumUrl.trim(),
+            profile: name.toLowerCase().replace(/\s+/g, "_"),
+          },
+        });
+      } else {
+        // Mock mod — 600ms bekle
+        await new Promise((r) => setTimeout(r, 600));
+      }
+      onSubmitted(name);
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "Kayıt başarısız");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div>
+          <label className="block text-[11px] text-slate-400 mb-1">Cihaz Adı</label>
+          <Input placeholder="Samsung S24 - Lab-01" value={name} onChange={(e) => setName(e.target.value)} />
+        </div>
+        <div>
+          <label className="block text-[11px] text-slate-400 mb-1">Platform</label>
+          <select
+            value={platform}
+            onChange={(e) => setPlatform(e.target.value as Platform)}
+            className="h-10 w-full rounded border border-slate-800 bg-slate-900 px-3 text-sm"
+          >
+            <option value="android">Android</option>
+            <option value="ios">iOS</option>
+          </select>
+        </div>
+        <div>
+          <label className="block text-[11px] text-slate-400 mb-1">UDID / Serial</label>
+          <Input placeholder="R58M3..." value={udid} onChange={(e) => setUdid(e.target.value)} />
+        </div>
+        <div>
+          <label className="block text-[11px] text-slate-400 mb-1">OS Version</label>
+          <Input placeholder="14" value={osVersion} onChange={(e) => setOsVersion(e.target.value)} />
+        </div>
+        <div className="sm:col-span-2">
+          <label className="block text-[11px] text-slate-400 mb-1">Appium Server URL</label>
+          <Input placeholder="http://lab-node-1.bgts.internal:4750" value={appiumUrl} onChange={(e) => setAppiumUrl(e.target.value)} />
+        </div>
+      </div>
+
+      <div className="rounded-md border border-slate-800 bg-slate-900/40 p-3 space-y-1.5">
+        <p className="text-[11px] font-semibold text-slate-300">Bir sonraki adımlar</p>
+        <ol className="list-decimal list-inside text-[11px] text-slate-400 space-y-0.5">
+          <li>Cihaz USB hub&apos;a takılı ve powered mı? (Cambrionix PowerPad veya muadili)</li>
+          <li>ADB/WDA handshake testi otomatik çalışacak.</li>
+          <li>MDM profili yüklenecek (Jamf iOS / Headwind Android).</li>
+          <li>Kiosk mode etkinleştirilecek — cihaz yalnız test için.</li>
+        </ol>
+      </div>
+
+      {err && <p className="text-xs text-red-400">{err}</p>}
+
+      <div className="flex items-center justify-end gap-2 pt-1">
+        <span className="text-[10px] text-slate-500 mr-auto">
+          {backendMode === "connected" ? "→ POST /api/v1/mobile/enroll-physical" : "Mock mod: yalnız UI'ya eklenir"}
+        </span>
+        <Button type="button" variant="secondary" onClick={() => onSubmitted("")} disabled={submitting}>
+          Vazgeç
+        </Button>
+        <Button type="button" onClick={submit} disabled={submitting}>
+          {submitting ? "Kaydediliyor…" : "Kaydet & Handshake Yap"}
+        </Button>
+      </div>
+    </>
+  );
+}

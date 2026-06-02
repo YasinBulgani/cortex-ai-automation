@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 
 import { useRouteParam } from "@/lib/use-route-param";
@@ -26,20 +27,19 @@ export default function ScenarioVersionsPage() {
   const projectId = useRouteParam("projectId");
   const scenarioId = useRouteParam("id");
 
-  const [versions, setVersions] = useState<Version[]>([]);
   const [selected, setSelected] = useState<[string | null, string | null]>([null, null]);
   const [diff, setDiff] = useState<DiffChange[] | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const load = useCallback(() => {
-    apiFetch<Version[]>(
+  const { data: versions = [] } = useQuery<Version[]>({
+    queryKey: ["scenarios", "versions", projectId, scenarioId],
+    queryFn: () => apiFetch<Version[]>(
       `/api/v1/tspm/projects/${projectId}/scenarios/${scenarioId}/versions`
-    ).then(setVersions).catch((err) => console.warn("[versions]:", err));
-  }, [projectId, scenarioId]);
-
-  useEffect(() => {
-    load();
-  }, [load]);
+    ),
+    enabled: !!projectId && !!scenarioId,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+  });
 
   function selectVersion(id: string) {
     setDiff(null);

@@ -18,6 +18,8 @@ try:
         _is_admin_user,
         PLAYWRIGHT_AVAILABLE,
     )
+    from app.deps import get_current_user
+    from app.infra.database import get_db
     _IMPORT_OK = True
 except ImportError:
     _IMPORT_OK = False
@@ -58,8 +60,18 @@ class TestIsAdminUser:
 # Router tests via TestClient
 # ---------------------------------------------------------------------------
 
-def _make_client() -> TestClient:
+def _make_client(mock_user=None) -> TestClient:
+    """Create a TestClient with optional auth dependency override.
+
+    get_db is always overridden because get_current_user depends on it —
+    without the override, FastAPI tries to connect to the real DB and returns 500.
+    """
+    from unittest.mock import MagicMock as _MM
     app = FastAPI()
+    mock_db = _MM()
+    app.dependency_overrides[get_db] = lambda: mock_db
+    if mock_user is not None:
+        app.dependency_overrides[get_current_user] = lambda: mock_user
     app.include_router(router)
     return TestClient(app, raise_server_exceptions=False)
 
@@ -82,12 +94,11 @@ def _mock_session_info(session_id: str = "sess-001") -> dict:
 class TestSessionEndpoints:
     def test_create_session_without_playwright_returns_503(self):
         """When PLAYWRIGHT_AVAILABLE=False, POST /sessions must 503."""
-        client = _make_client()
         mock_user = MagicMock()
         mock_user.id = "user-1"
 
-        with patch("app.domains.playwright_mcp.router.get_current_user", return_value=mock_user), \
-             patch("app.domains.playwright_mcp.router.PLAYWRIGHT_AVAILABLE", False):
+        client = _make_client(mock_user=mock_user)
+        with patch("app.domains.playwright_mcp.router.PLAYWRIGHT_AVAILABLE", False):
             resp = client.post(
                 "/playwright-mcp/sessions",
                 json={"headless": True, "viewport_width": 1280, "viewport_height": 720},
@@ -96,29 +107,29 @@ class TestSessionEndpoints:
 
     def test_list_sessions_requires_auth(self):
         """GET /sessions without credentials must be rejected."""
+        # No mock_user override — auth should fail with 401/403/422
         client = _make_client()
         resp = client.get("/playwright-mcp/sessions")
         assert resp.status_code in {401, 403, 422, 503}
 
     def test_get_session_not_found_returns_404(self):
         """GET /sessions/{id} for unknown ID must 404."""
-        client = _make_client()
         mock_user = MagicMock()
         mock_user.id = "user-1"
         mock_user.roles = []
 
         mock_manager = MagicMock()
-        mock_manager.get_session = AsyncMock(side_effect=Exception("Session not found"))
+        # Router only catches KeyError → must use KeyError to get 404
+        mock_manager.get_session = AsyncMock(side_effect=KeyError("Session not found"))
 
-        with patch("app.domains.playwright_mcp.router.get_current_user", return_value=mock_user), \
-             patch("app.domains.playwright_mcp.router.PLAYWRIGHT_AVAILABLE", True), \
+        client = _make_client(mock_user=mock_user)
+        with patch("app.domains.playwright_mcp.router.PLAYWRIGHT_AVAILABLE", True), \
              patch("app.domains.playwright_mcp.router._get_manager", return_value=mock_manager):
             resp = client.get("/playwright-mcp/sessions/nonexistent-sess-id")
         assert resp.status_code in {401, 403, 404, 503}
 
     def test_get_session_found_returns_session_info(self):
         """GET /sessions/{id} for a known session returns session data."""
-        client = _make_client()
         mock_user = MagicMock()
         mock_user.id = "user-1"
         mock_user.roles = []
@@ -129,20 +140,22 @@ class TestSessionEndpoints:
         mock_manager = MagicMock()
         mock_manager.get_session = AsyncMock(return_value=session_data)
 
-        with patch("app.domains.playwright_mcp.router.get_current_user", return_value=mock_user), \
-             patch("app.domains.playwright_mcp.router.PLAYWRIGHT_AVAILABLE", True), \
+        client = _make_client(mock_user=mock_user)
+        with patch("app.domains.playwright_mcp.router.PLAYWRIGHT_AVAILABLE", True), \
              patch("app.domains.playwright_mcp.router._get_manager", return_value=mock_manager):
             resp = client.get("/playwright-mcp/sessions/sess-001")
         assert resp.status_code in {200, 401, 403}
 
     def test_delete_session_requires_auth(self):
         """DELETE /sessions/{id} without credentials must be rejected."""
+        # No mock_user override — auth should fail
         client = _make_client()
         resp = client.delete("/playwright-mcp/sessions/sess-001")
         assert resp.status_code in {401, 403, 503}
 
     def test_navigate_endpoint_requires_auth(self):
         """POST /sessions/{id}/navigate without credentials must be rejected."""
+        # No mock_user override — auth should fail
         client = _make_client()
         resp = client.post(
             "/playwright-mcp/sessions/sess-001/navigate",

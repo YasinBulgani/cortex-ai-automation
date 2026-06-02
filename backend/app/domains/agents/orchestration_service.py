@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import uuid
 
-from fastapi import BackgroundTasks, HTTPException, status
+from fastapi import BackgroundTasks
 from sqlalchemy.orm import Session
 
 from app.domains.agents.banking_orchestrator import banking_pipeline, run_banking_team
@@ -14,10 +14,7 @@ from app.domains.agents.orchestrator import Phase, pipeline, run_all_agents
 def start_all_agents_run(bg: BackgroundTasks, project_id: str | None = None) -> dict:
     """Start the lightweight multi-agent orchestrator."""
     if pipeline.running:
-        raise HTTPException(
-            status.HTTP_409_CONFLICT,
-            detail="Bir pipeline zaten çalışıyor. Bitmesini bekleyin.",
-        )
+        raise ValueError("Bir pipeline zaten çalışıyor. Bitmesini bekleyin.")
     pipeline.reset()
     run_id = uuid.uuid4().hex[:12]
     bg.add_task(run_all_agents, run_id, project_id)
@@ -42,7 +39,7 @@ def get_all_agents_logs(since: int = 0) -> dict:
 
 def cancel_all_agents_run() -> dict:
     if not pipeline.running:
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="Çalışan pipeline yok")
+        raise ValueError("Çalışan pipeline yok")
     pipeline.phase = Phase.FAILED
     pipeline.running = False
     pipeline.log("cancelled", "Orkestratör", "Pipeline kullanıcı tarafından iptal edildi", "warning")
@@ -57,10 +54,7 @@ def start_banking_team_run(
 ) -> dict:
     """Start the banking QA team pipeline."""
     if banking_pipeline.running:
-        raise HTTPException(
-            status.HTTP_409_CONFLICT,
-            detail="Banking pipeline zaten çalışıyor.",
-        )
+        raise ValueError("Banking pipeline zaten çalışıyor.")
     banking_pipeline.reset()
     run_id = uuid.uuid4().hex[:12]
     bg.add_task(run_banking_team, run_id, input_data, total_cycles)
@@ -91,15 +85,15 @@ def get_banking_pipeline_logs(since: int = 0) -> dict:
 
 def get_banking_pipeline_report() -> dict:
     if banking_pipeline.running:
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="Pipeline hâlâ çalışıyor.")
+        raise ValueError("Pipeline hâlâ çalışıyor.")
     if not banking_pipeline.final_report:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Henüz tamamlanmış rapor yok.")
+        raise KeyError("Henüz tamamlanmış rapor yok.")
     return banking_pipeline.final_report
 
 
 def cancel_banking_team_run() -> dict:
     if not banking_pipeline.running:
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="Çalışan pipeline yok.")
+        raise ValueError("Çalışan pipeline yok.")
 
     from app.domains.agents.banking_orchestrator import BankingPhase
 
@@ -112,7 +106,7 @@ def cancel_banking_team_run() -> dict:
 def trigger_banking_team_now(bg: BackgroundTasks, cycles: int = 2) -> dict:
     """Start the banking QA team with auto-discovered input."""
     if banking_pipeline.running:
-        raise HTTPException(status.HTTP_409_CONFLICT, detail="Zaten çalışıyor.")
+        raise ValueError("Zaten çalışıyor.")
 
     from app.domains.agents.banking_team.project_scanner import ProjectScannerAgent
 
@@ -220,10 +214,7 @@ def start_full_pipeline_run(
 
     active = get_active_pipeline()
     if active and active.state.running:
-        raise HTTPException(
-            status.HTTP_409_CONFLICT,
-            detail="Bir pipeline zaten çalışıyor. Bitmesini bekleyin veya iptal edin.",
-        )
+        raise ValueError("Bir pipeline zaten çalışıyor. Bitmesini bekleyin veya iptal edin.")
 
     config = PipelineConfig(
         project_name=project_name,
@@ -297,11 +288,11 @@ def get_full_pipeline_report() -> dict:
 
     active = get_active_pipeline()
     if not active:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Aktif pipeline yok")
+        raise KeyError("Aktif pipeline yok")
 
     state = active.state
     if state.running:
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="Pipeline hâlâ çalışıyor")
+        raise ValueError("Pipeline hâlâ çalışıyor")
 
     if state.phase == PipelinePhase.FAILED:
         return {
@@ -340,7 +331,7 @@ def cancel_full_pipeline_run() -> dict:
 
     active = get_active_pipeline()
     if not active or not active.state.running:
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="Çalışan pipeline yok")
+        raise ValueError("Çalışan pipeline yok")
 
     active.cancel()
     return {"message": "Pipeline iptal istendi", "run_id": active.state.run_id}

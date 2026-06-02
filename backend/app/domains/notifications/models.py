@@ -29,6 +29,14 @@ class NotificationPrefs(Base):
     notify_on_complete: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     notify_on_failure: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     slack_webhook_url: Mapped[Optional[str]] = mapped_column(Text, nullable=True, default=None)
+    # "instant" | "digest_daily" | "digest_weekly" | "off"
+    digest_mode: Mapped[str] = mapped_column(
+        String(32), nullable=False, default="instant", server_default="instant"
+    )
+    # comma-separated channels: "email,in_app,slack"
+    channels: Mapped[str] = mapped_column(
+        String(64), nullable=False, default="email,in_app", server_default="email,in_app"
+    )
     updated_at: Mapped[Optional[datetime]] = mapped_column(
         DateTime(timezone=True), default=_utcnow, onupdate=_utcnow, nullable=True
     )

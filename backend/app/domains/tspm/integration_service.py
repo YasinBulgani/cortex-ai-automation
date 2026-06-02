@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import httpx
-from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -98,7 +97,7 @@ def test_integration_notification(
     config = integration.config or {}
     webhook_url = config.get("webhook_url", "")
     if not webhook_url:
-        raise HTTPException(400, "Bu entegrasyon için webhook_url yapılandırılmamış")
+        raise ValueError("Bu entegrasyon için webhook_url yapılandırılmamış")
 
     project = db.get(TspmProject, project_id)
     project_name = project.name if project else project_id
@@ -129,14 +128,14 @@ def test_integration_notification(
     try:
         response = httpx.post(webhook_url, json=payload, timeout=10.0)
         if response.status_code >= 400:
-            raise HTTPException(502, f"Webhook yanıt kodu: {response.status_code}")
+            raise RuntimeError(f"Webhook yanıt kodu: {response.status_code}")
         return {"ok": True, "status_code": response.status_code}
     except httpx.TimeoutException as exc:
-        raise HTTPException(504, "Webhook zaman aşımı") from exc
-    except HTTPException:
+        raise RuntimeError("Webhook zaman aşımı") from exc
+    except RuntimeError:
         raise
     except Exception as exc:
-        raise HTTPException(500, str(exc)) from exc
+        raise RuntimeError(str(exc)) from exc
 
 
 def get_integration_or_404(
@@ -146,5 +145,5 @@ def get_integration_or_404(
 ) -> TspmIntegration:
     integration = db.get(TspmIntegration, integration_id)
     if integration is None or integration.project_id != project_id:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Entegrasyon bulunamadı")
+        raise KeyError("Entegrasyon bulunamadı")
     return integration

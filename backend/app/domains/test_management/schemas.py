@@ -297,6 +297,7 @@ class TestRunCreate(BaseModel):
     source_type: str = "manual"
     source_ref: Optional[str] = None
     scope_snapshot: dict[str, Any] = Field(default_factory=dict)
+    environment: Optional[str] = None
 
 
 class TestRunOut(BaseModel):
@@ -309,6 +310,7 @@ class TestRunOut(BaseModel):
     source_type: str
     source_ref: Optional[str] = None
     scope_snapshot: dict[str, Any]
+    environment: Optional[str] = None
     started_at: Optional[datetime] = None
     completed_at: Optional[datetime] = None
     created_at: datetime
@@ -647,3 +649,241 @@ class ManagementSettingsOut(BaseModel):
     evidence_retention_days: dict[str, int]
     aggregation_policy: dict[str, Any]
     custom_field_usage: dict[str, Any]
+
+
+# ── M-50 Threaded Comments ───────────────────────────────────────────────────
+
+ALLOWED_COMMENT_ENTITY_TYPES: set[str] = {
+    "case",
+    "defect",
+    "plan",
+    "run",
+    "requirement",
+}
+
+
+class MgmtCommentCreate(BaseModel):
+    entity_type: str = Field(..., min_length=1, max_length=64)
+    entity_id: str = Field(..., min_length=1)
+    body_md: str = Field(..., min_length=1, max_length=20000)
+    parent_id: Optional[str] = None
+    mentions: list[str] = Field(default_factory=list)
+    project_id: Optional[str] = None
+
+    @model_validator(mode="after")
+    def _validate_entity_type(self) -> "MgmtCommentCreate":
+        if self.entity_type not in ALLOWED_COMMENT_ENTITY_TYPES:
+            raise ValueError(
+                f"entity_type must be one of {sorted(ALLOWED_COMMENT_ENTITY_TYPES)}"
+            )
+        return self
+
+
+class MgmtCommentUpdate(BaseModel):
+    body_md: str = Field(..., min_length=1, max_length=20000)
+    mentions: Optional[list[str]] = None
+
+
+class MgmtCommentReact(BaseModel):
+    emoji: str = Field(..., min_length=1, max_length=32)
+    add: bool = True
+
+
+class MgmtCommentOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    tenant_id: str
+    project_id: Optional[str] = None
+    entity_type: str
+    entity_id: str
+    author_id: Optional[str] = None
+    parent_id: Optional[str] = None
+    body_md: str
+    mentions: list[str] = Field(default_factory=list)
+    reactions: dict[str, list[str]] = Field(default_factory=dict)
+    edited_at: Optional[datetime] = None
+    deleted_at: Optional[datetime] = None
+    created_at: datetime
+
+
+# ── M-45 Notification Inbox ──────────────────────────────────────────────────
+
+ALLOWED_NOTIFICATION_KINDS: set[str] = {
+    "mention",
+    "assignment",
+    "sla_breach",
+    "comment_reply",
+    "review_request",
+    "system",
+}
+
+
+ALLOWED_NOTIFICATION_CHANNELS: set[str] = {"in_app", "email", "push", "slack", "teams"}
+
+
+class MgmtNotificationCreate(BaseModel):
+    user_id: str = Field(..., min_length=1)
+    kind: str = Field(..., min_length=1, max_length=64)
+    title: str = Field(..., min_length=1, max_length=256)
+    body: str = Field(default="", max_length=4000)
+    link_path: Optional[str] = Field(default=None, max_length=512)
+    severity: str = Field(default="info", max_length=16)
+    channel: str = Field(default="in_app", max_length=32)
+    project_id: Optional[str] = None
+    source_trace: dict[str, Any] = Field(default_factory=dict)
+
+
+class MgmtNotificationOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    tenant_id: str
+    user_id: str
+    project_id: Optional[str] = None
+    kind: str
+    title: str
+    body: str
+    link_path: Optional[str] = None
+    severity: str
+    channel: str = "in_app"
+    source_trace: dict[str, Any] = Field(default_factory=dict)
+    read_at: Optional[datetime] = None
+    archived_at: Optional[datetime] = None
+    created_at: datetime
+
+
+class NotificationUnreadCount(BaseModel):
+    unread: int
+    total: int
+
+
+# ── M-1 / M-2 / M-9 Test Design Techniques ───────────────────────────────────
+
+ALLOWED_TECHNIQUES: set[str] = {"BVA", "EQ", "DT", "STD", "PAIRWISE", "CEG"}
+ALLOWED_DATA_TYPES: set[str] = {"int", "float", "string", "date", "bool", "enum"}
+
+
+class DesignFieldSpec(BaseModel):
+    name: str = Field(..., min_length=1, max_length=128)
+    data_type: str = Field(..., max_length=32)
+    min_value: Optional[str] = Field(default=None, max_length=128)
+    max_value: Optional[str] = Field(default=None, max_length=128)
+    allowed_set: Optional[list[Any]] = None
+    nullable: bool = False
+
+    @model_validator(mode="after")
+    def _validate_type(self) -> "DesignFieldSpec":
+        if self.data_type not in ALLOWED_DATA_TYPES:
+            raise ValueError(f"data_type must be one of {sorted(ALLOWED_DATA_TYPES)}")
+        return self
+
+
+class BvaRunCreate(BaseModel):
+    project_id: Optional[str] = None
+    requirement_id: Optional[str] = None
+    fields: list[DesignFieldSpec] = Field(..., min_length=1)
+    requirement_text: str = ""
+
+
+class EqRunCreate(BaseModel):
+    project_id: Optional[str] = None
+    requirement_id: Optional[str] = None
+    fields: list[DesignFieldSpec] = Field(..., min_length=1)
+    requirement_text: str = ""
+
+
+class GeneratedCaseDraft(BaseModel):
+    name: str
+    inputs: dict[str, Any] = Field(default_factory=dict)
+    expected: str = ""
+    boundary_type: Optional[str] = None
+    # boundary_type: min | max | just_inside | just_outside | nominal | invalid
+    rationale: Optional[str] = None
+    partition_label: Optional[str] = None
+    field_name: Optional[str] = None
+
+
+class DesignPartitionOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    field_id: str
+    partition_label: str
+    is_valid: bool
+    sample_value: Optional[str] = None
+
+
+class DesignRunOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    tenant_id: str
+    project_id: Optional[str] = None
+    requirement_id: Optional[str] = None
+    technique: str
+    input_spec: dict[str, Any] = Field(default_factory=dict)
+    generated_cases: list[GeneratedCaseDraft] = Field(default_factory=list)
+    source: str
+    llm_trace_id: Optional[str] = None
+    created_by: Optional[str] = None
+    created_at: datetime
+    partitions: list[DesignPartitionOut] = Field(default_factory=list)
+
+
+class PromoteCasesRequest(BaseModel):
+    case_indexes: list[int] = Field(..., min_length=1)
+    suite_id: Optional[str] = None
+    folder_id: Optional[str] = None
+
+
+class PromoteCasesResponse(BaseModel):
+    case_ids: list[str]
+
+
+class CaseParamSetCreate(BaseModel):
+    case_id: str
+    schema_json: dict[str, Any] = Field(default_factory=dict)
+    # schema_json: {fields:[{name,type,required}]}
+
+
+class CaseParamSetOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    tenant_id: str
+    case_id: str
+    schema_json: dict[str, Any]
+    created_by: Optional[str] = None
+    created_at: datetime
+
+
+class CaseDataRowIn(BaseModel):
+    values: dict[str, Any] = Field(default_factory=dict)
+    expected: dict[str, Any] = Field(default_factory=dict)
+    source_type: str = "manual"
+    category: Optional[str] = None
+
+
+class CaseDataRowOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    param_set_id: str
+    values: dict[str, Any]
+    expected: dict[str, Any]
+    source_type: str
+    category: Optional[str] = None
+    created_at: datetime
+
+
+class CaseDataGenerateRequest(BaseModel):
+    param_set_id: str
+    source: str = "llm"  # llm | csv
+    count: int = Field(default=5, ge=1, le=200)
+    csv_content: Optional[str] = None
+
+
+class ExpandCaseResponse(BaseModel):
+    execution_ids: list[str]
+    run_case_ids: list[str] = Field(default_factory=list)

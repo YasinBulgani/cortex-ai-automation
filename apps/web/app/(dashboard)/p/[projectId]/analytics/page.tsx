@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { useRouteParam } from "@/lib/use-route-param";
 import { apiFetch } from "@/lib/api";
@@ -54,37 +55,54 @@ const TIME_RANGE_LABEL: Record<TimeRange, string> = {
 
 export default function AnalyticsPage() {
   const projectId = useRouteParam("projectId");
+  const queryClient = useQueryClient();
 
-  const [trends, setTrends] = useState<TrendPoint[]>([]);
-  const [stats, setStats] = useState<ExecStats | null>(null);
-  const [flaky, setFlaky] = useState<FlakyTest[]>([]);
   const [anomalyResult, setAnomalyResult] = useState<AnomalyResult | null>(null);
-  const [anomalyLoading, setAnomalyLoading] = useState(false);
   const [showAnomalyPanel, setShowAnomalyPanel] = useState(false);
   const [timeRange, setTimeRange] = useState<TimeRange>("30");
 
-  const load = useCallback(() => {
-    apiFetch<TrendPoint[]>(`/api/v1/tspm/projects/${projectId}/execution-trends?days=${timeRange}`)
-      .then(setTrends).catch(() => {});
-    apiFetch<ExecStats>(`/api/v1/tspm/projects/${projectId}/execution-stats`)
-      .then(setStats).catch(() => {});
-    apiFetch<FlakyTest[]>(`/api/v1/tspm/projects/${projectId}/flaky-tests`)
-      .then(setFlaky).catch(() => {});
-  }, [projectId, timeRange]);
+  const { data: trends = [] } = useQuery<TrendPoint[]>({
+    queryKey: ["analytics", "trends", projectId, timeRange],
+    queryFn: () => apiFetch<TrendPoint[]>(`/api/v1/tspm/projects/${projectId}/execution-trends?days=${timeRange}`),
+    enabled: !!projectId,
+    staleTime: 60 * 1000,
+    gcTime: 5 * 60 * 1000,
+  });
 
-  useEffect(() => { load(); }, [load]);
+  const { data: stats = null } = useQuery<ExecStats | null>({
+    queryKey: ["analytics", "stats", projectId],
+    queryFn: () => apiFetch<ExecStats>(`/api/v1/tspm/projects/${projectId}/execution-stats`),
+    enabled: !!projectId,
+    staleTime: 60 * 1000,
+    gcTime: 5 * 60 * 1000,
+  });
+
+  const { data: flaky = [] } = useQuery<FlakyTest[]>({
+    queryKey: ["analytics", "flaky", projectId],
+    queryFn: () => apiFetch<FlakyTest[]>(`/api/v1/tspm/projects/${projectId}/flaky-tests`),
+    enabled: !!projectId,
+    staleTime: 2 * 60 * 1000,
+    gcTime: 5 * 60 * 1000,
+  });
+
+  const load = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: ["analytics", "trends", projectId, timeRange] });
+    queryClient.invalidateQueries({ queryKey: ["analytics", "stats", projectId] });
+  }, [queryClient, projectId, timeRange]);
+
   useRealtimeExecution(projectId, load);
 
+  const anomalyMut = useMutation({
+    mutationFn: () => apiFetch<AnomalyResult>(`/api/v1/ai/projects/${projectId}/anomaly-detect`, { method: "POST" }),
+    onSuccess: (result) => { setAnomalyResult(result); },
+  });
+
   async function runAnomalyDetect() {
-    setAnomalyLoading(true);
     setShowAnomalyPanel(true);
-    try {
-      const result = await apiFetch<AnomalyResult>(
-        `/api/v1/ai/projects/${projectId}/anomaly-detect`, { method: "POST" }
-      );
-      setAnomalyResult(result);
-    } finally { setAnomalyLoading(false); }
+    anomalyMut.mutate();
   }
+
+  const anomalyLoading = anomalyMut.isPending;
 
   /* SVG chart geometry */
   const W = 720;

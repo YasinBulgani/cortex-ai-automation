@@ -12,6 +12,8 @@ import {
   useAnonymize,
   useAddNoise,
 } from "@/lib/hooks/use-synthetic-advanced";
+import { ConsentManager } from "./components/ConsentManager";
+import { DataExportPanel } from "./components/DataExportPanel";
 
 const COMPLIANCE_LABELS: Record<string, { label: string; icon: string }> = {
   kvkk: { label: "KVKK", icon: "🇹🇷" },
@@ -98,7 +100,7 @@ export default function PrivacyPage() {
     }
   }
 
-  const auditData = auditMut.data || report;
+  const auditData = auditMut.data ?? report ?? null;
 
   return (
     <div className="min-h-screen bg-slate-950 p-6 flex flex-col gap-4" data-testid="privacy-page">
@@ -261,112 +263,17 @@ export default function PrivacyPage() {
 
       {/* ── Anonimizasyon Tab ──────────────────────────────── */}
       {activeTab === "anonimizasyon" && (
-        <div className="space-y-4">
-          <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-5">
-            <p className="text-sm font-medium text-emerald-300 mb-3">k-Anonimlik & l-Cesitlilik</p>
-            <div className="grid grid-cols-2 gap-4 mb-4">
-              <div>
-                <label className="text-xs text-slate-400 block mb-1">k-Anonymity (min. {kAnon})</label>
-                <input
-                  type="range"
-                  min={2}
-                  max={20}
-                  value={kAnon}
-                  onChange={(e) => setKAnon(Number(e.target.value))}
-                  aria-label="k-Anonymity degeri"
-                  title="k-Anonymity degeri"
-                  className="w-full accent-emerald-500"
-                />
-                <div className="flex justify-between text-[10px] text-slate-500">
-                  <span>2</span><span>10</span><span>20</span>
-                </div>
-              </div>
-              <div>
-                <label className="text-xs text-slate-400 block mb-1">l-Diversity (min. {lDiv})</label>
-                <input
-                  type="range"
-                  min={1}
-                  max={10}
-                  value={lDiv}
-                  onChange={(e) => setLDiv(Number(e.target.value))}
-                  aria-label="l-Diversity degeri"
-                  title="l-Diversity degeri"
-                  className="w-full accent-emerald-500"
-                />
-                <div className="flex justify-between text-[10px] text-slate-500">
-                  <span>1</span><span>5</span><span>10</span>
-                </div>
-              </div>
-            </div>
-            <textarea
-              value={sampleDataText}
-              onChange={(e) => setSampleDataText(e.target.value)}
-              rows={5}
-              aria-label="Anonimizasyon veri girişi"
-              title="Anonimizasyon veri girişi"
-              className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white font-mono resize-none mb-3"
-            />
-            <button
-              onClick={runAnonymize}
-              disabled={anonMut.isPending}
-              className="px-4 py-2 text-sm font-semibold text-emerald-300 border border-emerald-500/30 rounded-xl hover:bg-emerald-500/10 transition-all disabled:opacity-50"
-            >
-              {anonMut.isPending ? "Anonimize Ediliyor..." : "Anonimize Et"}
-            </button>
-          </div>
-
-          {anonResult && (
-            <div className="space-y-3">
-              <div className="grid grid-cols-4 gap-3">
-                <div className="rounded-xl border border-slate-700 bg-slate-900/40 px-4 py-3 text-center">
-                  <p className="text-xs text-slate-400 mb-1">Kayit</p>
-                  <p className="text-2xl font-bold text-white">{anonResult.original_count} → {anonResult.output_count}</p>
-                </div>
-                <div className="rounded-xl border border-slate-700 bg-slate-900/40 px-4 py-3 text-center">
-                  <p className="text-xs text-slate-400 mb-1">Baskilanan</p>
-                  <p className="text-2xl font-bold text-amber-400">{anonResult.suppressed_count}</p>
-                </div>
-                <div className="rounded-xl border border-slate-700 bg-slate-900/40 px-4 py-3 text-center">
-                  <p className="text-xs text-slate-400 mb-1">k / l Deger</p>
-                  <p className="text-2xl font-bold text-emerald-400">{anonResult.k_achieved} / {anonResult.l_achieved}</p>
-                </div>
-                <div className="rounded-xl border border-slate-700 bg-slate-900/40 px-4 py-3 text-center">
-                  <p className="text-xs text-slate-400 mb-1">Bilgi Kaybi</p>
-                  <p className={`text-2xl font-bold ${anonResult.information_loss > 0.5 ? "text-red-400" : "text-emerald-400"}`}>
-                    {(anonResult.information_loss * 100).toFixed(1)}%
-                  </p>
-                </div>
-              </div>
-
-              {anonResult.anonymized_data.length > 0 && (
-                <SectionCard title="Anonimize Edilmis Veri" noPad>
-                  <div className="overflow-auto max-h-56">
-                    <table className="w-full text-xs">
-                      <thead className="sticky top-0 bg-slate-800">
-                        <tr>
-                          {Object.keys(anonResult.anonymized_data[0]).map((col) => (
-                            <th key={col} className="px-3 py-2 text-left font-medium text-slate-400 whitespace-nowrap">{col}</th>
-                          ))}
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-800">
-                        {anonResult.anonymized_data.slice(0, 30).map((row, i) => (
-                          <tr key={i} className="hover:bg-slate-800/50">
-                            {Object.values(row).map((val, j) => (
-                              <td key={j} className="px-3 py-1.5 text-slate-300 whitespace-nowrap">
-                                {String(val ?? "")}
-                              </td>
-                            ))}
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </SectionCard>
-              )}
-            </div>
-          )}
-        </div>
+        <ConsentManager
+          sampleDataText={sampleDataText}
+          onSampleDataChange={setSampleDataText}
+          kAnon={kAnon}
+          onKAnonChange={setKAnon}
+          lDiv={lDiv}
+          onLDivChange={setLDiv}
+          onAnonymize={runAnonymize}
+          isPending={anonMut.isPending}
+          result={anonResult}
+        />
       )}
 
       {/* ── DP Gurultu Tab ─────────────────────────────────── */}
@@ -467,76 +374,7 @@ export default function PrivacyPage() {
 
       {/* ── Uyumluluk Tab ──────────────────────────────────── */}
       {activeTab === "uyumluluk" && (
-        <div className="space-y-4">
-          {auditData ? (
-            <>
-              {/* Compliance status grid */}
-              <div className="grid grid-cols-3 gap-4">
-                {Object.entries(auditData.compliance).map(([key, val]) => {
-                  const label = COMPLIANCE_LABELS[key];
-                  if (!label) return null;
-                  return (
-                    <div key={key} className={`rounded-xl border p-5 ${
-                      val.compliant ? "border-emerald-500/20 bg-emerald-500/5" : "border-red-500/20 bg-red-500/5"
-                    }`}>
-                      <div className="flex items-center gap-3 mb-3">
-                        <span className="text-3xl">{label.icon}</span>
-                        <div>
-                          <p className="text-sm font-medium text-white">{label.label}</p>
-                          <p className={`text-xs font-semibold ${val.compliant ? "text-emerald-400" : "text-red-400"}`}>
-                            {val.compliant ? "Uyumlu" : "Uyumsuz"}
-                          </p>
-                        </div>
-                      </div>
-                      {val.issues.length > 0 ? (
-                        <ul className="space-y-1.5 mt-2">
-                          {val.issues.map((issue, i) => (
-                            <li key={i} className="flex gap-2 text-xs text-slate-400">
-                              <span className="text-red-400 shrink-0">!</span>
-                              {issue}
-                            </li>
-                          ))}
-                        </ul>
-                      ) : (
-                        <p className="text-xs text-emerald-400 mt-2">Tum kontroller basarili</p>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-
-              {/* Quasi-identifier risk */}
-              {auditData.quasi_identifier_risk && Object.keys(auditData.quasi_identifier_risk).length > 0 && (
-                <SectionCard title="Quasi-Identifier Risk Analizi" noPad>
-                  <div className="divide-y divide-slate-800">
-                    {Object.entries(auditData.quasi_identifier_risk).map(([col, risk]) => (
-                      <div key={col} className="flex items-center gap-3 px-4 py-3">
-                        <span className="text-sm font-medium text-white w-32">{col}</span>
-                        <div className="flex-1 h-2 rounded-full bg-slate-800 overflow-hidden">
-                          <div
-                            className={`h-full rounded-full ${
-                              risk > 0.7 ? "bg-red-400" : risk > 0.4 ? "bg-amber-400" : "bg-emerald-400"
-                            }`}
-                            style={{ width: `${risk * 100}%` }}
-                          />
-                        </div>
-                        <span className="text-xs text-slate-400 w-12 text-right">{(risk * 100).toFixed(0)}%</span>
-                      </div>
-                    ))}
-                  </div>
-                </SectionCard>
-              )}
-            </>
-          ) : (
-            <div className="rounded-xl border border-slate-700 bg-slate-900/40 p-12">
-              <EmptyState
-                icon="📋"
-                title="Uyumluluk Raporu"
-                description="Once 'Genel Bakis' sekmesinden bir denetim çalıştırin"
-              />
-            </div>
-          )}
-        </div>
+        <DataExportPanel auditData={auditData} />
       )}
     </div>
   );

@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useEffect } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { apiFetch } from "@/lib/api";
 import { PRODUCT_FAMILY } from "@/lib/product";
@@ -130,29 +131,32 @@ function ProjectRow({ project }: { project: Project }) {
   );
 }
 
-function NewProjectModal({ onClose, onCreated }: { onClose: () => void; onCreated: (p: Project) => void }) {
+function NewProjectModal({ onClose, onCreated }: { onClose: () => void; onCreated: () => void }) {
   const [name, setName] = useState("");
   const [url, setUrl] = useState("");
   const [desc, setDesc] = useState("");
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const handleSubmit = async () => {
-    if (!name.trim()) return;
-    setLoading(true);
-    setError("");
-    try {
-      const p = await apiFetch<Project>("/api/v1/tspm/projects", {
-        method: "POST",
-        json: { name: name.trim(), base_url: url.trim() || undefined, description: desc.trim() || undefined },
-      });
-      onCreated(p);
+  const createMut = useMutation({
+    mutationFn: (body: Record<string, unknown>) =>
+      apiFetch<Project>("/api/v1/tspm/projects", { method: "POST", json: body }),
+    onSuccess: () => {
+      onCreated();
       onClose();
-    } catch (e: unknown) {
+    },
+    onError: (e: unknown) => {
       setError(e instanceof Error ? e.message : "Proje oluşturulamadı");
-    } finally {
-      setLoading(false);
-    }
+    },
+  });
+
+  const handleSubmit = () => {
+    if (!name.trim()) return;
+    setError("");
+    createMut.mutate({
+      name: name.trim(),
+      base_url: url.trim() || undefined,
+      description: desc.trim() || undefined,
+    });
   };
 
   return (
@@ -205,10 +209,10 @@ function NewProjectModal({ onClose, onCreated }: { onClose: () => void; onCreate
           </button>
           <button
             onClick={handleSubmit}
-            disabled={!name.trim() || loading}
+            disabled={!name.trim() || createMut.isPending}
             className="rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50 hover:opacity-90 transition-opacity"
           >
-            {loading ? "Oluşturuluyor..." : "Oluştur"}
+            {createMut.isPending ? "Oluşturuluyor..." : "Oluştur"}
           </button>
         </div>
       </div>
@@ -219,15 +223,22 @@ function NewProjectModal({ onClose, onCreated }: { onClose: () => void; onCreate
 const PAGE_SIZE = 60;
 
 export default function PortfolioPage() {
-  const [projects, setProjects]     = useState<Project[]>([]);
-  const [loading, setLoading]       = useState(true);
+  const queryClient = useQueryClient();
+  const projectsQK = ["projects", "list"] as const;
+
   const [search, setSearch]         = useState("");
   const [showArchived, setShowArchived] = useState(false);
   const [view, setView]             = useState<ViewMode>("grid");
   const [page, setPage]             = useState(1);
   const [newOpen, setNewOpen]       = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [bulkLoading, setBulkLoading] = useState(false);
+
+  const { data: projects = [], isLoading: loading } = useQuery<Project[]>({
+    queryKey: projectsQK,
+    queryFn: () => apiFetch<Project[]>("/api/v1/tspm/projects"),
+    staleTime: 60 * 1000,
+    gcTime: 5 * 60 * 1000,
+  });
 
   const toggleSelect = useCallback((id: string) => {
     setSelectedIds(prev => {
@@ -239,46 +250,42 @@ export default function PortfolioPage() {
 
   const clearSelection = useCallback(() => setSelectedIds(new Set()), []);
 
-  const handleBulkArchive = useCallback(async () => {
-    setBulkLoading(true);
-    try {
-      await Promise.allSettled(
-        [...selectedIds].map(id =>
+  const bulkArchiveMut = useMutation({
+    mutationFn: (ids: string[]) =>
+      Promise.allSettled(
+        ids.map(id =>
           apiFetch(`/api/v1/tspm/projects/${id}`, { method: "PATCH", json: { archived: true } })
         )
-      );
-      setProjects(prev => prev.map(p => selectedIds.has(p.id) ? { ...p, archived: true } : p));
+      ),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: projectsQK });
       clearSelection();
-    } finally { setBulkLoading(false); }
-  }, [selectedIds, clearSelection]);
+    },
+  });
 
-  const handleBulkDelete = useCallback(async () => {
-    if (!confirm(`${selectedIds.size} proje silinecek. Emin misiniz?`)) return;
-    setBulkLoading(true);
-    try {
-      await Promise.allSettled(
-        [...selectedIds].map(id =>
+  const bulkDeleteMut = useMutation({
+    mutationFn: (ids: string[]) =>
+      Promise.allSettled(
+        ids.map(id =>
           apiFetch(`/api/v1/tspm/projects/${id}`, { method: "DELETE" })
         )
-      );
-      setProjects(prev => prev.filter(p => !selectedIds.has(p.id)));
+      ),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: projectsQK });
       clearSelection();
-    } finally { setBulkLoading(false); }
-  }, [selectedIds, clearSelection]);
+    },
+  });
 
-  const fetchProjects = useCallback(async () => {
-    setLoading(true);
-    try {
-      const data = await apiFetch<Project[]>("/api/v1/tspm/projects");
-      setProjects(Array.isArray(data) ? data : []);
-    } catch {
-      setProjects([]);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const handleBulkArchive = useCallback(() => {
+    bulkArchiveMut.mutate([...selectedIds]);
+  }, [selectedIds, bulkArchiveMut]);
 
-  useEffect(() => { fetchProjects(); }, [fetchProjects]);
+  const handleBulkDelete = useCallback(() => {
+    if (!confirm(`${selectedIds.size} proje silinecek. Emin misiniz?`)) return;
+    bulkDeleteMut.mutate([...selectedIds]);
+  }, [selectedIds, bulkDeleteMut]);
+
+  const bulkLoading = bulkArchiveMut.isPending || bulkDeleteMut.isPending;
 
   const filtered = useMemo(() => {
     const s = search.toLowerCase().trim();
@@ -512,7 +519,7 @@ export default function PortfolioPage() {
       {newOpen && (
         <NewProjectModal
           onClose={() => setNewOpen(false)}
-          onCreated={p => setProjects(prev => [p, ...prev])}
+          onCreated={() => queryClient.invalidateQueries({ queryKey: projectsQK })}
         />
       )}
     </div>

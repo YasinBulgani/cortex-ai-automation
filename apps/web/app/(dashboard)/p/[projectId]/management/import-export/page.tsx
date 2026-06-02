@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import * as XLSX from "xlsx";
+// xlsx dinamik yükleme — dosya parse fonksiyonu çağrıldığında (~1MB) yüklenir
 import {
   useManagementImports,
   useManagementImportDetail,
@@ -289,6 +289,8 @@ function parseJsonRows(text: string): Record<string, unknown>[] {
 }
 
 async function parseWorkbookRows(file: File): Promise<Record<string, unknown>[]> {
+  // xlsx dinamik import — dosya seçildiğinde indirilir, sayfa yükünü artırmaz
+  const XLSX = await import("xlsx");
   const buffer = await file.arrayBuffer();
   const workbook = XLSX.read(buffer, { type: "array" });
   const sheetName = workbook.SheetNames[0];

@@ -1,6 +1,7 @@
 /** @jest-environment jsdom */
 import React from "react";
 import { render, screen } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 // ─── jsdom polyfills ──────────────────────────────────────────────────────────
 // AppShell uses ThemeToggle which calls window.matchMedia for the system theme.
@@ -68,7 +69,7 @@ jest.mock("@/lib/product", () => ({
   NAV_GROUP_LABELS: {},
 }));
 
-jest.mock("@/components/NotificationBell", () => ({
+jest.mock("@/components/management/NotificationBell", () => ({
   NotificationBell: () => <div data-testid="notification-bell" />,
 }));
 
@@ -105,10 +106,15 @@ import { AppShell } from "../AppShell";
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function renderAppShell(children = <div data-testid="child-content">Hello</div>) {
+  const qc = new QueryClient({
+    defaultOptions: { queries: { retry: false, gcTime: 0 } },
+  });
   return render(
-    <AppShell projects={[]} >
-      {children}
-    </AppShell>
+    <QueryClientProvider client={qc}>
+      <AppShell projects={[]} >
+        {children}
+      </AppShell>
+    </QueryClientProvider>
   );
 }
 

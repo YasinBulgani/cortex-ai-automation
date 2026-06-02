@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/api";
 import { PageHeader } from "@/components/nexus/PageHeader";
 
@@ -311,39 +312,41 @@ type ProvidersResponse = {
   active: string;
 };
 
+const providersQK = ["admin", "ai-providers"] as const;
+
 export default function AdminSettingsPage() {
-  const [data, setData] = useState<ProvidersResponse | null>(null);
+  const queryClient = useQueryClient();
   const [selected, setSelected] = useState<string>("");
-  const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
-  const load = useCallback(() => {
-    apiFetch<ProvidersResponse>("/api/v1/ai/providers")
-      .then((d) => {
-        setData(d);
-        setSelected(d.active);
-      })
-      .catch((err) => console.warn("[settings]:", err));
-  }, []);
+  const { data } = useQuery<ProvidersResponse>({
+    queryKey: providersQK,
+    queryFn: () => apiFetch<ProvidersResponse>("/api/v1/ai/providers"),
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+  });
 
-  useEffect(() => { load(); }, [load]);
+  // Sync selected with fetched data when it first loads
+  useEffect(() => {
+    if (data && !selected) setSelected(data.active);
+  }, [data, selected]);
 
-  async function handleSave() {
-    if (!selected) return;
-    setSaving(true);
-    setSaved(false);
-    try {
-      await apiFetch("/api/v1/ai/providers/active", {
-        method: "PUT",
-        json: { provider: selected },
-      });
+  const saveMut = useMutation({
+    mutationFn: (provider: string) =>
+      apiFetch("/api/v1/ai/providers/active", { method: "PUT", json: { provider } }),
+    onSuccess: () => {
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
-      load();
-    } finally {
-      setSaving(false);
-    }
+      queryClient.invalidateQueries({ queryKey: providersQK });
+    },
+  });
+
+  function handleSave() {
+    if (!selected) return;
+    saveMut.mutate(selected);
   }
+
+  const saving = saveMut.isPending;
 
   return (
     <div className="min-h-screen bg-slate-950 p-6 flex flex-col gap-6" data-testid="admin-settings-page">
@@ -364,7 +367,7 @@ export default function AdminSettingsPage() {
           <p className="text-xs text-slate-400 mt-0.5">Sistem genelinde kullanılacak AI modelini seçin</p>
         </div>
 
-        {data === null ? (
+        {!data ? (
           <div className="flex flex-col gap-2">
             {[1, 2, 3].map((i) => (
               <div key={i} className="h-14 animate-pulse rounded-xl border border-slate-800 bg-slate-800/50" />

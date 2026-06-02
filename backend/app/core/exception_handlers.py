@@ -135,11 +135,67 @@ async def key_error_handler(request: Request, exc: KeyError) -> JSONResponse:
     )
 
 
+async def permission_error_handler(request: Request, exc: PermissionError) -> JSONResponse:
+    """Service layer PermissionError → 403 Forbidden."""
+    detail = {
+        "code": "client.forbidden",
+        "title": "Forbidden",
+        "message": str(exc),
+        "suggestion": "Bu işlem için yetkiniz bulunmamaktadır.",
+        "doc_url": None,
+    }
+    return JSONResponse(
+        status_code=403,
+        content=_build_body(detail, _request_id(request)),
+    )
+
+
+async def runtime_error_handler(request: Request, exc: RuntimeError) -> JSONResponse:
+    """Service layer RuntimeError → 500 Internal Server Error."""
+    logger.error("Service RuntimeError: %s", exc)
+    detail = {
+        "code": "internal.service_error",
+        "title": "Internal Server Error",
+        "message": str(exc),
+        "suggestion": "Lütfen daha sonra tekrar deneyin.",
+        "doc_url": None,
+    }
+    return JSONResponse(
+        status_code=500,
+        content=_build_body(detail, _request_id(request)),
+    )
+
+
+async def rate_limit_error_handler(request: Request, exc: Exception) -> JSONResponse:
+    """Service layer RateLimitError → 429 Too Many Requests."""
+    retry_after = getattr(exc, "retry_after_seconds", 60)
+    detail = {
+        "code": "client.rate_limit_exceeded",
+        "title": "Too Many Requests",
+        "message": str(exc),
+        "suggestion": f"Lütfen {retry_after} saniye bekleyin ve tekrar deneyin.",
+        "doc_url": None,
+    }
+    return JSONResponse(
+        status_code=429,
+        content=_build_body(detail, _request_id(request)),
+        headers={"Retry-After": str(retry_after)},
+    )
+
+
 def register_exception_handlers(app: FastAPI) -> None:
     """FastAPI app'a tüm özel handler'ları bağla."""
     app.add_exception_handler(HTTPException, http_exception_handler)
     app.add_exception_handler(RequestValidationError, validation_exception_handler)
     # Domain service layer — HTTP-agnostic exceptions mapped to HTTP status codes.
+    # RateLimitError must be registered before RuntimeError (it extends Exception, not RuntimeError)
+    try:
+        from app.core.exceptions import RateLimitError
+        app.add_exception_handler(RateLimitError, rate_limit_error_handler)  # type: ignore[arg-type]
+    except ImportError:
+        pass  # Defensive — if exceptions module not yet present
     app.add_exception_handler(ValueError, value_error_handler)  # type: ignore[arg-type]
     app.add_exception_handler(KeyError, key_error_handler)  # type: ignore[arg-type]
+    app.add_exception_handler(PermissionError, permission_error_handler)  # type: ignore[arg-type]
+    app.add_exception_handler(RuntimeError, runtime_error_handler)  # type: ignore[arg-type]
     app.add_exception_handler(Exception, unhandled_exception_handler)

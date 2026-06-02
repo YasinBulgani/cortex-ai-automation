@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import logging
 
-from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -137,7 +136,7 @@ def trigger_schedule_for_project(
         if regression_set:
             scenario_ids = list(regression_set.scenario_ids or [])
     if not scenario_ids:
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Zamanlamada senaryo bulunamadı")
+        raise ValueError("Zamanlamada senaryo bulunamadı")
 
     execution = TspmExecution(
         project_id=project_id,
@@ -172,5 +171,5 @@ def trigger_schedule_for_project(
 def get_schedule_or_404(db: Session, project_id: str, schedule_id: str) -> TspmSchedule:
     sched = db.get(TspmSchedule, schedule_id)
     if sched is None or sched.project_id != project_id:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Zamanlama bulunamadı")
+        raise KeyError("Zamanlama bulunamadı")
     return sched

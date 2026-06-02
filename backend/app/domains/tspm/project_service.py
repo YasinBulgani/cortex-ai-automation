@@ -62,7 +62,12 @@ def create_project_for_user(db: Session, body: ProjectCreate, user: User) -> Tsp
 
 
 def build_project_dashboard(db: Session, project_id: str) -> DashboardStats:
-    """Build dashboard stats for a single project."""
+    """Build dashboard stats for a single project.
+
+    Performans: pass_rate hesabı için 2 COUNT → 1 GROUP BY sorgusu.
+    """
+    from sqlalchemy import case as sa_case  # geç import
+
     scenario_count = db.scalar(select(func.count()).where(TspmScenario.project_id == project_id)) or 0
     pending_approvals = db.scalar(
         select(func.count()).where(
@@ -73,6 +78,7 @@ def build_project_dashboard(db: Session, project_id: str) -> DashboardStats:
     import_count = db.scalar(select(func.count()).where(TspmImport.project_id == project_id)) or 0
     execution_count = db.scalar(select(func.count()).where(TspmExecution.project_id == project_id)) or 0
 
+    # En son execution'ı bul
     latest_exec = db.scalar(
         select(TspmExecution)
         .where(TspmExecution.project_id == project_id)
@@ -81,13 +87,15 @@ def build_project_dashboard(db: Session, project_id: str) -> DashboardStats:
 
     pass_rate = None
     if latest_exec:
-        total = db.scalar(select(func.count()).where(TspmExecutionResult.execution_id == latest_exec.id)) or 0
-        passed = db.scalar(
-            select(func.count()).where(
-                TspmExecutionResult.execution_id == latest_exec.id,
-                TspmExecutionResult.status == "passed",
-            )
-        ) or 0
+        # Pass rate: 2 COUNT yerine tek CASE WHEN sorgusu
+        result_row = db.execute(
+            select(
+                func.count().label("total"),
+                func.sum(sa_case((TspmExecutionResult.status == "passed", 1), else_=0)).label("passed"),
+            ).where(TspmExecutionResult.execution_id == latest_exec.id)
+        ).one()
+        total = result_row.total or 0
+        passed = int(result_row.passed or 0)
         if total > 0:
             pass_rate = round(passed / total * 100, 1)
 

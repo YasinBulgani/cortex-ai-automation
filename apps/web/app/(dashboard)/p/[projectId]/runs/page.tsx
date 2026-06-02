@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 
 import { useRouteParam } from "@/lib/use-route-param";
@@ -108,12 +109,12 @@ function LogTerminal({ logs, status }: { logs: LogLine[]; status: string }) {
   );
 }
 
+const runsQK = (projectId: string) => ["engine-runs", "list", projectId] as const;
+
 /* ── Main Page ────────────────────────────────────────────────────────────── */
 export default function RunsPage() {
   const projectId = useRouteParam("projectId");
-  const [runs, setRuns] = useState<Run[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
   const [selected, setSelected] = useState<Run | null>(null);
 
   /* New run */
@@ -129,18 +130,25 @@ export default function RunsPage() {
   const [analyzing, setAnalyzing] = useState(false);
   const [analysis, setAnalysis] = useState<FailureAnalysis | null>(null);
 
-  const load = useCallback(() => {
-    setLoading(true);
-    fetch(`${ENGINE_BASE}/api/pipeline/manual-to-automation/runs?project_id=${projectId}&limit=50`)
-      .then(r => {
-        if (!r.ok) throw new Error(`Sunucu hatası: ${r.status}`);
-        return r.json();
-      })
-      .then(d => { setRuns(d.runs ?? []); setLoading(false); })
-      .catch(e => { setError(e.message); setLoading(false); });
-  }, [projectId]);
+  const { data: runsData, isLoading: loading, error: runsError } = useQuery({
+    queryKey: runsQK(projectId ?? ""),
+    queryFn: async () => {
+      const r = await fetch(`${ENGINE_BASE}/api/pipeline/manual-to-automation/runs?project_id=${projectId}&limit=50`);
+      if (!r.ok) throw new Error(`Sunucu hatası: ${r.status}`);
+      return r.json() as Promise<{ runs: Run[] }>;
+    },
+    enabled: !!projectId,
+    staleTime: 15 * 1000,
+    gcTime: 5 * 60 * 1000,
+    retry: 1,
+  });
 
-  useEffect(() => { load(); }, [load]);
+  const runs = runsData?.runs ?? [];
+  const error = runsError ? (runsError instanceof Error ? runsError.message : "Bağlantı hatası") : null;
+
+  const load = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: runsQK(projectId ?? "") });
+  }, [queryClient, projectId]);
 
   async function startRun() {
     if (!featurePath.trim()) return;

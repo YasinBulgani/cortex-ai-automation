@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/api";
 import { useWebSocket, type WSMessage } from "@/lib/useWebSocket";
 import { PageHeader } from "@/components/nexus/PageHeader";
@@ -150,33 +151,41 @@ function NotifRow({ n, onRead }: { n: Notification; onRead: (id: string) => void
 
 // ── Prefs Panel ───────────────────────────────────────────────────────────────
 
+const notifPrefsQK = ["notifications", "prefs"] as const;
+
 function PrefsPanel() {
-  const [prefs, setPrefs] = useState<NotifPrefs | null>(null);
+  const queryClient = useQueryClient();
   const [slack, setSlack] = useState("");
-  const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
-  useEffect(() => {
-    apiFetch<NotifPrefs>("/api/v1/notifications/prefs")
-      .then(p => { setPrefs(p); setSlack(p.slack_webhook_url ?? ""); })
-      .catch(() => {});
-  }, []);
+  const { data: prefs } = useQuery<NotifPrefs>({
+    queryKey: notifPrefsQK,
+    queryFn: () => apiFetch<NotifPrefs>("/api/v1/notifications/prefs"),
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+  });
 
-  async function handleSave() {
-    if (!prefs) return;
-    setSaving(true);
-    try {
-      const updated = await apiFetch<NotifPrefs>("/api/v1/notifications/prefs", {
-        method: "PUT",
-        json: { ...prefs, slack_webhook_url: slack || null },
-      });
-      setPrefs(updated);
+  // Sync slack field when prefs load
+  useEffect(() => {
+    if (prefs) setSlack(prefs.slack_webhook_url ?? "");
+  }, [prefs]);
+
+  const saveMut = useMutation({
+    mutationFn: (updated: NotifPrefs) =>
+      apiFetch<NotifPrefs>("/api/v1/notifications/prefs", { method: "PUT", json: updated }),
+    onSuccess: (updated) => {
+      queryClient.setQueryData(notifPrefsQK, updated);
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
-    } catch { /* ignore */ } finally {
-      setSaving(false);
-    }
+    },
+  });
+
+  function handleSave() {
+    if (!prefs) return;
+    saveMut.mutate({ ...prefs, slack_webhook_url: slack || null });
   }
+
+  const saving = saveMut.isPending;
 
   if (!prefs) return (
     <div className="py-6 text-center text-xs text-slate-500">Tercihler yükleniyor...</div>
@@ -191,7 +200,7 @@ function PrefsPanel() {
         </div>
         <button
           type="button"
-          onClick={() => setPrefs(p => p ? { ...p, notify_on_complete: !p.notify_on_complete } : p)}
+          onClick={() => queryClient.setQueryData<NotifPrefs>(notifPrefsQK, p => p ? { ...p, notify_on_complete: !p.notify_on_complete } : p)}
           className={`relative h-6 w-11 rounded-full transition-colors ${prefs.notify_on_complete ? "bg-blue-600" : "bg-slate-700"}`}
         >
           <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${prefs.notify_on_complete ? "translate-x-5" : "translate-x-0.5"}`} />
@@ -205,7 +214,7 @@ function PrefsPanel() {
         </div>
         <button
           type="button"
-          onClick={() => setPrefs(p => p ? { ...p, notify_on_failure: !p.notify_on_failure } : p)}
+          onClick={() => queryClient.setQueryData<NotifPrefs>(notifPrefsQK, p => p ? { ...p, notify_on_failure: !p.notify_on_failure } : p)}
           className={`relative h-6 w-11 rounded-full transition-colors ${prefs.notify_on_failure ? "bg-blue-600" : "bg-slate-700"}`}
         >
           <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${prefs.notify_on_failure ? "translate-x-5" : "translate-x-0.5"}`} />

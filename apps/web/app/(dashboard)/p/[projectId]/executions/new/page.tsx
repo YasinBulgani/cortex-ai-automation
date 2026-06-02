@@ -1,7 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouteParam } from "@/lib/use-route-param";
 import Link from "next/link";
 import { apiFetch } from "@/lib/api";
@@ -13,11 +14,10 @@ type Scenario = { id: string; title: string; status: string };
 export default function NewExecutionPage() {
   const router = useRouter();
   const projectId = useRouteParam("projectId");
-  const [scenarios, setScenarios] = useState<Scenario[]>([]);
+  const queryClient = useQueryClient();
   const [name, setName] = useState("");
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [err, setErr] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
   // Advanced execution options
   const [dryRun, setDryRun] = useState(false);
   const [platform, setPlatform] = useState<string>("desktop");
@@ -26,13 +26,28 @@ export default function NewExecutionPage() {
   const [timezone, setTimezone] = useState<string>("");
   const [showAdvanced, setShowAdvanced] = useState(false);
 
-  const load = useCallback(() => {
-    apiFetch<Scenario[]>(`/api/v1/tspm/projects/${projectId}/scenarios`).then(setScenarios).catch(() => {});
-  }, [projectId]);
+  const { data: scenarios = [] } = useQuery<Scenario[]>({
+    queryKey: ["scenarios", "list", projectId],
+    queryFn: () => apiFetch<Scenario[]>(`/api/v1/tspm/projects/${projectId}/scenarios`),
+    enabled: !!projectId,
+    staleTime: 60 * 1000,
+    gcTime: 5 * 60 * 1000,
+  });
 
-  useEffect(() => {
-    load();
-  }, [load]);
+  const createExecMut = useMutation({
+    mutationFn: (body: Record<string, unknown>) =>
+      apiFetch<{ id: string }>(`/api/v1/tspm/projects/${projectId}/executions`, {
+        method: "POST",
+        json: body,
+      }),
+    onSuccess: (created) => {
+      queryClient.invalidateQueries({ queryKey: ["executions", "list", projectId] });
+      router.push(`/p/${projectId}/executions/${created.id}`);
+    },
+    onError: (e: unknown) => setErr(e instanceof Error ? e.message : "Hata"),
+  });
+
+  const saving = createExecMut.isPending;
 
   function toggle(id: string) {
     setSelected((prev) => {
@@ -50,28 +65,16 @@ export default function NewExecutionPage() {
       setErr("En az bir senaryo seçin.");
       return;
     }
-    setSaving(true);
-    try {
-      const body: Record<string, unknown> = {
-        name: name.trim() || "Koşu",
-        scenario_ids: Array.from(selected),
-        dry_run: dryRun,
-      };
-      if (platform !== "desktop") body.platform = platform;
-      if (browsers.size > 1) body.browsers = Array.from(browsers);
-      if (networkPreset) body.network_preset = networkPreset;
-      if (timezone) body.timezone_id = timezone;
-
-      const created = await apiFetch<{ id: string }>(`/api/v1/tspm/projects/${projectId}/executions`, {
-        method: "POST",
-        json: body,
-      });
-      router.push(`/p/${projectId}/executions/${created.id}`);
-    } catch (e: unknown) {
-      setErr(e instanceof Error ? e.message : "Hata");
-    } finally {
-      setSaving(false);
-    }
+    const body: Record<string, unknown> = {
+      name: name.trim() || "Koşu",
+      scenario_ids: Array.from(selected),
+      dry_run: dryRun,
+    };
+    if (platform !== "desktop") body.platform = platform;
+    if (browsers.size > 1) body.browsers = Array.from(browsers);
+    if (networkPreset) body.network_preset = networkPreset;
+    if (timezone) body.timezone_id = timezone;
+    createExecMut.mutate(body);
   }
 
   return (

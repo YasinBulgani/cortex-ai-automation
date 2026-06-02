@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { useRouteParam } from "@/lib/use-route-param";
 import { apiFetch } from "@/lib/api";
@@ -43,21 +44,25 @@ const PLATFORM_TABS: { key: PlatformTab; label: string }[] = [
 
 export default function ExecutionsListPage() {
   const projectId = useRouteParam("projectId");
-  const [rows, setRows] = useState<Row[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
+  const execQK = ["executions", "list", projectId] as const;
+
+  const { data: rows = [], isLoading: loading } = useQuery({
+    queryKey: execQK,
+    queryFn: () => apiFetch<Row[]>(`/api/v1/tspm/projects/${projectId}/executions`),
+    enabled: !!projectId,
+    staleTime: 15 * 1000, // 15 saniye — koşular sık değişir
+    refetchInterval: 15 * 1000,
+  });
+
+  const load = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: execQK });
+  }, [queryClient, projectId]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [platformTab, setPlatformTab] = useState<PlatformTab>("all");
 
-  const load = useCallback(async () => {
-    try {
-      const data = await apiFetch<Row[]>(`/api/v1/tspm/projects/${projectId}/executions`);
-      setRows(data);
-    } catch { /* ignore */ }
-    finally { setLoading(false); }
-  }, [projectId]);
-
-  useEffect(() => { load(); }, [load]);
   useRealtimeExecution(projectId, load);
 
   const filtered = rows.filter(r => {

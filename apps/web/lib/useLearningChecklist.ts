@@ -107,6 +107,7 @@ export const CHECKLIST: ChecklistItem[] = [
 ];
 
 const STORAGE_KEY = "neurex_learning_checklist_v1";
+const CHECKLIST_API_BASE = "/api/v1/checklist";
 
 function readCompleted(): Set<ChecklistItemId> {
   try {
@@ -127,17 +128,48 @@ function writeCompleted(items: Set<ChecklistItemId>) {
   }
 }
 
+// Backend-first with localStorage fallback.
+// Fetches completed checklist item IDs from the backend; if unavailable,
+// falls back to localStorage so existing progress is never lost.
+async function fetchCompletedFromBackend(): Promise<ChecklistItemId[] | null> {
+  try {
+    const res = await fetch(`${CHECKLIST_API_BASE}/progress`, {
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+    });
+    if (!res.ok) return null; // backend unavailable or auth required → use localStorage
+    const data: ChecklistItemId[] = await res.json();
+    return Array.isArray(data) ? data : null;
+  } catch {
+    return null; // network error → graceful fallback
+  }
+}
+
 export function useLearningChecklist() {
   const [completed, setCompleted] = useState<Set<ChecklistItemId>>(new Set());
   const [dismissed, setDismissed] = useState(false);
 
   useEffect(() => {
-    setCompleted(readCompleted());
+    // 1. Load localStorage immediately for instant display
+    const local = readCompleted();
+    if (local.size > 0) setCompleted(local);
+
     try {
       setDismissed(localStorage.getItem("neurex_checklist_dismissed") === "1");
     } catch {
       /* ignore */
     }
+
+    // 2. Then fetch from backend — if it responds, prefer its data (authoritative source)
+    fetchCompletedFromBackend().then((backendData) => {
+      if (backendData && backendData.length > 0) {
+        const backendSet = new Set<ChecklistItemId>(backendData);
+        setCompleted(backendSet);
+        writeCompleted(backendSet); // sync to localStorage for offline use
+      } else if (local.size === 0) {
+        setCompleted(new Set()); // both empty
+      }
+    });
   }, []);
 
   const markComplete = useCallback((id: ChecklistItemId) => {

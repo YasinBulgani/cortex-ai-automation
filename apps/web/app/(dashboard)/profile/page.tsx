@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/api";
 import { PageHeader } from "@/components/nexus/PageHeader";
 
@@ -13,46 +14,46 @@ type NotifPrefs = {
 
 // ── Bildirim Tercihleri Paneli ───────────────────────────────────────────────
 function NotificationPrefsPanel() {
-  const [prefs, setPrefs] = useState<NotifPrefs>({
-    notify_on_complete: true,
-    notify_on_failure: true,
-    slack_webhook_url: null,
-  });
+  const queryClient = useQueryClient();
+
+  const [notifyOnComplete, setNotifyOnComplete] = useState(true);
+  const [notifyOnFailure, setNotifyOnFailure] = useState(true);
   const [slackInput, setSlackInput] = useState("");
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<{ text: string; ok: boolean } | null>(null);
 
-  useEffect(() => {
-    apiFetch<NotifPrefs>("/api/v1/notifications/prefs")
-      .then((p) => {
-        setPrefs(p);
-        setSlackInput(p.slack_webhook_url ?? "");
-        setLoading(false);
-      })
-      .catch(() => setLoading(false));
-  }, []);
+  const { data: prefs, isLoading } = useQuery<NotifPrefs>({
+    queryKey: ["user", "notif-prefs"],
+    queryFn: () => apiFetch<NotifPrefs>("/api/v1/notifications/prefs"),
+  });
 
-  async function save() {
-    setSaving(true); setMsg(null);
-    try {
-      await apiFetch("/api/v1/notifications/prefs", {
+  useEffect(() => {
+    if (prefs) {
+      setNotifyOnComplete(prefs.notify_on_complete);
+      setNotifyOnFailure(prefs.notify_on_failure);
+      setSlackInput(prefs.slack_webhook_url ?? "");
+    }
+  }, [prefs]);
+
+  const saveMutation = useMutation({
+    mutationFn: () =>
+      apiFetch("/api/v1/notifications/prefs", {
         method: "PUT",
         json: {
-          notify_on_complete: prefs.notify_on_complete,
-          notify_on_failure: prefs.notify_on_failure,
+          notify_on_complete: notifyOnComplete,
+          notify_on_failure: notifyOnFailure,
           slack_webhook_url: slackInput.trim() || null,
         },
-      });
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["user", "notif-prefs"] });
       setMsg({ ok: true, text: "Bildirim tercihleri kaydedildi." });
-    } catch {
+    },
+    onError: () => {
       setMsg({ ok: false, text: "Kaydedilemedi. Lütfen tekrar deneyin." });
-    } finally {
-      setSaving(false);
-    }
-  }
+    },
+  });
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="mt-6 animate-pulse h-32 rounded-2xl bg-slate-800/40 border border-slate-800" />
     );
@@ -65,23 +66,23 @@ function NotificationPrefsPanel() {
       {/* Toggle'lar */}
       <div className="space-y-3">
         {[
-          { key: "notify_on_complete" as const, label: "Koşum tamamlandığında e-posta gönder",   icon: "✅" },
-          { key: "notify_on_failure"  as const, label: "Koşum başarısız olduğunda e-posta gönder", icon: "❌" },
-        ].map(({ key, label, icon }) => (
+          { key: "notify_on_complete" as const, label: "Koşum tamamlandığında e-posta gönder",   icon: "✅", value: notifyOnComplete, toggle: () => setNotifyOnComplete(v => !v) },
+          { key: "notify_on_failure"  as const, label: "Koşum başarısız olduğunda e-posta gönder", icon: "❌", value: notifyOnFailure, toggle: () => setNotifyOnFailure(v => !v) },
+        ].map(({ key, label, icon, value, toggle }) => (
           <label key={key} className="flex items-center justify-between cursor-pointer group">
             <span className="text-sm text-slate-300 group-hover:text-white transition-colors">
               {icon} {label}
             </span>
             <button
               role="switch"
-              aria-checked={prefs[key]}
-              onClick={() => setPrefs(p => ({ ...p, [key]: !p[key] }))}
+              aria-checked={value}
+              onClick={toggle}
               className={`relative inline-flex h-5 w-9 shrink-0 rounded-full transition-colors
-                ${prefs[key] ? "bg-indigo-500" : "bg-slate-700"}`}
+                ${value ? "bg-indigo-500" : "bg-slate-700"}`}
             >
               <span
                 className={`inline-block h-4 w-4 mt-0.5 rounded-full bg-white shadow transition-transform
-                  ${prefs[key] ? "translate-x-4.5" : "translate-x-0.5"}`}
+                  ${value ? "translate-x-4.5" : "translate-x-0.5"}`}
               />
             </button>
           </label>
@@ -111,12 +112,12 @@ function NotificationPrefsPanel() {
       )}
 
       <button
-        onClick={save}
-        disabled={saving}
+        onClick={() => { setMsg(null); saveMutation.mutate(); }}
+        disabled={saveMutation.isPending}
         className="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-sm font-medium transition-colors flex items-center gap-2"
       >
-        {saving && <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
-        {saving ? "Kaydediliyor…" : "Kaydet"}
+        {saveMutation.isPending && <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
+        {saveMutation.isPending ? "Kaydediliyor…" : "Kaydet"}
       </button>
     </div>
   );
@@ -135,42 +136,49 @@ type Profile = {
 const inputCls = "w-full rounded-xl border border-slate-700 bg-slate-900 px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500/50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors";
 
 export default function ProfilePage() {
-  const [profile, setProfile] = useState<Profile | null>(null);
+  const queryClient = useQueryClient();
+
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [dept, setDept] = useState("");
-  const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<{ text: string; ok: boolean } | null>(null);
   const [pwOpen, setPwOpen] = useState(false);
   const [curPw, setCurPw] = useState("");
   const [newPw, setNewPw] = useState("");
   const [pwMsg, setPwMsg] = useState<{ text: string; ok: boolean } | null>(null);
 
+  const { data: profile } = useQuery<Profile>({
+    queryKey: ["user", "profile"],
+    queryFn: () => apiFetch<Profile>("/api/v1/auth/profile"),
+  });
+
   useEffect(() => {
-    apiFetch<Profile>("/api/v1/auth/profile").then((p) => {
-      setProfile(p);
-      setName(p.full_name || "");
-      setPhone(p.phone || "");
-      setDept(p.department || "");
-    });
-  }, []);
+    if (profile) {
+      setName(profile.full_name || "");
+      setPhone(profile.phone || "");
+      setDept(profile.department || "");
+    }
+  }, [profile]);
+
+  const saveMutation = useMutation({
+    mutationFn: () =>
+      apiFetch<Profile>("/api/v1/auth/profile", {
+        method: "PUT",
+        json: { full_name: name, phone, department: dept },
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["user", "profile"] });
+      setMsg({ text: "Profil güncellendi", ok: true });
+    },
+    onError: () => {
+      setMsg({ text: "Güncelleme başarısız", ok: false });
+    },
+  });
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
-    setSaving(true);
     setMsg(null);
-    try {
-      const updated = await apiFetch<Profile>("/api/v1/auth/profile", {
-        method: "PUT",
-        json: { full_name: name, phone, department: dept },
-      });
-      setProfile(updated);
-      setMsg({ text: "Profil güncellendi", ok: true });
-    } catch {
-      setMsg({ text: "Güncelleme başarısız", ok: false });
-    } finally {
-      setSaving(false);
-    }
+    saveMutation.mutate();
   }
 
   async function handlePasswordChange(e: React.FormEvent) {
@@ -257,11 +265,11 @@ export default function ProfilePage() {
           <div className="sm:col-span-2 flex flex-wrap gap-3 border-t border-slate-800 pt-5 mt-1">
             <button
               type="submit"
-              disabled={saving}
+              disabled={saveMutation.isPending}
               data-testid="profile-btn-save"
               className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-500 rounded-xl transition-colors disabled:opacity-50"
             >
-              {saving ? "Kaydediliyor…" : "Kaydet"}
+              {saveMutation.isPending ? "Kaydediliyor…" : "Kaydet"}
             </button>
             <button
               type="button"

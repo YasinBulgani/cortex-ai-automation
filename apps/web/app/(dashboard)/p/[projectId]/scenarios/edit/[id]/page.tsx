@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouteParam } from "@/lib/use-route-param";
 import { apiFetch } from "@/lib/api";
 import { Button } from "@/components/ui/button";
@@ -28,6 +29,7 @@ export default function EditScenarioPage() {
   const router = useRouter();
   const projectId = useRouteParam("projectId");
   const id = useRouteParam("id");
+  const queryClient = useQueryClient();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [status, setStatus] = useState("draft");
@@ -35,54 +37,58 @@ export default function EditScenarioPage() {
   const [dataBindings, setDataBindings] = useState<Array<{ data_set_id: string; parameter_mapping: Record<string, string> }>>([]);
   const [err, setErr] = useState<string | null>(null);
 
+  const { data: detail } = useQuery<Detail>({
+    queryKey: ["scenarios", "detail", projectId, id],
+    queryFn: () => apiFetch<Detail>(`/api/v1/tspm/projects/${projectId}/scenarios/${id}`),
+    enabled: !!projectId && !!id,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  // Sync form when detail loads
   useEffect(() => {
-    apiFetch<Detail>(`/api/v1/tspm/projects/${projectId}/scenarios/${id}`).then((d) => {
-      setTitle(d.title);
-      setDescription(d.description);
-      setStatus(d.status);
-      // Parse steps: if they have id/keyword/text, use as Step[]; otherwise create default steps
-      const parsedSteps: Step[] = (d.steps || []).map((s: Record<string, unknown>, idx: number) => ({
-        id: (s.id as number) ?? idx,
-        keyword: (s.keyword as string) ?? "Given",
-        text: (s.text as string) ?? "",
-      }));
-      setSteps(parsedSteps);
-      setDataBindings(d.data_bindings || []);
-    });
-  }, [projectId, id]);
+    if (!detail) return;
+    setTitle(detail.title);
+    setDescription(detail.description);
+    setStatus(detail.status);
+    const parsedSteps: Step[] = (detail.steps || []).map((s: Record<string, unknown>, idx: number) => ({
+      id: (s.id as number) ?? idx,
+      keyword: (s.keyword as string) ?? "Given",
+      text: (s.text as string) ?? "",
+    }));
+    setSteps(parsedSteps);
+    setDataBindings(detail.data_bindings || []);
+  }, [detail]);
+
+  const saveMut = useMutation({
+    mutationFn: (payload: Record<string, unknown>) =>
+      apiFetch(`/api/v1/tspm/projects/${projectId}/scenarios/${id}`, {
+        method: "PUT",
+        json: payload,
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["scenarios", "detail", projectId, id] });
+      queryClient.invalidateQueries({ queryKey: ["scenarios", "list", projectId] });
+      router.push(`/p/${projectId}/scenarios/${id}`);
+    },
+    onError: (e: unknown) => setErr(e instanceof Error ? e.message : "Hata"),
+  });
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setErr(null);
 
-    // Validate steps
     if (steps.length === 0) {
       setErr("En az bir adım gerekli");
       return;
     }
 
-    // Convert steps to API format
     const stepsPayload: Record<string, unknown>[] = steps.map((s) => ({
       id: s.id,
       keyword: s.keyword,
       text: s.text,
     }));
 
-    try {
-      await apiFetch(`/api/v1/tspm/projects/${projectId}/scenarios/${id}`, {
-        method: "PUT",
-        json: {
-          title,
-          description,
-          status,
-          steps: stepsPayload,
-          data_bindings: dataBindings,
-        },
-      });
-      router.push(`/p/${projectId}/scenarios/${id}`);
-    } catch (e: unknown) {
-      setErr(e instanceof Error ? e.message : "Hata");
-    }
+    saveMut.mutate({ title, description, status, steps: stepsPayload, data_bindings: dataBindings });
   }
 
   return (
@@ -217,14 +223,13 @@ interface DataBindingCardProps {
 }
 
 function DataBindingCard({ projectId, dataBindings, onBindingsChange }: DataBindingCardProps) {
-  const [datasets, setDatasets] = useState<Array<{ id: string; name: string }>>([]);
-
-  useEffect(() => {
-    if (!projectId) return;
-    apiFetch<Array<{ id: string; name: string }>>(`/api/v1/tspm/projects/${projectId}/test-data`).then(setDatasets).catch(() => {
-      setDatasets([]);
-    });
-  }, [projectId]);
+  const { data: datasets = [] } = useQuery<Array<{ id: string; name: string }>>({
+    queryKey: ["test-data", "list", projectId],
+    queryFn: () => apiFetch<Array<{ id: string; name: string }>>(`/api/v1/tspm/projects/${projectId}/test-data`),
+    enabled: !!projectId,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+  });
 
   function addBinding() {
     const newBinding = { data_set_id: "", parameter_mapping: {} };

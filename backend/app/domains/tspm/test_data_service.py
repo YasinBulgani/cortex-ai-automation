@@ -8,7 +8,6 @@ import io
 import json
 import random
 
-from fastapi import HTTPException
 from fastapi.responses import StreamingResponse
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -141,14 +140,14 @@ def generate_test_data_preview(body: dict) -> dict:
     try:
         from faker import Faker
     except ImportError as exc:
-        raise HTTPException(500, "faker paketi yüklü değil. `pip install faker` komutunu çalıştırın.") from exc
+        raise RuntimeError("faker paketi yüklü değil. `pip install faker` komutunu çalıştırın.") from exc
 
     schema: dict[str, str] = body.get("schema", {})
     count: int = min(int(body.get("count", 10)), 1000)
     locale: str = body.get("locale", "tr_TR")
 
     if not schema:
-        raise HTTPException(400, 'schema gerekli. Örnek: {"ad": "name", "email": "email"}')
+        raise ValueError('schema gerekli. Örnek: {"ad": "name", "email": "email"}')
 
     fake = Faker(locale)
     faker_map = {
@@ -186,7 +185,7 @@ def generate_test_data_preview(body: dict) -> dict:
 def get_test_data_or_404(db: Session, project_id: str, data_id: str) -> TspmTestDataSet:
     dataset = db.get(TspmTestDataSet, data_id)
     if dataset is None or dataset.project_id != project_id:
-        raise HTTPException(404, "Veri seti bulunamadı")
+        raise KeyError("Veri seti bulunamadı")
     return dataset
 
 

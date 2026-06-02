@@ -7,15 +7,45 @@ from __future__ import annotations
 
 from typing import Annotated, Optional
 
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
 from app.deps import require_permission
-from app.domains.test_management import service
+from app.domains.test_management import comments_service, design_service, service, intelligence_service
 from fastapi import File, UploadFile
 
+from app.domains.test_management.intelligence_schemas import (
+    RunIntelligenceReportOut,
+    ETAPredictionOut,
+    TesterProfileOut,
+    AnomalyOut,
+    CaseRiskScoreOut,
+    ReleaseReadinessPredictionOut,
+    TesterPerformanceOut,
+)
 from app.domains.test_management.schemas import (
+    ALLOWED_COMMENT_ENTITY_TYPES,
+    ALLOWED_TECHNIQUES,
     AuditEventOut,
+    BvaRunCreate,
+    CaseDataGenerateRequest,
+    CaseDataRowIn,
+    CaseDataRowOut,
+    CaseParamSetCreate,
+    CaseParamSetOut,
+    DesignRunOut,
+    EqRunCreate,
+    ExpandCaseResponse,
+    PromoteCasesRequest,
+    PromoteCasesResponse,
+    MgmtCommentCreate,
+    MgmtCommentOut,
+    MgmtCommentReact,
+    MgmtCommentUpdate,
+    MgmtNotificationCreate,
+    MgmtNotificationOut,
+    NotificationUnreadCount,
     DefectLinkCreate,
     DefectLinkOut,
     DefectLinkUpdate,
@@ -474,3 +504,651 @@ def list_evidence(
     _user: ReadUser,
 ) -> list[EvidenceOut]:
     return [EvidenceOut(**item) for item in service.list_evidence(db, project_id, run_id, run_case_id)]
+
+
+# ── M-50 Threaded Comments ───────────────────────────────────────────────────
+
+
+def _require_tenant(user: User) -> str:
+    """Return the user's tenant_id or raise 403 if missing.
+
+    Hardening against accidental cross-tenant queries: any caller without
+    a tenant context cannot list/scope comment or notification data.
+    """
+    tenant_id = getattr(user, "tenant_id", None)
+    if tenant_id is None:
+        raise HTTPException(status_code=403, detail="User has no tenant context")
+    return str(tenant_id)
+
+
+def _is_admin(user: User) -> bool:
+    perms = getattr(user, "permissions", None) or []
+    try:
+        return "test_management.admin" in set(perms) or bool(getattr(user, "is_superuser", False))
+    except TypeError:
+        return bool(getattr(user, "is_superuser", False))
+
+
+@router.post(
+    "/comments",
+    response_model=MgmtCommentOut,
+    status_code=status.HTTP_201_CREATED,
+    summary="Create a threaded comment on a management entity",
+)
+def create_comment(payload: MgmtCommentCreate, db: DB, user: WriteUser) -> MgmtCommentOut:
+    try:
+        comment = comments_service.create_comment(db, payload, user)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return MgmtCommentOut.model_validate(comment)
+
+
+@router.get(
+    "/comments",
+    response_model=list[MgmtCommentOut],
+    summary="List comments for an entity (chronological, includes deleted-as-tombstone optionally)",
+)
+def list_comments(
+    db: DB,
+    user: ReadUser,
+    entity_type: str = Query(..., min_length=1),
+    entity_id: str = Query(..., min_length=1),
+    include_deleted: bool = Query(default=False),
+) -> list[MgmtCommentOut]:
+    if entity_type not in ALLOWED_COMMENT_ENTITY_TYPES:
+        raise HTTPException(status_code=400, detail="entity_type not allowed")
+    tenant_id = _require_tenant(user)
+    comments = comments_service.list_comments(
+        db,
+        entity_type=entity_type,
+        entity_id=entity_id,
+        include_deleted=include_deleted,
+        tenant_id=tenant_id,
+    )
+    return [MgmtCommentOut.model_validate(c) for c in comments]
+
+
+@router.patch(
+    "/comments/{comment_id}",
+    response_model=MgmtCommentOut,
+    summary="Edit a comment (author only)",
+)
+def patch_comment(
+    comment_id: str,
+    payload: MgmtCommentUpdate,
+    db: DB,
+    user: WriteUser,
+) -> MgmtCommentOut:
+    try:
+        comment = comments_service.update_comment(db, comment_id, payload, user)
+    except ValueError as exc:
+        raise HTTPException(status_code=403, detail=str(exc)) from exc
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return MgmtCommentOut.model_validate(comment)
+
+
+@router.delete(
+    "/comments/{comment_id}",
+    response_model=MgmtCommentOut,
+    summary="Soft-delete a comment (author or admin)",
+)
+def remove_comment(comment_id: str, db: DB, user: WriteUser) -> MgmtCommentOut:
+    try:
+        comment = comments_service.delete_comment(db, comment_id, user, is_admin=_is_admin(user))
+    except ValueError as exc:
+        raise HTTPException(status_code=403, detail=str(exc)) from exc
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return MgmtCommentOut.model_validate(comment)
+
+
+@router.post(
+    "/comments/{comment_id}/react",
+    response_model=MgmtCommentOut,
+    summary="Add or remove an emoji reaction on a comment",
+)
+def react_comment(
+    comment_id: str,
+    payload: MgmtCommentReact,
+    db: DB,
+    user: WriteUser,
+) -> MgmtCommentOut:
+    try:
+        comment = comments_service.react_to_comment(db, comment_id, payload, user)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return MgmtCommentOut.model_validate(comment)
+
+
+# ── M-45 Notification Inbox ──────────────────────────────────────────────────
+
+
+@router.get(
+    "/notifications",
+    response_model=list[MgmtNotificationOut],
+    summary="List the current user's notifications",
+)
+def list_notifications(
+    db: DB,
+    user: ReadUser,
+    unread_only: bool = Query(default=False),
+    include_archived: bool = Query(default=False),
+    project_id: Optional[str] = Query(default=None),
+    limit: int = Query(default=50, ge=1, le=200),
+) -> list[MgmtNotificationOut]:
+    tenant_id = _require_tenant(user)
+    notifications = comments_service.list_notifications(
+        db,
+        user_id=str(user.id),
+        tenant_id=tenant_id,
+        unread_only=unread_only,
+        include_archived=include_archived,
+        limit=limit,
+        project_id=project_id,
+    )
+    return [MgmtNotificationOut.model_validate(n) for n in notifications]
+
+
+@router.get(
+    "/notifications/unread-count",
+    response_model=NotificationUnreadCount,
+    summary="Lightweight badge count for the bell icon",
+)
+def unread_count(db: DB, user: ReadUser) -> NotificationUnreadCount:
+    tenant_id = _require_tenant(user)
+    unread, total = comments_service.count_notifications(
+        db, user_id=str(user.id), tenant_id=tenant_id
+    )
+    return NotificationUnreadCount(unread=unread, total=total)
+
+
+@router.post(
+    "/notifications",
+    response_model=MgmtNotificationOut,
+    status_code=status.HTTP_201_CREATED,
+    summary="Create a notification for another user (admin)",
+)
+def create_notification(
+    payload: MgmtNotificationCreate,
+    db: DB,
+    user: AdminUser,
+) -> MgmtNotificationOut:
+    try:
+        n = comments_service.create_notification(db, payload, user)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return MgmtNotificationOut.model_validate(n)
+
+
+@router.post(
+    "/notifications/{notification_id}/read",
+    response_model=MgmtNotificationOut,
+    summary="Mark a notification as read",
+)
+def read_notification(
+    notification_id: str,
+    db: DB,
+    user: ReadUser,
+) -> MgmtNotificationOut:
+    try:
+        n = comments_service.mark_read(db, notification_id=notification_id, user_id=str(user.id))
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return MgmtNotificationOut.model_validate(n)
+
+
+@router.post(
+    "/notifications/{notification_id}/archive",
+    response_model=MgmtNotificationOut,
+    summary="Archive a notification",
+)
+def archive_notification(
+    notification_id: str,
+    db: DB,
+    user: ReadUser,
+) -> MgmtNotificationOut:
+    try:
+        n = comments_service.mark_archived(db, notification_id=notification_id, user_id=str(user.id))
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return MgmtNotificationOut.model_validate(n)
+
+
+@router.post(
+    "/notifications/read-all",
+    response_model=dict,
+    summary="Mark every unread notification as read",
+)
+def read_all_notifications(db: DB, user: ReadUser) -> dict[str, int]:
+    affected = comments_service.mark_all_read(db, user_id=str(user.id))
+    return {"updated": affected}
+
+
+@router.post(
+    "/comments/summarize",
+    summary="AI-generated TL;DR / decisions / open questions for a comment thread",
+)
+def summarize_comment_thread(
+    payload: dict,
+    db: DB,
+    user: ReadUser,
+) -> dict:
+    entity_type = str(payload.get("entity_type") or "")
+    entity_id = str(payload.get("entity_id") or "")
+    if not entity_type or not entity_id:
+        raise HTTPException(status_code=400, detail="entity_type and entity_id required")
+    if entity_type not in ALLOWED_COMMENT_ENTITY_TYPES:
+        raise HTTPException(status_code=400, detail="entity_type not allowed")
+    tenant_id = _require_tenant(user)
+    try:
+        return comments_service.summarize_thread(
+            db,
+            tenant_id=tenant_id,
+            entity_type=entity_type,
+            entity_id=entity_id,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.get(
+    "/notifications/digest",
+    summary="AI-grouped digest of recent notifications for the current user",
+)
+def notifications_digest(
+    db: DB,
+    user: ReadUser,
+    window: str = Query(default="24h", description="24h | 7d"),
+) -> dict:
+    tenant_id = _require_tenant(user)
+    if window not in {"24h", "7d"}:
+        raise HTTPException(status_code=400, detail="window must be 24h or 7d")
+    return comments_service.digest_notifications(
+        db,
+        tenant_id=tenant_id,
+        user_id=str(user.id),
+        window=window,
+    )
+
+
+@router.get(
+    "/notifications/stream",
+    summary="Server-Sent Events stream of live notifications for the current user",
+)
+async def notification_stream(user: ReadUser) -> StreamingResponse:
+    user_id = str(user.id)
+
+    async def gen():
+        async for chunk in comments_service.stream_events(user_id):
+            yield chunk
+
+    return StreamingResponse(
+        gen(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache, no-transform",
+            "X-Accel-Buffering": "no",
+            "Connection": "keep-alive",
+        },
+    )
+
+
+# ── M-1 / M-2 / M-9 Design Techniques ────────────────────────────────────────
+
+
+@router.post(
+    "/design/bva",
+    response_model=DesignRunOut,
+    status_code=status.HTTP_201_CREATED,
+    summary="Generate a Boundary Value Analysis run (LLM with deterministic fallback)",
+)
+def design_create_bva(payload: BvaRunCreate, db: DB, user: WriteUser) -> DesignRunOut:
+    tenant_id = _require_tenant(user)
+    try:
+        return design_service.create_bva_run(db, tenant_id, user, payload)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.post(
+    "/design/eq",
+    response_model=DesignRunOut,
+    status_code=status.HTTP_201_CREATED,
+    summary="Generate an Equivalence Partitioning run",
+)
+def design_create_eq(payload: EqRunCreate, db: DB, user: WriteUser) -> DesignRunOut:
+    tenant_id = _require_tenant(user)
+    try:
+        return design_service.create_eq_run(db, tenant_id, user, payload)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.get(
+    "/design/runs",
+    response_model=list[DesignRunOut],
+    summary="List design technique runs for the current tenant",
+)
+def design_list_runs(
+    db: DB,
+    user: ReadUser,
+    technique: Optional[str] = Query(default=None),
+    requirement_id: Optional[str] = Query(default=None),
+    project_id: Optional[str] = Query(default=None),
+    limit: int = Query(default=100, ge=1, le=500),
+) -> list[DesignRunOut]:
+    tenant_id = _require_tenant(user)
+    if technique and technique not in ALLOWED_TECHNIQUES:
+        raise HTTPException(status_code=400, detail="technique not allowed")
+    try:
+        return design_service.list_design_runs(
+            db,
+            tenant_id,
+            technique=technique,
+            requirement_id=requirement_id,
+            project_id=project_id,
+            limit=limit,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.get(
+    "/design/runs/{run_id}",
+    response_model=DesignRunOut,
+    summary="Get a single design technique run",
+)
+def design_get_run(run_id: str, db: DB, user: ReadUser) -> DesignRunOut:
+    tenant_id = _require_tenant(user)
+    try:
+        return design_service.get_design_run(db, tenant_id, run_id)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@router.post(
+    "/design/runs/{run_id}/promote",
+    response_model=PromoteCasesResponse,
+    summary="Promote selected generated drafts to real TestCase rows",
+)
+def design_promote(
+    run_id: str,
+    payload: PromoteCasesRequest,
+    db: DB,
+    user: WriteUser,
+) -> PromoteCasesResponse:
+    tenant_id = _require_tenant(user)
+    try:
+        ids = design_service.promote_cases(db, tenant_id, user, run_id, payload)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return PromoteCasesResponse(case_ids=ids)
+
+
+@router.post(
+    "/cases/{case_id}/params",
+    response_model=CaseParamSetOut,
+    status_code=status.HTTP_201_CREATED,
+    summary="Attach a parameter schema (M-9) to a TestCase",
+)
+def design_create_param_set(
+    case_id: str,
+    payload: CaseParamSetCreate,
+    db: DB,
+    user: WriteUser,
+) -> CaseParamSetOut:
+    tenant_id = _require_tenant(user)
+    if payload.case_id != case_id:
+        raise HTTPException(status_code=400, detail="case_id mismatch")
+    try:
+        ps = design_service.create_param_set(db, tenant_id, user, payload)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return CaseParamSetOut.model_validate(ps)
+
+
+@router.get(
+    "/cases/{case_id}/params",
+    response_model=list[CaseParamSetOut],
+    summary="List parameter schemas attached to a TestCase",
+)
+def design_list_param_sets(case_id: str, db: DB, user: ReadUser) -> list[CaseParamSetOut]:
+    tenant_id = _require_tenant(user)
+    sets = design_service.list_param_sets(db, tenant_id, case_id)
+    return [CaseParamSetOut.model_validate(s) for s in sets]
+
+
+@router.post(
+    "/cases/{case_id}/data",
+    response_model=list[CaseDataRowOut],
+    status_code=status.HTTP_201_CREATED,
+    summary="Append data rows to a parameter set (manual / csv / llm-generated)",
+)
+def design_add_data_rows(
+    case_id: str,
+    payload: CaseDataGenerateRequest,
+    db: DB,
+    user: WriteUser,
+) -> list[CaseDataRowOut]:
+    tenant_id = _require_tenant(user)
+    try:
+        rows = design_service.generate_data_rows(db, tenant_id, user, payload)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return [CaseDataRowOut.model_validate(r) for r in rows]
+
+
+@router.get(
+    "/cases/{case_id}/params/{param_set_id}/data",
+    response_model=list[CaseDataRowOut],
+    summary="List data rows for a parameter set",
+)
+def design_list_data_rows(
+    case_id: str,
+    param_set_id: str,
+    db: DB,
+    user: ReadUser,
+) -> list[CaseDataRowOut]:
+    tenant_id = _require_tenant(user)
+    try:
+        rows = design_service.list_data_rows(db, tenant_id, param_set_id)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return [CaseDataRowOut.model_validate(r) for r in rows]
+
+
+@router.post(
+    "/cases/{case_id}/params/{param_set_id}/rows",
+    response_model=list[CaseDataRowOut],
+    status_code=status.HTTP_201_CREATED,
+    summary="Append manually-edited data rows to a parameter set",
+)
+def design_add_manual_rows(
+    case_id: str,
+    param_set_id: str,
+    rows: list[CaseDataRowIn],
+    db: DB,
+    user: WriteUser,
+) -> list[CaseDataRowOut]:
+    tenant_id = _require_tenant(user)
+    try:
+        created = design_service.add_data_rows(db, tenant_id, user, param_set_id, rows)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return [CaseDataRowOut.model_validate(r) for r in created]
+
+
+@router.post(
+    "/cases/{case_id}/expand",
+    response_model=ExpandCaseResponse,
+    summary="Materialise one execution stub per data row across the case's param sets",
+)
+def design_expand_case(case_id: str, db: DB, user: WriteUser) -> ExpandCaseResponse:
+    tenant_id = _require_tenant(user)
+    try:
+        result = design_service.expand_case(db, tenant_id, user, case_id)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return ExpandCaseResponse(**result)
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# TEST ZEKÂ MOTORU — Intelligence Engine
+# ══════════════════════════════════════════════════════════════════════════════
+
+@router.get(
+    "/projects/{project_id}/intelligence/runs/{run_id}",
+    response_model=RunIntelligenceReportOut,
+    summary="Bir koşum için tam zeka raporu: ETA, tester profilleri, anomaliler, risk sıralaması",
+)
+def run_intelligence(project_id: str, run_id: str, db: DB, _user: ReadUser) -> RunIntelligenceReportOut:
+    try:
+        report = intelligence_service.get_run_intelligence(db, project_id, run_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+    return RunIntelligenceReportOut(
+        run_id=report.run_id,
+        run_name=report.run_name,
+        generated_at=report.generated_at,
+        eta=ETAPredictionOut(**report.eta.__dict__),
+        testers=[TesterProfileOut(**t.__dict__) for t in report.testers],
+        anomalies=[AnomalyOut(**a.__dict__) for a in report.anomalies],
+        risk_sorted_remaining=[CaseRiskScoreOut(**c.__dict__) for c in report.risk_sorted_remaining],
+        summary_health=report.summary_health,
+        health_score=report.health_score,
+    )
+
+
+@router.get(
+    "/projects/{project_id}/intelligence/runs/{run_id}/eta",
+    response_model=ETAPredictionOut,
+    summary="Koşum için hız tabanlı ETA tahmini",
+)
+def run_eta(project_id: str, run_id: str, db: DB, _user: ReadUser) -> ETAPredictionOut:
+    from sqlalchemy import select as _select
+    from app.domains.test_management.models import TestRun, TestRunCase
+
+    run = db.execute(_select(TestRun).where(TestRun.id == run_id)).scalar_one_or_none()
+    if not run:
+        raise HTTPException(status_code=404, detail="Run bulunamadı")
+
+    run_cases = db.execute(
+        _select(TestRunCase).where(TestRunCase.run_id == run_id)
+    ).scalars().all()
+
+    eta = intelligence_service._predict_eta(run, run_cases)
+    return ETAPredictionOut(**eta.__dict__)
+
+
+@router.get(
+    "/projects/{project_id}/intelligence/runs/{run_id}/anomalies",
+    response_model=list[AnomalyOut],
+    summary="Koşumdaki anomalileri tespit et: takılı case, inaktif tester, yüksek blocked oranı",
+)
+def run_anomalies(project_id: str, run_id: str, db: DB, _user: ReadUser) -> list[AnomalyOut]:
+    from sqlalchemy import select as _select
+    from app.domains.test_management.models import TestRun, TestRunCase
+
+    run = db.execute(_select(TestRun).where(TestRun.id == run_id)).scalar_one_or_none()
+    if not run:
+        raise HTTPException(status_code=404, detail="Run bulunamadı")
+
+    run_cases = db.execute(
+        _select(TestRunCase).where(TestRunCase.run_id == run_id)
+    ).scalars().all()
+
+    eta = intelligence_service._predict_eta(run, run_cases)
+    testers = intelligence_service._build_tester_profiles(run_cases)
+    anomalies = intelligence_service._detect_anomalies(run, run_cases, testers, eta)
+    return [AnomalyOut(**a.__dict__) for a in anomalies]
+
+
+@router.get(
+    "/projects/{project_id}/intelligence/runs/{run_id}/risk-queue",
+    response_model=list[CaseRiskScoreOut],
+    summary="Kalan case'leri risk skoruna göre sırala — en riskli önce",
+)
+def run_risk_queue(project_id: str, run_id: str, db: DB, _user: ReadUser) -> list[CaseRiskScoreOut]:
+    from sqlalchemy import select as _select
+    from app.domains.test_management.models import TestRunCase
+
+    run_cases = db.execute(
+        _select(TestRunCase).where(TestRunCase.run_id == run_id)
+    ).scalars().all()
+
+    scored = intelligence_service._risk_sort_remaining(db, run_cases)
+    return [CaseRiskScoreOut(**c.__dict__) for c in scored]
+
+
+@router.get(
+    "/projects/{project_id}/intelligence/release-prediction",
+    response_model=ReleaseReadinessPredictionOut,
+    summary="Mevcut ilerlemeye göre release gate'e ulaşılıp ulaşılamayacağını tahmin et",
+)
+def release_prediction(project_id: str, db: DB, _user: ReadUser) -> ReleaseReadinessPredictionOut:
+    result = intelligence_service.predict_release_readiness(db, project_id)
+    return ReleaseReadinessPredictionOut(**result.__dict__)
+
+
+@router.get(
+    "/projects/{project_id}/intelligence/testers/{user_id}",
+    response_model=TesterPerformanceOut,
+    summary="Bir tester'ın bu proje genelindeki performans profili",
+)
+def tester_performance(project_id: str, user_id: str, db: DB, _user: ReadUser) -> TesterPerformanceOut:
+    data = intelligence_service.get_tester_performance(db, project_id, user_id)
+    return TesterPerformanceOut(**data)
+
+
+# ── Tester Home: bana atanmış case'ler ───────────────────────────────────────
+
+@router.get(
+    "/projects/{project_id}/my-cases",
+    summary="Aktif run'larda oturum açmış kullanıcıya atanmış case'leri döner",
+)
+def my_assigned_cases(project_id: str, db: DB, user: ReadUser) -> list[dict]:
+    from sqlalchemy import select as _sel
+    from app.domains.test_management.models import TestRun, TestRunCase, TestCycle
+
+    rows = db.execute(
+        _sel(TestRunCase, TestRun)
+        .join(TestRun, TestRunCase.run_id == TestRun.id)
+        .join(TestCycle, TestRun.cycle_id == TestCycle.id)
+        .where(TestRunCase.assigned_to == user.id)
+        .where(TestRun.status.in_(["not_started", "in_progress"]))
+        .order_by(TestRun.created_at.desc())
+    ).all()
+
+    result = []
+    for rc, run in rows:
+        snapshot = rc.case_snapshot or {}
+        snap_case = snapshot.get("case", {})
+        result.append({
+            "run_case_id": rc.id,
+            "run_id": run.id,
+            "run_name": run.name,
+            "run_status": run.status,
+            "case_id": rc.case_id,
+            "case_key": snap_case.get("case_key"),
+            "title": snap_case.get("title"),
+            "status": rc.status,
+            "priority": snap_case.get("priority", "medium"),
+            "started_at": rc.started_at.isoformat() if rc.started_at else None,
+            "completed_at": rc.completed_at.isoformat() if rc.completed_at else None,
+            "duration_seconds": rc.duration_seconds,
+            "step_count": len(snapshot.get("steps", [])),
+            "completed_steps": len(rc.step_results),
+        })
+    return result

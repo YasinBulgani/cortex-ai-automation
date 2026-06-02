@@ -2,10 +2,10 @@ import { redirect } from "next/navigation";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Neurex QA — Giriş",
-  description: "Neurex QA güvenli çalışma alanına giriş yapın.",
+  title: "Neurex QA",
+  description: "Neurex QA operasyon paneli.",
 };
 
 export default function HomePage() {
-  redirect("/login");
+  redirect("/projects");
 }

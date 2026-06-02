@@ -77,6 +77,74 @@ def require_permission(perm: str) -> Callable:
     return dependency
 
 
+# ── Project-level ACL ─────────────────────────────────────────────
+# Project member roles -> set of permission strings that override globals
+_PROJECT_ROLE_PERMS: dict[str, set[str]] = {
+    "viewer": {
+        "project.read",
+        "scenario.read",
+        "test_management.read",
+    },
+    "member": {
+        "project.read",
+        "scenario.read",
+        "scenario.create",
+        "scenario.update",
+        "test_management.read",
+        "test_management.write",
+        "execution.create",
+    },
+    "operator": {
+        "project.read",
+        "project.update",
+        "scenario.create",
+        "scenario.read",
+        "scenario.update",
+        "scenario.delete",
+        "execution.create",
+        "execution.update",
+        "test_management.read",
+        "test_management.write",
+        "test_management.execute",
+        "approval.decide",
+    },
+    "admin": {"admin.*"},
+}
+
+
+def resolve_project_permissions(
+    db: Session, user: User, project_id: str
+) -> set[str]:
+    """Compute effective permissions = global role perms ∪ project member perms."""
+    perms = _user_permissions(user)
+    from app.infra.models import ProjectMember
+    pm = db.get(ProjectMember, (project_id, user.id))
+    if pm is not None:
+        perms = perms | _PROJECT_ROLE_PERMS.get(pm.role, set())
+    return perms
+
+
+def require_project_permission(perm: str) -> Callable:
+    """Permission check augmented with project membership.
+
+    The route must accept `project_id` as a path or query param; FastAPI binds
+    it via the dependency signature below.
+    """
+    def dependency(
+        project_id: str,
+        user: Annotated[User, Depends(get_current_user)],
+        db: Annotated[Session, Depends(get_db)],
+    ) -> User:
+        effective = resolve_project_permissions(db, user, project_id)
+        if "admin.*" in effective or perm in effective:
+            return user
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"Proje icin yetkiniz yok: {perm}",
+        )
+    return dependency
+
+
 def get_optional_user(
     request: Request,
     db: Annotated[Session, Depends(get_db)],

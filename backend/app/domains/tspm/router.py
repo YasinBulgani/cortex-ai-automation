@@ -624,6 +624,20 @@ def list_projects(
         description="Sıralama anahtarı; ana sayfa 'last_opened_at' kullanır.",
     ),
 ):
+    """Kullanıcının erişebildiği projeleri listeler.
+
+    Performans: Sonuçlar 60 saniye cache'lenir. Proje yaratma/silme/güncelleme
+    işlemlerinde cache invalidate edilir (touch endpoint hariç — TTL yeterli).
+    """
+    from app.infra.cache import cache_get, cache_set, make_key  # geç import
+
+    _cache_key = make_key("projects", "list", str(user.id), str(include_archived), sort)
+    _CACHE_TTL = 60  # saniye
+
+    cached = cache_get(_cache_key)
+    if cached is not None:
+        return cached  # list[dict] — Pydantic response_model otomatik validate eder
+
     # Admin kullanıcılar tüm projeleri görebilir
     user_perms = {rp.permission for role in user.roles for rp in role.permissions}
     if Permission.ADMIN_FULL in user_perms:
@@ -646,7 +660,15 @@ def list_projects(
     else:
         stmt = stmt.order_by(TspmProject.created_at.desc())
 
-    return list(db.scalars(stmt))
+    rows = list(db.scalars(stmt))
+
+    # Pydantic nesnelerini dict'e çevirerek cache'e yaz
+    try:
+        cache_set(_cache_key, [ProjectOut.model_validate(r).model_dump() for r in rows], ttl=_CACHE_TTL)
+    except Exception:  # noqa: BLE001
+        pass
+
+    return rows
 
 
 @router.post("/projects/{project_id}/touch", response_model=ProjectOut)
@@ -750,8 +772,13 @@ def create_project(
 ):
     """Yeni proje olusturur."""
     from app.domains.billing.gating import enforce_capacity
+    from app.infra.cache import cache_delete_pattern, make_key  # geç import
     enforce_capacity(db, user.tenant_id, "project_count")
-    return project_svc.create_project_for_user(db, body, user)
+    result = project_svc.create_project_for_user(db, body, user)
+    # Proje listesi ve global dashboard cache'ini invalidate et
+    cache_delete_pattern(make_key("projects", "list", str(user.id), "*"))
+    cache_delete_pattern(make_key("dashboard", "global", "*"))
+    return result
 
 
 @router.get("/projects/{project_id}", response_model=ProjectOut)
@@ -767,6 +794,7 @@ def update_project(
     user: Annotated[User, Depends(require_permission(Permission.PROJECT_CREATE))],
 ):
     """Proje adını, açıklamasını ve test URL'ini günceller."""
+    from app.infra.cache import cache_delete_pattern, make_key  # geç import
     project = _get_project(db, project_id, user)
     project.name = body.name.strip()
     project.description = body.description.strip()
@@ -776,6 +804,9 @@ def update_project(
     project.default_entry_key = body.resolved_default_entry_key()
     db.commit()
     db.refresh(project)
+    # Proje listesi ve dashboard cache'ini invalidate et
+    cache_delete_pattern(make_key("projects", "list", str(user.id), "*"))
+    cache_delete_pattern(make_key("dashboard", "global", "*"))
     return project
 
 
@@ -785,9 +816,13 @@ def delete_project(
     user: Annotated[User, Depends(require_permission(Permission.PROJECT_CREATE))],
 ):
     """Projeyi siler."""
+    from app.infra.cache import cache_delete_pattern, make_key  # geç import
     project = _get_project(db, project_id, user)
     db.delete(project)
     db.commit()
+    # Silinen proje için tüm ilgili cache'leri temizle
+    cache_delete_pattern(make_key("projects", "list", str(user.id), "*"))
+    cache_delete_pattern(make_key("dashboard", "global", "*"))
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -796,15 +831,45 @@ def delete_project(
 
 @router.get("/projects/{project_id}/dashboard", response_model=DashboardStats)
 def project_dashboard(project_id: str, db: DB, user: CurrentUser):
-    """Proje ozet istatistiklerini getirir."""
+    """Proje özet istatistiklerini getirir.
+
+    Performans: Sonuçlar proje bazında 30 saniye Redis/in-process cache'e alınır.
+    """
+    from app.infra.cache import cache_get, cache_set, make_key  # geç import
+
     _get_project(db, project_id, user)
-    return project_svc.build_project_dashboard(db, project_id)
+
+    _cache_key = make_key("dashboard", "project", project_id)
+    _CACHE_TTL = 30
+
+    cached = cache_get(_cache_key)
+    if cached is not None:
+        return DashboardStats(**cached)
+
+    result = project_svc.build_project_dashboard(db, project_id)
+    cache_set(_cache_key, result.model_dump(), ttl=_CACHE_TTL)
+    return result
 
 
 @router.get("/dashboard/global", response_model=GlobalDashboardOut)
 def global_dashboard(db: DB, user: CurrentUser):
-    """Platform genelinde özet istatistikler."""
-    # Admin tüm projeleri görür; diğerleri yalnızca üyesi oldukları projeleri
+    """Platform genelinde özet istatistikler.
+
+    Performans: Sonuçlar kullanıcı bazında 30 saniye Redis/in-process cache'e alınır.
+    Aktif koşular gibi anlık veriler için TTL kasıtlı kısa tutulmuştur.
+    """
+    from app.infra.cache import cache_get, cache_set, make_key  # geç import — döngüsel import önlemi
+    from sqlalchemy import case as sa_case
+
+    # ── Cache anahtarı: kullanıcı bazlı (admin vs üye farklı veri görür) ──
+    _cache_key = make_key("dashboard", "global", str(user.id))
+    _CACHE_TTL = 30  # saniye
+
+    cached = cache_get(_cache_key)
+    if cached is not None:
+        return GlobalDashboardOut(**cached)
+
+    # ── Yetki kontrolü ────────────────────────────────────────────────────
     user_perms = {rp.permission for role in user.roles for rp in role.permissions}
     is_admin = Permission.ADMIN_FULL in user_perms
     if is_admin:
@@ -820,14 +885,34 @@ def global_dashboard(db: DB, user: CurrentUser):
             return []
         return [col.in_(accessible_project_ids)]
 
-    total_projects = db.scalar(
-        select(func.count()).select_from(TspmProject)
-        .where(*_project_filter(TspmProject.id))
-    ) or 0
-    total_scenarios = db.scalar(
-        select(func.count()).select_from(TspmScenario)
-        .where(*_project_filter(TspmScenario.project_id))
-    ) or 0
+    # ── Dört COUNT'u tek sorguda topla (4 round-trip → 1) ───────────────
+    # Her COUNT ayrı bir CASE ifadesine dönüştürülür; DB tek geçişte hesaplar.
+    if accessible_project_ids is None:
+        # Admin: filtre yok, doğrudan subquery'ler daha okunabilir
+        count_row = db.execute(
+            select(
+                func.count(TspmProject.id.distinct()).label("projects"),
+                func.count(TspmScenario.id.distinct()).label("scenarios"),
+            )
+            .select_from(TspmProject)
+            .outerjoin(TspmScenario, TspmScenario.project_id == TspmProject.id)
+        ).one()
+        total_projects = count_row.projects or 0
+        total_scenarios = count_row.scenarios or 0
+    else:
+        # Non-admin: tek sorguda iki sayım
+        count_row = db.execute(
+            select(
+                func.count(TspmProject.id.distinct()).label("projects"),
+                func.count(TspmScenario.id.distinct()).label("scenarios"),
+            )
+            .select_from(TspmProject)
+            .outerjoin(TspmScenario, TspmScenario.project_id == TspmProject.id)
+            .where(TspmProject.id.in_(accessible_project_ids))
+        ).one()
+        total_projects = count_row.projects or 0
+        total_scenarios = count_row.scenarios or 0
+
     active_execs = db.scalar(
         select(func.count()).where(
             TspmExecution.status == "running",
@@ -853,7 +938,7 @@ def global_dashboard(db: DB, user: CurrentUser):
     day_names = ["Pzt", "Sal", "Çar", "Per", "Cum", "Cmt", "Paz"]
     now = datetime.now(timezone.utc)
 
-    # ── Haftalık trend — 7 ayrı sorgu YERİNE tek sorgu ──────────────────
+    # ── Haftalık trend — tek sorgu ───────────────────────────────────────
     week_start = (now - timedelta(days=6)).replace(hour=0, minute=0, second=0, microsecond=0)
     weekly_metrics = list(db.scalars(
         select(TspmExecutionMetrics)
@@ -862,7 +947,6 @@ def global_dashboard(db: DB, user: CurrentUser):
             *_project_filter(TspmExecutionMetrics.project_id),
         )
     ))
-    # Python'da gün bazında toplama
     day_buckets: dict[int, tuple[int, int]] = {d: (0, 0) for d in range(7)}
     for m in weekly_metrics:
         ts = m.executed_at.replace(tzinfo=timezone.utc) if m.executed_at.tzinfo is None else m.executed_at
@@ -878,60 +962,58 @@ def global_dashboard(db: DB, user: CurrentUser):
         weekly.append(WeeklyTrendPoint(day=day_names[day.weekday()], runs=runs, passed=passed_w))
 
     # ── Top 5 proje — 3 toplu sorgu (N+1'in önüne geç) ──────────────────
-    top_projects_stmt = (
+    top_projects = list(db.scalars(
         select(TspmProject)
         .where(*_project_filter(TspmProject.id))
         .order_by(TspmProject.created_at.desc())
         .limit(5)
-    )
-    top_projects = list(db.scalars(top_projects_stmt))
+    ))
     top_project_ids = [p.id for p in top_projects]
 
-    # Senaryo sayıları — tek GROUP BY sorgusu
-    sc_rows = db.execute(
-        select(TspmScenario.project_id, func.count().label("cnt"))
-        .where(TspmScenario.project_id.in_(top_project_ids))
-        .group_by(TspmScenario.project_id)
-    ).all()
-    sc_by_project: dict[str, int] = {row.project_id: row.cnt for row in sc_rows}
+    sc_by_project: dict[str, int] = {}
+    latest_exec_by_project: dict[str, TspmExecution] = {}
+    result_stats: dict[str, tuple[int, int]] = {}
 
-    # Son çalışma zamanı — proje başına MAX(created_at) tek sorgu
-    latest_exec_subq = (
-        select(
-            TspmExecution.project_id,
-            func.max(TspmExecution.created_at).label("max_ts"),
-        )
-        .where(TspmExecution.project_id.in_(top_project_ids))
-        .group_by(TspmExecution.project_id)
-        .subquery()
-    )
-    latest_execs = list(db.scalars(
-        select(TspmExecution).join(
-            latest_exec_subq,
-            (TspmExecution.project_id == latest_exec_subq.c.project_id)
-            & (TspmExecution.created_at == latest_exec_subq.c.max_ts),
-        )
-    ))
-    latest_exec_by_project: dict[str, TspmExecution] = {e.project_id: e for e in latest_execs}
-
-    # Execution result istatistikleri — tek GROUP BY sorgusu
-    exec_ids = [e.id for e in latest_execs]
-    if exec_ids:
-        from sqlalchemy import case as sa_case
-        result_stats_rows = db.execute(
-            select(
-                TspmExecutionResult.execution_id,
-                func.count().label("total"),
-                func.sum(sa_case((TspmExecutionResult.status == "passed", 1), else_=0)).label("passed"),
-            )
-            .where(TspmExecutionResult.execution_id.in_(exec_ids))
-            .group_by(TspmExecutionResult.execution_id)
+    if top_project_ids:
+        sc_rows = db.execute(
+            select(TspmScenario.project_id, func.count().label("cnt"))
+            .where(TspmScenario.project_id.in_(top_project_ids))
+            .group_by(TspmScenario.project_id)
         ).all()
-        result_stats: dict[str, tuple[int, int]] = {
-            row.execution_id: (row.total, row.passed) for row in result_stats_rows
-        }
-    else:
-        result_stats = {}
+        sc_by_project = {row.project_id: row.cnt for row in sc_rows}
+
+        latest_exec_subq = (
+            select(
+                TspmExecution.project_id,
+                func.max(TspmExecution.created_at).label("max_ts"),
+            )
+            .where(TspmExecution.project_id.in_(top_project_ids))
+            .group_by(TspmExecution.project_id)
+            .subquery()
+        )
+        latest_execs = list(db.scalars(
+            select(TspmExecution).join(
+                latest_exec_subq,
+                (TspmExecution.project_id == latest_exec_subq.c.project_id)
+                & (TspmExecution.created_at == latest_exec_subq.c.max_ts),
+            )
+        ))
+        latest_exec_by_project = {e.project_id: e for e in latest_execs}
+
+        exec_ids = [e.id for e in latest_execs]
+        if exec_ids:
+            result_stats_rows = db.execute(
+                select(
+                    TspmExecutionResult.execution_id,
+                    func.count().label("total"),
+                    func.sum(sa_case((TspmExecutionResult.status == "passed", 1), else_=0)).label("passed"),
+                )
+                .where(TspmExecutionResult.execution_id.in_(exec_ids))
+                .group_by(TspmExecutionResult.execution_id)
+            ).all()
+            result_stats = {
+                row.execution_id: (row.total, row.passed) for row in result_stats_rows
+            }
 
     def _time_ago(dt: datetime) -> str:
         diff = now - (dt.replace(tzinfo=timezone.utc) if dt.tzinfo is None else dt)
@@ -977,7 +1059,7 @@ def global_dashboard(db: DB, user: CurrentUser):
             resource_type=evt.resource_type, resource_id=evt.resource_id,
         ))
 
-    return GlobalDashboardOut(
+    result = GlobalDashboardOut(
         total_projects=total_projects,
         total_scenarios=total_scenarios,
         active_executions=active_execs,
@@ -987,6 +1069,14 @@ def global_dashboard(db: DB, user: CurrentUser):
         projects=projects_rows,
         activities=activities,
     )
+
+    # ── Sonucu cache'e yaz ────────────────────────────────────────────────
+    try:
+        cache_set(_cache_key, result.model_dump(), ttl=_CACHE_TTL)
+    except Exception:  # noqa: BLE001
+        pass  # Cache yazma hatası isteği engellemesin
+
+    return result
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -1003,17 +1093,22 @@ def list_scenarios(
     skip: int = Query(0, ge=0, description="Kaç kayıt atlanacak"),
     limit: int = Query(100, ge=1, le=500, description="Sayfa başına kayıt (maks 500)"),
 ):
-    """Projeye ait test senaryolarini listeler."""
+    """Projeye ait test senaryolarini listeler. Filtre yoksa 60s cache."""
+    from app.infra.cache import cache_get, cache_set, make_key
+
     _get_project(db, project_id, user)
+    # Filtre yoksa (en sık kullanım) cache uygula
+    no_filter = (q is None and tag is None and tags is None and status_filter is None and skip == 0 and limit == 100)
+    if no_filter:
+        _cache_key = make_key("scenarios", "list", project_id)
+        cached = cache_get(_cache_key)
+        if cached is not None:
+            return [ScenarioOut(**item) for item in cached]
+        result = scenario_svc.list_scenarios_for_project(db, project_id, q=q, tag=tag, tags=tags, status_filter=status_filter, skip=skip, limit=limit)
+        cache_set(_cache_key, [ScenarioOut.model_validate(r).model_dump(mode="json") for r in result], ttl=60)
+        return result
     return scenario_svc.list_scenarios_for_project(
-        db,
-        project_id,
-        q=q,
-        tag=tag,
-        tags=tags,
-        status_filter=status_filter,
-        skip=skip,
-        limit=limit,
+        db, project_id, q=q, tag=tag, tags=tags, status_filter=status_filter, skip=skip, limit=limit,
     )
 
 
@@ -1024,14 +1119,13 @@ def create_scenario(
 ):
     """Yeni test senaryosu olusturur."""
     from app.domains.billing.gating import enforce_capacity
+    from app.infra.cache import cache_delete, make_key
     _get_project(db, project_id, user)
     enforce_capacity(db, user.tenant_id, "scenario_count")
-    return scenario_svc.create_scenario_for_project(
-        db,
-        project_id,
-        body,
-        actor_user_id=user.id,
-    )
+    result = scenario_svc.create_scenario_for_project(db, project_id, body, actor_user_id=user.id)
+    cache_delete(make_key("scenarios", "list", project_id))
+    cache_delete(make_key("dashboard", "project", project_id))
+    return result
 
 
 @router.get("/projects/{project_id}/scenarios/{scenario_id}", response_model=ScenarioOut)
@@ -1229,13 +1323,10 @@ def update_scenario(
     user: Annotated[User, Depends(require_permission(Permission.SCENARIO_UPDATE))],
 ):
     """Test senaryosunu gunceller."""
-    return scenario_svc.update_scenario_for_project(
-        db,
-        project_id,
-        scenario_id,
-        body,
-        actor_user_id=user.id,
-    )
+    from app.infra.cache import cache_delete, make_key
+    result = scenario_svc.update_scenario_for_project(db, project_id, scenario_id, body, actor_user_id=user.id)
+    cache_delete(make_key("scenarios", "list", project_id))
+    return result
 
 
 @router.delete("/projects/{project_id}/scenarios/{scenario_id}", status_code=204)
@@ -1244,8 +1335,11 @@ def delete_scenario(
     user: Annotated[User, Depends(require_permission(Permission.SCENARIO_UPDATE))],
 ):
     """Test senaryosunu siler."""
+    from app.infra.cache import cache_delete, make_key
     _get_project(db, project_id, user)
     scenario_svc.delete_scenario(db, project_id, scenario_id)
+    cache_delete(make_key("scenarios", "list", project_id))
+    cache_delete(make_key("dashboard", "project", project_id))
 
 
 @router.post("/projects/{project_id}/scenarios/generate-bdd", response_model=BddGenerateResponse)
@@ -1290,6 +1384,9 @@ def save_bdd_scenarios(
     db.commit()
     for s in created:
         db.refresh(s)
+    from app.infra.cache import cache_delete, make_key
+    cache_delete(make_key("scenarios", "list", project_id))
+    cache_delete(make_key("dashboard", "project", project_id))
     return created
 
 
@@ -1410,13 +1507,11 @@ def bulk_delete_scenarios(
     user: Annotated[User, Depends(require_permission(Permission.SCENARIO_DELETE))],
 ):
     """Secilen senaryolari toplu olarak siler."""
+    from app.infra.cache import cache_delete, make_key
     _get_project(db, project_id, user)
-    scenario_svc.bulk_delete_scenarios_for_project(
-        db,
-        project_id,
-        body,
-        actor_user_id=user.id,
-    )
+    scenario_svc.bulk_delete_scenarios_for_project(db, project_id, body, actor_user_id=user.id)
+    cache_delete(make_key("scenarios", "list", project_id))
+    cache_delete(make_key("dashboard", "project", project_id))
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -1429,8 +1524,11 @@ def create_requirement(
     user: Annotated[User, Depends(require_permission(Permission.REQUIREMENT_MANAGE))],
 ):
     """Yeni gereksinim kaydi olusturur."""
+    from app.infra.cache import cache_delete, make_key
     _get_project(db, project_id, user)
-    return scenario_svc.create_requirement_for_project(db, project_id, body)
+    result = scenario_svc.create_requirement_for_project(db, project_id, body)
+    cache_delete(make_key("requirements", "list", project_id))
+    return result
 
 
 @router.get("/projects/{project_id}/requirements", response_model=list[RequirementOut])
@@ -1439,14 +1537,21 @@ def list_requirements(
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=500),
 ):
-    """Gereksinimleri listeler."""
+    """Gereksinimleri listeler. 60s cache (default pagination)."""
+    from app.infra.cache import cache_get, cache_set, make_key
     _get_project(db, project_id, user)
-    return scenario_svc.list_requirements_for_project(
-        db,
-        project_id,
-        skip=skip,
-        limit=limit,
-    )
+    if skip == 0 and limit == 100:
+        _cache_key = make_key("requirements", "list", project_id)
+        cached = cache_get(_cache_key)
+        if cached is not None:
+            return [RequirementOut(**item) if isinstance(item, dict) else item for item in cached]
+        result = scenario_svc.list_requirements_for_project(db, project_id, skip=skip, limit=limit)
+        try:
+            cache_set(_cache_key, [RequirementOut.model_validate(r).model_dump(mode="json") for r in result], ttl=60)
+        except Exception:
+            pass
+        return result
+    return scenario_svc.list_requirements_for_project(db, project_id, skip=skip, limit=limit)
 
 
 @router.put("/projects/{project_id}/requirements/{requirement_id}", response_model=RequirementOut)
@@ -1469,7 +1574,9 @@ def delete_requirement(
     user: Annotated[User, Depends(require_permission(Permission.REQUIREMENT_MANAGE))],
 ):
     """Gereksinim kaydini siler."""
+    from app.infra.cache import cache_delete, make_key
     scenario_svc.delete_requirement_for_project(db, project_id, requirement_id)
+    cache_delete(make_key("requirements", "list", project_id))
 
 
 @router.post("/projects/{project_id}/scenarios/{scenario_id}/requirements", status_code=201)
@@ -1585,14 +1692,23 @@ def list_executions(
     limit: int = Query(50, ge=1, le=200, description="Sayfa başına kayıt (maks 200)"),
     platform: Optional[str] = Query(None, description="Platform filtresi: ios | android | desktop"),
 ):
-    """Test kosularini listeler."""
+    """Test kosularini listeler. 20s cache (skip=0, no platform filter)."""
     _get_project(db, project_id, user)
+    if skip == 0 and platform is None:
+        from app.infra.cache import cache_get, cache_set, make_key
+        _cache_key = make_key("executions", "list", project_id, str(limit))
+        cached = cache_get(_cache_key)
+        if cached is not None:
+            return cached
+        result = execution_svc.list_executions_for_project(db, project_id, skip=0, limit=limit, platform=None)
+        try:
+            from app.domains.tspm.schemas import ExecutionOut
+            cache_set(_cache_key, [ExecutionOut.model_validate(r).model_dump(mode="json") for r in result], ttl=20)
+        except Exception:
+            pass
+        return result
     return execution_svc.list_executions_for_project(
-        db,
-        project_id,
-        skip=skip,
-        limit=limit,
-        platform=platform,
+        db, project_id, skip=skip, limit=limit, platform=platform,
     )
 
 
@@ -1639,6 +1755,14 @@ def create_execution(
                   "device_name": body.device_name,
               }, ip=None)
     db.commit()
+    # Proje dashboard cache'ini temizle — yeni koşum sayılar değiştirir.
+    from app.infra.cache import cache_delete, cache_delete_pattern, make_key
+    cache_delete(make_key("dashboard", "project", project_id))
+    cache_delete_pattern(make_key("dashboard", "global", "*"))
+    cache_delete(make_key("exec-stats", project_id))
+    cache_delete(make_key("exec-trends", project_id, "30"))
+    cache_delete(make_key("exec-trends", project_id, "7"))
+    cache_delete_pattern(make_key("executions", "list", project_id, "*"))
     return ExecutionOut(
         id=ex.id, name=ex.name, status=ex.status,
         created_at=ex.created_at, scenario_total=len(body.scenario_ids),
@@ -1730,6 +1854,15 @@ def update_execution_status(
     ex.status = body.status
     db.commit()
     db.refresh(ex)
+    # Durum değişince dashboard istatistikleri güncellenmeli.
+    from app.infra.cache import cache_delete, cache_delete_pattern, make_key
+    cache_delete(make_key("dashboard", "project", project_id))
+    cache_delete_pattern(make_key("dashboard", "global", "*"))
+    cache_delete(make_key("exec-stats", project_id))
+    cache_delete(make_key("flaky-tests", project_id))
+    cache_delete(make_key("exec-trends", project_id, "30"))
+    cache_delete(make_key("exec-trends", project_id, "7"))
+    cache_delete_pattern(make_key("executions", "list", project_id, "*"))
 
     # Aggregate counts (ExecutionOut şeması bunları bekler).
     results = list(db.scalars(
@@ -1779,6 +1912,14 @@ def delete_execution(
     )
     db.delete(ex)
     db.commit()
+    # Silinen koşum dashboard sayılarını etkiler.
+    from app.infra.cache import cache_delete, cache_delete_pattern, make_key
+    cache_delete(make_key("dashboard", "project", project_id))
+    cache_delete_pattern(make_key("dashboard", "global", "*"))
+    cache_delete(make_key("exec-stats", project_id))
+    cache_delete(make_key("flaky-tests", project_id))
+    cache_delete(make_key("exec-trends", project_id, "30"))
+    cache_delete(make_key("exec-trends", project_id, "7"))
     return Response(status_code=204)
 
 
@@ -1820,9 +1961,20 @@ def cancel_execution(project_id: str, run_id: str, db: DB, user: CurrentUser):
 
 @router.get("/projects/{project_id}/execution-trends", response_model=ExecutionTrendsOut)
 def get_execution_trends(project_id: str, db: DB, user: CurrentUser, days: int = Query(30)):
-    """Test kosusu trendlerini getirir."""
+    """Test kosusu trendlerini getirir. 60s cache — analytics sayfası için."""
+    from app.infra.cache import cache_get, cache_set, make_key
+
     _get_project(db, project_id, user)
-    return execution_svc.build_execution_trends_for_project(db, project_id, days=days)
+    _cache_key = make_key("exec-trends", project_id, str(days))
+    cached = cache_get(_cache_key)
+    if cached is not None:
+        return ExecutionTrendsOut(**cached) if isinstance(cached, dict) else cached
+    result = execution_svc.build_execution_trends_for_project(db, project_id, days=days)
+    try:
+        cache_set(_cache_key, result.model_dump(mode="json"), ttl=60)
+    except Exception:
+        pass  # cache miss on non-Pydantic result
+    return result
 
 
 class _ProjectStats(_PydanticBase):
@@ -1866,16 +2018,36 @@ def get_project_stats(project_id: str, db: DB, user: CurrentUser):
 
 @router.get("/projects/{project_id}/execution-stats", response_model=ExecutionStatsOut)
 def get_execution_stats(project_id: str, db: DB, user: CurrentUser):
-    """Test kosusu istatistiklerini getirir."""
+    """Test kosusu istatistiklerini getirir. 60s cache."""
+    from app.infra.cache import cache_get, cache_set, make_key
     _get_project(db, project_id, user)
-    return execution_svc.build_execution_stats_for_project(db, project_id)
+    _cache_key = make_key("exec-stats", project_id)
+    cached = cache_get(_cache_key)
+    if cached is not None:
+        return ExecutionStatsOut(**cached) if isinstance(cached, dict) else cached
+    result = execution_svc.build_execution_stats_for_project(db, project_id)
+    try:
+        cache_set(_cache_key, result.model_dump(mode="json"), ttl=60)
+    except Exception:
+        pass
+    return result
 
 
 @router.get("/projects/{project_id}/flaky-tests", response_model=list[FlakyTestOut])
 def get_flaky_tests(project_id: str, db: DB, user: CurrentUser):
-    """Flaky testleri listeler."""
+    """Flaky testleri listeler. 120s cache."""
+    from app.infra.cache import cache_get, cache_set, make_key
     _get_project(db, project_id, user)
-    return execution_svc.get_flaky_tests_for_project(db, project_id)
+    _cache_key = make_key("flaky-tests", project_id)
+    cached = cache_get(_cache_key)
+    if cached is not None:
+        return [FlakyTestOut(**item) if isinstance(item, dict) else item for item in cached]
+    result = execution_svc.get_flaky_tests_for_project(db, project_id)
+    try:
+        cache_set(_cache_key, [FlakyTestOut.model_validate(r).model_dump(mode="json") for r in result], ttl=120)
+    except Exception:
+        pass
+    return result
 
 
 class _AnomalyIssue(str, Enum):
@@ -1945,14 +2117,21 @@ def list_flows(
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=500),
 ):
-    """Akislari listeler."""
+    """Akislari listeler. 60s cache (skip=0)."""
     _get_project(db, project_id, user)
-    return flow_regression_svc.list_flows_for_project(
-        db,
-        project_id,
-        skip=skip,
-        limit=limit,
-    )
+    if skip == 0:
+        from app.infra.cache import cache_get, cache_set, make_key
+        _cache_key = make_key("flows", "list", project_id)
+        cached = cache_get(_cache_key)
+        if cached is not None:
+            return cached
+        result = flow_regression_svc.list_flows_for_project(db, project_id, skip=0, limit=limit)
+        try:
+            cache_set(_cache_key, result, ttl=60)
+        except Exception:
+            pass
+        return result
+    return flow_regression_svc.list_flows_for_project(db, project_id, skip=skip, limit=limit)
 
 
 @router.post("/projects/{project_id}/flows", response_model=FlowOut, status_code=201)
@@ -1962,7 +2141,13 @@ def create_flow(
 ):
     """Yeni akis olusturur."""
     _get_project(db, project_id, user)
-    return flow_regression_svc.create_flow_for_project(db, project_id, body)
+    result = flow_regression_svc.create_flow_for_project(db, project_id, body)
+    from app.infra.cache import cache_delete, make_key
+    try:
+        cache_delete(make_key("flows", "list", project_id))
+    except Exception:
+        pass
+    return result
 
 
 @router.get("/projects/{project_id}/flows/{flow_id}", response_model=FlowDetailOut)
@@ -1995,14 +2180,21 @@ def list_regression_sets(
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=500),
 ):
-    """Regresyon setlerini listeler."""
+    """Regresyon setlerini listeler. 60s cache (skip=0)."""
     _get_project(db, project_id, user)
-    return flow_regression_svc.list_regression_sets_for_project(
-        db,
-        project_id,
-        skip=skip,
-        limit=limit,
-    )
+    if skip == 0:
+        from app.infra.cache import cache_get, cache_set, make_key
+        _cache_key = make_key("regression-sets", "list", project_id)
+        cached = cache_get(_cache_key)
+        if cached is not None:
+            return cached
+        result = flow_regression_svc.list_regression_sets_for_project(db, project_id, skip=0, limit=limit)
+        try:
+            cache_set(_cache_key, result, ttl=60)
+        except Exception:
+            pass
+        return result
+    return flow_regression_svc.list_regression_sets_for_project(db, project_id, skip=skip, limit=limit)
 
 
 @router.post("/projects/{project_id}/regression-sets", response_model=RegressionSetOut, status_code=201)
@@ -2012,7 +2204,13 @@ def create_regression_set(
 ):
     """Yeni regresyon seti olusturur."""
     _get_project(db, project_id, user)
-    return flow_regression_svc.create_regression_set_for_project(db, project_id, body)
+    result = flow_regression_svc.create_regression_set_for_project(db, project_id, body)
+    from app.infra.cache import cache_delete, make_key
+    try:
+        cache_delete(make_key("regression-sets", "list", project_id))
+    except Exception:
+        pass
+    return result
 
 
 @router.get("/projects/{project_id}/regression-sets/{set_id}", response_model=RegressionSetDetailOut)
@@ -2077,14 +2275,20 @@ def list_approvals(
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=200),
 ):
-    """Onay kayitlarini listeler."""
+    """Onay kayitlarini listeler. skip=0 ise 30s cache uygulanır."""
+    from app.infra.cache import cache_get, cache_set, make_key
+
     _get_project(db, project_id, user)
-    return approval_svc.list_approvals_for_project(
-        db,
-        project_id,
-        skip=skip,
-        limit=limit,
-    )
+    # Sadece default pagination için cache — custom pagination değilse
+    if skip == 0 and limit == 50:
+        _cache_key = make_key("approvals", "list", project_id)
+        cached = cache_get(_cache_key)
+        if cached is not None:
+            return [ApprovalOut(**item) for item in cached]
+        result = approval_svc.list_approvals_for_project(db, project_id, skip=skip, limit=limit)
+        cache_set(_cache_key, [ApprovalOut.model_validate(r).model_dump(mode="json") for r in result], ttl=30)
+        return result
+    return approval_svc.list_approvals_for_project(db, project_id, skip=skip, limit=limit)
 
 
 @router.post("/projects/{project_id}/approvals", response_model=ApprovalOut, status_code=201)
@@ -2156,6 +2360,11 @@ def decide_approval(
         }
 
     db.commit()
+    # Onay listesi ve global dashboard cache'ini temizle
+    from app.infra.cache import cache_delete, cache_delete_pattern, make_key
+    cache_delete(make_key("approvals", "list", project_id))
+    cache_delete(make_key("dashboard", "project", project_id))
+    cache_delete_pattern(make_key("dashboard", "global", "*"))
     return {"ok": True, "scenario_id": a.scenario_id}
 
 
@@ -2184,12 +2393,10 @@ def create_schedule(
 ):
     """Yeni zamanlama kaydi olusturur."""
     _get_project(db, project_id, user)
-    return schedule_svc.create_schedule_for_project(
-        db,
-        project_id,
-        body,
-        actor_user_id=user.id,
-    )
+    result = schedule_svc.create_schedule_for_project(db, project_id, body, actor_user_id=user.id)
+    from app.infra.cache import cache_delete, make_key
+    cache_delete(make_key("schedules", "list", project_id))
+    return result
 
 
 @router.get("/projects/{project_id}/schedules", response_model=list[ScheduleOut])
@@ -2198,14 +2405,19 @@ def list_schedules(
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=200),
 ):
-    """Zamanlamalari listeler."""
+    """Zamanlamalari listeler. Default pagination için 30s cache."""
+    from app.infra.cache import cache_get, cache_set, make_key
+
     _get_project(db, project_id, user)
-    return schedule_svc.list_schedules_for_project(
-        db,
-        project_id,
-        skip=skip,
-        limit=limit,
-    )
+    if skip == 0 and limit == 100:
+        _cache_key = make_key("schedules", "list", project_id)
+        cached = cache_get(_cache_key)
+        if cached is not None:
+            return [ScheduleOut(**item) for item in cached]
+        result = schedule_svc.list_schedules_for_project(db, project_id, skip=skip, limit=limit)
+        cache_set(_cache_key, [ScheduleOut.model_validate(r).model_dump(mode="json") for r in result], ttl=30)
+        return result
+    return schedule_svc.list_schedules_for_project(db, project_id, skip=skip, limit=limit)
 
 
 @router.put("/projects/{project_id}/schedules/{schedule_id}", response_model=ScheduleOut)
@@ -2214,12 +2426,10 @@ def update_schedule(
     user: Annotated[User, Depends(require_permission(Permission.SCHEDULE_MANAGE))],
 ):
     """Zamanlama bilgilerini gunceller."""
-    return schedule_svc.update_schedule_for_project(
-        db,
-        project_id,
-        schedule_id,
-        body,
-    )
+    result = schedule_svc.update_schedule_for_project(db, project_id, schedule_id, body)
+    from app.infra.cache import cache_delete, make_key
+    cache_delete(make_key("schedules", "list", project_id))
+    return result
 
 
 @router.delete("/projects/{project_id}/schedules/{schedule_id}", status_code=204)
@@ -2229,6 +2439,8 @@ def delete_schedule(
 ):
     """Zamanlama kaydini siler."""
     schedule_svc.delete_schedule_for_project(db, project_id, schedule_id)
+    from app.infra.cache import cache_delete, make_key
+    cache_delete(make_key("schedules", "list", project_id))
 
 
 @router.post(
@@ -2255,8 +2467,11 @@ def create_test_data(
     user: Annotated[User, Depends(require_permission(Permission.TEST_DATA_MANAGE))],
 ):
     """Yeni test verisi seti olusturur."""
+    from app.infra.cache import cache_delete, make_key
     _get_project(db, project_id, user)
-    return test_data_svc.create_test_data_for_project(db, project_id, body)
+    result = test_data_svc.create_test_data_for_project(db, project_id, body)
+    cache_delete(make_key("test-data", "list", project_id))
+    return result
 
 
 @router.get("/projects/{project_id}/test-data", response_model=list[TestDataSetOut])
@@ -2265,14 +2480,21 @@ def list_test_data(
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=500),
 ):
-    """Test verisi setlerini listeler."""
+    """Test verisi setlerini listeler. 60s cache (default pagination)."""
+    from app.infra.cache import cache_get, cache_set, make_key
     _get_project(db, project_id, user)
-    return test_data_svc.list_test_data_for_project(
-        db,
-        project_id,
-        skip=skip,
-        limit=limit,
-    )
+    if skip == 0 and limit == 100:
+        _cache_key = make_key("test-data", "list", project_id)
+        cached = cache_get(_cache_key)
+        if cached is not None:
+            return [TestDataSetOut(**item) if isinstance(item, dict) else item for item in cached]
+        result = test_data_svc.list_test_data_for_project(db, project_id, skip=skip, limit=limit)
+        try:
+            cache_set(_cache_key, [TestDataSetOut.model_validate(r).model_dump(mode="json") for r in result], ttl=60)
+        except Exception:
+            pass
+        return result
+    return test_data_svc.list_test_data_for_project(db, project_id, skip=skip, limit=limit)
 
 
 @router.put("/projects/{project_id}/test-data/{data_id}", response_model=TestDataSetOut)
@@ -2281,12 +2503,10 @@ def update_test_data(
     user: Annotated[User, Depends(require_permission(Permission.TEST_DATA_MANAGE))],
 ):
     """Test verisi setini gunceller."""
-    return test_data_svc.update_test_data_for_project(
-        db,
-        project_id,
-        data_id,
-        body,
-    )
+    from app.infra.cache import cache_delete, make_key
+    result = test_data_svc.update_test_data_for_project(db, project_id, data_id, body)
+    cache_delete(make_key("test-data", "list", project_id))
+    return result
 
 
 @router.delete("/projects/{project_id}/test-data/{data_id}", status_code=204)
@@ -2295,7 +2515,9 @@ def delete_test_data(
     user: Annotated[User, Depends(require_permission(Permission.TEST_DATA_MANAGE))],
 ):
     """Test verisi setini siler."""
+    from app.infra.cache import cache_delete, make_key
     test_data_svc.delete_test_data_for_project(db, project_id, data_id)
+    cache_delete(make_key("test-data", "list", project_id))
 
 
 @router.get("/projects/{project_id}/test-data/{data_id}/export")
@@ -2464,8 +2686,11 @@ def create_integration(
     user: Annotated[User, Depends(require_permission(Permission.INTEGRATION_MANAGE))],
 ):
     """Yeni entegrasyon tanimi olusturur."""
+    from app.infra.cache import cache_delete, make_key
     _get_project(db, project_id, user)
-    return integration_svc.create_integration_for_project(db, project_id, body)
+    result = integration_svc.create_integration_for_project(db, project_id, body)
+    cache_delete(make_key("integrations", "list", project_id))
+    return result
 
 
 @router.get("/projects/{project_id}/integrations", response_model=list[IntegrationOut])
@@ -2474,14 +2699,21 @@ def list_integrations(
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=200),
 ):
-    """Entegrasyonlari listeler."""
+    """Entegrasyonlari listeler. 60s cache (default pagination)."""
+    from app.infra.cache import cache_get, cache_set, make_key
     _get_project(db, project_id, user)
-    return integration_svc.list_integrations_for_project(
-        db,
-        project_id,
-        skip=skip,
-        limit=limit,
-    )
+    if skip == 0 and limit == 100:
+        _cache_key = make_key("integrations", "list", project_id)
+        cached = cache_get(_cache_key)
+        if cached is not None:
+            return [IntegrationOut(**item) if isinstance(item, dict) else item for item in cached]
+        result = integration_svc.list_integrations_for_project(db, project_id, skip=skip, limit=limit)
+        try:
+            cache_set(_cache_key, [IntegrationOut.model_validate(r).model_dump(mode="json") for r in result], ttl=60)
+        except Exception:
+            pass
+        return result
+    return integration_svc.list_integrations_for_project(db, project_id, skip=skip, limit=limit)
 
 
 @router.put("/projects/{project_id}/integrations/{integration_id}", response_model=IntegrationOut)
@@ -2490,12 +2722,10 @@ def update_integration(
     user: Annotated[User, Depends(require_permission(Permission.INTEGRATION_MANAGE))],
 ):
     """Entegrasyon bilgilerini gunceller."""
-    return integration_svc.update_integration_for_project(
-        db,
-        project_id,
-        integration_id,
-        body,
-    )
+    from app.infra.cache import cache_delete, make_key
+    result = integration_svc.update_integration_for_project(db, project_id, integration_id, body)
+    cache_delete(make_key("integrations", "list", project_id))
+    return result
 
 
 @router.delete("/projects/{project_id}/integrations/{integration_id}", status_code=204)
@@ -2504,7 +2734,9 @@ def delete_integration(
     user: Annotated[User, Depends(require_permission(Permission.INTEGRATION_MANAGE))],
 ):
     """Entegrasyonu siler."""
+    from app.infra.cache import cache_delete, make_key
     integration_svc.delete_integration_for_project(db, project_id, integration_id)
+    cache_delete(make_key("integrations", "list", project_id))
 
 
 @router.post("/projects/{project_id}/integrations/{integration_id}/sync", response_model=SyncResultOut)
@@ -2674,6 +2906,7 @@ def create_api_collection(
     user: Annotated[User, Depends(require_permission(Permission.API_TEST_MANAGE))],
 ):
     """Yeni API test koleksiyonu olusturur."""
+    from app.infra.cache import cache_delete, make_key
     _get_project(db, project_id, user)
     col = TspmApiCollection(
         project_id=project_id,
@@ -2685,6 +2918,7 @@ def create_api_collection(
     db.add(col)
     db.commit()
     db.refresh(col)
+    cache_delete(make_key("api-collections", "list", project_id))
     return ApiCollectionOut(
         id=col.id, name=col.name, description=col.description,
         base_url=col.base_url, request_count=0, created_at=col.created_at,
@@ -2697,8 +2931,14 @@ def list_api_collections(
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=500),
 ):
-    """API test koleksiyonlarini listeler."""
+    """API test koleksiyonlarini listeler. 60s cache."""
+    from app.infra.cache import cache_get, cache_set, make_key
     _get_project(db, project_id, user)
+    if skip == 0 and limit == 100:
+        _cache_key = make_key("api-collections", "list", project_id)
+        cached = cache_get(_cache_key)
+        if cached is not None:
+            return [ApiCollectionOut(**item) if isinstance(item, dict) else item for item in cached]
     cols = list(db.scalars(
         select(TspmApiCollection)
         .where(TspmApiCollection.project_id == project_id)
@@ -2715,13 +2955,19 @@ def list_api_collections(
         .group_by(TspmApiRequest.collection_id)
     ).all()
     rc_map: dict[str, int] = {row.collection_id: row.cnt for row in rc_rows}
-    return [
+    result = [
         ApiCollectionOut(
             id=c.id, name=c.name, description=c.description,
             base_url=c.base_url, request_count=rc_map.get(c.id, 0), created_at=c.created_at,
         )
         for c in cols
     ]
+    if skip == 0 and limit == 100:
+        try:
+            cache_set(make_key("api-collections", "list", project_id), [r.model_dump(mode="json") for r in result], ttl=60)
+        except Exception:
+            pass
+    return result
 
 
 @router.get(
@@ -2742,11 +2988,13 @@ def delete_api_collection(
     user: Annotated[User, Depends(require_permission(Permission.API_TEST_MANAGE))],
 ):
     """API test koleksiyonunu siler."""
+    from app.infra.cache import cache_delete, make_key
     col = db.get(TspmApiCollection, collection_id)
     if col is None or col.project_id != project_id:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Koleksiyon bulunamadı")
     db.delete(col)
     db.commit()
+    cache_delete(make_key("api-collections", "list", project_id))
 
 
 @router.post(
@@ -2883,6 +3131,8 @@ def run_api_collection(
         db.add(run)
         db.commit()
         db.refresh(run)
+        from app.infra.cache import cache_delete, make_key
+        cache_delete(make_key("api-runs", "list", project_id))
         return run
     with httpx.Client(timeout=30) as client:
         for req in requests:
@@ -2914,6 +3164,9 @@ def run_api_collection(
     db.add(run)
     db.commit()
     db.refresh(run)
+    # Runs listesi cache'ini temizle
+    from app.infra.cache import cache_delete, make_key
+    cache_delete(make_key("api-runs", "list", project_id))
     return run
 
 
@@ -2923,8 +3176,26 @@ def list_api_runs(
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=200),
 ):
-    """API test kosularini listeler."""
+    """API test kosularini listeler. 30s cache (default pagination)."""
+    from app.infra.cache import cache_get, cache_set, make_key
     _get_project(db, project_id, user)
+    if skip == 0 and limit == 50:
+        _cache_key = make_key("api-runs", "list", project_id)
+        cached = cache_get(_cache_key)
+        if cached is not None:
+            return [ApiTestRunOut(**item) if isinstance(item, dict) else item for item in cached]
+        result = list(db.scalars(
+            select(TspmApiTestRun)
+            .join(TspmApiCollection, TspmApiTestRun.collection_id == TspmApiCollection.id)
+            .where(TspmApiCollection.project_id == project_id)
+            .order_by(TspmApiTestRun.created_at.desc())
+            .offset(skip).limit(limit)
+        ))
+        try:
+            cache_set(_cache_key, [ApiTestRunOut.model_validate(r).model_dump(mode="json") for r in result], ttl=30)
+        except Exception:
+            pass
+        return result
     return list(db.scalars(
         select(TspmApiTestRun)
         .join(TspmApiCollection, TspmApiTestRun.collection_id == TspmApiCollection.id)
@@ -5930,7 +6201,13 @@ def generate_test_cases(
     """AI Gateway üzerinden toplu test case üretir, DB'ye kaydeder."""
     _get_project(db, project_id, user)
     try:
-        return tc_svc.generate_test_cases_for_project(db, project_id, body)
+        result = tc_svc.generate_test_cases_for_project(db, project_id, body)
+        from app.infra.cache import cache_delete, make_key
+        try:
+            cache_delete(make_key("test-cases", "list", project_id))
+        except Exception:
+            pass
+        return result
     except RuntimeError as e:
         raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, str(e))
     except Exception as e:
@@ -5992,8 +6269,20 @@ def list_test_cases(
     batch_id: Optional[str] = Query(None),
     review_status: Optional[str] = Query(None),
 ):
-    """Test case listesi; batch_id ve/veya review_status ile filtrele."""
+    """Test case listesi; batch_id ve/veya review_status ile filtrele. 60s cache (no filters)."""
     _get_project(db, project_id, user)
+    if batch_id is None and review_status is None:
+        from app.infra.cache import cache_get, cache_set, make_key
+        _cache_key = make_key("test-cases", "list", project_id)
+        cached = cache_get(_cache_key)
+        if cached is not None:
+            return cached
+        result = [TestCaseOut.model_validate(tc) for tc in tc_svc.list_test_cases(db, project_id)]
+        try:
+            cache_set(_cache_key, [r.model_dump(mode="json") for r in result], ttl=60)
+        except Exception:
+            pass
+        return result
     return [
         TestCaseOut.model_validate(tc)
         for tc in tc_svc.list_test_cases(db, project_id, batch_id=batch_id, review_status=review_status)
@@ -6032,6 +6321,11 @@ def update_test_case(
     if not tc:
         raise HTTPException(404, "Test case bulunamadı")
     updated = tc_svc.update_test_case(db, tc, body)
+    from app.infra.cache import cache_delete, make_key
+    try:
+        cache_delete(make_key("test-cases", "list", project_id))
+    except Exception:
+        pass
     return TestCaseOut.model_validate(updated)
 
 
@@ -6085,6 +6379,11 @@ def delete_test_case(project_id: str, tc_id: str, db: DB, user: CurrentUser):
     if not tc:
         raise HTTPException(404, "Test case bulunamadı")
     tc_svc.delete_test_case(db, tc)
+    from app.infra.cache import cache_delete, make_key
+    try:
+        cache_delete(make_key("test-cases", "list", project_id))
+    except Exception:
+        pass
 
 
 # ═══════════════════════════════════════════════════════════════════════

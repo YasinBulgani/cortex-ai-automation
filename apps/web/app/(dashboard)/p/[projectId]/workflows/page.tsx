@@ -1,12 +1,12 @@
 "use client";
 
 import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { useRouteParam } from "@/lib/use-route-param";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Modal, ModalContent, ModalFooter, ModalHeader, ModalTitle } from "@/components/ui/modal";
-import { useFetch, useMutate } from "@/lib/useFetch";
 import { apiFetch } from "@/lib/api";
 
 type Workflow = {
@@ -33,51 +33,74 @@ const triggerLabels: Record<string, string> = {
 
 export default function WorkflowsPage() {
   const projectId = useRouteParam("projectId");
+  const queryClient = useQueryClient();
+  const workflowsQK = ["workflows", "list", projectId] as const;
+
   const [createOpen, setCreateOpen] = useState(false);
   const [historyWf, setHistoryWf] = useState<Workflow | null>(null);
   const [triggering, setTriggering] = useState<string | null>(null);
   const [form, setForm] = useState({ name: "", n8n_workflow_id: "", webhook_path: "", trigger_on: "manual", description: "" });
 
-  const { data, loading, refresh } = useFetch<Workflow[]>(
-    `/api/v1/tspm/projects/${projectId}/workflows`
-  );
-  const workflows = data ?? [];
+  const { data: workflows = [], isLoading: loading } = useQuery<Workflow[]>({
+    queryKey: workflowsQK,
+    queryFn: () => apiFetch<Workflow[]>(`/api/v1/tspm/projects/${projectId}/workflows`),
+    enabled: !!projectId,
+    staleTime: 60 * 1000,
+    gcTime: 5 * 60 * 1000,
+  });
 
-  const { data: executions, loading: execLoading } = useFetch<Execution[]>(
-    historyWf ? `/api/v1/tspm/projects/${projectId}/workflows/${historyWf.id}/executions` : null
-  );
+  const execHistoryQK = ["workflows", "executions", projectId, historyWf?.id ?? ""] as const;
+  const { data: executions = [], isLoading: execLoading } = useQuery<Execution[]>({
+    queryKey: execHistoryQK,
+    queryFn: () => apiFetch<Execution[]>(`/api/v1/tspm/projects/${projectId}/workflows/${historyWf!.id}/executions`),
+    enabled: !!historyWf,
+    staleTime: 30 * 1000,
+  });
 
-  const { mutate: createWf, loading: creating } = useMutate(
-    `/api/v1/tspm/projects/${projectId}/workflows`,
-    { onSuccess: () => { setCreateOpen(false); setForm({ name: "", n8n_workflow_id: "", webhook_path: "", trigger_on: "manual", description: "" }); refresh(); } }
-  );
+  const emptyForm = { name: "", n8n_workflow_id: "", webhook_path: "", trigger_on: "manual", description: "" };
 
-  async function handleToggle(wf: Workflow) {
-    await apiFetch(`/api/v1/tspm/projects/${projectId}/workflows/${wf.id}`, {
-      method: "PUT",
-      json: { is_active: !wf.is_active },
-    });
-    refresh();
-  }
+  const createMut = useMutation({
+    mutationFn: (body: typeof form) =>
+      apiFetch(`/api/v1/tspm/projects/${projectId}/workflows`, { method: "POST", json: body }),
+    onSuccess: () => {
+      setCreateOpen(false);
+      setForm(emptyForm);
+      queryClient.invalidateQueries({ queryKey: workflowsQK });
+    },
+  });
 
-  async function handleDelete(id: string) {
-    if (!confirm("Bu workflow silinsin mi?")) return;
-    await apiFetch(`/api/v1/tspm/projects/${projectId}/workflows/${id}`, { method: "DELETE" });
-    refresh();
-  }
+  const toggleMut = useMutation({
+    mutationFn: (wf: Workflow) =>
+      apiFetch(`/api/v1/tspm/projects/${projectId}/workflows/${wf.id}`, {
+        method: "PUT", json: { is_active: !wf.is_active },
+      }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: workflowsQK }),
+  });
+
+  const deleteMut = useMutation({
+    mutationFn: (id: string) =>
+      apiFetch(`/api/v1/tspm/projects/${projectId}/workflows/${id}`, { method: "DELETE" }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: workflowsQK }),
+  });
 
   async function handleTrigger(wf: Workflow) {
     setTriggering(wf.id);
     try {
       await apiFetch(`/api/v1/tspm/projects/${projectId}/workflows/${wf.id}/trigger`, {
-        method: "POST",
-        json: { triggered_by: "manual" },
+        method: "POST", json: { triggered_by: "manual" },
       });
-      refresh();
+      queryClient.invalidateQueries({ queryKey: workflowsQK });
     } finally {
       setTriggering(null);
     }
   }
+
+  function handleDelete(id: string) {
+    if (!confirm("Bu workflow silinsin mi?")) return;
+    deleteMut.mutate(id);
+  }
+
+  const creating = createMut.isPending;
 
   return (
     <div className="mx-auto max-w-5xl space-y-6" data-testid="workflows-page">
@@ -111,7 +134,7 @@ export default function WorkflowsPage() {
             >
               <div className="flex items-center gap-4">
                 <button
-                  onClick={() => handleToggle(wf)}
+                  onClick={() => toggleMut.mutate(wf)}
                   title={wf.is_active ? "Pasifleştir" : "Aktifleştir"}
                   className={`h-3 w-3 rounded-full transition-colors ${wf.is_active ? "bg-green-500 hover:bg-green-600" : "bg-gray-400 hover:bg-gray-500"}`}
                 />
@@ -173,7 +196,7 @@ export default function WorkflowsPage() {
           </div>
           <ModalFooter>
             <Button variant="secondary" onClick={() => setCreateOpen(false)}>İptal</Button>
-            <Button onClick={() => createWf(form)} disabled={creating || !form.name || !form.n8n_workflow_id}>
+            <Button onClick={() => createMut.mutate(form)} disabled={creating || !form.name || !form.n8n_workflow_id}>
               {creating ? "Kaydediliyor…" : "Bağla"}
             </Button>
           </ModalFooter>
@@ -188,11 +211,11 @@ export default function WorkflowsPage() {
           </ModalHeader>
           {execLoading ? (
             <div className="py-4 text-center text-sm text-slate-400">Yükleniyor…</div>
-          ) : (executions ?? []).length === 0 ? (
+          ) : executions.length === 0 ? (
             <div className="py-4 text-center text-sm text-slate-400">Henüz tetikleme yapılmamış</div>
           ) : (
             <div className="max-h-80 overflow-y-auto space-y-2">
-              {(executions ?? []).map((e) => (
+              {executions.map((e) => (
                 <div key={e.id} className="flex items-center justify-between rounded border border-slate-800 px-3 py-2 text-sm">
                   <div className="flex items-center gap-2">
                     <span className={`h-2 w-2 rounded-full ${e.status === "success" ? "bg-green-500" : e.status === "running" ? "bg-blue-500" : "bg-red-500"}`} />

@@ -19,6 +19,8 @@ from app.domains.test_management.models import (
     DEFAULT_TENANT_ID,
     DefectLink,
     ExecutionEvidence,
+    MgmtComment,
+    MgmtNotification,
     RegressionSet,
     RegressionSetCase,
     ReleaseSignoff,

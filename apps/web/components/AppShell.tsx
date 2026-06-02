@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useState, useEffect, useRef } from "react";
-import { NotificationBell } from "@/components/NotificationBell";
+import { useState, useEffect, useRef, useMemo, useCallback, memo } from "react";
+import { NotificationBell } from "@/components/management/NotificationBell";
 import { NotificationCenter } from "@/components/NotificationCenter";
 import { KeyboardShortcutsHelp } from "@/components/KeyboardShortcutsHelp";
 import { ServiceRestartButton } from "@/components/ServiceRestartButton";
@@ -36,6 +36,7 @@ const ALL_PRODUCTS_OPTION = { id: "all" as const, label: "QA Operations Platform
 function IconChart()    { return <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>; }
 function IconFolder()   { return <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" /></svg>; }
 function IconEdit()     { return <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>; }
+function IconClipboardCheck() { return <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5h6m-6 4h6m-6 4h3m-5 8h10a2 2 0 002-2V7.5A2.5 2.5 0 0016.5 5H16a4 4 0 00-8 0h-.5A2.5 2.5 0 005 7.5V19a2 2 0 002 2z" /><path strokeLinecap="round" strokeLinejoin="round" d="M9.5 17l1.5 1.5 3.5-4" /></svg>; }
 function IconFlow()     { return <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M7 16V4m0 0L3 8m4-4l4 4M17 8v12m0 0l4-4m-4 4l-4-4" /></svg>; }
 function IconBrain()    { return <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg>; }
 function IconCode()     { return <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" /></svg>; }
@@ -63,6 +64,7 @@ const GLOBAL_NAV = [
     section: "ÇALIŞMA ALANLARI",
     items: [
       { href: "/portfolio", label: "Portfolio", icon: <IconFolder /> },
+      { href: "/management", label: "Test Yönetimi", icon: <IconClipboardCheck /> },
     ],
   },
   {
@@ -107,8 +109,10 @@ function navActive(pathname: string | null, href: string, exact = false): boolea
 }
 
 // ─── NavItem ─────────────────────────────────────────────────────────────────
+// memo: NavItem props değişmediğinde re-render'ı önler (sidebar her path
+// değişiminde re-render ederdi).
 
-function NavItem({
+const NavItem = memo(function NavItem({
   href, label, icon, active, testId,
 }: {
   href: string; label: string; icon: React.ReactNode; active: boolean; testId?: string;
@@ -130,7 +134,7 @@ function NavItem({
       {label}
     </Link>
   );
-}
+});
 
 // ─── Ana bileşen ──────────────────────────────────────────────────────────────
 
@@ -165,22 +169,31 @@ export function AppShell({
     } catch { /* ignore */ }
   }, []);
 
-  const activeProduct = activeProductId === "all"
-    ? ALL_PRODUCTS_OPTION
-    : PRODUCT_FAMILY.find(p => p.id === activeProductId) ?? ALL_PRODUCTS_OPTION;
+  const activeProduct = useMemo(
+    () =>
+      activeProductId === "all"
+        ? ALL_PRODUCTS_OPTION
+        : PRODUCT_FAMILY.find((p) => p.id === activeProductId) ?? ALL_PRODUCTS_OPTION,
+    [activeProductId],
+  );
   const activeProductLabel = "label" in activeProduct ? activeProduct.label : activeProduct.name;
 
-  const selectProduct = (id: string) => {
+  const selectProduct = useCallback((id: string) => {
     setActiveProductId(id);
     try {
       if (id === "all") localStorage.removeItem(PRODUCT_FAMILY_STORAGE_KEY);
       else localStorage.setItem(PRODUCT_FAMILY_STORAGE_KEY, id);
     } catch { /* ignore */ }
     setProductPickerOpen(false);
-  };
+  }, []);
 
   const effectiveProjectId = projectId ?? ctxProjectId ?? storedProjectId ?? projects[0]?.id;
-  const currentProject = projects.find(p => p.id === effectiveProjectId);
+  const currentProject = useMemo(
+    () =>
+      projects.find((p) => p.id === effectiveProjectId) ??
+      (effectiveProjectId ? { id: effectiveProjectId, name: `Proje ${effectiveProjectId}` } : undefined),
+    [projects, effectiveProjectId],
+  );
 
   // Stale localStorage cleanup: stored project no longer exists in fetched list.
   // Without this, deleted projects keep generating /p/<gone-id>/* URLs that 404.
@@ -338,6 +351,9 @@ export function AppShell({
           ...(currentProject
             ? [
                 { label: "Senaryolar", path: `/p/${currentProject.id}/scenarios`, group: "Proje" },
+                { label: "Management", path: `/p/${currentProject.id}/management`, group: "Proje" },
+                { label: "Test Repository", path: `/p/${currentProject.id}/management/repository`, group: "Management" },
+                { label: "Regresyon Setleri", path: `/p/${currentProject.id}/management/regression`, group: "Management" },
                 { label: "Koşumlar", path: `/p/${currentProject.id}/executions`, group: "Proje" },
                 { label: "Mobil", path: `/p/${currentProject.id}/mobile`, group: "Proje" },
                 { label: "API Test", path: `/p/${currentProject.id}/api-tests`, group: "Proje" },
@@ -356,23 +372,39 @@ export function AppShell({
 
         {activeProductId === "all" ? (
           /* MOD 1: GLOBAL — tüm linkler */
-          GLOBAL_NAV.map(({ section, items }) => (
-            <div key={section}>
-              <p className="mb-1 mt-4 px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-gray-400 dark:text-slate-500 first:mt-1">
-                {section}
-              </p>
-              {items.map(item => (
+          <>
+            {currentProject && (
+              <div>
+                <p className="mb-1 mt-4 px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-gray-400 dark:text-slate-500 first:mt-1">
+                  MANAGEMENT
+                </p>
                 <NavItem
-                  key={item.href}
-                  href={item.href}
-                  label={item.label}
-                  icon={item.icon}
-                  active={navActive(path, item.href, "exact" in item ? item.exact : false)}
-                  testId={`sidebar-link-${item.href.replace(/\//g, "-").replace(/^-/, "")}`}
+                  href={`/p/${currentProject.id}/management`}
+                  label="Management"
+                  icon={<IconClipboardCheck />}
+                  active={navActive(path, `/p/${currentProject.id}/management`)}
+                  testId="sidebar-link-management"
                 />
-              ))}
-            </div>
-          ))
+              </div>
+            )}
+            {GLOBAL_NAV.map(({ section, items }) => (
+              <div key={section}>
+                <p className="mb-1 mt-4 px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-gray-400 dark:text-slate-500 first:mt-1">
+                  {section}
+                </p>
+                {items.map(item => (
+                  <NavItem
+                    key={item.href}
+                    href={item.href}
+                    label={item.label}
+                    icon={item.icon}
+                    active={navActive(path, item.href, "exact" in item ? item.exact : false)}
+                    testId={`sidebar-link-${item.href.replace(/\//g, "-").replace(/^-/, "")}`}
+                  />
+                ))}
+              </div>
+            ))}
+          </>
         ) : (
           /* MOD 2: ÜRÜN MİNİ-UYGULAMASI */
           (() => {

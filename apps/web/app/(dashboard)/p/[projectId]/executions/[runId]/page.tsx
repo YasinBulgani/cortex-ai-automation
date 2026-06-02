@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useRouteParam } from "@/lib/use-route-param";
@@ -83,51 +84,65 @@ export default function ExecutionDetailPage() {
   const runId = useRouteParam("runId");
   const router = useRouter();
 
-  const [data, setData] = useState<ExecutionDetail | null>(null);
-  const [metrics, setMetrics] = useState<ExecutionMetrics | null>(null);
+  const queryClient = useQueryClient();
+  const detailQK = ["executions", "detail", projectId, runId] as const;
+  const metricsQK = ["executions", "metrics", projectId, runId] as const;
+
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [completing, setCompleting] = useState(false);
 
-  const load = useCallback(() => {
-    apiFetch<ExecutionDetail>(`/api/v1/tspm/projects/${projectId}/executions/${runId}`)
-      .then(setData)
-      .catch(() => {});
-    apiFetch<ExecutionMetrics>(`/api/v1/tspm/projects/${projectId}/executions/${runId}/metrics`)
-      .then(setMetrics)
-      .catch(() => {});
-  }, [projectId, runId]);
+  const { data } = useQuery<ExecutionDetail>({
+    queryKey: detailQK,
+    queryFn: () => apiFetch<ExecutionDetail>(`/api/v1/tspm/projects/${projectId}/executions/${runId}`),
+    enabled: !!projectId && !!runId,
+    staleTime: 30 * 1000,
+    gcTime: 5 * 60 * 1000,
+  });
 
-  useEffect(() => { load(); }, [load]);
+  const { data: metrics } = useQuery<ExecutionMetrics>({
+    queryKey: metricsQK,
+    queryFn: () => apiFetch<ExecutionMetrics>(`/api/v1/tspm/projects/${projectId}/executions/${runId}/metrics`),
+    enabled: !!projectId && !!runId,
+    staleTime: 30 * 1000,
+    gcTime: 5 * 60 * 1000,
+  });
 
-  async function saveRow(resultId: string, status: string, note: string) {
-    setBusyId(resultId);
-    try {
-      await apiFetch(`/api/v1/tspm/projects/${projectId}/executions/${runId}/results/${resultId}`, {
+  const saveRowMut = useMutation({
+    mutationFn: ({ resultId, status, note }: { resultId: string; status: string; note: string }) =>
+      apiFetch(`/api/v1/tspm/projects/${projectId}/executions/${runId}/results/${resultId}`, {
         method: "PATCH",
         json: { status, note },
-      });
-      load();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Güncelleme hatası");
-    } finally {
-      setBusyId(null);
-    }
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: detailQK });
+      queryClient.invalidateQueries({ queryKey: metricsQK });
+    },
+    onError: (e: unknown) => setError(e instanceof Error ? e.message : "Güncelleme hatası"),
+    onSettled: () => setBusyId(null),
+  });
+
+  function saveRow(resultId: string, status: string, note: string) {
+    setBusyId(resultId);
+    saveRowMut.mutate({ resultId, status, note });
   }
 
-  async function completeRun() {
-    setCompleting(true);
-    try {
-      await apiFetch(`/api/v1/tspm/projects/${projectId}/executions/${runId}`, {
+  const completeRunMut = useMutation({
+    mutationFn: () =>
+      apiFetch(`/api/v1/tspm/projects/${projectId}/executions/${runId}`, {
         method: "PATCH",
         json: { status: "completed" },
-      });
-      load();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Tamamlama hatası");
-    } finally {
-      setCompleting(false);
-    }
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: detailQK });
+      queryClient.invalidateQueries({ queryKey: metricsQK });
+      queryClient.invalidateQueries({ queryKey: ["executions", "list", projectId] });
+    },
+    onError: (e: unknown) => setError(e instanceof Error ? e.message : "Tamamlama hatası"),
+  });
+  const completing = completeRunMut.isPending;
+
+  function completeRun() {
+    completeRunMut.mutate();
   }
 
   if (!data) {

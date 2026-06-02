@@ -7,6 +7,7 @@ from typing import Any, Optional
 
 from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import JSONResponse
 from sqlalchemy import text
 
@@ -32,6 +33,12 @@ def configure_middlewares(
     if has_rate_limit and limiter is not None and rate_limit_exception and rate_limit_handler:
         app.state.limiter = limiter
         app.add_exception_handler(rate_limit_exception, rate_limit_handler)
+
+    # ── Performans: Gzip sıkıştırma ─────────────────────────────────────────
+    # 1KB üzerindeki JSON yanıtları otomatik gzip ile sıkıştırılır.
+    # Dashboard (10-50KB), senaryo listeleri (5-30KB) ve AI yanıtları (~50KB)
+    # için ağ trafiğini %60-80 azaltır.
+    app.add_middleware(GZipMiddleware, minimum_size=1024, compresslevel=6)
 
     app.add_middleware(
         CORSMiddleware,

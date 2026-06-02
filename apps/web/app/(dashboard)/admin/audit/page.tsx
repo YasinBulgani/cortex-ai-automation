@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/api";
 import { PageHeader } from "@/components/nexus/PageHeader";
 
@@ -33,6 +34,51 @@ function badgeClass(action: string): string {
   return ACTION_BADGE[prefix] ?? ACTION_BADGE[action] ?? "border-slate-700 bg-slate-800 text-slate-300";
 }
 
+// ── Chain integrity verify panel ──────────────────────────────────────────────
+
+function IntegrityVerifyPanel() {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<null | {
+    ok: boolean; total: number; verified: number;
+    first_bad_seq: number | null; errors: string[]; checked_at: string;
+  }>(null);
+  const [err, setErr] = useState<string | null>(null);
+
+  async function runVerify() {
+    setLoading(true); setErr(null); setResult(null);
+    try {
+      const data = await apiFetch<typeof result>("/api/v1/audit/integrity/verify");
+      setResult(data as any);
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "Dogrulama hatasi");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="rounded-xl border border-slate-800 bg-slate-900/40 p-4 flex items-center gap-4">
+      <button
+        onClick={runVerify}
+        disabled={loading}
+        data-testid="audit-verify-btn"
+        className="rounded-lg bg-violet-600 hover:bg-violet-500 px-4 py-2 text-xs font-semibold text-white disabled:opacity-50"
+      >
+        {loading ? "Dogrulaniyor..." : "Hash Zinciri Dogrula"}
+      </button>
+      {result && (
+        <div className={`text-xs ${result.ok ? "text-emerald-400" : "text-red-400"}`}>
+          {result.ok
+            ? `Butunluk OK · ${result.verified}/${result.total} kayit dogrulandi`
+            : `Uyumsuzluk! seq=${result.first_bad_seq} — ${result.errors[0] ?? ""}`}
+          <span className="text-slate-500 ml-2">({new Date(result.checked_at).toLocaleTimeString("tr-TR")})</span>
+        </div>
+      )}
+      {err && <p className="text-xs text-red-400">{err}</p>}
+    </div>
+  );
+}
+
 // ── Export helper ─────────────────────────────────────────────────────────────
 
 async function triggerExport(
@@ -61,10 +107,7 @@ async function triggerExport(
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function AuditLogPage() {
-  const [events, setEvents] = useState<AuditEvent[]>([]);
   const [page, setPage] = useState(1);
-  const [loading, setLoading] = useState(false);
-  const [hasMore, setHasMore] = useState(true);
   const [exporting, setExporting] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
 
@@ -83,23 +126,21 @@ export default function AuditLogPage() {
     return p;
   }
 
-  useEffect(() => {
-    setLoading(true);
-    const p = buildParams();
-    const qs = new URLSearchParams({
-      page: String(page),
-      per_page: String(PER_PAGE),
-      ...p,
-    }).toString();
-    apiFetch<AuditEvent[]>(`/api/v1/audit/events?${qs}`)
-      .then((data) => {
-        setEvents(data);
-        setHasMore(data.length === PER_PAGE);
-      })
-      .catch((err) => console.warn("[audit]:", err))
-      .finally(() => setLoading(false));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, filterAction, filterResource, dateFrom, dateTo]);
+  const { data: events = [], isLoading: loading } = useQuery<AuditEvent[]>({
+    queryKey: ["audit", "events", page, filterAction, filterResource, dateFrom, dateTo],
+    queryFn: () => {
+      const p = buildParams();
+      const qs = new URLSearchParams({
+        page: String(page),
+        per_page: String(PER_PAGE),
+        ...p,
+      }).toString();
+      return apiFetch<AuditEvent[]>(`/api/v1/audit/events?${qs}`);
+    },
+    staleTime: 30 * 1000,
+    gcTime: 5 * 60 * 1000,
+  });
+  const hasMore = events.length === PER_PAGE;
 
   async function handleExport(format: "json" | "csv") {
     setExporting(true);
@@ -210,6 +251,8 @@ export default function AuditLogPage() {
           </button>
         </div>
       </div>
+
+      <IntegrityVerifyPanel />
 
       {exportError && (
         <p className="rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-xs text-red-400">

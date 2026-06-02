@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 
 import { FlowGuideCard } from "@/components/FlowGuideCard";
 import {
@@ -17,7 +18,6 @@ import {
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PageFeedbackWidget } from "@/components/PageFeedbackWidget";
 import { apiFetch, engineFetch, getToken } from "@/lib/api";
-import { useFetch } from "@/lib/useFetch";
 import {
   isRealProvenance,
   normalizeProvenance,
@@ -105,20 +105,26 @@ function getReadinessTone(rate: number): "emerald" | "amber" | "red" | "slate" {
 
 export default function ReportsPage() {
   const projectId = useRouteParam("projectId");
-  const { data: executions, loading } = useFetch<Execution[]>(`/api/v1/tspm/projects/${projectId}/executions`);
-  const [pipelineRuns, setPipelineRuns] = useState<PipelineRun[]>([]);
-  const [pipelineLoading, setPipelineLoading] = useState(false);
   const [summaryDays, setSummaryDays] = useState<SummaryDays>("30");
 
-  useEffect(() => {
-    setPipelineLoading(true);
-    engineFetch<{ runs: PipelineRun[] }>(
-      `/api/pipeline/manual-to-automation/runs?project_id=${projectId}&limit=20`,
-    )
-      .then((data) => setPipelineRuns(data.runs ?? []))
-      .catch((err) => console.warn("[reports]:", err))
-      .finally(() => setPipelineLoading(false));
-  }, [projectId]);
+  const { data: executions = [], isLoading: loading } = useQuery<Execution[]>({
+    queryKey: ["executions", "list", projectId],
+    queryFn: () => apiFetch<Execution[]>(`/api/v1/tspm/projects/${projectId}/executions`),
+    enabled: !!projectId,
+    staleTime: 15 * 1000,
+    gcTime: 5 * 60 * 1000,
+  });
+
+  const { data: pipelineData, isLoading: pipelineLoading } = useQuery<{ runs: PipelineRun[] }>({
+    queryKey: ["reports", "pipeline-runs", projectId],
+    queryFn: () => engineFetch<{ runs: PipelineRun[] }>(
+      `/api/pipeline/manual-to-automation/runs?project_id=${projectId}&limit=20`
+    ),
+    enabled: !!projectId,
+    staleTime: 60 * 1000,
+    gcTime: 5 * 60 * 1000,
+  });
+  const pipelineRuns = pipelineData?.runs ?? [];
 
   const execs = executions ?? [];
   const totalExecutions = execs.length;

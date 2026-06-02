@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 
 import { useRouteParam } from "@/lib/use-route-param";
@@ -19,19 +20,29 @@ type Detail = {
 export default function RegressionSetDetailPage() {
   const projectId = useRouteParam("projectId");
   const setId = useRouteParam("setId");
-  const [data, setData] = useState<Detail | null>(null);
-  const [allScenarios, setAllScenarios] = useState<Scenario[]>([]);
+
+  const queryClient = useQueryClient();
+  const detailQK = ["regression-sets", "detail", projectId, setId] as const;
+  const scenariosQK = ["scenarios", "list", projectId] as const;
+
   const [toAdd, setToAdd] = useState<Set<string>>(new Set());
   const [err, setErr] = useState<string | null>(null);
 
-  const load = useCallback(() => {
-    apiFetch<Detail>(`/api/v1/tspm/projects/${projectId}/regression-sets/${setId}`).then(setData).catch(() => {});
-  }, [projectId, setId]);
+  const { data } = useQuery<Detail>({
+    queryKey: detailQK,
+    queryFn: () => apiFetch<Detail>(`/api/v1/tspm/projects/${projectId}/regression-sets/${setId}`),
+    enabled: !!projectId && !!setId,
+    staleTime: 60 * 1000,
+    gcTime: 5 * 60 * 1000,
+  });
 
-  useEffect(() => {
-    load();
-    apiFetch<Scenario[]>(`/api/v1/tspm/projects/${projectId}/scenarios`).then(setAllScenarios).catch(() => {});
-  }, [load, projectId]);
+  const { data: allScenarios = [] } = useQuery<Scenario[]>({
+    queryKey: scenariosQK,
+    queryFn: () => apiFetch<Scenario[]>(`/api/v1/tspm/projects/${projectId}/scenarios`),
+    enabled: !!projectId,
+    staleTime: 60 * 1000,
+    gcTime: 5 * 60 * 1000,
+  });
 
   function toggle(id: string) {
     setToAdd((prev) => {
@@ -42,18 +53,22 @@ export default function RegressionSetDetailPage() {
     });
   }
 
-  async function addSelected() {
-    setErr(null);
-    try {
-      await apiFetch(`/api/v1/tspm/projects/${projectId}/regression-sets/${setId}/add`, {
+  const addMut = useMutation({
+    mutationFn: (ids: string[]) =>
+      apiFetch(`/api/v1/tspm/projects/${projectId}/regression-sets/${setId}/add`, {
         method: "POST",
-        json: { scenario_ids: Array.from(toAdd) },
-      });
+        json: { scenario_ids: ids },
+      }),
+    onSuccess: () => {
       setToAdd(new Set());
-      load();
-    } catch (e: unknown) {
-      setErr(e instanceof Error ? e.message : "Hata");
-    }
+      setErr(null);
+      queryClient.invalidateQueries({ queryKey: detailQK });
+    },
+    onError: (e: unknown) => setErr(e instanceof Error ? e.message : "Hata"),
+  });
+
+  function addSelected() {
+    addMut.mutate(Array.from(toAdd));
   }
 
   if (!data) return <p className="text-sm text-slate-400">Yükleniyor…</p>;

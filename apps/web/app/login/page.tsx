@@ -128,6 +128,38 @@ function LeftPanel() {
   );
 }
 
+// ── SSO Buttons ───────────────────────────────────────────────────────────────
+
+function SsoButtons() {
+  const [providers, setProviders] = useState<Array<{ id: string; name: string }>>([]);
+  useEffect(() => {
+    fetch("/api/v1/sso/providers")
+      .then((r) => (r.ok ? r.json() : { providers: [] }))
+      .then((d) => setProviders(d.providers || []))
+      .catch(() => setProviders([]));
+  }, []);
+  if (providers.length === 0) return null;
+  return (
+    <div className="space-y-2 pt-2">
+      <div className="flex items-center gap-2 text-xs text-slate-500">
+        <div className="flex-1 h-px bg-slate-300 dark:bg-slate-700" />
+        <span>veya</span>
+        <div className="flex-1 h-px bg-slate-300 dark:bg-slate-700" />
+      </div>
+      {providers.map((p) => (
+        <a
+          key={p.id}
+          href={`/api/v1/sso/${p.id}/login`}
+          className="flex items-center justify-center gap-2 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 py-2.5 text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+          data-testid={`login-sso-${p.id}`}
+        >
+          {p.name} ile devam et
+        </a>
+      ))}
+    </div>
+  );
+}
+
 // ── Ana sayfa içeriği ─────────────────────────────────────────────────────────
 
 function LoginPageContent() {
@@ -164,7 +196,8 @@ function LoginPageContent() {
   const [regError,       setRegError]       = useState<string | null>(null);
   const [regSuccess,     setRegSuccess]     = useState(false);
 
-  const nextPath = searchParams?.get("next") || "/";
+  const requestedNextPath = searchParams?.get("next");
+  const nextPath = !requestedNextPath || requestedNextPath === "/" ? "/projects" : requestedNextPath;
   const autoLogin =
     process.env.NODE_ENV === "development" &&
     searchParams?.get("autologin") === "1";
@@ -234,10 +267,20 @@ function LoginPageContent() {
         setMfaSessionToken(data.mfa_session_token ?? null);
         return;
       }
-      setTokens(data.access_token, data.refresh_token, data.expires_in);
-      migrateToCookieAuth();  // SECURITY: eski localStorage token'larını temizle
+      try {
+        document.cookie = `twai_session=1; Path=/; Max-Age=${data.expires_in ?? 28800}; SameSite=Lax`;
+      } catch { /* cookie writes can be blocked in embedded/browser test surfaces */ }
+      try {
+        setTokens(data.access_token, data.refresh_token, data.expires_in);
+        migrateToCookieAuth();  // SECURITY: eski localStorage token'larını temizle
+      } catch { /* presence cookie + httpOnly backend cookies are enough */ }
       void syncEngine(email, password);
-      router.replace(nextPath);
+      try {
+        window.location.assign(nextPath);
+      } catch {
+        router.replace(nextPath);
+      }
+      return;
     } catch (err: unknown) {
       setError(loginErrorMessage(err));
     } finally {
@@ -261,10 +304,20 @@ function LoginPageContent() {
         throw new Error(body?.detail || "Geçersiz kod");
       }
       const data = await res.json();
-      setTokens(data.access_token, data.refresh_token, data.expires_in);
-      migrateToCookieAuth();
+      try {
+        document.cookie = `twai_session=1; Path=/; Max-Age=${data.expires_in ?? 28800}; SameSite=Lax`;
+      } catch { /* cookie writes can be blocked in embedded/browser test surfaces */ }
+      try {
+        setTokens(data.access_token, data.refresh_token, data.expires_in);
+        migrateToCookieAuth();
+      } catch { /* presence cookie + httpOnly backend cookies are enough */ }
       void syncEngine(email, password);
-      router.replace(nextPath);
+      try {
+        window.location.assign(nextPath);
+      } catch {
+        router.replace(nextPath);
+      }
+      return;
     } catch (err: unknown) {
       setMfaError(err instanceof Error ? err.message : "Geçersiz kod");
     } finally {
@@ -519,6 +572,9 @@ function LoginPageContent() {
                     <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Giriş yapılıyor…</>
                   ) : "Giriş Yap"}
                 </button>
+
+                {/* SSO providers */}
+                <SsoButtons />
 
                 {/* şifremi unuttum */}
                 <div className="flex justify-end">

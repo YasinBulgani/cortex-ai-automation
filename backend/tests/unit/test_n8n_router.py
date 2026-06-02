@@ -18,6 +18,8 @@ try:
         _n8n_headers,
         _callback_secret_required,
     )
+    from app.deps import get_current_user
+    from app.infra.database import get_db
     _IMPORT_OK = True
 except ImportError:
     _IMPORT_OK = False
@@ -75,28 +77,31 @@ class TestCallbackSecretRequired:
 # Router: TestClient tests
 # ---------------------------------------------------------------------------
 
-def _make_client() -> TestClient:
+def _make_client(mock_db=None, mock_user=None) -> TestClient:
+    """Create a TestClient with optional DB/auth dependency overrides."""
     app = FastAPI()
+    if mock_db is not None:
+        app.dependency_overrides[get_db] = lambda: mock_db
+    if mock_user is not None:
+        app.dependency_overrides[get_current_user] = lambda: mock_user
     app.include_router(router)
     return TestClient(app, raise_server_exceptions=False)
 
 
 class TestWebhookCallbackEndpoint:
     def test_webhook_unknown_workflow_returns_404(self):
-        client = _make_client()
         mock_db = MagicMock()
         mock_db.get.return_value = None  # workflow not found
 
-        with patch("app.domains.n8n.router.get_db", return_value=iter([mock_db])):
-            resp = client.post(
-                "/n8n/webhook/unknown-workflow-id",
-                json={"executionId": "exec-1", "finished": True, "success": True},
-                headers={"x-n8n-token": ""},
-            )
+        client = _make_client(mock_db=mock_db)
+        resp = client.post(
+            "/n8n/webhook/unknown-workflow-id",
+            json={"executionId": "exec-1", "finished": True, "success": True},
+            headers={"x-n8n-token": ""},
+        )
         assert resp.status_code in {404, 503}
 
     def test_webhook_valid_workflow_callback_accepted(self):
-        client = _make_client()
         mock_wf = MagicMock()
         mock_wf.id = "wf-123"
         mock_wf.config = {}
@@ -108,8 +113,8 @@ class TestWebhookCallbackEndpoint:
         mock_db.get.return_value = mock_wf
         mock_db.execute.return_value.scalar_one_or_none.return_value = mock_ex
 
-        with patch("app.domains.n8n.router.get_db", return_value=iter([mock_db])), \
-             patch("app.domains.n8n.router._callback_secret_required", return_value=False):
+        client = _make_client(mock_db=mock_db)
+        with patch("app.domains.n8n.router._callback_secret_required", return_value=False):
             resp = client.post(
                 "/n8n/webhook/wf-123",
                 json={"executionId": "exec-1", "finished": True, "success": True},
@@ -118,7 +123,6 @@ class TestWebhookCallbackEndpoint:
 
     def test_webhook_missing_execution_id_still_accepted(self):
         """Callback without executionId should create a new execution record."""
-        client = _make_client()
         mock_wf = MagicMock()
         mock_wf.id = "wf-456"
         mock_wf.config = {}
@@ -126,8 +130,8 @@ class TestWebhookCallbackEndpoint:
         mock_db = MagicMock()
         mock_db.get.return_value = mock_wf
 
-        with patch("app.domains.n8n.router.get_db", return_value=iter([mock_db])), \
-             patch("app.domains.n8n.router._callback_secret_required", return_value=False):
+        client = _make_client(mock_db=mock_db)
+        with patch("app.domains.n8n.router._callback_secret_required", return_value=False):
             resp = client.post(
                 "/n8n/webhook/wf-456",
                 json={"finished": False},
@@ -138,11 +142,10 @@ class TestWebhookCallbackEndpoint:
 
 class TestAvailableWorkflowsEndpoint:
     def test_available_workflows_no_api_key_returns_empty_list(self):
-        client = _make_client()
         mock_user = MagicMock()
 
-        with patch("app.domains.n8n.router.get_current_user", return_value=mock_user), \
-             patch("app.domains.n8n.router.N8N_API_KEY", ""):
+        client = _make_client(mock_user=mock_user)
+        with patch("app.domains.n8n.router.N8N_API_KEY", ""):
             resp = client.get("/n8n/available-workflows")
         # Auth required — accept 200 (empty workflows) or 401/403
         assert resp.status_code in {200, 401, 403}

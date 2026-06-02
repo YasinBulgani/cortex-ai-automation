@@ -259,6 +259,53 @@ def export_audit_csv(
     )
 
 
+@router.get("/integrity/verify")
+def verify_audit_integrity(
+    db: Annotated[Session, Depends(get_db)],
+    user: Annotated[User, Depends(get_current_user)],
+    limit: int = Query(10000, ge=1, le=200000),
+):
+    """Hash-chain butunlugunu dogrula. Admin only.
+
+    Returns {ok, total, verified, first_bad_seq, errors}.
+    """
+    _require_admin(user)
+    from app.domains.audit.chain import ChainEvent, verify_chain
+
+    rows = list(
+        db.scalars(
+            select(AuditEvent)
+            .where(AuditEvent.hash.is_not(None))
+            .order_by(AuditEvent.seq.asc())
+            .limit(limit)
+        )
+    )
+    events = [
+        ChainEvent(
+            ts=r.ts,
+            tenant_id=r.tenant_id,
+            actor_user_id=r.actor_user_id,
+            action=r.action,
+            resource_type=r.resource_type,
+            resource_id=r.resource_id,
+            payload=r.payload,
+            seq=r.seq,
+            prev_hash=r.prev_hash,
+            hash=r.hash,
+        )
+        for r in rows
+    ]
+    result = verify_chain(events)
+    return {
+        "ok": result.ok,
+        "total": result.total,
+        "verified": result.verified,
+        "first_bad_seq": result.first_bad_seq,
+        "errors": result.errors,
+        "checked_at": datetime.now(timezone.utc).isoformat(),
+    }
+
+
 @router.get("/export/summary", response_model=AuditExportSummary)
 def export_audit_summary(
     db: Annotated[Session, Depends(get_db)],

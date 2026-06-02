@@ -2,9 +2,11 @@
 
 import Link from "next/link";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import { NotificationBell } from "@/components/management/NotificationBell";
 
 const tabs = [
   { href: "management", label: "Dashboard" },
+  { href: "management/tester", label: "Görevlerim" },
   { href: "management/repository", label: "Repository" },
   { href: "management/regression", label: "Regression" },
   { href: "management/plans", label: "Plans" },
@@ -12,6 +14,9 @@ const tabs = [
   { href: "management/requirements", label: "Requirements" },
   { href: "management/defects", label: "Defects" },
   { href: "management/reports", label: "Reports" },
+  { href: "management/design/bva", label: "BVA" },
+  { href: "management/design/eq", label: "EQ Partition" },
+  { href: "management/standup", label: "📱 Standup" },
   { href: "management/import-export", label: "Import / Export" },
   { href: "management/settings", label: "Settings" },
 ];
@@ -34,7 +39,10 @@ export function ManagementShell({ projectId, title, description, active, childre
             <h1 className="mt-2 text-3xl font-bold tracking-tight text-white">{title}</h1>
             <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-400">{description}</p>
           </div>
-          <LanguageSwitcher className="mt-1 flex-shrink-0" />
+          <div className="mt-1 flex flex-shrink-0 items-center gap-3">
+            <NotificationBell projectId={projectId} />
+            <LanguageSwitcher />
+          </div>
         </div>
         <nav className="flex gap-2 overflow-x-auto border-b border-slate-800 pb-3">
           {tabs.map((tab) => {

@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from fastapi import HTTPException, status
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
@@ -87,7 +86,7 @@ def create_scenario_for_project(
 def get_scenario_or_404(db: Session, project_id: str, scenario_id: str) -> TspmScenario:
     scenario = db.get(TspmScenario, scenario_id)
     if scenario is None or scenario.project_id != project_id:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Senaryo bulunamadı")
+        raise KeyError("Senaryo bulunamadı")
     return scenario
 
 
@@ -310,7 +309,7 @@ def unlink_scenario_requirement_for_project(
         )
     )
     if link is None:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Bağlantı bulunamadı")
+        raise KeyError("Bağlantı bulunamadı")
     db.delete(link)
     db.commit()
 
@@ -366,7 +365,7 @@ def get_coverage_gaps_for_project(db: Session, project_id: str) -> list[Requirem
 def _get_requirement_or_404(db: Session, project_id: str, requirement_id: str) -> TspmRequirement:
     requirement = db.get(TspmRequirement, requirement_id)
     if requirement is None or requirement.project_id != project_id:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Gereksinim bulunamadı")
+        raise KeyError("Gereksinim bulunamadı")
     return requirement
 
 

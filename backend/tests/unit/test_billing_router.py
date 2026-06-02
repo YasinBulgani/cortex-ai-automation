@@ -45,11 +45,9 @@ def _fake_sub(
 
 
 def _make_client(*, perms: set[str] | None = None) -> "TestClient":
-    from app.deps import get_current_user, get_db, require_permission
+    from app.deps import get_current_user, get_db
     from app.infra.models import User
-
-    app = FastAPI()
-    app.include_router(router, prefix="/api/v1")
+    from unittest.mock import patch
 
     fake_user = MagicMock(spec=User)
     fake_user.id = "user-001"
@@ -63,13 +61,14 @@ def _make_client(*, perms: set[str] | None = None) -> "TestClient":
     fake_db.add.return_value = None
     fake_db.flush.return_value = None
 
-    effective_perms = perms or {"admin.*"}
-
-    app.dependency_overrides[get_current_user] = lambda: fake_user
-    app.dependency_overrides[require_permission("admin.*")] = lambda: fake_user
-    app.dependency_overrides[get_db] = lambda: fake_db
-
-    return TestClient(app, raise_server_exceptions=False)
+    # Patch require_permission factory BEFORE include_router so all Depends
+    # created during route registration use the patched version
+    with patch("app.domains.billing.router.require_permission", return_value=lambda: fake_user):
+        app = FastAPI()
+        app.include_router(router, prefix="/api/v1")
+        app.dependency_overrides[get_current_user] = lambda: fake_user
+        app.dependency_overrides[get_db] = lambda: fake_db
+        return TestClient(app, raise_server_exceptions=False)
 
 
 @pytest.fixture()
