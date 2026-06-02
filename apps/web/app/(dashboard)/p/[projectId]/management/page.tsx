@@ -11,150 +11,9 @@ import {
 import { ManagementShell } from "./_components/ManagementShell";
 import { OnboardingWizard } from "./_components/OnboardingWizard";
 
-// ── Yardımcı bileşenler ──────────────────────────────────────────────────────
+const ENV_EMOJI: Record<string, string> = { staging: "🧪", production: "🚀", dev: "💻", qa: "🔬", uat: "👥" };
 
-function ReleaseHealthBanner({
-  health,
-  passRate,
-  blocked,
-  failed,
-  pct,
-}: {
-  health: "go" | "risk" | "stop";
-  passRate: number;
-  blocked: number;
-  failed: number;
-  pct: number;
-}) {
-  const cfg = {
-    go:   { bg: "from-emerald-950/80 to-slate-950", border: "border-emerald-500/30", badge: "bg-emerald-500/20 text-emerald-300 border-emerald-500/40", dot: "bg-emerald-500", label: "GO", icon: "✅" },
-    risk: { bg: "from-amber-950/60 to-slate-950",   border: "border-amber-500/30",   badge: "bg-amber-500/20  text-amber-300  border-amber-500/40",   dot: "bg-amber-500",   label: "RİSKLİ", icon: "⚠️" },
-    stop: { bg: "from-rose-950/70  to-slate-950",   border: "border-rose-500/30",    badge: "bg-rose-500/20   text-rose-300   border-rose-500/40",    dot: "bg-rose-500",   label: "STOP",   icon: "🚫" },
-  }[health];
-
-  return (
-    <div className={`rounded-2xl border ${cfg.border} bg-gradient-to-br ${cfg.bg} p-5`}>
-      <div className="flex items-center justify-between gap-4 flex-wrap">
-        <div className="flex items-center gap-4">
-          <div className={`w-14 h-14 rounded-2xl border ${cfg.border} flex items-center justify-center text-2xl`}>
-            {cfg.icon}
-          </div>
-          <div>
-            <div className="flex items-center gap-2 mb-0.5">
-              <span className={`text-xs font-bold uppercase tracking-widest px-2.5 py-1 rounded-full border ${cfg.badge}`}>
-                {cfg.label}
-              </span>
-              <span className={`w-2 h-2 rounded-full animate-pulse ${cfg.dot}`} />
-            </div>
-            <p className="text-white font-semibold text-lg leading-tight">Release Sağlığı</p>
-            <p className="text-slate-400 text-xs mt-0.5">
-              {health === "go" ? "Tüm kriterler karşılanıyor" : health === "risk" ? "Dikkat gerektiren maddeler var" : `${blocked} bloke · ${failed} başarısız — release engellenebilir`}
-            </p>
-          </div>
-        </div>
-        <div className="text-right">
-          <p className="text-4xl font-black text-white">{pct}<span className="text-2xl text-slate-400">%</span></p>
-          <p className="text-xs text-slate-500">tamamlandı</p>
-        </div>
-      </div>
-
-      {/* İlerleme çubuğu */}
-      <div className="mt-4 space-y-1">
-        <div className="h-3 rounded-full bg-slate-800 overflow-hidden">
-          <div
-            className={`h-full rounded-full transition-all duration-700 ${
-              health === "go" ? "bg-gradient-to-r from-emerald-500 to-teal-400" :
-              health === "risk" ? "bg-gradient-to-r from-amber-500 to-yellow-400" :
-              "bg-gradient-to-r from-rose-500 to-orange-400"
-            }`}
-            style={{ width: `${pct}%` }}
-          />
-        </div>
-        <div className="flex justify-between text-[10px] text-slate-500">
-          <span>0%</span><span>50%</span><span>100%</span>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function KpiCard({
-  label, value, note, trend, trendDir, accent, icon, href, projectId,
-}: {
-  label: string; value: string; note?: string; trend?: string; trendDir?: "up" | "down" | "flat";
-  accent: string; icon: string; href?: string; projectId?: string;
-}) {
-  const trendColor = trendDir === "up" ? "text-emerald-400" : trendDir === "down" ? "text-rose-400" : "text-slate-500";
-  const trendIcon  = trendDir === "up" ? "↑" : trendDir === "down" ? "↓" : "→";
-  const inner = (
-    <div className={`rounded-2xl border border-slate-800 bg-slate-900 p-4 space-y-3 h-full ${href ? "hover:border-slate-600 transition-colors cursor-pointer" : ""}`}>
-      <div className="flex items-center justify-between">
-        <span className="text-xl">{icon}</span>
-        {trend && (
-          <span className={`text-xs font-semibold ${trendColor}`}>{trendIcon} {trend}</span>
-        )}
-      </div>
-      <div>
-        <p className={`text-3xl font-black ${accent}`}>{value}</p>
-        <p className="text-xs text-slate-400 mt-0.5 font-medium uppercase tracking-wide">{label}</p>
-      </div>
-      {note && <p className="text-xs text-slate-500">{note}</p>}
-    </div>
-  );
-  if (href && projectId) return <Link href={`/p/${projectId}/${href}`}>{inner}</Link>;
-  return inner;
-}
-
-function RunCard({ run, projectId }: { run: { id: string; name: string; status: string; created_at: string; environment?: string }; projectId: string }) {
-  const statusCfg: Record<string, { dot: string; label: string; bg: string }> = {
-    in_progress: { dot: "bg-violet-500 animate-pulse", label: "Devam ediyor", bg: "border-violet-500/30 bg-violet-500/5" },
-    not_started: { dot: "bg-slate-500",                label: "Başlamadı",    bg: "border-slate-700" },
-    completed:   { dot: "bg-emerald-500",              label: "Tamamlandı",   bg: "border-emerald-500/20" },
-    failed:      { dot: "bg-rose-500",                 label: "Başarısız",    bg: "border-rose-500/20" },
-  };
-  const cfg = statusCfg[run.status] ?? statusCfg.not_started;
-  const ENV_EMOJI: Record<string, string> = { staging: "🧪", production: "🚀", dev: "💻", qa: "🔬", uat: "👥" };
-
-  return (
-    <Link href={`/p/${projectId}/management/runs/${run.id}/execute`}>
-      <div className={`rounded-xl border ${cfg.bg} p-3.5 flex items-center justify-between gap-3 hover:bg-slate-800/50 transition-colors`}>
-        <div className="flex items-center gap-3 min-w-0">
-          <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${cfg.dot}`} />
-          <div className="min-w-0">
-            <p className="text-sm font-medium text-white truncate">{run.name}</p>
-            <div className="flex items-center gap-2 mt-0.5">
-              <span className="text-xs text-slate-500">{cfg.label}</span>
-              {run.environment && (
-                <span className="text-xs text-slate-400">
-                  {ENV_EMOJI[run.environment] ?? "⚙️"} {run.environment}
-                </span>
-              )}
-            </div>
-          </div>
-        </div>
-        <span className="text-xs text-slate-500 shrink-0">
-          {new Date(run.created_at).toLocaleDateString("tr-TR")}
-        </span>
-      </div>
-    </Link>
-  );
-}
-
-function ReleaseGateRow({ label, value, ok }: { label: string; value: string; ok: boolean }) {
-  return (
-    <div className="flex items-center justify-between py-2.5 border-b border-slate-800 last:border-0">
-      <div className="flex items-center gap-2.5">
-        <span className={`w-5 h-5 rounded-full flex items-center justify-center text-xs ${ok ? "bg-emerald-500/20 text-emerald-400" : "bg-rose-500/20 text-rose-400"}`}>
-          {ok ? "✓" : "✗"}
-        </span>
-        <span className="text-sm text-slate-300">{label}</span>
-      </div>
-      <span className={`text-sm font-bold font-mono ${ok ? "text-emerald-400" : "text-rose-400"}`}>{value}</span>
-    </div>
-  );
-}
-
-// ── Ana sayfa ────────────────────────────────────────────────────────────────
+type RunItem = { id: string; name: string; status: string; created_at: string; environment?: string };
 
 export default function ManagementDashboardPage({ params }: { params: { projectId: string } }) {
   const { projectId } = params;
@@ -167,42 +26,26 @@ export default function ManagementDashboardPage({ params }: { params: { projectI
 
   const summary = summaryQuery.data ?? null;
   const cases   = casesQuery.data ?? [];
-  const runs    = runsQuery.data ?? [];
+  const runs    = (runsQuery.data ?? []) as RunItem[];
   const loading = casesQuery.isLoading || summaryQuery.isLoading;
 
   const managementProject = projectsQuery.data?.find(
-    (p) => p.id === projectId || p.tspm_project_id === projectId,
+    (p: { id: string; tspm_project_id: string | null }) => p.id === projectId || p.tspm_project_id === projectId,
   );
 
-  // KPI hesaplamaları
-  const totalCases   = cases.length;
-  const activeCases  = cases.filter((c: { archived: boolean }) => !c.archived).length;
-  const activeRuns   = runs.filter((r: { status: string }) => r.status === "in_progress");
-  const pct          = summary ? Math.round(summary.progress_pct) : 0;
-  const passRate     = summary ? summary.pass_rate_pct : 0;
-  const blocked      = summary?.blocked ?? 0;
-  const failed       = summary?.failed  ?? 0;
-  const total        = summary?.total   ?? 0;
+  const pct      = summary ? Math.round(summary.progress_pct) : 0;
+  const passRate = summary ? summary.pass_rate_pct : 0;
+  const blocked  = summary?.blocked ?? 0;
+  const failed   = summary?.failed ?? 0;
+  const total    = summary?.total ?? 0;
 
-  // Sağlık hesabı
-  const health: "go" | "risk" | "stop" =
-    !summary ? "risk" :
-    (blocked === 0 && failed === 0 && passRate >= 90) ? "go" :
-    (blocked > 3  || failed > 5  || passRate < 70)   ? "stop" :
-    "risk";
-
-  // Release gate kontrolleri
-  const gateChecks = summary ? [
-    { label: "Execution ≥ %95", value: `${pct}%`,              ok: pct >= 95 },
-    { label: "Pass rate ≥ %90", value: `${passRate.toFixed(1)}%`, ok: passRate >= 90 },
-    { label: "Blocked = 0",     value: String(blocked),          ok: blocked === 0 },
-    { label: "Failed = 0",      value: String(failed),           ok: failed === 0 },
-  ] : [];
+  const gateOk = !summary ? false : blocked === 0 && failed === 0 && passRate >= 90 && pct >= 95;
+  const gateRisk = !gateOk && !summary ? false : (blocked > 0 || failed > 0 || passRate < 90);
 
   // Workspace yoksa onboarding
   if (!projectsQuery.isLoading && !managementProject) {
     return (
-      <ManagementShell projectId={projectId} title="Management Dashboard" description="" active="management">
+      <ManagementShell projectId={projectId} title="" description="" active="management">
         <OnboardingWizard
           projectId={projectId}
           onCreateWorkspace={() => ensureProject.mutate()}
@@ -213,174 +56,145 @@ export default function ManagementDashboardPage({ params }: { params: { projectI
   }
 
   return (
-    <ManagementShell
-      projectId={projectId}
-      title="Management Dashboard"
-      description=""
-      active="management"
-    >
-      {/* ── 1. Release health banner ── */}
-      <ReleaseHealthBanner
-        health={health}
-        passRate={passRate}
-        blocked={blocked}
-        failed={failed}
-        pct={pct}
-      />
+    <ManagementShell projectId={projectId} title="" description="" active="management">
 
-      {/* ── 2. KPI kartları ── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <KpiCard
-          icon="📋" label="Manuel Case" accent="text-white"
-          value={loading ? "…" : totalCases.toLocaleString()}
-          note={`${activeCases} aktif`}
-          href="management/repository" projectId={projectId}
-        />
-        <KpiCard
-          icon="▶️" label="Aktif Run" accent="text-violet-400"
-          value={loading ? "…" : String(activeRuns.length)}
-          note={activeRuns.length > 0 ? "devam ediyor" : "koşum yok"}
-          trend={activeRuns.length > 0 ? "canlı" : undefined}
-          trendDir={activeRuns.length > 0 ? "up" : "flat"}
-          href="management/runs" projectId={projectId}
-        />
-        <KpiCard
-          icon="✅" label="Pass Rate" accent={passRate >= 90 ? "text-emerald-400" : passRate >= 70 ? "text-amber-400" : "text-rose-400"}
-          value={loading ? "…" : `${passRate.toFixed(1)}%`}
-          note={summary ? `${summary.passed}/${total} geçti` : "—"}
-          trendDir={passRate >= 90 ? "up" : passRate < 70 ? "down" : "flat"}
-        />
-        <KpiCard
-          icon="🚫" label="Bloke" accent={blocked === 0 ? "text-emerald-400" : "text-amber-400"}
-          value={loading ? "…" : String(blocked)}
-          note={failed > 0 ? `+${failed} başarısız` : "temiz"}
-          trendDir={blocked === 0 ? "flat" : "down"}
-          href="management/defects" projectId={projectId}
-        />
+      {/* ── Başlık satırı ── */}
+      <div className="flex items-center justify-between gap-4 flex-wrap">
+        <div>
+          <h1 className="text-base font-semibold text-white">Management Dashboard</h1>
+          <p className="text-xs text-slate-500 mt-0.5">
+            {managementProject ? `${managementProject.name} · ${managementProject.key}` : "Yükleniyor…"}
+          </p>
+        </div>
+        <Link href={`/p/${projectId}/management/runs`}
+          className="rounded-lg bg-white hover:bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-900 transition-colors">
+          + Yeni Run
+        </Link>
       </div>
 
-      {/* ── 3. Ana içerik: Release gate + Aktif runlar ── */}
-      <div className="grid gap-4 lg:grid-cols-5">
-
-        {/* Release Gate (3 kolon) */}
-        <div className="lg:col-span-3 rounded-2xl border border-slate-800 bg-slate-900 overflow-hidden">
-          <div className="flex items-center justify-between px-5 py-4 border-b border-slate-800">
-            <div>
-              <p className="text-sm font-semibold text-white">Release Gate</p>
-              <p className="text-xs text-slate-500 mt-0.5">Çıkış kriterleri kontrol listesi</p>
+      {/* ── Release durumu ── */}
+      {summary && (
+        <div className={`rounded-xl border px-5 py-4 ${
+          gateOk ? "border-emerald-800/40 bg-emerald-950/20" :
+          gateRisk ? "border-red-800/30 bg-red-950/20" :
+          "border-slate-800 bg-slate-900/40"
+        }`}>
+          <div className="flex items-center justify-between gap-6 flex-wrap">
+            <div className="flex items-center gap-3">
+              <span className={`text-lg ${gateOk ? "text-emerald-400" : gateRisk ? "text-red-400" : "text-amber-400"}`}>
+                {gateOk ? "●" : gateRisk ? "●" : "●"}
+              </span>
+              <div>
+                <p className={`text-sm font-semibold ${gateOk ? "text-emerald-300" : gateRisk ? "text-red-300" : "text-amber-300"}`}>
+                  {gateOk ? "Release hazır" : gateRisk ? `${blocked + failed} engel var` : "İlerleme devam ediyor"}
+                </p>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  {pct}% tamamlandı · pass rate {passRate.toFixed(0)}%
+                </p>
+              </div>
             </div>
-            <Link
-              href={`/p/${projectId}/management/reports`}
-              className="text-xs text-violet-400 hover:text-violet-300 transition-colors"
-            >
-              Tam Rapor →
-            </Link>
+            <div className="flex items-center gap-6 text-right">
+              {[
+                { label: "Bloke",     value: blocked, bad: blocked > 0 },
+                { label: "Başarısız", value: failed,  bad: failed > 0 },
+                { label: "Bekliyor",  value: summary.not_run, bad: false },
+              ].map(s => (
+                <div key={s.label}>
+                  <p className={`text-xl font-black ${s.bad ? "text-red-400" : "text-white"}`}>{s.value}</p>
+                  <p className="text-[10px] text-slate-600 uppercase tracking-wide">{s.label}</p>
+                </div>
+              ))}
+            </div>
           </div>
-          <div className="px-5 py-2">
-            {loading ? (
-              <p className="py-6 text-center text-slate-500 text-sm">Yükleniyor…</p>
-            ) : gateChecks.length === 0 ? (
-              <p className="py-6 text-center text-slate-500 text-sm">Koşum verisi yok</p>
+          {/* İlerleme çubuğu */}
+          <div className="mt-3 h-1.5 rounded-full bg-slate-800 overflow-hidden">
+            <div className={`h-full rounded-full transition-all duration-700 ${gateOk ? "bg-emerald-500" : gateRisk ? "bg-red-500" : "bg-slate-500"}`}
+              style={{ width: `${pct}%` }} />
+          </div>
+        </div>
+      )}
+
+      {/* ── Sayılar ── */}
+      <div className="grid grid-cols-3 gap-3">
+        {[
+          { label: "Case",    value: cases.length, sub: `${cases.filter((c: { archived: boolean }) => !c.archived).length} aktif`, href: "management/repository" },
+          { label: "Geçti",   value: summary?.passed   ?? "—", sub: `/ ${total}`, href: null },
+          { label: "Pass %",  value: summary ? `${passRate.toFixed(0)}%` : "—", sub: pct >= 95 ? "hedef ✓" : "hedef ≥95%", href: "management/reports" },
+        ].map(s => (
+          <div key={s.label} className={`rounded-xl border border-slate-800 bg-slate-900 p-4 ${s.href ? "hover:border-slate-700 transition-colors" : ""}`}>
+            {s.href ? (
+              <Link href={`/p/${projectId}/${s.href}`} className="block">
+                <p className="text-2xl font-black text-white">{loading ? "…" : s.value}</p>
+                <p className="text-[10px] uppercase tracking-widest text-slate-600 mt-1">{s.label}</p>
+                <p className="text-xs text-slate-500 mt-0.5">{s.sub}</p>
+              </Link>
             ) : (
-              gateChecks.map((g) => <ReleaseGateRow key={g.label} {...g} />)
+              <>
+                <p className="text-2xl font-black text-white">{loading ? "…" : s.value}</p>
+                <p className="text-[10px] uppercase tracking-widest text-slate-600 mt-1">{s.label}</p>
+                <p className="text-xs text-slate-500 mt-0.5">{s.sub}</p>
+              </>
             )}
           </div>
+        ))}
+      </div>
 
-          {/* Run dağılımı bar */}
-          {summary && summary.total > 0 && (
-            <div className="px-5 pb-4 pt-2 border-t border-slate-800">
-              <p className="text-xs text-slate-500 mb-2">Case dağılımı</p>
-              <div className="h-3 rounded-full overflow-hidden flex gap-0.5">
-                {([
-                  ["passed",  summary.passed,  "bg-emerald-500"],
-                  ["failed",  summary.failed,  "bg-rose-500"],
-                  ["blocked", summary.blocked, "bg-amber-500"],
-                  ["skipped", summary.skipped, "bg-slate-500"],
-                  ["not_run", summary.not_run, "bg-slate-700"],
-                ] as [string, number, string][]).map(([key, cnt, color]) =>
-                  cnt > 0 ? (
-                    <div
-                      key={key}
-                      title={`${key}: ${cnt}`}
-                      className={`${color} transition-all`}
-                      style={{ width: `${(cnt / summary.total) * 100}%` }}
-                    />
-                  ) : null
-                )}
-              </div>
-              <div className="flex flex-wrap gap-3 mt-2">
-                {([
-                  ["Geçti",    summary.passed,  "bg-emerald-500"],
-                  ["Başarısız",summary.failed,  "bg-rose-500"],
-                  ["Bloke",    summary.blocked, "bg-amber-500"],
-                  ["Atlandı",  summary.skipped, "bg-slate-500"],
-                  ["Bekliyor", summary.not_run, "bg-slate-700"],
-                ] as [string, number, string][]).map(([label, cnt, color]) => (
-                  <div key={label} className="flex items-center gap-1.5">
-                    <span className={`w-2 h-2 rounded-full ${color}`} />
-                    <span className="text-xs text-slate-400">{label} <strong className="text-white">{cnt}</strong></span>
-                  </div>
-                ))}
-              </div>
+      {/* ── Son runlar ── */}
+      <div className="rounded-xl border border-slate-800">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-slate-800">
+          <p className="text-sm font-medium text-white">Son Runlar</p>
+          <Link href={`/p/${projectId}/management/runs`} className="text-xs text-slate-500 hover:text-white transition-colors">
+            Tümünü gör →
+          </Link>
+        </div>
+        <div className="divide-y divide-slate-800/60">
+          {runsQuery.isLoading ? (
+            <p className="px-4 py-6 text-center text-sm text-slate-600">Yükleniyor…</p>
+          ) : runs.length === 0 ? (
+            <div className="px-4 py-8 text-center">
+              <p className="text-sm text-slate-500">Henüz run yok</p>
+              <Link href={`/p/${projectId}/management/runs`}
+                className="mt-2 inline-block text-xs text-slate-500 hover:text-white border border-slate-700 hover:border-slate-500 rounded px-3 py-1.5 transition-colors">
+                İlk koşumu başlat
+              </Link>
             </div>
+          ) : (
+            runs.slice(0, 5).map(run => {
+              const isActive = run.status === "in_progress";
+              return (
+                <Link key={run.id} href={`/p/${projectId}/management/runs/${run.id}/execute`}
+                  className="flex items-center gap-3 px-4 py-3 hover:bg-slate-800/30 transition-colors">
+                  <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${isActive ? "bg-emerald-400 animate-pulse" : "bg-slate-600"}`} />
+                  <p className="flex-1 text-sm text-slate-300 truncate">{run.name}</p>
+                  {run.environment && (
+                    <span className="text-xs text-slate-600">{ENV_EMOJI[run.environment] ?? "⚙️"} {run.environment}</span>
+                  )}
+                  <span className="text-xs text-slate-600 shrink-0">
+                    {new Date(run.created_at).toLocaleDateString("tr-TR", { day: "2-digit", month: "short" })}
+                  </span>
+                </Link>
+              );
+            })
           )}
         </div>
-
-        {/* Aktif runlar + hızlı aksiyonlar (2 kolon) */}
-        <div className="lg:col-span-2 space-y-3">
-          {/* Aktif runlar */}
-          <div className="rounded-2xl border border-slate-800 bg-slate-900 overflow-hidden">
-            <div className="flex items-center justify-between px-4 py-3.5 border-b border-slate-800">
-              <p className="text-sm font-semibold text-white">Aktif Runlar</p>
-              <Link href={`/p/${projectId}/management/runs`} className="text-xs text-violet-400 hover:text-violet-300">
-                Tümü →
-              </Link>
-            </div>
-            <div className="p-3 space-y-2">
-              {runsQuery.isLoading ? (
-                <p className="text-center py-4 text-slate-500 text-sm">Yükleniyor…</p>
-              ) : runs.length === 0 ? (
-                <div className="py-6 text-center space-y-2">
-                  <p className="text-2xl">▶️</p>
-                  <p className="text-xs text-slate-500">Henüz run yok</p>
-                  <Link
-                    href={`/p/${projectId}/management/runs`}
-                    className="inline-block text-xs text-violet-400 hover:text-violet-300"
-                  >
-                    İlk koşumu başlat →
-                  </Link>
-                </div>
-              ) : (
-                runs.slice(0, 4).map((run: { id: string; name: string; status: string; created_at: string; environment?: string }) => (
-                  <RunCard key={run.id} run={run} projectId={projectId} />
-                ))
-              )}
-            </div>
-          </div>
-
-          {/* Hızlı aksiyonlar */}
-          <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4 space-y-2">
-            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-3">Hızlı Erişim</p>
-            {[
-              { icon: "👤", label: "Görevlerim", sub: "Atanan case'ler",         href: "management/tester" },
-              { icon: "📊", label: "Standup Görünümü", sub: "Mobil release özeti", href: "management/standup" },
-              { icon: "📁", label: "Repository",  sub: "Case yazma & arama",    href: "management/repository" },
-              { icon: "📝", label: "Defects",     sub: "Açık hatalar",           href: "management/defects" },
-            ].map((item) => (
-              <Link key={item.href} href={`/p/${projectId}/${item.href}`}>
-                <div className="flex items-center gap-3 rounded-xl p-2.5 hover:bg-slate-800 transition-colors">
-                  <span className="text-lg w-7 text-center">{item.icon}</span>
-                  <div>
-                    <p className="text-sm font-medium text-white leading-tight">{item.label}</p>
-                    <p className="text-xs text-slate-500">{item.sub}</p>
-                  </div>
-                  <span className="ml-auto text-slate-600 text-xs">→</span>
-                </div>
-              </Link>
-            ))}
-          </div>
-        </div>
       </div>
+
+      {/* ── Hızlı erişim (minimal) ── */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+        {[
+          { label: "Görevlerim", href: "management/tester",    icon: "👤" },
+          { label: "Defects",    href: "management/defects",   icon: "🐛" },
+          { label: "Raporlar",   href: "management/reports",   icon: "📊" },
+          { label: "Standup",    href: "management/standup",   icon: "📱" },
+        ].map(item => (
+          <Link key={item.href} href={`/p/${projectId}/${item.href}`}
+            className="flex items-center gap-2 rounded-lg border border-slate-800 bg-slate-900 px-3 py-2.5 text-xs text-slate-400 hover:text-white hover:border-slate-700 transition-colors">
+            <span>{item.icon}</span>
+            <span>{item.label}</span>
+          </Link>
+        ))}
+      </div>
+
     </ManagementShell>
   );
 }

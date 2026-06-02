@@ -12,28 +12,6 @@ import {
 } from "@/lib/hooks/use-management";
 
 import { CommentThread } from "../_components/CommentThread";
-import { ManagementPanel, ManagementShell, ManagementStat } from "../_components/ManagementShell";
-
-export default function ManagementPlansPage({ params }: { params: { projectId: string } }) {
-  const plans = useManagementPlans(params.projectId);
-  const cycles = useManagementCycles(params.projectId);
-  const repository = useManagementRepository(params.projectId);
-  const regressionSets = useRegressionSets(params.projectId);
-  const createPlan = useCreateManagementPlan(params.projectId);
-  const createCycle = useCreateManagementCycle(params.projectId);
-  const [planName, setPlanName] = useState("");
-  const [planType, setPlanType] = useState("regression");
-  const [releaseName, setReleaseName] = useState("");
-  const [regressionSetId, setRegressionSetId] = useState("");
-  const [scopeObjective, setScopeObjective] = useState("");
-  const [scopeAreas, setScopeAreas] = useState("");
-  const [scopeExclusions, setScopeExclusions] = useState("");
-  const [scopeNotes, setScopeNotes] = useState("");
-  const [cycleName, setCycleName] = useState("");
-  const [cyclePlanId, setCyclePlanId] = useState("");
-  const [environment, setEnvironment] = useState("");
-  const [buildVersion, setBuildVersion] = useState("");
-  const [discussionPlanId, setDiscussionPlanId] = useState<string>("");
   const activePlans = plans.data?.filter((plan) => plan.status !== "archived").length ?? 0;
   const caseCount = repository.data?.cases.length ?? 0;
   const readyCases = repository.data?.cases.filter((item) => ["ready", "active"].includes(item.status)).length ?? 0;

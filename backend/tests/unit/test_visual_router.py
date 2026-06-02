@@ -11,33 +11,6 @@ try:
     from app.domains.visual.router import router
     from app.deps import get_current_user
     from app.infra.database import get_db
-except ImportError as _e:
-    pytest.skip(f"visual router not importable: {_e}", allow_module_level=True)
-
-# ---------------------------------------------------------------------------
-# App fixture
-# ---------------------------------------------------------------------------
-
-@pytest.fixture(scope="module")
-def client():
-    app = FastAPI()
-    mock_db = MagicMock()
-
-    # User with admin.* permission — satisfies both get_current_user and
-    # require_permission("admin.visual") which checks _user_permissions().
-    fake_perm = MagicMock()
-    fake_perm.permission = "admin.*"
-    fake_role = MagicMock()
-    fake_role.permissions = [fake_perm]
-    fake_user = MagicMock()
-    fake_user.id = "user-001"
-    fake_user.roles = [fake_role]
-
-    # Override get_db (required by get_current_user sub-dep) and get_current_user.
-    app.dependency_overrides[get_db] = lambda: mock_db
-    app.dependency_overrides[get_current_user] = lambda: fake_user
-
-    app.include_router(router)
     return TestClient(app, raise_server_exceptions=False)
 
 

@@ -272,15 +272,6 @@ def _make_trend_point(**kwargs):
     return TrendPoint(**defaults)
 
 
-class TestBuildTrendResponse:
-    def test_empty_points_returns_stable(self):
-        result = build_trend_response([])
-        assert result.direction == "stable"
-        assert result.current_line_rate == 0.0
-
-    def test_improving_trend(self):
-        p1 = _make_trend_point(line_rate=0.5)
-        p2 = _make_trend_point(line_rate=0.6)
         result = build_trend_response([p1, p2])
         assert result.direction == "improving"
 

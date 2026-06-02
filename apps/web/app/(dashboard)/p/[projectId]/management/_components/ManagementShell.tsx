@@ -17,32 +17,6 @@ const tabs = [
   { href: "management/design/bva", label: "BVA" },
   { href: "management/design/eq", label: "EQ Partition" },
   { href: "management/standup", label: "📱 Standup" },
-  { href: "management/import-export", label: "Import / Export" },
-  { href: "management/settings", label: "Settings" },
-];
-
-export type ManagementShellProps = {
-  projectId: string;
-  title: string;
-  description: string;
-  active: string;
-  children: React.ReactNode;
-};
-
-export function ManagementShell({ projectId, title, description, active, children }: ManagementShellProps) {
-  return (
-    <main className="min-h-screen bg-slate-950 p-6 text-slate-100">
-      <div className="mb-6 flex flex-col gap-4">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-teal-300">Neurex Management</p>
-            <h1 className="mt-2 text-3xl font-bold tracking-tight text-white">{title}</h1>
-            <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-400">{description}</p>
-          </div>
-          <div className="mt-1 flex flex-shrink-0 items-center gap-3">
-            <NotificationBell projectId={projectId} />
-            <LanguageSwitcher />
-          </div>
         </div>
         <nav className="flex gap-2 overflow-x-auto border-b border-slate-800 pb-3">
           {tabs.map((tab) => {

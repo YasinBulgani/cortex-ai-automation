@@ -298,19 +298,6 @@ class TestRunCreate(BaseModel):
     source_ref: Optional[str] = None
     scope_snapshot: dict[str, Any] = Field(default_factory=dict)
     environment: Optional[str] = None
-
-
-class TestRunOut(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-
-    id: str
-    cycle_id: str
-    name: str
-    status: str
-    source_type: str
-    source_ref: Optional[str] = None
-    scope_snapshot: dict[str, Any]
-    environment: Optional[str] = None
     started_at: Optional[datetime] = None
     completed_at: Optional[datetime] = None
     created_at: datetime

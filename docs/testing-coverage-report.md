@@ -88,22 +88,6 @@ Wave 24'te eklenenler (10 bileşen):
 Sayfa satır azaltımları:
 - `new-project/page.tsx`: 2787 → 1851 satır (Wave 22 tamamlandı)
 - Diğer sayfalar ayrıştırma devam ediyor
-
-## CI Doğrulama
-
-Her PR'da koşan test setleri:
-- `pytest tests/unit/ -v --tb=short` (backend)
-- `pytest tests/unit/ -v --tb=short` (engine)
-- `npm test -- --watchAll=false` (frontend)
-- `pytest tests/integration/` (smoke)
-
-Makefile hedefleri (Wave 24'te eklendi):
-- `make test-unit` — tüm backend birim testleri
-- `make test-integration` — backend entegrasyon testleri
-- `make test-engine` — engine birim testleri
-- `make lint-check` — flake8 + isort kontrol
-- `make type-check` — mypy tip kontrolü
-
 ## Güvenlik Tarama Bulguları
 
 Tarih: 2026-05-26 — `backend/app/domains/auth/router.py`

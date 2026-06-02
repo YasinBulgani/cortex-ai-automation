@@ -183,19 +183,4 @@ async def rate_limit_error_handler(request: Request, exc: Exception) -> JSONResp
     )
 
 
-def register_exception_handlers(app: FastAPI) -> None:
-    """FastAPI app'a tüm özel handler'ları bağla."""
-    app.add_exception_handler(HTTPException, http_exception_handler)
-    app.add_exception_handler(RequestValidationError, validation_exception_handler)
-    # Domain service layer — HTTP-agnostic exceptions mapped to HTTP status codes.
-    # RateLimitError must be registered before RuntimeError (it extends Exception, not RuntimeError)
-    try:
-        from app.core.exceptions import RateLimitError
-        app.add_exception_handler(RateLimitError, rate_limit_error_handler)  # type: ignore[arg-type]
-    except ImportError:
-        pass  # Defensive — if exceptions module not yet present
-    app.add_exception_handler(ValueError, value_error_handler)  # type: ignore[arg-type]
-    app.add_exception_handler(KeyError, key_error_handler)  # type: ignore[arg-type]
-    app.add_exception_handler(PermissionError, permission_error_handler)  # type: ignore[arg-type]
-    app.add_exception_handler(RuntimeError, runtime_error_handler)  # type: ignore[arg-type]
     app.add_exception_handler(Exception, unhandled_exception_handler)

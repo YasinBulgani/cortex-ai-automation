@@ -765,7 +765,7 @@ export default function MonkeyTestingPage() {
     setLiveConsoleErrors(entry.data.console_errors);
     setLiveNetworkErrors(entry.data.network_errors);
     setLiveFrame(
-      entry.data.screenshots.final
+      entry.data.screenshots?.final
         ? { step: "final", screenshot: entry.data.screenshots.final, url: entry.data.test_url }
         : null
     );
