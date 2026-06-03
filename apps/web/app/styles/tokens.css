@@ -5,33 +5,39 @@
  * ─────────────────────────────────────────────────────────────────────── */
 
 :root {
+  color-scheme: light;
+
   /* ── Surface katmanları ──────────────────────────────────────────────── */
-  --surface-base:    #f8fafc;
+  /* Sayfa zemin: saf beyaz değil, hafif mavi-gri ton — derinlik hissi verir */
+  --surface-base:    #f6f8fb;
+  /* Kartlar, panel, modal: beyaz — zemine göre öne çıkar */
   --surface-raised:  #ffffff;
+  /* Sidebar, toolbar, ikincil arka plan */
   --surface-overlay: #f1f5f9;
-  --surface-accent:  #e2e8f0;
+  /* Hover, seçili, aktif arka plan */
+  --surface-accent:  #e8eef6;
 
   /* Legacy aliases */
   --bg:        var(--surface-base);
   --bg-subtle: var(--surface-overlay);
 
   /* ── Foreground & text ───────────────────────────────────────────────── */
-  --fg:           #0f172a;
-  --fg-muted:     #475569;
-  --fg-subtle:    #94a3b8;
-  --fg-disabled:  #cbd5e1;
+  --fg:           #0f172a;   /* Ana metin — çok koyu */
+  --fg-muted:     #475569;   /* İkincil metin — net, kurumsal slate */
+  --fg-subtle:    #64748b;   /* Yardımcı metin — WCAG AA */
+  --fg-disabled:  #94a3b8;
   --muted:        #64748b;
-  --muted-fg:     #94a3b8;
+  --muted-fg:     #64748b;
 
   /* ── Borders ─────────────────────────────────────────────────────────── */
   --border:        #e2e8f0;
   --border-strong: #cbd5e1;
-  --border-subtle: #f1f5f9;
+  --border-subtle: #edf2f7;
 
   /* ── Brand: Neurex (default) ─────────────────────────────────────────── */
-  --brand-primary:    #0d9488;
-  --brand-secondary:  #0f766e;
-  --brand-soft:       #f0fdfa;
+  --brand-primary:    #2563eb;
+  --brand-secondary:  #4f46e5;
+  --brand-soft:       #eef2ff;
   --brand-fg:         #ffffff;
   --accent:           var(--brand-primary);
   --accent-fg:        var(--brand-fg);
@@ -44,7 +50,7 @@
   --product-web:          #3b82f6;
   --product-mobile:       #f43f5e;
   --product-data:         #06b6d4;
-  --product-management:   #14b8a6;
+  --product-management:   #2563eb;
   --product-intelligence: #8b5cf6;
   --product-code:         #64748b;
 
@@ -108,12 +114,12 @@
   --tracking-widest:  0.15em;
 
   /* ── Shadows ─────────────────────────────────────────────────────────── */
-  --shadow-xs:       0 1px 1px rgb(0 0 0 / 0.04);
-  --shadow-sm:       0 1px 2px rgb(0 0 0 / 0.05);
-  --shadow-elevated: 0 1px 3px rgb(0 0 0 / 0.06), 0 8px 24px rgb(0 0 0 / 0.06);
-  --shadow-lg:       0 4px 6px rgb(0 0 0 / 0.05), 0 20px 40px rgb(0 0 0 / 0.08);
-  --shadow-xl:       0 24px 48px rgb(0 0 0 / 0.12);
-  --shadow-glow:     0 0 0 4px rgb(13 148 136 / 0.15);
+  --shadow-xs:       0 1px 2px rgb(15 23 42 / 0.04);
+  --shadow-sm:       0 1px 3px rgb(15 23 42 / 0.07), 0 1px 2px rgb(15 23 42 / 0.04);
+  --shadow-elevated: 0 1px 2px rgb(15 23 42 / 0.06), 0 12px 28px rgb(15 23 42 / 0.08);
+  --shadow-lg:       0 8px 18px rgb(15 23 42 / 0.08), 0 24px 48px rgb(15 23 42 / 0.08);
+  --shadow-xl:       0 24px 56px rgb(15 23 42 / 0.14);
+  --shadow-glow:     0 0 0 4px rgb(37 99 235 / 0.14);
 
   /* ── Z-index sahneleme ───────────────────────────────────────────────── */
   --z-base:    1;
@@ -142,6 +148,8 @@
 }
 
 .dark {
+  color-scheme: dark;
+
   --surface-base:    #0a0f1e;
   --surface-raised:  #111827;
   --surface-overlay: #1a2235;
@@ -262,14 +270,14 @@ a:focus-visible,
 /* ── A11y: High-contrast media query desteği ─────────────────────────────── */
 @media (prefers-contrast: more) {
   :root {
-    --border:        #000000;
-    --border-strong: #000000;
-    --fg-subtle:     #000000;
+    --border:        #cbd5e1;
+    --border-strong: #94a3b8;
+    --fg-subtle:     #334155;
   }
   .dark {
-    --border:        #ffffff;
-    --border-strong: #ffffff;
-    --fg-subtle:     #ffffff;
+    --border:        #475569;
+    --border-strong: #94a3b8;
+    --fg-subtle:     #cbd5e1;
   }
 }
 

@@ -50,9 +50,9 @@ export function OnboardingWizard({ projectId, onCreateWorkspace, isCreating }: O
   const [activeStep, setActiveStep] = useState(1);
 
   return (
-    <div className="rounded-2xl border border-slate-700 bg-slate-900 overflow-hidden">
+    <div className="rounded-xl border border-border bg-surface-raised overflow-hidden">
       {/* Başlık */}
-      <div className="bg-gradient-to-r from-violet-600/20 to-teal-600/20 border-b border-slate-700 px-6 py-5">
+      <div className="bg-teal-500/10 border-b border-border px-6 py-5">
         <h2 className="text-lg font-bold text-white">Management Workspace Kurulumu</h2>
         <p className="text-sm text-slate-400 mt-1">
           4 adımda QA yönetim platformunuzu hazırlayın.
@@ -65,7 +65,7 @@ export function OnboardingWizard({ projectId, onCreateWorkspace, isCreating }: O
                 onClick={() => setActiveStep(step.id)}
                 className={`w-7 h-7 rounded-full text-xs font-bold flex items-center justify-center transition-all ${
                   activeStep === step.id
-                    ? "bg-violet-600 text-white scale-110"
+                    ? "bg-teal-600 text-white scale-110"
                     : activeStep > step.id
                     ? "bg-teal-600 text-white"
                     : "bg-slate-700 text-slate-400"
@@ -96,7 +96,7 @@ export function OnboardingWizard({ projectId, onCreateWorkspace, isCreating }: O
             {/* Adım aksiyonu */}
             {step.action === "workspace" ? (
               <div className="space-y-3">
-                <div className="rounded-lg border border-slate-700 bg-slate-800/50 p-4 space-y-2">
+                <div className="rounded-lg border border-border bg-surface-overlay p-4 space-y-2">
                   <p className="text-xs text-slate-400">Workspace oluşturulunca:</p>
                   <ul className="text-xs text-slate-300 space-y-1">
                     <li>✅ Test repository hazır olacak</li>
@@ -107,7 +107,7 @@ export function OnboardingWizard({ projectId, onCreateWorkspace, isCreating }: O
                 <button
                   onClick={() => { onCreateWorkspace(); setActiveStep(2); }}
                   disabled={isCreating}
-                  className="flex items-center gap-2 rounded-xl bg-violet-600 hover:bg-violet-700 disabled:opacity-50 px-5 py-2.5 text-sm font-bold text-white transition-colors"
+                  className="flex items-center gap-2 rounded-xl bg-teal-600 hover:bg-teal-700 disabled:opacity-50 px-5 py-2.5 text-sm font-bold text-white transition-colors"
                 >
                   {isCreating && (
                     <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -119,7 +119,7 @@ export function OnboardingWizard({ projectId, onCreateWorkspace, isCreating }: O
               <div className="flex items-center gap-3">
                 <Link
                   href={`/p/${projectId}/${ACTION_HREF[step.action]}`}
-                  className="rounded-xl bg-violet-600 hover:bg-violet-700 px-5 py-2.5 text-sm font-bold text-white transition-colors"
+                  className="rounded-xl bg-teal-600 hover:bg-teal-700 px-5 py-2.5 text-sm font-bold text-white transition-colors"
                 >
                   {step.title} →
                 </Link>
@@ -136,7 +136,7 @@ export function OnboardingWizard({ projectId, onCreateWorkspace, isCreating }: O
       </div>
 
       {/* Navigasyon */}
-      <div className="border-t border-slate-800 px-6 py-3 flex justify-between">
+      <div className="border-t border-border px-6 py-3 flex justify-between">
         <button
           onClick={() => setActiveStep((s) => Math.max(1, s - 1))}
           disabled={activeStep === 1}

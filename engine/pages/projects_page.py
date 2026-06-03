@@ -1,5 +1,5 @@
 """
-ProjectsPage — TestwrightAI Projeler listesi Page Object.
+ProjectsPage — Neurex Projeler listesi Page Object.
 LocatorManager üzerinden merkezi seçici yönetimi kullanır.
 """
 from __future__ import annotations
@@ -18,7 +18,7 @@ _PAGE = "projects_list"
 
 
 class ProjectsPage(BasePage):
-    """TestwrightAI Projeler sayfası Page Object."""
+    """Neurex Projeler sayfası Page Object."""
 
     URL = "/projects"
 

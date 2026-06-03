@@ -1,5 +1,5 @@
 """
-steps/keyboard_steps.py — Klavye BDD Adimlari (NexusQA KeyboardSteps port'u)
+steps/keyboard_steps.py — Klavye BDD Adimlari (Neurex KeyboardSteps port'u)
 
 Desteklenen adimlar:
   When kullanici "{key}" tusuna basar

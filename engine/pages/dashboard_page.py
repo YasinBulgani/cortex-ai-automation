@@ -1,5 +1,5 @@
 """
-DashboardPage — TestwrightAI Proje özet paneli (dashboard) Page Object.
+DashboardPage — Neurex Proje özet paneli (dashboard) Page Object.
 LocatorManager üzerinden merkezi seçici yönetimi kullanır.
 """
 from __future__ import annotations
@@ -18,7 +18,7 @@ _PAGE = "dashboard"
 
 
 class DashboardPage(BasePage):
-    """TestwrightAI Proje özet paneli Page Object."""
+    """Neurex Proje özet paneli Page Object."""
 
     def __init__(
         self,

@@ -84,16 +84,16 @@ export function DataTable<T extends Record<string, unknown>>({
 
   return (
     <div className={cn("flex flex-col gap-3", className)}>
-      <div className="overflow-x-auto rounded-xl border border-slate-700 bg-slate-900/40">
+      <div className="overflow-x-auto rounded-xl border border-border bg-surface-raised shadow-sm">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-slate-800">
+            <tr className="border-b border-border bg-surface-overlay">
               {columns.map((col) => (
                 <th
                   key={String(col.key)}
                   className={cn(
-                    "px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-slate-400",
-                    col.sortable && "cursor-pointer select-none hover:text-white",
+                    "px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-fg-muted",
+                    col.sortable && "cursor-pointer select-none hover:text-fg",
                     col.className
                   )}
                   onClick={() => col.sortable && toggleSort(String(col.key))}
@@ -113,17 +113,17 @@ export function DataTable<T extends Record<string, unknown>>({
           <tbody>
             {loading ? (
               Array.from({ length: 5 }).map((_, i) => (
-                <tr key={i} className="border-b border-slate-800 last:border-0">
+                <tr key={i} className="border-b border-border-subtle last:border-0">
                   {columns.map((col) => (
                     <td key={String(col.key)} className="px-4 py-3">
-                      <div className="h-4 w-3/4 animate-pulse rounded bg-slate-800" />
+                      <div className="h-4 w-3/4 animate-pulse rounded bg-surface-accent" />
                     </td>
                   ))}
                 </tr>
               ))
             ) : paginated.length === 0 ? (
               <tr>
-                <td colSpan={columns.length} className="px-4 py-8 text-center text-sm text-slate-500">
+                <td colSpan={columns.length} className="px-4 py-8 text-center text-sm text-fg-subtle">
                   {emptyState ?? emptyMessage}
                 </td>
               </tr>
@@ -132,8 +132,8 @@ export function DataTable<T extends Record<string, unknown>>({
                 <tr
                   key={i}
                   className={cn(
-                    "border-b border-slate-800 last:border-0 transition-colors",
-                    onRowClick ? "cursor-pointer hover:bg-slate-800/60" : "hover:bg-slate-900/60"
+                    "border-b border-border-subtle last:border-0 transition-colors",
+                    onRowClick ? "cursor-pointer hover:bg-surface-overlay" : "hover:bg-surface-overlay"
                   )}
                   onClick={() => onRowClick?.(row)}
                 >
@@ -150,7 +150,7 @@ export function DataTable<T extends Record<string, unknown>>({
       </div>
 
       {totalPages > 1 && (
-        <div className="flex items-center justify-between text-sm text-slate-400">
+        <div className="flex items-center justify-between text-sm text-fg-muted">
           <span>
             {(page - 1) * pageSize + 1}–{Math.min(page * pageSize, sorted.length)} / {sorted.length} kayıt
           </span>
@@ -158,31 +158,31 @@ export function DataTable<T extends Record<string, unknown>>({
             <button
               onClick={() => setPage(1)}
               disabled={page === 1}
-              className="rounded-lg px-2 py-1 hover:bg-slate-800 disabled:opacity-40"
+              className="rounded-lg px-2 py-1 hover:bg-surface-overlay disabled:opacity-40"
             >
               «
             </button>
             <button
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={page === 1}
-              className="rounded-lg px-2 py-1 hover:bg-slate-800 disabled:opacity-40"
+              className="rounded-lg px-2 py-1 hover:bg-surface-overlay disabled:opacity-40"
             >
               ‹
             </button>
-            <span className="px-2 text-slate-300">
+            <span className="px-2 font-medium text-fg">
               {page} / {totalPages}
             </span>
             <button
               onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
               disabled={page === totalPages}
-              className="rounded-lg px-2 py-1 hover:bg-slate-800 disabled:opacity-40"
+              className="rounded-lg px-2 py-1 hover:bg-surface-overlay disabled:opacity-40"
             >
               ›
             </button>
             <button
               onClick={() => setPage(totalPages)}
               disabled={page === totalPages}
-              className="rounded-lg px-2 py-1 hover:bg-slate-800 disabled:opacity-40"
+              className="rounded-lg px-2 py-1 hover:bg-surface-overlay disabled:opacity-40"
             >
               »
             </button>

@@ -33,7 +33,7 @@ from config.settings import settings
 logger = logging.getLogger(__name__)
 
 # Desteklenen Mavi Yaka domain'leri
-NEXUSQA_DOMAINS = ["ark", "ghz", "girit", "hrnexusqa", "pex", "plus"]
+NEXUSQA_DOMAINS = ["ark", "ghz", "girit", "hrneurex", "pex", "plus"]
 
 
 # ──────────────────────────────────────────────────────────────────────────────

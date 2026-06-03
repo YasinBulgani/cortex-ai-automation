@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 export type Theme = "light" | "dark" | "system";
 
 const STORAGE_KEY = "neurex_theme_v1";
+const LEGACY_KEY  = "tspm_theme";
 
 function readSystemPref(): "light" | "dark" {
   if (typeof window === "undefined") return "dark";
@@ -15,12 +16,20 @@ function readSystemPref(): "light" | "dark" {
 
 function readStored(): Theme {
   try {
+    // Eski key'den migration — bir kez çalışır, sonra silinir
+    const legacy = localStorage.getItem(LEGACY_KEY);
+    if (legacy && !localStorage.getItem(STORAGE_KEY)) {
+      const migrated: Theme = legacy === "light" ? "light" : "dark";
+      localStorage.setItem(STORAGE_KEY, migrated);
+      localStorage.removeItem(LEGACY_KEY);
+    }
+
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw === "light" || raw === "dark" || raw === "system") return raw;
   } catch {
     /* ignore */
   }
-  return "system";
+  return "dark"; // Varsayılan: koyu mod
 }
 
 function applyTheme(theme: Theme): void {
@@ -86,7 +95,8 @@ export function useTheme() {
   }, []);
 
   const toggle = useCallback(() => {
-    setTheme(theme === "dark" ? "light" : "dark");
+    const effective = theme === "system" ? readSystemPref() : theme;
+    setTheme(effective === "dark" ? "light" : "dark");
   }, [theme, setTheme]);
 
   return { theme, setTheme, toggle, resolved: theme === "system" ? readSystemPref() : theme };

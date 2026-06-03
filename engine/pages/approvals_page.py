@@ -1,10 +1,10 @@
-"""ApprovalsPage — TestwrightAI Onaylar ekranı Page Object."""
+"""ApprovalsPage — Neurex Onaylar ekranı Page Object."""
 from playwright.sync_api import Page, expect
 from pages.base_page import BasePage
 
 
 class ApprovalsPage(BasePage):
-    """TestwrightAI Onaylar sayfası."""
+    """Neurex Onaylar sayfası."""
 
     HEADING = '[data-testid="approvals-heading"]'
     APPROVE_BTN = '[data-testid="approvals-btn-approve"]'

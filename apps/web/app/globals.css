@@ -46,9 +46,13 @@
 @layer base {
   html {
     @apply antialiased;
+    /* color-scheme tokens.css'den gelir — tarayıcı scrollbar/input renkleri için */
   }
   body {
     @apply bg-bg text-fg min-h-screen;
+    font-family: var(--font-sans);
+    background:
+      linear-gradient(180deg, var(--surface-base) 0%, #f8fafc 46%, var(--surface-base) 100%);
   }
 
   /* WCAG 2.3.3 — Animation from Interactions.
@@ -85,6 +89,206 @@
   0% { transform: translateX(-100%); }
   100% { transform: translateX(200%); }
 }
+
+/* ══════════════════════════════════════════════════════════════════════
+   LIGHT MODE DESIGN SYSTEM
+   Tüm ham HTML elementleri için tutarlı, polished açık mod görünümü.
+   Dark modda (.dark class var) hiçbiri uygulanmaz.
+   ══════════════════════════════════════════════════════════════════════ */
+
+/* ── 1. KART / PANEL ELEVATION ───────────────────────────────────────── */
+html:not(.dark) .rounded-lg.border,
+html:not(.dark) .rounded-xl.border,
+html:not(.dark) .rounded-2xl.border {
+  border-color: var(--border);
+  box-shadow: var(--shadow-sm);
+}
+
+html:not(.dark) .bg-surface-raised {
+  background-color: var(--surface-raised);
+}
+
+html:not(.dark) .shadow-black\/40,
+html:not(.dark) .shadow-black\/30,
+html:not(.dark) .shadow-black\/20 {
+  --tw-shadow-color: rgb(15 23 42 / 0.12) !important;
+  --tw-shadow: var(--tw-shadow-colored) !important;
+}
+
+/* ── 2. TÜM INPUT / TEXTAREA / SELECT ────────────────────────────────── */
+/* Bileşen class'ı kullananlar zaten düzgün; bunlar ham tag override */
+html:not(.dark) input[type="text"],
+html:not(.dark) input[type="search"],
+html:not(.dark) input[type="email"],
+html:not(.dark) input[type="password"],
+html:not(.dark) input[type="number"],
+html:not(.dark) input[type="url"],
+html:not(.dark) input[type="tel"],
+html:not(.dark) input[type="date"],
+html:not(.dark) input[type="time"],
+html:not(.dark) textarea,
+html:not(.dark) select {
+  background-color: var(--surface-raised) !important;
+  border-color: var(--border) !important;
+  color: var(--fg) !important;
+}
+
+html:not(.dark) input::placeholder,
+html:not(.dark) textarea::placeholder {
+  color: var(--fg-subtle) !important;
+}
+
+html:not(.dark) input[type="text"]:focus,
+html:not(.dark) input[type="search"]:focus,
+html:not(.dark) input[type="email"]:focus,
+html:not(.dark) input[type="password"]:focus,
+html:not(.dark) input[type="number"]:focus,
+html:not(.dark) input[type="url"]:focus,
+html:not(.dark) textarea:focus,
+html:not(.dark) select:focus {
+  outline: 2px solid var(--brand-primary) !important;
+  outline-offset: -1px !important;
+  border-color: var(--brand-primary) !important;
+  box-shadow: 0 0 0 3px rgb(13 148 136 / 0.12) !important;
+}
+
+/* ── 3. LABEL ────────────────────────────────────────────────────────── */
+html:not(.dark) label {
+  color: var(--fg-muted);
+}
+
+/* ── 4. TABLO ────────────────────────────────────────────────────────── */
+html:not(.dark) table {
+  border-collapse: separate;
+  border-spacing: 0;
+}
+html:not(.dark) thead th {
+  background-color: var(--surface-overlay) !important;
+  color: var(--fg-muted) !important;
+  border-bottom: 1px solid var(--border) !important;
+}
+html:not(.dark) tbody tr:hover {
+  background-color: var(--surface-overlay) !important;
+}
+html:not(.dark) tbody td {
+  border-bottom: 1px solid var(--border-subtle) !important;
+  color: var(--fg) !important;
+}
+
+/* ── 5. CHECKBOX & RADIO ─────────────────────────────────────────────── */
+html:not(.dark) input[type="checkbox"],
+html:not(.dark) input[type="radio"] {
+  accent-color: var(--brand-primary);
+}
+
+/* ── 6. SCROLLBAR ────────────────────────────────────────────────────── */
+html:not(.dark) ::-webkit-scrollbar { width: 5px; height: 5px; }
+html:not(.dark) ::-webkit-scrollbar-track { background: transparent; }
+html:not(.dark) ::-webkit-scrollbar-thumb {
+  background-color: var(--surface-accent);
+  border-radius: 9999px;
+  transition: background-color 0.15s;
+}
+html:not(.dark) ::-webkit-scrollbar-thumb:hover {
+  background-color: var(--border-strong);
+}
+
+/* ── 7. MODAL / DIALOG BACKDROP ──────────────────────────────────────── */
+html:not(.dark) [role="dialog"],
+html:not(.dark) [data-radix-dialog-content] {
+  background-color: var(--surface-raised) !important;
+  border-color: var(--border) !important;
+  box-shadow: 0 20px 60px rgb(15 23 42 / 0.18) !important;
+}
+
+/* ── 8. TOOLTIP ──────────────────────────────────────────────────────── */
+html:not(.dark) [role="tooltip"],
+html:not(.dark) [data-radix-tooltip-content] {
+  background-color: var(--fg) !important;
+  color: var(--surface-raised) !important;
+}
+
+/* ── 9. DROPDOWN / POPOVER ───────────────────────────────────────────── */
+html:not(.dark) [data-radix-select-content],
+html:not(.dark) [data-radix-popover-content],
+html:not(.dark) [data-radix-dropdown-menu-content] {
+  background-color: var(--surface-raised) !important;
+  border-color: var(--border) !important;
+  box-shadow: 0 8px 24px rgb(15 23 42 / 0.12) !important;
+}
+
+/* ── 10. PROGRESS BAR ────────────────────────────────────────────────── */
+html:not(.dark) [class*="bg-slate-8"][class*="rounded-full"],
+html:not(.dark) [class*="bg-slate-7"][class*="rounded-full"] {
+  background-color: var(--surface-accent) !important;
+}
+
+/* ── 11. SEPARATOR / DIVIDER ─────────────────────────────────────────── */
+html:not(.dark) hr,
+html:not(.dark) [role="separator"] {
+  border-color: var(--border) !important;
+}
+
+/* ── Light mode global fallbacks ──────────────────────────────────────────
+ * Birçok bileşen dark-only hardcoded Tailwind renkleriyle yazılmış.
+ * Açık modda (.dark class yokken) bunları semantic token'lara eşle.
+ * [class*="..."] attribute substring selectors; tüm opacity varyantlarını
+ * (bg-slate-900, bg-slate-900/60, bg-slate-900/95 …) tek seferde kapsar.
+ * Dark modda .dark class var → html:not(.dark) hiç uygulanmaz.
+ * ─────────────────────────────────────────────────────────────────────── */
+
+/* ── Backgrounds ───────────────────────────────────────────────────────── */
+html:not(.dark) [class*="bg-slate-950"],
+html:not(.dark) [class*="bg-slate-900"] { background-color: var(--surface-raised)  !important; }
+html:not(.dark) [class*="bg-slate-800"] { background-color: var(--surface-overlay) !important; }
+html:not(.dark) [class*="bg-slate-700"] { background-color: var(--surface-accent)  !important; }
+html:not(.dark) [class*="bg-slate-600"] { background-color: var(--surface-accent)  !important; }
+
+/* Custom hex dark values — tüm yaygın dark hex tonları */
+html:not(.dark) [class*="bg-[#0d1117]"],
+html:not(.dark) [class*="bg-[#0d11"],
+html:not(.dark) [class*="bg-[#0a0f"],
+html:not(.dark) [class*="bg-[#0c0e"],
+html:not(.dark) [class*="bg-[#0f17"] { background-color: var(--surface-base)    !important; }
+html:not(.dark) [class*="bg-[#1118"],
+html:not(.dark) [class*="bg-[#1a22"] { background-color: var(--surface-raised)  !important; }
+html:not(.dark) [class*="bg-[#1c25"],
+html:not(.dark) [class*="bg-[#2330"] { background-color: var(--surface-overlay) !important; }
+
+/* Çok şeffaf beyaz overlay'ler (dark'ta subtle, light'ta görünmez) */
+html:not(.dark) [class*="bg-white/[0.0"],
+html:not(.dark) [class*="bg-white/[0.1"] { background-color: var(--surface-overlay) !important; }
+html:not(.dark) [class*="bg-white/[0.2"],
+html:not(.dark) [class*="bg-white/[0.3"] { background-color: var(--surface-accent) !important; }
+
+/* Transparent overlays */
+html:not(.dark) [class*="bg-black/"]  { background-color: rgb(0 0 0 / 0.06) !important; }
+
+/* ── Text: invisible/low-contrast-in-light → readable ───────────────────── */
+html:not(.dark) [class*="text-slate-100"] { color: var(--fg)       !important; }
+html:not(.dark) [class*="text-slate-200"] { color: var(--fg)       !important; }
+html:not(.dark) [class*="text-slate-300"] { color: var(--fg-muted) !important; }
+html:not(.dark) [class*="text-slate-400"] { color: var(--fg-muted) !important; }
+html:not(.dark) [class*="text-slate-500"] { color: var(--fg-subtle) !important; }
+html:not(.dark) [class*="text-slate-600"] { color: var(--fg-subtle) !important; }
+
+/* Placeholder */
+html:not(.dark) [class*="placeholder-slate-5"],
+html:not(.dark) [class*="placeholder-slate-6"] { --tw-placeholder-opacity: 1; color: var(--fg-subtle) !important; }
+
+/* ── Borders ────────────────────────────────────────────────────────────── */
+html:not(.dark) [class*="border-slate-700"],
+html:not(.dark) [class*="border-slate-800"],
+html:not(.dark) [class*="border-[#1c"],
+html:not(.dark) [class*="border-[#2a"] { border-color: var(--border) !important; }
+
+/* ── Ring / outline ─────────────────────────────────────────────────────── */
+html:not(.dark) [class*="ring-slate-7"],
+html:not(.dark) [class*="ring-slate-8"] { --tw-ring-color: var(--border) !important; }
+
+/* ── Divide ─────────────────────────────────────────────────────────────── */
+html:not(.dark) [class*="divide-slate-7"],
+html:not(.dark) [class*="divide-slate-8"] { border-color: var(--border) !important; }
 
 @media (prefers-reduced-motion: reduce) {
   @keyframes shimmer {

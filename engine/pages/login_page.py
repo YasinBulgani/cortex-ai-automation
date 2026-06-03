@@ -1,5 +1,5 @@
 """
-LoginPage — TestwrightAI Giriş ekranı Page Object.
+LoginPage — Neurex Giriş ekranı Page Object.
 LocatorManager üzerinden merkezi seçici yönetimi kullanır.
 """
 from __future__ import annotations
@@ -18,7 +18,7 @@ _PAGE = "login"
 
 
 class LoginPage(BasePage):
-    """TestwrightAI Giriş sayfası Page Object."""
+    """Neurex Giriş sayfası Page Object."""
 
     URL = "/login"
 

@@ -1,6 +1,6 @@
 """
 steps/checkbox_steps.py — Checkbox & Radio BDD Adimlari
-(NexusQA CheckboxMethods + RadioButtonMethods port'u)
+(Neurex CheckboxMethods + RadioButtonMethods port'u)
 
 Desteklenen adimlar:
   When kullanici "{key}" checkbox'ini isaretler

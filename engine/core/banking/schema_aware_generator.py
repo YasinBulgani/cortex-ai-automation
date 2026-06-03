@@ -1,5 +1,5 @@
 """
-TestwrightAI Banking — Rule-Based Schema-Aware Generator
+Neurex Banking — Rule-Based Schema-Aware Generator
 Generates test data that matches real DB column names/types.
 Used as fallback when no LLM API key is available.
 """

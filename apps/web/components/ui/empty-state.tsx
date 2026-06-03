@@ -59,15 +59,15 @@ export function EmptyState({
 
   // default
   return (
-    <div className={cn("flex flex-col items-center justify-center py-16 px-6 text-center", className)}>
+    <div className={cn("flex flex-col items-center justify-center rounded-xl border border-dashed border-border bg-surface-raised/70 px-6 py-16 text-center shadow-xs", className)}>
       {icon && (
-        <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-surface-overlay text-fg-subtle">
+        <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl border border-border bg-surface-overlay text-brand">
           {icon}
         </div>
       )}
       <h3 className="text-sm font-semibold text-fg">{title}</h3>
       {description && (
-        <p className="mt-1 max-w-sm text-xs text-fg-muted">{description}</p>
+        <p className="mt-1 max-w-sm text-xs leading-relaxed text-fg-muted">{description}</p>
       )}
       {action && <div className="mt-4">{action}</div>}
     </div>

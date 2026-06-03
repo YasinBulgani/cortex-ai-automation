@@ -182,7 +182,7 @@ def ai_results():
 def load_feature_locators(request):
     """
     Her feature calistirilmadan once ilgili locator JSON'unu yukler.
-    Feature adi dosya adindan cikarilir (NexusQA Hooks.java pattern'i).
+    Feature adi dosya adindan cikarilir (Neurex Hooks.java pattern'i).
     """
     if hasattr(request, "node") and hasattr(request.node, "get_closest_marker"):
         fspath = getattr(request.node, "fspath", None)
@@ -201,12 +201,12 @@ def test_data() -> DataReader:
 # ── GlobalContext Her Senaryo Sonrasi Temizle ────────────────────────────────
 @pytest.fixture(autouse=True)
 def clear_context_after_scenario():
-    """NexusQA Hooks.tearDown pattern'i: her senaryo sonrasi context temizlenir."""
+    """Neurex Hooks.tearDown pattern'i: her senaryo sonrasi context temizlenir."""
     yield
     GlobalContext.clear()
 
 
-# ── Multi-domain Runner (NexusQA MultiDomainCucumberRunner port'u) ──────────
+# ── Multi-domain Runner (Neurex MultiDomainCucumberRunner port'u) ──────────
 def pytest_generate_tests(metafunc):
     """
     Birden fazla domain varsa her testi her domain icin parametrize eder.
@@ -263,7 +263,7 @@ def pytest_runtest_makereport(item, call):
             except Exception as exc:
                 logger.debug("Allure ekran görüntüsü eklenemedi: %s", exc)
 
-    # Allure'a domain etiketi ekle (NexusQA Hooks.setAllureDomainLabels port'u)
+    # Allure'a domain etiketi ekle (Neurex Hooks.setAllureDomainLabels port'u)
     if report.when == "call":
         domain_val = settings.DOMAIN
         if domain_val and domain_val != "default":
@@ -289,7 +289,7 @@ def pytest_bdd_after_step(request, feature, scenario, step, step_func, step_func
     _send_live_screenshot(request)
 
 
-# ── Excel Rapor Entegrasyonu (NexusQA ExcelReportGenerator port'u) ──────────
+# ── Excel Rapor Entegrasyonu (Neurex ExcelReportGenerator port'u) ──────────
 
 _excel_reporter = None
 
@@ -300,7 +300,7 @@ def pytest_sessionstart(session):
     try:
         from core.excel_reporter import ExcelReporter
         _excel_reporter = ExcelReporter(
-            report_name=f"TestwrightAI_Test_{settings.DOMAIN}",
+            report_name=f"Neurex_Test_{settings.DOMAIN}",
             domain=settings.DOMAIN,
         )
     except ImportError:

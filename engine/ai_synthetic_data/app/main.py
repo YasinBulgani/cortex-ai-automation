@@ -28,7 +28,7 @@ app.include_router(data_router)
 def read_root():
     return {
         "status": "ok",
-        "message": "TestwrightAI Synthetic Data Platform is running.",
+        "message": "Neurex Synthetic Data Platform is running.",
         "version": settings.app_version,
         "docs": "/docs",
     }

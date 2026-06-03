@@ -1,5 +1,5 @@
 """
-TestwrightAI Banking — AI-Powered Schema Analyzer & Data Generator
+Neurex Banking — AI-Powered Schema Analyzer & Data Generator
 Uses LLM (Claude/OpenAI) to analyze DB schema and generate realistic Turkish banking test data.
 Falls back to rule-based generation when no API key is available.
 """

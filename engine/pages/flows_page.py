@@ -1,10 +1,10 @@
-"""FlowsPage — TestwrightAI Akışlar ekranı Page Object."""
+"""FlowsPage — Neurex Akışlar ekranı Page Object."""
 from playwright.sync_api import Page, expect
 from pages.base_page import BasePage
 
 
 class FlowsPage(BasePage):
-    """TestwrightAI Akışlar listesi sayfası."""
+    """Neurex Akışlar listesi sayfası."""
 
     NAME_INPUT = '[data-testid="flows-input-name"]'
     CREATE_BTN = '[data-testid="flows-btn-create"]'
@@ -33,7 +33,7 @@ class FlowsPage(BasePage):
 
 
 class FlowEditorPage(BasePage):
-    """TestwrightAI Akış editör sayfası."""
+    """Neurex Akış editör sayfası."""
 
     EDITOR = '[data-testid="flow-editor"]'
     TOOLBAR = '[data-testid="flow-editor-toolbar"]'

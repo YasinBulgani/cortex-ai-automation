@@ -1,5 +1,5 @@
 """
-TestwrightAI — Bankacılık Test Verisi API Route'ları
+Neurex — Bankacılık Test Verisi API Route'ları
 BDDK/KVKK uyumlu, AI-free, kural tabanlı veri üretimi.
 Endpoint prefix: /api/banking
 """
@@ -45,7 +45,7 @@ def banking_info():
     """Bankacılık modülü bilgisi ve endpoint listesi."""
     return jsonify({
         'ok': True,
-        'module': 'TestwrightAI Banking DataSim',
+        'module': 'Neurex Banking DataSim',
         'version': '1.0.0',
         'bddk_compliant': True,
         'kvkk_compliant': True,

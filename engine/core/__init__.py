@@ -7,7 +7,7 @@ Mevcut moduller:
   - PageInspector: DOM analizi
   - Reporter: HTML/JSON rapor uretimi
 
-NexusQA'dan port edilen yeni moduller:
+Neurex'dan port edilen yeni moduller:
   - LocatorManager: JSON locator yukleyici
   - DataReader: Domain/env bazli test verisi okuyucu
   - Actions: Playwright aksiyon sarmalayicilari

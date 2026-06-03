@@ -1,10 +1,10 @@
-"""ImportPage — TestwrightAI İçe Aktarma ekranı Page Object."""
+"""ImportPage — Neurex İçe Aktarma ekranı Page Object."""
 from playwright.sync_api import Page, expect
 from pages.base_page import BasePage
 
 
 class ImportPage(BasePage):
-    """TestwrightAI İçe aktarma sayfası."""
+    """Neurex İçe aktarma sayfası."""
 
     HEADING = '[data-testid="import-heading"]'
     FILENAME_INPUT = '[data-testid="import-input-filename"]'

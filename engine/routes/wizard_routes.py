@@ -570,7 +570,7 @@ def api_generate_automation():
                 "scenario_title": title,
             })
 
-        # Generate locator JSON (NexusQA pattern)
+        # Generate locator JSON (Neurex pattern)
         if selectors:
             locator_entries = []
             for s in selectors:
@@ -698,10 +698,10 @@ def api_wizard_full_run():
     return jsonify({"status": "ok", **results})
 
 
-@wizard_bp.route("/api/wizard/run-nexusqa", methods=["POST"])
-def api_run_nexusqa():
+@wizard_bp.route("/api/wizard/run-neurex", methods=["POST"])
+def api_run_neurex():
     """
-    Wizard'da uretilen NexusQA feature dosyalarini gecici artefaktlara yazar
+    Wizard'da uretilen Neurex feature dosyalarini gecici artefaktlara yazar
     ve pytest-bdd ile senkron olarak calistirir.
     """
     data = request.json or {}
@@ -813,7 +813,7 @@ def api_run_nexusqa():
             "allure_report_url": "/reports/allure-report/",
         })
     except subprocess.TimeoutExpired:
-        return jsonify({"ok": False, "error": "NexusQA koşusu zaman aşımına uğradı (>180s)", "exit_code": -1}), 504
+        return jsonify({"ok": False, "error": "Neurex koşusu zaman aşımına uğradı (>180s)", "exit_code": -1}), 504
     except Exception as exc:
-        logger.exception("Wizard run-nexusqa failed")
+        logger.exception("Wizard run-neurex failed")
         return jsonify({"ok": False, "error": str(exc), "trace": traceback.format_exc()}), 500

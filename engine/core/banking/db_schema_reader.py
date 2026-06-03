@@ -1,5 +1,5 @@
 """
-TestwrightAI Banking — Database Schema Reader
+Neurex Banking — Database Schema Reader
 Reads table/column/FK structure from SQLite, PostgreSQL, MySQL.
 Maps column names → test data generator hints.
 """

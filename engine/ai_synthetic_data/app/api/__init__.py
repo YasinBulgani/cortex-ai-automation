@@ -1,1 +1,1 @@
-"""TestwrightAI Synthetic Data Platform — API routes."""
+"""Neurex Synthetic Data Platform — API routes."""

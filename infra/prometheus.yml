@@ -8,7 +8,7 @@ global:
   scrape_timeout:      10s
   external_labels:
     environment: production
-    project: bgts-nexusqa
+    project: bgts-neurex
 
 alerting:
   alertmanagers:

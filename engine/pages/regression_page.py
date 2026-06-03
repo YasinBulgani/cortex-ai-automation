@@ -1,10 +1,10 @@
-"""RegressionPage — TestwrightAI Regresyon setleri Page Object."""
+"""RegressionPage — Neurex Regresyon setleri Page Object."""
 from playwright.sync_api import Page, expect
 from pages.base_page import BasePage
 
 
 class RegressionPage(BasePage):
-    """TestwrightAI Regresyon setleri sayfası."""
+    """Neurex Regresyon setleri sayfası."""
 
     HEADING = '[data-testid="regression-heading"]'
     NAME_INPUT = '[data-testid="regression-input-name"]'

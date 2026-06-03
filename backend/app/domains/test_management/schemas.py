@@ -48,6 +48,13 @@ class TestSuiteOut(BaseModel):
     created_at: datetime
 
 
+class TestSuiteUpdate(BaseModel):
+    name: Optional[str] = Field(default=None, min_length=1, max_length=200)
+    description: Optional[str] = None
+    order_index: Optional[int] = None
+    status: Optional[str] = Field(default=None, max_length=32)
+
+
 class TestFolderCreate(BaseModel):
     suite_id: str
     name: str = Field(..., min_length=1, max_length=200)
@@ -66,6 +73,13 @@ class TestFolderOut(BaseModel):
     path: str
     order_index: int
     created_at: datetime
+
+
+class TestFolderUpdate(BaseModel):
+    name: Optional[str] = Field(default=None, min_length=1, max_length=200)
+    path: Optional[str] = Field(default=None, min_length=1, max_length=1000)
+    parent_id: Optional[str] = None
+    order_index: Optional[int] = None
 
 
 class TestCaseStepIn(BaseModel):
@@ -244,6 +258,20 @@ class RegressionSetCreate(BaseModel):
     cases: list[RegressionSetCaseIn] = Field(default_factory=list)
 
 
+class RegressionSetAddCases(BaseModel):
+    case_ids: list[str]
+
+
+class RegressionSetRemoveCase(BaseModel):
+    case_id: str
+
+
+class RegressionSetUpdate(BaseModel):
+    name: Optional[str] = None
+    set_type: Optional[str] = None
+    description: Optional[str] = None
+
+
 class RegressionCandidateOut(BaseModel):
     case_id: str
     case_key: str
@@ -324,6 +352,14 @@ class StepResultOut(BaseModel):
     actual_result: Optional[str] = None
     comment: Optional[str] = None
     executed_at: Optional[datetime] = None
+
+
+class RunCaseUpdate(BaseModel):
+    """Patch the overall status of a test run case (TestRail-style case-level result)."""
+
+    status: str
+    actual_result: Optional[str] = None
+    execution_notes: Optional[str] = None
 
 
 class RunCaseOut(BaseModel):
@@ -409,6 +445,7 @@ class ReleaseReportOut(BaseModel):
 
 class ReleaseSignoffCreate(BaseModel):
     release_name: Optional[str] = None
+    role: Optional[str] = None
     decision: str = Field(..., min_length=1, max_length=32)
     status: str = "signed"
     comment: Optional[str] = None
@@ -420,6 +457,7 @@ class ReleaseSignoffOut(BaseModel):
     id: str
     project_id: str
     release_name: Optional[str] = None
+    role: Optional[str] = None
     decision: str
     status: str
     comment: Optional[str] = None
@@ -894,3 +932,69 @@ class CaseDataGenerateRequest(BaseModel):
 class ExpandCaseResponse(BaseModel):
     execution_ids: list[str]
     run_case_ids: list[str] = Field(default_factory=list)
+
+
+# ── AI Test Üretimi ───────────────────────────────────────────────────────────
+
+class TestCaseGenerateRequest(BaseModel):
+    prompt: str = Field(..., min_length=5, max_length=2000, description="Test senaryosu üretmek için açıklama")
+    count: int = Field(default=5, ge=1, le=20)
+    suite_id: Optional[str] = None
+    folder_id: Optional[str] = None
+    priority: str = "medium"
+    type: str = "manual"
+    save: bool = Field(default=False, description="True ise üretilen case'ler DB'ye kaydedilir")
+
+
+class GeneratedStepOut(BaseModel):
+    step_no: int
+    action: str
+    expected_result: str
+    is_required: bool = True
+
+
+class GeneratedCaseOut(BaseModel):
+    title: str
+    objective: str
+    preconditions: str
+    priority: str
+    tags: list[str]
+    steps: list[GeneratedStepOut]
+    saved_id: Optional[str] = None
+
+
+class TestCaseGenerateResponse(BaseModel):
+    cases: list[GeneratedCaseOut]
+
+
+# ── Case Clone ────────────────────────────────────────────────────────────────
+
+class TestCaseCloneRequest(BaseModel):
+    title: Optional[str] = None
+    suite_id: Optional[str] = None
+    folder_id: Optional[str] = None
+
+
+# ── Standup ───────────────────────────────────────────────────────────────────
+
+class StandupAnomaly(BaseModel):
+    severity: str
+    title: str
+
+
+class StandupOut(BaseModel):
+    health_score: float
+    summary_health: str
+    eta_hours: Optional[float]
+    remaining_cases: int
+    total_cases: int
+    completed_cases: int
+    pass_rate: float
+    blocked: int
+    failed: int
+    velocity_per_hour: float
+    anomalies: list[StandupAnomaly]
+    run_name: str
+    predicted_completion: Optional[str]
+    will_meet_gate: bool
+    blocking_factors: list[str]

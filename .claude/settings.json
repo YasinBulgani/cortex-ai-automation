@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "allow": [
+      "Bash(git *)",
+      "Bash(npm *)",
+      "Bash(npx *)",
+      "Bash(turbo *)",
+      "Bash(node *)",
+
+      "Bash(python *)",
+      "Bash(python3 *)",
+      "Bash(pip *)",
+      "Bash(pip3 *)",
+      "Bash(pytest *)",
+      "Bash(cd backend && pytest *)",
+      "Bash(cd backend && python *)",
+
+      "Bash(alembic *)",
+      "Bash(cd backend && alembic *)",
+
+      "Bash(docker compose *)",
+      "Bash(docker-compose *)",
+      "Bash(docker ps*)",
+      "Bash(docker logs *)",
+
+      "Bash(make *)",
+
+      "Bash(find . *)",
+      "Bash(grep *)",
+      "Bash(rg *)",
+      "Bash(cat *)",
+      "Bash(ls *)",
+      "Bash(wc *)",
+      "Bash(head *)",
+      "Bash(tail *)",
+
+      "Bash(jq *)",
+      "Bash(curl *)",
+
+      "Read",
+      "Edit",
+      "Write"
+    ]
+  },
+  "worktree": {
+    "symlinkDirectories": [
+      "node_modules",
+      "backend/.venv",
+      "engine/.venv"
+    ]
+  }
+}

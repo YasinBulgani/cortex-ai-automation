@@ -1,5 +1,5 @@
 """
-steps/click_steps.py — Tikla BDD Adimlari (NexusQA ClickMethods port'u)
+steps/click_steps.py — Tikla BDD Adimlari (Neurex ClickMethods port'u)
 
 Desteklenen adimlar:
   When kullanici "{key}" elementine tiklar

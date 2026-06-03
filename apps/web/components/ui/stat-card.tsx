@@ -72,14 +72,14 @@ export function StatCard({
     <Component
       onClick={onClick}
       className={cn(
-        "group relative rounded-xl border border-border bg-surface-raised p-4 text-left transition-all duration-fast",
-        onClick && "hover:border-border-strong hover:shadow-elevated cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary",
+        "group relative rounded-xl border border-border bg-surface-raised p-5 text-left shadow-sm transition-all duration-fast",
+        onClick && "cursor-pointer hover:-translate-y-0.5 hover:border-border-strong hover:shadow-elevated focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary",
         className,
       )}
     >
       {/* Label & icon row */}
       <div className="flex items-start justify-between gap-2">
-        <p className="text-xs text-fg-muted">{label}</p>
+        <p className="text-xs font-semibold uppercase tracking-wide text-fg-muted">{label}</p>
         {icon && (
           <span className={cn("flex h-6 w-6 items-center justify-center rounded-md", TONE_BG_CLASSES[tone])}>
             {icon}
@@ -93,7 +93,7 @@ export function StatCard({
           {loading ? (
             <div className="h-8 w-24 rounded bg-surface-overlay animate-pulse" />
           ) : (
-            <p className={cn("text-2xl font-bold tabular-nums tracking-tight", TONE_CLASSES[tone])}>
+            <p className={cn("text-3xl font-semibold tabular-nums tracking-normal", TONE_CLASSES[tone])}>
               {value}
             </p>
           )}

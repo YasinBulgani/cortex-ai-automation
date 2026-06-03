@@ -144,6 +144,7 @@ export interface ReleaseSignoff {
   id: string;
   project_id: string;
   release_name?: string | null;
+  role?: string | null;
   decision: string;
   status: string;
   comment?: string | null;
@@ -206,7 +207,7 @@ export interface DefectLink {
 }
 
 export interface CreateDefectInput {
-  run_case_id: string;
+  run_case_id?: string;
   step_result_id?: string | null;
   external_source?: string;
   external_key: string;
@@ -218,6 +219,7 @@ export interface CreateDefectInput {
   root_cause?: string | null;
   retest_status?: string;
   url?: string | null;
+  description?: string;
 }
 
 export interface EvidenceFile {
@@ -560,6 +562,60 @@ export function useCreateManagementFolder(projectId: string) {
   });
 }
 
+export function useUpdateManagementSuite(projectId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ suiteId, ...payload }: {
+      suiteId: string;
+      name?: string;
+      description?: string;
+      order_index?: number;
+      status?: string;
+    }) => apiFetch<TestSuite>(`${BASE(projectId)}/suites/${suiteId}`, { method: "PATCH", json: payload }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: managementKeys.repository(projectId) });
+    },
+  });
+}
+
+export function useDeleteManagementSuite(projectId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (suiteId: string) =>
+      apiFetch<void>(`${BASE(projectId)}/suites/${suiteId}`, { method: "DELETE" }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: managementKeys.repository(projectId) });
+    },
+  });
+}
+
+export function useUpdateManagementFolder(projectId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ folderId, ...payload }: {
+      folderId: string;
+      name?: string;
+      path?: string;
+      parent_id?: string | null;
+      order_index?: number;
+    }) => apiFetch<TestFolder>(`${BASE(projectId)}/folders/${folderId}`, { method: "PATCH", json: payload }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: managementKeys.repository(projectId) });
+    },
+  });
+}
+
+export function useDeleteManagementFolder(projectId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (folderId: string) =>
+      apiFetch<void>(`${BASE(projectId)}/folders/${folderId}`, { method: "DELETE" }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: managementKeys.repository(projectId) });
+    },
+  });
+}
+
 export function useManagementSettings(projectId: string | undefined) {
   return useQuery({
     queryKey: managementKeys.settings(projectId),
@@ -694,6 +750,55 @@ export function useCreateRegressionSet(projectId: string) {
   });
 }
 
+export function useUpdateRegressionSet(projectId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, ...payload }: { id: string; name?: string; set_type?: string; description?: string }) =>
+      apiFetch<RegressionSet>(`${BASE(projectId)}/regression/sets/${id}`, { method: "PATCH", json: payload }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: managementKeys.regressionSets(projectId) });
+    },
+  });
+}
+
+export function useDeleteRegressionSet(projectId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id }: { id: string }) =>
+      apiFetch<void>(`${BASE(projectId)}/regression/sets/${id}`, { method: "DELETE" }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: managementKeys.regressionSets(projectId) });
+    },
+  });
+}
+
+export function useAddCasesToRegressionSet(projectId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ setId, caseIds }: { setId: string; caseIds: string[] }) =>
+      apiFetch<RegressionSet>(`${BASE(projectId)}/regression/sets/${setId}/cases`, {
+        method: "POST",
+        json: { case_ids: caseIds },
+      }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: managementKeys.regressionSets(projectId) });
+    },
+  });
+}
+
+export function useRemoveCaseFromRegressionSet(projectId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ setId, caseId }: { setId: string; caseId: string }) =>
+      apiFetch<RegressionSet>(`${BASE(projectId)}/regression/sets/${setId}/cases/${caseId}`, {
+        method: "DELETE",
+      }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: managementKeys.regressionSets(projectId) });
+    },
+  });
+}
+
 export function useCreateManagementPlan(projectId: string) {
   const qc = useQueryClient();
   return useMutation({
@@ -743,6 +848,30 @@ export function useArchiveManagementCase(projectId: string) {
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: managementKeys.repository(projectId) });
       void qc.invalidateQueries({ queryKey: managementKeys.cases(projectId) });
+    },
+  });
+}
+
+/** TestRail-style: update the overall status of a test case in a run with one click. */
+export function useUpdateManagementRunCase(projectId: string, runId?: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ runCaseId, status, actual_result, execution_notes }: {
+      runCaseId: string;
+      status: string;
+      actual_result?: string | null;
+      execution_notes?: string | null;
+    }) =>
+      apiFetch<RunCase>(`${BASE(projectId)}/run-cases/${runCaseId}`, {
+        method: "PATCH",
+        json: { status, actual_result, execution_notes },
+      }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: managementKeys.summary(projectId) });
+      if (runId) {
+        void qc.invalidateQueries({ queryKey: [...managementKeys.runs(projectId), runId, "detail"] as const });
+        void qc.invalidateQueries({ queryKey: managementKeys.runs(projectId) });
+      }
     },
   });
 }
@@ -959,6 +1088,7 @@ export function useCreateReleaseSignoff(projectId: string) {
   return useMutation({
     mutationFn: (payload: {
       release_name?: string | null;
+      role?: string | null;
       decision: string;
       comment?: string | null;
       report_snapshot?: Record<string, unknown>;
@@ -1080,6 +1210,246 @@ export function usePromoteCases(projectId: string) {
         method: "POST",
         json: payload,
       }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: managementKeys.repository(projectId) });
+      void qc.invalidateQueries({ queryKey: managementKeys.cases(projectId) });
+    },
+  });
+}
+
+// ── Kiwi TCMS integration ──────────────────────────────────────────────
+const KIWI_BASE = (projectId: string) => `/api/v1/kiwi-tcms/projects/${projectId}`;
+
+export const kiwiKeys = {
+  connection: (projectId: string | undefined) =>
+    [...managementKeys.project(projectId), "kiwi", "connection"] as const,
+  preview: (projectId: string | undefined) =>
+    [...managementKeys.project(projectId), "kiwi", "preview"] as const,
+  syncJobs: (projectId: string | undefined) =>
+    [...managementKeys.project(projectId), "kiwi", "sync-jobs"] as const,
+};
+
+export interface KiwiConnection {
+  id: string;
+  project_id: string;
+  base_url: string;
+  username: string;
+  has_secret: boolean;
+  kiwi_product_id?: number | null;
+  verify_ssl: boolean;
+  status: string;
+  last_error?: string | null;
+  last_tested_at?: string | null;
+  last_synced_at?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface KiwiConnectionInput {
+  base_url: string;
+  username: string;
+  secret?: string;
+  kiwi_product_id?: number | null;
+  verify_ssl: boolean;
+}
+
+export interface KiwiProduct {
+  id: number;
+  name: string;
+}
+
+export interface KiwiTestConnectionResult {
+  ok: boolean;
+  product_count: number;
+  error?: string | null;
+  products: KiwiProduct[];
+}
+
+export interface KiwiPreview {
+  ok: boolean;
+  error?: string | null;
+  counts: Record<string, number>;
+}
+
+export interface KiwiSyncJob {
+  id: string;
+  connection_id: string;
+  project_id: string;
+  mode: string;
+  status: "queued" | "running" | "succeeded" | "failed";
+  dry_run: boolean;
+  totals: Record<string, { created: number; updated: number; skipped: number; errors: number }>;
+  error?: string | null;
+  created_at: string;
+  started_at?: string | null;
+  finished_at?: string | null;
+}
+
+export function useKiwiConnection(projectId: string | undefined) {
+  return useQuery({
+    queryKey: kiwiKeys.connection(projectId),
+    queryFn: () => apiFetch<KiwiConnection | null>(`${KIWI_BASE(projectId!)}/connection`),
+    enabled: !!projectId,
+    staleTime: 60_000,
+  });
+}
+
+export function useSaveKiwiConnection(projectId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: KiwiConnectionInput) =>
+      apiFetch<KiwiConnection>(`${KIWI_BASE(projectId)}/connection`, { method: "PUT", json: payload }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: kiwiKeys.connection(projectId) });
+    },
+  });
+}
+
+export function useTestKiwiConnection(projectId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () =>
+      apiFetch<KiwiTestConnectionResult>(`${KIWI_BASE(projectId)}/connection/test`, { method: "POST" }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: kiwiKeys.connection(projectId) });
+    },
+  });
+}
+
+export function useKiwiPreview(projectId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => apiFetch<KiwiPreview>(`${KIWI_BASE(projectId)}/preview`),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: kiwiKeys.preview(projectId) });
+    },
+  });
+}
+
+export function useStartKiwiSync(projectId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: { dry_run: boolean }) =>
+      apiFetch<KiwiSyncJob>(`${KIWI_BASE(projectId)}/sync`, { method: "POST", json: payload }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: kiwiKeys.syncJobs(projectId) });
+    },
+  });
+}
+
+export function useKiwiSyncJobs(projectId: string | undefined) {
+  return useQuery({
+    queryKey: kiwiKeys.syncJobs(projectId),
+    queryFn: () => apiFetch<KiwiSyncJob[]>(`${KIWI_BASE(projectId!)}/sync-jobs`),
+    enabled: !!projectId,
+    refetchInterval: 5_000,
+  });
+}
+
+// ── AI Test Generation ────────────────────────────────────────────────────────
+
+export interface GeneratedStep {
+  step_no: number;
+  action: string;
+  expected_result: string;
+  is_required: boolean;
+}
+
+export interface GeneratedCase {
+  title: string;
+  objective: string;
+  preconditions: string;
+  priority: string;
+  tags: string[];
+  steps: GeneratedStep[];
+  saved_id: string | null;
+}
+
+export interface GenerateTestCasesInput {
+  prompt: string;
+  count?: number;
+  suite_id?: string | null;
+  folder_id?: string | null;
+  priority?: string;
+  type?: string;
+  save?: boolean;
+}
+
+export function useGenerateTestCases(projectId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: GenerateTestCasesInput) =>
+      apiFetch<{ cases: GeneratedCase[] }>(`${BASE(projectId)}/cases/generate`, {
+        method: "POST",
+        json: { count: 5, priority: "P1", type: "manual", save: false, ...payload },
+      }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: managementKeys.repository(projectId) });
+    },
+  });
+}
+
+// ── Case Clone ────────────────────────────────────────────────────────────────
+
+export function useCloneManagementCase(projectId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ caseId, ...payload }: { caseId: string; title?: string; suite_id?: string | null; folder_id?: string | null }) =>
+      apiFetch<TestCase>(`${BASE(projectId)}/cases/${caseId}/clone`, { method: "POST", json: payload }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: managementKeys.repository(projectId) });
+      void qc.invalidateQueries({ queryKey: managementKeys.cases(projectId) });
+    },
+  });
+}
+
+// ── Standup ───────────────────────────────────────────────────────────────────
+
+export interface StandupAnomaly {
+  severity: string;
+  title: string;
+}
+
+export interface StandupData {
+  health_score: number;
+  summary_health: "healthy" | "at_risk" | "critical";
+  eta_hours: number | null;
+  remaining_cases: number;
+  total_cases: number;
+  completed_cases: number;
+  pass_rate: number;
+  blocked: number;
+  failed: number;
+  velocity_per_hour: number;
+  anomalies: StandupAnomaly[];
+  run_name: string;
+  predicted_completion: string | null;
+  will_meet_gate: boolean;
+  blocking_factors: string[];
+}
+
+export function useManagementStandup(projectId: string | undefined, runId?: string) {
+  return useQuery({
+    queryKey: [...(projectId ? managementKeys.project(projectId) : []), "standup", runId ?? "latest"],
+    queryFn: () => {
+      const url = runId
+        ? `${BASE(projectId!)}/standup?run_id=${runId}`
+        : `${BASE(projectId!)}/standup`;
+      return apiFetch<StandupData>(url);
+    },
+    enabled: !!projectId,
+    staleTime: 30_000,
+    refetchInterval: 60_000,
+  });
+}
+
+// ── Delete Case (hard delete) ─────────────────────────────────────────────────
+
+export function useDeleteManagementCase(projectId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (caseId: string) =>
+      apiFetch<void>(`${BASE(projectId)}/cases/${caseId}`, { method: "DELETE" }),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: managementKeys.repository(projectId) });
       void qc.invalidateQueries({ queryKey: managementKeys.cases(projectId) });

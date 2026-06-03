@@ -127,12 +127,12 @@ export function EvidenceModal({
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
       onClick={(e) => e.target === e.currentTarget && onClose(false)}
     >
-      <div className="w-full max-w-lg rounded-2xl border border-rose-500/30 bg-slate-900 shadow-2xl overflow-hidden">
+      <div className="w-full max-w-lg rounded-xl border border-red-500/30 bg-surface-raised shadow-2xl overflow-hidden">
         {/* Başlık */}
-        <div className="bg-rose-500/10 border-b border-rose-500/20 px-5 py-4">
+        <div className="bg-red-500/10 border-b border-red-500/20 px-5 py-4">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <p className="text-sm font-bold text-rose-400">🚨 FAIL — Evidence Gerekli</p>
+              <p className="text-sm font-bold text-red-400">🚨 FAIL — Evidence Gerekli</p>
               <p className="text-xs text-slate-400 mt-0.5">
                 {caseKey && <span className="font-mono mr-2 text-slate-500">{caseKey}</span>}
                 {caseTitle}
@@ -160,8 +160,8 @@ export function EvidenceModal({
             className={`
               cursor-pointer rounded-xl border-2 border-dashed p-6 text-center transition-colors
               ${dragOver
-                ? "border-rose-400 bg-rose-500/10"
-                : "border-slate-700 bg-slate-800/40 hover:border-slate-500 hover:bg-slate-800/70"}
+                ? "border-red-400 bg-red-500/10"
+                : "border-border bg-surface-overlay hover:border-slate-500 hover:bg-surface-overlay"}
             `}
           >
             <input ref={fileInputRef} type="file" multiple className="hidden" onChange={handleFileInput} />
@@ -176,7 +176,7 @@ export function EvidenceModal({
           {previews.length > 0 && (
             <div className="grid grid-cols-2 gap-2">
               {previews.map((p, i) => (
-                <div key={i} className="relative rounded-lg border border-slate-700 bg-slate-800 overflow-hidden">
+                <div key={i} className="relative rounded-lg border border-border bg-surface-overlay overflow-hidden">
                   {p.preview ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={p.preview} alt={p.name} className="w-full h-24 object-cover" />
@@ -189,7 +189,7 @@ export function EvidenceModal({
                     <span className="text-[10px] text-slate-400 truncate">{p.name}</span>
                     <button
                       onClick={(e) => { e.stopPropagation(); removeFile(i); }}
-                      className="text-slate-500 hover:text-rose-400 text-xs ml-1 shrink-0"
+                      className="text-slate-500 hover:text-red-400 text-xs ml-1 shrink-0"
                     >
                       ✕
                     </button>
@@ -207,18 +207,18 @@ export function EvidenceModal({
               onChange={(e) => setNote(e.target.value)}
               placeholder="Hatanın nasıl oluştuğunu kısaca açıkla…"
               rows={3}
-              className="w-full rounded-lg bg-slate-800 border border-slate-700 px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-rose-500/50 resize-none"
+              className="w-full rounded-lg bg-surface-overlay border border-border px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-red-500/50 resize-none"
             />
           </div>
 
-          {error && <p className="text-xs text-rose-400">{error}</p>}
+          {error && <p className="text-xs text-red-400">{error}</p>}
           {uploadedCount > 0 && (
             <p className="text-xs text-emerald-400">✅ {uploadedCount} dosya yüklendi — kaydediliyor…</p>
           )}
         </div>
 
         {/* Footer */}
-        <div className="border-t border-slate-800 px-5 py-3 flex justify-between items-center gap-3">
+        <div className="border-t border-border px-5 py-3 flex justify-between items-center gap-3">
           <button
             onClick={() => onClose(false)}
             className="text-xs text-slate-400 hover:text-white transition-colors"
@@ -231,7 +231,7 @@ export function EvidenceModal({
             className={`
               flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-colors
               ${canSubmit && !uploading
-                ? "bg-rose-500 hover:bg-rose-600 text-white"
+                ? "bg-red-500 hover:bg-red-600 text-white"
                 : "bg-slate-700 text-slate-500 cursor-not-allowed"}
             `}
           >

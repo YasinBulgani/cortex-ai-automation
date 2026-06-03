@@ -1,5 +1,5 @@
 """
-Visium Farm — Mobil Test Otomasyon API'si
+Neurex Farm — Mobil Test Otomasyon API'si
 ==========================================
 Playwright mobil emülasyon tabanlı test koşumu:
   - Cihaz katalogu + farm durumu

@@ -1,5 +1,5 @@
 """
-CommonNav — TestwrightAI Ortak navigasyon Page Object.
+CommonNav — Neurex Ortak navigasyon Page Object.
 Sidebar, header ve kullanıcı menüsü etkileşimlerini yönetir.
 LocatorManager üzerinden merkezi seçici yönetimi kullanır.
 """
@@ -19,7 +19,7 @@ _PAGE = "common_navigation"
 
 
 class CommonNav(BasePage):
-    """TestwrightAI Ortak navigasyon bileşenleri Page Object."""
+    """Neurex Ortak navigasyon bileşenleri Page Object."""
 
     def __init__(
         self,

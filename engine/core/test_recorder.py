@@ -30,7 +30,7 @@ ACTION_TYPES = {
 }
 
 # Mavi Yaka domain listesi
-NEXUSQA_DOMAINS = ["ark", "ghz", "girit", "hrnexusqa", "pex", "plus"]
+NEXUSQA_DOMAINS = ["ark", "ghz", "girit", "hrneurex", "pex", "plus"]
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -723,7 +723,7 @@ class POMGenerator:
         cls_name = class_name or self._to_class_name(session.name) + "Page"
         elements = self._extract_unique_elements(session)
         domain   = session.domain
-        package  = f"com.nexusqa.{domain}.pages"
+        package  = f"com.neurex.{domain}.pages"
 
         lines = [
             f"package {package};",

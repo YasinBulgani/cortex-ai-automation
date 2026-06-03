@@ -53,7 +53,11 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="tr" className={`dark ${inter.variable} ${jetbrains.variable}`} suppressHydrationWarning>
+    <html lang="tr" className={`${inter.variable} ${jetbrains.variable}`} suppressHydrationWarning>
+      <head>
+        {/* Tema FOUC önleme — React hydrate olmadan önce çalışır */}
+        <script dangerouslySetInnerHTML={{ __html: `(function(){try{var k='neurex_theme_v1';var o=localStorage.getItem('tspm_theme');if(o&&!localStorage.getItem(k))localStorage.setItem(k,o==='light'?'light':'dark');if(localStorage.getItem(k)!=='light')document.documentElement.classList.add('dark');}catch(e){}})();` }} />
+      </head>
       <body className="font-sans antialiased">
         <AuthBootstrap />
         <PWARegister />

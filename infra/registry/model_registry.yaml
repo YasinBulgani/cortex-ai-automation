@@ -1,4 +1,4 @@
-# TestwrightAI Model Registry — TEK KAYNAK
+# Neurex Model Registry — TEK KAYNAK
 #
 # Bu dosya tüm LLM modellerinin fiyat/özellik/tier bilgisini tutar.
 # - backend/app/domains/ai/pricing.py bu dosyayı okur

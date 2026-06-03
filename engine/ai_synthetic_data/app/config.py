@@ -2,7 +2,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    app_name: str = "TestwrightAI Synthetic Data Platform"
+    app_name: str = "Neurex Synthetic Data Platform"
     app_version: str = "2.0.0"
     debug: bool = True
     database_url: str = "postgresql+asyncpg://ai_user:ai_password@127.0.0.1:5432/synthetic_db"

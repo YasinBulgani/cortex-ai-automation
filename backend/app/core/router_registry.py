@@ -49,6 +49,7 @@ from app.domains.quality.router import router as quality_router
 from app.domains.rules.router import router as rules_router
 from app.domains.tspm.router import router as tspm_router
 from app.domains.test_management.router import router as test_management_router
+from app.domains.kiwi_tcms.router import router as kiwi_tcms_router
 from app.domains.nexus_repo.router import router as nexus_repo_router
 from app.domains.products.router import router as products_router
 from app.domains.events.router import router as events_router
@@ -166,6 +167,7 @@ _PREFIXED_ROUTERS = [
     knowledge_base_router,
     compliance_router,
     test_management_router,
+    kiwi_tcms_router,
 ]
 
 if _HAS_QA_ROUTER and qa_router is not None:

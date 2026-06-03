@@ -917,7 +917,7 @@ def seed_all(db: Session) -> None:
             TspmImport(project_id=project.id, filename="sprint1_senaryolari.xlsx", status="completed", scenario_count=6,
                         raw_payload={"source": "Excel", "version": "1.0"}),
             TspmImport(project_id=project.id, filename="regression_export.json", status="completed", scenario_count=12,
-                        raw_payload={"source": "JSON", "format": "TestwrightAI"}),
+                        raw_payload={"source": "JSON", "format": "Neurex"}),
             TspmImport(project_id=project.id, filename="api_tests.yaml", status="failed", scenario_count=0,
                         raw_payload={"source": "YAML", "error": "Geçersiz format"}),
         ]

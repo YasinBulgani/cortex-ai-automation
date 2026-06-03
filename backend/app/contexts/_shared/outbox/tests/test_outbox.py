@@ -1,3 +1,4 @@
+from __future__ import annotations
 """Outbox tests — in-memory mock repository ile."""
 
 import pytest

@@ -42,7 +42,7 @@ NEXUSQA_DOMAINS = {
     "ark":         "https://ark.example.com",
     "ghz":         "https://ghz.example.com",
     "girit":       "https://girit.example.com",
-    "hrnexusqa":  "https://hr.nexusqa.com",
+    "hrneurex":  "https://hr.neurex.com",
     "pex":         "https://pex.example.com",
     "plus":        "https://plus.example.com",
 }
@@ -829,7 +829,7 @@ class ReportIntegrator:
                 "stop": ts_ms + int(r.duration_ms),
                 "labels": [
                     {"name": "suite", "value": suite.suite_name},
-                    {"name": "framework", "value": "NexusQA Enhanced"},
+                    {"name": "framework", "value": "Neurex Enhanced"},
                 ],
                 "attachments": [
                     {"name": Path(ss).name, "source": ss, "type": "image/png"}

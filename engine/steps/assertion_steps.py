@@ -1,5 +1,5 @@
 """
-steps/assertion_steps.py — Dogrulama BDD Adimlari (NexusQA AssertionMethods port'u)
+steps/assertion_steps.py — Dogrulama BDD Adimlari (Neurex AssertionMethods port'u)
 
 Desteklenen adimlar:
   Then "{key}" elementi gorunur olmalidir

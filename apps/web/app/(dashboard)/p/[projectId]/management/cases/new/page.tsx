@@ -99,11 +99,11 @@ export default function NewManagementCasePage({ params }: { params: { projectId:
   };
 
   return (
-    <div className="min-h-full bg-[#0a0f1e] px-5 py-5 space-y-5">
-      <section className="rounded-xl border border-white/[0.06] bg-[#0d1221] p-5">
+    <div className="min-h-full bg-bg px-5 py-5 space-y-5">
+      <section className="rounded-xl border border-border bg-surface-raised p-5">
         <form onSubmit={submit} className="space-y-5">
           {formError ? (
-            <div className="rounded-lg border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-sm text-rose-200">
+            <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-200">
               {formError}
             </div>
           ) : null}
@@ -113,7 +113,7 @@ export default function NewManagementCasePage({ params }: { params: { projectId:
               <input
                 value={title}
                 onChange={(event) => setTitle(event.target.value)}
-                className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white focus:border-teal-500/50 focus:outline-none"
+                className="w-full rounded-lg border border-border bg-bg px-3 py-2 text-sm text-white focus:border-teal-500/50 focus:outline-none"
                 placeholder="Login valid credentials"
               />
             </label>
@@ -126,7 +126,7 @@ export default function NewManagementCasePage({ params }: { params: { projectId:
                     setSuiteId(event.target.value);
                     setFolderId("");
                   }}
-                  className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white focus:border-teal-500/50 focus:outline-none"
+                  className="w-full rounded-lg border border-border bg-bg px-3 py-2 text-sm text-white focus:border-teal-500/50 focus:outline-none"
                 >
                   <option value="">Suite seç</option>
                   {(repository.data?.suites ?? []).map((suite) => <option key={suite.id} value={suite.id}>{suite.name}</option>)}
@@ -137,7 +137,7 @@ export default function NewManagementCasePage({ params }: { params: { projectId:
                 <select
                   value={folderId}
                   onChange={(event) => setFolderId(event.target.value)}
-                  className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white focus:border-teal-500/50 focus:outline-none"
+                  className="w-full rounded-lg border border-border bg-bg px-3 py-2 text-sm text-white focus:border-teal-500/50 focus:outline-none"
                 >
                   <option value="">Folder seç</option>
                   {(repository.data?.folders ?? []).filter((folder) => !suiteId || folder.suite_id === suiteId).map((folder) => <option key={folder.id} value={folder.id}>{folder.path}</option>)}
@@ -151,7 +151,7 @@ export default function NewManagementCasePage({ params }: { params: { projectId:
                 <select
                   value={priority}
                   onChange={(event) => setPriority(event.target.value)}
-                  className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white focus:border-teal-500/50 focus:outline-none"
+                  className="w-full rounded-lg border border-border bg-bg px-3 py-2 text-sm text-white focus:border-teal-500/50 focus:outline-none"
                 >
                   {["P0", "P1", "P2", "P3"].map((item) => <option key={item}>{item}</option>)}
                 </select>
@@ -161,7 +161,7 @@ export default function NewManagementCasePage({ params }: { params: { projectId:
                 <select
                   value={severity}
                   onChange={(event) => setSeverity(event.target.value)}
-                  className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white focus:border-teal-500/50 focus:outline-none"
+                  className="w-full rounded-lg border border-border bg-bg px-3 py-2 text-sm text-white focus:border-teal-500/50 focus:outline-none"
                 >
                   {["blocker", "critical", "major", "minor"].map((item) => <option key={item}>{item}</option>)}
                 </select>
@@ -171,7 +171,7 @@ export default function NewManagementCasePage({ params }: { params: { projectId:
                 <select
                   value={type}
                   onChange={(event) => setType(event.target.value)}
-                  className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white focus:border-teal-500/50 focus:outline-none"
+                  className="w-full rounded-lg border border-border bg-bg px-3 py-2 text-sm text-white focus:border-teal-500/50 focus:outline-none"
                 >
                   {["functional", "smoke", "regression", "uat", "exploratory"].map((item) => <option key={item}>{item}</option>)}
                 </select>
@@ -181,7 +181,7 @@ export default function NewManagementCasePage({ params }: { params: { projectId:
                 <select
                   value={status}
                   onChange={(event) => setStatus(event.target.value)}
-                  className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white focus:border-teal-500/50 focus:outline-none"
+                  className="w-full rounded-lg border border-border bg-bg px-3 py-2 text-sm text-white focus:border-teal-500/50 focus:outline-none"
                 >
                   {["draft", "review", "active"].map((item) => <option key={item}>{item}</option>)}
                 </select>
@@ -190,21 +190,21 @@ export default function NewManagementCasePage({ params }: { params: { projectId:
           <div className="grid gap-4 md:grid-cols-4">
             <label className="space-y-1">
               <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Automation</span>
-              <select value={automationStatus} onChange={(event) => setAutomationStatus(event.target.value)} className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white focus:border-teal-500/50 focus:outline-none">
+              <select value={automationStatus} onChange={(event) => setAutomationStatus(event.target.value)} className="w-full rounded-lg border border-border bg-bg px-3 py-2 text-sm text-white focus:border-teal-500/50 focus:outline-none">
                 {["manual", "candidate", "automated", "deprecated"].map((item) => <option key={item}>{item}</option>)}
               </select>
             </label>
             <label className="space-y-1">
               <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Component</span>
-              <input value={component} onChange={(event) => setComponent(event.target.value)} className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white focus:border-teal-500/50 focus:outline-none" placeholder="Auth" />
+              <input value={component} onChange={(event) => setComponent(event.target.value)} className="w-full rounded-lg border border-border bg-bg px-3 py-2 text-sm text-white focus:border-teal-500/50 focus:outline-none" placeholder="Auth" />
             </label>
             <label className="space-y-1">
               <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Platform</span>
-              <input value={platform} onChange={(event) => setPlatform(event.target.value)} className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white focus:border-teal-500/50 focus:outline-none" placeholder="Web / iOS / Android" />
+              <input value={platform} onChange={(event) => setPlatform(event.target.value)} className="w-full rounded-lg border border-border bg-bg px-3 py-2 text-sm text-white focus:border-teal-500/50 focus:outline-none" placeholder="Web / iOS / Android" />
             </label>
             <label className="space-y-1">
               <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Risk Area</span>
-              <input value={riskArea} onChange={(event) => setRiskArea(event.target.value)} className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white focus:border-teal-500/50 focus:outline-none" placeholder="Payment, Session" />
+              <input value={riskArea} onChange={(event) => setRiskArea(event.target.value)} className="w-full rounded-lg border border-border bg-bg px-3 py-2 text-sm text-white focus:border-teal-500/50 focus:outline-none" placeholder="Payment, Session" />
             </label>
           </div>
           <div className="grid gap-4 md:grid-cols-2">
@@ -214,7 +214,7 @@ export default function NewManagementCasePage({ params }: { params: { projectId:
                 value={objective}
                 onChange={(event) => setObjective(event.target.value)}
                 rows={3}
-                className="w-full resize-none rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white focus:border-teal-500/50 focus:outline-none"
+                className="w-full resize-none rounded-lg border border-border bg-bg px-3 py-2 text-sm text-white focus:border-teal-500/50 focus:outline-none"
               />
             </label>
             <label className="space-y-1">
@@ -223,7 +223,7 @@ export default function NewManagementCasePage({ params }: { params: { projectId:
                 value={preconditions}
                 onChange={(event) => setPreconditions(event.target.value)}
                 rows={3}
-                className="w-full resize-none rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white focus:border-teal-500/50 focus:outline-none"
+                className="w-full resize-none rounded-lg border border-border bg-bg px-3 py-2 text-sm text-white focus:border-teal-500/50 focus:outline-none"
               />
             </label>
           </div>
@@ -233,7 +233,7 @@ export default function NewManagementCasePage({ params }: { params: { projectId:
               value={testData}
               onChange={(event) => setTestData(event.target.value)}
               rows={3}
-              className="w-full resize-none rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white focus:border-teal-500/50 focus:outline-none"
+              className="w-full resize-none rounded-lg border border-border bg-bg px-3 py-2 text-sm text-white focus:border-teal-500/50 focus:outline-none"
               placeholder="Kullanıcı, rol, veri seti, fixture veya özel inputlar"
             />
           </label>
@@ -242,7 +242,7 @@ export default function NewManagementCasePage({ params }: { params: { projectId:
             <input
               value={tags}
               onChange={(event) => setTags(event.target.value)}
-              className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white focus:border-teal-500/50 focus:outline-none"
+              className="w-full rounded-lg border border-border bg-bg px-3 py-2 text-sm text-white focus:border-teal-500/50 focus:outline-none"
               placeholder="login, smoke, auth"
             />
           </label>
@@ -252,21 +252,21 @@ export default function NewManagementCasePage({ params }: { params: { projectId:
               <button
                 type="button"
                 onClick={addStep}
-                className="rounded-lg border border-slate-700 px-3 py-1.5 text-xs text-slate-300 hover:bg-slate-800"
+                className="rounded-lg border border-border px-3 py-1.5 text-xs text-slate-300 hover:bg-surface-overlay"
               >
                 Add Step
               </button>
             </div>
             {steps.map((step, index) => (
-              <div key={index} className="grid gap-3 rounded-lg border border-slate-800 bg-slate-950 p-3 md:grid-cols-[2rem_1fr_1fr_auto]">
+              <div key={index} className="grid gap-3 rounded-lg border border-border bg-bg p-3 md:grid-cols-[2rem_1fr_1fr_auto]">
                 <div className="pt-2 text-center font-mono text-xs text-slate-500">{index + 1}</div>
                 <div className="space-y-2">
-                  <textarea value={step.action} onChange={(event) => updateStep(index, { action: event.target.value })} rows={2} className="w-full resize-none rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white focus:border-teal-500/50 focus:outline-none" placeholder="Action" />
-                  <input value={step.test_data} onChange={(event) => updateStep(index, { test_data: event.target.value })} className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-xs text-white focus:border-teal-500/50 focus:outline-none" placeholder="Step test data" />
+                  <textarea value={step.action} onChange={(event) => updateStep(index, { action: event.target.value })} rows={2} className="w-full resize-none rounded-lg border border-border bg-surface-raised px-3 py-2 text-sm text-white focus:border-teal-500/50 focus:outline-none" placeholder="Action" />
+                  <input value={step.test_data} onChange={(event) => updateStep(index, { test_data: event.target.value })} className="w-full rounded-lg border border-border bg-surface-raised px-3 py-2 text-xs text-white focus:border-teal-500/50 focus:outline-none" placeholder="Step test data" />
                 </div>
                 <div className="space-y-2">
-                  <textarea value={step.expected_result} onChange={(event) => updateStep(index, { expected_result: event.target.value })} rows={2} className="w-full resize-none rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white focus:border-teal-500/50 focus:outline-none" placeholder="Expected result / validation" />
-                  <input value={step.notes} onChange={(event) => updateStep(index, { notes: event.target.value })} className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-xs text-white focus:border-teal-500/50 focus:outline-none" placeholder="Notes" />
+                  <textarea value={step.expected_result} onChange={(event) => updateStep(index, { expected_result: event.target.value })} rows={2} className="w-full resize-none rounded-lg border border-border bg-surface-raised px-3 py-2 text-sm text-white focus:border-teal-500/50 focus:outline-none" placeholder="Expected result / validation" />
+                  <input value={step.notes} onChange={(event) => updateStep(index, { notes: event.target.value })} className="w-full rounded-lg border border-border bg-surface-raised px-3 py-2 text-xs text-white focus:border-teal-500/50 focus:outline-none" placeholder="Notes" />
                 </div>
                 <div className="space-y-2">
                   <label className="flex items-center gap-2 text-xs text-slate-400">
@@ -276,7 +276,7 @@ export default function NewManagementCasePage({ params }: { params: { projectId:
                 <button
                   type="button"
                   onClick={() => removeStep(index)}
-                  className="rounded-lg border border-slate-800 px-3 py-2 text-xs text-slate-500 hover:bg-slate-800 hover:text-slate-200"
+                  className="rounded-lg border border-border px-3 py-2 text-xs text-slate-500 hover:bg-surface-overlay hover:text-slate-200"
                 >
                   Remove
                 </button>

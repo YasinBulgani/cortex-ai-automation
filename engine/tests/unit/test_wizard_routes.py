@@ -13,7 +13,7 @@ Kapsanan endpoint'ler (7 adet):
   POST /api/wizard/monkey-test
   POST /api/wizard/generate-automation
   POST /api/wizard/full-run
-  POST /api/wizard/run-nexusqa
+  POST /api/wizard/run-neurex
 """
 import importlib
 import sys
@@ -435,22 +435,22 @@ def test_full_run_with_text_triggers_document_analysis(authed_client):
     assert doc_step["count"] == 1
 
 
-# ── /api/wizard/run-nexusqa ──────────────────────────────────────────────────
+# ── /api/wizard/run-neurex ──────────────────────────────────────────────────
 
-def test_run_nexusqa_requires_auth(engine_client):
-    """/api/wizard/run-nexusqa oturum açılmadan 401 dönmeli."""
+def test_run_neurex_requires_auth(engine_client):
+    """/api/wizard/run-neurex oturum açılmadan 401 dönmeli."""
     resp = engine_client.post(
-        "/api/wizard/run-nexusqa",
+        "/api/wizard/run-neurex",
         json={"features": [{"title": "T", "content": "Feature: T"}]},
         content_type="application/json",
     )
     assert resp.status_code == 401
 
 
-def test_run_nexusqa_missing_features_returns_400(authed_client):
+def test_run_neurex_missing_features_returns_400(authed_client):
     """features listesi boş veya eksikken 400 ve ok=False dönmeli."""
     resp = authed_client.post(
-        "/api/wizard/run-nexusqa",
+        "/api/wizard/run-neurex",
         json={"url": "https://example.com"},
         content_type="application/json",
     )
@@ -460,10 +460,10 @@ def test_run_nexusqa_missing_features_returns_400(authed_client):
     assert "error" in data
 
 
-def test_run_nexusqa_empty_features_returns_400(authed_client):
+def test_run_neurex_empty_features_returns_400(authed_client):
     """Boş features listesi ile 400 dönmeli."""
     resp = authed_client.post(
-        "/api/wizard/run-nexusqa",
+        "/api/wizard/run-neurex",
         json={"features": []},
         content_type="application/json",
     )
@@ -472,7 +472,7 @@ def test_run_nexusqa_empty_features_returns_400(authed_client):
     assert data.get("ok") is False
 
 
-def test_run_nexusqa_success_shape(authed_client, tmp_path, monkeypatch):
+def test_run_neurex_success_shape(authed_client, tmp_path, monkeypatch):
     """
     Geçerli features ile subprocess mock'lanarak 200 ve beklenen JSON şekli dönmeli.
     Dosya G/Ç settings dizinleri geçici path'e yönlendirilir.
@@ -505,7 +505,7 @@ def test_run_nexusqa_success_shape(authed_client, tmp_path, monkeypatch):
     with patch("routes.runner_routes._build_glue_file_content", fake_glue), \
          patch("subprocess.run", return_value=fake_proc):
         resp = authed_client.post(
-            "/api/wizard/run-nexusqa",
+            "/api/wizard/run-neurex",
             json={
                 "features": [{"title": "Login Testi", "content": "Feature: Login\n  Scenario: Test\n    Given I open the page"}],
                 "url": "https://example.com",

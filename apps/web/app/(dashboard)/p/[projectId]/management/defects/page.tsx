@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import {
   useManagementDefects,
   useUpdateManagementDefect,
+  useCreateManagementDefect,
   type DefectLink,
 } from "@/lib/hooks/use-management";
 import { useManagementProjectId } from "@/lib/hooks/use-management-project-id";
@@ -43,7 +44,7 @@ const STATUS_DOT_MAP: Record<string, string> = {
 function statusDot(s: string) {
   const norm = s.trim().toLowerCase().replace(/\s+/g, "_");
   if (CLOSED_STATUSES.has(norm)) return "bg-emerald-500/70";
-  if (norm.includes("progress"))  return "bg-blue-500";
+  if (norm.includes("progress"))  return "bg-teal-500";
   return STATUS_DOT_MAP[norm] ?? "bg-slate-500";
 }
 
@@ -80,18 +81,169 @@ interface DefectRowProps {
   onClick: () => void;
 }
 
+interface CreateDefectModalProps {
+  mpid: string;
+  onClose: () => void;
+  onDone: () => void;
+}
+
 // ─── Stats KPI ────────────────────────────────────────────────────────────────
 
 function StatCard({ label, value, hint, loading }: StatCardProps) {
   return (
-    <div className="rounded-xl border border-slate-800/70 bg-[#0d1221] p-4">
+    <div className="rounded-xl border border-border bg-surface-raised p-4">
       <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-500">{label}</p>
       {loading ? (
-        <div className="mt-2 h-7 w-14 animate-pulse rounded bg-slate-800"/>
+        <div className="mt-2 h-7 w-14 animate-pulse rounded bg-surface-overlay"/>
       ) : (
         <p className="mt-1 text-2xl font-bold tabular-nums text-white">{value}</p>
       )}
       <p className="mt-1 text-[10px] text-slate-500">{hint}</p>
+    </div>
+  );
+}
+
+// ─── Create Defect Modal ──────────────────────────────────────────────────────
+
+function CreateDefectModal({ mpid, onClose, onDone }: CreateDefectModalProps) {
+  const create = useCreateManagementDefect(mpid);
+
+  const [title,       setTitle]       = useState("");
+  const [externalKey, setExternalKey] = useState("");
+  const [url,         setUrl]         = useState("");
+  const [severity,    setSeverity]    = useState("major");
+  const [priority,    setPriority]    = useState("P2");
+  const [status,      setStatus]      = useState("open");
+  const [description, setDescription] = useState("");
+
+  const inp = "w-full rounded-xl border border-border bg-white/[0.04] px-3 py-2 text-[13px] text-slate-200 placeholder-slate-600 outline-none focus:border-teal-500/40 transition-colors";
+  const sel = "w-full rounded-xl border border-border bg-white/[0.04] px-3 py-2 text-[13px] text-slate-200 outline-none focus:border-teal-500/40 transition-colors";
+
+  const handleSubmit = async () => {
+    if (!title.trim()) return;
+    await create.mutateAsync({
+      title: title.trim(),
+      external_key: externalKey.trim() || "",
+      url: url.trim() || null,
+      severity,
+      priority,
+      status,
+      root_cause: description.trim() || null,
+      run_case_id: "",
+    });
+    onDone();
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+      <div className="w-full max-w-lg rounded-xl border border-border bg-surface-raised shadow-2xl overflow-hidden">
+
+        {/* Header */}
+        <div className="flex items-center justify-between border-b border-border px-5 py-4">
+          <h2 className="text-[14px] font-semibold text-slate-100">Yeni Defect Oluştur</h2>
+          <button type="button" onClick={onClose}
+            className="ml-2 shrink-0 rounded-lg p-1.5 text-slate-600 hover:bg-white/[0.06] hover:text-slate-300 transition-colors">
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+          </button>
+        </div>
+
+        {/* Fields */}
+        <div className="p-5 space-y-4">
+          {/* Title */}
+          <div>
+            <label className="mb-1 block text-[10px] uppercase tracking-widest text-slate-600">
+              Başlık <span className="text-red-400">*</span>
+            </label>
+            <input
+              type="text"
+              value={title}
+              onChange={e => setTitle(e.target.value)}
+              placeholder="Defect başlığı…"
+              className={inp}
+            />
+          </div>
+
+          {/* External Key & URL */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="mb-1 block text-[10px] uppercase tracking-widest text-slate-600">External Key</label>
+              <input
+                type="text"
+                value={externalKey}
+                onChange={e => setExternalKey(e.target.value)}
+                placeholder="JIRA-123"
+                className={inp}
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-[10px] uppercase tracking-widest text-slate-600">URL</label>
+              <input
+                type="text"
+                value={url}
+                onChange={e => setUrl(e.target.value)}
+                placeholder="https://…"
+                className={inp}
+              />
+            </div>
+          </div>
+
+          {/* Severity / Priority / Status */}
+          <div className="grid grid-cols-3 gap-3">
+            <div>
+              <label className="mb-1 block text-[10px] uppercase tracking-widest text-slate-600">Severity</label>
+              <select value={severity} onChange={e => setSeverity(e.target.value)} className={sel}>
+                {["blocker","critical","major","minor","trivial"].map(v => (
+                  <option key={v} value={v}>{v}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="mb-1 block text-[10px] uppercase tracking-widest text-slate-600">Priority</label>
+              <select value={priority} onChange={e => setPriority(e.target.value)} className={sel}>
+                {["P0","P1","P2","P3"].map(v => <option key={v} value={v}>{v}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="mb-1 block text-[10px] uppercase tracking-widest text-slate-600">Status</label>
+              <select value={status} onChange={e => setStatus(e.target.value)} className={sel}>
+                {["open","in_progress","blocked"].map(v => (
+                  <option key={v} value={v}>{v.replace("_", " ")}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Description */}
+          <div>
+            <label className="mb-1 block text-[10px] uppercase tracking-widest text-slate-600">Açıklama</label>
+            <textarea
+              value={description}
+              onChange={e => setDescription(e.target.value)}
+              rows={3}
+              placeholder="Defect açıklaması…"
+              className={cn(inp, "resize-none")}
+            />
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="flex items-center justify-between border-t border-border px-5 py-4">
+          <button type="button" onClick={onClose}
+            className="rounded-xl border border-border px-4 py-2 text-[13px] text-slate-500 hover:text-slate-300 transition-colors">
+            İptal
+          </button>
+          <button
+            type="button"
+            onClick={handleSubmit}
+            disabled={create.isPending || !title.trim()}
+            className="rounded-xl bg-teal-600 px-5 py-2 text-[13px] font-medium text-white hover:bg-teal-700 disabled:opacity-40 transition-colors"
+          >
+            {create.isPending ? "Oluşturuluyor…" : "Oluştur"}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
@@ -119,17 +271,17 @@ function DefectEditModal({ defect, mpid, onClose }: DefectEditModalProps) {
     onClose();
   };
 
-  const inp = "w-full rounded-xl border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-[13px] text-slate-200 placeholder-slate-600 outline-none focus:border-blue-500/40 transition-colors";
-  const sel = "w-full rounded-xl border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-[13px] text-slate-200 outline-none focus:border-blue-500/40 transition-colors";
+  const inp = "w-full rounded-xl border border-border bg-white/[0.04] px-3 py-2 text-[13px] text-slate-200 placeholder-slate-600 outline-none focus:border-teal-500/40 transition-colors";
+  const sel = "w-full rounded-xl border border-border bg-white/[0.04] px-3 py-2 text-[13px] text-slate-200 outline-none focus:border-teal-500/40 transition-colors";
 
   const days = daysSince(defect.created_at);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-      <div className="w-full max-w-lg rounded-2xl border border-white/[0.08] bg-[#0d1221] shadow-2xl overflow-hidden">
+      <div className="w-full max-w-lg rounded-xl border border-border bg-surface-raised shadow-2xl overflow-hidden">
 
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-white/[0.06] px-5 py-4">
+        <div className="flex items-center justify-between border-b border-border px-5 py-4">
           <div className="flex items-center gap-2.5 min-w-0">
             <span className={cn("h-1.5 w-1.5 shrink-0 rounded-full", SEVERITY_DOT[defect.severity.toLowerCase()] ?? "bg-slate-600")}/>
             <span className="font-mono text-[11px] text-slate-400 shrink-0">{defect.external_key}</span>
@@ -144,10 +296,10 @@ function DefectEditModal({ defect, mpid, onClose }: DefectEditModalProps) {
         </div>
 
         {/* Meta row */}
-        <div className="flex items-center gap-3 border-b border-white/[0.06] px-5 py-2.5 text-[11px]">
+        <div className="flex items-center gap-3 border-b border-border px-5 py-2.5 text-[11px]">
           {defect.url && (
             <a href={defect.url} target="_blank" rel="noreferrer"
-              className="text-blue-400 hover:underline">
+              className="text-teal-400 hover:underline">
               {defect.url.length > 40 ? defect.url.slice(0, 40) + "…" : defect.url}
             </a>
           )}
@@ -202,13 +354,13 @@ function DefectEditModal({ defect, mpid, onClose }: DefectEditModalProps) {
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between border-t border-white/[0.06] px-5 py-4">
+        <div className="flex items-center justify-between border-t border-border px-5 py-4">
           <button type="button" onClick={onClose}
-            className="rounded-xl border border-white/[0.08] px-4 py-2 text-[13px] text-slate-500 hover:text-slate-300 transition-colors">
+            className="rounded-xl border border-border px-4 py-2 text-[13px] text-slate-500 hover:text-slate-300 transition-colors">
             İptal
           </button>
           <button type="button" onClick={save} disabled={update.isPending}
-            className="rounded-xl bg-blue-600 px-5 py-2 text-[13px] font-medium text-white hover:bg-blue-500 disabled:opacity-40 transition-colors">
+            className="rounded-xl bg-teal-600 px-5 py-2 text-[13px] font-medium text-white hover:bg-teal-700 disabled:opacity-40 transition-colors">
             {update.isPending ? "Kaydediliyor…" : "Kaydet"}
           </button>
         </div>
@@ -233,7 +385,7 @@ function DefectRow({ defect, onClick }: DefectRowProps) {
 
   return (
     <tr onClick={onClick}
-      className={cn("cursor-pointer border-b border-slate-800/50 hover:bg-slate-800/30 transition-colors", blocker && "bg-red-500/3")}>
+      className={cn("cursor-pointer border-b border-border hover:bg-surface-overlay transition-colors", blocker && "bg-red-500/3")}>
       {/* Severity dot */}
       <td className="w-8 px-3 py-3">
         <span className={cn("h-1.5 w-1.5 rounded-full inline-block", sevDot)}/>
@@ -242,7 +394,7 @@ function DefectRow({ defect, onClick }: DefectRowProps) {
       <td className="w-28 px-3 py-3">
         {defect.url ? (
           <a href={defect.url} target="_blank" rel="noreferrer"
-            className="font-mono text-[10px] text-blue-400 hover:underline">{defect.external_key}</a>
+            className="font-mono text-[10px] text-teal-400 hover:underline">{defect.external_key}</a>
         ) : (
           <span className="font-mono text-[10px] text-slate-500">{defect.external_key}</span>
         )}
@@ -307,6 +459,7 @@ export default function ManagementDefectsPage() {
   const [statusF,      setStatusF]      = useState("");
   const [priorityF,    setPriorityF]    = useState("");
   const [editDefect,   setEditDefect]   = useState<DefectLink | null>(null);
+  const [showCreate,   setShowCreate]   = useState(false);
   const [page,         setPage]         = useState(1);
   const PAGE_SIZE = 20;
 
@@ -335,18 +488,25 @@ export default function ManagementDefectsPage() {
     [filtered, page]
   );
 
-  const SEL = "rounded-xl border border-slate-700 bg-slate-800/50 px-2.5 py-1.5 text-[10px] text-slate-300 outline-none focus:border-slate-600 transition-colors";
+  const SEL = "rounded-xl border border-border bg-surface-overlay px-2.5 py-1.5 text-[10px] text-slate-300 outline-none focus:border-border-strong transition-colors";
 
   return (
-    <div className="min-h-screen bg-[#0a0f1e] px-5 py-5">
+    <div className="min-h-screen bg-bg px-5 py-5">
       <div className="mx-auto max-w-7xl space-y-5">
 
         {/* Header */}
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <h1 className="text-lg font-bold text-white">Defect Management</h1>
-            <p className="mt-0.5 text-xs text-slate-500">Test koşumlarından bağlanan defect'ler ve retest durumu</p>
+            <p className="mt-0.5 text-xs text-slate-500">Test koşumlarından bağlanan defect&apos;ler ve retest durumu</p>
           </div>
+          <button
+            type="button"
+            onClick={() => setShowCreate(true)}
+            className="rounded-xl bg-teal-600 px-4 py-2 text-[12px] font-semibold text-white hover:bg-teal-700 transition-colors"
+          >
+            + Yeni Defect
+          </button>
         </div>
 
         {/* Stats */}
@@ -358,9 +518,9 @@ export default function ManagementDefectsPage() {
         </div>
 
         {/* Toolbar */}
-        <div className="flex flex-wrap items-center gap-2 rounded-xl border border-slate-800/70 bg-[#0d1221] px-4 py-3">
+        <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border bg-surface-raised px-4 py-3">
           {/* Search */}
-          <div className="flex w-48 items-center gap-1.5 rounded-xl border border-slate-700 bg-slate-800/50 px-2.5 py-1.5 sm:w-64">
+          <div className="flex w-48 items-center gap-1.5 rounded-xl border border-border bg-surface-overlay px-2.5 py-1.5 sm:w-64">
             <IcSearch/>
             <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="Ara…"
               className="flex-1 bg-transparent text-[10px] text-slate-300 placeholder-slate-600 outline-none min-w-0"/>
@@ -393,15 +553,15 @@ export default function ManagementDefectsPage() {
         </div>
 
         {/* Table */}
-        <div className="rounded-xl border border-slate-800/70 bg-[#0d1221] overflow-hidden">
+        <div className="rounded-xl border border-border bg-surface-raised overflow-hidden">
           {loading ? (
             <div className="space-y-px">
               {Array.from({ length: 6 }).map((_, i) => (
-                <div key={i} className="flex items-center gap-3 border-b border-slate-800/40 px-4 py-3"
+                <div key={i} className="flex items-center gap-3 border-b border-border px-4 py-3"
                   style={{ opacity: Math.max(0.2, 1 - i * 0.15) }}>
-                  <div className="h-3 w-20 animate-pulse rounded bg-slate-800"/>
-                  <div className="h-3 flex-1 animate-pulse rounded bg-slate-800"/>
-                  <div className="h-5 w-16 animate-pulse rounded bg-slate-800"/>
+                  <div className="h-3 w-20 animate-pulse rounded bg-surface-overlay"/>
+                  <div className="h-3 flex-1 animate-pulse rounded bg-surface-overlay"/>
+                  <div className="h-5 w-16 animate-pulse rounded bg-surface-overlay"/>
                 </div>
               ))}
             </div>
@@ -416,7 +576,7 @@ export default function ManagementDefectsPage() {
               </p>
               {hasFilter && (
                 <button type="button" onClick={clearFilters}
-                  className="rounded-xl border border-slate-700 px-4 py-2 text-xs text-slate-400 hover:text-slate-200 transition-colors">
+                  className="rounded-xl border border-border px-4 py-2 text-xs text-slate-400 hover:text-slate-200 transition-colors">
                   Filtreleri Temizle
                 </button>
               )}
@@ -424,7 +584,7 @@ export default function ManagementDefectsPage() {
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full">
-                <thead className="sticky top-0 z-10 bg-[#0d1221] border-b border-slate-800/70">
+                <thead className="sticky top-0 z-10 bg-surface-raised border-b border-border">
                   <tr>
                     <th className="w-8 px-3 py-2.5"/>
                     {["Key","Başlık","Status","Severity","Priority","Retest","Yaş","Tarih"].map((h, i) => (
@@ -443,7 +603,7 @@ export default function ManagementDefectsPage() {
                 </tbody>
               </table>
               {totalPages > 1 && (
-                <div className="flex items-center justify-between border-t border-slate-800/70 px-4 pt-4 pb-3">
+                <div className="flex items-center justify-between border-t border-border px-4 pt-4 pb-3">
                   <span className="text-sm text-muted-foreground text-slate-500">
                     {filtered.length} sonuçtan {Math.min(page * PAGE_SIZE, filtered.length)} tanesi gösteriliyor
                   </span>
@@ -451,7 +611,7 @@ export default function ManagementDefectsPage() {
                     <button
                       disabled={page === 1}
                       onClick={() => setPage(p => p - 1)}
-                      className="rounded px-3 py-1 text-sm border border-slate-700 text-slate-300 disabled:opacity-50 hover:bg-slate-800/50 transition-colors"
+                      className="rounded px-3 py-1 text-sm border border-border text-slate-300 disabled:opacity-50 hover:bg-surface-overlay transition-colors"
                     >
                       ← Önceki
                     </button>
@@ -459,7 +619,7 @@ export default function ManagementDefectsPage() {
                     <button
                       disabled={page === totalPages}
                       onClick={() => setPage(p => p + 1)}
-                      className="rounded px-3 py-1 text-sm border border-slate-700 text-slate-300 disabled:opacity-50 hover:bg-slate-800/50 transition-colors"
+                      className="rounded px-3 py-1 text-sm border border-border text-slate-300 disabled:opacity-50 hover:bg-surface-overlay transition-colors"
                     >
                       Sonraki →
                     </button>
@@ -479,9 +639,18 @@ export default function ManagementDefectsPage() {
           />
         )}
 
+        {/* Create defect modal */}
+        {showCreate && mpid && (
+          <CreateDefectModal
+            mpid={mpid}
+            onClose={() => setShowCreate(false)}
+            onDone={() => { setShowCreate(false); defectsQuery.refetch(); }}
+          />
+        )}
+
         {/* Footer summary */}
         {!loading && rows.length > 0 && (
-          <div className="flex flex-wrap gap-4 rounded-xl border border-slate-800/70 bg-[#0d1221] px-4 py-3">
+          <div className="flex flex-wrap gap-4 rounded-xl border border-border bg-surface-raised px-4 py-3">
             {[
               { dot: "bg-red-500/70",     label: `${open.length} açık` },
               { dot: "bg-emerald-500/70", label: `${rows.length - open.length} kapalı` },

@@ -1,5 +1,5 @@
 """
-engine/test_data — TestwrightAI test veri modülü
+engine/test_data — Neurex test veri modülü
 
 Tüm fixture fonksiyonlarını doğrudan import etmek için:
     from engine.test_data import load_test_data, random_tckn, get_admin_user

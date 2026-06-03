@@ -1,5 +1,5 @@
 /**
- * Visium Farm E2E Tests
+ * Neurex Farm E2E Tests
  * TC-VF-001..TC-VF-008
  *
  * Covered:
@@ -51,7 +51,7 @@ async function apiCreateMobileExecution(
 
 // ── Test Suite ─────────────────────────────────────────────────────────────────
 
-test.describe.serial("Visium Farm", () => {
+test.describe.serial("Neurex Farm", () => {
   let projectId: string;
   let token: string;
 
@@ -61,7 +61,7 @@ test.describe.serial("Visium Farm", () => {
     projectId = await apiCreateProject(
       request,
       token,
-      `Visium E2E ${Date.now()}`
+      `Neurex E2E ${Date.now()}`
     );
     await apiCreateScenario(request, token, projectId, "Mobil Senaryo A");
     await apiCreateScenario(request, token, projectId, "Mobil Senaryo B");
@@ -79,7 +79,7 @@ test.describe.serial("Visium Farm", () => {
   });
 
   // TC-VF-002
-  test("Visium Farm sayfasında cihaz kartları görünmeli", async ({ page }) => {
+  test("Neurex Farm sayfasında cihaz kartları görünmeli", async ({ page }) => {
     await page.goto(`/p/${projectId}/mobile`);
     // DeviceCard bileşeni data-testid="device-card-*" kullanıyor
     await expect(
@@ -88,7 +88,7 @@ test.describe.serial("Visium Farm", () => {
   });
 
   // TC-VF-003
-  test("sidebar'da Visium Farm linki görünmeli", async ({ page }) => {
+  test("sidebar'da Neurex Farm linki görünmeli", async ({ page }) => {
     await page.goto(`/p/${projectId}/scenarios`);
     const link = page.getByRole("link", { name: /visium farm/i });
     await expect(link).toBeVisible({ timeout: 5_000 });

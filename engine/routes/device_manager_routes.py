@@ -1,5 +1,5 @@
 """
-Visium Device Manager — AI Destekli Cihaz Yönetim API'si
+Neurex Device Manager — AI Destekli Cihaz Yönetim API'si
 =========================================================
 Android (ADB) + iOS (xcrun simctl) cihazların merkezi yönetimi:
   - Detaylı cihaz keşfi (Android emülatör/fiziksel + iOS simülatör)

@@ -61,7 +61,7 @@ class AppErrorBoundary extends React.Component<
   render() {
     if (this.state.hasError) {
       return (
-        <div className="flex min-h-screen items-center justify-center bg-slate-900">
+        <div className="flex min-h-screen items-center justify-center bg-surface-base">
           <div className="mx-auto max-w-md rounded-lg border border-red-500/20 bg-red-500/5 p-8 text-center">
             <div className="mb-4 flex justify-center">
               <svg className="h-12 w-12 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -73,7 +73,7 @@ class AppErrorBoundary extends React.Component<
               Sayfa yüklenirken bir sorun oluştu.
             </p>
             {this.state.error && (
-              <p className="mb-6 rounded-md bg-slate-800 px-3 py-2 text-xs font-mono text-slate-500 text-left break-all">
+              <p className="mb-6 rounded-md bg-surface-raised px-3 py-2 text-xs font-mono text-fg-subtle text-left break-all">
                 {this.state.error.message}
               </p>
             )}
@@ -86,7 +86,7 @@ class AppErrorBoundary extends React.Component<
               </button>
               <a
                 href="/"
-                className="rounded-md border border-slate-600 px-4 py-2 text-sm font-medium text-slate-300 hover:border-slate-400 hover:text-white transition-colors"
+                className="rounded-md border border-border px-4 py-2 text-sm font-medium text-fg-muted hover:border-border-strong hover:text-fg transition-colors"
               >
                 Anasayfaya Don
               </a>
@@ -192,11 +192,11 @@ const NavItem = memo(function NavItem({
       className={cn(
         "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-150 relative",
         active
-          ? "bg-blue-50/80 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 before:w-1 before:h-6 before:bg-blue-600 dark:before:bg-blue-400 before:rounded-r-full"
-          : "text-gray-600 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700 hover:text-gray-900 dark:hover:text-white"
+          ? "bg-brand-soft text-brand before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 before:w-1 before:h-6 before:bg-brand before:rounded-r-full"
+          : "text-fg-muted hover:bg-surface-overlay hover:text-fg"
       )}
     >
-      <span className={cn("transition-colors", active ? "text-blue-600 dark:text-blue-400" : "text-gray-400 dark:text-slate-400")}>
+      <span className={cn("transition-colors", active ? "text-brand" : "text-fg-subtle")}>
         {icon}
       </span>
       {label}
@@ -316,7 +316,7 @@ export function AppShell({
           <button
             type="button"
             onClick={() => setProductPickerOpen(v => !v)}
-            className="flex min-w-0 flex-1 items-center gap-1 rounded-lg px-1.5 py-1 -mx-1.5 hover:bg-slate-700/50 transition-colors"
+            className="flex min-w-0 flex-1 items-center gap-1 rounded-lg px-1.5 py-1 -mx-1.5 hover:bg-surface-overlay transition-colors"
             data-testid="sidebar-product-picker"
             aria-haspopup="menu"
             aria-expanded={productPickerOpen}
@@ -343,21 +343,21 @@ export function AppShell({
         {productPickerOpen && (
           <>
             <div className="fixed inset-0 z-40" onClick={() => setProductPickerOpen(false)} />
-            <div role="menu" className="absolute left-3 right-3 top-full z-50 mt-1 rounded-xl border border-slate-700 bg-slate-800 py-1 shadow-2xl max-h-[80vh] overflow-y-auto animate-slide-down origin-top">
-              <p className="px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-slate-500">Ürün Odağı</p>
+            <div role="menu" className="absolute left-3 right-3 top-full z-50 mt-1 rounded-xl border border-border bg-surface-raised py-1 shadow-elevated max-h-[80vh] overflow-y-auto animate-slide-down origin-top">
+              <p className="px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-fg-subtle">Ürün Odağı</p>
               <button
                 type="button"
                 role="menuitem"
                 onClick={() => selectProduct("all")}
                 className={cn(
                   "flex w-full items-center gap-2.5 px-3 py-2 text-left transition-colors",
-                  activeProductId === "all" ? "bg-teal-900/30 text-teal-300" : "text-slate-300 hover:bg-slate-700 hover:text-white"
+                  activeProductId === "all" ? "bg-brand-soft text-brand" : "text-fg-muted hover:bg-surface-overlay hover:text-fg"
                 )}
               >
                 <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-slate-600 to-slate-700 text-[10px] font-bold text-white">★</div>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-medium">QA Operations Platform</p>
-                  <p className="truncate text-[10px] text-slate-500">Tüm ürünler — varsayılan görünüm</p>
+                  <p className="truncate text-[10px] text-fg-subtle">Tüm ürünler — varsayılan görünüm</p>
                 </div>
                 {activeProductId === "all" && (
                   <svg className="h-4 w-4 shrink-0 text-teal-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -365,7 +365,7 @@ export function AppShell({
                   </svg>
                 )}
               </button>
-              <div className="my-1 border-t border-slate-700" />
+              <div className="my-1 border-t border-border" />
               {PRODUCT_FAMILY.map(p => {
                 const isActive = activeProductId === p.id;
                 const meta = PRODUCT_AVAILABILITY_META[p.availability];
@@ -380,8 +380,8 @@ export function AppShell({
                     className={cn(
                       "flex w-full items-center gap-2.5 px-3 py-2 text-left transition-colors",
                       isActive
-                        ? `${brand?.bg ?? "bg-teal-900/30"} ${brand?.text ?? "text-teal-300"}`
-                        : "text-slate-300 hover:bg-slate-700 hover:text-white"
+                        ? `${brand?.bg ?? "bg-brand-soft"} ${brand?.text ?? "text-brand"}`
+                        : "text-fg-muted hover:bg-surface-overlay hover:text-fg"
                     )}
                     data-testid={`product-picker-${p.id}`}
                   >
@@ -395,7 +395,7 @@ export function AppShell({
                         <p className="truncate text-sm font-medium">{p.name}</p>
                         <span className={`shrink-0 rounded-full px-1 py-0 text-[8px] font-semibold ${meta.className}`}>{meta.label}</span>
                       </div>
-                      <p className="truncate text-[10px] text-slate-500">{p.tagline}</p>
+                      <p className="truncate text-[10px] text-fg-subtle">{p.tagline}</p>
                     </div>
                     {isActive && (
                       <svg className={`h-4 w-4 shrink-0 ${brand?.text ?? "text-blue-400"}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -445,7 +445,7 @@ export function AppShell({
           <>
             {currentProject && (
               <div>
-                <p className="mb-1 mt-4 px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-gray-400 dark:text-slate-500 first:mt-1">
+                <p className="mb-1 mt-4 px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-fg-subtle first:mt-1">
                   MANAGEMENT
                 </p>
                 <NavItem
@@ -459,7 +459,7 @@ export function AppShell({
             )}
             {GLOBAL_NAV.map(({ section, items }) => (
               <div key={section}>
-                <p className="mb-1 mt-4 px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-gray-400 dark:text-slate-500 first:mt-1">
+                <p className="mb-1 mt-4 px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-fg-subtle first:mt-1">
                   {section}
                 </p>
                 {items.map(item => (
@@ -494,7 +494,7 @@ export function AppShell({
                 <button
                   type="button"
                   onClick={() => selectProduct("all")}
-                  className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs text-slate-400 hover:text-white hover:bg-slate-700 transition-colors mb-2"
+                  className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs text-fg-subtle hover:text-fg hover:bg-surface-overlay transition-colors mb-2"
                   data-testid="sidebar-back-to-all"
                 >
                   <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -540,16 +540,16 @@ export function AppShell({
                           className={cn(
                             "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-150 relative",
                             isActive
-                              ? "bg-blue-50/80 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 before:w-1 before:h-6 before:bg-blue-600 dark:before:bg-blue-400 before:rounded-r-full"
-                              : "text-gray-600 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700 hover:text-gray-900 dark:hover:text-white"
+                              ? "bg-brand-soft text-brand before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 before:w-1 before:h-6 before:bg-brand before:rounded-r-full"
+                              : "text-fg-muted hover:bg-surface-overlay hover:text-fg"
                           )}
                           data-testid={`product-module-${m.key}`}
                           title={!currentProject ? "Önce bir proje seçin" : undefined}
                         >
-                          <span className={cn("text-gray-400 dark:text-slate-400 w-4 h-4 shrink-0", isActive && "text-blue-600 dark:text-blue-400")}>•</span>
+                          <span className={cn("w-4 h-4 shrink-0 text-fg-subtle", isActive && "text-brand")}>•</span>
                           {m.label}
                           {!currentProject && (
-                            <svg className="ml-auto h-3 w-3 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <svg className="ml-auto h-3 w-3 text-fg-disabled" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                               <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
                           )}
@@ -569,10 +569,10 @@ export function AppShell({
       <SidebarProjectSwitcher />
 
       {/* Alt bölüm: dil + çıkış */}
-      <div className="border-t border-gray-100 dark:border-slate-700 px-3 py-3 space-y-1">
+      <div className="border-t border-border px-3 py-3 space-y-1">
         <button
           type="button"
-          className="flex items-center gap-3 px-3 py-2.5 w-full rounded-lg text-sm font-medium text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-slate-700 transition-all duration-150"
+          className="flex items-center gap-3 px-3 py-2.5 w-full rounded-lg text-sm font-medium text-fg-muted hover:text-fg hover:bg-surface-overlay transition-all duration-150"
         >
           <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064" />
@@ -587,7 +587,7 @@ export function AppShell({
             clearTokens();
             window.location.href = "/login";
           }}
-          className="flex items-center gap-3 px-3 py-2.5 w-full rounded-lg text-sm font-medium text-gray-500 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all duration-150"
+          className="flex items-center gap-3 px-3 py-2.5 w-full rounded-lg text-sm font-medium text-fg-muted hover:text-danger hover:bg-danger-subtle transition-all duration-150"
           data-testid="sidebar-btn-logout"
         >
           <IconLogout />
@@ -599,7 +599,7 @@ export function AppShell({
 
   return (
     <AppErrorBoundary>
-    <div className="flex min-h-screen flex-col bg-slate-900">
+    <div className="flex min-h-screen flex-col bg-surface-base">
       {topBanner}
       <div className="flex min-h-0 flex-1">
 
@@ -619,7 +619,7 @@ export function AppShell({
         {/* Sidebar */}
         <aside
           className={cn(
-            "flex w-64 flex-col border-r border-gray-100 dark:border-[#1c2540] bg-white dark:bg-[#111827]",
+            "flex w-64 flex-col border-r border-border bg-surface-raised shadow-sm",
             "fixed inset-y-0 left-0 z-40 transition-transform duration-200 md:static md:translate-x-0",
             sidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
           )}
@@ -635,7 +635,7 @@ export function AppShell({
 
           {/* Header */}
           <header
-            className="relative flex h-12 items-center gap-3 border-b border-white/10 bg-slate-900/80 backdrop-blur-sm px-4"
+            className="relative flex h-12 items-center gap-3 border-b border-border bg-surface-raised/95 px-4 shadow-xs backdrop-blur-sm"
             data-testid="header"
           >
             {/* Per-ürün accent çizgisi — sadece ürün modunda */}
@@ -650,7 +650,7 @@ export function AppShell({
             <button
               type="button"
               ref={hamburgerRef}
-              className="shrink-0 rounded-lg p-1.5 text-slate-500 hover:bg-slate-800 hover:text-white md:hidden"
+              className="shrink-0 rounded-lg p-1.5 text-fg-subtle hover:bg-surface-overlay hover:text-fg md:hidden"
               onClick={() => setSidebarOpen(true)}
               aria-label="Menüyü aç"
             >
@@ -660,16 +660,16 @@ export function AppShell({
             </button>
 
             {/* Breadcrumb */}
-            <nav className="flex min-w-0 flex-1 items-center gap-1.5 text-sm text-slate-400" aria-label="breadcrumb">
-              <Link href="/" className="shrink-0 font-semibold text-teal-400 hover:text-teal-300 transition-colors" data-testid="header-breadcrumb-home">
+            <nav className="flex min-w-0 flex-1 items-center gap-1.5 text-sm text-fg-subtle" aria-label="breadcrumb">
+              <Link href="/" className="shrink-0 font-semibold text-brand hover:text-brand-secondary transition-colors" data-testid="header-breadcrumb-home">
                 {PRODUCT_SHORT}
               </Link>
               {currentProject && (
                 <>
-                  <svg className="h-3.5 w-3.5 shrink-0 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <svg className="h-3.5 w-3.5 shrink-0 text-fg-subtle" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
                   </svg>
-                  <Link href={`/p/${currentProject.id}/scenarios`} className="truncate font-medium text-slate-300 hover:text-white transition-colors" data-testid="header-breadcrumb-project">
+                  <Link href={`/p/${currentProject.id}/scenarios`} className="truncate font-medium text-fg-muted hover:text-fg transition-colors" data-testid="header-breadcrumb-project">
                     {currentProject.name}
                   </Link>
                 </>
@@ -681,7 +681,7 @@ export function AppShell({
               <button
                 type="button"
                 onClick={() => setProjectDropOpen(v => !v)}
-                className="flex items-center gap-1.5 rounded-full border border-slate-700 bg-[#111827] px-3 py-1 text-xs font-medium text-slate-300 hover:border-teal-500/50 hover:text-teal-300 transition-colors"
+                className="flex items-center gap-1.5 rounded-full border border-border bg-surface-raised px-3 py-1 text-xs font-medium text-fg-muted hover:border-brand/50 hover:text-brand transition-colors"
                 aria-haspopup="menu"
                 aria-expanded={projectDropOpen}
                 data-testid="header-project-pill"
@@ -695,16 +695,16 @@ export function AppShell({
               {projectDropOpen && (
                 <>
                   <div className="fixed inset-0 z-40" onClick={() => setProjectDropOpen(false)} />
-                  <div role="menu" className="absolute left-1/2 top-full z-50 mt-2 w-64 -translate-x-1/2 rounded-xl border border-slate-700 bg-slate-800 py-1 shadow-2xl animate-slide-down origin-top">
+                  <div role="menu" className="absolute left-1/2 top-full z-50 mt-2 w-64 -translate-x-1/2 rounded-xl border border-border bg-surface-raised py-1 shadow-elevated animate-slide-down origin-top">
                     {currentProject && (
-                      <div className="border-b border-slate-700 px-3 py-2">
-                        <p className="text-[10px] uppercase tracking-wider text-slate-500">Aktif Proje</p>
-                        <p className="text-sm font-semibold text-white truncate">{currentProject.name}</p>
+                      <div className="border-b border-border px-3 py-2">
+                        <p className="text-[10px] uppercase tracking-wider text-fg-subtle">Aktif Proje</p>
+                        <p className="text-sm font-semibold text-fg truncate">{currentProject.name}</p>
                       </div>
                     )}
                     {projects.length > 0 && (
-                      <div className={cn("py-1 max-h-56 overflow-y-auto", currentProject && projects.filter(p => p.id !== currentProject.id).length > 0 && "border-b border-slate-700")}>
-                        {currentProject && <p className="px-3 pt-1 pb-1 text-[10px] uppercase tracking-wider text-slate-500">Diğer Projeler</p>}
+                      <div className={cn("py-1 max-h-56 overflow-y-auto", currentProject && projects.filter(p => p.id !== currentProject.id).length > 0 && "border-b border-border")}>
+                        {currentProject && <p className="px-3 pt-1 pb-1 text-[10px] uppercase tracking-wider text-fg-subtle">Diğer Projeler</p>}
                         {projects
                           .filter(p => !currentProject || p.id !== currentProject.id)
                           .slice(0, 6)
@@ -715,17 +715,17 @@ export function AppShell({
                             return (
                               <button key={p.id} type="button" role="menuitem"
                                 onClick={() => { setProjectDropOpen(false); router.push(`/p/${p.id}${sub}`); }}
-                                className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm text-slate-300 hover:bg-slate-700 hover:text-white transition-colors"
+                                className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm text-fg-muted hover:bg-surface-overlay hover:text-fg transition-colors"
                                 data-testid={`header-project-pill-switch-${p.id}`}
                               >
-                                <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-slate-500" />
+                                <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-fg-subtle" />
                                 <span className="truncate">{p.name}</span>
                               </button>
                             );
                           })}
                       </div>
                     )}
-                    <Link href="/portfolio" className="flex items-center gap-2 px-3 py-2 text-sm text-slate-200 hover:bg-slate-700 transition-colors" onClick={() => setProjectDropOpen(false)} data-testid="header-project-pill-all">
+                    <Link href="/portfolio" className="flex items-center gap-2 px-3 py-2 text-sm text-fg-muted hover:bg-surface-overlay transition-colors" onClick={() => setProjectDropOpen(false)} data-testid="header-project-pill-all">
                       <IconFolder />
                       Tüm Projeler
                     </Link>
@@ -771,26 +771,26 @@ export function AppShell({
                 {userMenuOpen && (
                   <>
                     <div className="fixed inset-0 z-40" onClick={() => setUserMenuOpen(false)} />
-                    <div className="absolute right-0 top-full z-50 mt-2 w-52 rounded-xl border border-slate-700 bg-slate-800 py-1 shadow-xl animate-slide-down origin-top-right">
-                      <div className="border-b border-slate-700 px-3 py-2">
-                        <p className="text-sm font-medium text-white">Yasin Bulgan</p>
-                        <p className="text-xs text-slate-400">yasin.bulgan@bgtest.com</p>
+                    <div className="absolute right-0 top-full z-50 mt-2 w-52 rounded-xl border border-border bg-surface-raised py-1 shadow-elevated animate-slide-down origin-top-right">
+                      <div className="border-b border-border px-3 py-2">
+                        <p className="text-sm font-medium text-fg">Yasin Bulgan</p>
+                        <p className="text-xs text-fg-subtle">yasin.bulgan@bgtest.com</p>
                       </div>
-                      <Link href="/profile" className="block px-3 py-2 text-sm text-slate-200 hover:bg-slate-700 transition-colors" onClick={() => setUserMenuOpen(false)} data-testid="user-menu-link-profile">Profil</Link>
-                      <Link href="/settings/security" className="block px-3 py-2 text-sm text-slate-200 hover:bg-slate-700 transition-colors" onClick={() => setUserMenuOpen(false)} data-testid="user-menu-link-security">🔐 Güvenlik (2FA)</Link>
-                      <Link href="/admin/users" className="flex items-center gap-2 px-3 py-2 text-sm text-slate-200 hover:bg-slate-700 transition-colors" onClick={() => setUserMenuOpen(false)} data-testid="user-menu-link-admin"><IconUsers />Yönetim</Link>
-                      <Link href="/ai-quality" className="block px-3 py-2 text-sm text-slate-200 hover:bg-slate-700 transition-colors" onClick={() => setUserMenuOpen(false)} data-testid="user-menu-link-aiq">AI Kalite</Link>
-                      <Link href="/ai-workflows" className="block px-3 py-2 text-sm text-slate-200 hover:bg-slate-700 transition-colors" onClick={() => setUserMenuOpen(false)} data-testid="user-menu-link-ai-workflows">Workflow Health</Link>
-                      <Link href="/mobil-otomasyon" className="block px-3 py-2 text-sm text-slate-200 hover:bg-slate-700 transition-colors" onClick={() => setUserMenuOpen(false)} data-testid="user-menu-link-mobil">Mobil Otomasyon</Link>
-                      <Link href="/admin/billing" className="block px-3 py-2 text-sm text-slate-200 hover:bg-slate-700 transition-colors" onClick={() => setUserMenuOpen(false)} data-testid="user-menu-link-billing">Faturalama</Link>
-                      <Link href="/system" className="block px-3 py-2 text-sm text-slate-200 hover:bg-slate-700 transition-colors" onClick={() => setUserMenuOpen(false)} data-testid="user-menu-link-system">Sistem Durumu</Link>
-                      <Link href="/system/services" className="block px-3 py-2 text-sm text-slate-200 hover:bg-slate-700 transition-colors" onClick={() => setUserMenuOpen(false)} data-testid="user-menu-link-services">Servis Yönetimi</Link>
-                      <Link href="/info" className="block px-3 py-2 text-sm text-slate-200 hover:bg-slate-700 transition-colors" onClick={() => setUserMenuOpen(false)} data-testid="user-menu-link-info">Sistem Bilgileri</Link>
-                      <Link href="/symbols" className="block px-3 py-2 text-sm text-slate-200 hover:bg-slate-700 transition-colors" onClick={() => setUserMenuOpen(false)} data-testid="user-menu-link-symbols">Tasarım Sözlüğü</Link>
-                      <div className="border-t border-slate-700" />
+                      <Link href="/profile" className="block px-3 py-2 text-sm text-fg-muted hover:bg-surface-overlay transition-colors" onClick={() => setUserMenuOpen(false)} data-testid="user-menu-link-profile">Profil</Link>
+                      <Link href="/settings/security" className="block px-3 py-2 text-sm text-fg-muted hover:bg-surface-overlay transition-colors" onClick={() => setUserMenuOpen(false)} data-testid="user-menu-link-security">🔐 Güvenlik (2FA)</Link>
+                      <Link href="/admin/users" className="flex items-center gap-2 px-3 py-2 text-sm text-fg-muted hover:bg-surface-overlay transition-colors" onClick={() => setUserMenuOpen(false)} data-testid="user-menu-link-admin"><IconUsers />Yönetim</Link>
+                      <Link href="/ai-quality" className="block px-3 py-2 text-sm text-fg-muted hover:bg-surface-overlay transition-colors" onClick={() => setUserMenuOpen(false)} data-testid="user-menu-link-aiq">AI Kalite</Link>
+                      <Link href="/ai-workflows" className="block px-3 py-2 text-sm text-fg-muted hover:bg-surface-overlay transition-colors" onClick={() => setUserMenuOpen(false)} data-testid="user-menu-link-ai-workflows">Workflow Health</Link>
+                      <Link href="/mobil-otomasyon" className="block px-3 py-2 text-sm text-fg-muted hover:bg-surface-overlay transition-colors" onClick={() => setUserMenuOpen(false)} data-testid="user-menu-link-mobil">Mobil Otomasyon</Link>
+                      <Link href="/admin/billing" className="block px-3 py-2 text-sm text-fg-muted hover:bg-surface-overlay transition-colors" onClick={() => setUserMenuOpen(false)} data-testid="user-menu-link-billing">Faturalama</Link>
+                      <Link href="/system" className="block px-3 py-2 text-sm text-fg-muted hover:bg-surface-overlay transition-colors" onClick={() => setUserMenuOpen(false)} data-testid="user-menu-link-system">Sistem Durumu</Link>
+                      <Link href="/system/services" className="block px-3 py-2 text-sm text-fg-muted hover:bg-surface-overlay transition-colors" onClick={() => setUserMenuOpen(false)} data-testid="user-menu-link-services">Servis Yönetimi</Link>
+                      <Link href="/info" className="block px-3 py-2 text-sm text-fg-muted hover:bg-surface-overlay transition-colors" onClick={() => setUserMenuOpen(false)} data-testid="user-menu-link-info">Sistem Bilgileri</Link>
+                      <Link href="/symbols" className="block px-3 py-2 text-sm text-fg-muted hover:bg-surface-overlay transition-colors" onClick={() => setUserMenuOpen(false)} data-testid="user-menu-link-symbols">Tasarım Sözlüğü</Link>
+                      <div className="border-t border-border" />
                       <button
                         type="button"
-                        className="block w-full px-3 py-2 text-left text-sm text-rose-400 hover:bg-rose-500/10 transition-colors"
+                        className="block w-full px-3 py-2 text-left text-sm text-danger hover:bg-danger-subtle transition-colors"
                         onClick={async () => {
                           setUserMenuOpen(false);
                           try { await fetch(`${ENGINE_BASE}/api/auth/logout`, { method: "POST", credentials: "include" }); } catch {}
@@ -809,7 +809,7 @@ export function AppShell({
           </header>
 
           {/* Ana içerik */}
-          <main id="main-content" tabIndex={-1} className="flex-1 bg-slate-900 focus:outline-none overflow-auto">
+          <main id="main-content" tabIndex={-1} className="flex-1 overflow-auto bg-surface-base focus:outline-none">
             {children}
           </main>
         </div>

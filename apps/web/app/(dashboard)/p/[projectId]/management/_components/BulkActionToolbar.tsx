@@ -39,10 +39,10 @@ export function BulkActionToolbar({
 
   return (
     <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 animate-in slide-in-from-bottom-4 duration-200">
-      <div className="flex items-center gap-3 rounded-2xl border border-slate-600 bg-slate-800 px-4 py-3 shadow-2xl shadow-black/50">
+      <div className="flex items-center gap-3 rounded-xl border border-border-strong bg-surface-overlay px-4 py-3 shadow-2xl shadow-black/50">
         {/* Seçim sayısı */}
-        <div className="flex items-center gap-2 pr-3 border-r border-slate-700">
-          <div className="w-6 h-6 rounded-full bg-violet-600 flex items-center justify-center text-xs font-bold text-white">
+        <div className="flex items-center gap-2 pr-3 border-r border-border">
+          <div className="w-6 h-6 rounded-full bg-teal-600 flex items-center justify-center text-xs font-bold text-white">
             {selectedCount}
           </div>
           <span className="text-sm text-slate-300 font-medium whitespace-nowrap">
@@ -60,8 +60,8 @@ export function BulkActionToolbar({
               className={`
                 flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-semibold transition-colors disabled:opacity-50
                 ${action.variant === "danger"
-                  ? "bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/30"
-                  : "bg-slate-700 hover:bg-slate-600 text-slate-200 border border-slate-600"}
+                  ? "bg-red-500/20 hover:bg-red-500/30 text-red-300 border border-red-500/30"
+                  : "bg-slate-700 hover:bg-slate-600 text-slate-200 border border-border-strong"}
               `}
             >
               {loading === action.id ? (
@@ -103,8 +103,8 @@ export function SelectCheckbox({ id, selectedIds, onToggle }: SelectCheckboxProp
       className={`
         w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 transition-all
         ${checked
-          ? "bg-violet-600 border-violet-600 text-white"
-          : "border-slate-600 hover:border-violet-500 bg-transparent"}
+          ? "bg-teal-600 border-teal-600 text-white"
+          : "border-border-strong hover:border-teal-500 bg-transparent"}
       `}
     >
       {checked && (
@@ -135,10 +135,10 @@ export function SelectAllCheckbox({ totalIds, selectedIds, onSelectAll, onClearA
       className={`
         w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 transition-all
         ${allSelected
-          ? "bg-violet-600 border-violet-600 text-white"
+          ? "bg-teal-600 border-teal-600 text-white"
           : someSelected
-          ? "bg-violet-600/50 border-violet-600 text-white"
-          : "border-slate-600 hover:border-violet-500 bg-transparent"}
+          ? "bg-teal-600/50 border-teal-600 text-white"
+          : "border-border-strong hover:border-teal-500 bg-transparent"}
       `}
       title={allSelected ? "Tümünü kaldır" : "Tümünü seç"}
     >

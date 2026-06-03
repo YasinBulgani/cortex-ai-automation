@@ -455,7 +455,7 @@ class ReportGenerator:
 
         <footer>
             <p>Generated on {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}</p>
-            <p>TestwrightAI Test Automation Platform</p>
+            <p>Neurex Test Automation Platform</p>
         </footer>
     </div>
 

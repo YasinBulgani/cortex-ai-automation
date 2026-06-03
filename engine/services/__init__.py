@@ -1,5 +1,5 @@
 """
-TestwrightAI AI Test Engine — Servis Katmanı
+Neurex AI Test Engine — Servis Katmanı
 
 Tüm AI destekli test otomasyon servisleri bu pakette yer alır.
 Her servis bağımsız çalışır ve LLM Gateway üzerinden merkezi LLM erişimi kullanır.

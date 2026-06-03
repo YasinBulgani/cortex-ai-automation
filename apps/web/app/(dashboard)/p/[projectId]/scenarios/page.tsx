@@ -27,6 +27,10 @@ import {
   useCreateManagementCase,
   useCreateManagementSuite,
   useCreateManagementFolder,
+  useUpdateManagementSuite,
+  useDeleteManagementSuite,
+  useUpdateManagementFolder,
+  useDeleteManagementFolder,
   useEnsureManagementProject,
   useManagementRequirements,
   useManagementCaseVersions,
@@ -105,7 +109,66 @@ function IcSparkle() { return <svg className="h-3.5 w-3.5 shrink-0" fill="none" 
 function IcEdit()    { return <svg className="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>; }
 function IcCopy()    { return <svg className="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>; }
 function IcRepo()    { return <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 10V7"/></svg>; }
-function IcFolder()  { return <svg className="h-3 w-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>; }
+function IcFolder()     { return <svg className="h-3 w-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>; }
+function IcFolderOpen() { return <svg className="h-3 w-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 19a2 2 0 01-2-2V7a2 2 0 012-2h4l2 2h4a2 2 0 012 2v1M5 19h14a2 2 0 002-2v-5a2 2 0 00-2-2H9a2 2 0 00-2 2v5a2 2 0 01-2 2z"/></svg>; }
+function IcDots()       { return <svg className="h-3 w-3 shrink-0" fill="currentColor" viewBox="0 0 20 20"><circle cx="4" cy="10" r="1.5"/><circle cx="10" cy="10" r="1.5"/><circle cx="16" cy="10" r="1.5"/></svg>; }
+function IcTrash()      { return <svg className="h-3 w-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>; }
+function IcPencil()     { return <svg className="h-3 w-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>; }
+function IcMove()       { return <svg className="h-3 w-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>; }
+
+function RepositoryEditorRow({
+  value,
+  setValue,
+  placeholder,
+  marker,
+  onSave,
+  onCancel,
+}: {
+  value: string;
+  setValue: (value: string) => void;
+  placeholder: string;
+  marker: string;
+  onSave: () => void;
+  onCancel: () => void;
+}) {
+  return (
+    <div className="rounded-lg border border-brand/25 bg-brand-soft/70 p-2 shadow-xs ring-1 ring-brand/10">
+      <div className="flex min-w-0 items-center gap-2">
+        <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md border border-brand/20 bg-surface-raised text-[9px] font-bold text-brand">
+          {marker}
+        </span>
+        <input
+          autoFocus
+          type="text"
+          value={value}
+          onChange={e => setValue(e.target.value)}
+          onKeyDown={e => {
+            if (e.key === "Enter") onSave();
+            if (e.key === "Escape") onCancel();
+          }}
+          placeholder={placeholder}
+          className="min-w-0 flex-1 rounded-md border border-border bg-surface-raised px-2 py-1 text-xs text-fg shadow-xs placeholder:text-fg-subtle outline-none transition-colors focus:border-brand focus:ring-2 focus:ring-brand/15"
+        />
+      </div>
+      <div className="mt-2 flex items-center justify-end gap-1.5">
+        <button
+          type="button"
+          onClick={onSave}
+          className="inline-flex h-7 items-center rounded-md bg-brand px-2 text-[11px] font-semibold text-brand-fg shadow-xs transition-colors hover:brightness-105"
+        >
+          Kaydet
+        </button>
+        <button
+          type="button"
+          onClick={onCancel}
+          className="inline-flex h-7 items-center rounded-md border border-border bg-surface-raised px-2 text-[11px] font-medium text-fg-subtle transition-colors hover:bg-surface-overlay hover:text-fg"
+        >
+          İptal
+        </button>
+      </div>
+    </div>
+  );
+}
 
 // ─── Badges ───────────────────────────────────────────────────────────────────
 
@@ -141,19 +204,126 @@ function RunBadge({ s }: { s: string }) {
 
 // ─── Suite Tree ───────────────────────────────────────────────────────────────
 
+type AddFolderTarget = { suiteId: string; parentFolderId?: string };
+type RenameTarget    = { type: "suite" | "folder"; id: string; name: string };
+type DeleteTarget    = { type: "suite" | "folder"; id: string; name: string };
+type MoveFolderState = { folder: TestFolder };
+
+function FolderNode({
+  folder, depth, allFolders, cases, suites, selected, onSelect,
+  addTarget, setAddTarget, onRename, onDelete, onMove,
+  folderName, setFolderName, onSaveFolder,
+}: {
+  folder: TestFolder; depth: number;
+  allFolders: TestFolder[]; cases: TestCase[]; suites: TestSuite[];
+  selected: SelectedNode; onSelect: (n: SelectedNode) => void;
+  addTarget: AddFolderTarget | null; setAddTarget: (v: AddFolderTarget | null) => void;
+  onRename: (t: RenameTarget) => void;
+  onDelete: (t: DeleteTarget) => void;
+  onMove: (t: MoveFolderState) => void;
+  folderName: string; setFolderName: (v: string) => void;
+  onSaveFolder: (suiteId: string, parentFolderId?: string) => Promise<void>;
+}) {
+  const [open, setOpen] = useState(false);
+  const children = allFolders.filter(f => f.parent_id === folder.id);
+  const fc       = cases.filter(c => c.folder_id === folder.id && !c.archived).length;
+  const isSel    = selected.type === "folder" && selected.id === folder.id;
+  const isAdding = addTarget?.suiteId === folder.suite_id && addTarget.parentFolderId === folder.id;
+
+  return (
+    <div>
+      <div className="group flex items-center gap-0.5" style={{ paddingLeft: depth * 12 }}>
+        {children.length > 0 ? (
+          <button type="button" onClick={() => setOpen(p => !p)}
+            className="flex h-5 w-4 shrink-0 items-center justify-center rounded text-fg-subtle transition-colors hover:bg-surface-overlay hover:text-fg">
+            <IcChevron open={open}/>
+          </button>
+        ) : (
+          <span className="w-4 shrink-0"/>
+        )}
+        <button type="button" onClick={() => onSelect({ type: "folder", id: folder.id, suiteId: folder.suite_id })}
+          className={cn("flex flex-1 min-w-0 items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs transition-colors",
+            isSel ? "border border-brand/20 bg-brand-soft text-brand shadow-xs"
+                  : "text-fg-muted hover:bg-surface-overlay hover:text-fg")}>
+          {open && children.length > 0 ? <IcFolderOpen/> : <IcFolder/>}
+          <span className="flex-1 truncate text-left">{folder.name}</span>
+          <span className="shrink-0 rounded bg-surface-overlay px-1 py-0.5 text-[10px] font-medium text-fg-subtle">{fc}</span>
+        </button>
+        <div className="opacity-0 group-hover:opacity-100 flex items-center gap-0 transition-all">
+          <button type="button" title="Alt klasör ekle"
+            onClick={() => { setAddTarget({ suiteId: folder.suite_id, parentFolderId: folder.id }); setOpen(true); }}
+            className="flex h-5 w-5 items-center justify-center rounded text-fg-subtle transition-colors hover:bg-surface-overlay hover:text-brand">
+            <IcPlus/>
+          </button>
+          <button type="button" title="Yeniden adlandır"
+            onClick={() => onRename({ type: "folder", id: folder.id, name: folder.name })}
+            className="flex h-5 w-5 items-center justify-center rounded text-fg-subtle transition-colors hover:bg-surface-overlay hover:text-fg">
+            <IcPencil/>
+          </button>
+          <button type="button" title="Taşı"
+            onClick={() => onMove({ folder })}
+            className="flex h-5 w-5 items-center justify-center rounded text-fg-subtle transition-colors hover:bg-surface-overlay hover:text-brand">
+            <IcMove/>
+          </button>
+          <button type="button" title="Sil"
+            onClick={() => onDelete({ type: "folder", id: folder.id, name: folder.name })}
+            className="flex h-5 w-5 items-center justify-center rounded text-fg-subtle transition-colors hover:bg-danger-subtle hover:text-danger">
+            <IcTrash/>
+          </button>
+        </div>
+      </div>
+
+      {open && (
+        <div>
+          {children.map(child => (
+            <FolderNode key={child.id} folder={child} depth={depth + 1}
+              allFolders={allFolders} cases={cases} suites={suites}
+              selected={selected} onSelect={onSelect}
+              addTarget={addTarget} setAddTarget={setAddTarget}
+              onRename={onRename} onDelete={onDelete} onMove={onMove}
+              folderName={folderName} setFolderName={setFolderName}
+              onSaveFolder={onSaveFolder}/>
+          ))}
+          {isAdding && (
+            <div style={{ marginLeft: (depth + 1) * 12 + 4 }}>
+              <RepositoryEditorRow
+                value={folderName}
+                setValue={setFolderName}
+                placeholder="Klasör adı"
+                marker="F"
+                onSave={() => { void onSaveFolder(folder.suite_id, folder.id); }}
+                onCancel={() => { setAddTarget(null); setFolderName(""); }}
+              />
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function SuiteTree({ suites, folders, cases, selected, onSelect, projectId }: {
   suites: TestSuite[]; folders: TestFolder[]; cases: TestCase[];
   selected: SelectedNode; onSelect: (n: SelectedNode) => void; projectId: string;
 }) {
-  const [expanded, setExpanded]             = useState<Set<string>>(() => new Set(suites.map(s => s.id)));
+  const [expanded,       setExpanded]       = useState<Set<string>>(() => new Set(suites.map(s => s.id)));
   const [showSuiteInput, setShowSuiteInput] = useState(false);
-  const [suiteName, setSuiteName]           = useState("");
-  const [folderParent, setFolderParent]     = useState<string | null>(null);
-  const [folderName, setFolderName]         = useState("");
-  const [treeSearch, setTreeSearch]         = useState("");
+  const [suiteName,      setSuiteName]      = useState("");
+  const [addTarget,      setAddTarget]      = useState<AddFolderTarget | null>(null);
+  const [folderName,     setFolderName]     = useState("");
+  const [treeSearch,     setTreeSearch]     = useState("");
+  const [renaming,       setRenaming]       = useState<RenameTarget | null>(null);
+  const [renameDraft,    setRenameDraft]    = useState("");
+  const [confirmDelete,  setConfirmDelete]  = useState<DeleteTarget | null>(null);
+  const [moveFolder,     setMoveFolder]     = useState<MoveFolderState | null>(null);
+  const [moveSuiteId,    setMoveSuiteId]    = useState("");
 
   const createSuite  = useCreateManagementSuite(projectId);
   const createFolder = useCreateManagementFolder(projectId);
+  const updateSuite  = useUpdateManagementSuite(projectId);
+  const deleteSuite  = useDeleteManagementSuite(projectId);
+  const updateFolder = useUpdateManagementFolder(projectId);
+  const deleteFolder = useDeleteManagementFolder(projectId);
   const totalActive  = cases.filter(c => !c.archived).length;
 
   const toggle = (id: string) => setExpanded(p => { const n = new Set(p); n.has(id) ? n.delete(id) : n.add(id); return n; });
@@ -164,10 +334,44 @@ function SuiteTree({ suites, folders, cases, selected, onSelect, projectId }: {
     setSuiteName(""); setShowSuiteInput(false);
   };
 
-  const saveFolder = async (suiteId: string) => {
+  const saveFolder = async (suiteId: string, parentFolderId?: string) => {
     if (!folderName.trim()) return;
-    await createFolder.mutateAsync({ suite_id: suiteId, name: folderName.trim(), path: slugify(folderName.trim()) });
-    setFolderName(""); setFolderParent(null);
+    await createFolder.mutateAsync({
+      suite_id: suiteId, name: folderName.trim(),
+      path: slugify(folderName.trim()),
+      ...(parentFolderId ? { parent_id: parentFolderId } : {}),
+    } as Parameters<typeof createFolder.mutateAsync>[0]);
+    setFolderName(""); setAddTarget(null);
+  };
+
+  const openRename = (target: RenameTarget) => { setRenaming(target); setRenameDraft(target.name); };
+
+  const commitRename = async () => {
+    if (!renaming || !renameDraft.trim()) return;
+    if (renaming.type === "suite") {
+      await updateSuite.mutateAsync({ suiteId: renaming.id, name: renameDraft.trim() });
+    } else {
+      await updateFolder.mutateAsync({ folderId: renaming.id, name: renameDraft.trim() });
+    }
+    setRenaming(null); setRenameDraft("");
+  };
+
+  const commitDelete = async () => {
+    if (!confirmDelete) return;
+    if (confirmDelete.type === "suite") {
+      await deleteSuite.mutateAsync(confirmDelete.id);
+      if (selected.type === "suite" && selected.id === confirmDelete.id) onSelect({ type: "all" });
+    } else {
+      await deleteFolder.mutateAsync(confirmDelete.id);
+      if (selected.type === "folder" && selected.id === confirmDelete.id) onSelect({ type: "all" });
+    }
+    setConfirmDelete(null);
+  };
+
+  const commitMove = async () => {
+    if (!moveFolder || !moveSuiteId) return;
+    await updateFolder.mutateAsync({ folderId: moveFolder.folder.id, suite_id: moveSuiteId, parent_id: null } as Parameters<typeof updateFolder.mutateAsync>[0]);
+    setMoveFolder(null); setMoveSuiteId("");
   };
 
   const visibleSuites = treeSearch
@@ -177,12 +381,12 @@ function SuiteTree({ suites, folders, cases, selected, onSelect, projectId }: {
   return (
     <div className="flex h-full flex-col text-sm">
       {/* Search */}
-      <div className="border-b border-slate-800 px-3 py-2">
-        <div className="flex items-center gap-2 rounded-lg bg-slate-800/60 px-2.5 py-1.5">
+      <div className="border-b border-border/70 px-3 py-2">
+        <div className="flex items-center gap-2 rounded-lg border border-border bg-surface-raised px-2.5 py-1.5 text-fg-muted shadow-xs">
           <IcSearch/>
           <input type="text" value={treeSearch} onChange={e => setTreeSearch(e.target.value)}
-            placeholder="Suite ara…" className="flex-1 bg-transparent text-xs text-slate-300 placeholder-slate-500 outline-none"/>
-          {treeSearch && <button type="button" onClick={() => setTreeSearch("")} className="text-slate-600 hover:text-slate-400"><IcClose/></button>}
+            placeholder="Suite ara…" className="flex-1 bg-transparent text-xs font-medium text-fg placeholder:text-fg-subtle outline-none"/>
+          {treeSearch && <button type="button" onClick={() => setTreeSearch("")} className="text-fg-subtle transition-colors hover:text-fg"><IcClose/></button>}
         </div>
       </div>
 
@@ -191,70 +395,83 @@ function SuiteTree({ suites, folders, cases, selected, onSelect, projectId }: {
         <button type="button" onClick={() => onSelect({ type: "all" })}
           className={cn("flex w-full items-center gap-2.5 rounded-xl px-3 py-2 transition-colors",
             selected.type === "all"
-              ? "bg-blue-500/8 text-blue-400 border border-blue-500/15"
-              : "text-slate-400 hover:bg-slate-800 hover:text-slate-200")}>
+              ? "border border-brand/20 bg-brand-soft text-brand shadow-xs"
+              : "text-fg-muted hover:bg-surface-overlay hover:text-fg")}>
           <IcRepo/>
           <span className="flex-1 text-left text-xs font-semibold">Tüm Senaryolar</span>
-          <span className="rounded-full bg-slate-700 px-1.5 py-0.5 text-[10px] text-slate-400">{totalActive}</span>
+          <span className={cn("rounded-full px-1.5 py-0.5 text-[10px] font-semibold",
+            selected.type === "all" ? "bg-surface-raised text-brand" : "bg-surface-overlay text-fg-muted")}>{totalActive}</span>
         </button>
       </div>
 
       {/* Suites */}
       <div className="flex-1 space-y-0.5 overflow-y-auto px-2 pb-2 pt-1">
         {visibleSuites.map(suite => {
-          const sf    = folders.filter(f => f.suite_id === suite.id && !f.parent_id);
-          const sc    = cases.filter(c => c.suite_id === suite.id && !c.archived).length;
-          const isExp = expanded.has(suite.id);
-          const isSel = selected.type === "suite" && selected.id === suite.id;
+          const rootFolders  = folders.filter(f => f.suite_id === suite.id && !f.parent_id);
+          const sc           = cases.filter(c => c.suite_id === suite.id && !c.archived).length;
+          const isExp        = expanded.has(suite.id);
+          const isSel        = selected.type === "suite" && selected.id === suite.id;
+          const isAddingHere = addTarget?.suiteId === suite.id && !addTarget.parentFolderId;
 
           return (
             <div key={suite.id}>
+              {/* Suite row */}
               <div className="group flex items-center gap-0.5">
                 <button type="button" onClick={() => toggle(suite.id)}
-                  className="flex h-6 w-5 items-center justify-center rounded text-slate-600 hover:text-slate-300 transition-colors">
+                  className="flex h-6 w-5 items-center justify-center rounded text-fg-subtle transition-colors hover:bg-surface-overlay hover:text-fg">
                   <IcChevron open={isExp}/>
                 </button>
                 <button type="button" onClick={() => onSelect({ type: "suite", id: suite.id })}
-                  className={cn("flex flex-1 items-center gap-2 rounded-xl px-2 py-1.5 transition-colors",
-                    isSel ? "bg-blue-500/10 text-blue-300 border border-blue-500/20"
-                           : "text-slate-300 hover:bg-slate-800 hover:text-slate-200")}>
-                  <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-slate-700 text-[9px] font-bold text-slate-300">S</span>
+                  className={cn("flex flex-1 min-w-0 items-center gap-2 rounded-xl px-2 py-1.5 transition-colors",
+                    isSel ? "border border-brand/20 bg-brand-soft text-brand shadow-xs"
+                           : "text-fg-muted hover:bg-surface-overlay hover:text-fg")}>
+                  <span className={cn("flex h-5 w-5 shrink-0 items-center justify-center rounded-md text-[9px] font-bold",
+                    isSel ? "border border-brand/20 bg-surface-raised text-brand" : "bg-surface-overlay text-fg-muted")}>S</span>
                   <span className="flex-1 truncate text-left text-xs font-semibold">{suite.name}</span>
-                  <span className="shrink-0 rounded bg-slate-700/70 px-1 py-0.5 text-[10px] text-slate-500">{sc}</span>
+                  <span className="shrink-0 rounded bg-surface-overlay px-1 py-0.5 text-[10px] font-medium text-fg-subtle">{sc}</span>
                 </button>
-                <button type="button" title="Folder ekle"
-                  onClick={() => { setFolderParent(suite.id); setExpanded(p => new Set([...p, suite.id])); }}
-                  className="opacity-0 group-hover:opacity-100 flex h-5 w-5 items-center justify-center rounded text-slate-600 hover:text-slate-300 transition-all">
-                  <IcPlus/>
-                </button>
+                <div className="opacity-0 group-hover:opacity-100 flex items-center gap-0 transition-all">
+                  <button type="button" title="Klasör ekle"
+                    onClick={() => { setAddTarget({ suiteId: suite.id }); setExpanded(p => new Set([...p, suite.id])); }}
+                    className="flex h-5 w-5 items-center justify-center rounded text-fg-subtle transition-colors hover:bg-surface-overlay hover:text-brand">
+                    <IcPlus/>
+                  </button>
+                  <button type="button" title="Yeniden adlandır"
+                    onClick={() => openRename({ type: "suite", id: suite.id, name: suite.name })}
+                    className="flex h-5 w-5 items-center justify-center rounded text-fg-subtle transition-colors hover:bg-surface-overlay hover:text-fg">
+                    <IcPencil/>
+                  </button>
+                  <button type="button" title="Sil"
+                    onClick={() => setConfirmDelete({ type: "suite", id: suite.id, name: suite.name })}
+                    className="flex h-5 w-5 items-center justify-center rounded text-fg-subtle transition-colors hover:bg-danger-subtle hover:text-danger">
+                    <IcTrash/>
+                  </button>
+                </div>
               </div>
 
+              {/* Folders tree */}
               {isExp && (
                 <div className="ml-5 mt-0.5 space-y-0.5">
-                  {sf.map(folder => {
-                    const fc     = cases.filter(c => c.folder_id === folder.id && !c.archived).length;
-                    const isFSel = selected.type === "folder" && selected.id === folder.id;
-                    return (
-                      <button key={folder.id} type="button"
-                        onClick={() => onSelect({ type: "folder", id: folder.id, suiteId: suite.id })}
-                        className={cn("flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-xs transition-colors",
-                          isFSel ? "bg-blue-500/10 text-blue-300 border border-blue-500/20"
-                                 : "text-slate-400 hover:bg-slate-800 hover:text-slate-300")}>
-                        <IcFolder/>
-                        <span className="flex-1 truncate text-left">{folder.name}</span>
-                        <span className="shrink-0 rounded bg-slate-700/40 px-1 py-0.5 text-[10px] text-slate-600">{fc}</span>
-                      </button>
-                    );
-                  })}
-                  {folderParent === suite.id && (
-                    <div className="flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-800/40 px-2 py-1.5">
-                      <IcFolder/>
-                      <input autoFocus type="text" value={folderName} onChange={e => setFolderName(e.target.value)}
-                        onKeyDown={e => { if (e.key === "Enter") saveFolder(suite.id); if (e.key === "Escape") { setFolderParent(null); setFolderName(""); }}}
-                        placeholder="Folder adı…" className="flex-1 bg-transparent text-xs text-slate-200 placeholder-slate-500 outline-none"/>
-                      <button type="button" onClick={() => saveFolder(suite.id)} className="text-[10px] text-slate-300 hover:text-white">✓</button>
-                      <button type="button" onClick={() => { setFolderParent(null); setFolderName(""); }} className="text-[10px] text-slate-500 hover:text-slate-300">✕</button>
-                    </div>
+                  {rootFolders.map(folder => (
+                    <FolderNode key={folder.id} folder={folder} depth={0}
+                      allFolders={folders} cases={cases} suites={suites}
+                      selected={selected} onSelect={onSelect}
+                      addTarget={addTarget} setAddTarget={setAddTarget}
+                      onRename={openRename}
+                      onDelete={setConfirmDelete}
+                      onMove={f => { setMoveFolder(f); setMoveSuiteId(f.folder.suite_id); }}
+                      folderName={folderName} setFolderName={setFolderName}
+                      onSaveFolder={saveFolder}/>
+                  ))}
+                  {isAddingHere && (
+                    <RepositoryEditorRow
+                      value={folderName}
+                      setValue={setFolderName}
+                      placeholder="Klasör adı"
+                      marker="F"
+                      onSave={() => { void saveFolder(suite.id); }}
+                      onCancel={() => { setAddTarget(null); setFolderName(""); }}
+                    />
                   )}
                 </div>
               )}
@@ -263,30 +480,116 @@ function SuiteTree({ suites, folders, cases, selected, onSelect, projectId }: {
         })}
 
         {showSuiteInput ? (
-          <div className="flex items-center gap-2 rounded-xl border border-blue-500/20 bg-slate-800/60 px-3 py-2">
-            <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-blue-500/8 text-[9px] font-bold text-blue-400">S</span>
-            <input autoFocus type="text" value={suiteName} onChange={e => setSuiteName(e.target.value)}
-              onKeyDown={e => { if (e.key === "Enter") saveSuite(); if (e.key === "Escape") { setShowSuiteInput(false); setSuiteName(""); }}}
-              placeholder="Suite adı…" className="flex-1 bg-transparent text-xs text-slate-200 placeholder-slate-500 outline-none"/>
-            <button type="button" onClick={saveSuite} className="text-[10px] text-blue-400 hover:text-blue-300">✓</button>
-            <button type="button" onClick={() => { setShowSuiteInput(false); setSuiteName(""); }} className="text-[10px] text-slate-500 hover:text-slate-300">✕</button>
-          </div>
+          <RepositoryEditorRow
+            value={suiteName} setValue={setSuiteName} placeholder="Suite adı" marker="S"
+            onSave={saveSuite} onCancel={() => { setShowSuiteInput(false); setSuiteName(""); }}/>
         ) : (
           <button type="button" onClick={() => setShowSuiteInput(true)}
-            className="mt-1 flex w-full items-center gap-2 rounded-xl border border-dashed border-slate-700/60 px-3 py-2 text-xs text-slate-600 hover:border-blue-500/20 hover:text-blue-400 transition-colors">
+            className="mt-1 flex w-full items-center gap-2 rounded-xl border border-dashed border-border bg-surface-raised/60 px-3 py-2 text-xs font-medium text-fg-muted transition-colors hover:border-brand/35 hover:bg-brand-soft/60 hover:text-brand">
             <IcPlus/> Yeni Suite
           </button>
         )}
       </div>
 
       {/* Footer */}
-      <div className="border-t border-slate-800 px-3 py-2">
-        <div className="flex justify-between text-[10px] text-slate-600">
+      <div className="border-t border-border/70 px-3 py-2">
+        <div className="flex justify-between text-[10px] font-medium text-fg-subtle">
           <span>{suites.length} suite</span>
-          <span>{folders.length} folder</span>
+          <span>{folders.length} klasör</span>
           <span>{totalActive} case</span>
         </div>
       </div>
+
+      {/* ── Rename Modal ── */}
+      {renaming && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setRenaming(null)}/>
+          <div className="relative z-10 w-full max-w-sm rounded-2xl border border-slate-700/80 bg-slate-900 p-5 shadow-2xl">
+            <h3 className="mb-3 text-sm font-semibold text-white">
+              {renaming.type === "suite" ? "Suite" : "Klasör"} Yeniden Adlandır
+            </h3>
+            <input autoFocus type="text" value={renameDraft} onChange={e => setRenameDraft(e.target.value)}
+              onKeyDown={e => { if (e.key === "Enter") commitRename(); if (e.key === "Escape") setRenaming(null); }}
+              className="w-full rounded-xl border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white outline-none focus:border-slate-600 transition-colors"/>
+            <div className="mt-4 flex justify-end gap-2">
+              <button type="button" onClick={() => setRenaming(null)}
+                className="rounded-xl border border-slate-700 px-3 py-1.5 text-xs text-slate-400 hover:text-slate-200 transition-colors">
+                İptal
+              </button>
+              <button type="button" onClick={commitRename}
+                disabled={!renameDraft.trim() || updateSuite.isPending || updateFolder.isPending}
+                className="rounded-xl bg-blue-600 px-4 py-1.5 text-xs font-semibold text-white hover:bg-blue-500 disabled:opacity-40 transition-colors">
+                Kaydet
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Delete Confirm Modal ── */}
+      {confirmDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setConfirmDelete(null)}/>
+          <div className="relative z-10 w-full max-w-sm rounded-2xl border border-slate-700/80 bg-slate-900 p-5 shadow-2xl">
+            <h3 className="mb-1 text-sm font-semibold text-white">
+              {confirmDelete.type === "suite" ? "Suite" : "Klasör"} Sil
+            </h3>
+            <p className="mb-4 text-xs text-slate-400">
+              <span className="font-semibold text-white">"{confirmDelete.name}"</span>
+              {confirmDelete.type === "suite"
+                ? " suite'ini ve içindeki tüm klasörleri silmek istediğinize emin misiniz?"
+                : " klasörünü silmek istediğinize emin misiniz?"}
+            </p>
+            <div className="flex justify-end gap-2">
+              <button type="button" onClick={() => setConfirmDelete(null)}
+                className="rounded-xl border border-slate-700 px-3 py-1.5 text-xs text-slate-400 hover:text-slate-200 transition-colors">
+                İptal
+              </button>
+              <button type="button" onClick={commitDelete}
+                disabled={deleteSuite.isPending || deleteFolder.isPending}
+                className="rounded-xl bg-red-600 px-4 py-1.5 text-xs font-semibold text-white hover:bg-red-500 disabled:opacity-40 transition-colors">
+                {deleteSuite.isPending || deleteFolder.isPending ? "Siliniyor…" : "Sil"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Move Folder Modal ── */}
+      {moveFolder && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setMoveFolder(null)}/>
+          <div className="relative z-10 w-full max-w-sm rounded-2xl border border-slate-700/80 bg-slate-900 p-5 shadow-2xl">
+            <h3 className="mb-1 text-sm font-semibold text-white">Klasörü Taşı</h3>
+            <p className="mb-3 text-xs text-slate-400">
+              <span className="font-semibold text-white">"{moveFolder.folder.name}"</span> klasörünü hangi suite&apos;e taşımak istiyorsunuz?
+            </p>
+            <div className="max-h-48 overflow-y-auto space-y-1.5">
+              {suites.filter(s => s.id !== moveFolder.folder.suite_id).map(s => (
+                <button key={s.id} type="button" onClick={() => setMoveSuiteId(s.id)}
+                  className={cn("flex w-full items-center gap-2 rounded-xl px-3 py-2 text-xs transition-colors border",
+                    moveSuiteId === s.id
+                      ? "bg-blue-500/10 text-blue-300 border-blue-500/20"
+                      : "text-slate-300 hover:bg-slate-800 border-transparent")}>
+                  <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-slate-700 text-[9px] font-bold">S</span>
+                  {s.name}
+                </button>
+              ))}
+            </div>
+            <div className="mt-4 flex justify-end gap-2">
+              <button type="button" onClick={() => setMoveFolder(null)}
+                className="rounded-xl border border-slate-700 px-3 py-1.5 text-xs text-slate-400 hover:text-slate-200 transition-colors">
+                İptal
+              </button>
+              <button type="button" onClick={commitMove}
+                disabled={!moveSuiteId || updateFolder.isPending}
+                className="rounded-xl bg-blue-600 px-4 py-1.5 text-xs font-semibold text-white hover:bg-blue-500 disabled:opacity-40 transition-colors">
+                {updateFolder.isPending ? "Taşınıyor…" : "Taşı"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -898,23 +1201,23 @@ export default function ScenariosPage() {
   };
 
   const loading  = repoQuery.isLoading || (!mgmtProjectId && !repoQuery.data);
-  const SEL      = "rounded-xl border border-slate-700 bg-slate-800/50 px-2.5 py-1.5 text-[10px] text-slate-300 outline-none focus:border-slate-600 transition-colors";
+  const SEL      = "rounded-xl border border-border bg-surface-raised px-2.5 py-1.5 text-[10px] font-medium text-fg-muted outline-none transition-colors focus:border-brand focus:ring-2 focus:ring-brand/15";
   const nodeName = selectedNode.type === "all"    ? "Tüm Senaryolar"
                  : selectedNode.type === "suite"  ? (suites.find(s => s.id === selectedNode.id)?.name ?? "Suite")
                  : (folders.find(f => f.id === selectedNode.id)?.name ?? "Folder");
 
   return (
-    <div className="flex bg-[#0a0f1e]" style={{ height: "calc(100vh - 48px)" }}>
+    <div className="flex bg-surface-base" style={{ height: "calc(100vh - 48px)" }}>
 
       {/* LEFT: Suite Tree */}
-      <aside className="hidden w-56 flex-none flex-col border-r border-slate-800/70 bg-[#111827] md:flex overflow-hidden">
-        <div className="border-b border-slate-800/70 px-4 py-2.5">
-          <span className="text-[10px] font-semibold uppercase tracking-widest text-slate-600">Test Repository</span>
+      <aside className="hidden w-56 flex-none flex-col overflow-hidden border-r border-border bg-surface-raised md:flex">
+        <div className="border-b border-border/70 px-4 py-2.5">
+          <span className="text-[10px] font-semibold uppercase tracking-widest text-fg-subtle">Test Repository</span>
         </div>
         {loading ? (
           <div className="flex-1 space-y-1 p-3">
             {Array.from({ length: 7 }).map((_, i) => (
-              <div key={i} className="h-7 rounded-lg bg-slate-800/60 animate-pulse" style={{ opacity: Math.max(0.2, 1 - i * 0.12) }}/>
+              <div key={i} className="h-7 animate-pulse rounded-lg bg-surface-overlay" style={{ opacity: Math.max(0.25, 1 - i * 0.12) }}/>
             ))}
           </div>
         ) : (
@@ -926,22 +1229,22 @@ export default function ScenariosPage() {
       <div className={cn("flex flex-col flex-1 min-w-0 overflow-hidden", selectedCase ? "hidden xl:flex" : "flex")}>
 
         {/* Toolbar */}
-        <div className="flex flex-wrap items-center gap-2 border-b border-slate-800/70 bg-[#0d1221] px-4 py-2.5">
+        <div className="flex flex-wrap items-center gap-2 border-b border-border bg-surface-raised px-4 py-2.5 shadow-xs">
           <div className="flex items-center gap-2 min-w-0">
-            <span className="truncate text-xs font-semibold text-slate-300">{nodeName}</span>
+            <span className="truncate text-xs font-semibold text-fg">{nodeName}</span>
             <div className="hidden items-center gap-1.5 sm:flex">
-              {stats.total   > 0 && <span className="rounded-full bg-slate-800 px-2 py-0.5 text-[10px] text-slate-400">{stats.total}</span>}
-              {stats.failed  > 0 && <span className="rounded-full bg-red-500/10 px-2 py-0.5 text-[10px] text-red-400">{stats.failed} fail</span>}
-              {stats.blocked > 0 && <span className="rounded-full bg-slate-800 px-2 py-0.5 text-[10px] text-slate-400">{stats.blocked} blocked</span>}
-              {stats.passed  > 0 && <span className="rounded-full bg-slate-800 px-2 py-0.5 text-[10px] text-slate-300">{stats.passed} passed</span>}
+              {stats.total   > 0 && <span className="rounded-full bg-surface-overlay px-2 py-0.5 text-[10px] font-semibold text-fg-muted">{stats.total}</span>}
+              {stats.failed  > 0 && <span className="rounded-full bg-danger-subtle px-2 py-0.5 text-[10px] font-semibold text-danger">{stats.failed} fail</span>}
+              {stats.blocked > 0 && <span className="rounded-full bg-warning-subtle px-2 py-0.5 text-[10px] font-semibold text-warning">{stats.blocked} blocked</span>}
+              {stats.passed  > 0 && <span className="rounded-full bg-success-subtle px-2 py-0.5 text-[10px] font-semibold text-success">{stats.passed} passed</span>}
             </div>
           </div>
           <div className="flex-1"/>
-          <div className="flex w-40 items-center gap-1.5 rounded-xl border border-slate-700 bg-slate-800/50 px-2.5 py-1.5 sm:w-56">
+          <div className="flex w-40 items-center gap-1.5 rounded-xl border border-border bg-surface-raised px-2.5 py-1.5 text-fg-muted shadow-xs sm:w-56">
             <IcSearch/>
             <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="Ara…"
-              className="flex-1 bg-transparent text-[10px] text-slate-300 placeholder-slate-600 outline-none min-w-0"/>
-            {search && <button type="button" onClick={() => setSearch("")} className="text-slate-600 hover:text-slate-300"><IcClose/></button>}
+              className="min-w-0 flex-1 bg-transparent text-[10px] font-medium text-fg placeholder:text-fg-subtle outline-none"/>
+            {search && <button type="button" onClick={() => setSearch("")} className="text-fg-subtle hover:text-fg"><IcClose/></button>}
           </div>
           <select value={statusF}   onChange={e => setStatusF(e.target.value)}   className={SEL}>
             <option value="">Durum</option><option value="active">Aktif</option>
@@ -961,29 +1264,29 @@ export default function ScenariosPage() {
           </select>
           {hasFilter && (
             <button type="button" onClick={clearFilters}
-              className="rounded-xl border border-red-500/20 px-2 py-1.5 text-[10px] text-red-400 hover:bg-red-500/10 transition-colors">
+              className="rounded-xl border border-danger/20 px-2 py-1.5 text-[10px] font-semibold text-danger transition-colors hover:bg-danger-subtle">
               Temizle
             </button>
           )}
           <button type="button" onClick={() => setShowModal(true)}
-            className="flex items-center gap-1.5 rounded-xl bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-500 transition-colors shadow-lg shadow-blue-900/20">
+            className="flex items-center gap-1.5 rounded-xl bg-brand px-3 py-1.5 text-xs font-semibold text-brand-fg shadow-sm transition-colors hover:brightness-105">
             <IcPlus/> Yeni Senaryo
           </button>
         </div>
 
         {/* Bulk actions */}
         {checkedIds.size > 0 && (
-          <div className="flex items-center gap-2 border-b border-slate-800/70 bg-slate-800/30 px-4 py-1.5 flex-wrap">
-            <span className="text-[10px] font-semibold text-blue-400">{checkedIds.size} seçili</span>
+          <div className="flex flex-wrap items-center gap-2 border-b border-brand/15 bg-brand-soft/70 px-4 py-1.5">
+            <span className="text-[10px] font-semibold text-brand">{checkedIds.size} seçili</span>
             {["Aktife Al","Arşivle","Regresyon Setine Ekle","Sil"].map(lbl => (
               <button key={lbl} type="button"
                 className={cn("rounded-lg border px-2.5 py-1 text-[10px] transition-colors",
-                  lbl === "Sil" ? "border-red-500/20 text-red-400 hover:bg-red-500/10"
-                               : "border-slate-700 text-slate-400 hover:border-slate-600 hover:text-slate-200")}>
+                  lbl === "Sil" ? "border-danger/20 text-danger hover:bg-danger-subtle"
+                               : "border-border bg-surface-raised text-fg-muted hover:border-brand/25 hover:text-fg")}>
                 {lbl}
               </button>
             ))}
-            <button type="button" onClick={() => setCheckedIds(new Set())} className="ml-auto text-[10px] text-slate-500 hover:text-slate-300">Temizle</button>
+            <button type="button" onClick={() => setCheckedIds(new Set())} className="ml-auto text-[10px] font-medium text-fg-subtle hover:text-fg">Temizle</button>
           </div>
         )}
 
@@ -993,10 +1296,10 @@ export default function ScenariosPage() {
             <div className="flex flex-col items-center justify-center py-24 px-6 text-center">
               {hasFilter ? (
                 <>
-                  <svg className="mb-4 h-14 w-14 text-slate-800" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}><circle cx="11" cy="11" r="8"/><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35"/></svg>
-                  <h3 className="text-sm font-semibold text-slate-400">Senaryo bulunamadı</h3>
-                  <p className="mt-1 text-xs text-slate-600">Filtre veya arama terimini değiştirin</p>
-                  <button type="button" onClick={clearFilters} className="mt-4 rounded-xl border border-slate-700 px-4 py-2 text-xs text-slate-400 hover:text-slate-200 transition-colors">Filtreleri Temizle</button>
+                  <svg className="mb-4 h-14 w-14 text-fg-subtle" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}><circle cx="11" cy="11" r="8"/><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35"/></svg>
+                  <h3 className="text-sm font-semibold text-fg">Senaryo bulunamadı</h3>
+                  <p className="mt-1 text-xs text-fg-muted">Filtre veya arama terimini değiştirin</p>
+                  <button type="button" onClick={clearFilters} className="mt-4 rounded-xl border border-border bg-surface-raised px-4 py-2 text-xs font-medium text-fg-muted transition-colors hover:bg-surface-overlay hover:text-fg">Filtreleri Temizle</button>
                 </>
               ) : (
                 <>
@@ -1019,15 +1322,15 @@ export default function ScenariosPage() {
                       <circle cx="160" cy="105" r="6" stroke="#475569" strokeWidth="1"/>
                     </svg>
                     <div className="absolute inset-0 flex flex-col items-center justify-center">
-                      <svg className="h-10 w-10 text-slate-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
+                      <svg className="h-10 w-10 text-fg-subtle" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
                       </svg>
                     </div>
                   </div>
-                  <h3 className="text-sm font-semibold text-slate-400">Test senaryosu yok</h3>
-                  <p className="mt-1 max-w-xs text-xs text-slate-600">Suite ve folder oluşturun, ardından ilk test senaryonuzu ekleyin</p>
+                  <h3 className="text-sm font-semibold text-fg">Test senaryosu yok</h3>
+                  <p className="mt-1 max-w-xs text-xs text-fg-muted">Suite ve folder oluşturun, ardından ilk test senaryonuzu ekleyin</p>
                   <button type="button" onClick={() => setShowModal(true)}
-                    className="mt-5 flex items-center gap-1.5 rounded-xl bg-blue-600 px-5 py-2.5 text-xs font-semibold text-white hover:bg-blue-500 transition-colors shadow-lg shadow-blue-900/20">
+                    className="mt-5 flex items-center gap-1.5 rounded-xl bg-brand px-5 py-2.5 text-xs font-semibold text-brand-fg shadow-sm transition-colors hover:brightness-105">
                     <IcPlus/> İlk Senaryoyu Oluştur
                   </button>
                 </>
@@ -1038,19 +1341,19 @@ export default function ScenariosPage() {
               onDragStart={e => setDraggingId(String(e.active.id))}
               onDragEnd={handleDragEnd}>
               <table className="w-full">
-                <thead className="sticky top-0 z-10 bg-[#0a0f1e]/95 backdrop-blur-sm">
-                  <tr className="border-b border-slate-800/70">
+                <thead className="sticky top-0 z-10 bg-surface-raised/95 backdrop-blur-sm">
+                  <tr className="border-b border-border">
                     <th className="hidden w-5 sm:table-cell"/>
                     <th className="w-8 px-2 py-2.5">
                       <button type="button" onClick={toggleAll}
                         className={cn("flex h-4 w-4 items-center justify-center rounded border transition-colors",
-                          allChecked ? "bg-blue-600 border-blue-600" : "border-slate-700 hover:border-slate-500")}>
+                          allChecked ? "border-brand bg-brand" : "border-border hover:border-brand/45")}>
                         {allChecked && <svg className="h-2.5 w-2.5 text-white" fill="none" viewBox="0 0 10 10" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M1.5 5l2.5 2.5 4.5-4.5"/></svg>}
                       </button>
                     </th>
                     {["ID","Başlık","P","Tür","Durum","Son Koşum","Adım","Güncelleme",""].map(h => (
                       <th key={h} className={cn(
-                        "px-3 py-2.5 text-left text-[9px] font-semibold uppercase tracking-widest text-slate-600",
+                        "px-3 py-2.5 text-left text-[9px] font-semibold uppercase tracking-widest text-fg-subtle",
                         h === "Tür"        && "hidden lg:table-cell",
                         h === "Durum"      && "hidden md:table-cell",
                         h === "Son Koşum"  && "hidden lg:table-cell",
@@ -1079,9 +1382,9 @@ export default function ScenariosPage() {
                 {draggingId && (() => {
                   const tc = filtered.find(c => c.id === draggingId);
                   return tc ? (
-                    <div className="flex items-center gap-3 rounded-xl border border-blue-500/20 bg-[#1a2035] px-4 py-2.5 shadow-2xl shadow-black/50">
-                      <span className="font-mono text-[10px] text-slate-500">{tc.case_key}</span>
-                      <span className="text-xs font-medium text-slate-200 max-w-xs truncate">{tc.title}</span>
+                    <div className="flex items-center gap-3 rounded-xl border border-brand/20 bg-surface-raised px-4 py-2.5 shadow-lg">
+                      <span className="font-mono text-[10px] text-fg-subtle">{tc.case_key}</span>
+                      <span className="max-w-xs truncate text-xs font-medium text-fg">{tc.title}</span>
                     </div>
                   ) : null;
                 })()}
@@ -1091,20 +1394,20 @@ export default function ScenariosPage() {
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between border-t border-slate-800/70 bg-[#0d1221] px-4 py-1.5">
-          <span className="text-[10px] text-slate-600">
+        <div className="flex items-center justify-between border-t border-border bg-surface-raised px-4 py-1.5">
+          <span className="text-[10px] font-medium text-fg-subtle">
             {hasFilter ? `${filtered.length} / ${nodeCases.length}` : `${filtered.length} senaryo`}
           </span>
           <div className="flex items-center gap-3">
-            <Link href={`/p/${projectId}/management/repository`} className="text-[10px] text-slate-600 hover:text-slate-400 transition-colors">Repository →</Link>
-            <Link href={`/p/${projectId}/management/runs`}       className="text-[10px] text-slate-600 hover:text-slate-400 transition-colors">Test Runs →</Link>
+            <Link href={`/p/${projectId}/management/repository`} className="text-[10px] font-medium text-fg-subtle transition-colors hover:text-brand">Repository →</Link>
+            <Link href={`/p/${projectId}/management/runs`}       className="text-[10px] font-medium text-fg-subtle transition-colors hover:text-brand">Test Runs →</Link>
           </div>
         </div>
       </div>
 
       {/* RIGHT: Detail Panel */}
       {selectedCase && (
-        <aside className="flex w-full flex-none flex-col border-l border-slate-800/70 bg-[#0d1221] overflow-hidden xl:w-96">
+        <aside className="flex w-full flex-none flex-col overflow-hidden border-l border-border bg-surface-raised xl:w-96">
           <DetailPanel
             tc={selectedCase}
             suites={suites}

@@ -35,16 +35,16 @@ export function SidebarProjectSwitcher() {
 
   return (
     <div
-      className="border-t border-gray-100 dark:border-slate-700 px-3 py-3"
+      className="border-t border-border px-3 py-3"
       data-testid="sidebar-project-switcher"
     >
       <div className="flex items-center gap-2 mb-1.5 px-1">
         <span
           className={`h-2 w-2 shrink-0 rounded-full ${
-            projectId ? "bg-emerald-400 animate-pulse" : "bg-slate-600"
+            projectId ? "bg-success animate-pulse" : "bg-fg-disabled"
           }`}
         />
-        <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+        <span className="text-[10px] font-semibold uppercase tracking-wider text-fg-subtle">
           Aktif Proje
         </span>
       </div>
@@ -53,7 +53,7 @@ export function SidebarProjectSwitcher() {
         <select
           value={projectId ?? ""}
           onChange={(e) => handleChange(e.target.value)}
-          className="min-w-0 flex-1 h-8 rounded-lg border border-slate-700 bg-slate-900 px-2 text-xs text-white truncate focus:outline-none focus:border-emerald-500/50"
+          className="min-w-0 flex-1 h-8 rounded-lg border border-border bg-surface-overlay px-2 text-xs text-fg truncate focus:outline-none focus:border-brand/50 transition-colors"
           data-testid="sidebar-select-project"
           title={project?.name ?? "Proje seç"}
         >
@@ -66,7 +66,7 @@ export function SidebarProjectSwitcher() {
         </select>
         <Link
           href="/new-project"
-          className="shrink-0 flex h-8 w-8 items-center justify-center rounded-lg border border-dashed border-slate-700 text-slate-400 hover:border-emerald-500/40 hover:text-emerald-300 transition-colors"
+          className="shrink-0 flex h-8 w-8 items-center justify-center rounded-lg border border-dashed border-border text-fg-subtle hover:border-brand/40 hover:text-brand transition-colors"
           title="Yeni proje oluştur"
           data-testid="sidebar-btn-new-project"
         >

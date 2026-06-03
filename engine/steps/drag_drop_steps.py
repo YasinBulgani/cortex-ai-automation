@@ -1,5 +1,5 @@
 """
-steps/drag_drop_steps.py — Drag & Drop BDD Adimlari (NexusQA DragDropMethods port'u)
+steps/drag_drop_steps.py — Drag & Drop BDD Adimlari (Neurex DragDropMethods port'u)
 
 Desteklenen adimlar:
   When kullanici "{source}" elementini "{target}" elementine surukler

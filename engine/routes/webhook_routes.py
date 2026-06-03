@@ -167,7 +167,7 @@ def _post_github_pr_comment(pr_api_url: str, run_id: str, matched_tests: list, r
         import requests as req_lib
         comment_url = pr_api_url.replace("/pulls/", "/issues/") + "/comments"
         risk_emoji = {"low": "🟢", "medium": "🟡", "high": "🔴"}.get(risk, "⚪")
-        body = f"""## 🤖 TestwrightAI Otomatik Test Analizi
+        body = f"""## 🤖 Neurex Otomatik Test Analizi
 
 {risk_emoji} **Risk Seviyesi:** {risk.upper()}
 📋 **Etkilenen Test Sayısı:** {len(matched_tests)}
@@ -176,7 +176,7 @@ def _post_github_pr_comment(pr_api_url: str, run_id: str, matched_tests: list, r
 **Etkilenen Testler:**
 {chr(10).join(f"- `{t}`" for t in matched_tests[:5]) or "- Eşleşen test bulunamadı"}
 
-[TestwrightAI Dashboard'da görüntüle](http://localhost:3000)
+[Neurex Dashboard'da görüntüle](http://localhost:3000)
 """
         req_lib.post(
             comment_url,

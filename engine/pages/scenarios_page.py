@@ -1,5 +1,5 @@
 """
-ScenariosPage — TestwrightAI Senaryo listesi + form Page Object.
+ScenariosPage — Neurex Senaryo listesi + form Page Object.
 LocatorManager üzerinden merkezi seçici yönetimi kullanır.
 """
 from __future__ import annotations
@@ -19,7 +19,7 @@ _CREATE_PAGE = "scenario_create"
 
 
 class ScenariosListPage(BasePage):
-    """TestwrightAI Senaryolar listesi sayfası Page Object."""
+    """Neurex Senaryolar listesi sayfası Page Object."""
 
     def __init__(
         self,
@@ -171,7 +171,7 @@ class ScenariosListPage(BasePage):
 
 
 class ScenarioFormPage(BasePage):
-    """TestwrightAI Senaryo oluştur/düzenle formu Page Object."""
+    """Neurex Senaryo oluştur/düzenle formu Page Object."""
 
     def __init__(
         self,

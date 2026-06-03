@@ -1,5 +1,5 @@
 """
-steps/hover_steps.py — Hover BDD Adimlari (NexusQA HoverMethods port'u)
+steps/hover_steps.py — Hover BDD Adimlari (Neurex HoverMethods port'u)
 
 Desteklenen adimlar:
   When kullanici "{key}" elementinin uzerine gelir

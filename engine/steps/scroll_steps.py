@@ -1,5 +1,5 @@
 """
-steps/scroll_steps.py — Scroll BDD Adimlari (NexusQA ScrollMethods port'u)
+steps/scroll_steps.py — Scroll BDD Adimlari (Neurex ScrollMethods port'u)
 
 Desteklenen adimlar:
   When kullanici "{key}" elementine scroll yapar

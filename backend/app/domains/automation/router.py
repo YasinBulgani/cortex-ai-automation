@@ -1,3 +1,4 @@
+from __future__ import annotations
 """Automation Engine proxy — forwards requests to the Flask engine service."""
 
 import logging

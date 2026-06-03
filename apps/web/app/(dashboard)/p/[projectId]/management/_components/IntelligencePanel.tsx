@@ -70,19 +70,19 @@ const riskColor: Record<string, string> = {
   low: "text-emerald-400",
   medium: "text-amber-400",
   high: "text-orange-400",
-  critical: "text-rose-400",
+  critical: "text-red-400",
 };
 
 const healthBg: Record<string, string> = {
   healthy: "bg-emerald-500/15 border-emerald-500/30",
   at_risk: "bg-amber-500/15 border-amber-500/30",
-  critical: "bg-rose-500/15 border-rose-500/30",
+  critical: "bg-red-500/15 border-red-500/30",
 };
 
 const healthText: Record<string, string> = {
   healthy: "text-emerald-400",
   at_risk: "text-amber-400",
-  critical: "text-rose-400",
+  critical: "text-red-400",
 };
 
 const healthLabel: Record<string, string> = {
@@ -189,12 +189,12 @@ function AnomalyCard({ a }: { a: Anomaly }) {
     <div
       className={`rounded-lg border p-3 space-y-1 ${
         a.severity === "critical"
-          ? "border-rose-500/40 bg-rose-500/10"
+          ? "border-red-500/40 bg-red-500/10"
           : "border-amber-500/30 bg-amber-500/10"
       }`}
     >
       <div className="flex items-center gap-2">
-        <span className={`text-sm font-semibold ${a.severity === "critical" ? "text-rose-400" : "text-amber-400"}`}>
+        <span className={`text-sm font-semibold ${a.severity === "critical" ? "text-red-400" : "text-amber-400"}`}>
           {a.severity === "critical" ? "🚨" : "⚠️"} {a.title}
         </span>
       </div>
@@ -208,7 +208,7 @@ function AnomalyCard({ a }: { a: Anomaly }) {
 
 function RiskCaseRow({ c, index }: { c: CaseRiskScore; index: number }) {
   const recBg: Record<string, string> = {
-    run_first: "border-l-rose-500",
+    run_first: "border-l-red-500",
     run_normal: "border-l-amber-500",
     deprioritize: "border-l-slate-600",
   };
@@ -229,7 +229,7 @@ function RiskCaseRow({ c, index }: { c: CaseRiskScore; index: number }) {
         <div className="flex items-center gap-2 mt-0.5">
           <div className="h-1 w-16 rounded-full bg-slate-700 overflow-hidden">
             <div
-              className="h-full rounded-full bg-rose-500"
+              className="h-full rounded-full bg-red-500"
               style={{ width: `${c.risk_score * 100}%` }}
             />
           </div>
@@ -243,7 +243,7 @@ function RiskCaseRow({ c, index }: { c: CaseRiskScore; index: number }) {
             c.last_status === "pass"
               ? "bg-emerald-500/20 text-emerald-400"
               : c.last_status === "fail"
-              ? "bg-rose-500/20 text-rose-400"
+              ? "bg-red-500/20 text-red-400"
               : "bg-amber-500/20 text-amber-400"
           }`}
         >
@@ -300,7 +300,7 @@ export function IntelligencePanel({
 
   if (loading) {
     return (
-      <div className="rounded-xl border border-slate-700 bg-slate-900 p-6 flex items-center justify-center h-48">
+      <div className="rounded-xl border border-border bg-surface-raised p-6 flex items-center justify-center h-48">
         <div className="flex flex-col items-center gap-2 text-slate-500">
           <div className="w-6 h-6 border-2 border-violet-500 border-t-transparent rounded-full animate-spin" />
           <span className="text-sm">Zeka motoru analiz ediyor…</span>
@@ -311,7 +311,7 @@ export function IntelligencePanel({
 
   if (error || !report) {
     return (
-      <div className="rounded-xl border border-slate-700 bg-slate-900 p-6 text-center text-slate-500 text-sm">
+      <div className="rounded-xl border border-border bg-surface-raised p-6 text-center text-slate-500 text-sm">
         {error ?? "Rapor oluşturulamadı"}
       </div>
     );
@@ -333,9 +333,9 @@ export function IntelligencePanel({
   ];
 
   return (
-    <div className="rounded-xl border border-slate-700 bg-slate-900 overflow-hidden">
+    <div className="rounded-xl border border-border bg-surface-raised overflow-hidden">
       {/* Başlık */}
-      <div className={`px-5 py-3 border-b border-slate-700 ${healthBg[report.summary_health]}`}>
+      <div className={`px-5 py-3 border-b border-border ${healthBg[report.summary_health]}`}>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <span className="text-sm font-semibold text-slate-200">⚡ Test Zekası</span>
@@ -345,7 +345,7 @@ export function IntelligencePanel({
               {healthLabel[report.summary_health]}
             </span>
             {criticalAnomalies.length > 0 && (
-              <span className="text-xs bg-rose-500 text-white px-2 py-0.5 rounded-full font-bold animate-pulse">
+              <span className="text-xs bg-red-500 text-white px-2 py-0.5 rounded-full font-bold animate-pulse">
                 {criticalAnomalies.length} KRİTİK
               </span>
             )}
@@ -368,7 +368,7 @@ export function IntelligencePanel({
       </div>
 
       {/* Sekme navigasyonu */}
-      <div className="flex border-b border-slate-700 bg-slate-800/50">
+      <div className="flex border-b border-border bg-surface-overlay">
         {tabs.map((tab) => (
           <button
             key={tab.id}
@@ -381,7 +381,7 @@ export function IntelligencePanel({
           >
             {tab.label}
             {tab.badge !== null && (
-              <span className="ml-1.5 bg-rose-500 text-white text-[10px] px-1.5 py-0.5 rounded-full">
+              <span className="ml-1.5 bg-red-500 text-white text-[10px] px-1.5 py-0.5 rounded-full">
                 {tab.badge}
               </span>
             )}
@@ -396,10 +396,10 @@ export function IntelligencePanel({
           <div className="space-y-5">
             {/* ETA + Sağlık */}
             <div className="grid grid-cols-2 gap-4">
-              <div className="flex flex-col items-center justify-center bg-slate-800/60 rounded-lg p-4 gap-2">
+              <div className="flex flex-col items-center justify-center bg-surface-overlay rounded-lg p-4 gap-2">
                 <HealthGauge score={report.health_score} />
               </div>
-              <div className="bg-slate-800/60 rounded-lg p-4 space-y-3">
+              <div className="bg-surface-overlay rounded-lg p-4 space-y-3">
                 <p className="text-xs font-medium text-slate-400 uppercase tracking-wide">ETA</p>
                 {eta.eta_hours !== null ? (
                   <>
@@ -426,7 +426,7 @@ export function IntelligencePanel({
             </div>
 
             {/* İlerleme */}
-            <div className="bg-slate-800/60 rounded-lg p-4 space-y-3">
+            <div className="bg-surface-overlay rounded-lg p-4 space-y-3">
               <div className="flex justify-between text-xs text-slate-400">
                 <span>İlerleme</span>
                 <span className="font-mono text-white">
@@ -435,7 +435,7 @@ export function IntelligencePanel({
               </div>
               <div className="h-3 bg-slate-700 rounded-full overflow-hidden">
                 <div
-                  className="h-full rounded-full bg-gradient-to-r from-violet-600 to-teal-500 transition-all duration-700"
+                  className="h-full rounded-full bg-violet-500 transition-all duration-700"
                   style={{
                     width: `${eta.total_cases > 0 ? (eta.completed_cases / eta.total_cases) * 100 : 0}%`,
                   }}

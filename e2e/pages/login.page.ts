@@ -6,7 +6,7 @@ export class LoginPage extends BasePage {
 
   // ── Locators ───────────────────────────────────────────────────────────────
   get logo() {
-    return this.page.locator("svg[aria-label='Visium Operations']");
+    return this.page.locator("svg[aria-label='Neurex Operations']");
   }
   get pageRoot() {
     return this.testId("login-page");
@@ -36,7 +36,7 @@ export class LoginPage extends BasePage {
     return this.text("Hesabınız yok mu?");
   }
   get footer() {
-    // "Visium Product Family Access" üst kısımda da var — bu yüzden
+    // "Neurex Product Family Access" üst kısımda da var — bu yüzden
     // regex eşleşmesi strict mode'da çakışıyor. Spesifik test ID kullan.
     return this.testId("login-footer");
   }

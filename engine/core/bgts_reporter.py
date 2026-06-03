@@ -1,7 +1,7 @@
 """
-bgts_reporter.py — TestwrightAI raporlama modülü (engine/core/reporter.py wrapper'ı)
+bgts_reporter.py — Neurex raporlama modülü (engine/core/reporter.py wrapper'ı)
 
-Mevcut Reporter sınıfını DEĞİŞTİRMEDEN, TestwrightAI'a özgü rapor formatları sunar:
+Mevcut Reporter sınıfını DEĞİŞTİRMEDEN, Neurex'a özgü rapor formatları sunar:
   - HTML (Tailwind dark theme, Türkçe)
   - JSON (makine okunabilir)
   - CSV (paydaşlar için)
@@ -49,8 +49,8 @@ class ReportTemplate:
         return output
 
 
-class TestwrightAIReporter:
-    """TestwrightAI'a özelleştirilmiş rapor üretici."""
+class NeurexReporter:
+    """Neurex'a özelleştirilmiş rapor üretici."""
 
     def __init__(self, report_name: str = "bgts_rapor"):
         self.report_name = report_name
@@ -140,8 +140,8 @@ class TestwrightAIReporter:
         passed = results.get("passed", 0)
         failed = results.get("failed", 0)
         return f"""<!DOCTYPE html><html lang='tr'><head><meta charset='UTF-8'>
-<title>TestwrightAI Test Raporu</title></head><body style='background:#0f172a;color:#e2e8f0;font-family:sans-serif;padding:2rem'>
-<h1>TestwrightAI Test Raporu</h1>
+<title>Neurex Test Raporu</title></head><body style='background:#0f172a;color:#e2e8f0;font-family:sans-serif;padding:2rem'>
+<h1>Neurex Test Raporu</h1>
 <p>Tarih: {env['tarih']}</p>
 <p>Toplam: {total} | Başarılı: {passed} | Başarısız: {failed}</p>
 </body></html>"""
@@ -244,7 +244,7 @@ class TestwrightAIReporter:
 
         emoji = "\u2705" if summary["karar"] == "BAŞARILI" else "\u274c"
         text = (
-            f"{emoji} *TestwrightAI Test Sonuçları*\n"
+            f"{emoji} *Neurex Test Sonuçları*\n"
             f"Karar: *{summary['karar']}*\n"
             f"Toplam: {summary['toplam']} | "
             f"Başarılı: {summary['basarili']} | "
@@ -265,7 +265,7 @@ class TestwrightAIReporter:
         else:
             payload = {
                 "@type": "MessageCard",
-                "summary": f"TestwrightAI Test: {summary['karar']}",
+                "summary": f"Neurex Test: {summary['karar']}",
                 "text": text.replace("*", "**"),
             }
 
@@ -351,7 +351,7 @@ class TestwrightAIReporter:
                 year=str(datetime.now().year),
             )
         else:
-            html = f"<html><body><h1>TestwrightAI: {summary['karar']}</h1></body></html>"
+            html = f"<html><body><h1>Neurex: {summary['karar']}</h1></body></html>"
 
         out_path.write_text(html, encoding="utf-8")
         return str(out_path)

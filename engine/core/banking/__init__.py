@@ -1,5 +1,5 @@
 """
-TestwrightAI Bankacılık Test Verisi Üretim Paketi
+Neurex Bankacılık Test Verisi Üretim Paketi
 BDDK/KVKK uyumlu, AI-free, kural tabanlı sentetik veri üretimi.
 """
 from banking.generators.identity    import generate_tc_kimlik, validate_tc_kimlik, generate_vkn, validate_vkn

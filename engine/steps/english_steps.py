@@ -1,12 +1,12 @@
 """
 steps/english_steps.py — Ingilizce BDD Step Alias'lari
 
-Plan Risk 3 Azaltma: NexusQA Ingilizce step pattern'leri
+Plan Risk 3 Azaltma: Neurex Ingilizce step pattern'leri
 (I click on 'key', I enter 'value' into 'key', vb.) ile
 uyumluluk saglar. Feature dosyalari Turkce veya Ingilizce
 yazilabilir; her iki dilde de adim tanimlari mevcuttur.
 
-NexusQA step pattern'leri:
+Neurex step pattern'leri:
   Given I open the application url from config 'url'
   When  I click on 'key'
   When  I enter 'value' into the input 'key'

@@ -83,7 +83,7 @@ const ROW_STATUS_STYLES: Record<string, string> = {
   ready:               "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20",
   new:                 "bg-teal-500/10 text-teal-400 border border-teal-500/20",
   duplicate_candidate: "bg-amber-500/10 text-amber-400 border border-amber-500/20",
-  conflict:            "bg-rose-500/10 text-rose-400 border border-rose-500/20",
+  conflict:            "bg-red-500/10 text-red-400 border border-red-500/20",
   invalid:             "bg-red-500/10 text-red-400 border border-red-500/20",
 };
 
@@ -102,7 +102,7 @@ function RowStatusBadge({ status }: { status: string }) {
 const JOB_STATUS_STYLES: Record<string, string> = {
   preview:   "bg-blue-500/10 text-blue-400",
   committed: "bg-emerald-500/10 text-emerald-400",
-  failed:    "bg-rose-500/10 text-rose-400",
+  failed:    "bg-red-500/10 text-red-400",
 };
 
 function JobStatusBadge({ status }: { status: string }) {
@@ -135,7 +135,7 @@ function ImportJobDetailPanel({
   if (isLoading) {
     return (
       <div className="flex h-32 items-center justify-center">
-        <div className="h-6 w-6 animate-spin rounded-full border-2 border-slate-700 border-t-teal-400" />
+        <div className="h-6 w-6 animate-spin rounded-full border-2 border-border border-t-teal-400" />
       </div>
     );
   }
@@ -159,9 +159,9 @@ function ImportJobDetailPanel({
   };
 
   return (
-    <section className="rounded-xl border border-white/[0.06] bg-[#0d1221] p-5">
+    <section className="rounded-xl border border-border bg-surface-raised p-5">
       <div className="mb-5 grid gap-3 md:grid-cols-4">
-        <div className="rounded-lg border border-slate-800 bg-slate-950 p-3">
+        <div className="rounded-lg border border-border bg-bg p-3">
           <p className="text-xs uppercase text-slate-500">Dry-run checked</p>
           <p className="mt-1 text-xl font-semibold text-white">{checkedRows}</p>
         </div>
@@ -173,13 +173,13 @@ function ImportJobDetailPanel({
           <p className="text-xs uppercase text-amber-300/70">Duplicates</p>
           <p className="mt-1 text-xl font-semibold text-amber-300">{duplicateRows + conflictRows}</p>
         </div>
-        <div className="rounded-lg border border-rose-500/20 bg-rose-500/5 p-3">
-          <p className="text-xs uppercase text-rose-300/70">Blocked</p>
-          <p className="mt-1 text-xl font-semibold text-rose-300">{blockedRows}</p>
+        <div className="rounded-lg border border-red-500/20 bg-red-500/5 p-3">
+          <p className="text-xs uppercase text-red-300/70">Blocked</p>
+          <p className="mt-1 text-xl font-semibold text-red-300">{blockedRows}</p>
         </div>
       </div>
 
-      <div className="mb-4 flex flex-wrap items-center gap-3 rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-sm text-slate-400">
+      <div className="mb-4 flex flex-wrap items-center gap-3 rounded-lg border border-border bg-bg px-3 py-2 text-sm text-slate-400">
         <JobStatusBadge status={job.status} />
         <span>
           Mapping:{" "}
@@ -192,9 +192,9 @@ function ImportJobDetailPanel({
       </div>
 
       {/* Row table */}
-      <div className="overflow-x-auto rounded-lg border border-slate-800">
+      <div className="overflow-x-auto rounded-lg border border-border">
         <table className="w-full text-sm">
-          <thead className="bg-slate-950 text-xs text-slate-500">
+          <thead className="bg-bg text-xs text-slate-500">
             <tr>
               <th className="px-3 py-2 text-left">Row</th>
               <th className="px-3 py-2 text-left">Title / Data</th>
@@ -211,7 +211,7 @@ function ImportJobDetailPanel({
               </tr>
             ) : (
               rows.map((row) => (
-                <tr key={row.id} className="hover:bg-slate-900/50">
+                <tr key={row.id} className="hover:bg-surface-raised">
                   <td className="px-3 py-2 font-mono text-xs text-slate-500">{row.row_no}</td>
                   <td className="max-w-xs px-3 py-2 truncate text-slate-200">
                     {(row.parsed_data as { title?: string })?.title ??
@@ -223,7 +223,7 @@ function ImportJobDetailPanel({
                       <span className="ml-2 text-xs text-amber-500">{row.conflict_key}</span>
                     )}
                   </td>
-                  <td className="px-3 py-2 text-xs text-rose-400">
+                  <td className="px-3 py-2 text-xs text-red-400">
                     {row.validation_errors.length > 0
                       ? row.validation_errors.map((e) => String((e as { msg?: string }).msg ?? e)).join(", ")
                       : null}
@@ -239,7 +239,7 @@ function ImportJobDetailPanel({
       <div className="mt-4 flex items-center justify-between">
         <button
           onClick={onClose}
-          className="rounded-lg border border-slate-700 px-4 py-2 text-sm text-slate-400 hover:bg-slate-800"
+          className="rounded-lg border border-border px-4 py-2 text-sm text-slate-400 hover:bg-surface-overlay"
         >
           ← Listeye dön
         </button>
@@ -578,7 +578,7 @@ export default function ManagementImportExportPage({
 
   if (selectedJobId) {
     return (
-    <div className="min-h-full bg-[#0a0f1e] px-5 py-5 space-y-5">
+    <div className="min-h-full bg-bg px-5 py-5 space-y-5">
         <ImportJobDetailPanel
           jobId={selectedJobId}
           projectId={projectId}
@@ -589,20 +589,20 @@ export default function ManagementImportExportPage({
   }
 
   return (
-    <div className="min-h-full bg-[#0a0f1e] px-5 py-5 space-y-5">
+    <div className="min-h-full bg-bg px-5 py-5 space-y-5">
       {/* Stats */}
       <div className="grid gap-4 md:grid-cols-3">
-        <div className="rounded-xl border border-white/[0.06] bg-[#0d1221] px-4 py-3">
+        <div className="rounded-xl border border-border bg-surface-raised px-4 py-3">
           <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-600">Import Jobs</p>
           <p className="mt-1.5 text-2xl font-bold text-slate-100 tabular-nums">{String(jobs.length)}</p>
           <p className="mt-0.5 text-[11px] text-slate-600">{pendingJobs} preview bekliyor</p>
         </div>
-        <div className="rounded-xl border border-white/[0.06] bg-[#0d1221] px-4 py-3">
+        <div className="rounded-xl border border-border bg-surface-raised px-4 py-3">
           <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-600">Committed</p>
           <p className="mt-1.5 text-2xl font-bold text-slate-100 tabular-nums">{String(committedJobs)}</p>
           <p className="mt-0.5 text-[11px] text-slate-600">repository'ye yazıldı</p>
         </div>
-        <div className="rounded-xl border border-white/[0.06] bg-[#0d1221] px-4 py-3">
+        <div className="rounded-xl border border-border bg-surface-raised px-4 py-3">
           <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-600">Formats</p>
           <p className="mt-1.5 text-2xl font-bold text-slate-100 tabular-nums">XLSX / CSV</p>
           <p className="mt-0.5 text-[11px] text-slate-600">{failedJobs} failed job</p>
@@ -610,7 +610,7 @@ export default function ManagementImportExportPage({
       </div>
 
       <div className="mt-6 grid gap-4 lg:grid-cols-[1.4fr_0.8fr]">
-        <section className="rounded-xl border border-white/[0.06] bg-[#0d1221] p-5">
+        <section className="rounded-xl border border-border bg-surface-raised p-5">
           <div className="grid gap-4 md:grid-cols-[1fr_auto] md:items-center">
             <div>
               <p className="text-sm text-slate-300">Excel/CSV şablonu</p>
@@ -619,7 +619,7 @@ export default function ManagementImportExportPage({
               </p>
               <div className="mt-3 flex flex-wrap gap-2">
                 {TEMPLATE_COLUMNS.slice(0, 8).map((column) => (
-                  <span key={column} className="rounded border border-slate-700 bg-slate-950 px-2 py-1 text-xs text-slate-400">
+                  <span key={column} className="rounded border border-border bg-bg px-2 py-1 text-xs text-slate-400">
                     {column}
                   </span>
                 ))}
@@ -627,14 +627,14 @@ export default function ManagementImportExportPage({
             </div>
             <button
               onClick={handleTemplateDownload}
-              className="rounded-lg border border-slate-700 px-4 py-2 text-sm font-semibold text-slate-200 hover:bg-slate-800"
+              className="rounded-lg border border-border px-4 py-2 text-sm font-semibold text-slate-200 hover:bg-surface-overlay"
             >
               Template CSV
             </button>
           </div>
         </section>
 
-        <section className="rounded-xl border border-white/[0.06] bg-[#0d1221] p-5">
+        <section className="rounded-xl border border-border bg-surface-raised p-5">
           <div className="flex h-full flex-col justify-between gap-4">
             <p className="text-sm text-slate-400">
               Repository snapshot JSON olarak indirilir; import preview ve mapping ayarları backend job akışında kalır.
@@ -652,7 +652,7 @@ export default function ManagementImportExportPage({
 
       {/* Upload zone */}
       <div className="mt-6 grid gap-4 xl:grid-cols-[0.95fr_1.45fr]">
-        <section className="rounded-xl border border-white/[0.06] bg-[#0d1221] p-5">
+        <section className="rounded-xl border border-border bg-surface-raised p-5">
           <div
             onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
             onDragLeave={() => setDragOver(false)}
@@ -660,7 +660,7 @@ export default function ManagementImportExportPage({
             className={`flex flex-col items-center justify-center rounded-lg border-2 border-dashed p-10 transition ${
               dragOver
                 ? "border-teal-400 bg-teal-500/5"
-                : "border-slate-700 hover:border-slate-600"
+                : "border-border hover:border-border-strong"
             }`}
           >
             <svg className="mb-3 h-8 w-8 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -669,7 +669,7 @@ export default function ManagementImportExportPage({
             </svg>
             <p className="mb-1 text-sm text-slate-300">Excel, CSV veya JSON dosyası sürükleyin</p>
             <p className="text-xs text-slate-500 mb-3">veya</p>
-            <label className="cursor-pointer rounded-lg bg-slate-800 px-4 py-2 text-sm text-slate-300 hover:bg-slate-700">
+            <label className="cursor-pointer rounded-lg bg-surface-overlay px-4 py-2 text-sm text-slate-300 hover:bg-slate-700">
               {uploading ? "Yükleniyor…" : "Dosya Seç"}
               <input
                 type="file"
@@ -685,9 +685,9 @@ export default function ManagementImportExportPage({
           </div>
         </section>
 
-        <section className="rounded-xl border border-white/[0.06] bg-[#0d1221] p-5">
+        <section className="rounded-xl border border-border bg-surface-raised p-5">
           {!stagedImport ? (
-            <div className="flex min-h-56 items-center justify-center rounded-lg border border-slate-800 bg-slate-950 px-6 text-center">
+            <div className="flex min-h-56 items-center justify-center rounded-lg border border-border bg-bg px-6 text-center">
               <div>
                 <p className="text-sm font-medium text-slate-300">Henüz staged dosya yok</p>
                 <p className="mt-2 max-w-md text-xs text-slate-500">
@@ -697,7 +697,7 @@ export default function ManagementImportExportPage({
             </div>
           ) : (
             <div className="space-y-5">
-              <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-800 bg-slate-950 px-3 py-2">
+              <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-bg px-3 py-2">
                 <div>
                   <p className="text-sm font-medium text-white">{stagedImport.filename}</p>
                   <p className="text-xs text-slate-500">
@@ -706,14 +706,14 @@ export default function ManagementImportExportPage({
                 </div>
                 <button
                   onClick={() => { setStagedImport(null); setColumnMapping({}); }}
-                  className="rounded border border-slate-700 px-3 py-1.5 text-xs text-slate-400 hover:bg-slate-800"
+                  className="rounded border border-border px-3 py-1.5 text-xs text-slate-400 hover:bg-surface-overlay"
                 >
                   Temizle
                 </button>
               </div>
 
               <div className="grid gap-3 md:grid-cols-4">
-                <div className="rounded-lg border border-slate-800 bg-slate-950 p-3">
+                <div className="rounded-lg border border-border bg-bg p-3">
                   <p className="text-xs uppercase text-slate-500">Mapped</p>
                   <p className="mt-1 text-lg font-semibold text-white">{mappedColumnCount}</p>
                 </div>
@@ -721,9 +721,9 @@ export default function ManagementImportExportPage({
                   <p className="text-xs uppercase text-emerald-300/70">Ready rows</p>
                   <p className="mt-1 text-lg font-semibold text-emerald-300">{localStatusCounts.ready}</p>
                 </div>
-                <div className="rounded-lg border border-rose-500/20 bg-rose-500/5 p-3">
-                  <p className="text-xs uppercase text-rose-300/70">Issues</p>
-                  <p className="mt-1 text-lg font-semibold text-rose-300">{validationIssues.length}</p>
+                <div className="rounded-lg border border-red-500/20 bg-red-500/5 p-3">
+                  <p className="text-xs uppercase text-red-300/70">Issues</p>
+                  <p className="mt-1 text-lg font-semibold text-red-300">{validationIssues.length}</p>
                 </div>
                 <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 p-3">
                   <p className="text-xs uppercase text-amber-300/70">Duplicate keys</p>
@@ -731,9 +731,9 @@ export default function ManagementImportExportPage({
                 </div>
               </div>
 
-              <div className="overflow-x-auto rounded-lg border border-slate-800">
+              <div className="overflow-x-auto rounded-lg border border-border">
                 <table className="w-full text-sm">
-                  <thead className="bg-slate-950 text-xs text-slate-500">
+                  <thead className="bg-bg text-xs text-slate-500">
                     <tr>
                       <th className="px-3 py-2 text-left">Source column</th>
                       <th className="px-3 py-2 text-left">Maps to</th>
@@ -757,8 +757,8 @@ export default function ManagementImportExportPage({
                                   [header]: e.target.value as ColumnKey,
                                 }))
                               }
-                              className={`w-44 rounded border bg-slate-950 px-2 py-1.5 text-xs text-slate-200 outline-none focus:border-teal-400 ${
-                                isDuplicateTarget ? "border-amber-500/60" : "border-slate-700"
+                              className={`w-44 rounded border bg-bg px-2 py-1.5 text-xs text-slate-200 outline-none focus:border-teal-400 ${
+                                isDuplicateTarget ? "border-amber-500/60" : "border-border"
                               }`}
                             >
                               {COLUMN_OPTIONS.map((option) => (
@@ -788,12 +788,12 @@ export default function ManagementImportExportPage({
               </div>
 
               <div className="grid gap-3 md:grid-cols-3">
-                <label className="flex items-start gap-3 rounded-lg border border-slate-800 bg-slate-950 p-3">
+                <label className="flex items-start gap-3 rounded-lg border border-border bg-bg p-3">
                   <input
                     type="checkbox"
                     checked={updateExisting}
                     onChange={(e) => setUpdateExisting(e.target.checked)}
-                    className="mt-0.5 h-4 w-4 rounded border-slate-600 bg-slate-900"
+                    className="mt-0.5 h-4 w-4 rounded border-border-strong bg-surface-raised"
                   />
                   <span>
                     <span className="block text-sm text-slate-200">Update existing</span>
@@ -801,12 +801,12 @@ export default function ManagementImportExportPage({
                   </span>
                 </label>
 
-                <label className="rounded-lg border border-slate-800 bg-slate-950 p-3">
+                <label className="rounded-lg border border-border bg-bg p-3">
                   <span className="block text-sm text-slate-200">Conflict handling</span>
                   <select
                     value={conflictMode}
                     onChange={(e) => setConflictMode(e.target.value as "skip" | "flag" | "overwrite")}
-                    className="mt-2 w-full rounded border border-slate-700 bg-slate-900 px-2 py-1.5 text-xs text-slate-200 outline-none focus:border-teal-400"
+                    className="mt-2 w-full rounded border border-border bg-surface-raised px-2 py-1.5 text-xs text-slate-200 outline-none focus:border-teal-400"
                   >
                     <option value="flag">Flag for review</option>
                     <option value="skip">Skip conflicts</option>
@@ -814,9 +814,9 @@ export default function ManagementImportExportPage({
                   </select>
                 </label>
 
-                <div className="rounded-lg border border-slate-800 bg-slate-950 p-3">
+                <div className="rounded-lg border border-border bg-bg p-3">
                   <span className="block text-sm text-slate-200">Validation</span>
-                  <span className={hasBlockingValidation ? "mt-2 block text-xs text-rose-400" : "mt-2 block text-xs text-emerald-400"}>
+                  <span className={hasBlockingValidation ? "mt-2 block text-xs text-red-400" : "mt-2 block text-xs text-emerald-400"}>
                     {hasBlockingValidation ? "Mapping veya satır kontrolü gerekiyor" : "Dry-run için hazır"}
                   </span>
                 </div>
@@ -825,9 +825,9 @@ export default function ManagementImportExportPage({
               {(unmappedRequiredColumns.length > 0 || duplicateMappedTargets.length > 0) && (
                 <div className="grid gap-3 md:grid-cols-2">
                   {unmappedRequiredColumns.length > 0 && (
-                    <div className="rounded-lg border border-rose-500/20 bg-rose-500/5 p-3">
-                      <p className="text-xs font-semibold uppercase text-rose-300">Required mapping missing</p>
-                      <p className="mt-2 text-xs text-rose-200">
+                    <div className="rounded-lg border border-red-500/20 bg-red-500/5 p-3">
+                      <p className="text-xs font-semibold uppercase text-red-300">Required mapping missing</p>
+                      <p className="mt-2 text-xs text-red-200">
                         {unmappedRequiredColumns.join(", ")} alanı import job için eşlenmeli.
                       </p>
                     </div>
@@ -844,9 +844,9 @@ export default function ManagementImportExportPage({
               )}
 
               {validationIssues.length > 0 && (
-                <div className="rounded-lg border border-rose-500/20 bg-rose-500/5 p-3">
-                  <p className="text-xs font-semibold uppercase text-rose-300">Dry-run validation summary</p>
-                  <ul className="mt-2 space-y-1 text-xs text-rose-200">
+                <div className="rounded-lg border border-red-500/20 bg-red-500/5 p-3">
+                  <p className="text-xs font-semibold uppercase text-red-300">Dry-run validation summary</p>
+                  <ul className="mt-2 space-y-1 text-xs text-red-200">
                     {validationIssues.slice(0, 4).map((issue) => (
                       <li key={`${issue.rowNo}-${issue.field}`}>Row {issue.rowNo}: {issue.message}</li>
                     ))}
@@ -854,9 +854,9 @@ export default function ManagementImportExportPage({
                 </div>
               )}
 
-              <div className="overflow-x-auto rounded-lg border border-slate-800">
+              <div className="overflow-x-auto rounded-lg border border-border">
                 <table className="w-full text-xs">
-                  <thead className="bg-slate-950 text-slate-500">
+                  <thead className="bg-bg text-slate-500">
                     <tr>
                       <th className="px-3 py-2 text-left">#</th>
                       <th className="px-3 py-2 text-left">Preview</th>
@@ -876,7 +876,7 @@ export default function ManagementImportExportPage({
                           <td className="px-3 py-2">
                             <RowStatusBadge status={rowStatus} />
                             {(issuesByRow.get(rowNo) ?? []).length > 0 && (
-                              <span className="ml-2 text-rose-300">
+                              <span className="ml-2 text-red-300">
                                 {(issuesByRow.get(rowNo) ?? []).map((issue) => issue.message).join(", ")}
                               </span>
                             )}
@@ -908,14 +908,14 @@ export default function ManagementImportExportPage({
 
       {/* Job list */}
       <div className="mt-6">
-        <section className="rounded-xl border border-white/[0.06] bg-[#0d1221] p-5">
+        <section className="rounded-xl border border-border bg-surface-raised p-5">
           {recentJobs.length > 0 && (
             <div className="mb-4 grid gap-2 md:grid-cols-5">
               {recentJobs.map((job) => (
                 <button
                   key={job.id}
                   onClick={() => setSelectedJobId(job.id)}
-                  className="rounded-lg border border-slate-800 bg-slate-950 p-3 text-left transition hover:border-slate-700 hover:bg-slate-900"
+                  className="rounded-lg border border-border bg-bg p-3 text-left transition hover:border-border hover:bg-surface-raised"
                 >
                   <span className="block truncate text-xs font-medium text-slate-200">{job.filename}</span>
                   <span className="mt-2 flex items-center justify-between gap-2">
@@ -930,14 +930,14 @@ export default function ManagementImportExportPage({
           )}
           {importsQuery.isLoading ? (
             <div className="flex h-16 items-center justify-center">
-              <div className="h-5 w-5 animate-spin rounded-full border-2 border-slate-700 border-t-teal-400" />
+              <div className="h-5 w-5 animate-spin rounded-full border-2 border-border border-t-teal-400" />
             </div>
           ) : jobs.length === 0 ? (
             <p className="py-4 text-center text-sm text-slate-500">Henüz import job yok.</p>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
-                <thead className="border-b border-slate-800 text-xs text-slate-500">
+                <thead className="border-b border-border text-xs text-slate-500">
                   <tr>
                     <th className="pb-2 text-left">Dosya</th>
                     <th className="pb-2 text-left">Durum</th>
@@ -948,7 +948,7 @@ export default function ManagementImportExportPage({
                 </thead>
                 <tbody className="divide-y divide-slate-800">
                   {jobs.map((job) => (
-                    <tr key={job.id} className="hover:bg-slate-900/50">
+                    <tr key={job.id} className="hover:bg-surface-raised">
                       <td className="py-2.5 pr-4 text-slate-200">{job.filename}</td>
                       <td className="py-2.5 pr-4">
                         <JobStatusBadge status={job.status} />
@@ -962,7 +962,7 @@ export default function ManagementImportExportPage({
                       <td className="py-2.5 text-right">
                         <button
                           onClick={() => setSelectedJobId(job.id)}
-                          className="rounded px-3 py-1 text-xs text-teal-400 hover:bg-slate-800"
+                          className="rounded px-3 py-1 text-xs text-teal-400 hover:bg-surface-overlay"
                         >
                           {job.status === "preview" ? "Preview →" : "Detay →"}
                         </button>

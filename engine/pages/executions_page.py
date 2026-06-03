@@ -1,4 +1,4 @@
-"""ExecutionsPage — TestwrightAI Koşum ekranları Page Object."""
+"""ExecutionsPage — Neurex Koşum ekranları Page Object."""
 from __future__ import annotations
 
 from playwright.sync_api import Page, expect
@@ -6,7 +6,7 @@ from pages.base_page import BasePage
 
 
 class ExecutionsListPage(BasePage):
-    """TestwrightAI Koşum listesi sayfası."""
+    """Neurex Koşum listesi sayfası."""
 
     HEADING = '[data-testid="executions-heading"]'
     NEW_BTN = '[data-testid="executions-btn-new"]'
@@ -31,7 +31,7 @@ class ExecutionsListPage(BasePage):
 
 
 class NewExecutionPage(BasePage):
-    """TestwrightAI Yeni koşum sayfası."""
+    """Neurex Yeni koşum sayfası."""
 
     NAME_INPUT = '[data-testid="execution-input-name"]'
     START_BTN = '[data-testid="execution-btn-start"]'

@@ -1,5 +1,5 @@
 """
-steps/input_steps.py — Form Input BDD Adimlari (NexusQA InputMethods port'u)
+steps/input_steps.py — Form Input BDD Adimlari (Neurex InputMethods port'u)
 
 Desteklenen adimlar:
   When kullanici "{key}" alanina "{value}" yazar

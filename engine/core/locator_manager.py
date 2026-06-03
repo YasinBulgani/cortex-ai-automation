@@ -6,7 +6,7 @@ keeping backward-compatible classmethods (``resolve``, ``load``, ``configure``,
 ``load_all``, ``clear``, ``keys``, ``get``, ``as_dict``).
 
 Legacy feature-based JSON files under ``engine/data/locators/`` are still
-loaded transparently: each NexusQA-style entry ``{key, type, value}`` is
+loaded transparently: each Neurex-style entry ``{key, type, value}`` is
 converted into a Playwright selector and stored in a flat map so that
 ``resolve(key)`` works exactly as before.
 """

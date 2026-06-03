@@ -6,27 +6,30 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 const variants = cva(
-  "inline-flex items-center justify-center rounded font-medium transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:pointer-events-none disabled:opacity-50",
+  "inline-flex items-center justify-center gap-1.5 rounded-lg font-medium transition-all duration-fast focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-surface-base disabled:pointer-events-none disabled:opacity-50 select-none whitespace-nowrap",
   {
     variants: {
       variant: {
-        primary: "bg-teal-600 text-white hover:bg-teal-700",
+        primary:
+          "bg-brand text-brand-fg shadow-sm hover:brightness-110 active:brightness-95",
         secondary:
-          "border border-slate-800 bg-transparent text-white hover:bg-black/5 dark:hover:bg-white/10",
+          "border border-border bg-surface-raised text-fg shadow-xs hover:bg-surface-overlay hover:border-border-strong active:bg-surface-accent",
         outline:
-          "border border-slate-800 bg-transparent text-white hover:bg-black/5 dark:hover:bg-white/10",
-        ghost: "text-white hover:bg-black/5 dark:hover:bg-white/10",
+          "border border-border bg-transparent text-fg hover:bg-surface-overlay hover:border-border-strong active:bg-surface-accent",
+        ghost:
+          "text-fg-muted hover:bg-surface-overlay hover:text-fg active:bg-surface-accent",
         subtle:
-          "border border-slate-700 bg-slate-800/60 text-slate-300 hover:border-slate-500 hover:text-white",
+          "border border-border bg-surface-overlay text-fg-muted hover:border-border-strong hover:text-fg active:bg-surface-accent",
         "ghost-danger":
-          "text-red-400 hover:bg-red-500/10 hover:text-red-300",
-        destructive: "bg-red-600 text-white hover:bg-red-700",
+          "text-danger hover:bg-danger-subtle hover:text-danger active:bg-danger-subtle",
+        destructive:
+          "bg-danger text-danger-fg shadow-sm hover:brightness-110 active:brightness-95",
       },
       size: {
-        default: "px-4 py-2 text-sm",
-        sm: "px-3 py-1.5 text-xs",
-        lg: "px-6 py-3 text-base",
-        icon: "h-8 w-8 p-0",
+        default: "h-9 px-4 py-2 text-sm",
+        sm:      "h-7 px-3 py-1 text-xs rounded-md",
+        lg:      "h-11 px-6 py-3 text-base",
+        icon:    "h-8 w-8 p-0",
       },
     },
     defaultVariants: { variant: "primary", size: "default" },

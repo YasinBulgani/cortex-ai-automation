@@ -61,7 +61,7 @@ class Settings:
     # Proje Ayarlari
     ACTIVE_PROJECT: str = None
 
-    # Multi-environment & Multi-domain (NexusQA pattern)
+    # Multi-environment & Multi-domain (Neurex pattern)
     ENVIRONMENT: str = os.getenv("TEST_ENV", "test")
     DOMAIN: str = os.getenv("TEST_DOMAIN", "default")
     DOMAINS: list[str] = [
@@ -92,7 +92,7 @@ class Settings:
     # Ayarlandığında BrowserStack Automate (Playwright CDP) kullanılır
     BROWSERSTACK_USERNAME: str = os.getenv("BROWSERSTACK_USERNAME", "")
     BROWSERSTACK_ACCESS_KEY: str = os.getenv("BROWSERSTACK_ACCESS_KEY", "")
-    BROWSERSTACK_BUILD: str = os.getenv("BROWSERSTACK_BUILD", "Visium Farm Build")
+    BROWSERSTACK_BUILD: str = os.getenv("BROWSERSTACK_BUILD", "Neurex Farm Build")
     BROWSERSTACK_PROJECT: str = os.getenv("BROWSERSTACK_PROJECT", "BGTS Nexus QA")
 
     # ── Gerçek Cihaz Farm — Sauce Labs ───────────────────────────────────────

@@ -259,14 +259,14 @@ a:focus-visible,
 /* ── A11y: High-contrast media query desteği ─────────────────────────────── */
 @media (prefers-contrast: more) {
   :root {
-    --border:        #000000;
-    --border-strong: #000000;
-    --fg-subtle:     #000000;
+    --border:        #cbd5e1;
+    --border-strong: #94a3b8;
+    --fg-subtle:     #334155;
   }
   .dark {
-    --border:        #ffffff;
-    --border-strong: #ffffff;
-    --fg-subtle:     #ffffff;
+    --border:        #475569;
+    --border-strong: #94a3b8;
+    --fg-subtle:     #cbd5e1;
   }
 }
 

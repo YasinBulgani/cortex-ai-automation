@@ -1,7 +1,7 @@
 """
 core/data_reader.py — Domain/Environment Bazli Test Verisi Okuyucu
 
-NexusQA projesindeki DataReader.java pattern'inin Python uyarlamasi.
+Neurex projesindeki DataReader.java pattern'inin Python uyarlamasi.
 
 Dosya adi formati:
     {domain}-{env}-data.json   (ornek: default-test-data.json, girit-prod-data.json)
@@ -9,7 +9,7 @@ Dosya adi formati:
 Ozellikler:
   - Domain ve environment bazli JSON veri dosyalari
   - common-{env}-data.json ile ortak verileri merge etme
-  - @var syntax'ini (MaviYaka) ve {var} syntax'ini (TestwrightAI) destekler
+  - @var syntax'ini (MaviYaka) ve {var} syntax'ini (Neurex) destekler
   - GlobalContext ile entegre calisir
 
 Kullanim:
@@ -117,7 +117,7 @@ class DataReader:
     def render_value(cls, text: str) -> str:
         """
         Metindeki placeholder'lari cozumler.
-        Hem @var (MaviYaka) hem {var} (TestwrightAI) syntax'ini destekler.
+        Hem @var (MaviYaka) hem {var} (Neurex) syntax'ini destekler.
 
         Ornekler:
             "@username" -> data'dan username degeri
@@ -127,14 +127,14 @@ class DataReader:
         if not isinstance(text, str):
             return text
 
-        # @var syntax'i (NexusQA pattern)
+        # @var syntax'i (Neurex pattern)
         def replace_at(match):
             key = match.group(1)
             return cls._data.get(key, match.group(0))
 
         text = re.sub(r"@(\w+)", replace_at, text)
 
-        # {var} syntax'i (TestwrightAI pattern)
+        # {var} syntax'i (Neurex pattern)
         def replace_brace(match):
             key = match.group(1)
             return cls._data.get(key, match.group(0))

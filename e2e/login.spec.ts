@@ -21,7 +21,7 @@ test.describe("Login Ekranı", () => {
 
     test("başlık ve alt metin görüntülenmeli", async ({ page, loginPage }) => {
       await loginPage.goto();
-      await expect(page.getByText("Visium Product Family Access")).toBeVisible();
+      await expect(page.getByText("Neurex Product Family Access")).toBeVisible();
       await expect(page.getByText("Giriş Yap").first()).toBeVisible();
     });
 

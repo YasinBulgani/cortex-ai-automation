@@ -1,7 +1,7 @@
 """
 core/actions.py — Playwright Aksiyon Sarmalayicilari
 
-NexusQA projesindeki methods/ klasorunun (ClickMethods, InputMethods,
+Neurex projesindeki methods/ klasorunun (ClickMethods, InputMethods,
 HoverMethods, ScrollMethods, SelectMethods, DragDropMethods,
 CheckboxMethods, RadioButtonMethods, ScreenshotMethods) Playwright
 uyumlu birlesmis implementasyonu.
@@ -49,7 +49,7 @@ def _resolve(key_or_selector: str) -> str:
 
 
 class Actions:
-    """Playwright sayfa aksiyonlari — NexusQA methods/ pattern'inin birlesmis hali."""
+    """Playwright sayfa aksiyonlari — Neurex methods/ pattern'inin birlesmis hali."""
 
     def __init__(self, page: Page):
         self.page = page

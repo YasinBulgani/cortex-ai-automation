@@ -1,6 +1,6 @@
 """
 steps/upload_steps.py — Dosya Yukleme BDD Adimlari
-(NexusQA FileUploadHttpHelper pattern'inin Playwright adaptasyonu)
+(Neurex FileUploadHttpHelper pattern'inin Playwright adaptasyonu)
 
 Desteklenen adimlar:
   When kullanici "{key}" alanina "{file}" dosyasini yukler

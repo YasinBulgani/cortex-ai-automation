@@ -1,1 +1,1 @@
-"""TestwrightAI Synthetic Data Platform — Core modulleri."""
+"""Neurex Synthetic Data Platform — Core modulleri."""

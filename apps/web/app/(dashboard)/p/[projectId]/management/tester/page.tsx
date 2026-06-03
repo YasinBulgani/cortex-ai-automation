@@ -23,13 +23,13 @@ type MyCase = {
 const STATUS_CONFIG: Record<string, { label: string; dot: string; badge: string }> = {
   not_run:  { label: "Bekliyor",   dot: "bg-slate-500",   badge: "bg-slate-700 text-slate-300" },
   passed:   { label: "Geçti",      dot: "bg-emerald-500", badge: "bg-emerald-500/20 text-emerald-400" },
-  failed:   { label: "Başarısız",  dot: "bg-rose-500",    badge: "bg-rose-500/20 text-rose-400" },
+  failed:   { label: "Başarısız",  dot: "bg-red-500",    badge: "bg-red-500/20 text-red-400" },
   blocked:  { label: "Bloke",      dot: "bg-amber-500",   badge: "bg-amber-500/20 text-amber-400" },
   skipped:  { label: "Atlandı",    dot: "bg-slate-600",   badge: "bg-slate-700 text-slate-400" },
 };
 
 const PRIORITY_DOT: Record<string, string> = {
-  critical: "bg-rose-500",
+  critical: "bg-red-500",
   high:     "bg-orange-500",
   medium:   "bg-amber-500",
   low:      "bg-slate-500",
@@ -46,11 +46,11 @@ function CaseCard({ c, projectId }: { c: MyCase; projectId: string }) {
   const pct = c.step_count > 0 ? Math.round((c.completed_steps / c.step_count) * 100) : 0;
 
   return (
-    <div className={`rounded-xl border bg-slate-900 overflow-hidden transition-all hover:border-slate-600 ${
-      c.status === "not_run" ? "border-slate-700" :
-      c.status === "failed"  ? "border-rose-500/30" :
+    <div className={`rounded-xl border bg-surface-raised overflow-hidden transition-all hover:border-border-strong ${
+      c.status === "not_run" ? "border-border" :
+      c.status === "failed"  ? "border-red-500/30" :
       c.status === "passed"  ? "border-emerald-500/20" :
-      "border-slate-700"
+      "border-border"
     }`}>
       <div className="p-4 space-y-3">
         {/* Üst satır */}
@@ -82,9 +82,9 @@ function CaseCard({ c, projectId }: { c: MyCase; projectId: string }) {
               <span>Adımlar</span>
               <span>{c.completed_steps}/{c.step_count}</span>
             </div>
-            <div className="h-1.5 rounded-full bg-slate-800 overflow-hidden">
+            <div className="h-1.5 rounded-full bg-surface-overlay overflow-hidden">
               <div
-                className="h-full rounded-full bg-violet-500 transition-all"
+                className="h-full rounded-full bg-teal-500 transition-all"
                 style={{ width: `${pct}%` }}
               />
             </div>
@@ -104,7 +104,7 @@ function CaseCard({ c, projectId }: { c: MyCase; projectId: string }) {
           {c.status === "not_run" && (
             <Link
               href={`/p/${projectId}/management/runs/${c.run_id}/execute`}
-              className="rounded-lg bg-violet-600 hover:bg-violet-700 px-3 py-1.5 text-xs font-semibold text-white transition-colors"
+              className="rounded-lg bg-teal-600 hover:bg-teal-700 px-3 py-1.5 text-xs font-semibold text-white transition-colors"
             >
               Başlat →
             </Link>
@@ -112,7 +112,7 @@ function CaseCard({ c, projectId }: { c: MyCase; projectId: string }) {
           {c.status === "failed" && (
             <Link
               href={`/p/${projectId}/management/runs/${c.run_id}/execute`}
-              className="rounded-lg border border-rose-500/40 hover:bg-rose-500/10 px-3 py-1.5 text-xs font-semibold text-rose-400 transition-colors"
+              className="rounded-lg border border-red-500/40 hover:bg-red-500/10 px-3 py-1.5 text-xs font-semibold text-red-400 transition-colors"
             >
               Yeniden Dene
             </Link>
@@ -152,16 +152,16 @@ export default function TesterHomePage({ params }: { params: { projectId: string
   const nextCase = cases.find((c) => c.status === "not_run");
 
   return (
-    <div className="min-h-full bg-[#0a0f1e] px-5 py-5 space-y-5">
+    <div className="min-h-full bg-bg px-5 py-5 space-y-5">
       {/* Özet istatistikler */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
           { label: "Toplam", value: cases.length, color: "text-white" },
           { label: "Bekliyor", value: pending, color: "text-amber-400" },
           { label: "Tamamlandı", value: done, color: "text-emerald-400" },
-          { label: "Başarısız", value: failed, color: "text-rose-400" },
+          { label: "Başarısız", value: failed, color: "text-red-400" },
         ].map((stat) => (
-          <div key={stat.label} className="rounded-xl border border-slate-700 bg-slate-900 p-4 text-center">
+          <div key={stat.label} className="rounded-xl border border-border bg-surface-raised p-4 text-center">
             <p className={`text-2xl font-bold ${stat.color}`}>{loading ? "…" : stat.value}</p>
             <p className="text-xs text-slate-500 mt-1">{stat.label}</p>
           </div>
@@ -170,14 +170,14 @@ export default function TesterHomePage({ params }: { params: { projectId: string
 
       {/* Genel ilerleme çubuğu */}
       {!loading && cases.length > 0 && (
-        <div className="rounded-xl border border-slate-700 bg-slate-900 p-4 space-y-2">
+        <div className="rounded-xl border border-border bg-surface-raised p-4 space-y-2">
           <div className="flex justify-between text-sm">
             <span className="text-slate-300 font-medium">Bugünkü İlerleme</span>
-            <span className="text-violet-400 font-bold">{pct}%</span>
+            <span className="text-teal-400 font-bold">{pct}%</span>
           </div>
-          <div className="h-3 rounded-full bg-slate-800 overflow-hidden">
+          <div className="h-3 rounded-full bg-surface-overlay overflow-hidden">
             <div
-              className="h-full rounded-full bg-gradient-to-r from-violet-600 to-teal-500 transition-all duration-700"
+              className="h-full rounded-full bg-teal-500 transition-all duration-700"
               style={{ width: `${pct}%` }}
             />
           </div>
@@ -187,8 +187,8 @@ export default function TesterHomePage({ params }: { params: { projectId: string
 
       {/* Sonraki case — büyük aksiyon kartı */}
       {!loading && nextCase && (
-        <div className="rounded-xl border border-violet-500/40 bg-violet-500/10 p-5 space-y-3">
-          <p className="text-xs font-semibold text-violet-400 uppercase tracking-wide">⚡ Sıradaki Görev</p>
+        <div className="rounded-xl border border-teal-500/40 bg-teal-500/10 p-5 space-y-3">
+          <p className="text-xs font-semibold text-teal-400 uppercase tracking-wide">⚡ Sıradaki Görev</p>
           <div className="flex items-center justify-between gap-4">
             <div>
               <p className="text-white font-semibold">
@@ -199,7 +199,7 @@ export default function TesterHomePage({ params }: { params: { projectId: string
             </div>
             <Link
               href={`/p/${projectId}/management/runs/${nextCase.run_id}/execute`}
-              className="shrink-0 rounded-xl bg-violet-600 hover:bg-violet-700 px-5 py-2.5 text-sm font-bold text-white transition-colors"
+              className="shrink-0 rounded-xl bg-teal-600 hover:bg-teal-700 px-5 py-2.5 text-sm font-bold text-white transition-colors"
             >
               Başlat →
             </Link>
@@ -218,8 +218,8 @@ export default function TesterHomePage({ params }: { params: { projectId: string
             onClick={() => setFilter(f)}
             className={`rounded-full px-4 py-1.5 text-xs font-medium transition-colors ${
               filter === f
-                ? "bg-violet-600 text-white"
-                : "bg-slate-800 text-slate-400 hover:bg-slate-700"
+                ? "bg-teal-600 text-white"
+                : "bg-surface-overlay text-slate-400 hover:bg-slate-700"
             }`}
           >
             {f === "all" ? "Tümü" : f === "not_run" ? "Bekleyenler" : f === "failed" ? "Başarısızlar" : "Tamamlananlar"}
@@ -235,11 +235,11 @@ export default function TesterHomePage({ params }: { params: { projectId: string
       {/* Case listesi */}
       {loading ? (
         <div className="flex items-center justify-center py-16 text-slate-500 text-sm">
-          <span className="w-5 h-5 border-2 border-violet-500 border-t-transparent rounded-full animate-spin mr-3" />
+          <span className="w-5 h-5 border-2 border-teal-500 border-t-transparent rounded-full animate-spin mr-3" />
           Görevler yükleniyor…
         </div>
       ) : filtered.length === 0 ? (
-        <div className="rounded-xl border border-slate-700 bg-slate-900 py-16 text-center">
+        <div className="rounded-xl border border-border bg-surface-raised py-16 text-center">
           <p className="text-4xl mb-3">✅</p>
           <p className="text-slate-300 font-medium">
             {filter === "all" ? "Atanmış görev yok" : "Bu filtrede görev yok"}

@@ -69,7 +69,7 @@ export function CommentThread({
   };
 
   return (
-    <section className="rounded-lg border border-slate-800 bg-slate-900 p-5">
+    <section className="rounded-lg border border-border bg-surface-raised p-5">
       <header className="mb-4 flex items-center justify-between">
         <h2 className="text-sm font-semibold text-white">{title}</h2>
         <div className="flex items-center gap-3">
@@ -80,7 +80,7 @@ export function CommentThread({
             className={`rounded-md border px-2 py-1 text-[11px] transition ${
               summaryOpen
                 ? "border-teal-400 bg-teal-500/15 text-teal-200"
-                : "border-slate-700 text-slate-300 hover:border-teal-500 hover:text-teal-200"
+                : "border-border text-slate-300 hover:border-teal-500 hover:text-teal-200"
             }`}
           >
             {summaryOpen ? "Hide AI özet" : "AI özet"}
@@ -97,7 +97,7 @@ export function CommentThread({
           {summary.isLoading ? (
             <p className="text-xs text-slate-400">Generating…</p>
           ) : summary.isError ? (
-            <p className="text-xs text-rose-200">
+            <p className="text-xs text-red-200">
               Summary unavailable: {(summary.error as Error)?.message ?? "unknown error"}
             </p>
           ) : summary.data ? (
@@ -137,7 +137,7 @@ export function CommentThread({
       ) : null}
 
       {isError ? (
-        <p className="rounded border border-rose-800 bg-rose-950/40 p-3 text-xs text-rose-200">
+        <p className="rounded border border-red-800 bg-red-950/40 p-3 text-xs text-red-200">
           Failed to load comments: {(error as Error)?.message ?? "unknown error"}
         </p>
       ) : null}
@@ -145,7 +145,7 @@ export function CommentThread({
       {isLoading ? (
         <p className="text-xs text-slate-500">Loading…</p>
       ) : tree.length === 0 ? (
-        <p className="rounded border border-dashed border-slate-700 bg-slate-950/40 p-3 text-xs text-slate-500">
+        <p className="rounded border border-dashed border-border bg-bg p-3 text-xs text-slate-500">
           No comments yet.
         </p>
       ) : (
@@ -182,13 +182,13 @@ export function CommentThread({
         </ul>
       )}
 
-      <div className="mt-4 border-t border-slate-800 pt-4">
+      <div className="mt-4 border-t border-border pt-4">
         <textarea
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
           placeholder="Write a comment… Use @<user-uuid> to mention a teammate."
           rows={3}
-          className="w-full resize-y rounded-md border border-slate-700 bg-slate-950 p-2 text-sm text-slate-100 outline-none focus:border-teal-500"
+          className="w-full resize-y rounded-md border border-border bg-bg p-2 text-sm text-slate-100 outline-none focus:border-teal-500"
         />
         <div className="mt-2 flex items-center justify-between">
           <span className="text-[11px] text-slate-500">
@@ -251,7 +251,7 @@ function CommentItem({
 
   return (
     <div
-      className="rounded-md border border-slate-800 bg-slate-950/60 p-3"
+      className="rounded-md border border-border bg-bg p-3"
       style={{ marginLeft: depth > 0 ? Math.min(depth, 4) * 16 : 0 }}
     >
       <div className="flex items-start justify-between gap-3">
@@ -270,7 +270,7 @@ function CommentItem({
                 value={editDraft}
                 onChange={(e) => setEditDraft(e.target.value)}
                 rows={3}
-                className="w-full resize-y rounded-md border border-slate-700 bg-slate-950 p-2 text-sm text-slate-100 outline-none focus:border-teal-500"
+                className="w-full resize-y rounded-md border border-border bg-bg p-2 text-sm text-slate-100 outline-none focus:border-teal-500"
               />
               <div className="mt-2 flex gap-2">
                 <button
@@ -287,7 +287,7 @@ function CommentItem({
                 </button>
                 <button
                   type="button"
-                  className="rounded-md border border-slate-700 px-2.5 py-1 text-[11px] text-slate-300 hover:bg-slate-900"
+                  className="rounded-md border border-border px-2.5 py-1 text-[11px] text-slate-300 hover:bg-surface-raised"
                   onClick={() => {
                     setEditing(false);
                     setEditDraft(node.body_md);
@@ -323,7 +323,7 @@ function CommentItem({
                 className={`flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] transition ${
                   reacted
                     ? "border-teal-400 bg-teal-500/15 text-teal-200"
-                    : "border-slate-700 text-slate-400 hover:border-slate-500"
+                    : "border-border text-slate-400 hover:border-slate-500"
                 }`}
                 aria-pressed={reacted}
                 aria-label={`React with ${emoji}`}
@@ -354,7 +354,7 @@ function CommentItem({
               </button>
               <button
                 type="button"
-                className="text-[11px] text-rose-300 hover:text-rose-100"
+                className="text-[11px] text-red-300 hover:text-red-100"
                 onClick={() => void onDelete(node.id)}
               >
                 Delete
@@ -365,13 +365,13 @@ function CommentItem({
       ) : null}
 
       {replying ? (
-        <div className="mt-2 rounded border border-slate-800 bg-slate-950 p-2">
+        <div className="mt-2 rounded border border-border bg-bg p-2">
           <textarea
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             rows={2}
             placeholder="Write a reply…"
-            className="w-full resize-y rounded-md border border-slate-700 bg-slate-950 p-2 text-sm text-slate-100 outline-none focus:border-teal-500"
+            className="w-full resize-y rounded-md border border-border bg-bg p-2 text-sm text-slate-100 outline-none focus:border-teal-500"
           />
           <div className="mt-2 flex gap-2">
             <button

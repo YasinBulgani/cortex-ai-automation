@@ -1,7 +1,7 @@
 """
 core/excel_reporter.py — Excel Test Raporu Ureticisi
 
-NexusQA projesindeki ExcelReportGenerator.java pattern'inin
+Neurex projesindeki ExcelReportGenerator.java pattern'inin
 openpyxl ile Python implementasyonu.
 
 Ozellikler:

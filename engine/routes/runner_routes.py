@@ -114,7 +114,7 @@ def _maven_allowed_roots() -> list[Path]:
     default_root = Path(
         os.environ.get(
             "MAVEN_PROJECT_PATH",
-            str(settings.BASE_DIR / "NexusQATestOtomasyon"),
+            str(settings.BASE_DIR / "NeurexTestOtomasyon"),
         )
     ).resolve()
     return [default_root, (settings.BASE_DIR / "projects").resolve()]
@@ -127,7 +127,7 @@ def _is_within_root(candidate: Path, root: Path) -> bool:
 def _resolve_maven_project_path(raw_path: str) -> Path | None:
     source = raw_path.strip() or os.environ.get(
         "MAVEN_PROJECT_PATH",
-        str(settings.BASE_DIR / "NexusQATestOtomasyon"),
+        str(settings.BASE_DIR / "NeurexTestOtomasyon"),
     )
     candidate = Path(source)
     if not candidate.is_absolute():
@@ -686,7 +686,7 @@ def run_maven_tests():
             proc.wait()
             duration = int((datetime.now() - start_time).total_seconds() * 1000)
             
-            record_test_run(r_id, "maven-nexusqa", passed, failed, duration)
+            record_test_run(r_id, "maven-neurex", passed, failed, duration)
             q_ref.put({"type": "done", "returncode": proc.returncode})
             
         except FileNotFoundError:

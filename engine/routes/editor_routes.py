@@ -1,5 +1,5 @@
 """
-TestwrightAI IDE — Editor Routes (güvenli sürüm)
+Neurex IDE — Editor Routes (güvenli sürüm)
 
 Güvenlik notları:
 - _safe_path artık pathlib.Path.resolve() + is_relative_to kullanıyor;

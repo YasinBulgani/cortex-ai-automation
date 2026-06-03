@@ -1,5 +1,5 @@
 """
-steps/select_steps.py — Dropdown Secim BDD Adimlari (NexusQA SelectMethods port'u)
+steps/select_steps.py — Dropdown Secim BDD Adimlari (Neurex SelectMethods port'u)
 
 Desteklenen adimlar:
   When kullanici "{key}" dropdown'undan "{value}" degerini secer

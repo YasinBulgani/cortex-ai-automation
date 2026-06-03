@@ -18,7 +18,7 @@ export function ThemeToggleFull() {
 
   return (
     <div
-      className="inline-flex items-center rounded-lg border border-slate-700 bg-slate-900 p-0.5"
+      className="inline-flex items-center rounded-lg border border-border bg-surface-raised p-0.5"
       data-testid="theme-toggle-full"
       role="radiogroup"
       aria-label="Tema seçimi"
@@ -33,8 +33,8 @@ export function ThemeToggleFull() {
           aria-checked={theme === o.value}
           className={`flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
             theme === o.value
-              ? "bg-slate-700 text-white"
-              : "text-slate-400 hover:text-white"
+              ? "bg-surface-accent text-fg"
+              : "text-fg-muted hover:text-fg"
           }`}
           data-testid={`theme-option-${o.value}`}
         >

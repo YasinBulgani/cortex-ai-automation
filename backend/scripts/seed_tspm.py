@@ -484,7 +484,7 @@ def seed_tspm(db: Session) -> None:
 
     project = TspmProject(
         name=DEMO_PROJECT,
-        description="TestwrightAI Test Süreç Platformu demo projesi — tüm modülleri test etmek için gerçekçi dummy veriler içerir.",
+        description="Neurex Test Süreç Platformu demo projesi — tüm modülleri test etmek için gerçekçi dummy veriler içerir.",
     )
     db.add(project)
     db.flush()

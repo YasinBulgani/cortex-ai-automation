@@ -58,8 +58,10 @@ from app.domains.test_management.schemas import (
     ManagementSettingsOut,
     RegressionCandidateOut,
     RegressionSelectionFilter,
+    RegressionSetAddCases,
     RegressionSetCreate,
     RegressionSetOut,
+    RegressionSetUpdate,
     ReleaseReportOut,
     ReleaseSignoffCreate,
     ReleaseSignoffOut,
@@ -69,6 +71,7 @@ from app.domains.test_management.schemas import (
     RequirementLinkOut,
     RequirementOut,
     RunCaseOut,
+    RunCaseUpdate,
     RunDetailOut,
     SimilarCaseQuery,
     SimilarCaseResult,
@@ -81,14 +84,20 @@ from app.domains.test_management.schemas import (
     TestCycleOut,
     TestFolderCreate,
     TestFolderOut,
+    TestFolderUpdate,
     TestImportJobCreate,
     TestImportJobOut,
     TestPlanCreate,
     TestPlanOut,
     TestRunCreate,
     TestRunOut,
+    StandupOut,
+    TestCaseCloneRequest,
+    TestCaseGenerateRequest,
+    TestCaseGenerateResponse,
     TestSuiteCreate,
     TestSuiteOut,
+    TestSuiteUpdate,
     TraceabilityRow,
 )
 from app.infra.database import get_db
@@ -171,6 +180,42 @@ def create_folder(project_id: str, payload: TestFolderCreate, db: DB, user: Writ
     return service.create_folder(db, project_id, payload, user)
 
 
+@router.patch("/projects/{project_id}/suites/{suite_id}", response_model=TestSuiteOut)
+def update_suite(project_id: str, suite_id: str, payload: TestSuiteUpdate, db: DB, user: WriteUser) -> TestSuiteOut:
+    try:
+        return service.update_suite(db, project_id, suite_id, payload, user)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@router.delete("/projects/{project_id}/suites/{suite_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_suite(project_id: str, suite_id: str, db: DB, user: WriteUser) -> None:
+    try:
+        service.delete_suite(db, project_id, suite_id, user)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@router.patch("/projects/{project_id}/folders/{folder_id}", response_model=TestFolderOut)
+def update_folder(project_id: str, folder_id: str, payload: TestFolderUpdate, db: DB, user: WriteUser) -> TestFolderOut:
+    try:
+        return service.update_folder(db, project_id, folder_id, payload, user)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@router.delete("/projects/{project_id}/folders/{folder_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_folder(project_id: str, folder_id: str, db: DB, user: WriteUser) -> None:
+    try:
+        service.delete_folder(db, project_id, folder_id, user)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
 @router.get("/projects/{project_id}/cases", response_model=list[TestCaseOut])
 def list_cases(
     project_id: str,
@@ -205,6 +250,49 @@ def update_case(project_id: str, case_id: str, payload: TestCaseUpdate, db: DB, 
 @router.post("/projects/{project_id}/cases/{case_id}/archive", response_model=TestCaseOut)
 def archive_case(project_id: str, case_id: str, db: DB, user: WriteUser) -> TestCaseOut:
     return service.archive_case(db, project_id, case_id, user)
+
+
+@router.post(
+    "/projects/{project_id}/cases/{case_id}/clone",
+    response_model=TestCaseOut,
+    status_code=status.HTTP_201_CREATED,
+    summary="Mevcut test case'i kopyalar",
+)
+def clone_case(project_id: str, case_id: str, payload: TestCaseCloneRequest, db: DB, user: WriteUser) -> TestCaseOut:
+    try:
+        return service.clone_case(db, project_id, case_id, payload, user)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@router.post(
+    "/projects/{project_id}/cases/generate",
+    response_model=TestCaseGenerateResponse,
+    summary="AI ile test case üret (save=true ise DB'ye kaydeder)",
+)
+def generate_cases(project_id: str, payload: TestCaseGenerateRequest, db: DB, user: WriteUser) -> TestCaseGenerateResponse:
+    try:
+        cases = service.generate_test_cases(db, project_id, payload, user)
+        return TestCaseGenerateResponse(cases=cases)
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Üretim hatası: {exc}") from exc
+
+
+@router.get(
+    "/projects/{project_id}/standup",
+    response_model=StandupOut,
+    summary="Aktif run için standup verisini döner",
+)
+def get_standup(
+    project_id: str,
+    run_id: Optional[str] = Query(default=None),
+    db: DB = Depends(get_db),
+    _user: ReadUser = Depends(require_permission("read")),
+) -> StandupOut:
+    try:
+        return service.get_standup(db, project_id, run_id)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
 @router.post("/projects/{project_id}/plans", response_model=TestPlanOut, status_code=status.HTTP_201_CREATED)
@@ -261,6 +349,61 @@ def create_regression_set(
     return service.create_regression_set(db, project_id, payload, user)  # type: ignore[return-value]
 
 
+@router.patch(
+    "/projects/{project_id}/regression/sets/{set_id}",
+    response_model=RegressionSetOut,
+)
+def update_regression_set(
+    project_id: str,
+    set_id: str,
+    payload: RegressionSetUpdate,
+    db: DB,
+    user: WriteUser,
+) -> RegressionSetOut:
+    return service.update_regression_set(db, project_id, set_id, payload, user)  # type: ignore[return-value]
+
+
+@router.post(
+    "/projects/{project_id}/regression/sets/{set_id}/cases",
+    response_model=RegressionSetOut,
+)
+def add_cases_to_regression_set(
+    project_id: str,
+    set_id: str,
+    payload: RegressionSetAddCases,
+    db: DB,
+    user: WriteUser,
+) -> RegressionSetOut:
+    return service.add_cases_to_regression_set(db, project_id, set_id, payload.case_ids, user)  # type: ignore[return-value]
+
+
+@router.delete(
+    "/projects/{project_id}/regression/sets/{set_id}/cases/{case_id}",
+    response_model=RegressionSetOut,
+)
+def remove_case_from_regression_set(
+    project_id: str,
+    set_id: str,
+    case_id: str,
+    db: DB,
+    user: WriteUser,
+) -> RegressionSetOut:
+    return service.remove_case_from_regression_set(db, project_id, set_id, case_id, user)  # type: ignore[return-value]
+
+
+@router.delete(
+    "/projects/{project_id}/regression/sets/{set_id}",
+    status_code=204,
+)
+def delete_regression_set(
+    project_id: str,
+    set_id: str,
+    db: DB,
+    user: WriteUser,
+) -> None:
+    service.delete_regression_set(db, project_id, set_id, user)
+
+
 @router.get("/projects/{project_id}/runs", response_model=list[TestRunOut])
 def list_runs(
     project_id: str,
@@ -279,6 +422,18 @@ def create_run(project_id: str, payload: TestRunCreate, db: DB, user: WriteUser)
 @router.get("/projects/{project_id}/runs/{run_id}", response_model=RunDetailOut)
 def get_run(project_id: str, run_id: str, db: DB, _user: ReadUser) -> RunDetailOut:
     return service.get_run(db, project_id, run_id)
+
+
+@router.patch("/projects/{project_id}/run-cases/{run_case_id}", response_model=RunCaseOut)
+def update_run_case(
+    project_id: str,
+    run_case_id: str,
+    payload: RunCaseUpdate,
+    db: DB,
+    user: ExecuteUser,
+) -> RunCaseOut:
+    """Update the overall status of a test case in a run (TestRail-style case-level result)."""
+    return service.update_run_case(db, project_id, run_case_id, payload, user)
 
 
 @router.patch("/projects/{project_id}/run-cases/{run_case_id}/steps/{step_no}", response_model=RunCaseOut)

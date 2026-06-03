@@ -355,8 +355,8 @@ PG_CONFIG = {
     "user": "twai_user",
     "password": "twai2024",
     "databases": {
-        "bgts_banking": "🏦 TestwrightAI Bankacılık (PostgreSQL)",
-        "bgts_testdb":  "🧪 TestwrightAI Test DB (PostgreSQL)",
+        "bgts_banking": "🏦 Neurex Bankacılık (PostgreSQL)",
+        "bgts_testdb":  "🧪 Neurex Test DB (PostgreSQL)",
     }
 }
 
@@ -368,7 +368,7 @@ SQLITE_CATALOG = [
         "id": "pg_bgts_banking",
         "file": None,
         "pg_db": "bgts_banking",
-        "name": "🐘 TestwrightAI Bankacılık (PostgreSQL)",
+        "name": "🐘 Neurex Bankacılık (PostgreSQL)",
         "desc": "PostgreSQL'de 500 müşteri, 1039 hesap, 10.607 işlem, 300 kredi, 333 kart. Canlı DB!",
         "tables": ["customers", "accounts", "transactions", "loans", "cards", "branches"],
         "source": "PostgreSQL localhost:5432",

@@ -10,7 +10,7 @@ ai_openapi_bp = Blueprint("ai_openapi", __name__, url_prefix="/api/ai")
 OPENAPI_SPEC = {
     "openapi": "3.0.3",
     "info": {
-        "title": "TestwrightAI AI Test Engine API",
+        "title": "Neurex AI Test Engine API",
         "version": "1.0.0",
         "description": "AI destekli test üretimi, self-healing, analiz ve güvenlik tarama endpoint'leri.",
     },

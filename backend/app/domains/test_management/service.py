@@ -12,6 +12,7 @@ from typing import Any, Iterable, Optional
 from datetime import datetime, timezone
 
 from sqlalchemy import func, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
 
 from app.domains.tspm.models import TspmProject
@@ -46,6 +47,8 @@ from app.domains.test_management.schemas import (
     DefectLinkCreate,
     DefectLinkUpdate,
     ExecutionSummaryOut,
+    GeneratedCaseOut,
+    GeneratedStepOut,
     ManagementProjectCreate,
     ReleaseReportOut,
     RegressionCandidateOut,
@@ -55,15 +58,21 @@ from app.domains.test_management.schemas import (
     RequirementCreate,
     RequirementLinkCreate,
     ReleaseSignoffCreate,
+    StandupOut,
+    StandupAnomaly,
     StepResultUpdate,
+    TestCaseCloneRequest,
     TestCaseCreate,
+    TestCaseGenerateRequest,
     TestCaseUpdate,
     TestCycleCreate,
     TestFolderCreate,
+    TestFolderUpdate,
     TestImportJobCreate,
     TestPlanCreate,
     TestRunCreate,
     TestSuiteCreate,
+    TestSuiteUpdate,
 )
 
 
@@ -285,6 +294,71 @@ def create_folder(db: Session, project_id: str, payload: TestFolderCreate, user:
     db.commit()
     db.refresh(folder)
     return folder
+
+
+def update_suite(db: Session, project_id: str, suite_id: str, payload: TestSuiteUpdate, user: Any | None) -> TestSuite:
+    project_id = resolve_project_id(db, project_id)
+    suite = _ensure_suite(db, project_id, suite_id)
+    assert suite is not None  # _ensure_suite raises KeyError when missing
+    data = payload.model_dump(exclude_unset=True)
+    for field in ("name", "description", "order_index", "status"):
+        if field in data and data[field] is not None:
+            setattr(suite, field, data[field])
+    audit(db, "suite.updated", "suite", suite.id, project_id, user)
+    try:
+        db.commit()
+    except IntegrityError as exc:
+        db.rollback()
+        raise ValueError("Bu isimde bir suite zaten var") from exc
+    db.refresh(suite)
+    return suite
+
+
+def delete_suite(db: Session, project_id: str, suite_id: str, user: Any | None) -> None:
+    project_id = resolve_project_id(db, project_id)
+    suite = _ensure_suite(db, project_id, suite_id)
+    assert suite is not None  # _ensure_suite raises KeyError when missing
+    # Folders cascade-delete; cases detach to "unassigned" via FK ON DELETE SET NULL.
+    db.delete(suite)
+    audit(db, "suite.deleted", "suite", suite_id, project_id, user)
+    db.commit()
+
+
+def update_folder(db: Session, project_id: str, folder_id: str, payload: TestFolderUpdate, user: Any | None) -> TestFolder:
+    project_id = resolve_project_id(db, project_id)
+    folder = _ensure_folder(db, project_id, folder_id)
+    assert folder is not None  # _ensure_folder raises KeyError when missing
+    data = payload.model_dump(exclude_unset=True)
+    if "parent_id" in data:
+        new_parent_id = data["parent_id"]
+        if new_parent_id == folder.id:
+            raise ValueError("Folder kendi kendisinin parent'ı olamaz")
+        if new_parent_id is not None:
+            parent = _ensure_folder(db, project_id, new_parent_id)
+            if parent is not None and parent.suite_id != folder.suite_id:
+                raise ValueError("Parent folder aynı suite içinde olmalı")
+        folder.parent_id = new_parent_id
+    for field in ("name", "path", "order_index"):
+        if field in data and data[field] is not None:
+            setattr(folder, field, data[field])
+    audit(db, "folder.updated", "folder", folder.id, project_id, user)
+    try:
+        db.commit()
+    except IntegrityError as exc:
+        db.rollback()
+        raise ValueError("Bu yolda bir folder zaten var") from exc
+    db.refresh(folder)
+    return folder
+
+
+def delete_folder(db: Session, project_id: str, folder_id: str, user: Any | None) -> None:
+    project_id = resolve_project_id(db, project_id)
+    folder = _ensure_folder(db, project_id, folder_id)
+    assert folder is not None  # _ensure_folder raises KeyError when missing
+    # Child folders cascade-delete (parent_id ON DELETE CASCADE); cases detach via folder_id SET NULL.
+    db.delete(folder)
+    audit(db, "folder.deleted", "folder", folder_id, project_id, user)
+    db.commit()
 
 
 def _next_case_key(db: Session, project: TestManagementProject) -> str:
@@ -730,6 +804,117 @@ def create_regression_set(db: Session, project_id: str, payload: RegressionSetCr
     return _regression_set_out(regression_set)  # type: ignore[arg-type]
 
 
+def add_cases_to_regression_set(
+    db: Session, project_id: str, set_id: str, case_ids: list[str], user: Any | None
+) -> dict[str, Any]:
+    project_id = resolve_project_id(db, project_id)
+    regression_set = db.scalar(
+        select(RegressionSet)
+        .options(selectinload(RegressionSet.cases).selectinload(RegressionSetCase.case))
+        .where(RegressionSet.id == set_id, RegressionSet.project_id == project_id)
+    )
+    if regression_set is None:
+        raise ValueError("Regression set not found")
+    existing_ids = {c.case_id for c in regression_set.cases}
+    max_order = max((c.order_index for c in regression_set.cases), default=-1)
+    for i, cid in enumerate(case_ids):
+        if cid in existing_ids:
+            continue
+        case = get_case(db, project_id, cid)
+        if case.archived:
+            continue
+        regression_set.cases.append(
+            RegressionSetCase(
+                case_id=cid,
+                case_version_no=case.current_version,
+                case_key_snapshot=case.case_key,
+                title_snapshot=case.title,
+                priority_snapshot=case.priority,
+                severity_snapshot=case.severity,
+                type_snapshot=case.type,
+                order_index=max_order + 1 + i,
+                risk_score=0,
+                reason="Manual selection",
+                include_mode="manual",
+            )
+        )
+        existing_ids.add(cid)
+    regression_set.selection_summary = {"case_count": len(regression_set.cases)}
+    db.flush()
+    db.commit()
+    regression_set = db.scalar(
+        select(RegressionSet)
+        .options(selectinload(RegressionSet.cases).selectinload(RegressionSetCase.case))
+        .where(RegressionSet.id == set_id)
+    )
+    return _regression_set_out(regression_set)  # type: ignore[arg-type]
+
+
+def remove_case_from_regression_set(
+    db: Session, project_id: str, set_id: str, case_id: str, user: Any | None
+) -> dict[str, Any]:
+    project_id = resolve_project_id(db, project_id)
+    regression_set = db.scalar(
+        select(RegressionSet)
+        .options(selectinload(RegressionSet.cases).selectinload(RegressionSetCase.case))
+        .where(RegressionSet.id == set_id, RegressionSet.project_id == project_id)
+    )
+    if regression_set is None:
+        raise ValueError("Regression set not found")
+    regression_set.cases = [c for c in regression_set.cases if c.case_id != case_id]
+    regression_set.selection_summary = {"case_count": len(regression_set.cases)}
+    db.flush()
+    db.commit()
+    regression_set = db.scalar(
+        select(RegressionSet)
+        .options(selectinload(RegressionSet.cases).selectinload(RegressionSetCase.case))
+        .where(RegressionSet.id == set_id)
+    )
+    return _regression_set_out(regression_set)  # type: ignore[arg-type]
+
+
+def update_regression_set(
+    db: Session, project_id: str, set_id: str, payload: Any, user: Any | None
+) -> dict[str, Any]:
+    project_id = resolve_project_id(db, project_id)
+    regression_set = db.scalar(
+        select(RegressionSet)
+        .options(selectinload(RegressionSet.cases).selectinload(RegressionSetCase.case))
+        .where(RegressionSet.id == set_id, RegressionSet.project_id == project_id)
+    )
+    if regression_set is None:
+        raise ValueError("Regression set not found")
+    if payload.name is not None:
+        regression_set.name = payload.name
+    if payload.set_type is not None:
+        regression_set.set_type = payload.set_type
+    if payload.description is not None:
+        regression_set.description = payload.description
+    db.flush()
+    db.commit()
+    regression_set = db.scalar(
+        select(RegressionSet)
+        .options(selectinload(RegressionSet.cases).selectinload(RegressionSetCase.case))
+        .where(RegressionSet.id == set_id)
+    )
+    return _regression_set_out(regression_set)  # type: ignore[arg-type]
+
+
+def delete_regression_set(
+    db: Session, project_id: str, set_id: str, user: Any | None
+) -> None:
+    project_id = resolve_project_id(db, project_id)
+    regression_set = db.scalar(
+        select(RegressionSet).where(
+            RegressionSet.id == set_id, RegressionSet.project_id == project_id
+        )
+    )
+    if regression_set is None:
+        raise ValueError("Regression set not found")
+    db.delete(regression_set)
+    db.commit()
+
+
 def get_run(db: Session, project_id: str, run_id: str) -> TestRun:
     """Return a single run with nested run_cases and step_results."""
     project_id = resolve_project_id(db, project_id)
@@ -817,6 +1002,46 @@ def _sync_run_status(run: TestRun) -> None:
     else:
         run.status = "not_started"
         run.completed_at = None
+
+
+def update_run_case(db: Session, project_id: str, run_case_id: str, payload: Any, user: Any | None) -> TestRunCase:
+    """Set the overall status of a test run case directly (TestRail-style case-level result).
+
+    This is the primary execute flow: click Pass/Fail/Block/Skip/Retest for the whole case
+    without needing to update every step individually.
+    """
+    project_id = resolve_project_id(db, project_id)
+    run_case = db.get(TestRunCase, run_case_id)
+    if run_case is None:
+        raise KeyError("Run case bulunamadı")
+    if run_case.case.project_id != project_id:
+        raise KeyError("Run case bulunamadı")
+
+    old_status = run_case.status
+    run_case.status = payload.status
+    if payload.actual_result is not None:
+        run_case.actual_result = payload.actual_result
+    if payload.execution_notes is not None:
+        run_case.execution_notes = payload.execution_notes
+
+    now = utcnow()
+    if old_status == "not_run" and payload.status != "not_run":
+        run_case.started_at = run_case.started_at or now
+    if payload.status in {"passed", "failed", "blocked", "skipped"}:
+        run_case.completed_at = now
+
+    # Update the case's last-run metadata
+    run_case.case.last_run_status = run_case.status
+    run_case.case.last_run_at = now
+    run_case.case.last_run_id = run_case.run_id
+    if run_case.status == "failed":
+        run_case.case.last_failed_at = now
+
+    _sync_run_status(run_case.run)
+    audit(db, "run_case.updated", "run_case", run_case.id, project_id, user, {"status": payload.status})
+    db.commit()
+    db.refresh(run_case)
+    return run_case
 
 
 def update_step_result(db: Session, project_id: str, run_case_id: str, step_no: int, payload: StepResultUpdate, user: Any | None) -> TestRunCase:
@@ -1505,3 +1730,269 @@ def upload_evidence(
     db.refresh(evidence)
 
     return _evidence_out(evidence)
+
+
+# ── AI Test Case Üretimi ──────────────────────────────────────────────────────
+
+def _bdd_steps_to_management(bdd_steps: list[dict]) -> list[dict]:
+    """BDD adımlarını (keyword/text) management step formatına (action/expected_result) dönüştür."""
+    result = []
+    pending_action = None
+    for i, step in enumerate(bdd_steps):
+        text = step.get("text", "")
+        keyword = step.get("keyword", "").strip().lower()
+        if keyword in ("o zaman", "then", "ve aynı zamanda", "and then"):
+            if pending_action is not None:
+                result.append({
+                    "step_no": len(result) + 1,
+                    "action": pending_action,
+                    "expected_result": text,
+                    "is_required": True,
+                })
+                pending_action = None
+            else:
+                result.append({
+                    "step_no": len(result) + 1,
+                    "action": f"Doğrula: {text}",
+                    "expected_result": text,
+                    "is_required": True,
+                })
+        else:
+            if pending_action is not None:
+                result.append({
+                    "step_no": len(result) + 1,
+                    "action": pending_action,
+                    "expected_result": "",
+                    "is_required": True,
+                })
+            pending_action = text
+    if pending_action is not None:
+        result.append({
+            "step_no": len(result) + 1,
+            "action": pending_action,
+            "expected_result": "",
+            "is_required": True,
+        })
+    return result
+
+
+def generate_test_cases(
+    db: Session,
+    project_id: str,
+    payload: "TestCaseGenerateRequest",
+    user: Any | None = None,
+) -> list[GeneratedCaseOut]:
+    """AI kullanarak test case'leri üretir; save=True ise DB'ye kaydeder."""
+    from app.domains.ai import service as ai_service
+
+    project_id = resolve_project_id(db, project_id)
+
+    try:
+        raw_scenarios = ai_service.generate_scenarios(
+            description=payload.prompt,
+            count=payload.count,
+            project_id=project_id,
+            user_id=_actor_id(user),
+        )
+    except Exception:
+        raw_scenarios = []
+
+    results: list[GeneratedCaseOut] = []
+    for sc in raw_scenarios:
+        bdd_steps = sc.get("steps", [])
+        mgmt_steps = _bdd_steps_to_management(bdd_steps)
+        priority_map = {"high": "P0", "medium": "P1", "low": "P2"}
+        priority = priority_map.get(sc.get("priority", "medium"), payload.priority)
+
+        saved_id: str | None = None
+        if payload.save:
+            tc_create = TestCaseCreate(
+                title=sc.get("title", "AI Üretilen Senaryo"),
+                objective=sc.get("description", ""),
+                suite_id=payload.suite_id,
+                folder_id=payload.folder_id,
+                priority=priority,
+                type=payload.type,
+                status="draft",
+                source_type="ai_generated",
+                tags=sc.get("tags", []),
+                steps=[
+                    {"step_no": s["step_no"], "action": s["action"],
+                     "expected_result": s["expected_result"], "is_required": s["is_required"],
+                     "test_data": {}}
+                    for s in mgmt_steps
+                ],
+            )
+            tc = create_case(db, project_id, tc_create, user)
+            saved_id = tc.id
+
+        results.append(GeneratedCaseOut(
+            title=sc.get("title", "AI Üretilen Senaryo"),
+            objective=sc.get("description", ""),
+            preconditions="",
+            priority=priority,
+            tags=sc.get("tags", []),
+            steps=[
+                GeneratedStepOut(
+                    step_no=s["step_no"],
+                    action=s["action"],
+                    expected_result=s["expected_result"],
+                    is_required=s["is_required"],
+                )
+                for s in mgmt_steps
+            ],
+            saved_id=saved_id,
+        ))
+
+    return results
+
+
+# ── Case Clone ────────────────────────────────────────────────────────────────
+
+def clone_case(
+    db: Session,
+    project_id: str,
+    case_id: str,
+    payload: "TestCaseCloneRequest",
+    user: Any | None = None,
+) -> "TestCase":
+    """Mevcut bir case'i kopyalar ve yeni bir case döner."""
+    project_id = resolve_project_id(db, project_id)
+    source = get_case(db, project_id, case_id)
+
+    new_title = payload.title or f"{source.title} (Kopya)"
+    suite_id  = payload.suite_id or source.suite_id
+    folder_id = payload.folder_id or source.folder_id
+
+    tc_create = TestCaseCreate(
+        title=new_title,
+        suite_id=suite_id,
+        folder_id=folder_id,
+        objective=source.objective or "",
+        preconditions=source.preconditions or "",
+        priority=source.priority,
+        severity=source.severity,
+        type=source.type,
+        automation_status=source.automation_status,
+        status="draft",
+        source_type="manual",
+        tags=list(source.tags or []),
+        custom_fields=dict(source.custom_fields or {}),
+        steps=[
+            {"step_no": s.step_no, "action": s.action,
+             "expected_result": s.expected_result,
+             "test_data": dict(s.test_data or {}),
+             "is_required": s.is_required}
+            for s in sorted(source.steps, key=lambda x: x.step_no)
+        ],
+    )
+    return create_case(db, project_id, tc_create, user)
+
+
+# ── Standup ───────────────────────────────────────────────────────────────────
+
+def get_standup(
+    db: Session,
+    project_id: str,
+    run_id: str | None = None,
+) -> "StandupOut":
+    """Aktif veya belirtilen run için standup verisini hesaplar."""
+    from app.domains.test_management import intelligence_service
+
+    project_id = resolve_project_id(db, project_id)
+
+    # En son aktif run'u seç
+    if run_id:
+        run = db.get(TestRun, run_id)
+        if not run or run.project_id != project_id:
+            raise KeyError("Run bulunamadı")
+    else:
+        stmt = (
+            select(TestRun)
+            .join(TestCycle, TestRun.cycle_id == TestCycle.id)
+            .where(TestCycle.project_id == project_id)
+            .where(TestRun.status.in_(["in_progress", "not_started"]))
+            .order_by(TestRun.created_at.desc())
+        )
+        run = db.scalars(stmt).first()
+        if not run:
+            # En son tamamlanan run
+            stmt2 = (
+                select(TestRun)
+                .join(TestCycle, TestRun.cycle_id == TestCycle.id)
+                .where(TestCycle.project_id == project_id)
+                .order_by(TestRun.created_at.desc())
+            )
+            run = db.scalars(stmt2).first()
+        if not run:
+            return StandupOut(
+                health_score=0, summary_health="healthy",
+                eta_hours=None, remaining_cases=0, total_cases=0,
+                completed_cases=0, pass_rate=0, blocked=0, failed=0,
+                velocity_per_hour=0, anomalies=[], run_name="Run yok",
+                predicted_completion=None, will_meet_gate=True,
+                blocking_factors=[],
+            )
+
+    report = intelligence_service.get_run_intelligence(db, project_id, run.id)
+    eta    = intelligence_service._predict_eta(run, list(db.scalars(
+        select(TestRunCase).where(TestRunCase.run_id == run.id)
+    ).all()))
+
+    run_cases = list(db.scalars(select(TestRunCase).where(TestRunCase.run_id == run.id)).all())
+    total     = len(run_cases)
+    done_set  = {"passed", "failed", "blocked", "skipped"}
+    completed = len([rc for rc in run_cases if rc.status in done_set])
+    passed    = len([rc for rc in run_cases if rc.status == "passed"])
+    failed_ct = len([rc for rc in run_cases if rc.status == "failed"])
+    blocked_ct= len([rc for rc in run_cases if rc.status == "blocked"])
+    pass_rate = round((passed / completed * 100) if completed > 0 else 0, 1)
+
+    health_score = max(0.0, min(100.0, pass_rate - (failed_ct * 2) - (blocked_ct * 1)))
+    if health_score >= 70:
+        summary_health = "healthy"
+    elif health_score >= 40:
+        summary_health = "at_risk"
+    else:
+        summary_health = "critical"
+
+    blocking_factors: list[str] = []
+    if blocked_ct > 0:
+        blocking_factors.append(f"{blocked_ct} bloke case var")
+    if failed_ct > 0:
+        blocking_factors.append(f"{failed_ct} başarısız case var")
+    if total - completed > 0 and (total - completed) / max(total, 1) > 0.5:
+        blocking_factors.append("Koşum ilerlemesi düşük")
+
+    anomalies: list[StandupAnomaly] = []
+    for a in (report.anomalies or []):
+        anomalies.append(StandupAnomaly(severity=getattr(a, "severity", "medium"), title=getattr(a, "title", str(a))))
+
+    eta_hours = None
+    predicted = None
+    if eta and eta.predicted_end_at:
+        from datetime import timezone as _tz
+        now = datetime.now(_tz.utc)
+        diff = (eta.predicted_end_at.replace(tzinfo=_tz.utc) if eta.predicted_end_at.tzinfo is None else eta.predicted_end_at) - now
+        eta_hours = max(0.0, diff.total_seconds() / 3600)
+        predicted = eta.predicted_end_at.isoformat()
+
+    velocity = getattr(report, "velocity_per_hour", 0.0) or 0.0
+
+    return StandupOut(
+        health_score=round(health_score, 1),
+        summary_health=summary_health,
+        eta_hours=round(eta_hours, 1) if eta_hours is not None else None,
+        remaining_cases=total - completed,
+        total_cases=total,
+        completed_cases=completed,
+        pass_rate=pass_rate,
+        blocked=blocked_ct,
+        failed=failed_ct,
+        velocity_per_hour=round(velocity, 2),
+        anomalies=anomalies,
+        run_name=run.name,
+        predicted_completion=predicted,
+        will_meet_gate=summary_health != "critical",
+        blocking_factors=blocking_factors,
+    )

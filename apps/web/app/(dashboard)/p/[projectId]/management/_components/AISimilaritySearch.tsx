@@ -74,9 +74,9 @@ export function AISimilaritySearch({ projectId, onSelectCase }: AISimilaritySear
   }
 
   return (
-    <div className="rounded-xl border border-violet-500/30 bg-slate-900 overflow-hidden">
+    <div className="rounded-xl border border-violet-500/30 bg-surface-raised overflow-hidden">
       {/* Arama başlığı */}
-      <div className="flex items-center gap-3 border-b border-slate-800 px-4 py-3">
+      <div className="flex items-center gap-3 border-b border-border px-4 py-3">
         <span className="text-violet-400 text-lg">✨</span>
         <span className="text-sm font-semibold text-white">AI Semantic Arama</span>
         <span className="text-xs text-slate-500 flex-1">Doğal dilde tanımla, benzer case'leri bul</span>
@@ -93,7 +93,7 @@ export function AISimilaritySearch({ projectId, onSelectCase }: AISimilaritySear
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleSearch()}
             placeholder='Örnek: "ödeme sayfası kart doğrulama" veya "login başarısız senaryo"'
-            className="flex-1 rounded-lg bg-slate-800 border border-slate-700 px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-violet-500 transition-colors"
+            className="flex-1 rounded-lg bg-surface-overlay border border-border px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-violet-500 transition-colors"
           />
           <button
             onClick={handleSearch}
@@ -109,7 +109,7 @@ export function AISimilaritySearch({ projectId, onSelectCase }: AISimilaritySear
           </button>
         </div>
 
-        {error && <p className="text-xs text-rose-400">{error}</p>}
+        {error && <p className="text-xs text-red-400">{error}</p>}
 
         {/* Sonuçlar */}
         {searched && results.length === 0 && (
@@ -124,7 +124,7 @@ export function AISimilaritySearch({ projectId, onSelectCase }: AISimilaritySear
             {results.map((c) => (
               <div
                 key={c.case_id}
-                className="flex items-center gap-3 rounded-lg border border-slate-800 bg-slate-800/50 px-3 py-2.5 hover:border-violet-500/30 transition-colors group"
+                className="flex items-center gap-3 rounded-lg border border-border bg-surface-overlay px-3 py-2.5 hover:border-violet-500/30 transition-colors group"
               >
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
@@ -143,7 +143,7 @@ export function AISimilaritySearch({ projectId, onSelectCase }: AISimilaritySear
                     {c.last_run_status && (
                       <span className={`text-xs ${
                         c.last_run_status === "pass" ? "text-emerald-400" :
-                        c.last_run_status === "fail" ? "text-rose-400" : "text-slate-400"
+                        c.last_run_status === "fail" ? "text-red-400" : "text-slate-400"
                       }`}>
                         {c.last_run_status}
                       </span>

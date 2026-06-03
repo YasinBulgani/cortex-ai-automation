@@ -2,7 +2,7 @@
 core/context.py — Test Adimlari Arasi Veri Paylasimi
 
 Senaryolar ve adimlar arasinda dinamik test verisini saklar.
-Hem TestwrightAI {var} hem de MaviYaka @var placeholder syntax'ini destekler.
+Hem Neurex {var} hem de MaviYaka @var placeholder syntax'ini destekler.
 
 Ayrica DataReader verilerini de cozumleme zincirine dahil eder:
   1. Oncelik: GlobalContext._data (adim icerisinde set edilen degerler)
@@ -36,7 +36,7 @@ class GlobalContext:
         Metindeki placeholder'lari cozumler.
 
         Desteklenen syntax'lar:
-          {VAR_NAME}  — TestwrightAI mevcut pattern
+          {VAR_NAME}  — Neurex mevcut pattern
           @var_name   — MaviYaka pattern (tek kelime, @ ile baslar)
 
         Cozumleme sirasi:
@@ -59,7 +59,7 @@ class GlobalContext:
 
         text = re.sub(r'\{([^}]+)\}', repl_brace, text)
 
-        # @var syntax'i (NexusQA uyumlulugu)
+        # @var syntax'i (Neurex uyumlulugu)
         def repl_at(match):
             key = match.group(1)
             val = cls._data.get(key)

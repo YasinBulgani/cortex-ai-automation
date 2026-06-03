@@ -16,7 +16,7 @@ function emptyField(): DesignFieldSpec {
   return { name: "", data_type: "int", min_value: null, max_value: null, allowed_set: null, nullable: false };
 }
 
-const INP = "w-full rounded-lg border border-white/[0.06] bg-white/[0.03] px-3 py-2 text-[13px] text-slate-200 placeholder-slate-600 focus:border-blue-500/30 focus:outline-none transition-colors";
+const INP = "w-full rounded-lg border border-border bg-white/[0.03] px-3 py-2 text-[13px] text-slate-200 placeholder-slate-600 focus:border-teal-500/30 focus:outline-none transition-colors";
 
 export default function EqPage() {
   const projectId = useRouteParam("projectId") ?? "";
@@ -46,7 +46,7 @@ export default function EqPage() {
   const cases = run?.generated_cases ?? [];
 
   return (
-    <div className="min-h-full bg-[#0a0f1e] px-6 py-6 space-y-5">
+    <div className="min-h-full bg-bg px-6 py-6 space-y-5">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-[15px] font-semibold text-slate-100">Equivalence Partitioning</h1>
@@ -57,17 +57,17 @@ export default function EqPage() {
 
       <div className="grid gap-5 xl:grid-cols-2">
         {/* Form */}
-        <div className="rounded-xl border border-white/[0.06] bg-[#0d1221] p-5 space-y-4">
+        <div className="rounded-xl border border-border bg-surface-raised p-5 space-y-4">
           <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-500">Alan Tanımları</p>
 
           {fields.map((f, i) => (
-            <div key={i} className="space-y-2 rounded-lg border border-white/[0.04] bg-white/[0.02] p-3">
+            <div key={i} className="space-y-2 rounded-lg border border-border bg-white/[0.02] p-3">
               <div className="flex gap-2">
                 <span className="flex h-6 w-5 shrink-0 items-center justify-center text-[11px] text-slate-600 font-mono">{i+1}</span>
                 <input value={f.name} onChange={e => update(i, { name: e.target.value })}
                   placeholder="Alan adı" className={cn(INP, "flex-1")}/>
                 <select value={f.data_type} onChange={e => update(i, { data_type: e.target.value as DesignDataType })}
-                  className="w-20 shrink-0 rounded-lg border border-white/[0.06] bg-white/[0.03] px-2 py-2 text-[12px] text-slate-300 focus:outline-none">
+                  className="w-20 shrink-0 rounded-lg border border-border bg-white/[0.03] px-2 py-2 text-[12px] text-slate-300 focus:outline-none">
                   {DATA_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
                 </select>
                 <button type="button" onClick={() => setFields(p => p.filter((_, j) => j !== i))}
@@ -96,7 +96,7 @@ export default function EqPage() {
           ))}
 
           <button type="button" onClick={() => setFields(p => [...p, emptyField()])}
-            className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-white/[0.08] py-2 text-[12px] text-slate-600 hover:text-slate-400 transition-colors">
+            className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-border py-2 text-[12px] text-slate-600 hover:text-slate-400 transition-colors">
             + Alan Ekle
           </button>
 
@@ -105,7 +105,7 @@ export default function EqPage() {
 
           <button type="button" onClick={submit}
             disabled={fields.some(f => !f.name.trim()) || runMut.isPending}
-            className="w-full rounded-xl bg-blue-600 py-2.5 text-[13px] font-medium text-white hover:bg-blue-500 disabled:opacity-40 transition-colors">
+            className="w-full rounded-xl bg-teal-600 py-2.5 text-[13px] font-medium text-white hover:bg-teal-700 disabled:opacity-40 transition-colors">
             {runMut.isPending ? "Üretiliyor…" : "EQ Çalıştır"}
           </button>
         </div>
@@ -114,7 +114,7 @@ export default function EqPage() {
         <div className="space-y-4">
           {/* Partitions */}
           {run && run.partitions.length > 0 && (
-            <div className="rounded-xl border border-white/[0.06] bg-[#0d1221] p-4 space-y-2">
+            <div className="rounded-xl border border-border bg-surface-raised p-4 space-y-2">
               <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-500">Partitions ({run.partitions.length})</p>
               <div className="space-y-1 max-h-40 overflow-y-auto">
                 {run.partitions.map(p => (
@@ -129,7 +129,7 @@ export default function EqPage() {
           )}
 
           {/* Cases */}
-          <div className="rounded-xl border border-white/[0.06] bg-[#0d1221] p-5 space-y-3">
+          <div className="rounded-xl border border-border bg-surface-raised p-5 space-y-3">
             <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-500">Üretilen Senaryolar</p>
             {!run ? (
               <div className="py-10 text-center text-[13px] text-slate-600">Henüz çalıştırılmadı</div>
@@ -139,8 +139,8 @@ export default function EqPage() {
               <>
                 <div className="space-y-2 max-h-72 overflow-y-auto">
                   {cases.map((c, i) => (
-                    <div key={i} className="flex items-start gap-3 rounded-lg border border-white/[0.04] bg-white/[0.02] px-3 py-2.5">
-                      <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-blue-500/60"/>
+                    <div key={i} className="flex items-start gap-3 rounded-lg border border-border bg-white/[0.02] px-3 py-2.5">
+                      <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-teal-500/60"/>
                       <div className="flex-1 min-w-0">
                         <p className="text-[13px] text-slate-300">{c.name}</p>
                         {c.partition_label && <p className="mt-0.5 text-[11px] text-slate-600">{c.partition_label}</p>}
@@ -149,7 +149,7 @@ export default function EqPage() {
                         <span className="text-[11px] text-emerald-500/70">✓</span>
                       ) : (
                         <button type="button" onClick={() => promote([i])}
-                          className="shrink-0 rounded border border-white/[0.06] px-2 py-0.5 text-[11px] text-slate-500 hover:text-blue-400 transition-colors">
+                          className="shrink-0 rounded border border-border px-2 py-0.5 text-[11px] text-slate-500 hover:text-teal-400 transition-colors">
                           Kaydet
                         </button>
                       )}
@@ -159,7 +159,7 @@ export default function EqPage() {
                 <button type="button"
                   onClick={() => promote(cases.map((_, i) => i).filter(i => !promoted.has(i)))}
                   disabled={promoteMut.isPending || promoted.size === cases.length}
-                  className="w-full rounded-xl border border-white/[0.08] py-2 text-[12px] text-slate-400 hover:text-slate-200 disabled:opacity-40 transition-colors">
+                  className="w-full rounded-xl border border-border py-2 text-[12px] text-slate-400 hover:text-slate-200 disabled:opacity-40 transition-colors">
                   {promoteMut.isPending ? "Kaydediliyor…" : "Tümünü Kaydet"}
                 </button>
               </>

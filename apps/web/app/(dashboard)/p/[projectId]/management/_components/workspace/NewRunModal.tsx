@@ -1,0 +1,141 @@
+"use client";
+
+import { useMemo, useState } from "react";
+import { cn } from "@/lib/utils";
+import {
+  useManagementCycles,
+  useManagementPlans,
+  useCreateManagementPlan,
+  useCreateManagementCycle,
+  useCreateManagementRun,
+  type TestCase,
+} from "@/lib/hooks/use-management";
+import { P_DOT, IcClose, IcSearch } from "./shared";
+
+export function NewRunModal({ pid, cases, initialCaseIds, onClose, onDone }: {
+  pid: string; cases: TestCase[]; initialCaseIds: string[];
+  onClose: () => void; onDone: (runId: string) => void;
+}) {
+  const { data: cycles } = useManagementCycles(pid || undefined);
+  const { data: plans } = useManagementPlans(pid || undefined);
+  const createPlan = useCreateManagementPlan(pid);
+  const createCycle = useCreateManagementCycle(pid);
+  const createRun = useCreateManagementRun(pid);
+
+  const [name, setName] = useState("");
+  const [environment, setEnvironment] = useState("");
+  const [search, setSearch] = useState("");
+  const [selected, setSelected] = useState<Set<string>>(() => new Set(initialCaseIds));
+  const [err, setErr] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return cases;
+    return cases.filter(c => c.title.toLowerCase().includes(q) || c.case_key.toLowerCase().includes(q));
+  }, [cases, search]);
+
+  const toggle = (id: string) => setSelected(p => { const n = new Set(p); n.has(id) ? n.delete(id) : n.add(id); return n; });
+
+  async function ensureCycleId(): Promise<string> {
+    if (cycles && cycles.length > 0) return cycles[0].id;
+    let planId = plans && plans.length > 0 ? plans[0].id : undefined;
+    if (!planId) {
+      const plan = await createPlan.mutateAsync({ name: "Workspace Runs", plan_type: "regression" });
+      planId = plan.id;
+    }
+    const cycle = await createCycle.mutateAsync({
+      plan_id: planId,
+      name: "Default Cycle",
+      environment: environment.trim() || null,
+    });
+    return cycle.id;
+  }
+
+  const save = async () => {
+    if (!name.trim()) { setErr("Run adı zorunlu."); return; }
+    if (selected.size === 0) { setErr("En az bir senaryo seçin."); return; }
+    setErr(""); setBusy(true);
+    try {
+      const cycleId = await ensureCycleId();
+      const run = await createRun.mutateAsync({
+        cycle_id: cycleId,
+        name: name.trim(),
+        case_ids: [...selected],
+        environment: environment.trim() || null,
+      });
+      onDone(run.id);
+    } catch {
+      setErr("Run oluşturulamadı.");
+      setBusy(false);
+    }
+  };
+
+  const inp = "w-full rounded-xl border border-border bg-surface-raised px-3 py-2 text-[13px] text-fg placeholder:text-fg-subtle outline-none transition-colors focus:border-brand focus:ring-2 focus:ring-brand/15";
+
+  return (
+    <div className="fixed inset-0 z-modal flex items-start justify-center overflow-y-auto p-8 bg-black/60 backdrop-blur-sm">
+      <div className="relative flex max-h-[85vh] w-full max-w-xl flex-col rounded-xl border border-border bg-surface-raised shadow-2xl">
+        <div className="flex items-center justify-between border-b border-border px-6 py-4">
+          <h2 className="text-[15px] font-semibold text-fg">Yeni Test Run</h2>
+          <button type="button" onClick={onClose} className="rounded-lg p-1.5 text-fg-subtle transition-colors hover:bg-surface-overlay hover:text-fg"><IcClose /></button>
+        </div>
+
+        <div className="space-y-3 px-6 py-4">
+          <div className="grid grid-cols-2 gap-2">
+            <input autoFocus value={name} onChange={e => setName(e.target.value)} placeholder="Run adı * (örn. Sprint 24 Smoke)" className={inp} />
+            <input value={environment} onChange={e => setEnvironment(e.target.value)} placeholder="Ortam (staging/prod)" className={inp} />
+          </div>
+
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-semibold uppercase tracking-widest text-fg-subtle">Senaryolar</span>
+            <span className="text-[11px] font-medium text-brand">{selected.size} seçili</span>
+          </div>
+
+          <div className="flex items-center gap-2 rounded-xl border border-border bg-surface-raised px-2.5 py-1.5 shadow-xs transition-colors focus-within:border-brand focus-within:ring-2 focus-within:ring-brand/15">
+            <IcSearch />
+            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Senaryo ara…"
+              className="flex-1 bg-transparent text-[12px] text-fg placeholder:text-fg-subtle outline-none" />
+            <button type="button" onClick={() => setSelected(new Set(filtered.map(c => c.id)))} className="text-[11px] text-fg-muted hover:text-fg">Tümü</button>
+            <button type="button" onClick={() => setSelected(new Set())} className="text-[11px] text-fg-subtle hover:text-fg-muted">Hiçbiri</button>
+          </div>
+        </div>
+
+        <div className="flex-1 overflow-y-auto border-y border-border">
+          {filtered.length === 0 ? (
+            <p className="px-6 py-8 text-center text-[13px] text-fg-subtle">Senaryo bulunamadı</p>
+          ) : (
+            filtered.map(c => {
+              const on = selected.has(c.id);
+              return (
+                <button key={c.id} type="button" onClick={() => toggle(c.id)}
+                  className={cn("flex w-full items-center gap-3 border-b border-border px-6 py-2 text-left transition-colors",
+                    on ? "bg-brand-soft" : "hover:bg-surface-overlay")}>
+                  <span className={cn("flex h-4 w-4 shrink-0 items-center justify-center rounded border",
+                    on ? "border-brand bg-brand" : "border-border")}>
+                    {on && <svg className="h-2.5 w-2.5 text-brand-fg" fill="none" viewBox="0 0 10 10" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M1.5 5l2.5 2.5 4.5-4.5" /></svg>}
+                  </span>
+                  <span className={cn("h-1.5 w-1.5 shrink-0 rounded-full", P_DOT[c.priority] ?? P_DOT.P3)} />
+                  <span className="font-mono text-[10px] text-fg-subtle">{c.case_key}</span>
+                  <span className="flex-1 truncate text-[12px] text-fg-muted">{c.title}</span>
+                </button>
+              );
+            })
+          )}
+        </div>
+
+        <div className="flex items-center justify-between px-6 py-4">
+          {err ? <p className="text-[12px] text-red-400">{err}</p> : <span />}
+          <div className="flex items-center gap-2">
+            <button type="button" onClick={onClose}
+              className="rounded-xl border border-border px-4 py-2 text-[13px] font-medium text-fg-muted transition-colors hover:bg-surface-overlay hover:text-fg">İptal</button>
+            <button type="button" onClick={save} disabled={busy || !name.trim() || selected.size === 0}
+              className="rounded-xl bg-brand px-5 py-2 text-[13px] font-semibold text-brand-fg shadow-sm transition-colors hover:brightness-105 disabled:opacity-40">
+              {busy ? "Oluşturuluyor…" : "Run Oluştur"}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

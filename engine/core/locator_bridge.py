@@ -3,7 +3,7 @@ core/locator_bridge.py — Birlesik Locator Cozumleme Koprusu
 
 Iki farkli locator sistemini tek bir arayuz altinda birlestirir:
 
-1. core.locator_manager.LocatorManager (NexusQA pattern)
+1. core.locator_manager.LocatorManager (Neurex pattern)
    - Feature bazli JSON dosyalari (engine/data/locators/*.json)
    - Selenium type -> Playwright cevirici
    - Keyword-driven BDD step'leri icin

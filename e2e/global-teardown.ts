@@ -24,7 +24,7 @@ async function globalTeardown(_config: FullConfig) {
           (p: { name: string }) =>
             p.name?.startsWith("E2E Test ") ||
             p.name?.startsWith("e2e-") ||
-            p.name?.startsWith("Visium E2E ")
+            p.name?.startsWith("Neurex E2E ")
         );
 
         for (const project of testProjects) {

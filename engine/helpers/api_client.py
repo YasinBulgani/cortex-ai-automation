@@ -1,5 +1,5 @@
 """
-helpers/api_client.py — TestwrightAI Platform REST API istemcisi.
+helpers/api_client.py — Neurex Platform REST API istemcisi.
 
 pytest-bdd adimlarinda kullanilmak uzere tasarlanmis,
 oturum yonetimi ve CRUD kisayollari iceren hafif HTTP sarmalayici.
@@ -11,7 +11,7 @@ from typing import Any
 
 
 class APIClient:
-    """TestwrightAI FastAPI backend ile iletisim kuran HTTP istemcisi."""
+    """Neurex FastAPI backend ile iletisim kuran HTTP istemcisi."""
 
     def __init__(self, base_url: str, timeout: float = 30.0):
         self._base_url = base_url.rstrip("/")

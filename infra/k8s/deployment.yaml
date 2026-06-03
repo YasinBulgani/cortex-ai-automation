@@ -1,5 +1,5 @@
 # ═══════════════════════════════════════════════════════════════════════════════
-# TestwrightAI — Kubernetes Deployment Manifests
+# Neurex — Kubernetes Deployment Manifests
 #
 # Ön koşullar:
 #   kubectl apply -f namespace.yaml

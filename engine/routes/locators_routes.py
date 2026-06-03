@@ -120,7 +120,7 @@ def api_discover_page():
         return jsonify({"error": str(e)}), 500
 
 
-# ── JSON Locator Management (NexusQA pattern) ──────────────────────────────
+# ── JSON Locator Management (Neurex pattern) ──────────────────────────────
 
 @locators_bp.route("/api/locators/json", methods=["GET"])
 def api_get_json_locators():

@@ -1,7 +1,7 @@
 """
-bgts_runner.py — TestwrightAI E2E Test Runner (engine/runner.py wrapper'ı)
+bgts_runner.py — Neurex E2E Test Runner (engine/runner.py wrapper'ı)
 
-Mevcut runner.py'yi DEĞİŞTİRMEDEN, TestwrightAI'a özgü test koşum senaryolarını
+Mevcut runner.py'yi DEĞİŞTİRMEDEN, Neurex'a özgü test koşum senaryolarını
 yönetir: smoke, regression, API, paralel, retry ve rapor üretimi.
 
 Not: Dosya adı (bgts_runner.py) geriye uyumluluk ve CI pipeline'lara etki etmemek
@@ -97,8 +97,8 @@ class TestResult:
         }
 
 
-class TestwrightAIRunner:
-    """TestwrightAI projesine özgü test çalıştırıcısı."""
+class NeurexRunner:
+    """Neurex projesine özgü test çalıştırıcısı."""
 
     def __init__(
         self,
@@ -221,33 +221,33 @@ class TestwrightAIRunner:
     # ── Kamu API'leri ─────────────────────────────────────────
 
     def run_smoke(self) -> TestResult:
-        console.print(Panel("[bold green]TestwrightAI Smoke Testleri[/bold green]", border_style="green"))
+        console.print(Panel("[bold green]Neurex Smoke Testleri[/bold green]", border_style="green"))
         return self._run(markers="smoke", label="smoke")
 
     def run_regression(self) -> TestResult:
-        console.print(Panel("[bold blue]TestwrightAI Regresyon Testleri[/bold blue]", border_style="blue"))
+        console.print(Panel("[bold blue]Neurex Regresyon Testleri[/bold blue]", border_style="blue"))
         return self._run(markers="regression", label="regression")
 
     def run_by_feature(self, feature_name: str) -> TestResult:
         marker = FEATURE_MARKER_MAP.get(feature_name, feature_name)
-        console.print(Panel(f"[bold cyan]TestwrightAI Feature: {feature_name}[/bold cyan]", border_style="cyan"))
+        console.print(Panel(f"[bold cyan]Neurex Feature: {feature_name}[/bold cyan]", border_style="cyan"))
         return self._run(markers=marker, label=f"feature-{feature_name}")
 
     def run_api_tests(self) -> TestResult:
-        console.print(Panel("[bold magenta]TestwrightAI API Testleri[/bold magenta]", border_style="magenta"))
+        console.print(Panel("[bold magenta]Neurex API Testleri[/bold magenta]", border_style="magenta"))
         return self._run(markers="api", label="api")
 
     def run_all(self) -> TestResult:
-        console.print(Panel("[bold yellow]TestwrightAI Tüm Testler[/bold yellow]", border_style="yellow"))
+        console.print(Panel("[bold yellow]Neurex Tüm Testler[/bold yellow]", border_style="yellow"))
         return self._run(markers=None, label="all")
 
     def run_parallel(self, workers: int = 4) -> TestResult:
-        console.print(Panel(f"[bold cyan]TestwrightAI Paralel ({workers} worker)[/bold cyan]", border_style="cyan"))
+        console.print(Panel(f"[bold cyan]Neurex Paralel ({workers} worker)[/bold cyan]", border_style="cyan"))
         return self._run(markers=None, parallel_workers=workers, label="parallel")
 
     def run_with_retry(self, max_retries: int = 2, markers: str | None = None) -> TestResult:
         console.print(Panel(
-            f"[bold yellow]TestwrightAI Retry ({max_retries} deneme)[/bold yellow]",
+            f"[bold yellow]Neurex Retry ({max_retries} deneme)[/bold yellow]",
             border_style="yellow",
         ))
         best_result: TestResult | None = None
@@ -296,7 +296,7 @@ class TestwrightAIRunner:
 
 
 def _print_summary(result: TestResult) -> None:
-    table = Table(title="TestwrightAI Test Sonuçları", show_header=True, header_style="bold cyan")
+    table = Table(title="Neurex Test Sonuçları", show_header=True, header_style="bold cyan")
     table.add_column("Metrik", style="dim")
     table.add_column("Değer", justify="right")
     table.add_row("Toplam", str(result.total))
@@ -318,7 +318,7 @@ def _print_summary(result: TestResult) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="TestwrightAI E2E Test Runner",
+        description="Neurex E2E Test Runner",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=(
             "Örnekler:\n"
@@ -343,14 +343,14 @@ def main() -> None:
     args = parser.parse_args()
 
     console.print(Panel.fit(
-        "[bold cyan]TestwrightAI E2E Test Runner[/bold cyan]\n"
+        "[bold cyan]Neurex E2E Test Runner[/bold cyan]\n"
         f"[dim]{datetime.now().strftime('%d.%m.%Y %H:%M:%S')}[/dim]\n"
         f"[white]BASE_URL:[/white] {test_config.BASE_URL}\n"
         f"[white]Tarayıcı:[/white] {test_config.BROWSER} ({'headless' if test_config.HEADLESS else 'headed'})",
         border_style="cyan",
     ))
 
-    runner = TestwrightAIRunner()
+    runner = NeurexRunner()
 
     if args.retry > 0:
         markers = None

@@ -51,7 +51,7 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }) {
         <>
           <div className="fixed inset-0 z-[9998] bg-black/40" onClick={handleCancel} />
           <div
-            className="fixed left-1/2 top-1/2 z-[9999] w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-lg border border-slate-800 bg-slate-900 p-6 shadow-2xl"
+            className="fixed left-1/2 top-1/2 z-[9999] w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-xl border border-border bg-surface-raised p-6 shadow-elevated"
             data-testid="confirm-dialog"
           >
             {options.title && (
@@ -59,7 +59,7 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }) {
                 {options.title}
               </h3>
             )}
-            <p className="mt-2 text-sm text-slate-400">{options.message}</p>
+            <p className="mt-2 text-sm text-fg-muted">{options.message}</p>
             <div className="mt-6 flex justify-end gap-3">
               <Button variant="secondary" onClick={handleCancel} data-testid="confirm-btn-cancel">
                 {options.cancelLabel || "İptal"}

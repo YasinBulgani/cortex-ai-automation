@@ -1,1 +1,1 @@
-"""TestwrightAI AI Synthetic Data Platform."""
+"""Neurex AI Synthetic Data Platform."""

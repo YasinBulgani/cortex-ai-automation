@@ -2,7 +2,7 @@
  * Mobile Step Definitions
  *
  * Mobil DSL cümlecikleri için Playwright mobile emulation üzerine step'ler.
- * Visium Farm sayfası bu step'leri içeren feature'lara doğal entegre çalışır.
+ * Neurex Farm sayfası bu step'leri içeren feature'lara doğal entegre çalışır.
  *
  * Notlar:
  *  - Playwright mobile emulation (devices.iPhone 14 Pro, Pixel 7 vb.) üzerinde

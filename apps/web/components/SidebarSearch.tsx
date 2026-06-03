@@ -49,14 +49,14 @@ export function SidebarSearch({ items, projectBasePath = "" }: Props) {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="🔍 Hızlı bul…"
-          className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-1.5 text-xs text-slate-200 focus:border-indigo-500 focus:outline-none"
+          className="w-full rounded-lg border border-border bg-surface-overlay px-3 py-1.5 text-xs text-fg placeholder-fg-subtle focus:border-brand focus:outline-none transition-colors"
           data-testid="sidebar-search-input"
         />
         {query && (
           <button
             type="button"
             onClick={() => setQuery("")}
-            className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300"
+            className="absolute right-2 top-1/2 -translate-y-1/2 text-fg-subtle hover:text-fg"
             aria-label="Temizle"
             data-testid="sidebar-search-clear"
           >
@@ -68,7 +68,7 @@ export function SidebarSearch({ items, projectBasePath = "" }: Props) {
       {query.trim() && (
         <div className="mt-2" data-testid="sidebar-search-results">
           {filtered.length === 0 ? (
-            <p className="px-2 py-3 text-center text-[10px] text-slate-500">
+            <p className="px-2 py-3 text-center text-[10px] text-fg-subtle">
               Sonuç yok. Cmd+K ile genel arama dene.
             </p>
           ) : (
@@ -84,12 +84,12 @@ export function SidebarSearch({ items, projectBasePath = "" }: Props) {
                     <Link
                       href={href}
                       onClick={() => setQuery("")}
-                      className="block rounded px-2 py-1.5 text-xs text-slate-300 hover:bg-slate-800"
+                      className="block rounded px-2 py-1.5 text-xs text-fg-muted hover:bg-surface-overlay hover:text-fg transition-colors"
                       data-testid={`sidebar-search-result-${item.path}`}
                     >
                       <span className="font-medium">{item.label}</span>
                       {item.group && (
-                        <span className="ml-2 text-[9px] text-slate-500">{item.group}</span>
+                        <span className="ml-2 text-[9px] text-fg-subtle">{item.group}</span>
                       )}
                     </Link>
                   </li>

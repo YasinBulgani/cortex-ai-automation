@@ -1,1 +1,1 @@
-"""TestwrightAI Synthetic Data Platform — ORM modelleri."""
+"""Neurex Synthetic Data Platform — ORM modelleri."""
