@@ -1347,6 +1347,19 @@ export function useKiwiSyncJobs(projectId: string | undefined) {
   });
 }
 
+// ── Delete Plan ───────────────────────────────────────────────────────────────
+
+export function useDeleteManagementPlan(projectId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (planId: string) =>
+      apiFetch<void>(`${BASE(projectId)}/plans/${planId}`, { method: "DELETE" }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: managementKeys.plans(projectId) });
+    },
+  });
+}
+
 // ── Quality Scan ──────────────────────────────────────────────────────────────
 
 export interface QualityScanResult {

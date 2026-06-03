@@ -443,6 +443,18 @@ def list_plans(project_id: str, db: DB, _user: ReadUser) -> list[TestPlanOut]:
     return service.list_plans(db, project_id)
 
 
+@router.delete("/projects/{project_id}/plans/{plan_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_plan(project_id: str, plan_id: str, db: DB, user: WriteUser) -> None:
+    from app.domains.test_management.models import TestPlan
+    from sqlalchemy import select as _sel
+    pid = service.resolve_project_id(db, project_id)
+    plan = db.scalar(_sel(TestPlan).where(TestPlan.id == plan_id, TestPlan.project_id == pid))
+    if not plan:
+        raise HTTPException(status_code=404, detail="Plan bulunamadı")
+    db.delete(plan)
+    db.commit()
+
+
 @router.get("/projects/{project_id}/cycles", response_model=list[TestCycleOut])
 def list_cycles(
     project_id: str,

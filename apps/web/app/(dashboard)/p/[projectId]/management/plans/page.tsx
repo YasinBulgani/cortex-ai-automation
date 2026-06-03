@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import {
   useManagementPlans,
   useCreateManagementPlan,
+  useDeleteManagementPlan,
   useManagementCycles,
   useManagementRuns,
   useCreateManagementRun,
@@ -317,6 +318,7 @@ export default function ManagementPlansPage() {
   const { data: allCycles }        = useManagementCycles(mpid || undefined);
   const { data: allRuns }          = useManagementRuns(mpid || undefined);
   const createPlan   = useCreateManagementPlan(mpid || "");
+  const deletePlan   = useDeleteManagementPlan(mpid || "");
   const createRun    = useCreateManagementRun(mpid || "");
   const createCycle  = useCreateManagementCycle(mpid || "");
   const aiGenPlan    = useAIGeneratePlan(mpid || "");
@@ -374,11 +376,7 @@ export default function ManagementPlansPage() {
     if (!deletingPlan || !mpid) return;
     setDeleteLoading(true);
     try {
-      // Optimistic removal — invalidate after
-      qc.setQueryData(
-        ["management", mpid, "plans"],
-        (old: TestPlan[] | undefined) => (old ?? []).filter(p => p.id !== deletingPlan.id),
-      );
+      await deletePlan.mutateAsync(deletingPlan.id);
       setDeletingPlan(null);
     } finally {
       setDeleteLoading(false);
