@@ -35,6 +35,106 @@ type Row = {
 
 type PlatformTab = "all" | "desktop" | "ios" | "android";
 
+function ExecutionTimeline({ runs }: { runs: Row[] }) {
+  if (runs.length === 0) return null;
+
+  // Compute max total for bar scaling
+  const maxTotal = Math.max(...runs.map(r => r.scenario_total || 1), 1);
+
+  return (
+    <div className="rounded-xl border border-slate-700 bg-slate-900/40 overflow-hidden">
+      {/* Header */}
+      <div className="grid grid-cols-[200px_1fr_80px_80px] border-b border-slate-800 px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+        <span>Koşu Adı</span>
+        <span>İlerleme Çubuğu</span>
+        <span className="text-center">Başarı</span>
+        <span className="text-center">Tarih</span>
+      </div>
+
+      <div className="divide-y divide-slate-800">
+        {runs.map(r => {
+          const tot = r.scenario_total || 0;
+          const passed = r.passed_count || 0;
+          const failed = r.failed_count || 0;
+          const skipped = Math.max(0, tot - passed - failed);
+          const passRate = tot > 0 ? Math.round((passed / tot) * 100) : 0;
+          const barWidth = tot > 0 ? (tot / maxTotal) * 100 : 0;
+          const passWidth = tot > 0 ? (passed / tot) * 100 : 0;
+          const failWidth = tot > 0 ? (failed / tot) * 100 : 0;
+          const skipWidth = tot > 0 ? (skipped / tot) * 100 : 0;
+
+          const statusDot =
+            r.status === "running" ? "bg-blue-400 animate-pulse" :
+            r.status === "completed" ? "bg-emerald-500" :
+            r.status === "error" ? "bg-red-500" :
+            "bg-slate-500";
+
+          const createdAt = r.created_at
+            ? new Date(r.created_at).toLocaleDateString("tr-TR", { day: "2-digit", month: "short" })
+            : "—";
+
+          return (
+            <div key={r.id} className="grid grid-cols-[200px_1fr_80px_80px] items-center px-4 py-3 hover:bg-slate-800/40 transition-colors group">
+              {/* Name */}
+              <div className="pr-4 min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className={`w-2 h-2 rounded-full shrink-0 ${statusDot}`} />
+                  <span className="text-xs font-medium text-white truncate">{r.name}</span>
+                </div>
+                <div className="ml-4 text-[10px] text-slate-500 mt-0.5">{tot} senaryo</div>
+              </div>
+
+              {/* Gantt bar */}
+              <div className="pr-4">
+                <div className="h-5 rounded-md overflow-hidden bg-slate-800" style={{ width: `${barWidth}%`, minWidth: '40px' }}>
+                  <div className="flex h-full">
+                    {passWidth > 0 && (
+                      <div className="bg-emerald-500/80 transition-all" style={{ width: `${passWidth}%` }} title={`${passed} geçti`} />
+                    )}
+                    {failWidth > 0 && (
+                      <div className="bg-red-500/80 transition-all" style={{ width: `${failWidth}%` }} title={`${failed} başarısız`} />
+                    )}
+                    {skipWidth > 0 && (
+                      <div className="bg-slate-600/80 transition-all" style={{ width: `${skipWidth}%` }} title={`${skipped} atlandı`} />
+                    )}
+                  </div>
+                </div>
+                <div className="mt-0.5 text-[10px] text-slate-500">
+                  <span className="text-emerald-400">{passed}</span>
+                  {failed > 0 && <span className="text-red-400 ml-1">/{failed} hata</span>}
+                  <span className="text-slate-600 ml-1">/ {tot}</span>
+                </div>
+              </div>
+
+              {/* Pass rate */}
+              <div className="text-center">
+                <span className={`text-sm font-bold ${
+                  tot === 0 ? "text-slate-500" :
+                  passRate >= 80 ? "text-emerald-400" :
+                  passRate >= 50 ? "text-amber-400" :
+                  "text-red-400"
+                }`}>
+                  {tot === 0 ? "—" : `${passRate}%`}
+                </span>
+              </div>
+
+              {/* Date */}
+              <div className="text-center text-xs text-slate-500">{createdAt}</div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Legend */}
+      <div className="border-t border-slate-800 px-4 py-2 flex items-center gap-4 text-[10px] text-slate-400">
+        <div className="flex items-center gap-1"><div className="w-3 h-2 rounded bg-emerald-500/80" /> Geçti</div>
+        <div className="flex items-center gap-1"><div className="w-3 h-2 rounded bg-red-500/80" /> Başarısız</div>
+        <div className="flex items-center gap-1"><div className="w-3 h-2 rounded bg-slate-600/80" /> Atlandı</div>
+      </div>
+    </div>
+  );
+}
+
 const PLATFORM_TABS: { key: PlatformTab; label: string }[] = [
   { key: "all", label: "Tümü" },
   { key: "desktop", label: "🖥 Masaüstü" },
@@ -57,11 +157,12 @@ export default function ExecutionsListPage() {
 
   const load = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: execQK });
-  }, [queryClient, projectId]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [queryClient, execQK]);
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [platformTab, setPlatformTab] = useState<PlatformTab>("all");
+  const [viewMode, setViewMode] = useState<"table" | "timeline">("table");
 
   useRealtimeExecution(projectId, load);
 
@@ -118,8 +219,9 @@ export default function ExecutionsListPage() {
       a.download = `allure-${execId}.json`;
       a.click();
       URL.revokeObjectURL(url);
-    } catch { /* ignore */ }
-    finally { setExportingAllure(null); }
+    } catch (err) {
+      console.error('Allure verisi yüklenemedi:', err);
+    } finally { setExportingAllure(null); }
   }
 
   return (
@@ -171,7 +273,7 @@ export default function ExecutionsListPage() {
         <StatCard label="Toplam Koşu" value={totalRuns} color="slate" />
         <StatCard label="Aktif" value={running} color="blue" />
         <StatCard label="Tamamlanan" value={completed} color="emerald" />
-        <StatCard label="Visium Farm" value={mobileRuns} color="violet" sub="Mobile" />
+        <StatCard label="Neurex Farm" value={mobileRuns} color="violet" sub="Mobile" />
         <StatCard
           label="Başarı Oranı"
           value={totalTests === 0 ? "—" : `${successRate}%`}
@@ -188,6 +290,26 @@ export default function ExecutionsListPage() {
             ))}
           </TabsList>
         </Tabs>
+      </div>
+
+      {/* View toggle */}
+      <div className="mb-3 flex items-center gap-2">
+        <div className="flex items-center gap-1 rounded-lg border border-slate-700 bg-slate-900 p-1">
+          <button
+            type="button"
+            onClick={() => setViewMode("table")}
+            className={`rounded px-3 py-1 text-xs font-medium transition-colors ${viewMode === "table" ? "bg-slate-700 text-white shadow-sm" : "text-slate-400 hover:text-slate-200"}`}
+          >
+            Tablo
+          </button>
+          <button
+            type="button"
+            onClick={() => setViewMode("timeline")}
+            className={`rounded px-3 py-1 text-xs font-medium transition-colors ${viewMode === "timeline" ? "bg-slate-700 text-white shadow-sm" : "text-slate-400 hover:text-slate-200"}`}
+          >
+            Zaman Çizelgesi
+          </button>
+        </div>
       </div>
 
       {/* Filters */}
@@ -214,7 +336,7 @@ export default function ExecutionsListPage() {
       </div>
 
       {/* Table */}
-      <div className="overflow-hidden rounded-xl border border-slate-700 bg-slate-900/40" data-testid="executions-table">
+      {viewMode === "table" && <div className="overflow-hidden rounded-xl border border-slate-700 bg-slate-900/40" data-testid="executions-table">
         <table className="w-full">
           <thead>
             <tr className="border-b border-slate-800">
@@ -363,7 +485,17 @@ export default function ExecutionsListPage() {
             <span className="text-xs text-slate-500">{filtered.length} koşu</span>
           </div>
         )}
-      </div>
+      </div>}
+
+      {viewMode === "timeline" && (
+        loading ? (
+          <div className="flex items-center justify-center py-8">
+            <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+          </div>
+        ) : (
+          <ExecutionTimeline runs={filtered} />
+        )
+      )}
 
       <PageFeedbackWidget />
     </div>

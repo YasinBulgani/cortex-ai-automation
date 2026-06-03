@@ -61,7 +61,7 @@ _BUILTINS: Dict[str, Any] = {
     "$isoTimestamp": lambda: datetime.now(timezone.utc).isoformat(),
     "$randomIBAN": _random_iban,
     "$randomTCKN": _random_tckn,
-    "$randomEmail": lambda: f"test_{random.randint(1000,9999)}@nexusqa.test",
+    "$randomEmail": lambda: f"test_{random.randint(1000,9999)}@neurex.test",
     "$randomPhone": _random_phone,
     "$randomString": lambda: "".join(random.choices(string.ascii_lowercase, k=12)),
     "$randomBoolean": lambda: random.choice(["true", "false"]),

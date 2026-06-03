@@ -5,7 +5,6 @@ import { useState } from "react";
 
 import { useCreateManagementCase, useManagementRepository } from "@/lib/hooks/use-management";
 
-import { ManagementPanel, ManagementShell } from "../../_components/ManagementShell";
 
 type DraftStep = {
   action: string;
@@ -100,13 +99,8 @@ export default function NewManagementCasePage({ params }: { params: { projectId:
   };
 
   return (
-    <ManagementShell
-      projectId={params.projectId}
-      title="New Test Case"
-      description="Manuel test case, step ve initial version snapshot kaydını oluşturun."
-      active="management/repository"
-    >
-      <ManagementPanel title="Case Form">
+    <div className="min-h-full bg-[#0a0f1e] px-5 py-5 space-y-5">
+      <section className="rounded-xl border border-white/[0.06] bg-[#0d1221] p-5">
         <form onSubmit={submit} className="space-y-5">
           {formError ? (
             <div className="rounded-lg border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-sm text-rose-200">
@@ -300,7 +294,7 @@ export default function NewManagementCasePage({ params }: { params: { projectId:
             </button>
           </div>
         </form>
-      </ManagementPanel>
-    </ManagementShell>
+      </section>
+    </div>
   );
 }

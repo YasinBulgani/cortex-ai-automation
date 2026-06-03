@@ -1,17 +1,12 @@
 "use client";
 
+import React, { lazy, Suspense } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState, useEffect, useRef, useMemo, useCallback, memo } from "react";
-import { NotificationBell } from "@/components/management/NotificationBell";
-import { NotificationCenter } from "@/components/NotificationCenter";
-import { KeyboardShortcutsHelp } from "@/components/KeyboardShortcutsHelp";
 import { ServiceRestartButton } from "@/components/ServiceRestartButton";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { AiAssistantPanel } from "@/components/AiAssistantPanel";
 import { AiStatusChip } from "@/components/AiStatusChip";
-import { OnboardingTour } from "@/components/OnboardingTour";
-import { RecentFavoritesPanel } from "@/components/RecentFavoritesPanel";
 import { SidebarSearch } from "@/components/SidebarSearch";
 import { cn } from "@/lib/utils";
 import { ENGINE_BASE, clearTokens } from "@/lib/api";
@@ -28,8 +23,81 @@ import { useProject } from "@/lib/useProject";
 import { SidebarProjectSwitcher } from "@/components/SidebarProjectSwitcher";
 import { PRODUCT_BRAND } from "@/lib/products/brand";
 
+// Lazy-loaded ağır bileşenler — ilk render'da bundle'a dahil edilmez
+const CommandPalette       = lazy(() => import("./CommandPalette").then(m => ({ default: m.CommandPalette })));
+const NotificationBell     = lazy(() => import("./management/NotificationBell").then(m => ({ default: m.NotificationBell })));
+const NotificationCenter   = lazy(() => import("./NotificationCenter").then(m => ({ default: m.NotificationCenter })));
+const KeyboardShortcutsHelp = lazy(() => import("./KeyboardShortcutsHelp").then(m => ({ default: m.KeyboardShortcutsHelp })));
+const AiAssistantPanel     = lazy(() => import("./AiAssistantPanel").then(m => ({ default: m.AiAssistantPanel })));
+const OnboardingTour       = lazy(() => import("./OnboardingTour").then(m => ({ default: m.OnboardingTour })));
+const RecentFavoritesPanel = lazy(() => import("./RecentFavoritesPanel").then(m => ({ default: m.RecentFavoritesPanel })));
+
 type Project = { id: string; name: string };
 const ALL_PRODUCTS_OPTION = { id: "all" as const, label: "QA Operations Platform", short: "Tümü" };
+
+// ─── Error Boundary ───────────────────────────────────────────────────────────
+
+class AppErrorBoundary extends React.Component<
+  { children: React.ReactNode },
+  { hasError: boolean; error: Error | null }
+> {
+  constructor(props: { children: React.ReactNode }) {
+    super(props)
+    this.state = { hasError: false, error: null }
+  }
+
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error }
+  }
+
+  componentDidCatch(error: Error, info: React.ErrorInfo) {
+    console.error('[AppShell] Yakalanmayan hata:', error, info)
+    // Sentry mevcutsa:
+    if (typeof window !== 'undefined' && (window as any).__SENTRY__) {
+      // Sentry.captureException(error, { contexts: { react: { componentStack: info.componentStack } } })
+    }
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="flex min-h-screen items-center justify-center bg-slate-900">
+          <div className="mx-auto max-w-md rounded-lg border border-red-500/20 bg-red-500/5 p-8 text-center">
+            <div className="mb-4 flex justify-center">
+              <svg className="h-12 w-12 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+              </svg>
+            </div>
+            <h2 className="mb-2 text-lg font-semibold text-red-400">Beklenmeyen Bir Hata Oluştu</h2>
+            <p className="mb-1 text-sm text-slate-400">
+              Sayfa yüklenirken bir sorun oluştu.
+            </p>
+            {this.state.error && (
+              <p className="mb-6 rounded-md bg-slate-800 px-3 py-2 text-xs font-mono text-slate-500 text-left break-all">
+                {this.state.error.message}
+              </p>
+            )}
+            <div className="flex flex-col gap-2 sm:flex-row sm:justify-center">
+              <button
+                onClick={() => window.location.reload()}
+                className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-500 transition-colors"
+              >
+                Sayfayı Yenile
+              </button>
+              <a
+                href="/"
+                className="rounded-md border border-slate-600 px-4 py-2 text-sm font-medium text-slate-300 hover:border-slate-400 hover:text-white transition-colors"
+              >
+                Anasayfaya Don
+              </a>
+            </div>
+          </div>
+        </div>
+      )
+    }
+    return this.props.children
+  }
+}
 
 // ─── Sidebar ikonları ────────────────────────────────────────────────────────
 
@@ -283,7 +351,7 @@ export function AppShell({
                 onClick={() => selectProduct("all")}
                 className={cn(
                   "flex w-full items-center gap-2.5 px-3 py-2 text-left transition-colors",
-                  activeProductId === "all" ? "bg-blue-900/30 text-blue-300" : "text-slate-300 hover:bg-slate-700 hover:text-white"
+                  activeProductId === "all" ? "bg-teal-900/30 text-teal-300" : "text-slate-300 hover:bg-slate-700 hover:text-white"
                 )}
               >
                 <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-slate-600 to-slate-700 text-[10px] font-bold text-white">★</div>
@@ -292,7 +360,7 @@ export function AppShell({
                   <p className="truncate text-[10px] text-slate-500">Tüm ürünler — varsayılan görünüm</p>
                 </div>
                 {activeProductId === "all" && (
-                  <svg className="h-4 w-4 shrink-0 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <svg className="h-4 w-4 shrink-0 text-teal-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                   </svg>
                 )}
@@ -312,7 +380,7 @@ export function AppShell({
                     className={cn(
                       "flex w-full items-center gap-2.5 px-3 py-2 text-left transition-colors",
                       isActive
-                        ? `${brand?.bg ?? "bg-blue-900/30"} ${brand?.text ?? "text-blue-300"}`
+                        ? `${brand?.bg ?? "bg-teal-900/30"} ${brand?.text ?? "text-teal-300"}`
                         : "text-slate-300 hover:bg-slate-700 hover:text-white"
                     )}
                     data-testid={`product-picker-${p.id}`}
@@ -365,7 +433,9 @@ export function AppShell({
       />
 
       {/* Recent + Favorites */}
-      <RecentFavoritesPanel />
+      <Suspense fallback={null}>
+        <RecentFavoritesPanel />
+      </Suspense>
 
       {/* Navigation — ya global ya da ürün-spesifik */}
       <nav className="flex-1 overflow-y-auto px-3 py-3 space-y-0.5" data-testid="sidebar-nav">
@@ -528,13 +598,14 @@ export function AppShell({
   );
 
   return (
+    <AppErrorBoundary>
     <div className="flex min-h-screen flex-col bg-slate-900">
       {topBanner}
       <div className="flex min-h-0 flex-1">
 
         <a
           href="#main-content"
-          className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-blue-600 focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-white focus:outline-none"
+          className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-teal-600 focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-white focus:outline-none"
           data-testid="skip-to-content"
         >
           Ana içeriğe atla
@@ -548,7 +619,7 @@ export function AppShell({
         {/* Sidebar */}
         <aside
           className={cn(
-            "flex w-64 flex-col border-r border-gray-100 dark:border-slate-700 bg-white dark:bg-slate-800",
+            "flex w-64 flex-col border-r border-gray-100 dark:border-[#1c2540] bg-white dark:bg-[#111827]",
             "fixed inset-y-0 left-0 z-40 transition-transform duration-200 md:static md:translate-x-0",
             sidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
           )}
@@ -590,7 +661,7 @@ export function AppShell({
 
             {/* Breadcrumb */}
             <nav className="flex min-w-0 flex-1 items-center gap-1.5 text-sm text-slate-400" aria-label="breadcrumb">
-              <Link href="/" className="shrink-0 font-semibold text-blue-400 hover:text-blue-300 transition-colors" data-testid="header-breadcrumb-home">
+              <Link href="/" className="shrink-0 font-semibold text-teal-400 hover:text-teal-300 transition-colors" data-testid="header-breadcrumb-home">
                 {PRODUCT_SHORT}
               </Link>
               {currentProject && (
@@ -610,7 +681,7 @@ export function AppShell({
               <button
                 type="button"
                 onClick={() => setProjectDropOpen(v => !v)}
-                className="flex items-center gap-1.5 rounded-full border border-slate-700 bg-slate-800 px-3 py-1 text-xs font-medium text-slate-300 hover:border-blue-500/50 hover:text-blue-300 transition-colors"
+                className="flex items-center gap-1.5 rounded-full border border-slate-700 bg-[#111827] px-3 py-1 text-xs font-medium text-slate-300 hover:border-teal-500/50 hover:text-teal-300 transition-colors"
                 aria-haspopup="menu"
                 aria-expanded={projectDropOpen}
                 data-testid="header-project-pill"
@@ -668,17 +739,23 @@ export function AppShell({
             <AiStatusChip />
             <ServiceRestartButton />
             <ThemeToggle />
-            <NotificationBell />
-            <NotificationCenter />
-            <KeyboardShortcutsHelp
-              shortcuts={[
-                { combo: "mod+k", description: "Komut paleti", handler: () => {} },
-                { combo: "mod+j", description: "AI asistan", handler: () => {} },
-                { combo: "g s", description: "Senaryolara git", handler: () => {} },
-                { combo: "g r", description: "Çalıştırmalara git", handler: () => {} },
-                { combo: "?", description: "Kısayolları göster", handler: () => {} },
-              ]}
-            />
+            <Suspense fallback={null}>
+              <NotificationBell />
+            </Suspense>
+            <Suspense fallback={null}>
+              <NotificationCenter />
+            </Suspense>
+            <Suspense fallback={null}>
+              <KeyboardShortcutsHelp
+                shortcuts={[
+                  { combo: "mod+k", description: "Komut paleti", handler: () => {} },
+                  { combo: "mod+j", description: "AI asistan", handler: () => {} },
+                  { combo: "g s", description: "Senaryolara git", handler: () => {} },
+                  { combo: "g r", description: "Çalıştırmalara git", handler: () => {} },
+                  { combo: "?", description: "Kısayolları göster", handler: () => {} },
+                ]}
+              />
+            </Suspense>
 
             {/* Kullanıcı menüsü */}
               <div data-testid="user-menu" className="relative">
@@ -739,10 +816,15 @@ export function AppShell({
       </div>
 
       {/* AI Asistan Panel — global, Cmd+J ile açılır */}
-      <AiAssistantPanel />
+      <Suspense fallback={null}>
+        <AiAssistantPanel />
+      </Suspense>
 
       {/* İlk girişte tur */}
-      <OnboardingTour />
+      <Suspense fallback={null}>
+        <OnboardingTour />
+      </Suspense>
     </div>
+    </AppErrorBoundary>
   );
 }

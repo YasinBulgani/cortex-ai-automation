@@ -440,7 +440,7 @@ class TspmApiTestRun(Base):
 # ═══════════════════════════════════════════════════════════════════════
 
 class TspmN8nWorkflow(Base):
-    """Tracks an n8n workflow linked to a TestwrightAI project."""
+    """Tracks an n8n workflow linked to a Neurex project."""
     __tablename__ = "tspm_n8n_workflows"
 
     id: Mapped[str] = mapped_column(UUID(as_uuid=False), primary_key=True, default=_uuid)

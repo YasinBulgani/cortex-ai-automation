@@ -1,9 +1,10 @@
-from typing import Annotated, Optional
+from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.core.utils import client_ip
 from app.deps import get_current_user
 from app.domains.audit.service import log_audit
 from app.domains.rules.schemas import RuleSetCreate, RuleSetOut
@@ -11,12 +12,6 @@ from app.infra.database import get_db
 from app.infra.models import Dataset, RuleSet, User
 
 router = APIRouter(prefix="/datasets", tags=["rules"])
-
-
-def _client_ip(request: Request) -> Optional[str]:
-    if request.client:
-        return request.client.host
-    return None
 
 
 @router.get("/{dataset_id}/rule-sets", response_model=list[RuleSetOut])
@@ -67,7 +62,7 @@ def create_rule_set(
         resource_type="rule_set",
         resource_id=rs.id,
         payload={"dataset_id": dataset_id, "name": body.name},
-        ip=_client_ip(request),
+        ip=client_ip(request),
     )
     db.commit()
     db.refresh(rs)

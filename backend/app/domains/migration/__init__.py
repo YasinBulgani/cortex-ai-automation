@@ -1,4 +1,4 @@
-"""Migration asistanı — Selenium/Katalon → TestwrightAI DSL dönüştürücü."""
+"""Migration asistanı — Selenium/Katalon → Neurex DSL dönüştürücü."""
 from .assistant import (
     MigratedStep,
     MigrationResult,

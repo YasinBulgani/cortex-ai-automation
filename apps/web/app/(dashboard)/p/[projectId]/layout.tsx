@@ -5,6 +5,9 @@ import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 
+// TAB_GROUPS ve activeGroup artık render için kullanılmıyor;
+// layout sadece proje geçerliliğini kontrol eder.
+
 type TabGroup = {
   label: string;
   tabs: { label: string; segment: string }[];
@@ -30,7 +33,7 @@ const TAB_GROUPS: TabGroup[] = [
       { label: "Locator'lar",   segment: "locators" },
       { label: "Akışlar",       segment: "flows" },
       { label: "Chain Builder", segment: "chain-builder" },
-      { label: "Visium Farm",    segment: "mobile" },
+      { label: "Neurex Farm",    segment: "mobile" },
       { label: "Mobil Geçmiş",  segment: "mobile/history" },
     ],
   },
@@ -111,17 +114,15 @@ export default function ProjectLayout({
       setProjectState("valid");
       return;
     }
-    let cancelled = false;
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(() => controller.abort(), 6000);
     (async () => {
       try {
-        const controller = new AbortController();
-        const timeoutId = window.setTimeout(() => controller.abort(), 6000);
         const res = await fetch(`/api/v1/tspm/projects/${projectId}`, {
           credentials: "include",
           signal: controller.signal,
         });
         window.clearTimeout(timeoutId);
-        if (cancelled) return;
         if (res.ok) {
           setProjectState("valid");
           return;
@@ -150,8 +151,10 @@ export default function ProjectLayout({
           setProjectState("invalid");
           setProjectErrorDetail(`Backend hatası: ${res.status}`);
         }
-      } catch {
-        if (cancelled) return;
+      } catch (err) {
+        window.clearTimeout(timeoutId);
+        // AbortError: ya timeout ya da projectId değişimi — state güncelleme
+        if (err instanceof Error && err.name === "AbortError") return;
         if (
           process.env.NODE_ENV === "development" &&
           projectId === "00000000-0000-0000-0000-000000000001"
@@ -163,7 +166,10 @@ export default function ProjectLayout({
         setProjectErrorDetail("Bağlantı hatası");
       }
     })();
-    return () => { cancelled = true; };
+    return () => {
+      window.clearTimeout(timeoutId);
+      controller.abort();
+    };
   }, [projectId]);
 
   // Aktif segment'i bul
@@ -243,59 +249,5 @@ export default function ProjectLayout({
     );
   }
 
-  return (
-    <div className="flex flex-col min-h-full">
-      {/* Grup sekmeleri — üst bar */}
-      <div className="border-b border-slate-800 bg-slate-900 sticky top-0 z-10">
-        {/* Grup seçimi */}
-        <div className="flex items-center gap-1 px-4 pt-2 overflow-x-auto scrollbar-none">
-          {TAB_GROUPS.map(group => {
-            const isActive = group.label === activeGroup.label;
-            const firstHref = `/p/${projectId}/${group.tabs[0].segment}`;
-            return (
-              <Link
-                key={group.label}
-                href={firstHref}
-                className={cn(
-                  "shrink-0 px-3 py-1.5 text-xs font-semibold rounded-t-lg transition-colors border-b-2",
-                  isActive
-                    ? "text-blue-400 border-blue-400 bg-slate-800"
-                    : "text-slate-500 border-transparent hover:text-slate-300 hover:bg-slate-800/50"
-                )}
-              >
-                {group.label}
-              </Link>
-            );
-          })}
-        </div>
-
-        {/* Aktif grubun sekmeleri */}
-        <div className="flex items-center gap-0.5 px-4 py-1.5 overflow-x-auto scrollbar-none">
-          {activeGroup.tabs.map(tab => {
-            const href = `/p/${projectId}/${tab.segment}`;
-            const isActive = activeSegment === tab.segment;
-            return (
-              <Link
-                key={tab.segment}
-                href={href}
-                className={cn(
-                  "shrink-0 px-3 py-1 text-xs font-medium rounded-md transition-all duration-150",
-                  isActive
-                    ? "bg-blue-900/30 text-blue-400"
-                    : "text-slate-400 hover:bg-slate-800 hover:text-slate-200"
-                )}
-              >
-                {tab.label}
-              </Link>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Sayfa içeriği */}
-      <div className="flex-1">
-        {children}
-      </div>
-    </div>
-  );
+  return <>{children}</>;
 }

@@ -1,7 +1,9 @@
 """WebSocket presence — kim hangi sayfaya/projeye bakiyor.
 
 In-memory icin tek instance varsayar; multi-instance icin Redis pub/sub
-ile genisletilmeli (TODO: rooms backend).
+ile genisletilmeli.
+# TODO(Wave-24): WebSocket rooms backend'i implement et.
+# Şu an yalnızca polling tabanlı presence çalışıyor.
 """
 
 from __future__ import annotations

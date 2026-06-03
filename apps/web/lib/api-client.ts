@@ -1,5 +1,5 @@
 /**
- * TestwrightAI Enhanced API Client — Refresh Token + TanStack Query Entegrasyonu
+ * Neurex Enhanced API Client — Refresh Token + TanStack Query Entegrasyonu
  *
  * Özellikler:
  *   - Access + Refresh token yonetimi (localStorage)

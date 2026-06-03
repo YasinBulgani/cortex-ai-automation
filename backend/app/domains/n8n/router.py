@@ -55,7 +55,7 @@ async def receive_n8n_callback(
     db: Session = Depends(get_db),
     x_n8n_token: str = Header(default=""),
 ):
-    """Called by n8n to report execution result back to TestwrightAI."""
+    """Called by n8n to report execution result back to Neurex."""
     wf = db.get(TspmN8nWorkflow, workflow_id)
     if not wf:
         raise HTTPException(404, "Workflow link not found")

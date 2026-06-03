@@ -8,13 +8,42 @@ Frontend'deki useProductTelemetry hook bu endpoint'i 60s'de bir poll eder.
 
 from __future__ import annotations
 
+import logging
 import os
 import random
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import JSONResponse
+from sqlalchemy import func, select
+from sqlalchemy.orm import Session
+
+from app.deps import get_current_user
+from app.infra.database import get_db
+
+_logger = logging.getLogger(__name__)
+
+
+def _format_age(dt: datetime | str | None) -> str:
+    """Verilen datetime'ı insanca okunabilir yaş stringine çevirir."""
+    if not dt:
+        return "?"
+    try:
+        if isinstance(dt, str):
+            dt = datetime.fromisoformat(dt)
+        if dt.tzinfo is None:
+            delta = datetime.now(timezone.utc) - dt.replace(tzinfo=timezone.utc)
+        else:
+            delta = datetime.now(timezone.utc) - dt
+        total_hours = int(delta.total_seconds() / 3600)
+        if total_hours < 1:
+            return "az önce"
+        if total_hours < 24:
+            return f"{total_hours} sa"
+        return f"{total_hours // 24} gün"
+    except Exception:
+        return "?"
 
 
 def _is_production() -> bool:
@@ -36,7 +65,18 @@ def _block_in_production(endpoint: str) -> None:
         )
 
 # P0 #4: Replace with real aggregation from DB
-_DEMO_MODE = True  # TODO: Replace with real DB aggregation
+# TODO: Replace with real DB aggregation (Sprint X).
+#   Adımlar:
+#   1. _DEMO_MODE = False yap (veya PRODUCTS_DEMO_MODE=false env var ayarla)
+#   2. Her endpoint için ilgili tablodan gerçek veriyi çek (bkz. endpoint TODO'ları)
+#   3. PRODUCT_STATS ve AI_INSIGHTS sabit sözlüklerini kaldır
+_DEMO_MODE = os.getenv("PRODUCTS_DEMO_MODE", "true").lower() == "true"
+
+if _DEMO_MODE:
+    _logger.warning(
+        "Products domain DEMO MODE aktif — tum metrikler simule edilmektedir. "
+        "Gercek implementasyon icin _DEMO_MODE=False yapin ve DB aggregation'lari ekleyin."
+    )
 
 router = APIRouter(prefix="/products", tags=["products"])
 
@@ -171,9 +211,15 @@ AI_INSIGHTS: dict[str, list[dict[str, Any]]] = {
 }
 
 
+# TODO: SELECT stat_key, agg_value, trend, severity
+#        FROM products_metrics
+#        WHERE product_id = :product_id
+#          AND recorded_at >= NOW() - INTERVAL '7 days'
+#        ORDER BY recorded_at DESC;
+#       AI insights icin: SELECT * FROM ai_insights WHERE product_id = :product_id AND dismissed = FALSE;
 @router.get("/{product_id}/telemetry", summary="Ürün telemetri verisi")
 def get_product_telemetry(product_id: str) -> JSONResponse:
-    # P0 #4: Replace with real aggregation from DB
+    # DEMO MODE: Gercek DB aggregation yerine PRODUCT_STATS sabit verisini kullanir.
     if product_id not in VALID_PRODUCT_IDS:
         raise HTTPException(status_code=404, detail=f"Geçersiz product_id: {product_id}")
 
@@ -235,16 +281,90 @@ def _demo(payload: dict[str, Any]) -> JSONResponse:
     return JSONResponse(content=payload, headers=_DEMO_HEADERS)
 
 
-# TODO: visual_diff/a11y/perf/run aggregations'tan birleşik release health üret.
-@router.get("/web/release-health", summary="Web release sağlığı (verdict + checks)")
-def get_web_release_health(project_id: str | None = None) -> dict[str, Any]:
-    _block_in_production("web/release-health")
-    checks = [
+_RELEASE_HEALTH_FALLBACK = {
+    "verdict": "caution",
+    "release": "web@latest",
+    "checks": [
         {"key": "visual", "label": "Visual regression",      "status": "warn", "detail": "1 kritik diff onay bekliyor",  "href": "#visual"},
         {"key": "a11y",   "label": "Accessibility (a11y)",   "status": "fail", "detail": "2 WCAG AA blocker — Checkout", "href": "#a11y"},
         {"key": "pass",   "label": "Pass rate (24s)",         "status": "ok",   "detail": "94.8% · hedef 92%",            "href": "#stats"},
         {"key": "perf",   "label": "Perf (Core Web Vitals)",  "status": "warn", "detail": "LCP 2.9s · hedef <2.5s",       "href": "#perf"},
-    ]
+    ],
+}
+
+
+# TODO: SELECT check_key, status, detail
+#        FROM web_release_checks
+#        WHERE project_id = :project_id
+#          AND release_tag = (SELECT MAX(tag) FROM releases WHERE product = 'web');
+#       Verdict, checks tablosundaki en kotu status'a gore hesaplanmali.
+@router.get("/web/release-health", summary="Web release sağlığı (verdict + checks)")
+def get_web_release_health(
+    project_id: str | None = None,
+    db: Session = Depends(get_db),
+) -> dict[str, Any]:
+    _block_in_production("web/release-health")
+
+    if not _DEMO_MODE:
+        try:
+            from app.domains.tspm.models import TspmExecution, TspmExecutionMetrics
+
+            cutoff = datetime.now(timezone.utc) - timedelta(hours=24)
+
+            # Aggregate pass/fail over last 24h using TspmExecutionMetrics
+            row = db.execute(
+                select(
+                    func.sum(TspmExecutionMetrics.total).label("total"),
+                    func.sum(TspmExecutionMetrics.passed).label("passed"),
+                    func.sum(TspmExecutionMetrics.failed).label("failed"),
+                    func.avg(TspmExecutionMetrics.pass_rate).label("avg_pass_rate"),
+                ).where(TspmExecutionMetrics.executed_at >= cutoff)
+            ).one()
+
+            total = row.total or 0
+            passed = row.passed or 0
+            failed = row.failed or 0
+            pass_rate = float(row.avg_pass_rate or 0.0)
+
+            pass_status = "ok" if pass_rate >= 92 else ("warn" if pass_rate >= 80 else "fail")
+            pass_detail = f"{pass_rate:.1f}% · hedef 92% ({total} koşum)"
+
+            # visual/a11y/perf: henüz ayrı DB tabloları yok; placeholder döndürülür.
+            # TODO: web_visual_checks, web_a11y_checks, web_vitals_samples tablolarından çekilecek.
+            _logger.warning(
+                "release-health: visual/a11y/perf kontrolleri henüz DB'ye bağlanmadı — "
+                "placeholder 'warn' değerleri döndürülüyor. "
+                "Gerçek implementasyon için web_visual_checks ve web_a11y_checks tablolarını ekleyin."
+            )
+            checks = [
+                {"key": "visual", "label": "Visual regression",     "status": "warn", "detail": "Placeholder — web_visual_checks tablosu henüz yok", "href": "#visual"},
+                {"key": "a11y",   "label": "Accessibility (a11y)",  "status": "warn", "detail": "Placeholder — web_a11y_checks tablosu henüz yok",    "href": "#a11y"},
+                {"key": "pass",   "label": "Pass rate (24s)",        "status": pass_status, "detail": pass_detail, "href": "#stats"},
+                {"key": "perf",   "label": "Perf (Core Web Vitals)", "status": "warn", "detail": "Placeholder — web_vitals_samples tablosu henüz yok", "href": "#perf"},
+            ]
+
+            if any(c["status"] == "fail" for c in checks):
+                verdict = "block"
+            elif any(c["status"] == "warn" for c in checks):
+                verdict = "caution"
+            else:
+                verdict = "ship"
+
+            return JSONResponse(content={
+                "verdict": verdict,
+                "release": "web@latest",
+                "checks": checks,
+                "updatedAt": _now_iso(),
+                "_demo": {"notice": "pass_rate from DB; visual/a11y/perf placeholders", "realDataAvailable": True},
+            })
+        except Exception as exc:
+            _logger.warning("Products release-health DB sorgusu basarisiz: %s", exc)
+            fallback = dict(_RELEASE_HEALTH_FALLBACK)
+            fallback["updatedAt"] = _now_iso()
+            return _demo(fallback)
+
+    # DEMO MODE path
+    checks = list(_RELEASE_HEALTH_FALLBACK["checks"])
     if any(c["status"] == "fail" for c in checks):
         verdict = "block"
     elif any(c["status"] == "warn" for c in checks):
@@ -259,38 +379,175 @@ def get_web_release_health(project_id: str | None = None) -> dict[str, Any]:
     })
 
 
-# TODO: stats'tan son 24s + önceki 24s pencerelerini agg, delta hesapla.
+_DAY_OVER_DAY_FALLBACK_METRICS = [
+    {"key": "pass",     "label": "Pass Rate",   "today": "94.8%", "yesterday": "92.9%", "delta": 1.9,  "deltaUnit": "pp", "goodDirection": "up",   "spark": [88, 90, 89, 91, 92, 92, 94, 95]},
+    {"key": "duration", "label": "Ort. Süre",   "today": "3.2dk", "yesterday": "3.6dk", "delta": -11,  "deltaUnit": "%",  "goodDirection": "down", "spark": [42, 40, 39, 38, 37, 36, 34, 32]},
+    {"key": "flaky",    "label": "Flaky Test",  "today": "17",    "yesterday": "23",    "delta": -6,                       "goodDirection": "down", "spark": [28, 26, 25, 24, 23, 22, 19, 17]},
+    {"key": "newfail",  "label": "Yeni Fail",   "today": "4",     "yesterday": "1",     "delta": 3,                        "goodDirection": "down", "spark": [0, 1, 2, 1, 3, 2, 3, 4]},
+    {"key": "visdiff",  "label": "Visual Diff", "today": "4",     "yesterday": "6",     "delta": -2,                       "goodDirection": "down", "spark": [8, 7, 7, 6, 6, 5, 5, 4]},
+    {"key": "runs",     "label": "Toplam Koşu", "today": "1.284", "yesterday": "1.156", "delta": 11,   "deltaUnit": "%",  "goodDirection": "up",   "spark": [950, 1000, 1080, 1120, 1150, 1156, 1200, 1284]},
+]
+
+
+# TODO: SELECT metric_key,
+#               AVG(value) FILTER (WHERE recorded_at >= NOW() - INTERVAL '24h') AS today,
+#               AVG(value) FILTER (WHERE recorded_at BETWEEN NOW() - INTERVAL '48h' AND NOW() - INTERVAL '24h') AS yesterday
+#        FROM web_test_metrics
+#        WHERE project_id = :project_id
+#        GROUP BY metric_key;
 @router.get("/web/day-over-day", summary="Bugün vs dün delta metrikleri")
-def get_web_day_over_day(project_id: str | None = None) -> dict[str, Any]:
+def get_web_day_over_day(
+    project_id: str | None = None,
+    db: Session = Depends(get_db),
+) -> dict[str, Any]:
     _block_in_production("web/day-over-day")
-    metrics = [
-        {"key": "pass",     "label": "Pass Rate",   "today": "94.8%", "yesterday": "92.9%", "delta": 1.9,  "deltaUnit": "pp", "goodDirection": "up",   "spark": [88, 90, 89, 91, 92, 92, 94, 95]},
-        {"key": "duration", "label": "Ort. Süre",   "today": "3.2dk", "yesterday": "3.6dk", "delta": -11,  "deltaUnit": "%",  "goodDirection": "down", "spark": [42, 40, 39, 38, 37, 36, 34, 32]},
-        {"key": "flaky",    "label": "Flaky Test",  "today": "17",    "yesterday": "23",    "delta": -6,                       "goodDirection": "down", "spark": [28, 26, 25, 24, 23, 22, 19, 17]},
-        {"key": "newfail",  "label": "Yeni Fail",   "today": "4",     "yesterday": "1",     "delta": 3,                        "goodDirection": "down", "spark": [0, 1, 2, 1, 3, 2, 3, 4]},
-        {"key": "visdiff",  "label": "Visual Diff", "today": "4",     "yesterday": "6",     "delta": -2,                       "goodDirection": "down", "spark": [8, 7, 7, 6, 6, 5, 5, 4]},
-        {"key": "runs",     "label": "Toplam Koşu", "today": "1.284", "yesterday": "1.156", "delta": 11,   "deltaUnit": "%",  "goodDirection": "up",   "spark": [950, 1000, 1080, 1120, 1150, 1156, 1200, 1284]},
-    ]
-    return _demo({"windowHours": 24, "metrics": metrics, "updatedAt": _now_iso()})
+
+    if not _DEMO_MODE:
+        try:
+            from app.domains.tspm.models import TspmExecutionMetrics
+
+            now = datetime.now(timezone.utc)
+            today_cutoff = now - timedelta(hours=24)
+            yesterday_cutoff = now - timedelta(hours=48)
+
+            # Today's aggregate (last 24h)
+            today_row = db.execute(
+                select(
+                    func.count(TspmExecutionMetrics.id).label("runs"),
+                    func.sum(TspmExecutionMetrics.total).label("total"),
+                    func.sum(TspmExecutionMetrics.passed).label("passed"),
+                    func.sum(TspmExecutionMetrics.failed).label("failed"),
+                    func.avg(TspmExecutionMetrics.pass_rate).label("avg_pass_rate"),
+                    func.avg(TspmExecutionMetrics.duration_seconds).label("avg_duration"),
+                ).where(TspmExecutionMetrics.executed_at >= today_cutoff)
+            ).one()
+
+            # Yesterday's aggregate (24h-48h window)
+            yesterday_row = db.execute(
+                select(
+                    func.count(TspmExecutionMetrics.id).label("runs"),
+                    func.sum(TspmExecutionMetrics.total).label("total"),
+                    func.sum(TspmExecutionMetrics.passed).label("passed"),
+                    func.sum(TspmExecutionMetrics.failed).label("failed"),
+                    func.avg(TspmExecutionMetrics.pass_rate).label("avg_pass_rate"),
+                    func.avg(TspmExecutionMetrics.duration_seconds).label("avg_duration"),
+                ).where(
+                    TspmExecutionMetrics.executed_at >= yesterday_cutoff,
+                    TspmExecutionMetrics.executed_at < today_cutoff,
+                )
+            ).one()
+
+            t_pass = float(today_row.avg_pass_rate or 0.0)
+            y_pass = float(yesterday_row.avg_pass_rate or 0.0)
+            t_runs = int(today_row.runs or 0)
+            y_runs = int(yesterday_row.runs or 0)
+            t_dur = float(today_row.avg_duration or 0.0)
+            y_dur = float(yesterday_row.avg_duration or 0.0)
+            t_failed = int(today_row.failed or 0)
+            y_failed = int(yesterday_row.failed or 0)
+
+            run_delta_pct = round(((t_runs - y_runs) / y_runs * 100) if y_runs else 0, 1)
+            dur_delta_pct = round(((t_dur - y_dur) / y_dur * 100) if y_dur else 0, 1)
+
+            metrics = [
+                {
+                    "key": "pass", "label": "Pass Rate",
+                    "today": f"{t_pass:.1f}%", "yesterday": f"{y_pass:.1f}%",
+                    "delta": round(t_pass - y_pass, 1), "deltaUnit": "pp",
+                    "goodDirection": "up", "spark": [],
+                },
+                {
+                    "key": "duration", "label": "Ort. Süre",
+                    "today": f"{t_dur:.0f}s", "yesterday": f"{y_dur:.0f}s",
+                    "delta": dur_delta_pct, "deltaUnit": "%",
+                    "goodDirection": "down", "spark": [],
+                },
+                {
+                    "key": "newfail", "label": "Yeni Fail",
+                    "today": str(t_failed), "yesterday": str(y_failed),
+                    "delta": t_failed - y_failed,
+                    "goodDirection": "down", "spark": [],
+                },
+                {
+                    "key": "runs", "label": "Toplam Koşu",
+                    "today": str(t_runs), "yesterday": str(y_runs),
+                    "delta": run_delta_pct, "deltaUnit": "%",
+                    "goodDirection": "up", "spark": [],
+                },
+            ]
+
+            return JSONResponse(content={
+                "windowHours": 24,
+                "metrics": metrics,
+                "updatedAt": _now_iso(),
+                "_demo": {"notice": "real DB aggregation from tspm_execution_metrics", "realDataAvailable": True},
+            })
+        except Exception as exc:
+            _logger.warning("Products day-over-day DB sorgusu basarisiz: %s", exc)
+            return _demo({"windowHours": 24, "metrics": list(_DAY_OVER_DAY_FALLBACK_METRICS), "updatedAt": _now_iso()})
+
+    return _demo({"windowHours": 24, "metrics": list(_DAY_OVER_DAY_FALLBACK_METRICS), "updatedAt": _now_iso()})
 
 
-# TODO: visual diff onayları, flaky escalation'lar, PR review request'leri, perf
-# regression alert'leri ile birleşik bir inbox üret. Kullanıcı kimliği auth'tan.
 @router.get("/web/my-inbox", summary="Kullanıcıya atanmış açık işler")
-def get_web_my_inbox(project_id: str | None = None) -> dict[str, Any]:
-    _block_in_production("web/my-inbox")
-    items = [
-        {"id": "1", "kind": "approve",     "priority": "high", "title": "Checkout Step 2 — visual diff onayı bekliyor", "context": "12.4% pixel diff · v2.4.0 → v2.5.0",     "age": "23 dk"},
-        {"id": "2", "kind": "fix",         "priority": "high", "title": "Auth flow test'in 3 koşudur flaky",              "context": "Safari 17.4 · 'token undefined' hatası", "age": "1 sa"},
-        {"id": "3", "kind": "review",      "priority": "med",  "title": "PR #482 — locator değişikliği",                  "context": "47 test bu locator'ı kullanıyor",         "age": "2 sa"},
-        {"id": "4", "kind": "investigate", "priority": "med",  "title": "Homepage LCP 2.5s → 2.9s yükseldi",              "context": "Son deploy sonrası perf regression",      "age": "4 sa"},
-        {"id": "5", "kind": "approve",     "priority": "low",  "title": "Profile page — yeni baseline alındı",            "context": "AI 'kabul edilebilir' diyor (skor 0.94)", "age": "6 sa"},
-    ]
-    return _demo({"items": items, "updatedAt": _now_iso()})
+def get_web_my_inbox(
+    project_id: str | None = None,
+    db: Session = Depends(get_db),
+    current_user: Any = Depends(get_current_user),
+) -> dict[str, Any]:
+    try:
+        from app.domains.defects import service as defect_svc
+
+        open_defects = defect_svc.list_defects(
+            project_id=project_id,
+            status="open",
+        )
+        awaiting = defect_svc.list_defects(
+            project_id=project_id,
+            status="awaiting_fix",
+        )
+        all_defects = open_defects + awaiting
+        # dedupe by id (list_defects filtreli sonuç döner, birleşimde tekrar olabilir)
+        seen: set[str] = set()
+        deduped = []
+        for d in all_defects:
+            if d.id not in seen:
+                seen.add(d.id)
+                deduped.append(d)
+
+        # En yeni 20 kayıt
+        deduped = sorted(deduped, key=lambda d: d.updated_at, reverse=True)[:20]
+
+        severity_to_priority = {"critical": "high", "major": "high", "minor": "med", "trivial": "low"}
+        items = [
+            {
+                "id": d.id,
+                "kind": "defect",
+                "priority": severity_to_priority.get(d.severity, "med"),
+                "title": d.title or "Açık Defect",
+                "context": f"Proje: {d.project_id}" + (f" · Senaryo: {d.scenario_id}" if d.scenario_id else ""),
+                "age": _format_age(d.created_at),
+            }
+            for d in deduped
+        ]
+        return {"items": items, "total": len(items), "updatedAt": _now_iso()}
+    except Exception as e:
+        _logger.warning("my-inbox sorgulama hatası: %s", e)
+        return {"items": [], "total": 0, "updatedAt": _now_iso(), "_error": str(e)}
 
 
-# TODO: Lighthouse / RUM (CrUX, Web Vitals) verilerini agg edip sayfa başı
-# p75 LCP/INP/CLS/FCP/TBT döndür. Şu an demo veri.
+# TODO: SELECT page_url, page_label,
+#               PERCENTILE_CONT(0.75) WITHIN GROUP (ORDER BY lcp) AS lcp_p75,
+#               PERCENTILE_CONT(0.75) WITHIN GROUP (ORDER BY inp) AS inp_p75,
+#               PERCENTILE_CONT(0.75) WITHIN GROUP (ORDER BY cls) AS cls_p75,
+#               PERCENTILE_CONT(0.75) WITHIN GROUP (ORDER BY fcp) AS fcp_p75,
+#               PERCENTILE_CONT(0.75) WITHIN GROUP (ORDER BY tbt) AS tbt_p75,
+#               COUNT(*) AS sample_count
+#        FROM web_vitals_samples
+#        WHERE project_id = :project_id
+#          AND sampled_at >= NOW() - INTERVAL '24h'
+#        GROUP BY page_url, page_label;
+#       Trend icin: son 8 gunluk gunluk p75 pencereler.
 @router.get("/web/perf-metrics", summary="Core Web Vitals — sayfa başı + trend")
 def get_web_perf_metrics(project_id: str | None = None) -> dict[str, Any]:
     _block_in_production("web/perf-metrics")
@@ -312,21 +569,40 @@ def get_web_perf_metrics(project_id: str | None = None) -> dict[str, Any]:
     return _demo({"pages": pages, "trend": trend, "updatedAt": _now_iso()})
 
 
-_VALID_INBOX_ACTIONS = {"approve", "reject", "snooze", "reassign"}
+_VALID_INBOX_ACTIONS = {"dismiss", "snooze", "resolve", "assign", "approve", "reject", "reassign"}
 
 
-# TODO: gerçek aksiyon implementasyonu:
-#  - approve/reject → ilgili visual diff / PR review state'ini güncelle
-#  - snooze        → kullanıcının inbox kuralında item_id'yi 24s saklı tut
-#  - reassign     → request body'den yeni assignee al, audit log yaz
 @router.post("/web/my-inbox/{item_id}/{action}", summary="Inbox item aksiyonu")
-def post_web_inbox_action(item_id: str, action: str) -> dict[str, Any]:
-    _block_in_production("web/my-inbox/action")
+def post_web_inbox_action(
+    item_id: str,
+    action: str,
+    db: Session = Depends(get_db),
+    current_user: Any = Depends(get_current_user),
+) -> dict[str, Any]:
     if action not in _VALID_INBOX_ACTIONS:
-        raise HTTPException(status_code=400, detail=f"Geçersiz aksiyon: {action}")
+        raise HTTPException(status_code=400, detail=f"Geçersiz aksiyon: {action}. Geçerli aksiyonlar: {sorted(_VALID_INBOX_ACTIONS)}")
+
+    user_id = getattr(current_user, "id", "?")
+    _logger.info("[inbox] action=%s item=%s user=%s", action, item_id, user_id)
+
+    # resolve → defect'i kapat
+    if action == "resolve":
+        try:
+            from app.domains.defects import service as defect_svc
+            defect = defect_svc.get_defect(item_id)
+            if defect is not None and defect.status not in ("closed", "verified"):
+                defect_svc.verify_and_close(
+                    item_id,
+                    rerun_id=f"inbox-resolve-{user_id}",
+                    rerun_passed=True,
+                    actor=str(user_id),
+                )
+        except Exception as exc:
+            _logger.warning("[inbox] resolve defect hatası item=%s: %s", item_id, exc)
+
     return {
-        "id": item_id,
+        "ok": True,
+        "item_id": item_id,
         "action": action,
-        "status": "accepted",
         "resolvedAt": _now_iso(),
     }

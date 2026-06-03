@@ -21,6 +21,7 @@ import logging
 from collections import defaultdict
 from typing import Any, Dict, List, Optional
 
+from sqlalchemy import select, func
 from sqlalchemy.orm import Session
 
 from app.domains.ai.knowledge_store import KnowledgeStore
@@ -66,9 +67,8 @@ def learn_from_execution(
 
     # Tüm execution detail'leri yükle
     details = (
-        db.query(ApiExecutionDetail)
-        .filter(ApiExecutionDetail.run_id == run_id)
-        .all()
+        db.execute(select(ApiExecutionDetail).where(ApiExecutionDetail.run_id == run_id))
+        .scalars().all()
     )
 
     if not details:
@@ -80,7 +80,7 @@ def learn_from_execution(
     tc_ids = [d.test_case_id for d in details if d.test_case_id]
     test_cases_map = {}  # type: Dict[str, ApiTestCase]
     if tc_ids:
-        tcs = db.query(ApiTestCase).filter(ApiTestCase.id.in_(tc_ids)).all()
+        tcs = db.execute(select(ApiTestCase).where(ApiTestCase.id.in_(tc_ids))).scalars().all()
         test_cases_map = {tc.id: tc for tc in tcs}
 
     ingested_count = 0
@@ -762,15 +762,13 @@ def enrich_generation_prompt(
     previously_generated_count = 0
     if db and endpoint_paths:
         try:
-            count = (
-                db.query(ApiTestCase)
-                .filter(
+            count = db.scalar(
+                select(func.count(ApiTestCase.id)).where(
                     ApiTestCase.project_id == project_id,
                     ApiTestCase.request_path.in_(endpoint_paths),
                 )
-                .count()
             )
-            previously_generated_count = count
+            previously_generated_count = count or 0
         except Exception as exc:
             logger.debug("Mevcut test sayisi sorgu hatasi: %s", exc)
 

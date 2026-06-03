@@ -23,6 +23,7 @@ import re
 from typing import Any, Dict, List, Optional, Tuple
 from uuid import uuid4
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.domains.api_testing.models import ApiEndpoint, ApiSpec, ApiTestCase
@@ -944,9 +945,9 @@ def scan_endpoint(
 
     Returns a comprehensive security analysis result.
     """
-    endpoint = db.query(ApiEndpoint).filter(
-        ApiEndpoint.id == endpoint_id,
-    ).first()
+    endpoint = db.execute(
+        select(ApiEndpoint).where(ApiEndpoint.id == endpoint_id)
+    ).scalars().first()
 
     if not endpoint:
         return {
@@ -963,9 +964,9 @@ def scan_endpoint(
     # Optionally load spec for inventory checks
     spec = None  # type: Optional[ApiSpec]
     try:
-        spec = db.query(ApiSpec).filter(
-            ApiSpec.id == endpoint.spec_id,
-        ).first()
+        spec = db.execute(
+            select(ApiSpec).where(ApiSpec.id == endpoint.spec_id)
+        ).scalars().first()
     except Exception:
         logger.warning("Spec yüklenemedi — inventory kontrolleri atlanıyor", exc_info=True)
 
@@ -1030,10 +1031,12 @@ def scan_spec(
 
     Returns aggregated summary + per-endpoint results.
     """
-    spec = db.query(ApiSpec).filter(
-        ApiSpec.id == spec_id,
-        ApiSpec.project_id == project_id,
-    ).first()
+    spec = db.execute(
+        select(ApiSpec).where(
+            ApiSpec.id == spec_id,
+            ApiSpec.project_id == project_id,
+        )
+    ).scalars().first()
 
     if not spec:
         return {
@@ -1048,9 +1051,9 @@ def scan_spec(
             "error": "Spec not found",
         }
 
-    endpoints = db.query(ApiEndpoint).filter(
-        ApiEndpoint.spec_id == spec_id,
-    ).all()
+    endpoints = db.execute(
+        select(ApiEndpoint).where(ApiEndpoint.spec_id == spec_id)
+    ).scalars().all()
 
     endpoint_results = []  # type: List[Dict[str, Any]]
     all_findings = []  # type: List[Dict[str, Any]]
@@ -1100,17 +1103,17 @@ def get_security_dashboard(
     Aggregates scan results, compliance status, and recommendations.
     """
     # Get all specs in the project
-    specs = db.query(ApiSpec).filter(
-        ApiSpec.project_id == project_id,
-    ).all()
+    specs = db.execute(
+        select(ApiSpec).where(ApiSpec.project_id == project_id)
+    ).scalars().all()
 
     # Get all endpoints via specs
     spec_ids = [s.id for s in specs]
     endpoints = []  # type: List[ApiEndpoint]
     if spec_ids:
-        endpoints = db.query(ApiEndpoint).filter(
-            ApiEndpoint.spec_id.in_(spec_ids),
-        ).all()
+        endpoints = db.execute(
+            select(ApiEndpoint).where(ApiEndpoint.spec_id.in_(spec_ids))
+        ).scalars().all()
 
     total_endpoints = len(endpoints)
 
@@ -1297,9 +1300,9 @@ def generate_security_tests(
         findings = [f for f in findings if f.get("owasp_category") in category_set]
         suggestions = [s for s in suggestions if s.get("owasp_category") in category_set]
 
-    endpoint = db.query(ApiEndpoint).filter(
-        ApiEndpoint.id == endpoint_id,
-    ).first()
+    endpoint = db.execute(
+        select(ApiEndpoint).where(ApiEndpoint.id == endpoint_id)
+    ).scalars().first()
 
     if not endpoint:
         return {

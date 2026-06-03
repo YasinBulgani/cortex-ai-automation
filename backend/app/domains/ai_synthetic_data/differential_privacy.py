@@ -1,5 +1,5 @@
 """
-Differential Privacy module for TestwrightAI synthetic data protection.
+Differential Privacy module for Neurex synthetic data protection.
 
 Implements epsilon-differential privacy mechanisms, k-anonymity, l-diversity
 checks, re-identification risk assessment, and KVKK compliance reporting

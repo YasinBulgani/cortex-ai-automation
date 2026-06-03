@@ -77,7 +77,7 @@ def _render_test_result(run_name: str, project: str, passed: int, failed: int,
     <div class="metric"><span>Tarih</span><span class="metric-value">{datetime.now(timezone.utc).strftime('%d/%m/%Y %H:%M')} UTC</span></div>
     {btn_html}
   </div>
-  <div class="footer">TestwrightAI Test Intelligence Platform · Otomatik bildirim</div>
+  <div class="footer">Neurex Test Intelligence Platform · Otomatik bildirim</div>
 </div></body></html>"""
 
 
@@ -104,7 +104,7 @@ def _render_quality_gate(project: str, gate_name: str, result: str,
     {checks_html}
     {btn_html}
   </div>
-  <div class="footer">TestwrightAI Test Intelligence Platform · Otomatik bildirim</div>
+  <div class="footer">Neurex Test Intelligence Platform · Otomatik bildirim</div>
 </div></body></html>"""
 
 
@@ -154,7 +154,7 @@ def notify_test_complete(
     run_url: str = "",
 ) -> bool:
     status = "Başarısız" if failed else "Tamamlandı"
-    subject = f"[TestwrightAI] Test Koşusu {status} — {project} / {run_name}"
+    subject = f"[Neurex] Test Koşusu {status} — {project} / {run_name}"
     html = _render_test_result(run_name, project, passed, failed, duration_s, run_url)
     return send_email(to, subject, html)
 
@@ -169,7 +169,7 @@ def notify_quality_gate(
     run_url: str = "",
 ) -> bool:
     verdict = "GEÇTİ" if result == "passed" else "BAŞARISIZ"
-    subject = f"[TestwrightAI] Quality Gate {verdict} — {project} / {gate_name}"
+    subject = f"[Neurex] Quality Gate {verdict} — {project} / {gate_name}"
     html = _render_quality_gate(project, gate_name, result, checks, run_url)
     return send_email(to, subject, html)
 

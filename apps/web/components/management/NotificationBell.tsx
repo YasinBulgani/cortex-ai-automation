@@ -23,6 +23,8 @@ import {
   useNotificationDigest,
   useUnreadCount,
 } from "@/lib/hooks/use-mgmt-notifications";
+import { useCurrentUser } from "@/lib/hooks/use-auth";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export interface NotificationBellProps {
   /** Optional class for the trigger button. */
@@ -35,6 +37,7 @@ export function NotificationBell({ className, projectId = null }: NotificationBe
   const [open, setOpen] = useState(false);
   const [unreadOnly, setUnreadOnly] = useState(false);
   const [showDigest, setShowDigest] = useState(false);
+  const { user } = useCurrentUser();
   const { data: counts } = useUnreadCount();
   const { data: notifications = [], isLoading, isError } = useNotifications({
     unreadOnly,
@@ -45,7 +48,8 @@ export function NotificationBell({ className, projectId = null }: NotificationBe
   const markAllRead = useMarkAllRead();
   const digest = useNotificationDigest("24h", showDigest);
 
-  useNotificationStream(true);
+  // Stream is only opened when authenticated; hook cleanup closes EventSource on unmount.
+  useNotificationStream(!!user);
 
   const unread = counts?.unread ?? 0;
 
@@ -139,7 +143,11 @@ export function NotificationBell({ className, projectId = null }: NotificationBe
                   Failed to load notifications.
                 </p>
               ) : isLoading ? (
-                <p className="px-2 py-4 text-xs text-slate-500">Loading…</p>
+                <div className="space-y-2 p-2">
+                  <Skeleton className="h-10 w-full" />
+                  <Skeleton className="h-10 w-full" />
+                  <Skeleton className="h-10 w-3/4" />
+                </div>
               ) : notifications.length === 0 ? (
                 <p className="px-2 py-6 text-center text-xs text-slate-500">
                   {unreadOnly ? "No unread notifications." : "Nothing here yet."}
@@ -204,14 +212,19 @@ function NotificationRow({
       }`}
     >
       <div className="flex items-start justify-between gap-2">
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-xs font-semibold text-white">{notification.title}</p>
-          {notification.body ? (
-            <p className="mt-0.5 line-clamp-2 text-[11px] text-slate-300">{notification.body}</p>
-          ) : null}
-          <p className="mt-1 text-[10px] uppercase tracking-wide text-slate-500">
-            {notification.kind} · {new Date(notification.created_at).toLocaleString()}
-          </p>
+        <div className="flex items-start gap-2">
+          <span className={`mt-0.5 ${kindIconColor(notification.kind)}`}>
+            <KindIcon kind={notification.kind} />
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-xs font-semibold text-white">{notification.title}</p>
+            {notification.body ? (
+              <p className="mt-0.5 line-clamp-2 text-[11px] text-slate-300">{notification.body}</p>
+            ) : null}
+            <p className="mt-1 text-[10px] uppercase tracking-wide text-slate-500">
+              {notification.kind} · {new Date(notification.created_at).toLocaleString()}
+            </p>
+          </div>
         </div>
         <div className="flex flex-col items-end gap-1">
           {isUnread ? (
@@ -248,6 +261,30 @@ function NotificationRow({
       ) : null}
     </div>
   );
+}
+
+function KindIcon({ kind }: { kind: string }) {
+  if (kind.includes("fail") || kind.includes("error"))
+    return <svg className="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>;
+  if (kind.includes("success") || kind.includes("complete") || kind.includes("pass"))
+    return <svg className="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>;
+  if (kind.includes("warn") || kind.includes("flaky"))
+    return <svg className="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>;
+  if (kind.includes("approval") || kind.includes("review") || kind.includes("action"))
+    return <svg className="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg>;
+  if (kind.includes("ai") || kind.includes("generate"))
+    return <svg className="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg>;
+  // default
+  return <svg className="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>;
+}
+
+function kindIconColor(kind: string): string {
+  if (kind.includes("fail") || kind.includes("error")) return "text-red-400";
+  if (kind.includes("success") || kind.includes("complete") || kind.includes("pass")) return "text-emerald-400";
+  if (kind.includes("warn") || kind.includes("flaky")) return "text-amber-400";
+  if (kind.includes("approval") || kind.includes("review") || kind.includes("action")) return "text-blue-400";
+  if (kind.includes("ai") || kind.includes("generate")) return "text-violet-400";
+  return "text-slate-400";
 }
 
 function BellIcon() {

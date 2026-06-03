@@ -42,7 +42,7 @@ function MockAiChatPage() {
 
   return (
     <div data-testid="ai-chat-page">
-      <div data-testid="page-header">Visium Intelligence</div>
+      <div data-testid="page-header">Neurex Intelligence</div>
 
       <aside>
         <button data-testid="ai-chat-btn-new" onClick={createSession}>
@@ -96,9 +96,9 @@ describe("AiChatPage", () => {
     expect(screen.getByTestId("ai-chat-page")).toBeInTheDocument();
   });
 
-  it("shows 'Visium Intelligence' title in page header", () => {
+  it("shows 'Neurex Intelligence' title in page header", () => {
     render(<MockAiChatPage />);
-    expect(screen.getByTestId("page-header")).toHaveTextContent("Visium Intelligence");
+    expect(screen.getByTestId("page-header")).toHaveTextContent("Neurex Intelligence");
   });
 
   it("shows empty state message when no messages", () => {

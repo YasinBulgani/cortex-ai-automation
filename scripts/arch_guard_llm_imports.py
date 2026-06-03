@@ -26,10 +26,8 @@ from typing import List, Set
 # ALLOWLIST — L2 + bootstrapping. Bu listeye YENİ dosya eklenemez.
 # ─────────────────────────────────────────────────────────────────────────
 ALLOWLIST: Set[str] = {
-    # L2 — gerçek LLM boundary
+    # L2 — gerçek LLM boundary (sadece ai-gateway açık kaynak adapterleri)
     "ai-gateway/",  # prefix allow
-    "backend/app/domains/ai/service.py",
-    "engine/services/llm_gateway.py",
     # Scripts/tools — standalone, gateway üzerinden geçmez (küçük kabul)
     "tools/aday-analizi/analyzer.py",
     # Legacy — arşivde, docs/ADR ile kaldırılacak
@@ -37,7 +35,7 @@ ALLOWLIST: Set[str] = {
     # Self (bu dosya — allowlist kendisi)
     "scripts/arch_guard_llm_imports.py",
 }
-MAX_ALLOWLIST_ENTRIES = 6
+MAX_ALLOWLIST_ENTRIES = 4
 
 # ─────────────────────────────────────────────────────────────────────────
 # DEBT REGISTER — mevcut ihlaller. Bu liste SADECE küçültülebilir.

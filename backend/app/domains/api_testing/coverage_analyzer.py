@@ -13,6 +13,7 @@ import logging
 from collections import defaultdict
 from typing import Any, Dict, List, Optional, Tuple
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.domains.api_testing.models import ApiEndpoint, ApiSpec, ApiTestCase
@@ -148,20 +149,16 @@ def analyze_coverage(
     """
 
     # ── 1. Fetch endpoints ───────────────────────────────────────────
-    ep_query = db.query(ApiEndpoint).join(ApiSpec).filter(
-        ApiSpec.project_id == project_id,
-    )
+    ep_stmt = select(ApiEndpoint).join(ApiSpec).where(ApiSpec.project_id == project_id)
     if spec_id:
-        ep_query = ep_query.filter(ApiEndpoint.spec_id == spec_id)
+        ep_stmt = ep_stmt.where(ApiEndpoint.spec_id == spec_id)
 
-    endpoints: List[ApiEndpoint] = ep_query.all()
+    endpoints: List[ApiEndpoint] = db.execute(ep_stmt).scalars().all()
 
     # ── 2. Fetch test cases for project ──────────────────────────────
-    test_cases: List[ApiTestCase] = (
-        db.query(ApiTestCase)
-        .filter(ApiTestCase.project_id == project_id)
-        .all()
-    )
+    test_cases: List[ApiTestCase] = db.execute(
+        select(ApiTestCase).where(ApiTestCase.project_id == project_id)
+    ).scalars().all()
 
     # ── 3. Index test cases by (request_method, request_path) ────────
     # Also index by endpoint_id for direct FK matches

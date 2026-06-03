@@ -483,14 +483,14 @@ class QAOrchestrator:
         try:
             from app.domains.agents.banking_team.service_test_agent import ServiceTestAgent
             from app.domains.api_testing.models import ApiEndpoint, ApiSpec
+            from sqlalchemy import select
 
             # Get endpoints from gaps
             endpoint_ids = [s.get("endpoint_id") for s in suggestions if s.get("endpoint_id")]
             if endpoint_ids:
                 endpoints = (
-                    self.db.query(ApiEndpoint)
-                    .filter(ApiEndpoint.id.in_(endpoint_ids))
-                    .all()
+                    self.db.execute(select(ApiEndpoint).where(ApiEndpoint.id.in_(endpoint_ids)))
+                    .scalars().all()
                 )
                 ep_data = []
                 for ep in endpoints:
@@ -531,10 +531,10 @@ class QAOrchestrator:
         # Try to use execution engine if available
         try:
             from app.domains.api_testing.models import ApiExecutionDetail
+            from sqlalchemy import select
             details = (
-                self.db.query(ApiExecutionDetail)
-                .filter(ApiExecutionDetail.run_id == run_id)
-                .all()
+                self.db.execute(select(ApiExecutionDetail).where(ApiExecutionDetail.run_id == run_id))
+                .scalars().all()
             )
             passed = sum(1 for d in details if d.passed)
             failed = len(details) - passed
@@ -555,11 +555,12 @@ class QAOrchestrator:
             from sqlalchemy import select
 
             recent = (
-                self.db.query(ApiExecutionDetail)
-                .filter(ApiExecutionDetail.passed == False)  # noqa: E712
-                .order_by(ApiExecutionDetail.executed_at.desc())
-                .limit(20)
-                .all()
+                self.db.execute(
+                    select(ApiExecutionDetail)
+                    .where(ApiExecutionDetail.passed == False)  # noqa: E712
+                    .order_by(ApiExecutionDetail.executed_at.desc())
+                    .limit(20)
+                ).scalars().all()
             )
 
             if not recent:
@@ -567,7 +568,7 @@ class QAOrchestrator:
 
             failure_summaries = []
             for d in recent:
-                tc = self.db.query(ApiTestCase).filter(ApiTestCase.id == d.test_case_id).first() if d.test_case_id else None
+                tc = self.db.execute(select(ApiTestCase).where(ApiTestCase.id == d.test_case_id)).scalars().first() if d.test_case_id else None
                 failure_summaries.append({
                     "test": tc.title if tc else "Unknown",
                     "status_code": d.status_code,

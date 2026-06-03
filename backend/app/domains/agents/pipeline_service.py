@@ -34,6 +34,7 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import Any
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 logger = logging.getLogger(__name__)
@@ -264,9 +265,9 @@ class PipelineService:
         self._log("info", f"Proje: {config.project_name}")
 
         # TSPM projesi bul veya oluştur
-        project = self._db.query(TspmProject).filter(
-            TspmProject.name == config.project_name
-        ).first()
+        project = self._db.execute(
+            select(TspmProject).where(TspmProject.name == config.project_name)
+        ).scalars().first()
 
         if not project:
             project = TspmProject(

@@ -1,10 +1,10 @@
 """
 Nexus QA — Faz 5: Automation Code Generation Service
-Onaylı test case'lerden → Gherkin feature file + Java NexusQA step defs + Playwright TS.
+Onaylı test case'lerden → Gherkin feature file + Java Neurex step defs + Playwright TS.
 
 Üretim pipeline:
   1. approved TspmTestCase → Gherkin (.feature)
-  2. Gherkin → Java step definitions (NexusQA framework)
+  2. Gherkin → Java step definitions (Neurex framework)
   3. Gherkin → Playwright TypeScript test file
   4. Sonuçları TspmArtifact olarak DB'ye kaydet (veya sadece döndür)
 """
@@ -15,7 +15,7 @@ import logging
 import re
 from typing import Any, Optional
 
-logger = logging.getLogger("nexusqa.automation_gen")
+logger = logging.getLogger("neurex.automation_gen")
 
 # ── Prompt helpers ────────────────────────────────────────────────────────────
 
@@ -56,8 +56,8 @@ Yanıt SADECE .feature dosyası içeriği olmalı, başka açıklama ekleme."""
 
 
 def _build_java_steps_prompt(gherkin_content: str, feature_name: str) -> str:
-    """Build user message to generate Java NexusQA step definitions."""
-    return f"""Aşağıdaki Gherkin senaryoları için Java NexusQA (Selenium 4 + Cucumber) step definition sınıfı üret.
+    """Build user message to generate Java Neurex step definitions."""
+    return f"""Aşağıdaki Gherkin senaryoları için Java Neurex (Selenium 4 + Cucumber) step definition sınıfı üret.
 
 Feature: {feature_name}
 
@@ -65,13 +65,13 @@ Gherkin İçeriği:
 {gherkin_content[:3000]}
 
 Kurallar:
-- Paket: com.nexusqa.steps
+- Paket: com.neurex.steps
 - Sınıf adı: {_to_java_class_name(feature_name)}Steps
 - Selenium 4 WebDriver kullan
 - @Given / @When / @Then / @And Cucumber annotation'larını kullan
 - Her step için Türkçe pattern kullan
 - WebDriver'ı @Before setUp ile başlat, @After tearDown ile kapat
-- Önce mevcut NexusQA step'lerini kontrol et — yeniden kullan
+- Önce mevcut Neurex step'lerini kontrol et — yeniden kullan
 - Sadece Java kodu yaz, açıklama ekleme"""
 
 
@@ -171,7 +171,7 @@ def generate_java_steps_from_gherkin(
     project_id: Optional[str] = None,
 ) -> dict[str, Any]:
     """
-    Gherkin'den Java NexusQA step definitions üret.
+    Gherkin'den Java Neurex step definitions üret.
     Returns: {java_code: str, class_name: str, method_count: int}
     """
     from app.domains.ai.gateway_client import gateway_complete

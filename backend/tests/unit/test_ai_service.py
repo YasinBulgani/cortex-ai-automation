@@ -156,23 +156,25 @@ class TestResolveEffectiveProvider:
         s.allow_provider_fallback = fallback
         return s
 
-    def test_openai_provider_resolved_when_key_present(self):
+    def test_openai_provider_redirects_to_ollama(self):
+        # Refactored: openai is a legacy/proprietary provider and now redirects to ollama
         with patch.object(ai_service, "settings") as mock_settings:
             mock_settings.ai_provider = "openai"
             mock_settings.openai_api_key = "sk-test"
             mock_settings.anthropic_api_key = ""
             mock_settings.allow_provider_fallback = False
             result = ai_service._resolve_effective_provider()
-        assert result == "openai"
+        assert result == "ollama"
 
-    def test_anthropic_provider_resolved_when_key_present(self):
+    def test_anthropic_provider_redirects_to_ollama(self):
+        # Refactored: anthropic is a legacy/proprietary provider and now redirects to ollama
         with patch.object(ai_service, "settings") as mock_settings:
             mock_settings.ai_provider = "anthropic"
             mock_settings.anthropic_api_key = "ant-test"
             mock_settings.openai_api_key = ""
             mock_settings.allow_provider_fallback = False
             result = ai_service._resolve_effective_provider()
-        assert result == "anthropic"
+        assert result == "ollama"
 
     def test_ollama_always_resolved(self):
         with patch.object(ai_service, "settings") as mock_settings:
@@ -180,14 +182,15 @@ class TestResolveEffectiveProvider:
             result = ai_service._resolve_effective_provider()
         assert result == "ollama"
 
-    def test_openai_missing_key_raises_runtime_error(self):
+    def test_openai_missing_key_still_redirects_to_ollama(self):
+        # Refactored: no longer raises for openai, silently redirects to ollama
         with patch.object(ai_service, "settings") as mock_settings:
             mock_settings.ai_provider = "openai"
             mock_settings.openai_api_key = ""
             mock_settings.anthropic_api_key = ""
             mock_settings.allow_provider_fallback = False
-            with pytest.raises(RuntimeError, match="OPENAI_API_KEY"):
-                ai_service._resolve_effective_provider()
+            result = ai_service._resolve_effective_provider()
+        assert result == "ollama"
 
 
 # ---------------------------------------------------------------------------
@@ -195,51 +198,38 @@ class TestResolveEffectiveProvider:
 # ---------------------------------------------------------------------------
 
 class TestCallLlmOpenAI:
-    def _mock_openai_response(self, content: str):
-        mock_response = MagicMock()
-        mock_response.choices[0].message.content = content
-        return mock_response
-
-    def test_call_llm_openai_returns_content_string(self):
-        """call_llm with openai provider returns the LLM content string."""
+    def test_call_compat_returns_content_string(self):
+        """_call_compat with Ollama endpoint returns the content string."""
         expected = "Merhaba, bu bir test yanıtıdır."
-        with (
-            patch.object(ai_service, "_resolve_effective_provider", return_value="openai"),
-            patch.object(ai_service, "_assert_llm_provider_allowed"),
-            patch.object(ai_service, "_get_openai_client") as mock_client_fn,
-            patch.object(ai_service, "settings") as mock_settings,
-            patch("app.domains.ai.service.log_llm_call", create=True),
-        ):
-            mock_settings.openai_api_key = "sk-test"
-            mock_settings.openai_model = "gpt-4o"
-            mock_client = MagicMock()
-            mock_client.chat.completions.create.return_value = self._mock_openai_response(expected)
-            mock_client_fn.return_value = mock_client
-
-            # Patch trace import to avoid DB
-            with patch.dict("sys.modules", {"app.domains.ai.llm_trace": MagicMock()}):
-                result = ai_service._call_openai("system prompt", "user message")
-
+        mock_response_json = {
+            "choices": [{"message": {"content": expected}}]
+        }
+        with patch("httpx.post") as mock_post:
+            mock_resp = MagicMock()
+            mock_resp.json.return_value = mock_response_json
+            mock_resp.raise_for_status = MagicMock()
+            mock_post.return_value = mock_resp
+            result = ai_service._call_compat(
+                base_url="http://localhost:11434/v1",
+                api_key="ollama",
+                model="qwen2.5:14b",
+                messages=[{"role": "user", "content": "test"}],
+            )
         assert result == expected
 
-    def test_call_llm_anthropic_returns_content_string(self):
-        """_call_anthropic returns the .text from the first content block."""
-        expected = "Anthropic test yanıtı."
+    def test_call_ollama_returns_content_string(self):
+        """_call_ollama uses _call_compat with Ollama URL."""
+        expected = "Ollama yanıtı."
         with (
-            patch.object(ai_service, "_get_anthropic_client") as mock_client_fn,
+            patch.object(ai_service, "_call_compat", return_value=expected) as mock_compat,
             patch.object(ai_service, "settings") as mock_settings,
         ):
-            mock_settings.anthropic_api_key = "ant-test"
-            mock_settings.anthropic_model = "claude-3-5-sonnet-20241022"
-            mock_client = MagicMock()
-            mock_response = MagicMock()
-            mock_response.content = [MagicMock(text=expected)]
-            mock_client.messages.create.return_value = mock_response
-            mock_client_fn.return_value = mock_client
-
-            result = ai_service._call_anthropic("system", "user")
-
+            mock_settings.ollama_base_url = "http://localhost:11434/v1"
+            mock_settings.ollama_api_key = "ollama"
+            mock_settings.ollama_model_analyst = "qwen2.5:14b"
+            result = ai_service._call_ollama("system", "user")
         assert result == expected
+        mock_compat.assert_called_once()
 
 
 # ---------------------------------------------------------------------------

@@ -70,8 +70,14 @@
      Tailwind focus-visible: variant'ları var; bu sadece component'lerde
      focus-visible kullanmayan 3rd-party element'ler için global safety. */
   :focus-visible {
-    outline: 2px solid #60a5fa;  /* blue-400 */
+    outline: 2px solid var(--color-focus-ring, #2dd4bf);  /* teal-300 */
     outline-offset: 2px;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :focus-visible {
+      outline-color: var(--color-focus-ring-dark, #22d3ee);
+    }
   }
 }
 

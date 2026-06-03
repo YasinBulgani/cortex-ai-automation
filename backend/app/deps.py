@@ -57,9 +57,11 @@ def get_current_user(
 
 def _user_permissions(user: User) -> set[str]:
     perms: set[str] = set()
-    for role in user.roles:
-        for rp in role.permissions:
-            perms.add(rp.permission)
+    for role in (user.roles or []):
+        for rp in (role.permissions or []):
+            perm_value = getattr(rp, "permission", None)
+            if perm_value:
+                perms.add(perm_value)
     return perms
 
 

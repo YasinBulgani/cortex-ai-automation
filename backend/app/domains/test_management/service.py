@@ -755,16 +755,16 @@ def get_run(db: Session, project_id: str, run_id: str) -> TestRun:
 def list_runs(db: Session, project_id: str, status_filter: str | None = None) -> list[TestRun]:
     """Return all runs for a project, optionally filtered by status."""
     project_id = resolve_project_id(db, project_id)
-    q = (
-        db.query(TestRun)
+    stmt = (
+        select(TestRun)
         .join(TestCycle, TestRun.cycle_id == TestCycle.id)
         .join(TestPlan, TestCycle.plan_id == TestPlan.id)
-        .filter(TestPlan.project_id == project_id)
+        .where(TestPlan.project_id == project_id)
         .order_by(TestRun.created_at.desc())
     )
     if status_filter:
-        q = q.filter(TestRun.status == status_filter)
-    return q.all()
+        stmt = stmt.where(TestRun.status == status_filter)
+    return db.execute(stmt).scalars().all()
 
 
 def create_run(db: Session, project_id: str, payload: TestRunCreate, user: Any | None) -> TestRun:

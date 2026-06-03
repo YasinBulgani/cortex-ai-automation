@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { apiFetch } from "@/lib/api-client";
 
 export default function DefectForm({ initialTc, initialRun }: { initialTc: string; initialRun: string }) {
   const [form, setForm] = useState({
@@ -19,8 +20,7 @@ export default function DefectForm({ initialTc, initialRun }: { initialTc: strin
   const [tcOptions, setTcOptions] = useState<string[]>([]);
 
   useEffect(() => {
-    fetch("/api/v1/qa/cases?limit=500")
-      .then((r) => r.json())
+    apiFetch<{ items: Record<string, unknown>[] }>("/api/v1/qa/cases?limit=500")
       .then((d) => setTcOptions(d.items.map((t: any) => t.id)))
       .catch(() => {});
   }, []);

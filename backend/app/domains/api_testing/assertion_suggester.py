@@ -19,6 +19,7 @@ Usage:
 import logging
 from typing import Any, Dict, List, Optional, Tuple
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.domains.api_testing.models import (
@@ -616,10 +617,12 @@ def suggest_assertions(
     and coverage_improvement estimate.
     """
     # Load test case
-    test_case = db.query(ApiTestCase).filter(
-        ApiTestCase.id == test_case_id,
-        ApiTestCase.project_id == project_id,
-    ).first()
+    test_case = db.execute(
+        select(ApiTestCase).where(
+            ApiTestCase.id == test_case_id,
+            ApiTestCase.project_id == project_id,
+        )
+    ).scalars().first()
     if test_case is None:
         return {
             "test_case_id": test_case_id,
@@ -631,9 +634,9 @@ def suggest_assertions(
     # Load linked endpoint (if any)
     endpoint = None  # type: Optional[ApiEndpoint]
     if test_case.endpoint_id:
-        endpoint = db.query(ApiEndpoint).filter(
-            ApiEndpoint.id == test_case.endpoint_id,
-        ).first()
+        endpoint = db.execute(
+            select(ApiEndpoint).where(ApiEndpoint.id == test_case.endpoint_id)
+        ).scalars().first()
 
     current_count = len(test_case.assertions or [])
 
@@ -694,16 +697,14 @@ def bulk_suggest(
 
     Returns a summary with total suggestions and per-test breakdown.
     """
-    query = db.query(ApiTestCase).filter(
-        ApiTestCase.project_id == project_id,
-    )
+    stmt = select(ApiTestCase).where(ApiTestCase.project_id == project_id)
 
     if test_case_ids:
-        query = query.filter(ApiTestCase.id.in_(test_case_ids))
+        stmt = stmt.where(ApiTestCase.id.in_(test_case_ids))
     if test_type:
-        query = query.filter(ApiTestCase.test_type == test_type)
+        stmt = stmt.where(ApiTestCase.test_type == test_type)
 
-    test_cases = query.all()
+    test_cases = db.execute(stmt).scalars().all()
 
     results = []  # type: List[Dict[str, Any]]
     total_suggestions = 0
@@ -745,9 +746,9 @@ def get_assertion_stats(
     tests with no assertions, type distribution, and estimated
     suggestion potential.
     """
-    test_cases = db.query(ApiTestCase).filter(
-        ApiTestCase.project_id == project_id,
-    ).all()
+    test_cases = db.execute(
+        select(ApiTestCase).where(ApiTestCase.project_id == project_id)
+    ).scalars().all()
 
     total_tests = len(test_cases)
     total_assertions = 0

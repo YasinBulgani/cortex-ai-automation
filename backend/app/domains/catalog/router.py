@@ -1,9 +1,10 @@
-from typing import Annotated, Optional
+from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from app.core.utils import client_ip
 from app.deps import get_current_user
 from app.domains.audit.service import log_audit
 from app.domains.catalog.schemas import (
@@ -17,12 +18,6 @@ from app.infra.database import get_db
 from app.infra.models import Dataset, DatasetVersion, SchemaSnapshot, User
 
 router = APIRouter(prefix="/datasets", tags=["catalog"])
-
-
-def _client_ip(request: Request) -> Optional[str]:
-    if request.client:
-        return request.client.host
-    return None
 
 
 @router.get("", response_model=list[DatasetOut])
@@ -52,7 +47,7 @@ def create_dataset(
         resource_type="dataset",
         resource_id=ds.id,
         payload={"name": body.name},
-        ip=_client_ip(request),
+        ip=client_ip(request),
     )
     db.commit()
     db.refresh(ds)
@@ -109,7 +104,7 @@ def create_dataset_version(
         resource_type="dataset_version",
         resource_id=ver.id,
         payload={"dataset_id": dataset_id, "version": next_v},
-        ip=_client_ip(request),
+        ip=client_ip(request),
     )
     db.commit()
     db.refresh(ver)

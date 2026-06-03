@@ -1,204 +1,338 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useState, useMemo, useCallback, memo } from "react";
+import { useRouter } from "next/navigation";
 import {
-  useCreateManagementRun,
-  useExecutionSummary,
-  useManagementCases,
-  useManagementCycles,
   useManagementRuns,
-  useRegressionSets,
+  useCreateManagementRun,
+  useManagementCycles,
+  type TestRun,
 } from "@/lib/hooks/use-management";
-import { ManagementShell } from "../_components/ManagementShell";
-import { IntelligencePanel } from "../_components/IntelligencePanel";
+import { useManagementProjectId } from "@/lib/hooks/use-management-project-id";
+import { useRouteParam } from "@/lib/use-route-param";
 
-const RUN_STATUS: Record<string, { dot: string; label: string }> = {
-  in_progress: { dot: "bg-emerald-400 animate-pulse", label: "Devam ediyor" },
-  not_started: { dot: "bg-slate-600",                  label: "Başlamadı" },
-  completed:   { dot: "bg-slate-400",                  label: "Tamamlandı" },
-  failed:      { dot: "bg-red-400",                    label: "Başarısız" },
+const STATUS_DOT: Record<string, string> = {
+  in_progress: "bg-blue-500 animate-pulse",
+  completed:   "bg-emerald-500",
+  failed:      "bg-red-500",
+  not_started: "bg-slate-600",
+};
+const STATUS_LABEL: Record<string, string> = {
+  in_progress: "Devam ediyor",
+  completed:   "Tamamlandı",
+  failed:      "Başarısız",
+  not_started: "Başlamadı",
 };
 
-const ENV_EMOJI: Record<string, string> = { staging: "🧪", production: "🚀", dev: "💻", qa: "🔬", uat: "👥" };
+type RunRowProps = {
+  run: TestRun;
+  projectId: string;
+  onNavigate: (id: string) => void;
+};
 
-type RunRow = { id: string; name: string; status: string; started_at: string | null; completed_at: string | null; environment?: string };
+const RunRow = memo(function RunRow({ run, projectId, onNavigate }: RunRowProps) {
+  const status = run.status || "not_started";
+  const dot    = STATUS_DOT[status]   ?? "bg-slate-600";
+  const label  = STATUS_LABEL[status] ?? status;
 
-export default function ManagementRunsPage({ params }: { params: { projectId: string } }) {
-  const { projectId } = params;
-  const summary        = useExecutionSummary(projectId);
-  const runs           = useManagementRuns(projectId);
-  const cycles         = useManagementCycles(projectId);
-  const cases          = useManagementCases(projectId);
-  const regressionSets = useRegressionSets(projectId);
-  const createRun      = useCreateManagementRun(projectId);
+  const handleClick = useCallback(() => {
+    onNavigate(run.id);
+  }, [onNavigate, run.id]);
 
-  const [runName, setRunName]               = useState("");
-  const [cycleId, setCycleId]               = useState("");
-  const [regressionSetId, setRegressionSetId] = useState("");
-  const [environment, setEnvironment]       = useState("");
-  const [showForm, setShowForm]             = useState(false);
-
-  const data    = summary.data;
-  const allRuns = (runs.data ?? []) as RunRow[];
-  const activeRun = allRuns.find(r => r.status === "in_progress");
-
-  const runnableCases = useMemo(
-    () => (cases.data ?? []).filter((c: { status: string; archived: boolean }) =>
-      ["active", "ready"].includes(c.status) && !c.archived),
-    [cases.data],
-  );
-
-  const handleCreate = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const selectedCycle = cycleId || cycles.data?.[0]?.id;
-    const selectedSet = (regressionSets.data ?? []).find(s => s.id === regressionSetId);
-    const caseIds = selectedSet
-      ? selectedSet.cases.map((c: { case_id: string }) => c.case_id)
-      : runnableCases.map((c: { id: string }) => c.id);
-    if (!runName.trim() || !selectedCycle || !caseIds.length) return;
-    const run = await createRun.mutateAsync({
-      cycle_id: selectedCycle,
-      name: runName.trim(),
-      case_ids: caseIds,
-      environment: environment || null,
-      source_type: selectedSet ? "regression_set" : "manual",
-      source_ref: selectedSet?.id ?? null,
-      scope_snapshot: selectedSet
-        ? { regression_set_id: selectedSet.id, case_count: selectedSet.cases.length }
-        : { source: "ready_active_cases", case_count: caseIds.length },
-    });
-    setRunName(""); setShowForm(false);
-    window.location.href = `/p/${projectId}/management/runs/${run.id}/execute`;
-  };
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      onNavigate(run.id);
+    }
+  }, [onNavigate, run.id]);
 
   return (
-    <ManagementShell projectId={projectId} title="" description="" active="management/runs">
+    <tr
+      className="border-b border-white/[0.04] hover:bg-white/[0.04] transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      onClick={handleClick}
+      onKeyDown={handleKeyDown}
+      role="button"
+      tabIndex={0}
+    >
+      <td className="w-6 pl-4 py-3">
+        <span className={`inline-block h-1.5 w-1.5 rounded-full ${dot}`} />
+      </td>
+      <td className="py-3 px-4">
+        <span className="text-[13px] text-slate-200">{run.name}</span>
+      </td>
+      <td className="py-3 px-4">
+        <span className="text-[11px] text-slate-500">{run.environment ?? "—"}</span>
+      </td>
+      <td className="py-3 px-4">
+        <span className="text-[11px] text-slate-500">
+          {run.started_at
+            ? new Date(run.started_at).toLocaleDateString("tr-TR", { day: "2-digit", month: "short", year: "numeric" })
+            : "—"}
+        </span>
+      </td>
+      <td className="py-3 px-4">
+        <span className="text-[11px] text-slate-400">{label}</span>
+      </td>
+      <td className="py-3 px-4">
+        <Link
+          href={`/p/${projectId}/management/runs/${run.id}/execute`}
+          onClick={e => e.stopPropagation()}
+          className="text-[11px] text-blue-500 hover:text-blue-400 transition-colors"
+        >
+          ▶ Execute
+        </Link>
+      </td>
+    </tr>
+  );
+});
 
-      {/* Başlık */}
-      <div className="flex items-center justify-between gap-4 flex-wrap">
-        <div>
-          <h1 className="text-base font-semibold text-white">Test Runs</h1>
-          <p className="text-xs text-slate-500 mt-0.5">
-            {data ? `${data.not_run} bekliyor · ${data.passed} geçti · ${data.failed} başarısız · ${data.blocked} bloke` : "Yükleniyor…"}
-          </p>
+function Skeleton() {
+  return (
+    <div className="animate-pulse space-y-2 p-4">
+      {[1, 2, 3].map(i => (
+        <div key={i} className="h-10 rounded bg-white/[0.04]" />
+      ))}
+    </div>
+  );
+}
+
+export default function ManagementRunsPage() {
+  const router = useRouter();
+  const projectId = useRouteParam("projectId");
+  const mpid = useManagementProjectId(projectId || undefined);
+
+  const { data: runs, isLoading, isError, refetch } = useManagementRuns(mpid || undefined);
+  const { data: cycles }          = useManagementCycles(mpid || undefined);
+  const createRun                 = useCreateManagementRun(mpid || "");
+
+  const [showModal, setShowModal] = useState(false);
+  const [runName, setRunName]     = useState("");
+  const [cycleId, setCycleId]     = useState("");
+  const [caseCount, setCaseCount] = useState("10");
+
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 25;
+
+  const allRuns = useMemo(() => runs ?? [], [runs]);
+
+  const { total, inProgress, completed, failed } = useMemo(() => ({
+    total:      allRuns.length,
+    inProgress: allRuns.filter(r => r.status === "in_progress").length,
+    completed:  allRuns.filter(r => r.status === "completed").length,
+    failed:     allRuns.filter(r => r.status === "failed").length,
+  }), [allRuns]);
+
+  const totalPages = useMemo(() => Math.ceil(allRuns.length / PAGE_SIZE), [allRuns.length]);
+
+  const paginatedRuns = useMemo(
+    () => allRuns.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE),
+    [allRuns, page]
+  );
+
+  const handleNavigate = useCallback((runId: string) => {
+    router.push(`/p/${projectId}/management/runs/${runId}/execute`);
+  }, [router, projectId]);
+
+  const handleCreate = useCallback(async (e: React.FormEvent) => {
+    e.preventDefault();
+    const chosenCycle = cycleId || cycles?.[0]?.id;
+    if (!runName.trim() || !chosenCycle) return;
+    const count = parseInt(caseCount, 10) || 10;
+    const run = await createRun.mutateAsync({
+      cycle_id: chosenCycle,
+      name: runName.trim(),
+      case_ids: [],
+      scope_snapshot: { case_count: count },
+    });
+    setShowModal(false);
+    setRunName("");
+    router.push(`/p/${projectId}/management/runs/${run.id}/execute`);
+  }, [cycleId, cycles, runName, caseCount, createRun, router, projectId]);
+
+  if (isError) {
+    return (
+      <div className="flex min-h-[calc(100vh-88px)] items-center justify-center bg-[#0a0f1e]">
+        <div className="text-center">
+          <p className="text-[13px] text-red-400">Run listesi yüklenirken hata oluştu.</p>
+          <button onClick={() => refetch()} className="mt-3 rounded-md border border-white/[0.08] px-4 py-2 text-[11px] text-slate-400 hover:text-slate-200 transition-colors">
+            Tekrar Dene
+          </button>
         </div>
-        <button onClick={() => setShowForm(v => !v)}
-          className="rounded-lg bg-white hover:bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-900 transition-colors">
-          {showForm ? "İptal" : "+ Yeni Run"}
+      </div>
+    );
+  }
+
+  if (createRun.isError) {
+    console.error("Run oluşturma hatası:", createRun.error);
+  }
+
+  return (
+    <div className="min-h-[calc(100vh-48px-40px)] bg-[#0a0f1e] text-slate-200">
+      {/* Header */}
+      <div className="flex items-center justify-between border-b border-white/[0.06] bg-[#0d1221] px-6 py-4">
+        <h1 className="text-[13px] font-semibold text-slate-200">Test Runs</h1>
+        <button
+          onClick={() => setShowModal(true)}
+          className="rounded-md bg-blue-600 px-3 py-1.5 text-[11px] font-medium text-white hover:bg-blue-500 transition-colors"
+        >
+          + Yeni Run
         </button>
       </div>
 
-      {/* İlerleme */}
-      {data && data.total > 0 && (
-        <div className="space-y-1.5">
-          <div className="flex justify-between text-xs text-slate-500">
-            <span>İlerleme</span>
-            <span>{Math.round(data.progress_pct ?? 0)}% · pass {data.pass_rate_pct?.toFixed(0)}%</span>
+      {/* Stats bar */}
+      <div className="flex items-center gap-6 border-b border-white/[0.06] px-6 py-3">
+        {[
+          { dot: "bg-slate-500",                  count: total,      label: "Toplam"       },
+          { dot: "bg-blue-500 animate-pulse",      count: inProgress, label: "Devam Eden"  },
+          { dot: "bg-emerald-500",                 count: completed,  label: "Tamamlandı"  },
+          { dot: "bg-red-500",                     count: failed,     label: "Başarısız"   },
+        ].map(({ dot, count, label }) => (
+          <div key={label} className="flex items-center gap-1.5">
+            <span className={`h-1.5 w-1.5 rounded-full ${dot}`} />
+            <span className="text-[13px] font-medium text-slate-200">{count}</span>
+            <span className="text-[11px] text-slate-500">{label}</span>
           </div>
-          <div className="h-1.5 rounded-full bg-slate-800 overflow-hidden flex gap-px">
-            {([
-              [data.passed,  "bg-emerald-600"],
-              [data.failed,  "bg-red-600"],
-              [data.blocked, "bg-amber-600"],
-              [data.skipped, "bg-slate-600"],
-            ] as [number, string][]).map(([cnt, color], i) =>
-              cnt > 0 ? <div key={i} className={`${color} h-full`} style={{ width: `${(cnt / data.total) * 100}%` }} /> : null
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Yeni run formu */}
-      {showForm && (
-        <form onSubmit={handleCreate} className="rounded-xl border border-slate-800 bg-slate-900 p-4 space-y-3">
-          <p className="text-xs text-slate-500 uppercase tracking-wide font-medium">Yeni Koşum</p>
-          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-            <input value={runName} onChange={e => setRunName(e.target.value)} placeholder="Run adı *" required
-              className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white placeholder-slate-600 outline-none focus:border-slate-500" />
-            <select value={cycleId} onChange={e => setCycleId(e.target.value)}
-              className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white outline-none">
-              <option value="">Cycle seç</option>
-              {(cycles.data ?? []).map((c: { id: string; name: string }) => <option key={c.id} value={c.id}>{c.name}</option>)}
-            </select>
-            <select value={regressionSetId} onChange={e => setRegressionSetId(e.target.value)}
-              className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white outline-none">
-              <option value="">Tüm aktif case'ler</option>
-              {(regressionSets.data ?? []).map((s: { id: string; name: string; cases: unknown[] }) =>
-                <option key={s.id} value={s.id}>{s.name} ({s.cases.length})</option>)}
-            </select>
-            <select value={environment} onChange={e => setEnvironment(e.target.value)}
-              className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white outline-none">
-              <option value="">Ortam (opsiyonel)</option>
-              <option value="staging">🧪 Staging</option>
-              <option value="production">🚀 Production</option>
-              <option value="dev">💻 Development</option>
-              <option value="qa">🔬 QA</option>
-              <option value="uat">👥 UAT</option>
-            </select>
-          </div>
-          <button type="submit" disabled={createRun.isPending || !runName.trim()}
-            className="rounded-lg bg-white hover:bg-slate-100 disabled:opacity-40 px-4 py-2 text-xs font-semibold text-slate-900 transition-colors">
-            {createRun.isPending ? "Oluşturuluyor…" : "Koşumu Başlat"}
-          </button>
-        </form>
-      )}
-
-      {/* Zeka paneli */}
-      {activeRun && (
-        <div className="rounded-xl border border-slate-800 overflow-hidden">
-          <div className="flex items-center justify-between px-4 py-2.5 border-b border-slate-800">
-            <div className="flex items-center gap-2">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              <p className="text-xs font-medium text-slate-300">Canlı: {activeRun.name}</p>
-            </div>
-            <Link href={`/p/${projectId}/management/runs/${activeRun.id}/execute`}
-              className="text-xs text-slate-500 hover:text-white transition-colors">Koşuma git →</Link>
-          </div>
-          <div className="p-4">
-            <IntelligencePanel projectId={projectId} runId={activeRun.id} refreshIntervalMs={30_000} />
-          </div>
-        </div>
-      )}
-
-      {/* Run listesi */}
-      <div className="rounded-xl border border-slate-800 overflow-hidden">
-        <div className="px-4 py-3 border-b border-slate-800 flex items-center justify-between">
-          <p className="text-sm font-medium text-white">Tüm Runlar</p>
-          <span className="text-xs text-slate-600">{allRuns.length}</span>
-        </div>
-        <div className="divide-y divide-slate-800/50">
-          {runs.isLoading ? (
-            <p className="px-4 py-8 text-center text-sm text-slate-600">Yükleniyor…</p>
-          ) : allRuns.length === 0 ? (
-            <div className="px-4 py-10 text-center">
-              <p className="text-sm text-slate-500">Henüz run yok</p>
-              <button onClick={() => setShowForm(true)}
-                className="mt-2 text-xs text-slate-500 hover:text-white border border-slate-700 hover:border-slate-500 rounded px-3 py-1.5 transition-colors">
-                İlk koşumu oluştur
-              </button>
-            </div>
-          ) : (
-            allRuns.slice(0, 10).map(run => {
-              const cfg = RUN_STATUS[run.status] ?? RUN_STATUS.not_started;
-              return (
-                <Link key={run.id} href={`/p/${projectId}/management/runs/${run.id}/execute`}
-                  className="flex items-center gap-3 px-4 py-3 hover:bg-slate-800/30 transition-colors group">
-                  <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${cfg.dot}`} />
-                  <p className="flex-1 text-sm text-slate-300 group-hover:text-white transition-colors truncate">{run.name}</p>
-                  {run.environment && (
-                    <span className="text-xs text-slate-600">{ENV_EMOJI[run.environment] ?? ""} {run.environment}</span>
-                  )}
-                  <span className="text-xs text-slate-600 shrink-0">
-                    {run.started_at ? new Date(run.started_at).toLocaleDateString("tr-TR", { day: "2-digit", month: "short" }) : "—"}
-                  </span>
-                </Link>
-              );
-            })
-          )}
-        </div>
+        ))}
       </div>
 
-    </ManagementShell>
+      {/* Table */}
+      <div className="overflow-x-auto">
+        {isLoading ? (
+          <Skeleton />
+        ) : allRuns.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-20 gap-3">
+            <svg className="h-8 w-8 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+                d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z" />
+            </svg>
+            <p className="text-[13px] text-slate-500">Henüz run yok</p>
+            <button
+              onClick={() => setShowModal(true)}
+              className="rounded-md border border-white/[0.08] px-4 py-2 text-[11px] text-slate-400 hover:border-white/[0.15] hover:text-slate-200 transition-colors"
+            >
+              Yeni Run Oluştur
+            </button>
+          </div>
+        ) : (
+          <>
+          <table className="w-full border-collapse">
+            <thead>
+              <tr className="border-b border-white/[0.06] bg-[#0d1221]">
+                {["", "Run Adı", "Ortam", "Başlangıç", "Durum", ""].map((h, i) => (
+                  <th key={i} className="px-4 py-2.5 text-left text-[10px] font-medium uppercase tracking-wider text-slate-600">
+                    {h}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {paginatedRuns.map(run => (
+                <RunRow
+                  key={run.id}
+                  run={run}
+                  projectId={projectId ?? ""}
+                  onNavigate={handleNavigate}
+                />
+              ))}
+            </tbody>
+          </table>
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between border-t border-white/[0.06] px-4 py-3">
+              <span className="text-[11px] text-slate-500">
+                {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, allRuns.length)} / {allRuns.length} run
+              </span>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => setPage(p => Math.max(1, p - 1))}
+                  disabled={page === 1}
+                  className="rounded-md border border-white/[0.08] px-2.5 py-1 text-[11px] text-slate-400 hover:text-slate-200 disabled:opacity-30 transition-colors"
+                >
+                  ‹ Önceki
+                </button>
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
+                  <button
+                    key={p}
+                    onClick={() => setPage(p)}
+                    className={`rounded-md border px-2.5 py-1 text-[11px] transition-colors ${
+                      p === page
+                        ? "border-blue-500/50 bg-blue-600/20 text-blue-400"
+                        : "border-white/[0.08] text-slate-500 hover:text-slate-200"
+                    }`}
+                  >
+                    {p}
+                  </button>
+                ))}
+                <button
+                  onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                  disabled={page === totalPages}
+                  className="rounded-md border border-white/[0.08] px-2.5 py-1 text-[11px] text-slate-400 hover:text-slate-200 disabled:opacity-30 transition-colors"
+                >
+                  Sonraki ›
+                </button>
+              </div>
+            </div>
+          )}
+          </>
+        )}
+      </div>
+
+      {/* Modal */}
+      {showModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+          <div className="w-full max-w-md rounded-xl border border-white/[0.08] bg-[#0d1221] shadow-2xl">
+            <div className="flex items-center justify-between border-b border-white/[0.06] px-5 py-4">
+              <span className="text-[13px] font-semibold text-slate-200">Yeni Run</span>
+              <button onClick={() => setShowModal(false)} className="text-slate-500 hover:text-slate-300 transition-colors text-lg leading-none">×</button>
+            </div>
+            <form onSubmit={handleCreate} className="space-y-3 p-5">
+              <div>
+                <label className="mb-1 block text-[11px] text-slate-500">Run Adı</label>
+                <input
+                  value={runName}
+                  onChange={e => setRunName(e.target.value)}
+                  placeholder="örn. Sprint 24 Regression"
+                  required
+                  className="w-full rounded-md border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-[13px] text-slate-200 placeholder-slate-600 outline-none focus:border-blue-500/50"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-[11px] text-slate-500">Cycle</label>
+                <select
+                  value={cycleId}
+                  onChange={e => setCycleId(e.target.value)}
+                  className="w-full rounded-md border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-[13px] text-slate-200 outline-none focus:border-blue-500/50"
+                >
+                  <option value="">— Cycle seç —</option>
+                  {(cycles ?? []).map(c => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="mb-1 block text-[11px] text-slate-500">Case Sayısı</label>
+                <input
+                  type="number"
+                  min={1}
+                  value={caseCount}
+                  onChange={e => setCaseCount(e.target.value)}
+                  className="w-full rounded-md border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-[13px] text-slate-200 outline-none focus:border-blue-500/50"
+                />
+              </div>
+              <div className="flex justify-end gap-2 pt-1">
+                <button type="button" onClick={() => setShowModal(false)}
+                  className="rounded-md border border-white/[0.08] px-4 py-2 text-[11px] text-slate-400 hover:text-slate-200 transition-colors">
+                  İptal
+                </button>
+                <button type="submit" disabled={createRun.isPending || !runName.trim()}
+                  className="rounded-md bg-blue-600 px-4 py-2 text-[11px] font-medium text-white hover:bg-blue-500 disabled:opacity-40 transition-colors">
+                  {createRun.isPending ? "Oluşturuluyor…" : "Oluştur"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }

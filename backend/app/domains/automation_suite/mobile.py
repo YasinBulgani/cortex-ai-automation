@@ -1,7 +1,7 @@
 """Mobil senaryo üretici — doğal dil + cihaz context → Gherkin.
 
 `POST /api/v1/automation-suite/mobile/generate` ile çağrılır. Kullanıcı
-Visium Farm sayfasında doğal dilde bir senaryo yazar, backend mobil DSL
+Neurex Farm sayfasında doğal dilde bir senaryo yazar, backend mobil DSL
 katalogunu bu isteğe AI'e (Ollama + qwen2.5-coder) prompt olarak verir ve
 yalnızca izin verilen cümleciklerden bir Gherkin çıkar.
 
@@ -13,7 +13,7 @@ Adımlar:
        raporlanır (UI bunları highlight ederek kullanıcıya gösterir).
     4. `save_feature=true` ise çıktıyı `engine/features/ai-mobile/<slug>.feature`
        dosyasına yaz (ileride run trigger için). Şu an varsayılan False —
-       kullanıcı Visium Farm üzerinden manuel çalıştırır.
+       kullanıcı Neurex Farm üzerinden manuel çalıştırır.
 
 Bu modül LLM cevabını YAML'e yazmaz, git commit atmaz. Tek çıktı Gherkin
 metni + match raporudur.

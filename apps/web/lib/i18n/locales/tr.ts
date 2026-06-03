@@ -100,9 +100,12 @@ export const tr = {
     status: {
       draft: "Taslak",
       active: "Aktif",
-      archived: "Arşivlendi",
+      archived: "Arşiv",
       not_run: "Koşulmadı",
       running: "Koşuluyor",
+      open: "Açık",
+      closed: "Kapalı",
+      resolved: "Çözüldü",
       passed: "Geçti",
       failed: "Başarısız",
       blocked: "Engellendi",
@@ -169,6 +172,40 @@ export const tr = {
       ready: "Hazır",
       invalid: "Geçersiz",
       duplicate: "Olası Kopya",
+    },
+
+    // UI states
+    loading: "Yükleniyor...",
+    error: "Veri yüklenemedi",
+    retry: "Tekrar Dene",
+    noData: "Kayıt bulunamadı",
+    search: "Ara...",
+    filter: "Filtrele",
+
+    // Pagination
+    pagination: {
+      previous: "← Önceki",
+      next: "Sonraki →",
+      showing: "{{start}}-{{end}} / {{total}} kayıt",
+    },
+
+    // Priority labels
+    priority: {
+      P0: "Kritik",
+      P1: "Yüksek",
+      P2: "Orta",
+      P3: "Düşük",
+    },
+
+    // Actions
+    actions: {
+      save: "Kaydet",
+      cancel: "İptal",
+      delete: "Sil",
+      edit: "Düzenle",
+      create: "Oluştur",
+      export: "Dışa Aktar",
+      import: "İçe Aktar",
     },
   },
 

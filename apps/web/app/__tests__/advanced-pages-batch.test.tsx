@@ -164,8 +164,8 @@ jest.mock("@/components/ProductLandingPage", () => ({
 }));
 jest.mock("@/lib/product", () => ({
   isValidProductFamilyId: jest.fn(() => true),
-  PRODUCT_FAMILY: [{ id: "one", name: "TestwrightAI" }],
-  PRODUCT_FAMILY_BY_ID: { one: { id: "one", name: "TestwrightAI" } },
+  PRODUCT_FAMILY: [{ id: "one", name: "Neurex" }],
+  PRODUCT_FAMILY_BY_ID: { one: { id: "one", name: "Neurex" } },
 }));
 
 // ── DslCatalogView mock ────────────────────────────────────────────────────

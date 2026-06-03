@@ -4,7 +4,7 @@ Revision ID: automation_artifact_contract_0001
 Revises: project_last_opened_0001
 
 Bağlam:
-    Visium ürünleşme planında otomasyon çıktıları yalnızca "dosya üretildi"
+    Neurex ürünleşme planında otomasyon çıktıları yalnızca "dosya üretildi"
     seviyesinde kalmamalı; hangi hedefe ait olduğu (Playwright / MaviYaka),
     gerçek mi yoksa yardımcı/simulated mi olduğu ve doğrulama durumu birlikte
     taşınmalı.

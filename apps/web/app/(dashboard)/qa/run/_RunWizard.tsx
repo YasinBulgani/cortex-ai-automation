@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { apiFetch } from "@/lib/api-client";
 
 type Plan = {
   id: string;
@@ -43,8 +44,7 @@ export default function RunWizard() {
   const [savedRunId, setSavedRunId] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch("/api/v1/qa/plans")
-      .then((r) => r.json())
+    apiFetch<Plan[]>("/api/v1/qa/plans")
       .then(setPlans)
       .catch(() => setPlans([]));
   }, []);
@@ -52,8 +52,7 @@ export default function RunWizard() {
   async function selectPlan(p: Plan) {
     setChosenPlan(p);
     // Plan scope'una göre TC'leri filtrele
-    const allRes = await fetch("/api/v1/qa/cases?limit=1000");
-    const all: { items: TestCaseListItem[] } = await allRes.json();
+    const all = await apiFetch<{ items: TestCaseListItem[] }>("/api/v1/qa/cases?limit=1000");
     const matches = all.items.filter((tc) => {
       for (const inc of p.scope?.include || []) {
         let ok = true;
@@ -339,8 +338,7 @@ function TCExecutor({
   useEffect(() => {
     setNote(current?.note || "");
     setEvidence(current?.evidence || "");
-    fetch(`/api/v1/qa/cases/${tc.id}`)
-      .then((r) => r.json())
+    apiFetch<{ body?: string }>(`/api/v1/qa/cases/${tc.id}`)
       .then((d) => setBody(d.body || ""))
       .catch(() => setBody("(yüklenemedi)"));
   }, [tc.id, current]);

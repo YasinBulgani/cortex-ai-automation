@@ -1,4 +1,4 @@
-"""Comprehensive security middleware for TestwrightAI Banking Platform.
+"""Comprehensive security middleware for Neurex Banking Platform.
 
 Provides:
 - SecurityHeadersMiddleware  -- standard security response headers

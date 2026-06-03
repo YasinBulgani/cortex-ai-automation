@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from typing import Optional
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from .models import (
@@ -19,18 +20,17 @@ from .schemas import (
 # ── Project CRUD ──────────────────────────────────────────────────────────────
 
 def list_projects(db: Session, *, skip: int = 0, limit: int = 50, archived: bool = False) -> list[NexusProject]:
-    return (
-        db.query(NexusProject)
-        .filter(NexusProject.archived == archived)
+    return db.execute(
+        select(NexusProject)
+        .where(NexusProject.archived == archived)
         .order_by(NexusProject.created_at.desc())
         .offset(skip)
         .limit(limit)
-        .all()
-    )
+    ).scalars().all()
 
 
 def get_project(db: Session, project_id: str) -> Optional[NexusProject]:
-    return db.query(NexusProject).filter(NexusProject.id == project_id).first()
+    return db.execute(select(NexusProject).where(NexusProject.id == project_id)).scalars().first()
 
 
 def create_project(db: Session, data: NexusProjectCreate, *, created_by: Optional[str] = None) -> NexusProject:
@@ -59,12 +59,11 @@ def archive_project(db: Session, project: NexusProject) -> NexusProject:
 # ── CrawlJob ──────────────────────────────────────────────────────────────────
 
 def list_crawl_jobs(db: Session, project_id: str) -> list[NexusCrawlJob]:
-    return (
-        db.query(NexusCrawlJob)
-        .filter(NexusCrawlJob.project_id == project_id)
+    return db.execute(
+        select(NexusCrawlJob)
+        .where(NexusCrawlJob.project_id == project_id)
         .order_by(NexusCrawlJob.created_at.desc())
-        .all()
-    )
+    ).scalars().all()
 
 
 def create_crawl_job(db: Session, project_id: str) -> NexusCrawlJob:
@@ -86,16 +85,18 @@ def list_scenarios(
     skip: int = 0,
     limit: int = 100,
 ) -> list[NexusScenario]:
-    q = db.query(NexusScenario).filter(NexusScenario.project_id == project_id)
+    stmt = select(NexusScenario).where(NexusScenario.project_id == project_id)
     if type_filter:
-        q = q.filter(NexusScenario.type == type_filter)
+        stmt = stmt.where(NexusScenario.type == type_filter)
     if status_filter:
-        q = q.filter(NexusScenario.status == status_filter)
-    return q.order_by(NexusScenario.created_at.desc()).offset(skip).limit(limit).all()
+        stmt = stmt.where(NexusScenario.status == status_filter)
+    return db.execute(
+        stmt.order_by(NexusScenario.created_at.desc()).offset(skip).limit(limit)
+    ).scalars().all()
 
 
 def get_scenario(db: Session, scenario_id: str) -> Optional[NexusScenario]:
-    return db.query(NexusScenario).filter(NexusScenario.id == scenario_id).first()
+    return db.execute(select(NexusScenario).where(NexusScenario.id == scenario_id)).scalars().first()
 
 
 def create_scenario(
@@ -128,27 +129,26 @@ def delete_scenario(db: Session, scenario: NexusScenario) -> None:
 # ── Crawl detayları ───────────────────────────────────────────────────────────
 
 def list_endpoints(db: Session, crawl_job_id: str) -> list[NexusEndpoint]:
-    return (
-        db.query(NexusEndpoint)
-        .filter(NexusEndpoint.crawl_job_id == crawl_job_id)
+    return db.execute(
+        select(NexusEndpoint)
+        .where(NexusEndpoint.crawl_job_id == crawl_job_id)
         .order_by(NexusEndpoint.method, NexusEndpoint.path)
-        .all()
-    )
+    ).scalars().all()
 
 
 def list_files(db: Session, crawl_job_id: str, *, with_summary: Optional[bool] = None) -> list[NexusFile]:
-    q = db.query(NexusFile).filter(NexusFile.crawl_job_id == crawl_job_id)
+    stmt = select(NexusFile).where(NexusFile.crawl_job_id == crawl_job_id)
     if with_summary is True:
-        q = q.filter(NexusFile.summary.isnot(None))
-    return q.order_by(NexusFile.path).all()
+        stmt = stmt.where(NexusFile.summary.isnot(None))
+    return db.execute(stmt.order_by(NexusFile.path)).scalars().all()
 
 
 # ── İstatistikler ─────────────────────────────────────────────────────────────
 
 def get_project_stats(db: Session, project_id: str) -> NexusStatsOut:
-    from sqlalchemy import func
-
-    scenarios = db.query(NexusScenario).filter(NexusScenario.project_id == project_id).all()
+    scenarios = db.execute(
+        select(NexusScenario).where(NexusScenario.project_id == project_id)
+    ).scalars().all()
 
     by_type: dict[str, int] = {}
     by_status: dict[str, int] = {}
@@ -158,12 +158,11 @@ def get_project_stats(db: Session, project_id: str) -> NexusStatsOut:
         by_status[s.status] = by_status.get(s.status, 0) + 1
         by_priority[s.priority] = by_priority.get(s.priority, 0) + 1
 
-    crawl_jobs = (
-        db.query(NexusCrawlJob)
-        .filter(NexusCrawlJob.project_id == project_id)
+    crawl_jobs = db.execute(
+        select(NexusCrawlJob)
+        .where(NexusCrawlJob.project_id == project_id)
         .order_by(NexusCrawlJob.created_at.desc())
-        .all()
-    )
+    ).scalars().all()
     last_job = next((j for j in crawl_jobs if j.status == "done"), None)
     total_endpoints = sum(j.endpoints_found for j in crawl_jobs if j.status == "done")
     total_files = sum(j.files_scanned for j in crawl_jobs if j.status == "done")

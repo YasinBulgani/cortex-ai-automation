@@ -1,4 +1,4 @@
-"""Migration asistanı — Selenium (Java/Python) → TestwrightAI/Playwright DSL.
+"""Migration asistanı — Selenium (Java/Python) → Neurex/Playwright DSL.
 
 Plan: docs/AI_OTOMASYON_GELISTIRME_PLANI.md §6 / E4.4 (L, P3).
 
@@ -248,7 +248,7 @@ def migrate_selenium_java(source: str, *, source_file: Optional[str] = None) -> 
         return result
 
     ts_lines: List[str] = [
-        "// Auto-migrated by TestwrightAI migration assistant",
+        "// Auto-migrated by Neurex migration assistant",
         "// Source: selenium-java cucumber step definitions",
         "// NOTE: Her step manuel review gerektirir (selector'lar, locators, assertions)",
         "",
@@ -336,7 +336,7 @@ def migrate_selenium_py(source: str, *, source_file: Optional[str] = None) -> Mi
         return result
 
     py_lines: List[str] = [
-        "# Auto-migrated by TestwrightAI migration assistant",
+        "# Auto-migrated by Neurex migration assistant",
         "# Source: selenium-python cucumber/pytest-bdd steps",
         "from pytest_bdd import given, when, then, scenarios",
         "from playwright.sync_api import Page, expect",

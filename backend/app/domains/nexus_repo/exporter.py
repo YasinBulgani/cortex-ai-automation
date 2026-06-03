@@ -19,6 +19,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.config import settings
@@ -331,7 +332,9 @@ def run_export_job(export_id: str) -> None:
     """Arka planda çalıştırılacak export iş fonksiyonu."""
     db: Session = SessionLocal()
     try:
-        export: Optional[NexusExport] = db.query(NexusExport).filter(NexusExport.id == export_id).first()
+        export: Optional[NexusExport] = db.execute(
+            select(NexusExport).where(NexusExport.id == export_id)
+        ).scalars().first()
         if not export:
             _log.error("Export bulunamadı: %s", export_id)
             return
@@ -339,17 +342,19 @@ def run_export_job(export_id: str) -> None:
         export.status = "running"
         db.commit()
 
-        project: Optional[NexusProject] = db.query(NexusProject).filter(NexusProject.id == export.project_id).first()
+        project: Optional[NexusProject] = db.execute(
+            select(NexusProject).where(NexusProject.id == export.project_id)
+        ).scalars().first()
         if not project:
             export.status = "failed"
             db.commit()
             return
 
         # Senaryo filtresi
-        q = db.query(NexusScenario).filter(NexusScenario.project_id == export.project_id)
+        stmt = select(NexusScenario).where(NexusScenario.project_id == export.project_id)
         if export.scenario_ids:
-            q = q.filter(NexusScenario.id.in_(export.scenario_ids))
-        scenarios = q.all()
+            stmt = stmt.where(NexusScenario.id.in_(export.scenario_ids))
+        scenarios = db.execute(stmt).scalars().all()
 
         if not scenarios:
             export.status = "failed"
@@ -374,7 +379,9 @@ def run_export_job(export_id: str) -> None:
         elif fmt in ("excel", "jira"):
             # Her iki format için case'leri yükle
             scenario_ids = [s.id for s in scenarios]
-            all_cases = db.query(NexusCase).filter(NexusCase.scenario_id.in_(scenario_ids)).all()
+            all_cases = db.execute(
+                select(NexusCase).where(NexusCase.scenario_id.in_(scenario_ids))
+            ).scalars().all()
             cases_by_scenario: dict[str, list[NexusCase]] = {}
             for c in all_cases:
                 cases_by_scenario.setdefault(c.scenario_id, []).append(c)

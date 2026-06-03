@@ -99,7 +99,7 @@ class ScriptCache:
             scenario_id: Test senaryosu ID'si
             url: Hedef URL
             actions: Aksiyon listesi [{type, target, value, ...}]
-            locators: NexusQA lokator haritası
+            locators: Neurex lokator haritası
             dom_hash: Sayfa DOM hash'i (invalidation için)
             test_data: Test verisi haritası
 

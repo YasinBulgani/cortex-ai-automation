@@ -20,7 +20,7 @@ from typing import Any, Dict, List, Optional
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Query
 from pydantic import BaseModel
-from sqlalchemy import func, select
+from sqlalchemy import func, select, update, delete
 from sqlalchemy.orm import Session
 
 from app.infra.database import get_db
@@ -131,10 +131,14 @@ def create_environment(
 
     # is_default ise diger default'lari kaldır
     if body.is_default:
-        db.query(ApiEnvironment).filter(
-            ApiEnvironment.project_id == project_id,
-            ApiEnvironment.id != env.id,
-        ).update({"is_default": False})
+        db.execute(
+            update(ApiEnvironment)
+            .where(
+                ApiEnvironment.project_id == project_id,
+                ApiEnvironment.id != env.id,
+            )
+            .values(is_default=False)
+        )
 
     db.commit()
     db.refresh(env)
@@ -150,9 +154,13 @@ def list_environments(
     user: Any = Depends(get_current_user),
 ):
     """Proje ortamlarini listele."""
-    return db.query(ApiEnvironment).filter(
-        ApiEnvironment.project_id == project_id,
-    ).order_by(ApiEnvironment.created_at).offset(offset).limit(limit).all()
+    return db.execute(
+        select(ApiEnvironment)
+        .where(ApiEnvironment.project_id == project_id)
+        .order_by(ApiEnvironment.created_at)
+        .offset(offset)
+        .limit(limit)
+    ).scalars().all()
 
 
 @router.put("/environments/{env_id}", response_model=EnvironmentOut)
@@ -164,10 +172,12 @@ def update_environment(
     user: Any = Depends(get_current_user),
 ):
     """Ortam guncelle."""
-    env = db.query(ApiEnvironment).filter(
-        ApiEnvironment.id == env_id,
-        ApiEnvironment.project_id == project_id,
-    ).first()
+    env = db.execute(
+        select(ApiEnvironment).where(
+            ApiEnvironment.id == env_id,
+            ApiEnvironment.project_id == project_id,
+        )
+    ).scalars().first()
     if not env:
         raise HTTPException(404, "Ortam bulunamadi")
 
@@ -187,10 +197,12 @@ def delete_environment(
     user: Any = Depends(get_current_user),
 ):
     """Ortam sil."""
-    deleted = db.query(ApiEnvironment).filter(
-        ApiEnvironment.id == env_id,
-        ApiEnvironment.project_id == project_id,
-    ).delete()
+    deleted = db.execute(
+        delete(ApiEnvironment).where(
+            ApiEnvironment.id == env_id,
+            ApiEnvironment.project_id == project_id,
+        )
+    ).rowcount
     if not deleted:
         raise HTTPException(404, "Ortam bulunamadi")
     db.commit()
@@ -277,9 +289,13 @@ def list_specs(
     user: Any = Depends(get_current_user),
 ):
     """Proje spec'lerini listele."""
-    return db.query(ApiSpec).filter(
-        ApiSpec.project_id == project_id,
-    ).order_by(ApiSpec.created_at.desc()).offset(offset).limit(limit).all()
+    return db.execute(
+        select(ApiSpec)
+        .where(ApiSpec.project_id == project_id)
+        .order_by(ApiSpec.created_at.desc())
+        .offset(offset)
+        .limit(limit)
+    ).scalars().all()
 
 
 @router.get("/specs/{spec_id}", response_model=SpecDetailOut)
@@ -290,24 +306,26 @@ def get_spec_detail(
     user: Any = Depends(get_current_user),
 ):
     """Spec detay — endpoint listesi dahil."""
-    spec = db.query(ApiSpec).filter(
-        ApiSpec.id == spec_id,
-        ApiSpec.project_id == project_id,
-    ).first()
+    spec = db.execute(
+        select(ApiSpec).where(
+            ApiSpec.id == spec_id,
+            ApiSpec.project_id == project_id,
+        )
+    ).scalars().first()
     if not spec:
         raise HTTPException(404, "Spec bulunamadi")
 
     # Endpoint'leri yükle
-    endpoints = db.query(ApiEndpoint).filter(
-        ApiEndpoint.spec_id == spec_id,
-    ).all()
+    endpoints = db.execute(
+        select(ApiEndpoint).where(ApiEndpoint.spec_id == spec_id)
+    ).scalars().all()
 
     # Test case sayilarini ekle
     ep_out_list = []
     for ep in endpoints:
-        tc_count = db.query(ApiTestCase).filter(
-            ApiTestCase.endpoint_id == ep.id,
-        ).count()
+        tc_count = db.scalar(
+            select(func.count(ApiTestCase.id)).where(ApiTestCase.endpoint_id == ep.id)
+        )
         ep_dict = EndpointOut.model_validate(ep).model_dump()
         ep_dict["test_case_count"] = tc_count
         ep_out_list.append(ep_dict)
@@ -325,10 +343,12 @@ def delete_spec(
     user: Any = Depends(get_current_user),
 ):
     """Spec ve iliskili endpoint'leri sil."""
-    deleted = db.query(ApiSpec).filter(
-        ApiSpec.id == spec_id,
-        ApiSpec.project_id == project_id,
-    ).delete()
+    deleted = db.execute(
+        delete(ApiSpec).where(
+            ApiSpec.id == spec_id,
+            ApiSpec.project_id == project_id,
+        )
+    ).rowcount
     if not deleted:
         raise HTTPException(404, "Spec bulunamadi")
     db.commit()
@@ -351,19 +371,21 @@ def list_endpoints(
     user: Any = Depends(get_current_user),
 ):
     """Proje endpoint'lerini filtrele + listele."""
-    q = db.query(ApiEndpoint).join(ApiSpec).filter(
-        ApiSpec.project_id == project_id,
+    stmt = (
+        select(ApiEndpoint)
+        .join(ApiSpec)
+        .where(ApiSpec.project_id == project_id)
     )
     if spec_id:
-        q = q.filter(ApiEndpoint.spec_id == spec_id)
+        stmt = stmt.where(ApiEndpoint.spec_id == spec_id)
     if risk_level:
-        q = q.filter(ApiEndpoint.risk_level == risk_level)
+        stmt = stmt.where(ApiEndpoint.risk_level == risk_level)
     if has_pii is not None:
-        q = q.filter(ApiEndpoint.has_pii == has_pii)
+        stmt = stmt.where(ApiEndpoint.has_pii == has_pii)
     if has_financial is not None:
-        q = q.filter(ApiEndpoint.has_financial == has_financial)
+        stmt = stmt.where(ApiEndpoint.has_financial == has_financial)
 
-    return q.order_by(ApiEndpoint.path).offset(offset).limit(limit).all()
+    return db.execute(stmt.order_by(ApiEndpoint.path).offset(offset).limit(limit)).scalars().all()
 
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -402,21 +424,23 @@ def list_test_cases(
     user: Any = Depends(get_current_user),
 ):
     """Test case'leri filtrele + listele."""
-    q = db.query(ApiTestCase).filter(ApiTestCase.project_id == project_id)
+    stmt = select(ApiTestCase).where(ApiTestCase.project_id == project_id)
     if endpoint_id:
-        q = q.filter(ApiTestCase.endpoint_id == endpoint_id)
+        stmt = stmt.where(ApiTestCase.endpoint_id == endpoint_id)
     if test_type:
-        q = q.filter(ApiTestCase.test_type == test_type)
+        stmt = stmt.where(ApiTestCase.test_type == test_type)
     if review_status:
-        q = q.filter(ApiTestCase.review_status == review_status)
+        stmt = stmt.where(ApiTestCase.review_status == review_status)
     if ai_generated is not None:
-        q = q.filter(ApiTestCase.ai_generated == ai_generated)
+        stmt = stmt.where(ApiTestCase.ai_generated == ai_generated)
     if priority:
-        q = q.filter(ApiTestCase.priority == priority)
+        stmt = stmt.where(ApiTestCase.priority == priority)
 
-    return q.order_by(ApiTestCase.created_at.desc()).offset(
-        (page - 1) * page_size
-    ).limit(page_size).all()
+    return db.execute(
+        stmt.order_by(ApiTestCase.created_at.desc())
+        .offset((page - 1) * page_size)
+        .limit(page_size)
+    ).scalars().all()
 
 
 @router.get("/test-cases/{tc_id}", response_model=TestCaseOut)
@@ -427,10 +451,12 @@ def get_test_case(
     user: Any = Depends(get_current_user),
 ):
     """Test case detay."""
-    tc = db.query(ApiTestCase).filter(
-        ApiTestCase.id == tc_id,
-        ApiTestCase.project_id == project_id,
-    ).first()
+    tc = db.execute(
+        select(ApiTestCase).where(
+            ApiTestCase.id == tc_id,
+            ApiTestCase.project_id == project_id,
+        )
+    ).scalars().first()
     if not tc:
         raise HTTPException(404, "Test case bulunamadi")
     return tc
@@ -445,10 +471,12 @@ def update_test_case(
     user: Any = Depends(get_current_user),
 ):
     """Test case guncelle."""
-    tc = db.query(ApiTestCase).filter(
-        ApiTestCase.id == tc_id,
-        ApiTestCase.project_id == project_id,
-    ).first()
+    tc = db.execute(
+        select(ApiTestCase).where(
+            ApiTestCase.id == tc_id,
+            ApiTestCase.project_id == project_id,
+        )
+    ).scalars().first()
     if not tc:
         raise HTTPException(404, "Test case bulunamadi")
 
@@ -472,10 +500,12 @@ def delete_test_case(
     user: Any = Depends(get_current_user),
 ):
     """Test case sil."""
-    deleted = db.query(ApiTestCase).filter(
-        ApiTestCase.id == tc_id,
-        ApiTestCase.project_id == project_id,
-    ).delete()
+    deleted = db.execute(
+        delete(ApiTestCase).where(
+            ApiTestCase.id == tc_id,
+            ApiTestCase.project_id == project_id,
+        )
+    ).rowcount
     if not deleted:
         raise HTTPException(404, "Test case bulunamadi")
     db.commit()
@@ -517,9 +547,9 @@ def ai_generate_tests(
     # Test case'leri yükle
     test_cases = []
     if result.get("test_case_ids"):
-        test_cases = db.query(ApiTestCase).filter(
-            ApiTestCase.id.in_(result["test_case_ids"]),
-        ).all()
+        test_cases = db.execute(
+            select(ApiTestCase).where(ApiTestCase.id.in_(result["test_case_ids"]))
+        ).scalars().all()
 
     return AIGenerateResponse(
         mode=result["mode"],
@@ -554,10 +584,12 @@ async def execute_single_request(
     # Environment degiskenlerini al
     env_vars: Dict[str, str] = {}
     if body.environment_id:
-        env = db.query(ApiEnvironment).filter(
-            ApiEnvironment.id == body.environment_id,
-            ApiEnvironment.project_id == project_id,
-        ).first()
+        env = db.execute(
+            select(ApiEnvironment).where(
+                ApiEnvironment.id == body.environment_id,
+                ApiEnvironment.project_id == project_id,
+            )
+        ).scalars().first()
         if env:
             env_vars = env.variables or {}
 
@@ -653,9 +685,11 @@ def list_chains(
     user: Any = Depends(get_current_user),
 ):
     """Chain listesi."""
-    return db.query(ApiChain).filter(
-        ApiChain.project_id == project_id,
-    ).order_by(ApiChain.created_at.desc()).all()
+    return db.execute(
+        select(ApiChain)
+        .where(ApiChain.project_id == project_id)
+        .order_by(ApiChain.created_at.desc())
+    ).scalars().all()
 
 
 @router.get("/chains/{chain_id}", response_model=ChainOut)
@@ -666,10 +700,12 @@ def get_chain(
     user: Any = Depends(get_current_user),
 ):
     """Chain detay."""
-    chain = db.query(ApiChain).filter(
-        ApiChain.id == chain_id,
-        ApiChain.project_id == project_id,
-    ).first()
+    chain = db.execute(
+        select(ApiChain).where(
+            ApiChain.id == chain_id,
+            ApiChain.project_id == project_id,
+        )
+    ).scalars().first()
     if not chain:
         raise HTTPException(404, "Chain bulunamadi")
     return chain
@@ -683,10 +719,12 @@ def delete_chain(
     user: Any = Depends(get_current_user),
 ):
     """Chain sil."""
-    deleted = db.query(ApiChain).filter(
-        ApiChain.id == chain_id,
-        ApiChain.project_id == project_id,
-    ).delete()
+    deleted = db.execute(
+        delete(ApiChain).where(
+            ApiChain.id == chain_id,
+            ApiChain.project_id == project_id,
+        )
+    ).rowcount
     if not deleted:
         raise HTTPException(404, "Chain bulunamadi")
     db.commit()
@@ -732,10 +770,12 @@ async def run_chain(
     from app.domains.api_testing.request_executor import execute_request
     import time, uuid
 
-    chain = db.query(ApiChain).filter(
-        ApiChain.id == chain_id,
-        ApiChain.project_id == project_id,
-    ).first()
+    chain = db.execute(
+        select(ApiChain).where(
+            ApiChain.id == chain_id,
+            ApiChain.project_id == project_id,
+        )
+    ).scalars().first()
     if not chain:
         raise HTTPException(404, "Chain bulunamadi")
 
@@ -979,10 +1019,12 @@ def quarantine_test_case(
     from app.domains.api_testing.flaky_detector import quarantine_test
 
     # Verify the test case belongs to this project
-    tc = db.query(ApiTestCase).filter(
-        ApiTestCase.id == test_case_id,
-        ApiTestCase.project_id == project_id,
-    ).first()
+    tc = db.execute(
+        select(ApiTestCase).where(
+            ApiTestCase.id == test_case_id,
+            ApiTestCase.project_id == project_id,
+        )
+    ).scalars().first()
     if not tc:
         raise HTTPException(404, "Test case bulunamadi")
 
@@ -1008,10 +1050,12 @@ def unquarantine_test_case(
     from app.domains.api_testing.flaky_detector import unquarantine_test
 
     # Verify the test case belongs to this project
-    tc = db.query(ApiTestCase).filter(
-        ApiTestCase.id == test_case_id,
-        ApiTestCase.project_id == project_id,
-    ).first()
+    tc = db.execute(
+        select(ApiTestCase).where(
+            ApiTestCase.id == test_case_id,
+            ApiTestCase.project_id == project_id,
+        )
+    ).scalars().first()
     if not tc:
         raise HTTPException(404, "Test case bulunamadi")
 

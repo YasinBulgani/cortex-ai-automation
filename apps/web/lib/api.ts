@@ -1,5 +1,5 @@
 /**
- * TestwrightAI API Client — Backward Compatibility Re-export
+ * Neurex API Client — Backward Compatibility Re-export
  *
  * Yeni kod için `@/lib/api-client` kullanin.
  * Bu dosya mevcut import'larin kirilmamasini saglar.

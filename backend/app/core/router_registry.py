@@ -37,6 +37,7 @@ from app.domains.evals.router import router as evals_router
 from app.domains.jobs.router import router as jobs_router
 from app.domains.n8n.router import router as n8n_router
 from app.domains.notifications.router import router as notifications_router
+from app.domains.notifications.push_router import router as push_router
 from app.domains.organizations.router import router as organizations_router
 from app.domains.sso.router import router as sso_router
 from app.domains.collaboration.router import router as collaboration_router
@@ -48,6 +49,7 @@ from app.domains.git_fetch.router import router as git_fetch_router
 from app.domains.quality.router import router as quality_router
 from app.domains.rules.router import router as rules_router
 from app.domains.tspm.router import router as tspm_router
+from app.domains.test_management.router import router as test_management_router
 from app.domains.nexus_repo.router import router as nexus_repo_router
 from app.domains.products.router import router as products_router
 from app.domains.events.router import router as events_router
@@ -127,6 +129,7 @@ _PREFIXED_ROUTERS = [
     artifacts_router,
     tspm_router,
     notifications_router,
+    push_router,
     organizations_router,
     sso_router,
     collaboration_router,
@@ -164,23 +167,14 @@ _PREFIXED_ROUTERS = [
     ingestion_router,
     knowledge_base_router,
     compliance_router,
+    test_management_router,
 ]
 
 if _HAS_QA_ROUTER and qa_router is not None:
     _PREFIXED_ROUTERS.append(qa_router)
 
 
-# Routers that carry their own full path prefix (e.g. /api/v1/api-testing/…)
-_UNPREFIXED_ROUTERS = [
-    api_testing_router,
-    health_router,
-    onboarding_router,
-    quality_router,
-    accessibility_router,
-    audit_router,
-    artifacts_router,
-    nexus_repo_router,
-]
+# api_testing has its own full path prefix and is registered separately below.
 
 
 def register_api_routers(app: FastAPI) -> None:

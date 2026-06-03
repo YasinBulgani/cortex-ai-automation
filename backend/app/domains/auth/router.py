@@ -44,9 +44,15 @@ def _limit(rate: str):
 
 # Simple in-memory rate limiter fallback (used when slowapi is not available)
 import time as _time
+from collections import defaultdict as _defaultdict
 _login_attempts: dict[str, list[float]] = {}
 _RATE_LIMIT_WINDOW = 300  # 5 minutes
 _RATE_LIMIT_MAX = 10  # max 10 attempts per IP per window
+
+# Brute-force protection — tracks only *failed* login attempts per IP
+_failed_attempts: dict[str, list[float]] = _defaultdict(list)
+MAX_ATTEMPTS = 5
+WINDOW_SECONDS = 300  # 5 dakika
 
 
 def _check_rate_limit(client_ip: str) -> None:
@@ -59,6 +65,25 @@ def _check_rate_limit(client_ip: str) -> None:
         raise HTTPException(status_code=429, detail="Çok fazla giriş denemesi. 5 dakika bekleyin.")
     attempts.append(now)
     _login_attempts[client_ip] = attempts
+
+
+def _check_brute_force(client_ip: str) -> None:
+    """Başarısız deneme eşiği aşılmışsa 429 fırlat (kayıt yapmaz)."""
+    now = _time.time()
+    recent = [t for t in _failed_attempts[client_ip] if now - t < WINDOW_SECONDS]
+    _failed_attempts[client_ip] = recent  # expired olanları prune et
+    if len(recent) >= MAX_ATTEMPTS:
+        raise HTTPException(
+            status_code=429,
+            detail="Çok fazla başarısız deneme. 5 dakika bekleyin.",
+        )
+
+
+def _record_failure(client_ip: str) -> None:
+    """Başarısız giriş denemesini sayaca ekle."""
+    now = _time.time()
+    recent = [t for t in _failed_attempts[client_ip] if now - t < WINDOW_SECONDS]
+    _failed_attempts[client_ip] = recent + [now]
 
 
 def _password_reset_url(token: str) -> str:
@@ -191,24 +216,33 @@ def login(
       döner.  İstemci bunu ``POST /auth/mfa/login`` çağrısında kullanmalıdır.
     """
     # Rate limit check (fallback in-memory limiter when slowapi is absent)
+    client_ip = _request_ip(request) or "unknown"
     if not (_has_limiter and limiter is not None):
-        _check_rate_limit(_request_ip(request) or "unknown")
+        _check_rate_limit(client_ip)
+
+    # Brute-force protection: önceki başarısız denemeleri kontrol et
+    _check_brute_force(client_ip)
 
     user = db.scalar(select(User).where(User.email == body.email))
     if user is None:
         # Always verify against a dummy hash to prevent timing attacks
         verify_password("dummy", _DUMMY_HASH)
+        _record_failure(client_ip)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="E-posta veya parola hatalı",
         )
     if not verify_password(body.password, user.password_hash):
+        _record_failure(client_ip)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="E-posta veya parola hatalı",
         )
     if not user.is_active:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Hesap devre dışı")
+
+    # Kimlik doğrulama başarılı — başarısız deneme sayacını temizle
+    _failed_attempts.pop(client_ip, None)
 
     # ── MFA challenge ──────────────────────────────────────────────────────────
     if getattr(user, "mfa_enabled", False):

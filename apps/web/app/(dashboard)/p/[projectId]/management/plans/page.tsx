@@ -1,280 +1,300 @@
 "use client";
 
-import { useMemo, useState } from "react";
-
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import {
-  useCreateManagementCycle,
+  useManagementPlans,
   useCreateManagementPlan,
   useManagementCycles,
-  useManagementPlans,
-  useManagementRepository,
-  useRegressionSets,
+  useCreateManagementRun,
+  useCreateManagementCycle,
+  type TestPlan,
+  type TestCycle,
 } from "@/lib/hooks/use-management";
+import { useManagementProjectId } from "@/lib/hooks/use-management-project-id";
+import { useRouteParam } from "@/lib/use-route-param";
 
-import { CommentThread } from "../_components/CommentThread";
-  const activePlans = plans.data?.filter((plan) => plan.status !== "archived").length ?? 0;
-  const caseCount = repository.data?.cases.length ?? 0;
-  const readyCases = repository.data?.cases.filter((item) => ["ready", "active"].includes(item.status)).length ?? 0;
-  const readyPct = caseCount ? Math.round((readyCases / caseCount) * 100) : 0;
-  const selectedSet = useMemo(
-    () => (regressionSets.data ?? []).find((item) => item.id === regressionSetId),
-    [regressionSetId, regressionSets.data],
-  );
-  const selectedSetCaseCount = selectedSet?.cases.length ?? 0;
-  const selectedSetRiskTotal = selectedSet?.cases.reduce((sum, item) => sum + (item.risk_score ?? 0), 0) ?? 0;
-  const scopeSummary = useMemo(() => {
-    const rows = [
-      `Regression set: ${selectedSet ? `${selectedSet.name} (${selectedSet.cases.length} case, risk ${selectedSetRiskTotal})` : "Seçilmedi"}`,
-      scopeObjective.trim() ? `Amaç: ${scopeObjective.trim()}` : "",
-      scopeAreas.trim() ? `Kapsam: ${scopeAreas.trim()}` : "",
-      scopeExclusions.trim() ? `Hariç: ${scopeExclusions.trim()}` : "",
-      scopeNotes.trim() ? `Notlar: ${scopeNotes.trim()}` : "",
-    ].filter(Boolean);
+const PLAN_TYPE_DOT: Record<string, string> = {
+  release:    "bg-blue-500",
+  regression: "bg-slate-500",
+  sprint:     "bg-slate-500",
+  smoke:      "bg-slate-500",
+  uat:        "bg-slate-500",
+};
 
-    return rows.join("\n");
-  }, [scopeAreas, scopeExclusions, scopeNotes, scopeObjective, selectedSet, selectedSetRiskTotal]);
+const CYCLE_STATUS_DOT: Record<string, string> = {
+  active:    "bg-blue-500 animate-pulse",
+  completed: "bg-emerald-500",
+  draft:     "bg-slate-600",
+};
+
+export default function ManagementPlansPage() {
+  const router = useRouter();
+  const projectId = useRouteParam("projectId");
+  const mpid = useManagementProjectId(projectId || undefined);
+
+  const { data: plans, isLoading } = useManagementPlans(mpid || undefined);
+  const { data: allCycles }        = useManagementCycles(mpid || undefined);
+  const createPlan                 = useCreateManagementPlan(mpid || "");
+  const createRun                  = useCreateManagementRun(mpid || "");
+
+  const createCycle = useCreateManagementCycle(mpid || "");
+
+  const [showForm,       setShowForm]       = useState(false);
+  const [planName,       setPlanName]       = useState("");
+  const [planType,       setPlanType]       = useState("regression");
+  const [expandedPlanId, setExpandedPlanId] = useState<string | null>(null);
+  const [addCycleForPlan, setAddCycleForPlan] = useState<string | null>(null);
+  const [cycleName,      setCycleName]      = useState("");
+  const [cycleEnv,       setCycleEnv]       = useState("");
+  const [cycleBuild,     setCycleBuild]     = useState("");
+  const [cycleRunPlanId, setCycleRunPlanId] = useState("");
+  const [page,           setPage]           = useState(1);
+  const PAGE_SIZE = 20;
+
+  const handleCreatePlan = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!planName.trim()) return;
+    await createPlan.mutateAsync({ name: planName.trim(), plan_type: planType });
+    setPlanName("");
+    setShowForm(false);
+  };
+
+  const handleStartRun = async (cycle: TestCycle) => {
+    const run = await createRun.mutateAsync({
+      cycle_id: cycle.id,
+      name: `Run — ${cycle.name}`,
+      case_ids: [],
+      environment: cycle.environment ?? null,
+    });
+    router.push(`/p/${projectId}/management/runs/${run.id}/execute`);
+  };
+
+  const handleCreateCycle = async (planId: string) => {
+    if (!cycleName.trim() || !mpid) return;
+    await createCycle.mutateAsync({
+      plan_id: planId,
+      name: cycleName.trim(),
+      environment: cycleEnv.trim() || null,
+      build_version: cycleBuild.trim() || null,
+    });
+    setCycleName("");
+    setCycleEnv("");
+    setCycleBuild("");
+    setAddCycleForPlan(null);
+  };
+
+  const cyclesForPlan = (planId: string) =>
+    (allCycles ?? []).filter((c: TestCycle) => c.plan_id === planId);
 
   return (
-    <ManagementShell projectId={params.projectId} title="Test Plans" description="Release, sprint, regression ve UAT planları için case seçimi, cycle ve kapsam yönetimi." active="management/plans">
-      <div className="grid gap-4 md:grid-cols-3">
-        <ManagementStat label="Active Plans" value={plans.isLoading ? "…" : String(activePlans)} note={`${cycles.data?.length ?? 0} cycle`} />
-        <ManagementStat label="Repository Cases" value={repository.isLoading ? "…" : String(caseCount)} note="plan kapsamına seçilebilir" />
-        <ManagementStat label="Ready to Run" value={repository.isLoading ? "…" : `${readyPct}%`} note="ready/active case oranı" />
+    <div className="min-h-[calc(100vh-88px)] bg-[#0a0f1e] text-slate-200">
+      {/* Header */}
+      <div className="flex items-center justify-between border-b border-white/[0.06] bg-[#0d1221] px-6 py-4">
+        <h1 className="text-[13px] font-semibold text-slate-200">Test Planları</h1>
+        <button
+          onClick={() => setShowForm(v => !v)}
+          className="rounded-md bg-blue-600 px-3 py-1.5 text-[11px] font-medium text-white hover:bg-blue-500 transition-colors"
+        >
+          {showForm ? "İptal" : "+ Yeni Plan"}
+        </button>
       </div>
-      <div className="grid gap-4 xl:grid-cols-2">
-        <ManagementPanel title="Create Plan">
-          <form
-            className="space-y-3"
-            onSubmit={async (event) => {
-              event.preventDefault();
-              if (!planName.trim()) return;
-              await createPlan.mutateAsync({
-                name: planName.trim(),
-                plan_type: planType,
-                release_name: releaseName.trim() || null,
-                scope_summary: scopeSummary || null,
-              });
-              setPlanName("");
-              setReleaseName("");
-              setRegressionSetId("");
-              setScopeObjective("");
-              setScopeAreas("");
-              setScopeExclusions("");
-              setScopeNotes("");
-            }}
-          >
-            <input
-              value={planName}
-              onChange={(event) => setPlanName(event.target.value)}
-              placeholder="Plan adı"
-              className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white outline-none focus:border-cyan-500"
-            />
-            <div className="grid gap-3 md:grid-cols-2">
+
+      {/* Inline create form */}
+      {showForm && (
+        <div className="border-b border-white/[0.06] bg-[#0d1221] px-6 py-4">
+          <form onSubmit={handleCreatePlan} className="flex items-end gap-3 flex-wrap">
+            <div className="flex-1 min-w-48">
+              <label className="mb-1 block text-[11px] text-slate-500">Plan Adı</label>
+              <input
+                value={planName}
+                onChange={e => setPlanName(e.target.value)}
+                placeholder="örn. Q2 Release Plan"
+                required
+                className="w-full rounded-md border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-[13px] text-slate-200 placeholder-slate-600 outline-none focus:border-blue-500/50"
+              />
+            </div>
+            <div className="w-44">
+              <label className="mb-1 block text-[11px] text-slate-500">Tip</label>
               <select
                 value={planType}
-                onChange={(event) => setPlanType(event.target.value)}
-                className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white outline-none focus:border-cyan-500"
+                onChange={e => setPlanType(e.target.value)}
+                className="w-full rounded-md border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-[13px] text-slate-200 outline-none focus:border-blue-500/50"
               >
-                <option value="regression">Regression</option>
                 <option value="release">Release</option>
+                <option value="regression">Regression</option>
                 <option value="sprint">Sprint</option>
-                <option value="uat">UAT</option>
                 <option value="smoke">Smoke</option>
+                <option value="uat">UAT</option>
               </select>
-              <input
-                value={releaseName}
-                onChange={(event) => setReleaseName(event.target.value)}
-                placeholder="Release / Sprint"
-                className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white outline-none focus:border-cyan-500"
-              />
-            </div>
-            <div className="rounded-lg border border-slate-800 bg-slate-950/50 p-3">
-              <div className="mb-3 grid gap-3 md:grid-cols-[1fr_auto_auto]">
-                <select
-                  value={regressionSetId}
-                  onChange={(event) => setRegressionSetId(event.target.value)}
-                  className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white outline-none focus:border-cyan-500"
-                >
-                  <option value="">Kayıtlı regression set seç</option>
-                  {(regressionSets.data ?? []).map((set) => (
-                    <option key={set.id} value={set.id}>{set.name} ({set.cases.length})</option>
-                  ))}
-                </select>
-                <div className="rounded-lg border border-slate-800 px-3 py-2">
-                  <p className="text-[11px] uppercase tracking-wide text-slate-500">Cases</p>
-                  <p className="text-sm font-semibold text-slate-100">{regressionSets.isLoading ? "..." : selectedSetCaseCount}</p>
-                </div>
-                <div className="rounded-lg border border-slate-800 px-3 py-2">
-                  <p className="text-[11px] uppercase tracking-wide text-slate-500">Risk</p>
-                  <p className="text-sm font-semibold text-amber-300">{regressionSets.isLoading ? "..." : selectedSetRiskTotal}</p>
-                </div>
-              </div>
-              <div className="grid gap-3">
-                <textarea
-                  value={scopeObjective}
-                  onChange={(event) => setScopeObjective(event.target.value)}
-                  rows={2}
-                  placeholder="Plan amacı: release riskleri, kritik akışlar, müşteri taahhüdü..."
-                  className="w-full resize-none rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white outline-none focus:border-cyan-500"
-                />
-                <textarea
-                  value={scopeAreas}
-                  onChange={(event) => setScopeAreas(event.target.value)}
-                  rows={2}
-                  placeholder="Kapsam: modüller, tag'ler, priority/severity kararları, platformlar..."
-                  className="w-full resize-none rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white outline-none focus:border-cyan-500"
-                />
-                <div className="grid gap-3 md:grid-cols-2">
-                  <textarea
-                    value={scopeExclusions}
-                    onChange={(event) => setScopeExclusions(event.target.value)}
-                    rows={2}
-                    placeholder="Hariç tutulanlar"
-                    className="resize-none rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white outline-none focus:border-cyan-500"
-                  />
-                  <textarea
-                    value={scopeNotes}
-                    onChange={(event) => setScopeNotes(event.target.value)}
-                    rows={2}
-                    placeholder="Kabul kriteri / özel notlar"
-                    className="resize-none rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white outline-none focus:border-cyan-500"
-                  />
-                </div>
-                <div className="rounded-lg border border-slate-800 bg-slate-950 p-3">
-                  <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500">Scope Summary Preview</p>
-                  <pre className="whitespace-pre-wrap text-xs leading-5 text-slate-300">{scopeSummary || "Regression set ve kapsam alanları dolduruldukça plan özeti burada oluşur."}</pre>
-                </div>
-              </div>
             </div>
             <button
+              type="submit"
               disabled={createPlan.isPending || !planName.trim()}
-              className="rounded-lg bg-cyan-500 px-3 py-2 text-sm font-medium text-slate-950 hover:bg-cyan-400 disabled:opacity-40"
+              className="rounded-md bg-blue-600 px-4 py-2 text-[11px] font-medium text-white hover:bg-blue-500 disabled:opacity-40 transition-colors"
             >
-              {createPlan.isPending ? "Oluşturuluyor..." : "Plan Oluştur"}
+              {createPlan.isPending ? "Oluşturuluyor…" : "Oluştur"}
             </button>
           </form>
-        </ManagementPanel>
-
-        <ManagementPanel title="Create Cycle">
-          <form
-            className="space-y-3"
-            onSubmit={async (event) => {
-              event.preventDefault();
-              const selectedPlan = cyclePlanId || plans.data?.[0]?.id;
-              if (!cycleName.trim() || !selectedPlan) return;
-              await createCycle.mutateAsync({
-                plan_id: selectedPlan,
-                name: cycleName.trim(),
-                environment: environment.trim() || null,
-                build_version: buildVersion.trim() || null,
-              });
-              setCycleName("");
-              setEnvironment("");
-              setBuildVersion("");
-            }}
-          >
-            <select
-              value={cyclePlanId}
-              onChange={(event) => setCyclePlanId(event.target.value)}
-              className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white outline-none focus:border-cyan-500"
-            >
-              <option value="">Plan seç</option>
-              {(plans.data ?? []).map((plan) => (
-                <option key={plan.id} value={plan.id}>{plan.name}</option>
-              ))}
-            </select>
-            <input
-              value={cycleName}
-              onChange={(event) => setCycleName(event.target.value)}
-              placeholder="Cycle adı"
-              className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white outline-none focus:border-cyan-500"
-            />
-            <div className="grid gap-3 md:grid-cols-2">
-              <input
-                value={environment}
-                onChange={(event) => setEnvironment(event.target.value)}
-                placeholder="Environment"
-                className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white outline-none focus:border-cyan-500"
-              />
-              <input
-                value={buildVersion}
-                onChange={(event) => setBuildVersion(event.target.value)}
-                placeholder="Build"
-                className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white outline-none focus:border-cyan-500"
-              />
-            </div>
-            <button
-              disabled={createCycle.isPending || !cycleName.trim() || !(cyclePlanId || plans.data?.[0]?.id)}
-              className="rounded-lg bg-cyan-500 px-3 py-2 text-sm font-medium text-slate-950 hover:bg-cyan-400 disabled:opacity-40"
-            >
-              {createCycle.isPending ? "Oluşturuluyor..." : "Cycle Oluştur"}
-            </button>
-          </form>
-        </ManagementPanel>
-      </div>
-
-      <ManagementPanel title="Plan Builder Contract">
-        <div className="space-y-3 text-sm leading-6 text-slate-300">
-          <p>
-            Plan oluşturma akışı repository filtrelerinden case seçer, cycle bilgisiyle ortam/build snapshot'ı alır ve run oluştururken her case için `case_version_no` değerini sabitler.
-          </p>
-          <div className="overflow-x-auto rounded-lg border border-slate-800">
-            <table className="w-full text-left text-sm">
-              <thead className="bg-slate-950 text-xs uppercase tracking-wide text-slate-500">
-                <tr><th className="px-3 py-2">Plan</th><th>Type</th><th>Status</th><th>Release</th><th>Scope Summary</th></tr>
-              </thead>
-              <tbody className="divide-y divide-slate-800">
-                {(plans.data ?? []).slice(0, 10).map((plan) => (
-                  <tr key={plan.id}>
-                    <td className="px-3 py-2 text-slate-200">{plan.name}</td>
-                    <td className="text-slate-400">{plan.plan_type}</td>
-                    <td className="text-slate-400">{plan.status}</td>
-                    <td className="text-slate-500">{plan.release_name ?? "—"}</td>
-                    <td className="max-w-lg whitespace-pre-wrap px-3 py-2 text-xs leading-5 text-slate-400">{plan.scope_summary ?? "—"}</td>
-                  </tr>
-                ))}
-                {!plans.isLoading && (plans.data ?? []).length === 0 ? (
-                  <tr><td colSpan={5} className="px-3 py-6 text-center text-slate-500">Henüz plan yok.</td></tr>
-                ) : null}
-              </tbody>
-            </table>
-          </div>
         </div>
-      </ManagementPanel>
+      )}
 
-      <ManagementPanel title="Plan Discussion">
-        {(plans.data ?? []).length === 0 ? (
-          <p className="text-sm text-slate-500">Tartışma için henüz plan yok.</p>
+      {/* Plan grid */}
+      <div className="p-6">
+        {isLoading ? (
+          <div className="animate-pulse grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {[1, 2, 3].map(i => (
+              <div key={i} className="h-28 rounded-xl bg-white/[0.04]" />
+            ))}
+          </div>
+        ) : (plans ?? []).length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-20 gap-2">
+            <p className="text-[13px] text-slate-500">Henüz plan yok</p>
+            <button onClick={() => setShowForm(true)}
+              className="rounded-md border border-white/[0.08] px-4 py-2 text-[11px] text-slate-400 hover:border-white/[0.15] hover:text-slate-200 transition-colors">
+              Yeni Plan Oluştur
+            </button>
+          </div>
         ) : (
           <div className="space-y-3">
-            <div className="flex flex-wrap items-center gap-2">
-              <label className="text-xs text-slate-400" htmlFor="plan-discussion-select">
-                Plan:
-              </label>
-              <select
-                id="plan-discussion-select"
-                value={discussionPlanId || (plans.data?.[0]?.id ?? "")}
-                onChange={(event) => setDiscussionPlanId(event.target.value)}
-                className="rounded-lg border border-slate-700 bg-slate-950 px-2 py-1 text-xs text-slate-200 focus:border-cyan-500 focus:outline-none"
-              >
-                {(plans.data ?? []).map((plan) => (
-                  <option key={plan.id} value={plan.id}>
-                    {plan.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-            {(discussionPlanId || plans.data?.[0]?.id) ? (
-              <CommentThread
-                entityType="plan"
-                entityId={discussionPlanId || (plans.data?.[0]?.id as string)}
-                projectId={params.projectId}
-                title="Plan Discussion"
-              />
-            ) : null}
+            {(plans ?? []).slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE).map((plan: TestPlan) => {
+              const dot      = PLAN_TYPE_DOT[plan.plan_type] ?? "bg-slate-500";
+              const cycles   = cyclesForPlan(plan.id);
+              const expanded = expandedPlanId === plan.id;
+
+              return (
+                <div key={plan.id} className="rounded-xl border border-white/[0.06] bg-[#0d1221] overflow-hidden">
+                  {/* Card header */}
+                  <button
+                    onClick={() => setExpandedPlanId(expanded ? null : plan.id)}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-white/[0.04] transition-colors"
+                  >
+                    <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${dot}`} />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[13px] font-medium text-slate-200 truncate">{plan.name}</p>
+                      <p className="text-[11px] text-slate-500 mt-0.5">
+                        {plan.plan_type} · {cycles.length} cycle ·{" "}
+                        {new Date(plan.created_at).toLocaleDateString("tr-TR", { day: "2-digit", month: "short", year: "numeric" })}
+                      </p>
+                    </div>
+                    <span className="text-[11px] text-slate-600">{expanded ? "▲" : "▼"}</span>
+                  </button>
+
+                  {/* Expanded cycles */}
+                  {expanded && (
+                    <div className="border-t border-white/[0.06]">
+                      {cycles.length === 0 && addCycleForPlan !== plan.id ? (
+                        <p className="px-6 py-4 text-[11px] text-slate-600">Bu plana ait cycle yok.</p>
+                      ) : (
+                        cycles.map((cycle: TestCycle) => {
+                          const cDot = CYCLE_STATUS_DOT[cycle.status] ?? "bg-slate-600";
+                          return (
+                            <div key={cycle.id}
+                              className="flex items-center gap-3 border-b border-white/[0.04] px-5 py-3 last:border-b-0 hover:bg-white/[0.03] transition-colors">
+                              <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${cDot}`} />
+                              <div className="flex-1 min-w-0">
+                                <p className="truncate text-[13px] text-slate-300">{cycle.name}</p>
+                                <p className="text-[11px] text-slate-500">
+                                  {cycle.environment ?? "—"}{cycle.build_version ? ` · ${cycle.build_version}` : ""}
+                                </p>
+                              </div>
+                              <span className={`rounded-full border px-2 py-0.5 text-[10px] ${
+                                cycle.status === "active"    ? "border-blue-500/20 bg-blue-500/10 text-blue-400" :
+                                cycle.status === "completed" ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-400" :
+                                "border-slate-700 bg-slate-800 text-slate-500"
+                              }`}>{cycle.status}</span>
+                              <button
+                                onClick={() => { setCycleRunPlanId(cycle.id); handleStartRun(cycle); }}
+                                disabled={createRun.isPending && cycleRunPlanId === cycle.id}
+                                className="rounded-lg border border-blue-500/30 px-3 py-1 text-[11px] text-blue-500 hover:bg-blue-500/10 disabled:opacity-40 transition-colors"
+                              >
+                                {createRun.isPending && cycleRunPlanId === cycle.id ? "…" : "▶ Run"}
+                              </button>
+                            </div>
+                          );
+                        })
+                      )}
+
+                      {/* New cycle form */}
+                      {addCycleForPlan === plan.id ? (
+                        <div className="border-t border-white/[0.04] bg-blue-500/[0.03] px-5 py-3">
+                          <p className="mb-2.5 text-[10px] font-medium uppercase tracking-widest text-slate-600">Yeni Cycle</p>
+                          <div className="space-y-2">
+                            <input
+                              autoFocus
+                              type="text"
+                              value={cycleName}
+                              onChange={e => setCycleName(e.target.value)}
+                              onKeyDown={e => { if (e.key === "Enter") handleCreateCycle(plan.id); if (e.key === "Escape") { setAddCycleForPlan(null); setCycleName(""); }}}
+                              placeholder="Cycle adı *"
+                              className="w-full rounded-xl border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-[13px] text-slate-200 placeholder-slate-600 outline-none focus:border-blue-500/40 transition-colors"
+                            />
+                            <div className="grid grid-cols-2 gap-2">
+                              <input type="text" value={cycleEnv} onChange={e => setCycleEnv(e.target.value)}
+                                placeholder="Ortam (prod/staging)"
+                                className="rounded-xl border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-[12px] text-slate-200 placeholder-slate-600 outline-none focus:border-blue-500/40 transition-colors"/>
+                              <input type="text" value={cycleBuild} onChange={e => setCycleBuild(e.target.value)}
+                                placeholder="Build (v2.1.0)"
+                                className="rounded-xl border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-[12px] text-slate-200 placeholder-slate-600 outline-none focus:border-blue-500/40 transition-colors"/>
+                            </div>
+                            <div className="flex gap-2">
+                              <button type="button"
+                                onClick={() => handleCreateCycle(plan.id)}
+                                disabled={!cycleName.trim() || createCycle.isPending}
+                                className="flex-1 rounded-xl bg-blue-600 py-2 text-[13px] font-medium text-white hover:bg-blue-500 disabled:opacity-40 transition-colors">
+                                {createCycle.isPending ? "Oluşturuluyor…" : "Cycle Oluştur"}
+                              </button>
+                              <button type="button"
+                                onClick={() => { setAddCycleForPlan(null); setCycleName(""); setCycleEnv(""); setCycleBuild(""); }}
+                                className="rounded-xl border border-white/[0.08] px-4 py-2 text-[13px] text-slate-500 hover:text-slate-300 transition-colors">
+                                İptal
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="border-t border-white/[0.04] px-5 py-2">
+                          <button type="button"
+                            onClick={() => { setAddCycleForPlan(plan.id); setExpandedPlanId(plan.id); }}
+                            className="flex w-full items-center gap-1.5 rounded-lg py-1.5 text-[12px] text-slate-600 hover:text-slate-400 transition-colors">
+                            <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4"/>
+                            </svg>
+                            Yeni Cycle Ekle
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+
+            {/* Pagination */}
+            {(plans ?? []).length > PAGE_SIZE && (
+              <div className="flex items-center justify-between border-t border-white/[0.06] pt-4 mt-2">
+                <span className="text-[11px] text-slate-500">
+                  {(plans ?? []).length} plandan {Math.min(page * PAGE_SIZE, (plans ?? []).length)} tanesi
+                </span>
+                <div className="flex items-center gap-2">
+                  <button
+                    disabled={page === 1}
+                    onClick={() => setPage(p => p - 1)}
+                    className="rounded border border-white/[0.08] px-3 py-1 text-[11px] text-slate-400 hover:border-white/[0.15] disabled:opacity-30 disabled:cursor-not-allowed"
+                  >← Önceki</button>
+                  <span className="text-[11px] text-slate-500">{page} / {Math.ceil((plans ?? []).length / PAGE_SIZE)}</span>
+                  <button
+                    disabled={page >= Math.ceil((plans ?? []).length / PAGE_SIZE)}
+                    onClick={() => setPage(p => p + 1)}
+                    className="rounded border border-white/[0.08] px-3 py-1 text-[11px] text-slate-400 hover:border-white/[0.15] disabled:opacity-30 disabled:cursor-not-allowed"
+                  >Sonraki →</button>
+                </div>
+              </div>
+            )}
           </div>
         )}
-      </ManagementPanel>
-    </ManagementShell>
+      </div>
+
+    </div>
   );
 }

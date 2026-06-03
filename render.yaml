@@ -1,0 +1,43 @@
+services:
+  - type: web
+    name: neurex-backend
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    plan: free
+    healthCheckPath: /health
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: REDIS_URL
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: SECRETS_ENCRYPTION_KEYS
+        generateValue: true
+      - key: ENGINE_INTERNAL_KEY
+        generateValue: true
+      - key: GATEWAY_INTERNAL_KEY
+        generateValue: true
+      - key: CORS_ORIGINS
+        sync: false
+      - key: SKIP_APP_BOOTSTRAP
+        value: "0"
+      - key: AI_GATEWAY_REQUIRED
+        value: "false"
+      - key: REDIS_REQUIRED
+        value: "false"
+      - key: AUTH_STATE_REDIS_REQUIRED
+        value: "false"
+      - key: LLM_RATE_LIMIT_REDIS_REQUIRED
+        value: "false"
+      - key: RATE_LIMIT_REQUIRED
+        value: "false"
+      - key: RUNNING_IN_DOCKER
+        value: "1"
+      - key: POSTGRES_HOST
+        sync: false
+      - key: POSTGRES_USER
+        sync: false
+      - key: POSTGRES_PORT
+        value: "5432"

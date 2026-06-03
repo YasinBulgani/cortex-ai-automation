@@ -263,6 +263,25 @@ ERROR_CATALOG: dict[str, ErrorEntry] = {
             "kendi projelerinizin listesine dönün."
         ),
     },
+    # ── Jobs / Veri İşleme ───────────────────────────────────────────────────
+    "job.dataset_version_not_found": {
+        "http_status": 404,
+        "title": "Veri seti sürümü bulunamadı",
+        "message": "İstenen veri seti sürümü mevcut değil veya silinmiş.",
+        "suggestion": "Geçerli bir veri seti sürümü seçin.",
+    },
+    "job.rule_set_mismatch": {
+        "http_status": 400,
+        "title": "Kural seti uyumsuz",
+        "message": "Seçilen kural seti bu veri setine ait değil.",
+        "suggestion": "Veri setine ait bir kural seti seçin veya kural seti alanını boş bırakın.",
+    },
+    "job.not_found": {
+        "http_status": 404,
+        "title": "İş bulunamadı",
+        "message": "İstenen arka plan işi mevcut değil veya silinmiş.",
+        "suggestion": "İş listesini yenileyin ve geçerli bir iş seçin.",
+    },
     # ── Genel ─────────────────────────────────────────────────────────────────
     "internal.unexpected": {
         "http_status": 500,

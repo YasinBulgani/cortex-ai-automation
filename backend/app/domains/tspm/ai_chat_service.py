@@ -20,11 +20,11 @@ import re
 from datetime import datetime, timezone
 from typing import Any, Optional
 
-logger = logging.getLogger("nexusqa.ai_chat")
+logger = logging.getLogger("neurex.ai_chat")
 
 # ── Redis Session Store ───────────────────────────────────────────────────────
 _SESSION_TTL = 7200   # 2 saat
-_SESSION_PREFIX = "nexusqa:chat:"
+_SESSION_PREFIX = "neurex:chat:"
 _MAX_HISTORY = 16     # 8 exchange = 16 mesaj
 
 
@@ -72,9 +72,9 @@ Nexus QA Platformu hakkında bilgin var:
 - Faz 1: Doküman analizi ve test case üretimi (AI ile)
 - Faz 2-3: Test case bulk review (approve/reject/edit)
 - Faz 4: AI regresyon seti önerisi
-- Faz 5: Gherkin + Java NexusQA + Playwright TypeScript kod üretimi
+- Faz 5: Gherkin + Java Neurex + Playwright TypeScript kod üretimi
 - Faz 6: AI debug loop, kök neden analizi, Allure export
-- NexusQA: Selenium 4 + Cucumber tabanlı Java framework
+- Neurex: Selenium 4 + Cucumber tabanlı Java framework
 
 Cevap verirken:
 1. Her zaman Türkçe konuş
@@ -128,7 +128,7 @@ def _detect_intent(message: str) -> str:
         return "bdd_help"
     if any(w in msg_lower for w in ["playwright", "typescript", "locator", "selector", "page.click"]):
         return "playwright_help"
-    if any(w in msg_lower for w in ["java", "nexusqa", "step definition", "@given", "@when", "@then", "selenium"]):
+    if any(w in msg_lower for w in ["java", "neurex", "step definition", "@given", "@when", "@then", "selenium"]):
         return "java_help"
     if any(w in msg_lower for w in ["hata", "başarısız", "fail", "error", "debug", "neden"]):
         return "debug_help"
@@ -165,8 +165,8 @@ def _enrich_prompt_for_intent(
     if intent == "java_help":
         return (
             f"{user_message}\n\n"
-            f"[Bilgi: NexusQA framework = Selenium 4 + Cucumber. "
-            f"Paket: com.nexusqa.steps. @Given/@When/@Then/@And annotation'ları kullan.]"
+            f"[Bilgi: Neurex framework = Selenium 4 + Cucumber. "
+            f"Paket: com.neurex.steps. @Given/@When/@Then/@And annotation'ları kullan.]"
         )
     if intent == "debug_help":
         return (
@@ -330,9 +330,9 @@ def _canned_response(message: str, intent: str) -> str:
             "```"
         ),
         "java_help": (
-            "NexusQA (Selenium 4 + Cucumber) step definition örneği:\n\n"
+            "Neurex (Selenium 4 + Cucumber) step definition örneği:\n\n"
             "```java\n"
-            "package com.nexusqa.steps;\n\n"
+            "package com.neurex.steps;\n\n"
             "@Given(\"kullanıcı giriş sayfasındayım\")\n"
             "public void kullanici_giris_sayfasinda() {\n"
             "    driver.get(BASE_URL + \"/login\");\n"

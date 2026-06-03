@@ -18,6 +18,7 @@ import re
 import time
 from typing import Optional
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.infra.database import SessionLocal
@@ -229,21 +230,29 @@ def run_generate_job(
     """Arka planda çalıştırılacak senaryo üretim fonksiyonu."""
     db: Session = SessionLocal()
     try:
-        project: Optional[NexusProject] = db.query(NexusProject).filter(NexusProject.id == project_id).first()
+        project: Optional[NexusProject] = db.execute(
+            select(NexusProject).where(NexusProject.id == project_id)
+        ).scalars().first()
         if not project:
             _log.error("Proje bulunamadı: %s", project_id)
             return
 
-        crawl_job: Optional[NexusCrawlJob] = db.query(NexusCrawlJob).filter(
-            NexusCrawlJob.id == crawl_job_id,
-            NexusCrawlJob.project_id == project_id,
-        ).first()
+        crawl_job: Optional[NexusCrawlJob] = db.execute(
+            select(NexusCrawlJob).where(
+                NexusCrawlJob.id == crawl_job_id,
+                NexusCrawlJob.project_id == project_id,
+            )
+        ).scalars().first()
         if not crawl_job or crawl_job.status != "done":
             _log.warning("CrawlJob hazır değil: %s (durum: %s)", crawl_job_id, getattr(crawl_job, "status", "?"))
             return
 
-        endpoints = db.query(NexusEndpoint).filter(NexusEndpoint.crawl_job_id == crawl_job_id).all()
-        files = db.query(NexusFile).filter(NexusFile.crawl_job_id == crawl_job_id).all()
+        endpoints = db.execute(
+            select(NexusEndpoint).where(NexusEndpoint.crawl_job_id == crawl_job_id)
+        ).scalars().all()
+        files = db.execute(
+            select(NexusFile).where(NexusFile.crawl_job_id == crawl_job_id)
+        ).scalars().all()
 
         # Sistem ve kullanıcı promptu hazırla
         system_prompt = _SYSTEM_PROMPT_TR if language == "tr" else _SYSTEM_PROMPT_EN

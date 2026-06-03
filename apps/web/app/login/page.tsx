@@ -133,8 +133,7 @@ function LeftPanel() {
 function SsoButtons() {
   const [providers, setProviders] = useState<Array<{ id: string; name: string }>>([]);
   useEffect(() => {
-    fetch("/api/v1/sso/providers")
-      .then((r) => (r.ok ? r.json() : { providers: [] }))
+    apiFetch<{ providers?: Array<{ id: string; name: string }> }>("/api/v1/sso/providers")
       .then((d) => setProviders(d.providers || []))
       .catch(() => setProviders([]));
   }, []);

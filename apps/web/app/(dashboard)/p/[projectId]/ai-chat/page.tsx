@@ -165,7 +165,7 @@ export default function AiChatPage() {
   return (
     <div className="min-h-screen bg-slate-950 p-6 flex flex-col gap-4" data-testid="ai-chat-page">
       <PageHeader
-        title="Visium Intelligence"
+        title="Neurex Intelligence"
         description="Proje içinden AI yardımı alın"
       />
 

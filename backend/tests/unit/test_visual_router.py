@@ -11,6 +11,17 @@ try:
     from app.domains.visual.router import router
     from app.deps import get_current_user
     from app.infra.database import get_db
+    _HAS_DEPS = True
+except ImportError:
+    _HAS_DEPS = False
+
+
+@pytest.fixture
+def client():
+    if not _HAS_DEPS:
+        pytest.skip("visual router dependencies not available")
+    app = FastAPI()
+    app.include_router(router)
     return TestClient(app, raise_server_exceptions=False)
 
 

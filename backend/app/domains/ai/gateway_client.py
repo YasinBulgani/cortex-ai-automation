@@ -8,6 +8,7 @@ Kullanım:
 """
 from __future__ import annotations
 
+import atexit
 import json
 import logging
 import os
@@ -40,6 +41,18 @@ def _get_http_client() -> httpx.Client:
             limits=httpx.Limits(max_connections=20, max_keepalive_connections=10),
         )
     return _http_client
+
+
+def close_http_client() -> None:
+    """Global HTTP client'ı güvenli şekilde kapat ve None'a sıfırla.
+
+    Lifespan shutdown ve atexit hook'u tarafından çağrılır.
+    Zaten kapalıysa veya hiç oluşturulmamışsa no-op'tur.
+    """
+    global _http_client
+    if _http_client is not None and not _http_client.is_closed:
+        _http_client.close()
+        _http_client = None
 
 
 def _gateway_base() -> str:
@@ -478,6 +491,115 @@ def _rough_token_count(text: str) -> int:
     return max(1, int(len(text) / 4))
 
 
+async def async_gateway_complete(
+    task_type: str,
+    user_message: str,
+    system_message: str | None = None,
+    temperature: float = 0.5,
+    max_tokens: int = 4000,
+    project_id: str | None = None,
+    json_mode: bool | None = None,
+    model_override: str | None = None,
+    *,
+    use_cache: bool = True,
+    tenant_id: str | None = None,
+) -> str:
+    """
+    AI Gateway'e async istek gönder, yanıt metnini döndür.
+
+    Tüm middleware (PII, cache, structured output, output shield) sync versiyonla aynı.
+    Event loop'u bloklamaz — httpx.AsyncClient kullanır.
+    """
+    import asyncio as _asyncio
+    return await _asyncio.get_running_loop().run_in_executor(
+        None,
+        lambda: gateway_complete(
+            task_type=task_type,
+            user_message=user_message,
+            system_message=system_message,
+            temperature=temperature,
+            max_tokens=max_tokens,
+            project_id=project_id,
+            json_mode=json_mode,
+            model_override=model_override,
+            use_cache=use_cache,
+            tenant_id=tenant_id,
+        ),
+    )
+
+
+async def async_gateway_stream(
+    task_type: str,
+    user_message: str,
+    system_message: str | None = None,
+    temperature: float = 0.5,
+    max_tokens: int = 4000,
+    model_override: str | None = None,
+    *,
+    tenant_id: str | None = None,
+):
+    """
+    AI Gateway /ai/stream endpoint'inden async SSE token stream.
+
+    Kullanım:
+        async for token in async_gateway_stream("chat", user_message):
+            print(token, end="", flush=True)
+    """
+    import json as _json
+
+    try:
+        import httpx as _httpx
+    except ImportError as exc:
+        raise RuntimeError("async_gateway_stream için httpx gerekli") from exc
+
+    redacted_user, _ = _redact_pii(user_message)
+    redacted_sys, _ = _redact_pii(system_message or "")
+
+    if not system_message:
+        reg_sys, _ = _resolve_from_registry(task_type, tenant_id=tenant_id)
+        if reg_sys:
+            redacted_sys, _ = _redact_pii(reg_sys)
+
+    messages = []
+    if redacted_sys:
+        messages.append({"role": "system", "content": redacted_sys})
+    messages.append({"role": "user", "content": redacted_user})
+
+    payload: dict[str, Any] = {
+        "task_type": task_type,
+        "messages": messages,
+        "temperature": temperature,
+        "max_tokens": max_tokens,
+    }
+    if model_override:
+        payload["model_override"] = model_override
+
+    url = f"{AI_GATEWAY_BASE}/ai/stream"
+    headers = _gateway_headers()
+
+    async with _httpx.AsyncClient(timeout=_httpx.Timeout(90.0, connect=5.0)) as client:
+        try:
+            async with client.stream("POST", url, json=payload, headers=headers) as resp:
+                resp.raise_for_status()
+                async for line in resp.aiter_lines():
+                    if not line.startswith("data:"):
+                        continue
+                    raw = line[5:].strip()
+                    if raw == "[DONE]":
+                        return
+                    try:
+                        data = _json.loads(raw)
+                        if "error" in data:
+                            raise RuntimeError(f"Gateway streaming hatası: {data['error']}")
+                        token = data.get("token", "")
+                        if token:
+                            yield token
+                    except (ValueError, KeyError):
+                        continue
+        except _httpx.HTTPError as exc:
+            raise RuntimeError(f"Gateway streaming bağlantı hatası: {exc}") from exc
+
+
 def gateway_analyze_document(
     doc_text: str,
     extra_instructions: str = "",
@@ -657,7 +779,7 @@ def gateway_generate_java_steps(
     gherkin_content: str,
     project_id: str | None = None,
 ) -> str:
-    """Gherkin senaryolarından Java NexusQA step definitions üret."""
+    """Gherkin senaryolarından Java Neurex step definitions üret."""
     return gateway_complete(
         task_type="generate_java_steps",
         user_message=f"Aşağıdaki Gherkin senaryoları için Java step definition'ları üret:\n\n{gherkin_content}",
@@ -757,3 +879,7 @@ def gateway_embed_available() -> bool:
         return resp.status_code == 200
     except Exception:
         return False
+
+
+# Process çıkışında HTTP client'ı temizle (lifespan dışında kalan durumlar için).
+atexit.register(close_http_client)

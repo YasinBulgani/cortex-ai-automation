@@ -1,208 +1,447 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
+import Link from "next/link";
+import { useRouteParam } from "@/lib/use-route-param";
+import { cn } from "@/lib/utils";
 import {
-  useCreateManagementDefect,
-  useManagementEvidence,
   useManagementRun,
   useUpdateManagementStepResult,
   type RunCase,
+  type TestRunStatus,
 } from "@/lib/hooks/use-management";
-import { apiFetch } from "@/lib/api-client";
-import { ManagementPanel, ManagementShell, ManagementStat } from "../../../_components/ManagementShell";
-import { EvidenceModal } from "../../../_components/EvidenceModal";
-  const dotClass = STATUS_DOT[runCase.status] ?? "bg-slate-600";
-  const bulkMutation = useUpdateManagementStepResult(projectId, runCase.id, runId);
 
-  // Map step_results to a lookup by step_no for quick access.
-  const resultsByStepNo: Record<number, { status: StepStatus; actual_result?: string | null }> =
-    Object.fromEntries(
-      runCase.step_results.map((r) => [
-        r.step_no,
-        { status: r.status as StepStatus, actual_result: r.actual_result },
-      ]),
-    );
+// ─── Config ──────────────────────────────────────────────────────────────────
 
-  const snapshot = runCase.case_snapshot as {
-    case?: SnapshotCase;
-    steps?: Array<Omit<ExecutionStep, "id"> & { id?: string }>;
-  };
-  const snapshotCase = snapshot.case ?? {};
-  const steps: ExecutionStep[] = (snapshot.steps ?? []).map((step) => ({
-    id: step.id ?? `${runCase.id}-${step.step_no}`,
-    step_no: step.step_no,
-    action: step.action,
-    expected_result: step.expected_result,
-    test_data: step.test_data,
-    notes: step.notes,
-    is_required: step.is_required,
-  }));
-  const completedSteps = steps.filter((step) =>
-    ["passed", "skipped"].includes(resultsByStepNo[step.step_no]?.status ?? ""),
-  ).length;
+const STATUS_DOT: Record<string, string> = {
+  passed:      "bg-emerald-500/70",
+  failed:      "bg-red-500/80",
+  blocked:     "bg-amber-500/60",
+  skipped:     "bg-slate-500",
+  in_progress: "bg-blue-500 animate-pulse",
+  not_run:     "bg-slate-600",
+};
 
-  const markCasePassed = async () => {
-    for (const step of steps) {
-      await bulkMutation.mutateAsync({
-        stepNo: step.step_no,
-        status: "passed",
-        actual_result: resultsByStepNo[step.step_no]?.actual_result ?? "Beklenen sonuç gözlendi.",
-      });
-    }
-    setBulkSaved(true);
-    setTimeout(() => setBulkSaved(false), 2000);
-  };
+const STATUS_LABEL: Record<string, string> = {
+  passed:      "Passed",
+  failed:      "Failed",
+  blocked:     "Blocked",
+  skipped:     "Skipped",
+  in_progress: "Devam",
+  not_run:     "Not Run",
+};
+
+const STEP_STATUS_BTN: { key: TestRunStatus; label: string; cls: string; activeCls: string }[] = [
+  { key: "passed",  label: "Pass",  cls: "border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/10", activeCls: "bg-emerald-500/15 border-emerald-500/40 text-emerald-300" },
+  { key: "failed",  label: "Fail",  cls: "border-red-500/20     text-red-400    hover:bg-red-500/10",     activeCls: "bg-red-500/15     border-red-500/40     text-red-300" },
+  { key: "blocked", label: "Block", cls: "border-slate-700      text-slate-400  hover:bg-slate-800",       activeCls: "bg-slate-800      border-slate-600      text-slate-200" },
+  { key: "skipped", label: "Skip",  cls: "border-slate-700      text-slate-500  hover:bg-slate-800",       activeCls: "bg-slate-800      border-slate-600      text-slate-400" },
+];
+
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+interface SnapshotStep {
+  id?: string;
+  step_no: number;
+  action: string;
+  expected_result: string;
+  test_data?: Record<string, unknown>;
+  notes?: string | null;
+  is_required?: boolean;
+}
+
+interface SnapshotCase {
+  case_key?: string;
+  title?: string;
+  objective?: string;
+  preconditions?: string;
+  priority?: string;
+  type?: string;
+}
+
+// ─── Icons ────────────────────────────────────────────────────────────────────
+
+function IcBack()  { return <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7"/></svg>; }
+function IcCheck() { return <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>; }
+function IcSave()  { return <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M17 16v2a2 2 0 01-2 2H5a2 2 0 01-2-2v-7a2 2 0 012-2h2m3-4H9a2 2 0 00-2 2v7a2 2 0 002 2h10a2 2 0 002-2V7l-4-4z"/></svg>; }
+
+// ─── Case Sidebar Item ────────────────────────────────────────────────────────
+
+function CaseListItem({ rc, isSelected, onClick }: {
+  rc: RunCase; isSelected: boolean; onClick: () => void;
+}) {
+  const snap     = rc.case_snapshot as { case?: SnapshotCase };
+  const caseInfo = snap.case ?? {};
+  const dot      = STATUS_DOT[rc.status] ?? STATUS_DOT.not_run;
 
   return (
-    <div className="rounded-lg border border-slate-800 bg-slate-900/50">
-      {/* Case header */}
-      <div
-        className="flex cursor-pointer items-center gap-3 p-4"
-        onClick={() => setOpen((v) => !v)}
-      >
-        <span className={`h-3 w-3 flex-shrink-0 rounded-full ${dotClass}`} />
-        <div className="flex-1 min-w-0">
-          <p className="truncate text-sm font-medium text-white">
-            {snapshotCase.case_key ? <span className="mr-2 font-mono text-xs text-slate-500">{snapshotCase.case_key}</span> : null}
-            {snapshotCase.title ?? runCase.case_id}
-          </p>
-          <p className="text-xs text-slate-500">
-            {runCase.step_results.length}/{steps.length} adım kaydedildi ·{" "}
-            {runCase.status.replace("_", " ")}
-          </p>
+    <button type="button" onClick={onClick}
+      className={cn(
+        "flex w-full items-start gap-2 rounded-lg px-3 py-2 text-left transition-all",
+        isSelected ? "bg-blue-500/10 border border-blue-500/20" : "hover:bg-slate-800/40 border border-transparent",
+      )}>
+      <span className={cn("mt-1 h-1.5 w-1.5 shrink-0 rounded-full", dot)}/>
+      <div className="min-w-0 flex-1">
+        {caseInfo.case_key && (
+          <span className="font-mono text-[9px] text-slate-600">{caseInfo.case_key}</span>
+        )}
+        <p className={cn("text-[11px] leading-snug line-clamp-2 transition-colors",
+          isSelected ? "text-blue-300" : "text-slate-400")}>
+          {caseInfo.title ?? rc.case_id}
+        </p>
+      </div>
+    </button>
+  );
+}
+
+// ─── Step Card ────────────────────────────────────────────────────────────────
+
+function StepCard({ step, result, onChange, projectId, runCaseId, runId }: {
+  step: SnapshotStep;
+  result: { status: TestRunStatus; actual_result: string } | undefined;
+  onChange: (status: TestRunStatus, actual: string) => void;
+  projectId: string; runCaseId: string; runId: string;
+}) {
+  const updateStep  = useUpdateManagementStepResult(projectId, runCaseId, runId);
+  const [actual, setActual] = useState(result?.actual_result ?? "");
+  const currentStatus = result?.status ?? "not_run";
+
+  const save = async (newStatus: TestRunStatus) => {
+    const finalActual = actual.trim();
+    onChange(newStatus, finalActual);
+    await updateStep.mutateAsync({ stepNo: step.step_no, status: newStatus, actual_result: finalActual || null });
+  };
+
+  const cardBg = currentStatus === "passed"  ? "border-emerald-800/30 bg-emerald-950/10"
+               : currentStatus === "failed"  ? "border-red-800/30    bg-red-950/10"
+               : currentStatus === "blocked" ? "border-slate-700     bg-slate-800/30"
+               : "border-slate-800 bg-[#1a2035]/40";
+
+  return (
+    <div className={cn("rounded-xl border p-4 transition-all", cardBg)}>
+      {/* Step header */}
+      <div className="flex items-center gap-2 mb-3">
+        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-slate-800 font-mono text-[10px] font-bold text-slate-400">
+          {step.step_no}
+        </span>
+        {!step.is_required && (
+          <span className="rounded bg-slate-800 px-1.5 py-0.5 text-[9px] text-slate-600">opsiyonel</span>
+        )}
+        <div className="ml-auto flex items-center gap-1">
+          {STEP_STATUS_BTN.map(btn => (
+            <button key={btn.key} type="button"
+              onClick={() => save(btn.key)}
+              disabled={updateStep.isPending}
+              className={cn(
+                "rounded-lg border px-2 py-1 text-[10px] font-medium transition-colors disabled:opacity-40",
+                currentStatus === btn.key ? btn.activeCls : btn.cls,
+              )}>
+              {btn.label}
+            </button>
+          ))}
         </div>
-        <div className="hidden shrink-0 items-center gap-2 md:flex">
-          <span className="rounded-full bg-slate-800 px-2 py-1 text-xs text-slate-400">
-            {completedSteps}/{steps.length} ok
-          </span>
-          <button
-            type="button"
-            onClick={(event) => {
-              event.stopPropagation();
-              void markCasePassed();
-            }}
-            disabled={bulkMutation.isPending || steps.length === 0}
-            className="rounded-lg border border-emerald-500/30 px-3 py-1.5 text-xs font-semibold text-emerald-300 hover:bg-emerald-500/10 disabled:opacity-40"
-          >
-            {bulkMutation.isPending ? "İşleniyor..." : bulkSaved ? "Kaydedildi" : "Case Pass"}
-          </button>
-          <button
-            type="button"
-            onClick={(event) => { event.stopPropagation(); setShowEvidenceModal(true); }}
-            className="rounded-lg border border-rose-500/30 px-3 py-1.5 text-xs font-semibold text-rose-300 hover:bg-rose-500/10"
-          >
-            Case Fail + Evidence
-          </button>
+      </div>
+
+      {/* Action */}
+      <p className="text-xs text-slate-200 leading-relaxed">{step.action}</p>
+
+      {/* Expected */}
+      <div className="mt-2 rounded-lg border border-slate-800 bg-slate-900/50 px-3 py-2">
+        <p className="mb-0.5 text-[10px] font-medium uppercase tracking-wide text-slate-500">Beklenen</p>
+        <p className="text-xs text-slate-300">{step.expected_result}</p>
+      </div>
+
+      {/* Actual */}
+      <div className="mt-2">
+        <p className="mb-1 text-[10px] font-medium uppercase tracking-wide text-slate-500">Gerçekleşen</p>
+        <textarea
+          value={actual}
+          onChange={e => { setActual(e.target.value); onChange(currentStatus, e.target.value); }}
+          onBlur={() => { if (actual !== (result?.actual_result ?? "")) save(currentStatus); }}
+          rows={2}
+          placeholder="Gerçekleşen sonucu girin…"
+          className="w-full rounded-lg border border-slate-700 bg-slate-900/60 px-3 py-2 text-xs text-white placeholder-slate-600 focus:border-slate-600 focus:outline-none resize-none"/>
+      </div>
     </div>
   );
 }
 
-// ── Page ──────────────────────────────────────────────────────────────────────
+// ─── Main Execution Panel ─────────────────────────────────────────────────────
 
-export default function ManagementRunExecutePage({
-  params,
-}: {
-  params: { projectId: string; runId: string };
+function ExecutionPanel({ rc, projectId, runId, onNext }: {
+  rc: RunCase; projectId: string; runId: string; onNext: () => void;
 }) {
-  const { projectId, runId } = params;
-  const runQuery   = useManagementRun(projectId, runId);
-  const [statusFilter, setStatusFilter] = useState("all");
+  const snap     = rc.case_snapshot as { case?: SnapshotCase; steps?: SnapshotStep[] };
+  const caseInfo = snap.case ?? {};
+  const steps    = snap.steps ?? [];
 
-  const run   = runQuery.data;
+  const [stepResults, setStepResults] = useState<Record<number, { status: TestRunStatus; actual_result: string }>>(() =>
+    Object.fromEntries(rc.step_results.map(r => [r.step_no, { status: r.status as TestRunStatus, actual_result: r.actual_result ?? "" }])),
+  );
+  const [notes, setNotes] = useState(rc.execution_notes ?? "");
+  const [saving, setSaving] = useState(false);
 
-  // Stats derived from run_cases.
-  const runCases   = run?.run_cases ?? [];
-  const total      = runCases.length;
-  const done       = runCases.filter((rc) => ["passed", "failed", "blocked", "skipped"].includes(rc.status)).length;
-  const failed     = runCases.filter((rc) => rc.status === "failed").length;
-  const notRun     = runCases.filter((rc) => rc.status === "not_run").length;
-  const filteredRunCases = statusFilter === "all"
-    ? runCases
-    : runCases.filter((rc) => rc.status === statusFilter);
+  const updateAllSteps = useUpdateManagementStepResult(projectId, rc.id, runId);
+
+  const handleBulkStatus = async (status: TestRunStatus) => {
+    setSaving(true);
+    try {
+      for (const step of steps) {
+        await updateAllSteps.mutateAsync({ stepNo: step.step_no, status, actual_result: stepResults[step.step_no]?.actual_result || null });
+      }
+      setStepResults(prev => {
+        const next = { ...prev };
+        steps.forEach(s => { next[s.step_no] = { ...prev[s.step_no] ?? { actual_result: "" }, status }; });
+        return next;
+      });
+    } finally { setSaving(false); }
+  };
+
+  const passedCount = Object.values(stepResults).filter(r => r.status === "passed").length;
+  const progress    = steps.length > 0 ? Math.round((passedCount / steps.length) * 100) : 0;
+
+  const priorityDot: Record<string, string> = { P0: "bg-red-500/70", P1: "bg-orange-400/60", P2: "bg-slate-500", P3: "bg-slate-600" };
+
+  return (
+    <div className="flex h-full flex-col">
+      {/* Case header */}
+      <div className="border-b border-slate-800/70 bg-[#0d1221] px-5 py-3">
+        <div className="flex flex-wrap items-center gap-2">
+          {caseInfo.case_key && <span className="font-mono text-[10px] text-slate-500">{caseInfo.case_key}</span>}
+          {caseInfo.priority && (
+            <span className="inline-flex items-center gap-1.5">
+              <span className={cn("h-1.5 w-1.5 rounded-full", priorityDot[caseInfo.priority] ?? "bg-slate-600")}/>
+              <span className="font-mono text-[10px] text-slate-400">{caseInfo.priority}</span>
+            </span>
+          )}
+          {caseInfo.type && (
+            <span className="rounded bg-slate-800/70 px-1.5 py-0.5 text-[10px] text-slate-400">{caseInfo.type}</span>
+          )}
+          <div className="ml-auto flex items-center gap-1.5">
+            <span className={cn("h-1.5 w-1.5 rounded-full", STATUS_DOT[rc.status] ?? STATUS_DOT.not_run)}/>
+            <span className="text-[10px] text-slate-500">{STATUS_LABEL[rc.status] ?? rc.status}</span>
+          </div>
+        </div>
+        <h2 className="mt-1.5 text-sm font-semibold text-white">{caseInfo.title ?? rc.case_id}</h2>
+
+        {/* Progress bar */}
+        {steps.length > 0 && (
+          <div className="mt-2 flex items-center gap-3">
+            <div className="flex-1 h-1 rounded-full bg-slate-800 overflow-hidden">
+              <div className="h-full rounded-full bg-blue-500/70 transition-all duration-300" style={{ width: `${progress}%` }}/>
+            </div>
+            <span className="text-[10px] text-slate-500 tabular-nums">{passedCount}/{steps.length} adım</span>
+          </div>
+        )}
+      </div>
+
+      {/* Body */}
+      <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
+
+        {/* Objective + Preconditions */}
+        {(caseInfo.objective || caseInfo.preconditions) && (
+          <div className="grid gap-3 sm:grid-cols-2">
+            {caseInfo.objective && (
+              <div className="rounded-xl border border-slate-800 bg-slate-900/40 px-3 py-2.5">
+                <p className="mb-1 text-[10px] font-medium uppercase tracking-wide text-slate-500">Amaç</p>
+                <p className="text-xs text-slate-300 leading-relaxed">{caseInfo.objective}</p>
+              </div>
+            )}
+            {caseInfo.preconditions && (
+              <div className="rounded-xl border border-slate-800 bg-slate-900/40 px-3 py-2.5">
+                <p className="mb-1 text-[10px] font-medium uppercase tracking-wide text-slate-500">Ön Koşullar</p>
+                <p className="text-xs text-slate-300 leading-relaxed">{caseInfo.preconditions}</p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Steps */}
+        {steps.length === 0 ? (
+          <div className="rounded-xl border border-dashed border-slate-700 py-10 text-center">
+            <p className="text-xs text-slate-500">Bu case için adım tanımlanmamış.</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {steps.map(step => (
+              <StepCard
+                key={step.step_no}
+                step={step}
+                result={stepResults[step.step_no]}
+                onChange={(status, actual) => {
+                  setStepResults(prev => ({ ...prev, [step.step_no]: { status, actual_result: actual } }));
+                }}
+                projectId={projectId}
+                runCaseId={rc.id}
+                runId={runId}
+              />
+            ))}
+          </div>
+        )}
+
+        {/* Notes */}
+        <div>
+          <label className="mb-1 block text-[10px] font-medium uppercase tracking-wide text-slate-500">Notlar</label>
+          <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={3}
+            placeholder="Koşum notları, gözlemler…"
+            className="w-full rounded-xl border border-slate-700 bg-slate-900/60 px-3 py-2 text-xs text-white placeholder-slate-600 focus:border-slate-600 focus:outline-none resize-none"/>
+        </div>
+      </div>
+
+      {/* Footer */}
+      <div className="border-t border-slate-800/70 bg-[#0d1221] px-5 py-3">
+        {/* Bulk actions */}
+        <div className="mb-3 flex flex-wrap gap-2">
+          <span className="self-center text-[10px] text-slate-500">Toplu:</span>
+          {[
+            { label: "Pass All",  status: "passed"  as TestRunStatus, cls: "border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/10" },
+            { label: "Fail All",  status: "failed"  as TestRunStatus, cls: "border-red-500/20     text-red-400    hover:bg-red-500/10" },
+            { label: "Block All", status: "blocked" as TestRunStatus, cls: "border-slate-700      text-slate-400  hover:bg-slate-800" },
+            { label: "Retest",    status: "not_run" as TestRunStatus, cls: "border-blue-500/20    text-blue-400   hover:bg-blue-500/10" },
+          ].map(btn => (
+            <button key={btn.status} type="button"
+              onClick={() => handleBulkStatus(btn.status)}
+              disabled={saving || steps.length === 0}
+              className={cn("rounded-lg border px-2.5 py-1 text-[10px] font-medium transition-colors disabled:opacity-40", btn.cls)}>
+              {btn.label}
+            </button>
+          ))}
+        </div>
+
+        <div className="flex items-center justify-between gap-2">
+          <div className="text-[10px] text-slate-600">
+            {passedCount}/{steps.length} adım tamamlandı
+          </div>
+          <button type="button" onClick={onNext}
+            className="flex items-center gap-1.5 rounded-xl bg-blue-600 px-4 py-2 text-xs font-semibold text-white hover:bg-blue-500 transition-colors shadow-lg shadow-blue-900/20">
+            <IcSave/> Kaydet & İleri
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
+
+export default function ManagementRunExecutePage() {
+  const projectId = useRouteParam("projectId") ?? "";
+  const runId     = useRouteParam("runId") ?? "";
+
+  const runQuery = useManagementRun(projectId || undefined, runId || undefined);
+  const run      = runQuery.data;
+  const runCases = run?.run_cases ?? [];
+
+  const [selectedRcId, setSelectedRcId] = useState<string | null>(null);
+
+  const selectedRc = useMemo(() => {
+    if (selectedRcId) return runCases.find(rc => rc.id === selectedRcId) ?? null;
+    return runCases[0] ?? null;
+  }, [selectedRcId, runCases]);
+
+  const goNext = () => {
+    const idx = runCases.findIndex(rc => rc.id === (selectedRc?.id ?? ""));
+    const next = runCases[idx + 1];
+    if (next) setSelectedRcId(next.id);
+  };
+
+  const passed    = runCases.filter(rc => rc.status === "passed").length;
+  const failed    = runCases.filter(rc => rc.status === "failed").length;
+  const blocked   = runCases.filter(rc => rc.status === "blocked").length;
+  const notRun    = runCases.filter(rc => rc.status === "not_run").length;
+  const total     = runCases.length;
+  const pct       = total > 0 ? Math.round((passed / total) * 100) : 0;
 
   const loading = runQuery.isLoading;
 
   return (
-    <ManagementShell
-      projectId={projectId}
-      title={run ? `Execute: ${run.name}` : "Execute Run"}
-      description="Tester odaklı adım adım koşum — actual result, step status ve defect linkleme."
-      active="management/runs"
-    >
-      {/* ── Stats ── */}
-      <div className="grid gap-4 md:grid-cols-4">
-        <ManagementStat
-          label="Total Cases"
-          value={loading ? "…" : String(total)}
-          note="bu run'da"
-        />
-        <ManagementStat
-          label="Done"
-          value={loading ? "…" : String(done)}
-          note={`${total > 0 ? ((done / total) * 100).toFixed(0) : 0}% tamamlandı`}
-        />
-        <ManagementStat
-          label="Failed"
-          value={loading ? "…" : String(failed)}
-          note="defect bekliyor"
-        />
-        <ManagementStat
-          label="Not Run"
-          value={loading ? "…" : String(notRun)}
-          note="bekleyen case"
-        />
-      </div>
+    <div className="flex bg-[#0a0f1e]" style={{ height: "calc(100vh - 48px)" }}>
 
-      {/* ── Case list ── */}
-      <div className="mt-6 space-y-3">
-        <ManagementPanel title="Koşum Filtreleri">
-          <div className="flex flex-wrap gap-2">
+      {/* LEFT: Case List Sidebar */}
+      <aside className="hidden w-56 flex-none flex-col border-r border-slate-800/70 bg-[#111827] lg:flex overflow-hidden">
+        {/* Run info */}
+        <div className="border-b border-slate-800/70 px-4 py-3">
+          <div className="flex items-center gap-2 mb-1">
+            <Link href={`/p/${projectId}/management/runs`}
+              className="text-slate-600 hover:text-slate-300 transition-colors">
+              <IcBack/>
+            </Link>
+            <p className="flex-1 min-w-0 truncate text-xs font-semibold text-slate-200">
+              {loading ? "Yükleniyor…" : (run?.name ?? "Execute Run")}
+            </p>
+          </div>
+          {run?.source_ref && (
+            <p className="text-[10px] text-slate-600">{run.source_ref}</p>
+          )}
+        </div>
+
+        {/* Progress */}
+        <div className="border-b border-slate-800/70 px-4 py-2.5">
+          <div className="flex items-center justify-between mb-1.5">
+            <span className="text-[10px] text-slate-500">İlerleme</span>
+            <span className="text-[10px] font-bold tabular-nums text-slate-300">{pct}%</span>
+          </div>
+          <div className="h-1 rounded-full bg-slate-800 overflow-hidden">
+            <div className="h-full rounded-full bg-emerald-500/70 transition-all duration-500" style={{ width: `${pct}%` }}/>
+          </div>
+          <div className="mt-1.5 flex justify-between text-[9px] text-slate-600">
+            <span>{passed} passed</span>
+            <span>{failed > 0 ? `${failed} fail` : ""}</span>
+            <span>{notRun} left</span>
+          </div>
+        </div>
+
+        {/* Case list */}
+        <div className="flex-1 overflow-y-auto px-2 py-2 space-y-0.5">
+          {loading ? (
+            Array.from({ length: 8 }).map((_, i) => (
+              <div key={i} className="h-10 rounded-lg bg-slate-800/60 animate-pulse" style={{ opacity: Math.max(0.2, 1 - i * 0.1) }}/>
+            ))
+          ) : runCases.map(rc => (
+            <CaseListItem key={rc.id} rc={rc} isSelected={rc.id === (selectedRc?.id ?? "")} onClick={() => setSelectedRcId(rc.id)}/>
+          ))}
+        </div>
+
+        {/* Stats footer */}
+        <div className="border-t border-slate-800/70 px-3 py-2">
+          <div className="flex flex-wrap gap-x-3 gap-y-0.5">
             {[
-              ["all", `Tümü (${runCases.length})`],
-              ["not_run", `Not Run (${notRun})`],
-              ["in_progress", `In Progress (${runCases.filter((rc) => rc.status === "in_progress").length})`],
-              ["passed", `Passed (${runCases.filter((rc) => rc.status === "passed").length})`],
-              ["failed", `Failed (${failed})`],
-              ["blocked", `Blocked (${runCases.filter((rc) => rc.status === "blocked").length})`],
-            ].map(([value, label]) => (
-              <button
-                key={value}
-                type="button"
-                onClick={() => setStatusFilter(value)}
-                className={`rounded-lg px-3 py-1.5 text-xs font-semibold ${
-                  statusFilter === value
-                    ? "bg-teal-500 text-slate-950"
-                    : "bg-slate-800 text-slate-300 hover:bg-slate-700"
-                }`}
-              >
-                {label}
-              </button>
+              { dot: "bg-emerald-500/70", label: `${passed} ok` },
+              { dot: "bg-red-500/80",     label: `${failed} fail` },
+              { dot: "bg-amber-500/60",   label: `${blocked} blk` },
+              { dot: "bg-slate-600",      label: `${notRun} left` },
+            ].map(s => (
+              <span key={s.label} className="flex items-center gap-1">
+                <span className={cn("h-1.5 w-1.5 rounded-full shrink-0", s.dot)}/>
+                <span className="text-[9px] text-slate-600">{s.label}</span>
+              </span>
             ))}
           </div>
-        </ManagementPanel>
+        </div>
+      </aside>
+
+      {/* MAIN: Execution Panel */}
+      <div className="flex flex-1 flex-col overflow-hidden">
         {loading ? (
-          <div className="flex h-32 items-center justify-center">
-            <div className="h-6 w-6 animate-spin rounded-full border-2 border-slate-700 border-t-teal-400" />
+          <div className="flex h-full items-center justify-center">
+            <div className="h-8 w-8 animate-spin rounded-full border-2 border-slate-700 border-t-blue-500"/>
           </div>
-        ) : runCases.length === 0 ? (
-          <ManagementPanel title="Koşum Case'leri">
-            <p className="text-sm text-slate-500">Bu run'a henüz case eklenmemiş.</p>
-          </ManagementPanel>
-        ) : filteredRunCases.length === 0 ? (
-          <ManagementPanel title="Koşum Case'leri">
-            <p className="text-sm text-slate-500">Bu filtrede case yok.</p>
-          </ManagementPanel>
+        ) : !selectedRc ? (
+          <div className="flex h-full flex-col items-center justify-center gap-3 text-center p-8">
+            <IcCheck/>
+            <h3 className="text-sm font-semibold text-slate-300">
+              {runCases.length === 0 ? "Bu run'a case eklenmemiş." : "Case seçin"}
+            </h3>
+            <Link href={`/p/${projectId}/management/runs`}
+              className="text-xs text-blue-400 hover:underline">
+              Runs listesine dön →
+            </Link>
+          </div>
         ) : (
-          filteredRunCases.map((rc) => (
-            <CasePanel
-              key={rc.id}
-              runCase={rc}
-              projectId={projectId}
-              runId={runId}
-            />
-          ))
+          <ExecutionPanel rc={selectedRc} projectId={projectId} runId={runId} onNext={goNext}/>
         )}
       </div>
-    </ManagementShell>
+
+    </div>
   );
 }

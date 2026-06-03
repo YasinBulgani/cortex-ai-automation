@@ -12,6 +12,7 @@ import re
 from datetime import datetime, timezone
 from typing import Any, Optional
 
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.domains.ai.gateway_client import gateway_complete, gateway_is_available
@@ -26,7 +27,7 @@ from app.domains.tspm.schemas import (
     TestCaseUpdate,
 )
 
-logger = logging.getLogger("nexusqa.test_case_service")
+logger = logging.getLogger("neurex.test_case_service")
 
 # ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -316,16 +317,13 @@ def _normalize_steps(raw_steps: Any) -> list[dict[str, Any]]:
 # ── CRUD Operations ───────────────────────────────────────────────────────────
 
 def get_batch(db: Session, batch_id: str, project_id: str) -> Optional[TspmAiBatch]:
-    return db.query(TspmAiBatch).filter_by(id=batch_id, project_id=project_id).first()
+    return db.execute(select(TspmAiBatch).where(TspmAiBatch.id == batch_id, TspmAiBatch.project_id == project_id)).scalars().first()
 
 
 def list_batches(db: Session, project_id: str) -> list[TspmAiBatch]:
-    return (
-        db.query(TspmAiBatch)
-        .filter_by(project_id=project_id)
-        .order_by(TspmAiBatch.created_at.desc())
-        .all()
-    )
+    return db.execute(
+        select(TspmAiBatch).where(TspmAiBatch.project_id == project_id).order_by(TspmAiBatch.created_at.desc())
+    ).scalars().all()
 
 
 def list_test_cases(
@@ -334,16 +332,16 @@ def list_test_cases(
     batch_id: Optional[str] = None,
     review_status: Optional[str] = None,
 ) -> list[TspmTestCase]:
-    q = db.query(TspmTestCase).filter_by(project_id=project_id)
+    stmt = select(TspmTestCase).where(TspmTestCase.project_id == project_id)
     if batch_id:
-        q = q.filter(TspmTestCase.batch_id == batch_id)
+        stmt = stmt.where(TspmTestCase.batch_id == batch_id)
     if review_status:
-        q = q.filter(TspmTestCase.review_status == review_status)
-    return q.order_by(TspmTestCase.created_at.asc()).all()
+        stmt = stmt.where(TspmTestCase.review_status == review_status)
+    return db.execute(stmt.order_by(TspmTestCase.created_at.asc())).scalars().all()
 
 
 def get_test_case(db: Session, tc_id: str, project_id: str) -> Optional[TspmTestCase]:
-    return db.query(TspmTestCase).filter_by(id=tc_id, project_id=project_id).first()
+    return db.execute(select(TspmTestCase).where(TspmTestCase.id == tc_id, TspmTestCase.project_id == project_id)).scalars().first()
 
 
 def review_test_case(
@@ -387,11 +385,9 @@ def bulk_review(
     req: BulkReviewRequest,
 ) -> dict[str, int]:
     """Bulk approve or reject multiple test cases. Returns counts."""
-    cases = (
-        db.query(TspmTestCase)
-        .filter(TspmTestCase.project_id == project_id, TspmTestCase.id.in_(req.ids))
-        .all()
-    )
+    cases = db.execute(
+        select(TspmTestCase).where(TspmTestCase.project_id == project_id, TspmTestCase.id.in_(req.ids))
+    ).scalars().all()
 
     approved = 0
     rejected = 0
@@ -490,11 +486,11 @@ def _apply_edits(tc: TspmTestCase, updates: TestCaseUpdate) -> None:
 def _update_batch_counts(db: Session, batch_id: Optional[str]) -> None:
     if not batch_id:
         return
-    batch = db.query(TspmAiBatch).filter_by(id=batch_id).first()
+    batch = db.execute(select(TspmAiBatch).where(TspmAiBatch.id == batch_id)).scalars().first()
     if not batch:
         return
-    approved = db.query(TspmTestCase).filter_by(batch_id=batch_id, review_status="approved").count()
-    rejected = db.query(TspmTestCase).filter_by(batch_id=batch_id, review_status="rejected").count()
+    approved = db.scalar(select(func.count(TspmTestCase.id)).where(TspmTestCase.batch_id == batch_id, TspmTestCase.review_status == "approved"))
+    rejected = db.scalar(select(func.count(TspmTestCase.id)).where(TspmTestCase.batch_id == batch_id, TspmTestCase.review_status == "rejected"))
     batch.approved_count = approved
     batch.rejected_count = rejected
     existing_links = batch.trace_links or {}

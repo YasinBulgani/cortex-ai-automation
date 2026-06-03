@@ -19,7 +19,7 @@ import uuid
 from datetime import datetime, timezone
 from typing import Any, Optional
 
-logger = logging.getLogger("nexusqa.ai_debug")
+logger = logging.getLogger("neurex.ai_debug")
 
 # ── System prompt ─────────────────────────────────────────────────────────────
 
@@ -128,7 +128,7 @@ def build_allure_results(
         labels = [
             {"name": "suite", "value": r.get("module", "default")},
             {"name": "severity", "value": r.get("severity", "medium")},
-            {"name": "framework", "value": "NexusQA"},
+            {"name": "framework", "value": "Neurex"},
         ]
         for tag in r.get("tags", []):
             labels.append({"name": "tag", "value": tag})
@@ -175,7 +175,7 @@ def build_allure_environment(
         f"Base.URL={base_url}",
         f"Browser={browser}",
         f"Generated.At={datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}",
-        "Framework=NexusQA",
+        "Framework=Neurex",
     ]
     if extra:
         for k, v in extra.items():
@@ -190,13 +190,13 @@ def build_allure_executor(
 ) -> dict[str, Any]:
     """Allure executor.json içeriği üretir."""
     return {
-        "name": "NexusQA",
-        "type": "nexusqa",
+        "name": "Neurex",
+        "type": "neurex",
         "url": f"/p/{project_id}/runs",
         "buildOrder": 1,
         "buildName": execution_name,
         "buildUrl": f"/p/{project_id}/executions/{execution_id}",
-        "reportName": f"NexusQA Execution {execution_id[:8]}",
+        "reportName": f"Neurex Execution {execution_id[:8]}",
     }
 
 

@@ -123,7 +123,7 @@ def render_markdown(summary: PRSummary) -> str:
     )
 
     lines: List[str] = [
-        f"## {icon} TestwrightAI — Shift-left PR Bot",
+        f"## {icon} Neurex — Shift-left PR Bot",
         "",
         f"**Değişen dosya**: {summary.changed_files_count}",
     ]

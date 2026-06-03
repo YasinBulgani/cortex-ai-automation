@@ -17,6 +17,7 @@ from urllib.parse import urlencode
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from fastapi.responses import RedirectResponse
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.config import settings
@@ -153,7 +154,7 @@ def sso_callback(
 
     full_name = info.get("name") or info.get("given_name") or None
 
-    user = db.query(User).filter(User.email == email).first()
+    user = db.execute(select(User).where(User.email == email)).scalars().first()
     if user is None:
         if not settings.sso_auto_provision:
             raise HTTPException(403, detail="Hesabiniz yok; yoneticinizden davet isteyin")

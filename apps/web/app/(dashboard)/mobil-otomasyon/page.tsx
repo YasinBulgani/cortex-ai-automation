@@ -10,6 +10,13 @@ import { LLMScenarioGenerator } from "./components/LLMScenarioGenerator";
 import { ScenarioTemplateGallery } from "./components/ScenarioTemplateGallery";
 import { DeviceScreenModal } from "./components/DeviceScreenModal";
 import { ResearchReportPanel } from "./components/ResearchReportPanel";
+import {
+  type Device, type Session, type LogEntry, type Platform,
+  type AppiumAction, type SeedScenario, type BackendDevice, type BackendStepResp,
+  INITIAL_DEVICES, SAMPLE_PROMPTS,
+} from "./_components/types";
+import { rndInt, mockLLMStepper, fromBackendDevice } from "./_components/helpers";
+import { PhysicalEnrollForm } from "./_components/PhysicalEnrollForm";
 
 export default function MobilOtomasyonPage() {
   const [devices, setDevices] = useState<Device[]>(INITIAL_DEVICES);
@@ -380,7 +387,7 @@ export default function MobilOtomasyonPage() {
               <p className="font-semibold">DEV / DEMO Modu</p>
               <p className="mt-0.5 text-amber-200/80">
                 Bu sayfa tamamen <strong>mock veri</strong> ile çalışır. Gerçek Appium grid ya da fiziksel cihaz bağlantısı yoktur.
-                Production kullanım için <code className="rounded bg-amber-500/10 px-1">Visium Mobile</code> ürününü kullanın.
+                Production kullanım için <code className="rounded bg-amber-500/10 px-1">Neurex Mobile</code> ürününü kullanın.
               </p>
             </div>
           </div>

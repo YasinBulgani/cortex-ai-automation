@@ -105,6 +105,9 @@ export const en: TranslationDictionary = {
       archived: "Archived",
       not_run: "Not Run",
       running: "Running",
+      open: "Open",
+      closed: "Closed",
+      resolved: "Resolved",
       passed: "Passed",
       failed: "Failed",
       blocked: "Blocked",
@@ -171,6 +174,40 @@ export const en: TranslationDictionary = {
       ready: "Ready",
       invalid: "Invalid",
       duplicate: "Possible Duplicate",
+    },
+
+    // UI states
+    loading: "Loading...",
+    error: "Failed to load data",
+    retry: "Retry",
+    noData: "No records found",
+    search: "Search...",
+    filter: "Filter",
+
+    // Pagination
+    pagination: {
+      previous: "← Previous",
+      next: "Next →",
+      showing: "{{start}}-{{end}} / {{total}} records",
+    },
+
+    // Priority labels
+    priority: {
+      P0: "Critical",
+      P1: "High",
+      P2: "Medium",
+      P3: "Low",
+    },
+
+    // Actions
+    actions: {
+      save: "Save",
+      cancel: "Cancel",
+      delete: "Delete",
+      edit: "Edit",
+      create: "Create",
+      export: "Export",
+      import: "Import",
     },
   },
 

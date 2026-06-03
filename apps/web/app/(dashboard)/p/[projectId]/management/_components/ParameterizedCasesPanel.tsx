@@ -12,7 +12,7 @@ import {
   useGenerateDataRows,
 } from "@/lib/hooks/use-mgmt-design";
 
-import { ManagementPanel } from "./ManagementShell";
+
 
 interface FieldRow {
   name: string;
@@ -39,7 +39,7 @@ export function ParameterizedCasesPanel({ caseId }: { caseId: string }) {
   );
 
   return (
-    <ManagementPanel title="Parameters (M-9)">
+    <section className="rounded-xl border border-white/[0.06] bg-[#0d1221] p-5">
       <div className="space-y-4">
         <SchemaEditor caseId={caseId} />
         {paramSetsQuery.isLoading && (
@@ -70,7 +70,7 @@ export function ParameterizedCasesPanel({ caseId }: { caseId: string }) {
         {activeSet && <DataTableEditor caseId={caseId} paramSet={activeSet} />}
         <ExpandRow caseId={caseId} />
       </div>
-    </ManagementPanel>
+    </section>
   );
 }
 

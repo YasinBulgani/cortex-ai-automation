@@ -161,41 +161,34 @@ class TestCheckLlmRateLimit:
         except HTTPException:
             pytest.fail("check_llm_rate_limit raised HTTPException for fresh user")
 
-    def test_many_requests_raises_429(self):
-        from fastapi import HTTPException
+    def test_many_requests_raises_rate_limit_error(self):
+        from app.core.exceptions import RateLimitError
         user = "heavy-user"
-        # Record MAX_REQUESTS_PER_MINUTE requests directly in state
         import app.domains.ai.llm_rate_limiter as mod
         import time
         now = time.time()
         mod._minute_counters[user] = [now] * MAX_REQUESTS_PER_MINUTE
-        with pytest.raises(HTTPException) as exc_info:
+        with pytest.raises(RateLimitError):
             check_llm_rate_limit(user)
-        assert exc_info.value.status_code == 429
 
-    def test_hour_token_limit_raises_429(self):
-        from fastapi import HTTPException
+    def test_hour_token_limit_raises_rate_limit_error(self):
+        from app.core.exceptions import RateLimitError
         import app.domains.ai.llm_rate_limiter as mod
         import time
         user = "token-heavy"
         now = time.time()
-        # Simulate having used MAX_TOKENS_PER_HOUR within the last hour
         mod._usage_log[user] = [(now - 60, MAX_TOKENS_PER_HOUR)]
-        with pytest.raises(HTTPException) as exc_info:
+        with pytest.raises(RateLimitError):
             check_llm_rate_limit(user)
-        assert exc_info.value.status_code == 429
 
-    def test_day_token_limit_raises_429(self):
-        from fastapi import HTTPException
+    def test_day_token_limit_raises_rate_limit_error(self):
+        from app.core.exceptions import RateLimitError
         import app.domains.ai.llm_rate_limiter as mod
         import time
         user = "day-heavy"
         now = time.time()
-        # Simulate having used MAX_TOKENS_PER_DAY across the day
-        # (hour check passes, day check fails)
         mod._usage_log[user] = [
-            (now - 7200, MAX_TOKENS_PER_DAY)  # 2h ago → outside hour window, inside day
+            (now - 7200, MAX_TOKENS_PER_DAY)
         ]
-        with pytest.raises(HTTPException) as exc_info:
+        with pytest.raises(RateLimitError):
             check_llm_rate_limit(user)
-        assert exc_info.value.status_code == 429

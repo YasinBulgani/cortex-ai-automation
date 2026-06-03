@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { apiFetch } from "@/lib/api-client";
 
 type VelocityPoint = { week_start: string; tc_created: number; tc_updated: number; runs_executed: number };
 type TrendPoint = { date: string; total: number; passed: number; failed: number; pass_rate: number };
@@ -22,11 +23,7 @@ export default function InsightsView() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch("/api/v1/qa/insights")
-      .then((r) => {
-        if (!r.ok) throw new Error(`HTTP ${r.status}`);
-        return r.json();
-      })
+    apiFetch<Insights>("/api/v1/qa/insights")
       .then(setData)
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));

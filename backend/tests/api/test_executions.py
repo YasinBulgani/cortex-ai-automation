@@ -114,7 +114,7 @@ class TestRerun:
 
 
 class TestMobileExecution:
-    """TC-0607..TC-0610: Mobile (Visium Farm) execution alanları."""
+    """TC-0607..TC-0610: Mobile (Neurex Farm) execution alanları."""
 
     def test_create_mobile_execution_ios(
         self, client: TestClient, auth_headers, project_id, create_scenario

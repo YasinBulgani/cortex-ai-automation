@@ -157,7 +157,7 @@ jest.mock("@/lib/product", () => ({
   PRODUCT_FAMILY: [
     {
       id: "one",
-      name: "TestwrightAI",
+      name: "Neurex",
       shortName: "TW",
       tagline: "Test otomasyon platformu",
       description: "AI destekli test platformu",
@@ -166,12 +166,12 @@ jest.mock("@/lib/product", () => ({
       routeSegments: ["scenarios"],
     },
   ],
-  PRODUCT_FAMILY_BY_ID: { one: { id: "one", name: "TestwrightAI" } },
+  PRODUCT_FAMILY_BY_ID: { one: { id: "one", name: "Neurex" } },
   DEFAULT_PRODUCT_FAMILY_ID: "one",
   PRODUCT_FAMILY_STORAGE_KEY: "bgts_product_family_focus",
   getProductFamilyMember: jest.fn(() => ({
     id: "one",
-    name: "TestwrightAI",
+    name: "Neurex",
     shortName: "TW",
     tagline: "Test otomasyon platformu",
     description: "AI destekli test platformu",
@@ -364,9 +364,9 @@ describe("NewProjectPage", () => {
     expect(screen.getAllByText(/Adım/).length).toBeGreaterThanOrEqual(1);
   });
 
-  it("shows TestwrightAI product name", async () => {
+  it("shows Neurex product name", async () => {
     const { default: Page } = await import("../(dashboard)/new-project/page");
     render(<Page />);
-    expect(screen.getAllByText("TestwrightAI").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("Neurex").length).toBeGreaterThanOrEqual(1);
   });
 });

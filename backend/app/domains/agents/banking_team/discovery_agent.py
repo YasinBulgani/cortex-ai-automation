@@ -5,7 +5,7 @@ Görev:
   Hedef uygulamayı Playwright CDP üzerinden keşfeder:
   1. A11y (Accessibility) tree snapshot → Semantik element haritası
   2. DOM etkileşim analizi → Tıklanabilir/doldurulabilir elementler
-  3. 10-tier lokator hiyerarşisi ile NexusQA JSON üretimi
+  3. 10-tier lokator hiyerarşisi ile Neurex JSON üretimi
   4. Sayfa geçiş grafı (page transition graph) oluşturma
   5. KnowledgeStore'a keşif sonuçlarını kaydetme
 
@@ -16,7 +16,7 @@ Neden A11y Tree?
   - rtrvr.ai yaklaşımı: %81 doğruluk vs screenshot-based %64
 
 Entegrasyon:
-  - NexusQA Wizard Step 7 → crawl-locators endpoint'ini besler
+  - Neurex Wizard Step 7 → crawl-locators endpoint'ini besler
   - Banking Orchestrator → Phase.SCANNING içinde opsiyonel çalışır
   - AutoHealer → Kırılan locator'lar için A11y tree'den alternatif bulur
 """
@@ -207,7 +207,7 @@ class DiscoveryAgent(BaseAgent):
           max_pages      — Maksimum sayfa sayısı (default: 5)
           domain         — Modül/domain adı
           credentials    — Login bilgileri (opsiyonel)
-          with_locators  — NexusQA lokator JSON üret (default: True)
+          with_locators  — Neurex lokator JSON üret (default: True)
         """
         url = context.get("url", "")
         max_pages = context.get("max_pages", 5)
@@ -340,7 +340,7 @@ class DiscoveryAgent(BaseAgent):
         return {"pages": pages}
 
     def _extract_locators(self, discovery: dict, domain: str) -> list[dict]:
-        """Keşfedilen elementlerden 10-tier NexusQA lokator JSON üret."""
+        """Keşfedilen elementlerden 10-tier Neurex lokator JSON üret."""
         locators = []
         seen_keys: set[str] = set()
 
@@ -425,7 +425,7 @@ class DiscoveryAgent(BaseAgent):
         return None
 
     def _make_key(self, raw: str, domain: str) -> str:
-        """Ham text'ten NexusQA key üret."""
+        """Ham text'ten Neurex key üret."""
         key = raw.strip().lower()
         key = re.sub(r"[^\w\sğüşöçıİĞÜŞÖÇ]", "", key)
         key = re.sub(r"\s+", "_", key)

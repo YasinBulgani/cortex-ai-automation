@@ -22,7 +22,7 @@ import logging
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Tuple
 
-from sqlalchemy import func
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.domains.api_testing.models import (
@@ -58,13 +58,12 @@ RECENCY_CAP_DAYS = 30
 def _estimate_duration(db: Session, test_case_id: str) -> float:
     """Average total_ms from the last 5 execution details, fallback 1000 ms."""
     try:
-        rows = (
-            db.query(ApiExecutionDetail.total_ms)
-            .filter(ApiExecutionDetail.test_case_id == test_case_id)
+        rows = db.execute(
+            select(ApiExecutionDetail.total_ms)
+            .where(ApiExecutionDetail.test_case_id == test_case_id)
             .order_by(ApiExecutionDetail.executed_at.desc())
             .limit(5)
-            .all()
-        )
+        ).all()
         if rows:
             vals = [r[0] for r in rows if r[0] is not None]
             if vals:
@@ -106,15 +105,14 @@ def prioritize_tests(
     """
     try:
         # Fetch non-quarantined tests with optional endpoint join
-        rows = (
-            db.query(ApiTestCase, ApiEndpoint)
+        rows = db.execute(
+            select(ApiTestCase, ApiEndpoint)
             .outerjoin(ApiEndpoint, ApiTestCase.endpoint_id == ApiEndpoint.id)
-            .filter(
+            .where(
                 ApiTestCase.project_id == project_id,
                 ApiTestCase.quarantined == False,  # noqa: E712
             )
-            .all()
-        )
+        ).all()
 
         now = datetime.now(timezone.utc)
         results = []  # type: List[Dict[str, Any]]
@@ -207,13 +205,11 @@ def get_prioritization_stats(
     try:
         items = prioritize_tests(db, project_id)
 
-        quarantined_count = (
-            db.query(func.count(ApiTestCase.id))
-            .filter(
+        quarantined_count = db.scalar(
+            select(func.count(ApiTestCase.id)).where(
                 ApiTestCase.project_id == project_id,
                 ApiTestCase.quarantined == True,  # noqa: E712
             )
-            .scalar()
         ) or 0
 
         total = len(items)

@@ -79,7 +79,11 @@ function loadRecent(): RecentEntry[] {
     const raw = localStorage.getItem(RECENT_STORAGE_KEY);
     if (!raw) return [];
     return (JSON.parse(raw) as RecentEntry[]).slice(0, MAX_RECENT);
-  } catch { return []; }
+  } catch {
+    // Bozuk localStorage verisi - temizle ve boş dizi döndür
+    localStorage.removeItem(RECENT_STORAGE_KEY);
+    return [];
+  }
 }
 
 function saveRecent(entry: Omit<RecentEntry, "ts">) {
@@ -169,6 +173,50 @@ export function CommandPalette() {
     })),
     [projects],
   );
+
+  // AI kısayol komutları
+  const aiCommands: ActionCommand[] = useMemo(() => [
+    {
+      id: "ai-bdd-gen",
+      label: "BDD Üret",
+      hint: "Seçili senaryolardan Feature dosyası",
+      href: project?.id ? `/p/${project.id}/scenarios/generate` : "/task-drafts",
+      icon: <IcBrain />,
+      keywords: "bdd üret gherkin feature cucumber ai",
+    },
+    {
+      id: "ai-nl-gen",
+      label: "Doğal Dil → Test",
+      hint: "Düz metin açıklamasından test yaz",
+      href: project?.id ? `/p/${project.id}/nl-test-gen` : "/task-drafts",
+      icon: <IcBrain />,
+      keywords: "nl doğal dil test üret generate natural language",
+    },
+    {
+      id: "ai-sifir-bilgi",
+      label: "Sıfır Bilgi Pipeline",
+      hint: "9 Ajanlı tam otomasyon — Analyst → Reporter",
+      href: project?.id ? `/p/${project.id}/sifir-bilgi` : "/portfolio",
+      icon: <IcBrain />,
+      keywords: "sıfır bilgi zero knowledge agent pipeline otomasyon",
+    },
+    {
+      id: "ai-automation-gen",
+      label: "AI Otomasyon Üret",
+      hint: "Playwright kodu otomatik oluştur",
+      href: project?.id ? `/p/${project.id}/automation-gen` : "/portfolio",
+      icon: <IcBrain />,
+      keywords: "otomasyon playwright kod üret automation generate",
+    },
+    {
+      id: "ai-quality",
+      label: "AI Kalite Paneli",
+      hint: "LLM kalite metriklerini incele",
+      href: "/ai-quality",
+      icon: <IcChart />,
+      keywords: "ai kalite quality metrics panel",
+    },
+  ], [project]);
 
   // Ürün quick switcher
   const productCommands = useMemo(
@@ -283,6 +331,20 @@ export function CommandPalette() {
             </Command.Group>
           )}
 
+          {/* AI Kısayollar */}
+          <Command.Group heading={<GroupHeader icon={<IcBrain />} label="AI Kısayollar" />}>
+            {aiCommands.map(c => (
+              <CommandItem
+                key={c.id}
+                value={`${c.label} ${c.keywords ?? ""}`}
+                onSelect={() => runCommand(c)}
+                icon={c.icon}
+                label={c.label}
+                hint={c.hint}
+              />
+            ))}
+          </Command.Group>
+
           {/* Proje switcher */}
           {projectCommands.length > 0 && (
             <Command.Group heading={<GroupHeader label="Projeye Geç" />}>
@@ -329,8 +391,12 @@ export function CommandPalette() {
               <Kbd size="sm">Esc</Kbd>
               kapat
             </span>
+            <span className="flex items-center gap-1">
+              <KbdGroup><Kbd size="sm">⌘</Kbd><Kbd size="sm">J</Kbd></KbdGroup>
+              AI panel
+            </span>
           </div>
-          <span>{NAV_COMMANDS.length + actionCommands.length + projects.length + PRODUCT_FAMILY.length} komut</span>
+          <span>{NAV_COMMANDS.length + actionCommands.length + aiCommands.length + projects.length + PRODUCT_FAMILY.length} komut</span>
         </div>
       </div>
     </Command.Dialog>

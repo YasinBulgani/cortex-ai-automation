@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import threading as _threading
 from abc import ABC, abstractmethod
 import logging
 import re
@@ -26,6 +27,7 @@ RETRY_BACKOFF_BASE = 1.5  # saniye — exponential: 1.5, 2.25
 _project_context_cache: dict[str, Any] | None = None
 _project_context_ts: float = 0.0
 _PROJECT_CTX_TTL = 600  # 10 dakika — sonra yeniden oluştur
+_project_context_lock = _threading.Lock()  # thread-safe cache erişimi için
 
 # ── Model Context Window Limitleri (karakter bazlı yaklaşık) ─────────────────
 # 1 token ≈ 3.5 karakter (Türkçe için) — güvenli sınır olarak %70 hedefliyoruz
@@ -52,7 +54,6 @@ _MODEL_CTX_LIMITS: dict[str, int] = {
 _DEFAULT_CTX_LIMIT = 10000  # Bilinmeyen model → Ollama seviyesi
 
 # ── Cached Anthropic client for BaseAgent ────────────────────────────
-import threading as _threading
 _anthropic_lock = _threading.Lock()
 _anthropic_agent_client = None
 
@@ -207,63 +208,75 @@ class BaseAgent(ABC):
         """
         Projenin güncel bağlamını oluştur veya cache'den al.
         Tüm ajanlar paylaşır — aynı pipeline içinde tek sefer hesaplanır.
+        Thread-safe: _project_context_lock ile korunur.
         """
         global _project_context_cache, _project_context_ts
         now = time.time()
+
+        # Hızlı kontrol — lock almadan (double-checked locking)
         if _project_context_cache and (now - _project_context_ts) < _PROJECT_CTX_TTL:
             return _project_context_cache
 
-        ctx: dict[str, Any] = {}
+        with _project_context_lock:
+            # Lock aldıktan sonra tekrar kontrol et (başka thread doldurmuş olabilir)
+            now = time.time()
+            if _project_context_cache and (now - _project_context_ts) < _PROJECT_CTX_TTL:
+                return _project_context_cache
 
-        # 1. KnowledgeStore'dan proje hafızası
-        try:
-            from app.domains.ai.knowledge_store import KnowledgeStore
-            project_id = getattr(self, "_project_id", None)
-            if not project_id:
-                raise ValueError("project_id gerekli")
-            store = KnowledgeStore(project_id=project_id)
-            # Son başarılı insight'lar
-            insights = store.retrieve(
-                "proje yapısı test sonuçları hata kalıpları öğrenimler",
-                top_k=8,
-                sources=["insight", "error_pattern", "execution"],
-                project_id=project_id,
-            )
-            if insights:
-                ctx["knowledge"] = "\n".join([
-                    f"[{c.source} | benzerlik:{c.similarity:.2f}] {c.content[:300]}"
-                    for c in insights
-                ])
-        except Exception as exc:
-            logger.debug("Proje bağlamı — knowledge store erişilemedi: %s", exc)
+            ctx: dict[str, Any] = {}
 
-        # 2. ProjectScanner sonuçlarını kontrol et (önceki run'dan cache'lenmiş olabilir)
-        try:
-            from app.domains.agents.banking_team.project_scanner import ProjectScannerAgent
-            scanner = ProjectScannerAgent()
-            scan_result = scanner.safe_run({})
-            if scan_result.success:
-                data = scan_result.data
-                ctx["db_schema"] = data.get("db_schema", "")[:2000]
-                ctx["api_endpoints"] = data.get("api_docs", "")[:2000]
-                ctx["existing_features"] = data.get("existing_features", "")[:1500]
-                ctx["existing_tests"] = data.get("existing_tests", "")[:1500]
-                ctx["recent_changes"] = data.get("recent_changes", "")[:800]
-                ctx["description"] = data.get("description", "")
-                ctx["regulations"] = data.get("regulations", [])
-        except Exception as exc:
-            logger.debug("Proje bağlamı — scanner erişilemedi: %s", exc)
+            # 1. KnowledgeStore'dan proje hafızası
+            try:
+                from app.domains.ai.knowledge_store import KnowledgeStore
+                project_id = getattr(cls, "_project_id", None)
+                if not project_id:
+                    raise ValueError("project_id gerekli")
+                store = KnowledgeStore(project_id=project_id)
+                # Son başarılı insight'lar
+                insights = store.retrieve(
+                    "proje yapısı test sonuçları hata kalıpları öğrenimler",
+                    top_k=8,
+                    sources=["insight", "error_pattern", "execution"],
+                    project_id=project_id,
+                )
+                if insights:
+                    ctx["knowledge"] = "\n".join([
+                        f"[{c.source} | benzerlik:{c.similarity:.2f}] {c.content[:300]}"
+                        for c in insights
+                    ])
+            except Exception as exc:
+                logger.debug("Proje bağlamı — knowledge store erişilemedi: %s", exc)
 
-        _project_context_cache = ctx
-        _project_context_ts = now
-        return ctx
+            # 2. ProjectScanner sonuçlarını kontrol et (önceki run'dan cache'lenmiş olabilir)
+            try:
+                from app.domains.agents.banking_team.project_scanner import ProjectScannerAgent
+                scanner = ProjectScannerAgent()
+                scan_result = scanner.safe_run({})
+                if scan_result.success:
+                    data = scan_result.data
+                    ctx["db_schema"] = data.get("db_schema", "")[:2000]
+                    ctx["api_endpoints"] = data.get("api_docs", "")[:2000]
+                    ctx["existing_features"] = data.get("existing_features", "")[:1500]
+                    ctx["existing_tests"] = data.get("existing_tests", "")[:1500]
+                    ctx["recent_changes"] = data.get("recent_changes", "")[:800]
+                    ctx["description"] = data.get("description", "")
+                    ctx["regulations"] = data.get("regulations", [])
+            except Exception as exc:
+                logger.debug("Proje bağlamı — scanner erişilemedi: %s", exc)
+
+            _project_context_cache = ctx
+            _project_context_ts = now
+            return _project_context_cache
 
     @classmethod
     def reset_project_context(cls) -> None:
-        """Pipeline başlangıcında cache'i sıfırla — taze bağlam oluşturulsun."""
+        """Pipeline başlangıcında cache'i sıfırla — taze bağlam oluşturulsun.
+        Thread-safe: _project_context_lock ile korunur.
+        """
         global _project_context_cache, _project_context_ts
-        _project_context_cache = None
-        _project_context_ts = 0.0
+        with _project_context_lock:
+            _project_context_cache = None
+            _project_context_ts = 0.0
 
     def _get_context_budget(self) -> int:
         """Bu ajanın modeli için kullanılabilir context window bütçesini hesapla (karakter)."""

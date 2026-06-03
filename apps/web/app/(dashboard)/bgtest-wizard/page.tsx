@@ -152,7 +152,7 @@ export default function BgtestWizardPage() {
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">
-            <span className="mr-2">💡</span>Visium Sihirbazı
+            <span className="mr-2">💡</span>Neurex Sihirbazı
           </h1>
           <p className="text-sm text-slate-400">Tüm test süreçlerini uçtan uca tek ekrandan yönetin</p>
         </div>

@@ -216,7 +216,7 @@ def format_weekly_report(summary: ROISummary) -> str:
     """Plain-text rapor — PDF render'ı sonraki sprint'te."""
     tenant = summary.tenant_id or "tüm tenant'lar"
     return (
-        f"TestwrightAI — ROI Haftalık Raporu\n"
+        f"Neurex — ROI Haftalık Raporu\n"
         f"{'=' * 42}\n"
         f"Tenant   : {tenant}\n"
         f"Period   : {summary.range_start.date()} → {summary.range_end.date()} "

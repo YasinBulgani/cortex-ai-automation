@@ -83,7 +83,7 @@ class ReporterAgent(BaseAgent):
         intent = state.get("intent_graph", {})
         run = state.get("run_result", {})
         return (
-            f"TestwrightAI koşusu tamamlandı.\n\n"
+            f"Neurex koşusu tamamlandı.\n\n"
             f"- Konu: {intent.get('feature_area', '?')}\n"
             f"- Üretilen senaryo: "
             f"{sum(s.get('scenario_count', 0) for s in state.get('scenarios', []) if isinstance(s, dict))}\n"

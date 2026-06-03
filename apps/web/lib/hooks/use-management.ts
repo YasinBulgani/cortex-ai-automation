@@ -264,6 +264,7 @@ export interface TestRun {
   source_type: string;
   source_ref?: string | null;
   scope_snapshot: Record<string, unknown>;
+  environment?: string | null;
   started_at?: string | null;
   completed_at?: string | null;
   created_at: string;
@@ -433,6 +434,43 @@ export interface UpdateStepResultInput {
   status: TestRunStatus;
   actual_result?: string | null;
   comment?: string | null;
+}
+
+export interface UpdateDefectInput {
+  defectId: string;
+  status?: string;
+  title?: string;
+  severity?: string;
+  priority?: string;
+  assignee_id?: string | null;
+  root_cause?: string | null;
+  retest_status?: string;
+  url?: string | null;
+}
+
+export interface CreateRunInput {
+  cycle_id: string;
+  name: string;
+  case_ids: string[];
+  assigned_to?: string | null;
+  source_type?: string;
+  source_ref?: string | null;
+  scope_snapshot?: Record<string, unknown>;
+  environment?: string | null;
+}
+
+export interface CreateRegressionSetInput {
+  name: string;
+  set_type?: string;
+  description?: string | null;
+  filters?: RegressionSelectionFilter;
+  cases?: Array<{
+    case_id: string;
+    order_index?: number;
+    risk_score?: number;
+    reason?: string;
+    include_mode?: string;
+  }>;
 }
 
 const BASE = (projectId: string) => `/api/v1/test-management/projects/${projectId}`;
@@ -648,19 +686,8 @@ export function useSuggestRegressionCandidates(projectId: string) {
 export function useCreateRegressionSet(projectId: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (payload: {
-      name: string;
-      set_type?: string;
-      description?: string | null;
-      filters?: RegressionSelectionFilter;
-      cases?: Array<{
-        case_id: string;
-        order_index?: number;
-        risk_score?: number;
-        reason?: string;
-        include_mode?: string;
-      }>;
-    }) => apiFetch<RegressionSet>(`${BASE(projectId)}/regression/sets`, { method: "POST", json: payload }),
+    mutationFn: (payload: CreateRegressionSetInput) =>
+      apiFetch<RegressionSet>(`${BASE(projectId)}/regression/sets`, { method: "POST", json: payload }),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: managementKeys.regressionSets(projectId) });
     },
@@ -700,15 +727,14 @@ export function useCreateManagementCycle(projectId: string) {
 export function useCreateManagementRun(projectId: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (payload: {
-      cycle_id: string;
-      name: string;
-      case_ids: string[];
-      assigned_to?: string | null;
-      source_type?: string;
-      source_ref?: string | null;
-      scope_snapshot?: Record<string, unknown>;
-      environment?: string | null;
+    mutationFn: (payload: CreateRunInput) =>
+      apiFetch<TestRun>(`${BASE(projectId)}/runs`, { method: "POST", json: payload }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: managementKeys.runs(projectId) });
+    },
+  });
+}
+
 export function useArchiveManagementCase(projectId: string) {
   const qc = useQueryClient();
   return useMutation({
@@ -800,17 +826,7 @@ export function useCreateManagementDefect(projectId: string) {
 export function useUpdateManagementDefect(projectId: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ defectId, ...payload }: {
-      defectId: string;
-      status?: string;
-      title?: string;
-      severity?: string;
-      priority?: string;
-      assignee_id?: string | null;
-      root_cause?: string | null;
-      retest_status?: string;
-      url?: string | null;
-    }) =>
+    mutationFn: ({ defectId, ...payload }: UpdateDefectInput) =>
       apiFetch<DefectLink>(`${BASE(projectId)}/defects/${defectId}`, {
         method: "PATCH",
         json: payload,
@@ -893,5 +909,180 @@ export function useSearchSimilarCases(projectId: string) {
         method: "POST",
         json: payload,
       }),
+  });
+}
+
+// ── Defects list ──────────────────────────────────────────────────────────────
+
+export function useManagementDefects(projectId: string | undefined) {
+  return useQuery({
+    queryKey: managementKeys.defects(projectId),
+    queryFn: () => apiFetch<DefectLink[]>(`${BASE(projectId!)}/defects`),
+    enabled: !!projectId,
+    staleTime: 30_000,
+  });
+}
+
+// ── Execution summary ─────────────────────────────────────────────────────────
+
+export function useExecutionSummary(projectId: string | undefined) {
+  return useQuery({
+    queryKey: managementKeys.summary(projectId),
+    queryFn: () => apiFetch<ExecutionSummary>(`${BASE(projectId!)}/reports/execution-summary`),
+    enabled: !!projectId,
+    staleTime: 15_000,
+  });
+}
+
+// ── Release report & signoffs ─────────────────────────────────────────────────
+
+export function useReleaseReport(projectId: string | undefined) {
+  return useQuery({
+    queryKey: managementKeys.releaseReport(projectId),
+    queryFn: () => apiFetch<ReleaseReport>(`${BASE(projectId!)}/reports/release`),
+    enabled: !!projectId,
+    staleTime: 30_000,
+  });
+}
+
+export function useReleaseSignoffs(projectId: string | undefined) {
+  return useQuery({
+    queryKey: managementKeys.releaseSignoffs(projectId),
+    queryFn: () => apiFetch<ReleaseSignoff[]>(`${BASE(projectId!)}/reports/release/signoffs`),
+    enabled: !!projectId,
+    staleTime: 30_000,
+  });
+}
+
+export function useCreateReleaseSignoff(projectId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: {
+      release_name?: string | null;
+      decision: string;
+      comment?: string | null;
+      report_snapshot?: Record<string, unknown>;
+    }) =>
+      apiFetch<ReleaseSignoff>(`${BASE(projectId)}/reports/release/signoffs`, {
+        method: "POST",
+        json: payload,
+      }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: managementKeys.releaseSignoffs(projectId) });
+      void qc.invalidateQueries({ queryKey: managementKeys.releaseReport(projectId) });
+    },
+  });
+}
+
+// ── Requirements ──────────────────────────────────────────────────────────────
+
+export function useManagementRequirements(projectId: string | undefined) {
+  return useQuery({
+    queryKey: managementKeys.requirements(projectId),
+    queryFn: () => apiFetch<RequirementLink[]>(`${BASE(projectId!)}/requirements`),
+    enabled: !!projectId,
+    staleTime: 30_000,
+  });
+}
+
+export interface RequirementTraceabilityRow {
+  requirement_id: string;
+  requirement_key: string;
+  external_key: string;
+  title: string;
+  status: string;
+  priority: string;
+  source: string;
+  covered: boolean;
+  stale: boolean;
+  coverage_pct: number;
+  cases: Array<{
+    case_id: string;
+    case_key: string;
+    title: string;
+    last_run_status?: string | null;
+    coverage_status: string;
+  }>;
+}
+
+/** @deprecated Use RequirementTraceabilityRow */
+export type TraceabilityRow = RequirementTraceabilityRow;
+
+export function useRequirementCatalog(projectId: string | undefined) {
+  return useQuery({
+    queryKey: managementKeys.requirementCatalog(projectId),
+    queryFn: () => apiFetch<Requirement[]>(`${BASE(projectId!)}/requirements/catalog`),
+    enabled: !!projectId,
+    staleTime: 30_000,
+  });
+}
+
+export function useRequirementTraceability(projectId: string | undefined) {
+  return useQuery({
+    queryKey: [...managementKeys.requirements(projectId), "traceability"] as const,
+    queryFn: () => apiFetch<RequirementTraceabilityRow[]>(`${BASE(projectId!)}/requirements/traceability`),
+    enabled: !!projectId,
+    staleTime: 30_000,
+  });
+}
+
+// ── Test case CRUD ────────────────────────────────────────────────────────────
+
+export function useCreateManagementCase(projectId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: CreateTestCaseInput) =>
+      apiFetch<TestCase>(`${BASE(projectId)}/cases`, { method: "POST", json: payload }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: managementKeys.repository(projectId) });
+      void qc.invalidateQueries({ queryKey: managementKeys.cases(projectId) });
+    },
+  });
+}
+
+export function useUpdateManagementCase(projectId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ caseId, ...payload }: Partial<CreateTestCaseInput> & { caseId: string }) =>
+      apiFetch<TestCase>(`${BASE(projectId)}/cases/${caseId}`, { method: "PATCH", json: payload }),
+    onSuccess: (_data, variables) => {
+      void qc.invalidateQueries({ queryKey: managementKeys.repository(projectId) });
+      void qc.invalidateQueries({ queryKey: managementKeys.cases(projectId) });
+      void qc.invalidateQueries({ queryKey: managementKeys.case(projectId, variables.caseId) });
+    },
+  });
+}
+
+export function useMoveManagementCase(projectId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: { caseId: string; suite_id?: string | null; folder_id?: string | null }) =>
+      apiFetch<TestCase>(`${BASE(projectId)}/cases/${payload.caseId}/move`, {
+        method: "PATCH",
+        json: { suite_id: payload.suite_id, folder_id: payload.folder_id },
+      }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: managementKeys.repository(projectId) });
+      void qc.invalidateQueries({ queryKey: managementKeys.cases(projectId) });
+    },
+  });
+}
+
+export async function exportManagementRepository(projectId: string): Promise<Repository> {
+  return apiFetch<Repository>(`${BASE(projectId)}/repository/export`);
+}
+
+export function usePromoteCases(projectId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: { case_ids: string[]; target_status: string }) =>
+      apiFetch<{ updated: number }>(`${BASE(projectId)}/cases/promote`, {
+        method: "POST",
+        json: payload,
+      }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: managementKeys.repository(projectId) });
+      void qc.invalidateQueries({ queryKey: managementKeys.cases(projectId) });
+    },
   });
 }

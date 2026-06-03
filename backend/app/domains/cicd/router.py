@@ -320,7 +320,7 @@ async def github_webhook(
 
     ev = _store_event(db, "github", x_github_event, payload, project_ref=repo)
 
-    # Auto-trigger TestwrightAI tests when a workflow run completes successfully
+    # Auto-trigger Neurex tests when a workflow run completes successfully
     if x_github_event == "workflow_run" and conclusion == "success":
         background_tasks.add_task(_auto_trigger_on_ci_success, "github", repo, ref, payload)
 
@@ -424,7 +424,7 @@ async def trigger_tests(
     db: Session = Depends(get_db),
     current_user: User | None = Depends(get_optional_user),
 ):
-    """Trigger TestwrightAI test execution from external CI/CD pipeline."""
+    """Trigger Neurex test execution from external CI/CD pipeline."""
     # Strict mode: CICD_REQUIRE_TRIGGER_TOKEN=1 ama token tanimli degil
     if _ci_trigger_token_required() and not CI_TOKEN:
         raise HTTPException(503, "CI trigger token zorunlu ama yapilandirilmamis.")

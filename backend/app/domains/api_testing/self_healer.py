@@ -15,7 +15,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional, Tuple
 from uuid import uuid4
 
-from sqlalchemy import Integer, func
+from sqlalchemy import Integer, func, select
 from sqlalchemy.orm import Session
 
 logger = logging.getLogger(__name__)
@@ -285,14 +285,12 @@ def heal_and_retry(
     overall_start = time.monotonic()
 
     # 1. Load failed execution details
-    failed_details = (
-        db.query(ApiExecutionDetail)
-        .filter(
+    failed_details = db.execute(
+        select(ApiExecutionDetail).where(
             ApiExecutionDetail.run_id == run_id,
             ApiExecutionDetail.passed == False,  # noqa: E712
         )
-        .all()
-    )
+    ).scalars().all()
 
     if not failed_details:
         return {
@@ -310,7 +308,7 @@ def heal_and_retry(
     tc_ids = [d.test_case_id for d in failed_details if d.test_case_id]
     test_cases_map: Dict[str, Any] = {}
     if tc_ids:
-        tcs = db.query(ApiTestCase).filter(ApiTestCase.id.in_(tc_ids)).all()
+        tcs = db.execute(select(ApiTestCase).where(ApiTestCase.id.in_(tc_ids))).scalars().all()
         test_cases_map = {tc.id: tc for tc in tcs}
 
     # Try to get execution engine
@@ -467,12 +465,14 @@ def get_healing_stats(
 
     cutoff = datetime.now(timezone.utc) - timedelta(days=days)
 
-    base_q = db.query(HealingLog).filter(
+    base_where = [
         HealingLog.project_id == project_id,
         HealingLog.created_at >= cutoff,
-    )
+    ]
 
-    total_attempts = base_q.count()
+    total_attempts = db.scalar(
+        select(func.count(HealingLog.id)).where(*base_where)
+    )
 
     if total_attempts == 0:
         return {
@@ -485,17 +485,21 @@ def get_healing_stats(
             "saved_ci_time_ms": 0.0,
         }
 
-    healed_count = base_q.filter(HealingLog.healed == True).count()  # noqa: E712
+    healed_count = db.scalar(
+        select(func.count(HealingLog.id)).where(
+            *base_where,
+            HealingLog.healed == True,  # noqa: E712
+        )
+    )
     success_rate = round(healed_count / max(total_attempts, 1) * 100, 1)
 
     # avg retries & healing time
-    agg = db.query(
-        func.avg(HealingLog.retries_attempted),
-        func.avg(HealingLog.healing_time_ms),
-        func.sum(HealingLog.healing_time_ms),
-    ).filter(
-        HealingLog.project_id == project_id,
-        HealingLog.created_at >= cutoff,
+    agg = db.execute(
+        select(
+            func.avg(HealingLog.retries_attempted),
+            func.avg(HealingLog.healing_time_ms),
+            func.sum(HealingLog.healing_time_ms),
+        ).where(*base_where)
     ).first()
 
     avg_retries = round(float(agg[0] or 0), 2)
@@ -503,21 +507,17 @@ def get_healing_stats(
     total_healing_time = float(agg[2] or 0)
 
     # By category
-    cat_rows = (
-        db.query(
+    cat_rows = db.execute(
+        select(
             HealingLog.failure_category,
             func.count(HealingLog.id).label("attempts"),
             func.sum(
                 func.cast(HealingLog.healed, Integer)
             ).label("healed_count"),
         )
-        .filter(
-            HealingLog.project_id == project_id,
-            HealingLog.created_at >= cutoff,
-        )
+        .where(*base_where)
         .group_by(HealingLog.failure_category)
-        .all()
-    )
+    ).all()
 
     by_category: Dict[str, Dict[str, Any]] = {}
     for row in cat_rows:
@@ -530,28 +530,26 @@ def get_healing_stats(
         }
 
     # Top healed tests
-    top_q = (
-        db.query(
+    top_q = db.execute(
+        select(
             HealingLog.test_case_id,
             func.count(HealingLog.id).label("heal_count"),
         )
-        .filter(
-            HealingLog.project_id == project_id,
-            HealingLog.created_at >= cutoff,
+        .where(
+            *base_where,
             HealingLog.healed == True,  # noqa: E712
         )
         .group_by(HealingLog.test_case_id)
         .order_by(func.count(HealingLog.id).desc())
         .limit(10)
-        .all()
-    )
+    ).all()
 
     top_healed: List[Dict[str, Any]] = []
     for row in top_q:
         tc_title = "Unknown"
         if row.test_case_id:
-            tc = db.query(ApiTestCase.title).filter(
-                ApiTestCase.id == row.test_case_id,
+            tc = db.execute(
+                select(ApiTestCase.title).where(ApiTestCase.id == row.test_case_id)
             ).first()
             if tc:
                 tc_title = tc[0]

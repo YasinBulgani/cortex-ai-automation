@@ -2,7 +2,6 @@
 
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
-import { ManagementShell } from "../_components/ManagementShell";
 
 type MyCase = {
   run_case_id: string;
@@ -153,12 +152,7 @@ export default function TesterHomePage({ params }: { params: { projectId: string
   const nextCase = cases.find((c) => c.status === "not_run");
 
   return (
-    <ManagementShell
-      projectId={projectId}
-      title="Benim Görevlerim"
-      description="Size atanmış tüm aktif test case'lerini buradan yönetin."
-      active="management/tester"
-    >
+    <div className="min-h-full bg-[#0a0f1e] px-5 py-5 space-y-5">
       {/* Özet istatistikler */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
@@ -261,6 +255,6 @@ export default function TesterHomePage({ params }: { params: { projectId: string
           ))}
         </div>
       )}
-    </ManagementShell>
+    </div>
   );
 }

@@ -239,6 +239,128 @@ class LLMGateway:
 
         return response
 
+    def stream(
+        self,
+        messages: list[dict[str, str]],
+        model: str | None = None,
+        temperature: float = 0.2,
+        max_tokens: int = 2000,
+        gateway_task_type: str = "chat",
+    ):
+        """Streaming LLM çağrısı — her token'ı yield eder.
+
+        Proxy mode'da AI Gateway /ai/stream SSE endpoint'ini kullanır.
+        Direct mode'da OpenAI/Anthropic SDK streaming kullanır.
+        """
+        model = model or os.getenv("OPENAI_MODEL", "gpt-4o")
+
+        if self.enable_pii_sanitization:
+            messages = self._sanitize_messages(messages)
+
+        if self.use_gateway_proxy:
+            yield from self._stream_ai_gateway(messages, model, temperature, max_tokens, gateway_task_type)
+        elif model.startswith("claude"):
+            yield from self._stream_anthropic(messages, model, temperature, max_tokens)
+        else:
+            yield from self._stream_openai(messages, model, temperature, max_tokens)
+
+    def _stream_ai_gateway(
+        self,
+        messages: list[dict],
+        model: str,
+        temperature: float,
+        max_tokens: int,
+        task_type: str,
+    ):
+        """AI Gateway /ai/stream SSE endpoint'inden token yield eder."""
+        try:
+            import httpx
+        except ImportError as exc:
+            raise RuntimeError(
+                "ENGINE_LLM_USE_GATEWAY=1 streaming için httpx gerekli"
+            ) from exc
+
+        payload = {
+            "task_type": task_type,
+            "messages": [{"role": m["role"], "content": m["content"]} for m in messages],
+            "temperature": temperature,
+            "max_tokens": max_tokens,
+            "model_override": model,
+        }
+        headers = {"X-Internal-Key": self._gateway_key} if self._gateway_key else {}
+        url = f"{self._gateway_base_url}/ai/stream"
+
+        try:
+            with httpx.stream("POST", url, json=payload, headers=headers, timeout=90.0) as resp:
+                resp.raise_for_status()
+                for line in resp.iter_lines():
+                    if not line.startswith("data:"):
+                        continue
+                    raw = line[5:].strip()
+                    if raw == "[DONE]":
+                        return
+                    try:
+                        import json as _json
+                        data = _json.loads(raw)
+                        if "error" in data:
+                            raise RuntimeError(f"Gateway streaming hatası: {data['error']}")
+                        token = data.get("token", "")
+                        if token:
+                            yield token
+                    except (ValueError, KeyError):
+                        continue
+        except httpx.HTTPError as exc:
+            logger.error("AI Gateway streaming HTTP hatası: %s", exc)
+            raise RuntimeError(f"AI Gateway streaming erişilemiyor: {exc}") from exc
+
+    def _stream_openai(
+        self,
+        messages: list[dict],
+        model: str,
+        temperature: float,
+        max_tokens: int,
+    ):
+        """OpenAI-uyumlu streaming — httpx SSE ile token yield eder (Ollama/vLLM/Groq)."""
+        try:
+            import httpx
+        except ImportError as exc:
+            raise RuntimeError("httpx gerekli: pip install httpx") from exc
+        import json as _json
+
+        base_url = os.getenv("OPENAI_BASE_URL", "http://localhost:11434/v1")
+        api_key = self._openai_key or "no-key"
+        headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
+        body = {"model": model, "messages": messages, "temperature": temperature,
+                "max_tokens": max_tokens, "stream": True}
+        with httpx.stream("POST", f"{base_url.rstrip('/')}/chat/completions",
+                          json=body, headers=headers, timeout=90.0) as resp:
+            resp.raise_for_status()
+            for line in resp.iter_lines():
+                if not line.startswith("data:"):
+                    continue
+                raw = line[5:].strip()
+                if raw == "[DONE]":
+                    return
+                try:
+                    data = _json.loads(raw)
+                    content = (data.get("choices") or [{}])[0].get("delta", {}).get("content", "")
+                    if content:
+                        yield content
+                except Exception:
+                    continue
+
+    def _stream_anthropic(
+        self,
+        messages: list[dict],
+        model: str,
+        temperature: float,
+        max_tokens: int,
+    ):
+        """Anthropic streaming kaldırıldı — Ollama'ya yönlendiriliyor."""
+        logger.warning("LLMGateway._stream_anthropic: Ollama'ya yönlendiriliyor.")
+        ollama_model = os.getenv("OLLAMA_DEFAULT_MODEL", "qwen2.5:14b")
+        yield from self._stream_openai(messages, ollama_model, temperature, max_tokens)
+
     @property
     def has_openai(self) -> bool:
         return bool(self._openai_key)
@@ -253,74 +375,45 @@ class LLMGateway:
             return True
         return self.has_openai or self.has_anthropic
 
-    # ── OpenAI ──────────────────────────────────────────────────────────────
-
-    def _get_openai(self):
-        if self._openai is None:
-            from openai import OpenAI
-            self._openai = OpenAI(
-                api_key=self._openai_key,
-                base_url=os.getenv("OPENAI_BASE_URL", "https://api.openai.com/v1"),
-            )
-        return self._openai
+    # ── OpenAI-compatible (Ollama / vLLM / Groq) via httpx ──────────────────
+    # Tescilli SDK bağımlılığı yok — her OpenAI-uyumlu endpoint çalışır.
 
     def _call_openai(self, messages, model, temperature, max_tokens) -> LLMResponse:
-        if not self._openai_key:
-            raise RuntimeError("OpenAI API anahtarı yapılandırılmamış")
-        client = self._get_openai()
-        resp = client.chat.completions.create(
-            model=model,
-            messages=messages,
-            temperature=temperature,
-            max_tokens=max_tokens,
-        )
-        usage = resp.usage
-        tokens = usage.total_tokens if usage else 0
-        cost = self._calculate_cost(model, usage.prompt_tokens, usage.completion_tokens) if usage else 0.0
-        content = ""
-        if resp.choices:
-            content = resp.choices[0].message.content or ""
-        return LLMResponse(
-            content=content,
-            model=model,
-            tokens_used=tokens,
-            cached=False,
-            cost_usd=cost,
-            latency_ms=0,
-        )
+        """OpenAI-uyumlu endpoint — httpx ile doğrudan çağrı (Ollama/vLLM/Groq)."""
+        try:
+            import httpx
+        except ImportError as exc:
+            raise RuntimeError("httpx gerekli: pip install httpx") from exc
 
-    # ── Anthropic ───────────────────────────────────────────────────────────
+        base_url = os.getenv("OPENAI_BASE_URL", "http://localhost:11434/v1")
+        api_key = self._openai_key or "no-key"
+        headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
+        body = {"model": model, "messages": messages, "temperature": temperature, "max_tokens": max_tokens}
 
-    def _get_anthropic(self):
-        if self._anthropic is None:
-            from anthropic import Anthropic
-            self._anthropic = Anthropic(api_key=self._anthropic_key)
-        return self._anthropic
+        try:
+            resp = httpx.post(
+                f"{base_url.rstrip('/')}/chat/completions",
+                json=body, headers=headers, timeout=90.0,
+            )
+            resp.raise_for_status()
+        except httpx.HTTPError as exc:
+            raise RuntimeError(f"LLM endpoint erişilemiyor ({base_url}): {exc}") from exc
+
+        data = resp.json()
+        content = data["choices"][0]["message"]["content"] or ""
+        usage = data.get("usage", {})
+        tokens = usage.get("total_tokens", 0)
+        cost = self._calculate_cost(model, usage.get("prompt_tokens", 0), usage.get("completion_tokens", 0))
+        return LLMResponse(content=content, model=model, tokens_used=tokens, cached=False, cost_usd=cost, latency_ms=0)
 
     def _call_anthropic(self, messages, model, temperature, max_tokens) -> LLMResponse:
-        if not self._anthropic_key:
-            raise RuntimeError("Anthropic API anahtarı yapılandırılmamış")
-        client = self._get_anthropic()
-        system_msg = next((m["content"] for m in messages if m["role"] == "system"), "")
-        user_msgs = [m for m in messages if m["role"] != "system"]
-        resp = client.messages.create(
-            model=model,
-            system=system_msg,
-            messages=user_msgs,
-            temperature=temperature,
-            max_tokens=max_tokens,
+        """Anthropic API kaldırıldı — açık kaynak geçiş. Ollama'ya yönlendiriliyor."""
+        logger.warning(
+            "LLMGateway._call_anthropic: tescilli Anthropic API kaldırıldı. "
+            "Yerel Ollama endpoint'e yönlendiriliyor. Model: %s", model,
         )
-        input_t = resp.usage.input_tokens
-        output_t = resp.usage.output_tokens
-        cost = self._calculate_cost(model, input_t, output_t)
-        return LLMResponse(
-            content=resp.content[0].text,
-            model=model,
-            tokens_used=input_t + output_t,
-            cached=False,
-            cost_usd=cost,
-            latency_ms=0,
-        )
+        ollama_model = os.getenv("OLLAMA_DEFAULT_MODEL", "qwen2.5:14b")
+        return self._call_openai(messages, ollama_model, temperature, max_tokens)
 
     # ── AI Gateway proxy (Faz 4.C) ───────────────────────────────────────────
 

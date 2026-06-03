@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { apiFetch } from "@/lib/api-client";
 
 const SUITES = [
   "auth", "projects", "scenarios", "executions", "approvals", "rbac",
@@ -37,8 +38,7 @@ export default function AiSuggestPanel() {
   const [reqOptions, setReqOptions] = useState<string[]>([]);
 
   useEffect(() => {
-    fetch("/api/v1/qa/requirements")
-      .then((r) => r.json())
+    apiFetch<Record<string, unknown>[]>("/api/v1/qa/requirements")
       .then((items) => setReqOptions(items.map((r: any) => r.id).sort()))
       .catch(() => {});
   }, []);

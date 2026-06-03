@@ -75,7 +75,7 @@ def parse_docx(path: str | Path) -> str:
 async def parse_url(url: str, timeout: float = 10.0) -> str:
     try:
         async with httpx.AsyncClient(follow_redirects=True, timeout=timeout) as client:
-            resp = await client.get(url, headers={"User-Agent": "TestwrightAI-Intake/1.0"})
+            resp = await client.get(url, headers={"User-Agent": "Neurex-Intake/1.0"})
             resp.raise_for_status()
             html = resp.text
     except httpx.HTTPError as exc:

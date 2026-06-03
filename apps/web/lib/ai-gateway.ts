@@ -229,7 +229,7 @@ export async function suggestRegression(
 }
 
 /**
- * Java NexusQA step definitions üret.
+ * Java Neurex step definitions üret.
  */
 export async function generateJavaSteps(
   gherkinContent: string,

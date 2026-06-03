@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { apiFetch } from "@/lib/api-client";
 
 type TestCase = {
   id: string;
@@ -210,8 +211,7 @@ function CaseDetailModal({ tc, onClose }: { tc: TestCase; onClose: () => void })
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch(`/api/v1/qa/cases/${tc.id}`)
-      .then((r) => r.json())
+    apiFetch(`/api/v1/qa/cases/${tc.id}`)
       .then(setDetail)
       .catch(() => setDetail({ error: "load failed" }))
       .finally(() => setLoading(false));

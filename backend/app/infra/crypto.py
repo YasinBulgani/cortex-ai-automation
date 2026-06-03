@@ -14,7 +14,9 @@ Key management:
 - SECRETS_ENCRYPTION_KEYS env var = comma-separated Fernet keys
 - First key = current (used for encryption)
 - All keys tried in order for decryption (enables rotation)
-- Missing keys -> falls back to insecure dev key with WARNING
+- Missing keys in production/staging -> raises ValueError immediately
+- Missing keys in development -> falls back to deterministic dev-only key
+  derived from CRYPTO_DEV_SEED env var (never shares JWT secret)
 
 To rotate:
     1. Generate new key, prepend to SECRETS_ENCRYPTION_KEYS
@@ -27,6 +29,7 @@ from __future__ import annotations
 import base64
 import hashlib
 import logging
+import os
 from functools import lru_cache
 from typing import Optional
 
@@ -48,13 +51,22 @@ def _multi_fernet():
 
     raw = (settings.secrets_encryption_keys or "").strip()
     if not raw:
-        # DEV fallback — derive deterministic key from jwt_secret. NOT for prod.
+        environment = os.getenv("ENVIRONMENT", "development").lower()
+        if environment in ("production", "staging"):
+            raise ValueError(
+                "SECRETS_ENCRYPTION_KEYS production/staging ortaminda zorunludur! "
+                "Fernet key uretmek icin: python -c \"from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())\""
+            )
+
+        # DEV-ONLY fallback — JWT secret ile hic iliskilendirilmez.
+        # CRYPTO_DEV_SEED ortam degiskeni ile deterministik, session-ici tutarli key uretilir.
+        _fallback_seed = os.getenv("CRYPTO_DEV_SEED", "neurex-dev-crypto-seed-2026")
+        dev_key = base64.urlsafe_b64encode(hashlib.sha256(_fallback_seed.encode()).digest())
         logger.warning(
-            "SECRETS_ENCRYPTION_KEYS bos — jwt_secret'ten dev-fallback uretiliyor. "
-            "Production icin gercek Fernet key uretip ayarlayin."
+            "SECRETS_ENCRYPTION_KEYS bos — sadece development icin deterministik "
+            "dev-fallback key kullaniliyor (JWT secret ile iliskisi yok). "
+            "Production icin gercek Fernet key uretip SECRETS_ENCRYPTION_KEYS ayarlayin."
         )
-        digest = hashlib.sha256(settings.jwt_secret.encode()).digest()
-        dev_key = base64.urlsafe_b64encode(digest)
         return MultiFernet([Fernet(dev_key)])
 
     keys = [k.strip() for k in raw.split(",") if k.strip()]

@@ -11,6 +11,7 @@ import time
 from typing import Any, Dict, List, Optional, Tuple, Union
 from uuid import uuid4
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.domains.api_testing.models import (
@@ -31,6 +32,16 @@ from app.domains.api_testing.feedback_loop import (
 from app.domains.agents.banking_team.service_test_agent import ServiceTestAgent
 
 logger = logging.getLogger(__name__)
+
+
+def _safe_json_parse(content: Any) -> dict:
+    """JSON string'i güvenli şekilde dict'e çevirir. Hatalı JSON'da {} döner."""
+    if isinstance(content, dict):
+        return content
+    try:
+        return json.loads(content)
+    except (json.JSONDecodeError, AttributeError, TypeError):
+        return {}
 
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -59,7 +70,7 @@ def import_spec(
 
     # 2. Spec kaydini oluştur
     spec_name = name or analysis.title or "Untitled API"
-    raw_content = content if isinstance(content, dict) else json.loads(content) if content.strip().startswith("{") else {}
+    raw_content = _safe_json_parse(content)
 
     spec = ApiSpec(
         id=str(uuid4()),
@@ -140,7 +151,7 @@ def generate_tests_with_ai(
     # 1. Endpoint'leri topla
     endpoints: List[dict] = []
     if endpoint_ids:
-        eps = db.query(ApiEndpoint).filter(ApiEndpoint.id.in_(endpoint_ids)).all()
+        eps = db.execute(select(ApiEndpoint).where(ApiEndpoint.id.in_(endpoint_ids))).scalars().all()
         for ep in eps:
             endpoints.append({
                 "method": ep.method,
@@ -157,7 +168,7 @@ def generate_tests_with_ai(
                 "compliance_tags": ep.compliance_tags,
             })
     elif spec_id:
-        eps = db.query(ApiEndpoint).filter(ApiEndpoint.spec_id == spec_id).all()
+        eps = db.execute(select(ApiEndpoint).where(ApiEndpoint.spec_id == spec_id)).scalars().all()
         for ep in eps:
             endpoints.append({
                 "method": ep.method,
@@ -359,15 +370,17 @@ async def execute_test_cases(
     # Environment degiskenlerini al
     env_vars: Dict[str, str] = {}
     if environment_id:
-        env = db.query(ApiEnvironment).get(environment_id)
+        env = db.get(ApiEnvironment, environment_id)
         if env:
             env_vars = env.variables or {}
 
     # Test case'leri yükle
-    test_cases = db.query(ApiTestCase).filter(
-        ApiTestCase.id.in_(test_case_ids),
-        ApiTestCase.project_id == project_id,
-    ).all()
+    test_cases = db.execute(
+        select(ApiTestCase).where(
+            ApiTestCase.id.in_(test_case_ids),
+            ApiTestCase.project_id == project_id,
+        )
+    ).scalars().all()
 
     if not test_cases:
         return {"run_id": "", "total": 0, "passed": 0, "failed": 0,
@@ -443,7 +456,11 @@ async def execute_test_cases(
             response_body=exec_result.response_body[:100_000] if exec_result.response_body else None,
             response_size_bytes=exec_result.response_size_bytes,
             total_ms=exec_result.timing.total_ms,
-            assertion_results=[r.to_dict() for r in (exec_result.assertion_report.results if exec_result.assertion_report else [])],
+            assertion_results=(
+                [r.to_dict() for r in (exec_result.assertion_report.results or [])]
+                if exec_result.assertion_report
+                else []
+            ),
             passed=(status == "passed"),
             error_message=exec_result.error,
             schema_valid=exec_result.schema_valid,

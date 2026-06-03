@@ -1,5 +1,5 @@
 """
-KnowledgeStore — TestwrightAI projesinin sürekli öğrenen hafızası.
+KnowledgeStore — Neurex projesinin sürekli öğrenen hafızası.
 
 Mimari:
   - Embedding: Ollama nomic-embed-text (768 boyut, tamamen local, ücretsiz)

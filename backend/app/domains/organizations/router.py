@@ -7,6 +7,7 @@ from typing import Annotated
 from urllib.parse import quote
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.config import settings
@@ -109,8 +110,8 @@ def list_org_teams(
     teams = service.list_teams(db, user.tenant_id)
     out: list[TeamOut] = []
     for t in teams:
-        count = (
-            db.query(TeamMember).filter(TeamMember.team_id == t.id).count()
+        count = db.scalar(
+            select(func.count(TeamMember.id)).where(TeamMember.team_id == t.id)
         )
         out.append(
             TeamOut(
@@ -277,7 +278,7 @@ def accept_invitation_endpoint(
         raise HTTPException(400, detail="Davet gecersiz, kullanilmis veya suresi dolmus")
 
     # Mevcut kullanici varsa: tenant degis + team'e ekle
-    user = db.query(User).filter(User.email == inv.email).first()
+    user = db.execute(select(User).where(User.email == inv.email)).scalars().first()
     created = False
     if user is None:
         user = User(

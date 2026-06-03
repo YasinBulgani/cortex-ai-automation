@@ -117,7 +117,7 @@ def mobile_generate(
 ) -> MobileGenerateResponse:
     """Doğal dil + cihaz bağlamı → mobil DSL cümlecikleriyle Gherkin.
 
-    Visium Farm sayfasının "AI Mobil Senaryo Üretici" kartı bu endpoint'i
+    Neurex Farm sayfasının "AI Mobil Senaryo Üretici" kartı bu endpoint'i
     çağırır. Katalogdaki `mobile.*` aksiyonları allowed listesine eklenir,
     Ollama sadece bu cümlecikleri kullanarak Gherkin üretir.
     """

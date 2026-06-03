@@ -225,7 +225,7 @@ class ProjectScannerAgent(BaseAgent):
 
     def _build_description(self, data: dict, hint: str) -> str:
         """Taranan verilerden otomatik sistem açıklaması üret."""
-        parts = ["TestwrightAI Test Otomasyon Platformu"]
+        parts = ["Neurex Test Otomasyon Platformu"]
 
         # DB'den modül isimlerini çıkar
         db = data.get("db_schema", "")

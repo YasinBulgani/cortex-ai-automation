@@ -55,7 +55,10 @@ _MIN_ACCEPT_THRESHOLD = 0.20
 class HealingConfig:
     repo_root: Path
     base_branch: str = "main"
-    default_commit_msg: str = "fix(e2e): heal locator via TestwrightAI self-healing"
+    default_commit_msg: str = "fix(e2e): heal locator via Neurex self-healing"
+    max_retries: int = 3
+    retry_delay_seconds: float = 5.0
+    retry_backoff_multiplier: float = 2.0  # exponential backoff
 
 
 def _branch_name_for(event: FailureEvent) -> str:
@@ -83,7 +86,7 @@ def _pr_body(
     body = f"""\
 ## 🩹 Self-healing locator swap
 
-Bu PR, **TestwrightAI** tarafından otomatik olarak açıldı. Başarısız olan
+Bu PR, **Neurex** tarafından otomatik olarak açıldı. Başarısız olan
 bir Playwright testinde kırık selector, LLM desteğiyle yeniden üretildi.
 
 ### Kırık test
@@ -143,7 +146,7 @@ class HealingOrchestrator:
                 "framework": event.framework,
             },
         ):
-            result = self._run_inner(event, run)
+            result = self._run_inner_with_retry(event, run)
             set_span_attr("status", result.status)
             if result.pr_url:
                 set_span_attr("pr_url", result.pr_url)
@@ -198,9 +201,17 @@ class HealingOrchestrator:
             )
             return run
 
+        owner = self._gh.owner if self._gh else "?"
+        repo = self._gh.repo if self._gh else "?"
         try:
             pr = self._open_pr(event, decision, patch)
         except GitHubError as exc:
+            logger.error(
+                "[healing] GitHub PR açılamadı (repo: %s/%s): %s",
+                owner,
+                repo,
+                exc,
+            )
             run.mark_done("pr_failed", error=str(exc))
             return run
 
@@ -211,7 +222,101 @@ class HealingOrchestrator:
         run.mark_done("succeeded")
         return run
 
+    def _run_inner_with_retry(self, event: FailureEvent, run: HealingRun) -> HealingRun:
+        """Geçici hatalarda retry ile healing uygular."""
+        import time
+
+        delay = self._cfg.retry_delay_seconds
+        last_error = None
+
+        for attempt in range(1, self._cfg.max_retries + 1):
+            try:
+                logger.info(
+                    "[healing] deneme %d/%d — %s",
+                    attempt,
+                    self._cfg.max_retries,
+                    event.run_id,
+                )
+                result = self._run_inner(event, run)
+                if result.status not in ("pr_failed", "patch_failed"):
+                    return result  # başarılı
+                last_error = result.error
+                logger.warning("[healing] deneme %d başarısız: %s", attempt, last_error)
+            except Exception as exc:
+                last_error = str(exc)
+                logger.warning("[healing] deneme %d exception: %s", attempt, exc)
+
+            if attempt < self._cfg.max_retries:
+                logger.info(
+                    "[healing] %.1f saniye bekleyip tekrar deneniyor...", delay
+                )
+                time.sleep(delay)
+                delay *= self._cfg.retry_backoff_multiplier
+
+        run.mark_done(
+            "pr_failed",
+            error=f"[{self._cfg.max_retries} denemeden sonra başarısız] {last_error}",
+        )
+        return run
+
+    def rollback_pr(self, pr_url: str) -> bool:
+        """Başarısız bir healing PR'ını kapat."""
+        if not self._gh or not pr_url:
+            return False
+        try:
+            # PR numarasını URL'den çıkar
+            pr_number = int(pr_url.rstrip("/").split("/")[-1])
+            self._gh.close_pull_request(pr_number)
+            logger.info("[healing] PR kapatıldı (rollback): %s", pr_url)
+            return True
+        except Exception as exc:
+            logger.warning("[healing] PR kapatılamadı: %s", exc)
+            return False
+
     # ── Internal ──────────────────────────────────────────────────────────
+
+    def _notify_healing_result(self, run: HealingRun, event: FailureEvent) -> None:
+        """Healing sonucunu yapılandırılmış kanallarla bildir."""
+        try:
+            from app.config import settings
+            from app.services.notification_delivery import send_slack_notification, send_teams_notification
+            from app.services.email_service import send_email, EmailMessageData
+
+            is_success = run.status in ("pr_opened", "done")
+            color = "#36a64f" if is_success else "#ff0000"
+            title = (
+                f"✅ Self-Healing PR Açıldı: {event.test_id}"
+                if is_success
+                else f"❌ Self-Healing Başarısız: {event.test_id}"
+            )
+            message_lines = [
+                f"**Test:** {event.test_id}",
+                f"**Durum:** {run.status}",
+            ]
+            if run.pr_url:
+                message_lines.append(f"**PR:** {run.pr_url}")
+            if run.error:
+                message_lines.append(f"**Hata:** {run.error}")
+            message = "\n".join(message_lines)
+
+            if settings.slack_webhook_url:
+                send_slack_notification(
+                    webhook_url=settings.slack_webhook_url,
+                    title=title,
+                    message=message,
+                    color=color,
+                )
+
+            if settings.teams_webhook_url:
+                send_teams_notification(
+                    webhook_url=settings.teams_webhook_url,
+                    title=title,
+                    message=message,
+                )
+
+            logger.info("[healing] sonuç bildirimi gönderildi: %s", run.status)
+        except Exception as exc:
+            logger.warning("[healing] sonuç bildirimi gönderilemedi: %s", exc)
 
     @staticmethod
     def _flag_enabled(tenant_id: Optional[str]) -> bool:

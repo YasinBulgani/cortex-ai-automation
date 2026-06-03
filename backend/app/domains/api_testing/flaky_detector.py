@@ -24,7 +24,7 @@ import logging
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional
 
-from sqlalchemy import case, cast, Date, func
+from sqlalchemy import case, cast, Date, func, select
 from sqlalchemy.orm import Session
 
 from app.domains.api_testing.models import ApiExecutionDetail, ApiTestCase
@@ -50,14 +50,12 @@ def detect_flaky_tests(
     cutoff = datetime.now(timezone.utc) - timedelta(days=window_days)
 
     # 1. Fetch test cases with enough runs
-    test_cases = (
-        db.query(ApiTestCase)
-        .filter(
+    test_cases = db.execute(
+        select(ApiTestCase).where(
             ApiTestCase.project_id == project_id,
             ApiTestCase.run_count >= min_runs,
         )
-        .all()
-    )
+    ).scalars().all()
 
     results: List[Dict[str, Any]] = []
 
@@ -76,15 +74,12 @@ def detect_flaky_tests(
         flaky_score = 1.0 - abs(pass_rate - 0.5) * 2.0
 
         # 2. Check alternation in recent executions
-        recent_executions = (
-            db.query(ApiExecutionDetail.passed)
-            .filter(
+        recent_executions = db.execute(
+            select(ApiExecutionDetail.passed).where(
                 ApiExecutionDetail.test_case_id == tc.id,
                 ApiExecutionDetail.executed_at >= cutoff,
-            )
-            .order_by(ApiExecutionDetail.executed_at.asc())
-            .all()
-        )
+            ).order_by(ApiExecutionDetail.executed_at.asc())
+        ).all()
 
         alternation_count = 0
         if len(recent_executions) > 1:
@@ -103,13 +98,11 @@ def detect_flaky_tests(
         flaky_score = max(0.0, min(1.0, flaky_score))
 
         # 3. Average duration
-        avg_duration_row = (
-            db.query(func.avg(ApiExecutionDetail.total_ms))
-            .filter(
+        avg_duration_row = db.scalar(
+            select(func.avg(ApiExecutionDetail.total_ms)).where(
                 ApiExecutionDetail.test_case_id == tc.id,
                 ApiExecutionDetail.executed_at >= cutoff,
             )
-            .scalar()
         )
         avg_duration_ms = round(float(avg_duration_row or 0.0), 2)
 
@@ -155,42 +148,39 @@ def get_flaky_trends(
     cutoff = datetime.now(timezone.utc) - timedelta(days=days)
 
     # Total test count per day (tests that had executions)
-    daily_rows = (
-        db.query(
+    daily_rows = db.execute(
+        select(
             cast(ApiExecutionDetail.executed_at, Date).label("day"),
             func.count(ApiExecutionDetail.test_case_id.distinct()).label("total_tests"),
         )
         .join(ApiTestCase, ApiExecutionDetail.test_case_id == ApiTestCase.id, isouter=True)
-        .filter(
+        .where(
             ApiTestCase.project_id == project_id,
             ApiExecutionDetail.executed_at >= cutoff,
         )
         .group_by(cast(ApiExecutionDetail.executed_at, Date))
         .order_by(cast(ApiExecutionDetail.executed_at, Date))
-        .all()
-    )
+    ).all()
 
     # Pre-calculate current quarantined count (quarantine state is point-in-time)
-    quarantined_count = (
-        db.query(func.count(ApiTestCase.id))
-        .filter(
+    quarantined_count = db.scalar(
+        select(func.count(ApiTestCase.id)).where(
             ApiTestCase.project_id == project_id,
             ApiTestCase.quarantined == True,  # noqa: E712
         )
-        .scalar()
     ) or 0
 
     # For each day, determine how many distinct tests had mixed results that day
     # A test is "flaky on day X" if it had both pass and fail executions that day
-    flaky_per_day_rows = (
-        db.query(
+    flaky_per_day_rows = db.execute(
+        select(
             cast(ApiExecutionDetail.executed_at, Date).label("day"),
             ApiExecutionDetail.test_case_id,
             func.sum(case((ApiExecutionDetail.passed == True, 1), else_=0)).label("pass_cnt"),   # noqa: E712
             func.sum(case((ApiExecutionDetail.passed == False, 1), else_=0)).label("fail_cnt"),  # noqa: E712
         )
         .join(ApiTestCase, ApiExecutionDetail.test_case_id == ApiTestCase.id, isouter=True)
-        .filter(
+        .where(
             ApiTestCase.project_id == project_id,
             ApiExecutionDetail.executed_at >= cutoff,
         )
@@ -198,8 +188,7 @@ def get_flaky_trends(
             cast(ApiExecutionDetail.executed_at, Date),
             ApiExecutionDetail.test_case_id,
         )
-        .all()
-    )
+    ).all()
 
     # Build a day -> flaky_count mapping
     flaky_by_day: Dict[str, int] = {}
@@ -237,7 +226,7 @@ def quarantine_test(
 
     Returns the updated test case summary dict.
     """
-    tc = db.query(ApiTestCase).filter(ApiTestCase.id == test_case_id).first()
+    tc = db.execute(select(ApiTestCase).where(ApiTestCase.id == test_case_id)).scalars().first()
     if tc is None:
         raise ValueError(f"Test case not found: {test_case_id}")
 
@@ -265,7 +254,7 @@ def unquarantine_test(
     """
     Remove quarantine flag from a test case.
     """
-    tc = db.query(ApiTestCase).filter(ApiTestCase.id == test_case_id).first()
+    tc = db.execute(select(ApiTestCase).where(ApiTestCase.id == test_case_id)).scalars().first()
     if tc is None:
         raise ValueError(f"Test case not found: {test_case_id}")
 
@@ -293,15 +282,12 @@ def get_quarantine_list(
     """
     Return all quarantined tests for a project.
     """
-    quarantined = (
-        db.query(ApiTestCase)
-        .filter(
+    quarantined = db.execute(
+        select(ApiTestCase).where(
             ApiTestCase.project_id == project_id,
             ApiTestCase.quarantined == True,  # noqa: E712
-        )
-        .order_by(ApiTestCase.updated_at.desc())
-        .all()
-    )
+        ).order_by(ApiTestCase.updated_at.desc())
+    ).scalars().all()
 
     results: List[Dict[str, Any]] = []
     for tc in quarantined:

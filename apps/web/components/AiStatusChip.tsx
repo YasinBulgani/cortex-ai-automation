@@ -52,23 +52,18 @@ export function AiStatusChip() {
     return () => { cancelled = true; clearInterval(t); };
   }, []);
 
-  if (loading) {
-    return (
-      <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface-overlay px-2 py-0.5 text-[10px] text-fg-subtle">
-        <span className="h-1.5 w-1.5 rounded-full bg-fg-subtle animate-pulse" />
-        AI ...
-      </span>
-    );
-  }
+  if (loading) return null;
 
   const active = health ? Object.entries(health.providers).filter(([, v]) => v).map(([k]) => k) : [];
   const activeCount = active.length;
   const totalCount = health ? Object.keys(health.providers).length : 0;
 
   const tone =
-    !health        ? "danger" :
-    activeCount === 0 ? "danger" :
-    activeCount < 2 ? "warning" : "success";
+    !health           ? "danger"  :
+    activeCount === 0 ? "danger"  :
+    activeCount < 2   ? "warning" : "success";
+
+  if (tone === "success") return null;
 
   const toneClasses = {
     success: "border-success/30 bg-success-subtle text-success",

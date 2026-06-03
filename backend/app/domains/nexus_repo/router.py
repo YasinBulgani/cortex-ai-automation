@@ -5,6 +5,7 @@ from __future__ import annotations
 import threading
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.config import settings
@@ -147,10 +148,12 @@ def get_crawl_job(
     _: None = Depends(_require_feature),
 ):
     from .models import NexusCrawlJob
-    job = db.query(NexusCrawlJob).filter(
-        NexusCrawlJob.id == job_id,
-        NexusCrawlJob.project_id == project_id,
-    ).first()
+    job = db.execute(
+        select(NexusCrawlJob).where(
+            NexusCrawlJob.id == job_id,
+            NexusCrawlJob.project_id == project_id,
+        )
+    ).scalars().first()
     if not job:
         raise HTTPException(status_code=404, detail="CrawlJob bulunamadı")
     return job
@@ -221,9 +224,11 @@ def list_endpoints(
     _: None = Depends(_require_feature),
 ):
     from .models import NexusCrawlJob
-    job = db.query(NexusCrawlJob).filter(
-        NexusCrawlJob.id == job_id, NexusCrawlJob.project_id == project_id
-    ).first()
+    job = db.execute(
+        select(NexusCrawlJob).where(
+            NexusCrawlJob.id == job_id, NexusCrawlJob.project_id == project_id
+        )
+    ).scalars().first()
     if not job:
         raise HTTPException(status_code=404, detail="CrawlJob bulunamadı")
     return service.list_endpoints(db, job_id)
@@ -238,9 +243,11 @@ def list_files(
     _: None = Depends(_require_feature),
 ):
     from .models import NexusCrawlJob
-    job = db.query(NexusCrawlJob).filter(
-        NexusCrawlJob.id == job_id, NexusCrawlJob.project_id == project_id
-    ).first()
+    job = db.execute(
+        select(NexusCrawlJob).where(
+            NexusCrawlJob.id == job_id, NexusCrawlJob.project_id == project_id
+        )
+    ).scalars().first()
     if not job:
         raise HTTPException(status_code=404, detail="CrawlJob bulunamadı")
     return service.list_files(db, job_id, with_summary=with_summary)
@@ -317,12 +324,11 @@ def list_exports(
     _: None = Depends(_require_feature),
 ):
     from .models import NexusExport
-    return (
-        db.query(NexusExport)
-        .filter(NexusExport.project_id == project_id)
+    return db.execute(
+        select(NexusExport)
+        .where(NexusExport.project_id == project_id)
         .order_by(NexusExport.created_at.desc())
-        .all()
-    )
+    ).scalars().all()
 
 
 @router.get("/projects/{project_id}/exports/{export_id}/download")
@@ -336,10 +342,12 @@ def download_export(
     from fastapi.responses import FileResponse
     from .models import NexusExport
 
-    export = db.query(NexusExport).filter(
-        NexusExport.id == export_id,
-        NexusExport.project_id == project_id,
-    ).first()
+    export = db.execute(
+        select(NexusExport).where(
+            NexusExport.id == export_id,
+            NexusExport.project_id == project_id,
+        )
+    ).scalars().first()
     if not export:
         raise HTTPException(status_code=404, detail="Export bulunamadı")
     if export.status != "done" or not export.file_path:

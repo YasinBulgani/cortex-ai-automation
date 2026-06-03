@@ -183,4 +183,19 @@ async def rate_limit_error_handler(request: Request, exc: Exception) -> JSONResp
     )
 
 
+def register_exception_handlers(app: FastAPI) -> None:
+    """Tüm exception handler'ları FastAPI uygulamasına kaydet.
+
+    ``create_app()`` içinde çağrılmalıdır.
+    """
+    from fastapi.exceptions import RequestValidationError
+    from app.core.exceptions import RateLimitError
+
+    app.add_exception_handler(HTTPException, http_exception_handler)
+    app.add_exception_handler(RequestValidationError, validation_exception_handler)
+    app.add_exception_handler(RateLimitError, rate_limit_error_handler)
+    app.add_exception_handler(ValueError, value_error_handler)
+    app.add_exception_handler(KeyError, key_error_handler)
+    app.add_exception_handler(PermissionError, permission_error_handler)
+    app.add_exception_handler(RuntimeError, runtime_error_handler)
     app.add_exception_handler(Exception, unhandled_exception_handler)

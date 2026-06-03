@@ -15,69 +15,82 @@ from app.config import settings
 
 logger = logging.getLogger(__name__)
 
-# ── Cached LLM Clients (Singleton) ──────────────────────────────────────
-# Her cagri için yeni client olusturmak TCP + TLS overhead yaratir.
-# Thread-safe: OpenAI/Anthropic client'lari dahili olarak thread-safe.
+# ── Open-source LLM via httpx ──────────────────────────────────────────
+# Ollama, vLLM, Groq, LM Studio — sıfır tescilli SDK bağımlılığı.
+# OpenAI-uyumlu /chat/completions endpoint'i kullanan her yerel/bulut
+# açık kaynak sağlayıcıyla doğrudan HTTP üzerinden çalışır.
 import threading
 
-_client_lock = threading.Lock()
-_openai_client = None
-_anthropic_client = None
-_ollama_client = None
+
+def _call_compat(
+    base_url: str,
+    api_key: str,
+    model: str,
+    messages: list[dict],
+    *,
+    json_mode: bool = False,
+    temperature: float = 0.3,
+    max_tokens: int = 4096,
+) -> str:
+    """OpenAI-uyumlu /chat/completions httpx ile çağır.
+    Ollama, vLLM, Groq ve LM Studio ile çalışır — tescilli SDK gerekmez.
+    """
+    import httpx as _httpx
+    headers = {
+        "Authorization": f"Bearer {api_key or 'no-key'}",
+        "Content-Type": "application/json",
+    }
+    body: dict[str, Any] = {
+        "model": model,
+        "messages": messages,
+        "temperature": temperature,
+        "max_tokens": max_tokens,
+    }
+    if json_mode:
+        body["response_format"] = {"type": "json_object"}
+    resp = _httpx.post(
+        f"{base_url.rstrip('/')}/chat/completions",
+        json=body, headers=headers, timeout=180.0,
+    )
+    resp.raise_for_status()
+    return resp.json()["choices"][0]["message"]["content"] or ""
 
 
-def _get_openai_client():
-    global _openai_client
-    if _openai_client is None:
-        with _client_lock:
-            if _openai_client is None:
-                from openai import OpenAI
-                _openai_client = OpenAI(
-                    api_key=settings.openai_api_key,
-                    base_url=settings.openai_base_url,
-                )
-    return _openai_client
-
-
-def _get_anthropic_client():
-    global _anthropic_client
-    if _anthropic_client is None:
-        with _client_lock:
-            if _anthropic_client is None:
-                from anthropic import Anthropic
-                _anthropic_client = Anthropic(api_key=settings.anthropic_api_key)
-    return _anthropic_client
-
-
-def _get_ollama_client():
-    global _ollama_client
-    if _ollama_client is None:
-        with _client_lock:
-            if _ollama_client is None:
-                from openai import OpenAI
-                _ollama_client = OpenAI(
-                    api_key="ollama",
-                    base_url=settings.ollama_base_url,
-                )
-    return _ollama_client
-
-
-# ── Async LLM Clients (Singleton) ──────────────────────────────────────
+# ── Async LLM via httpx ────────────────────────────────────────────────
 import asyncio
 
-# asyncio.Lock() oluşturma Python 3.10+ öncesinde çalışan event loop gerektirir.
-# Lazy init ile 3.9 uyumluluğu sağlanır; ilk async çağrıda lock oluşturulur.
-_async_lock: asyncio.Lock | None = None
-_async_openai_client = None
-_async_anthropic_client = None
-_async_ollama_client = None
 
-
-def _get_async_lock() -> asyncio.Lock:
-    global _async_lock
-    if _async_lock is None:
-        _async_lock = asyncio.Lock()
-    return _async_lock
+async def _async_call_compat(
+    base_url: str,
+    api_key: str,
+    model: str,
+    messages: list[dict],
+    *,
+    json_mode: bool = False,
+    temperature: float = 0.3,
+    max_tokens: int = 4096,
+) -> str:
+    """Async OpenAI-uyumlu /chat/completions httpx ile çağır."""
+    import httpx as _httpx
+    headers = {
+        "Authorization": f"Bearer {api_key or 'no-key'}",
+        "Content-Type": "application/json",
+    }
+    body: dict[str, Any] = {
+        "model": model,
+        "messages": messages,
+        "temperature": temperature,
+        "max_tokens": max_tokens,
+    }
+    if json_mode:
+        body["response_format"] = {"type": "json_object"}
+    async with _httpx.AsyncClient(timeout=180.0) as client:
+        resp = await client.post(
+            f"{base_url.rstrip('/')}/chat/completions",
+            json=body, headers=headers,
+        )
+        resp.raise_for_status()
+        return resp.json()["choices"][0]["message"]["content"] or ""
 
 
 def _is_local_llm_url(value: str) -> bool:
@@ -114,70 +127,9 @@ def _assert_llm_provider_allowed(provider: str) -> None:
     )
 
 
-async def _get_async_openai_client():
-    global _async_openai_client
-    if _async_openai_client is None:
-        async with _get_async_lock():
-            if _async_openai_client is None:
-                from openai import AsyncOpenAI
-                _async_openai_client = AsyncOpenAI(
-                    api_key=settings.openai_api_key,
-                    base_url=settings.openai_base_url,
-                )
-    return _async_openai_client
-
-
-async def _get_async_anthropic_client():
-    global _async_anthropic_client
-    if _async_anthropic_client is None:
-        async with _get_async_lock():
-            if _async_anthropic_client is None:
-                from anthropic import AsyncAnthropic
-                _async_anthropic_client = AsyncAnthropic(api_key=settings.anthropic_api_key)
-    return _async_anthropic_client
-
-
-async def _get_async_ollama_client():
-    global _async_ollama_client
-    if _async_ollama_client is None:
-        async with _get_async_lock():
-            if _async_ollama_client is None:
-                from openai import AsyncOpenAI
-                _async_ollama_client = AsyncOpenAI(
-                    api_key="ollama",
-                    base_url=settings.ollama_base_url,
-                )
-    return _async_ollama_client
-
-
 async def shutdown_async_clients() -> None:
-    """Close cached async LLM clients during app shutdown."""
-    global _async_openai_client, _async_anthropic_client, _async_ollama_client
-
-    async with _get_async_lock():
-        clients = [
-            ("openai", _async_openai_client),
-            ("anthropic", _async_anthropic_client),
-            ("ollama", _async_ollama_client),
-        ]
-
-        for client_name, client in clients:
-            if client is None:
-                continue
-
-            try:
-                close_method = getattr(client, "close", None) or getattr(client, "aclose", None)
-                if close_method is not None:
-                    result = close_method()
-                    if inspect.isawaitable(result):
-                        await result
-                logger.info("Async %s client kapatildi.", client_name)
-            except Exception:
-                logger.debug("Async %s client kapatilamadi.", client_name, exc_info=True)
-
-        _async_openai_client = None
-        _async_anthropic_client = None
-        _async_ollama_client = None
+    """HTTP client shutdown — httpx client'lar context-managed; ek kapatma gerekmez."""
+    pass
 
 
 def _allow_provider_fallback() -> bool:
@@ -185,35 +137,32 @@ def _allow_provider_fallback() -> bool:
 
 
 def _resolve_effective_provider() -> str:
+    """Aktif LLM sağlayıcısını belirle.
+
+    Desteklenen açık kaynak sağlayıcılar: ollama | groq | gateway
+    Eski tescilli sağlayıcılar (openai, anthropic) Ollama'ya yönlendirilir.
+    """
     provider = settings.ai_provider
-    if provider == "anthropic":
-        if settings.anthropic_api_key:
-            return "anthropic"
-        if _allow_provider_fallback() and settings.openai_api_key:
-            logger.warning("AI provider fallback: anthropic secili ama ANTHROPIC_API_KEY yok; openai kullaniliyor")
-            return "openai"
+    if provider in ("ollama", "gateway"):
+        return provider
+    if provider == "groq":
+        groq_key = getattr(settings, "groq_api_key", "")
+        if groq_key:
+            return "groq"
+        if _allow_provider_fallback():
+            logger.warning("GROQ_API_KEY yok; Ollama'ya fallback yapılıyor")
+            return "ollama"
         raise RuntimeError(
-            "AI provider 'anthropic' secili ama ANTHROPIC_API_KEY ayarlanmamis. "
-            "Fallback icin ALLOW_PROVIDER_FALLBACK=true tanimlayin veya provider/config'i duzeltin."
+            "AI_PROVIDER=groq seçili ama GROQ_API_KEY ayarlanmamış. "
+            ".env'e GROQ_API_KEY ekleyin veya AI_PROVIDER=ollama yapın."
         )
-
-    if provider == "openai":
-        if settings.openai_api_key:
-            return "openai"
-        if _allow_provider_fallback() and settings.anthropic_api_key:
-            logger.warning("AI provider fallback: openai secili ama OPENAI_API_KEY yok; anthropic kullaniliyor")
-            return "anthropic"
-        raise RuntimeError(
-            "AI provider 'openai' secili ama OPENAI_API_KEY ayarlanmamis. "
-            "Fallback icin ALLOW_PROVIDER_FALLBACK=true tanimlayin veya provider/config'i duzeltin."
+    if provider in ("openai", "anthropic"):
+        logger.warning(
+            "AI_PROVIDER='%s' tescilli API gerektirir — Ollama'ya yönlendiriliyor. "
+            "Açık kaynak için AI_PROVIDER=ollama veya AI_PROVIDER=groq kullanın.",
+            provider,
         )
-
-    if provider == "ollama":
         return "ollama"
-
-    if provider == "gateway":
-        return "gateway"
-
     raise RuntimeError(f"Desteklenmeyen AI provider: {provider}")
 
 
@@ -383,7 +332,7 @@ _OLLAMA_CTX: dict[str, int] = {
 }
 
 SYSTEM_PROMPT_CHAT = """\
-Sen TestwrightAI (Test Intelligence Platform) için bir AI asistansın. Türkçe yanıt ver.
+Sen Neurex (Test Intelligence Platform) için bir AI asistansın. Türkçe yanıt ver.
 
 ## Görevin
 Test mühendislerine PROJEYE ÖZGÜ yardım sağlamak:
@@ -458,76 +407,8 @@ Gerçekçi Türkçe veriler kullan. Sınır değerler ve edge case'leri dahil et
 """
 
 
-@_with_retry
-def _call_openai(
-    system: str,
-    user_content: str,
-    *,
-    json_mode: bool = False,
-    history: list[dict] | None = None,
-    temperature: float | None = None,
-    model: str | None = None,
-    max_tokens: int | None = None,
-) -> str:
-    if not settings.openai_api_key:
-        raise ValueError("OPENAI_API_KEY ayarlanmamis.")
-
-    client = _get_openai_client()
-    messages: list[dict[str, str]] = [{"role": "system", "content": system}]
-
-    if history:
-        messages.extend(history)
-
-    messages.append({"role": "user", "content": user_content})
-
-    kwargs: dict[str, Any] = {
-        "model": model or settings.openai_model,
-        "messages": messages,
-        "temperature": temperature if temperature is not None else 0.3,
-    }
-    if max_tokens:
-        kwargs["max_tokens"] = max_tokens
-    if json_mode:
-        kwargs["response_format"] = {"type": "json_object"}
-
-    response = client.chat.completions.create(**kwargs)
-    return response.choices[0].message.content or ""
-
-
-@_with_retry
-def _call_anthropic(
-    system: str,
-    user_content: str,
-    *,
-    json_mode: bool = False,
-    history: list[dict] | None = None,
-    temperature: float | None = None,
-    model: str | None = None,
-    max_tokens: int | None = None,
-) -> str:
-    if not settings.anthropic_api_key:
-        raise ValueError("ANTHROPIC_API_KEY ayarlanmamis.")
-
-    client = _get_anthropic_client()
-    messages: list[dict[str, str]] = []
-
-    if history:
-        messages.extend(history)
-
-    prompt = user_content
-    if json_mode:
-        prompt += "\n\nMUTLAKA gecerli JSON formatinda yanıt ver, baska bir sey yazma."
-
-    messages.append({"role": "user", "content": prompt})
-
-    response = client.messages.create(
-        model=model or settings.anthropic_model,
-        max_tokens=max_tokens or 4096,
-        system=system,
-        messages=messages,
-        temperature=temperature if temperature is not None else 0.3,
-    )
-    return response.content[0].text
+def _ollama_resolve_model(model: str | None) -> str:
+    return model or getattr(settings, "ollama_model_chat", None) or getattr(settings, "ollama_model_analyst", "llama3.1:8b")
 
 
 @_with_retry
@@ -541,104 +422,53 @@ def _call_ollama(
     model: str | None = None,
     max_tokens: int | None = None,
 ) -> str:
-    client = _get_ollama_client()
+    """Ollama yerel LLM — httpx ile OpenAI-uyumlu endpoint."""
     messages: list[dict[str, str]] = [{"role": "system", "content": system}]
-
     if history:
         messages.extend(history)
-
     messages.append({"role": "user", "content": user_content})
+    return _call_compat(
+        settings.ollama_base_url,
+        getattr(settings, "ollama_api_key", "ollama"),
+        _ollama_resolve_model(model),
+        messages,
+        json_mode=json_mode,
+        temperature=temperature if temperature is not None else 0.3,
+        max_tokens=min(max_tokens or 1024, 4096),
+    )
 
-    resolved_model = model or getattr(settings, "ollama_model_chat", None) or getattr(settings, "ollama_model_analyst", "llama3.1:8b")
-    num_predict = min(max_tokens or 1024, 4096)
-    num_ctx = _OLLAMA_CTX.get(resolved_model, 4096)
 
-    kwargs: dict[str, Any] = {
-        "model": resolved_model,
-        "messages": messages,
-        "temperature": temperature if temperature is not None else 0.3,
-        "extra_body": {"num_ctx": num_ctx, "num_predict": num_predict},
-    }
-    if json_mode:
-        kwargs["extra_body"]["format"] = "json"
-
-    response = client.chat.completions.create(**kwargs)
-    return response.choices[0].message.content or ""
+@_with_retry
+def _call_groq(
+    system: str,
+    user_content: str,
+    *,
+    json_mode: bool = False,
+    history: list[dict] | None = None,
+    temperature: float | None = None,
+    model: str | None = None,
+    max_tokens: int | None = None,
+) -> str:
+    """Groq API — açık ağırlıklı modeller (Llama-3, Mistral) ücretsiz tier."""
+    groq_key = getattr(settings, "groq_api_key", "")
+    if not groq_key:
+        raise ValueError("GROQ_API_KEY ayarlanmamış.")
+    messages: list[dict[str, str]] = [{"role": "system", "content": system}]
+    if history:
+        messages.extend(history)
+    messages.append({"role": "user", "content": user_content})
+    return _call_compat(
+        getattr(settings, "groq_base_url", "https://api.groq.com/openai/v1"),
+        groq_key,
+        model or getattr(settings, "groq_model", "llama3-70b-8192"),
+        messages,
+        json_mode=json_mode,
+        temperature=temperature if temperature is not None else 0.3,
+        max_tokens=max_tokens or 4096,
+    )
 
 
 # ── Async Provider Calls ────────────────────────────────────────────────────
-
-@_with_async_retry
-async def _async_call_openai(
-    system: str,
-    user_content: str,
-    *,
-    json_mode: bool = False,
-    history: list[dict] | None = None,
-    temperature: float | None = None,
-    model: str | None = None,
-    max_tokens: int | None = None,
-) -> str:
-    if not settings.openai_api_key:
-        raise ValueError("OPENAI_API_KEY ayarlanmamis.")
-
-    client = await _get_async_openai_client()
-    messages: list[dict[str, str]] = [{"role": "system", "content": system}]
-
-    if history:
-        messages.extend(history)
-
-    messages.append({"role": "user", "content": user_content})
-
-    kwargs: dict[str, Any] = {
-        "model": model or settings.openai_model,
-        "messages": messages,
-        "temperature": temperature if temperature is not None else 0.3,
-    }
-    if max_tokens:
-        kwargs["max_tokens"] = max_tokens
-    if json_mode:
-        kwargs["response_format"] = {"type": "json_object"}
-
-    response = await client.chat.completions.create(**kwargs)
-    return response.choices[0].message.content or ""
-
-
-@_with_async_retry
-async def _async_call_anthropic(
-    system: str,
-    user_content: str,
-    *,
-    json_mode: bool = False,
-    history: list[dict] | None = None,
-    temperature: float | None = None,
-    model: str | None = None,
-    max_tokens: int | None = None,
-) -> str:
-    if not settings.anthropic_api_key:
-        raise ValueError("ANTHROPIC_API_KEY ayarlanmamis.")
-
-    client = await _get_async_anthropic_client()
-    messages: list[dict[str, str]] = []
-
-    if history:
-        messages.extend(history)
-
-    prompt = user_content
-    if json_mode:
-        prompt += "\n\nMUTLAKA gecerli JSON formatinda yanıt ver, baska bir sey yazma."
-
-    messages.append({"role": "user", "content": prompt})
-
-    response = await client.messages.create(
-        model=model or settings.anthropic_model,
-        max_tokens=max_tokens or 4096,
-        system=system,
-        messages=messages,
-        temperature=temperature if temperature is not None else 0.3,
-    )
-    return response.content[0].text
-
 
 @_with_async_retry
 async def _async_call_ollama(
@@ -651,29 +481,50 @@ async def _async_call_ollama(
     model: str | None = None,
     max_tokens: int | None = None,
 ) -> str:
-    client = await _get_async_ollama_client()
+    """Async Ollama — httpx ile OpenAI-uyumlu endpoint."""
     messages: list[dict[str, str]] = [{"role": "system", "content": system}]
-
     if history:
         messages.extend(history)
-
     messages.append({"role": "user", "content": user_content})
+    return await _async_call_compat(
+        settings.ollama_base_url,
+        getattr(settings, "ollama_api_key", "ollama"),
+        _ollama_resolve_model(model),
+        messages,
+        json_mode=json_mode,
+        temperature=temperature if temperature is not None else 0.3,
+        max_tokens=min(max_tokens or 1024, 4096),
+    )
 
-    resolved_model = model or getattr(settings, "ollama_model_chat", None) or getattr(settings, "ollama_model_analyst", "llama3.1:8b")
-    num_predict = min(max_tokens or 1024, 4096)
-    num_ctx = _OLLAMA_CTX.get(resolved_model, 4096)
 
-    kwargs: dict[str, Any] = {
-        "model": resolved_model,
-        "messages": messages,
-        "temperature": temperature if temperature is not None else 0.3,
-        "extra_body": {"num_ctx": num_ctx, "num_predict": num_predict},
-    }
-    if json_mode:
-        kwargs["extra_body"]["format"] = "json"
-
-    response = await client.chat.completions.create(**kwargs)
-    return response.choices[0].message.content or ""
+@_with_async_retry
+async def _async_call_groq(
+    system: str,
+    user_content: str,
+    *,
+    json_mode: bool = False,
+    history: list[dict] | None = None,
+    temperature: float | None = None,
+    model: str | None = None,
+    max_tokens: int | None = None,
+) -> str:
+    """Async Groq — açık ağırlıklı modeller ücretsiz tier."""
+    groq_key = getattr(settings, "groq_api_key", "")
+    if not groq_key:
+        raise ValueError("GROQ_API_KEY ayarlanmamış.")
+    messages: list[dict[str, str]] = [{"role": "system", "content": system}]
+    if history:
+        messages.extend(history)
+    messages.append({"role": "user", "content": user_content})
+    return await _async_call_compat(
+        getattr(settings, "groq_base_url", "https://api.groq.com/openai/v1"),
+        groq_key,
+        model or getattr(settings, "groq_model", "llama3-70b-8192"),
+        messages,
+        json_mode=json_mode,
+        temperature=temperature if temperature is not None else 0.3,
+        max_tokens=max_tokens or 4096,
+    )
 
 
 def call_llm(
@@ -729,12 +580,10 @@ def call_llm(
                 json_mode=json_mode or None,
                 model_override=model,
             )
-        elif provider == "ollama":
+        elif provider == "groq":
+            result = _call_groq(system, user_content, **kw)
+        else:  # ollama (default + openai/anthropic yönlendirmesi)
             result = _call_ollama(system, user_content, **kw)
-        elif provider == "anthropic":
-            result = _call_anthropic(system, user_content, **kw)
-        else:
-            result = _call_openai(system, user_content, **kw)
         return result
     except Exception as exc:
         success = False
@@ -839,12 +688,10 @@ async def async_call_llm(
                     model_override=model,
                 ),
             )
-        elif provider == "ollama":
+        elif provider == "groq":
+            result = await _async_call_groq(system, user_content, **kw)
+        else:  # ollama (default + openai/anthropic yönlendirmesi)
             result = await _async_call_ollama(system, user_content, **kw)
-        elif provider == "anthropic":
-            result = await _async_call_anthropic(system, user_content, **kw)
-        else:
-            result = await _async_call_openai(system, user_content, **kw)
         return result
     except Exception as exc:
         success = False
@@ -1091,22 +938,19 @@ def chat_completion_stream(
 
     if provider == "gateway":
         yield from _stream_gateway(messages=messages, task_type="chat")
-    elif provider == "anthropic":
-        yield from _stream_anthropic(system, messages, history)
-    elif provider == "ollama":
-        yield from _stream_openai_compatible(
-            client=_get_ollama_client(),
-            model=getattr(settings, "ollama_model_chat", None)
-            or getattr(settings, "ollama_model_analyst", "llama3.1:8b"),
-            messages=messages,
+    elif provider == "groq":
+        yield from _stream_compat(
+            getattr(settings, "groq_base_url", "https://api.groq.com/openai/v1"),
+            getattr(settings, "groq_api_key", ""),
+            getattr(settings, "groq_model", "llama3-70b-8192"),
+            messages,
         )
-    else:
-        if not settings.openai_api_key:
-            raise ValueError("OPENAI_API_KEY ayarlanmamis.")
-        yield from _stream_openai_compatible(
-            client=_get_openai_client(),
-            model=settings.openai_model,
-            messages=messages,
+    else:  # ollama (default)
+        yield from _stream_compat(
+            settings.ollama_base_url,
+            getattr(settings, "ollama_api_key", "ollama"),
+            _ollama_resolve_model(None),
+            messages,
         )
 
 
@@ -1155,61 +999,52 @@ def _stream_gateway(
         raise RuntimeError(f"Gateway streaming bağlantı hatası: {exc}") from exc
 
 
-def _stream_openai_compatible(
-    client,
+def _stream_compat(
+    base_url: str,
+    api_key: str,
     model: str,
-    messages: list[dict[str, str]],
+    messages: list[dict],
     *,
     temperature: float | None = None,
     max_tokens: int | None = None,
 ):
-    """OpenAI-uyumlu API'den streaming token'ları yield eder."""
+    """OpenAI-uyumlu streaming — httpx SSE ile token yield eder.
+    Ollama, vLLM, Groq ve diğer OpenAI-compat endpoint'lerle çalışır.
+    """
+    import httpx as _httpx
+    import json as _json
+    headers = {
+        "Authorization": f"Bearer {api_key or 'no-key'}",
+        "Content-Type": "application/json",
+    }
+    body = {
+        "model": model,
+        "messages": messages,
+        "temperature": 0.3 if temperature is None else temperature,
+        "max_tokens": 2048 if max_tokens is None else max_tokens,
+        "stream": True,
+    }
     try:
-        stream = client.chat.completions.create(
-            model=model,
-            messages=messages,
-            temperature=0.3 if temperature is None else temperature,
-            max_tokens=2048 if max_tokens is None else max_tokens,
-            stream=True,
-        )
-        for chunk in stream:
-            if chunk.choices and chunk.choices[0].delta.content:
-                yield chunk.choices[0].delta.content
+        with _httpx.stream(
+            "POST", f"{base_url.rstrip('/')}/chat/completions",
+            json=body, headers=headers, timeout=90.0,
+        ) as resp:
+            resp.raise_for_status()
+            for line in resp.iter_lines():
+                if not line.startswith("data:"):
+                    continue
+                raw = line[5:].strip()
+                if raw == "[DONE]":
+                    return
+                try:
+                    data = _json.loads(raw)
+                    content = (data.get("choices") or [{}])[0].get("delta", {}).get("content", "")
+                    if content:
+                        yield content
+                except Exception:
+                    continue
     except Exception as e:
         logger.error("Streaming LLM hatası (%s): %s", model, e)
-        raise
-
-
-def _stream_anthropic(
-    system: str,
-    messages: list[dict[str, str]],
-    history: list[dict] | None = None,
-    *,
-    temperature: float | None = None,
-    max_tokens: int | None = None,
-):
-    """Anthropic SDK streaming — text delta'ları yield eder."""
-    if not settings.anthropic_api_key:
-        raise ValueError("ANTHROPIC_API_KEY ayarlanmamis.")
-
-    client = _get_anthropic_client()
-
-    # Anthropic expects system as a separate param, not in messages
-    # Filter out the system message from messages list
-    api_messages = [m for m in messages if m.get("role") != "system"]
-
-    try:
-        with client.messages.stream(
-            model=settings.anthropic_model,
-            max_tokens=2048 if max_tokens is None else max_tokens,
-            system=system,
-            messages=api_messages,
-            temperature=0.3 if temperature is None else temperature,
-        ) as stream:
-            for text in stream.text_stream:
-                yield text
-    except Exception as e:
-        logger.error("Streaming Anthropic hatası: %s", e)
         raise
 
 
@@ -1349,60 +1184,69 @@ async def async_chat_completion_stream(
     if provider == "gateway":
         async for token in _async_stream_gateway(messages=messages, task_type="chat"):
             yield token
-    elif provider == "anthropic" and settings.anthropic_api_key:
-        async for token in _async_stream_anthropic(system, messages):
+    elif provider == "groq":
+        async for token in _async_stream_compat(
+            getattr(settings, "groq_base_url", "https://api.groq.com/openai/v1"),
+            getattr(settings, "groq_api_key", ""),
+            getattr(settings, "groq_model", "llama3-70b-8192"),
+            messages,
+        ):
             yield token
-    elif provider == "ollama":
-        client = await _get_async_ollama_client()
-        model = getattr(settings, "ollama_model_chat", None) or getattr(settings, "ollama_model_analyst", "llama3.1:8b")
-        async for token in _async_stream_openai_compatible(client, model, messages):
-            yield token
-    else:
-        client = await _get_async_openai_client()
-        async for token in _async_stream_openai_compatible(client, settings.openai_model, messages):
+    else:  # ollama (default)
+        async for token in _async_stream_compat(
+            settings.ollama_base_url,
+            getattr(settings, "ollama_api_key", "ollama"),
+            _ollama_resolve_model(None),
+            messages,
+        ):
             yield token
 
 
-async def _async_stream_openai_compatible(
-    client,
+async def _async_stream_compat(
+    base_url: str,
+    api_key: str,
     model: str,
     messages: list[dict],
     *,
     temperature: float | None = None,
     max_tokens: int | None = None,
 ):
-    """Async OpenAI-uyumlu streaming."""
-    stream = await client.chat.completions.create(
-        model=model,
-        messages=messages,
-        temperature=0.3 if temperature is None else temperature,
-        max_tokens=2048 if max_tokens is None else max_tokens,
-        stream=True,
-    )
-    async for chunk in stream:
-        if chunk.choices and chunk.choices[0].delta.content:
-            yield chunk.choices[0].delta.content
-
-
-async def _async_stream_anthropic(
-    system: str,
-    messages: list[dict],
-    *,
-    temperature: float | None = None,
-    max_tokens: int | None = None,
-):
-    """Async Anthropic streaming."""
-    client = await _get_async_anthropic_client()
-    api_messages = [m for m in messages if m.get("role") != "system"]
-    async with client.messages.stream(
-        model=settings.anthropic_model,
-        max_tokens=2048 if max_tokens is None else max_tokens,
-        system=system,
-        messages=api_messages,
-        temperature=0.3 if temperature is None else temperature,
-    ) as stream:
-        async for text in stream.text_stream:
-            yield text
+    """Async OpenAI-uyumlu streaming — httpx SSE ile token yield eder."""
+    import json as _json
+    headers = {
+        "Authorization": f"Bearer {api_key or 'no-key'}",
+        "Content-Type": "application/json",
+    }
+    body = {
+        "model": model,
+        "messages": messages,
+        "temperature": 0.3 if temperature is None else temperature,
+        "max_tokens": 2048 if max_tokens is None else max_tokens,
+        "stream": True,
+    }
+    client = _get_async_http_client()
+    try:
+        async with client.stream(
+            "POST", f"{base_url.rstrip('/')}/chat/completions",
+            json=body, headers=headers,
+        ) as resp:
+            resp.raise_for_status()
+            async for line in resp.aiter_lines():
+                if not line.startswith("data:"):
+                    continue
+                raw = line[5:].strip()
+                if raw == "[DONE]":
+                    return
+                try:
+                    data = _json.loads(raw)
+                    content = (data.get("choices") or [{}])[0].get("delta", {}).get("content", "")
+                    if content:
+                        yield content
+                except Exception:
+                    continue
+    except Exception as e:
+        logger.error("Async streaming LLM hatası (%s): %s", model, e)
+        raise
 
 
 async def async_analyze_test_results(
@@ -1587,27 +1431,22 @@ async def async_stream_llm(
             model_override=model,
         ):
             yield token
-    elif provider == "anthropic" and settings.anthropic_api_key:
-        async for token in _async_stream_anthropic(
-            system, messages,
+    elif provider == "groq":
+        async for token in _async_stream_compat(
+            getattr(settings, "groq_base_url", "https://api.groq.com/openai/v1"),
+            getattr(settings, "groq_api_key", ""),
+            model or getattr(settings, "groq_model", "llama3-70b-8192"),
+            messages,
             temperature=temperature,
             max_tokens=max_tokens,
         ):
             yield token
-    elif provider == "ollama":
-        client = await _get_async_ollama_client()
-        resolved_model = model or getattr(settings, "ollama_model_chat", None) or "llama3.1:8b"
-        async for token in _async_stream_openai_compatible(
-            client, resolved_model, messages,
-            temperature=temperature,
-            max_tokens=max_tokens,
-        ):
-            yield token
-    else:
-        client = await _get_async_openai_client()
-        resolved_model = model or settings.openai_model
-        async for token in _async_stream_openai_compatible(
-            client, resolved_model, messages,
+    else:  # ollama (default)
+        async for token in _async_stream_compat(
+            settings.ollama_base_url,
+            getattr(settings, "ollama_api_key", "ollama"),
+            model or _ollama_resolve_model(None),
+            messages,
             temperature=temperature,
             max_tokens=max_tokens,
         ):

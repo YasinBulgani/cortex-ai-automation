@@ -20,10 +20,16 @@ _INSECURE_PLACEHOLDERS = {
     "dev-only-do-not-use",
 }
 
+_DANGEROUS_JWT_DEFAULTS = {"secret", "changeme", "password", "admin", "test", "neurex-dev"}
+
 
 def _is_prod() -> bool:
     env = (os.environ.get("APP_ENV") or os.environ.get("ENVIRONMENT") or "").lower()
     return env in {"prod", "production"}
+
+
+def _is_prod_or_staging() -> bool:
+    return settings.is_production_like
 
 
 def check_redis_available() -> bool:
@@ -55,6 +61,28 @@ def assert_production_invariants() -> None:
     # JWT secret zayif kontrolu
     if any(p.lower() in (settings.jwt_secret or "").lower() for p in _INSECURE_PLACEHOLDERS):
         problems.append("JWT_SECRET hala default/insecure deger — degistirin.")
+
+    # JWT secret uzunluk kontrolu
+    if len(settings.jwt_secret) < 64:
+        problems.append(
+            "JWT_SECRET en az 64 karakter olmali (openssl rand -base64 64)"
+        )
+
+    # CORS wildcard kontrolu
+    if "*" in (settings.cors_origins or ""):
+        problems.append("CORS_ORIGINS wildcard (*) production'da kullanilamaz")
+
+    # Debug mode production/staging'de kapali olmali
+    if settings.debug:
+        problems.append("DEBUG=True production ortaminda kullanilamaz")
+
+    # Tehlikeli default JWT_SECRET degerleri
+    if any(d in (settings.jwt_secret or "").lower() for d in _DANGEROUS_JWT_DEFAULTS):
+        problems.append("JWT_SECRET guvenli olmayan default deger iceriyor — degistirin.")
+
+    # Encryption keys production/staging'de zorunlu
+    if not settings.secrets_encryption_keys:
+        problems.append("SECRETS_ENCRYPTION_KEYS production'da zorunludur")
 
     # Artifact storage uyarisi (local backend prod'da multi-instance kirar)
     if settings.artifact_storage_backend == "local":

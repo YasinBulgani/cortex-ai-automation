@@ -1,327 +1,226 @@
 "use client";
 
-import { useState } from "react";
 import {
-  useCreateReleaseSignoff,
   useExecutionSummary,
-  useManagementDefects,
-  useManagementRepository,
-  useManagementRuns,
   useReleaseReport,
-  useReleaseSignoffs,
-  useRequirementTraceability,
+  useManagementRuns,
+  useManagementDefects,
+  type TestRun,
+  type ReleaseChecklistItem,
 } from "@/lib/hooks/use-management";
+import { useManagementProjectId } from "@/lib/hooks/use-management-project-id";
+import { useRouteParam } from "@/lib/use-route-param";
 
-import { ManagementPanel, ManagementShell, ManagementStat } from "../_components/ManagementShell";
+const RUN_STATUS_DOT: Record<string, string> = {
+  in_progress: "bg-blue-500 animate-pulse",
+  completed:   "bg-emerald-500",
+  failed:      "bg-red-500",
+  not_started: "bg-slate-600",
+};
 
-type Decision = "GO" | "NO-GO" | "Conditional GO" | "Watch";
-type CheckStatus = "pass" | "warn" | "fail";
-
-const CLOSED_DEFECT_STATUSES = new Set(["closed", "done", "resolved", "fixed", "verified"]);
-const STALE_CASE_DAYS = 14;
-const MAX_DEFECT_AGE_DAYS = 7;
-
-function daysSince(value?: string | null) {
-  if (!value) return null;
-  const time = new Date(value).getTime();
-  if (Number.isNaN(time)) return null;
-  return Math.max(0, Math.floor((Date.now() - time) / 86_400_000));
-}
-
-function readiness(
-  progress: number,
-  passRate: number,
-  blocked: number,
-  failed: number,
-  coverage: number,
-  staleRequirements: number,
-  openDefects: number,
-): Decision {
-  if (failed > 0 || blocked > 0 || openDefects > 0) return "NO-GO";
-  if (staleRequirements > 0 || coverage < 90) return "Conditional GO";
-  if (progress >= 95 && passRate >= 95 && coverage >= 95) return "GO";
-  return "Watch";
-}
-
-function decisionTone(decision: Decision) {
-  if (decision === "GO") return "border-emerald-500/30 bg-emerald-500/10 text-emerald-100";
-  if (decision === "Conditional GO") return "border-amber-500/30 bg-amber-500/10 text-amber-100";
-  if (decision === "NO-GO") return "border-rose-500/30 bg-rose-500/10 text-rose-100";
-  return "border-sky-500/30 bg-sky-500/10 text-sky-100";
-}
-
-function checkTone(status: CheckStatus) {
-  if (status === "pass") return "bg-emerald-500/15 text-emerald-200 ring-emerald-400/30";
-  if (status === "warn") return "bg-amber-500/15 text-amber-200 ring-amber-400/30";
-  return "bg-rose-500/15 text-rose-200 ring-rose-400/30";
-}
-
-function percent(value: number) {
-  return `${value.toFixed(0)}%`;
-}
-
-function SignoffPanel({
-  projectId,
-  decision,
-}: {
-  projectId: string;
-  decision: Decision;
-}) {
-  const signoffs = useReleaseSignoffs(projectId);
-  const createSignoff = useCreateReleaseSignoff(projectId);
-  const [releaseName, setReleaseName] = useState("");
-  const [comment, setComment] = useState("");
-  const latest = signoffs.data?.[0];
-
-  const submit = async (event: React.FormEvent) => {
-    event.preventDefault();
-    await createSignoff.mutateAsync({
-      release_name: releaseName || null,
-      decision,
-      status: "signed",
-      comment: comment || null,
-    });
-    setReleaseName("");
-    setComment("");
-  };
-
+function KpiCard({ label, value, sub }: { label: string; value: string | number; sub?: string }) {
   return (
-    <ManagementPanel title="Release Signoff">
-      <div className="grid gap-4 lg:grid-cols-[1fr_1fr]">
-        <form onSubmit={submit} className="space-y-3">
-          <div className="rounded-lg border border-slate-800 bg-slate-950 p-3">
-            <p className="text-xs uppercase text-slate-500">Snapshot decision</p>
-            <p className="mt-1 text-2xl font-semibold text-white">{decision}</p>
-          </div>
-          <input
-            value={releaseName}
-            onChange={(event) => setReleaseName(event.target.value)}
-            placeholder="Release adı / build versiyonu"
-            className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white placeholder-slate-500 focus:border-teal-500/50 focus:outline-none"
-          />
-          <textarea
-            value={comment}
-            onChange={(event) => setComment(event.target.value)}
-            placeholder="Onay notu, risk kabulü veya aksiyon şartları"
-            className="min-h-24 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white placeholder-slate-500 focus:border-teal-500/50 focus:outline-none"
-          />
-          <button
-            type="submit"
-            disabled={createSignoff.isPending}
-            className="rounded-lg bg-teal-600 px-4 py-2 text-sm font-semibold text-white hover:bg-teal-500 disabled:opacity-40"
-          >
-            {createSignoff.isPending ? "İmzalanıyor..." : "Kararı Snapshot Olarak İmzala"}
-          </button>
-        </form>
-
-        <div className="space-y-3">
-          <div className="rounded-lg border border-slate-800 bg-slate-950 p-3">
-            <p className="text-xs uppercase text-slate-500">Son imza</p>
-            {signoffs.isLoading ? (
-              <p className="mt-2 text-sm text-slate-400">Yükleniyor...</p>
-            ) : latest ? (
-              <div className="mt-2">
-                <p className="text-sm font-semibold text-white">{latest.decision} · {latest.release_name || "Release adı yok"}</p>
-                <p className="mt-1 text-xs text-slate-500">{new Date(latest.signed_at).toLocaleString("tr-TR")}</p>
-                {latest.comment && <p className="mt-2 text-sm text-slate-400">{latest.comment}</p>}
-              </div>
-            ) : (
-              <p className="mt-2 text-sm text-slate-400">Henüz release signoff yok.</p>
-            )}
-          </div>
-          <div className="rounded-lg border border-slate-800 bg-slate-950 p-3">
-            <p className="text-xs uppercase text-slate-500">Signoff geçmişi</p>
-            <p className="mt-1 text-2xl font-semibold text-white">{signoffs.data?.length ?? 0}</p>
-            <p className="mt-1 text-xs text-slate-500">Her imza kendi report snapshotını saklar.</p>
-          </div>
-        </div>
-      </div>
-    </ManagementPanel>
+    <div className="rounded-xl border border-white/[0.06] bg-[#0d1221] p-4">
+      <p className="text-[10px] font-medium uppercase tracking-wider text-slate-600">{label}</p>
+      <p className="mt-1.5 text-2xl font-semibold text-slate-100">{value}</p>
+      {sub && <p className="mt-0.5 text-[11px] text-slate-500">{sub}</p>}
+    </div>
   );
 }
 
-export default function ManagementReportsPage({ params }: { params: { projectId: string } }) {
-  const summary = useExecutionSummary(params.projectId);
-  const traceability = useRequirementTraceability(params.projectId);
-  const defects = useManagementDefects(params.projectId);
-  const runs = useManagementRuns(params.projectId);
-  const repository = useManagementRepository(params.projectId);
-  const releaseReport = useReleaseReport(params.projectId);
-
-  const requirements = traceability.data ?? [];
-  const covered = requirements.filter((row) => row.covered).length;
-  const staleRequirements = requirements.filter((row) => row.stale).length;
-  const uncoveredRequirements = requirements.length - covered;
-  const coveragePct = requirements.length ? Math.round((covered / requirements.length) * 100) : 0;
-  const staleCoveragePct = requirements.length ? Math.round((staleRequirements / requirements.length) * 100) : 0;
-  const progress = summary.data?.progress_pct ?? 0;
-  const passRate = summary.data?.pass_rate_pct ?? 0;
-  const openDefects = (defects.data ?? []).filter((defect) => !CLOSED_DEFECT_STATUSES.has(defect.status.toLowerCase())).length;
-  const defectAges = (defects.data ?? [])
-    .filter((defect) => !CLOSED_DEFECT_STATUSES.has(defect.status.toLowerCase()))
-    .map((defect) => daysSince(defect.created_at))
-    .filter((age): age is number => age !== null);
-  const oldestOpenDefectDays = defectAges.length ? Math.max(...defectAges) : 0;
-  const avgOpenDefectDays = defectAges.length
-    ? Math.round(defectAges.reduce((total, age) => total + age, 0) / defectAges.length)
-    : 0;
-  const activeRuns = (runs.data ?? []).filter((run) => ["running", "not_run"].includes(run.status)).length;
-  const repositoryCases = repository.data?.cases ?? [];
-  const staleCases = repositoryCases.filter((testCase) => {
-    const age = daysSince(testCase.last_run_at);
-    return age === null || age > STALE_CASE_DAYS;
-  }).length;
-  const staleCasePct = repositoryCases.length ? Math.round((staleCases / repositoryCases.length) * 100) : 0;
-  const loading = summary.isLoading || traceability.isLoading || defects.isLoading || runs.isLoading || repository.isLoading || releaseReport.isLoading;
-  const status = readiness(
-    progress,
-    passRate,
-    summary.data?.blocked ?? 0,
-    summary.data?.failed ?? 0,
-    coveragePct,
-    staleRequirements,
-    openDefects,
-  );
-  const blockers = [
-    ...(summary.data?.failed
-      ? [{ label: "Failed run cases", value: summary.data.failed, detail: "Must be triaged before release signoff." }]
-      : []),
-    ...(summary.data?.blocked
-      ? [{ label: "Blocked run cases", value: summary.data.blocked, detail: "Execution is waiting on environment, data, or product fixes." }]
-      : []),
-    ...(openDefects
-      ? [{ label: "Open defect links", value: openDefects, detail: `Oldest open defect is ${oldestOpenDefectDays} day(s) old.` }]
-      : []),
-    ...(uncoveredRequirements
-      ? [{ label: "Uncovered requirements", value: uncoveredRequirements, detail: "Traceability has release scope without linked coverage." }]
-      : []),
-    ...(staleRequirements
-      ? [{ label: "Stale requirement links", value: staleRequirements, detail: "Requirement source changed after linked test coverage." }]
-      : []),
-  ];
-  const checklist: Array<{ label: string; metric: string; status: CheckStatus }> = [
-    { label: "Execution progress", metric: `${percent(progress)} / target 95%`, status: progress >= 95 ? "pass" : progress >= 80 ? "warn" : "fail" },
-    { label: "Pass rate", metric: `${percent(passRate)} / target 95%`, status: passRate >= 95 ? "pass" : passRate >= 85 ? "warn" : "fail" },
-    { label: "Failed cases", metric: `${summary.data?.failed ?? 0} open`, status: (summary.data?.failed ?? 0) === 0 ? "pass" : "fail" },
-    { label: "Blocked cases", metric: `${summary.data?.blocked ?? 0} blocked`, status: (summary.data?.blocked ?? 0) === 0 ? "pass" : "fail" },
-    { label: "Requirement coverage", metric: `${coveragePct}% covered`, status: coveragePct >= 95 ? "pass" : coveragePct >= 80 ? "warn" : "fail" },
-    { label: "Requirement freshness", metric: `${staleRequirements} stale`, status: staleRequirements === 0 ? "pass" : "warn" },
-    { label: "Defect aging", metric: `${oldestOpenDefectDays}d oldest / target ${MAX_DEFECT_AGE_DAYS}d`, status: openDefects === 0 ? "pass" : oldestOpenDefectDays <= MAX_DEFECT_AGE_DAYS ? "warn" : "fail" },
-    { label: "Active runs", metric: `${activeRuns} in flight`, status: activeRuns === 0 ? "pass" : "warn" },
-  ];
-  const reportDecision = (releaseReport.data?.decision ?? status) as Decision;
-  const reportBlockers = releaseReport.data?.blockers ?? blockers;
-  const reportChecklist = releaseReport.data?.checklist ?? checklist;
-  const readyChecks = reportChecklist.filter((item) => item.status === "pass").length;
+function ChecklistRow({ item }: { item: ReleaseChecklistItem }) {
+  const dot =
+    item.status === "pass"  ? "bg-emerald-500" :
+    item.status === "warn"  ? "bg-amber-500"   :
+    item.status === "fail"  ? "bg-red-500"      : "bg-slate-600";
+  const bar =
+    item.status === "pass" ? "bg-emerald-500" :
+    item.status === "warn" ? "bg-amber-500"   : "bg-red-500";
+  const pct =
+    item.status === "pass" ? 100 :
+    item.status === "warn" ? 60  : 25;
 
   return (
-    <ManagementShell
-      projectId={params.projectId}
-      title="Management Reports"
-      description="Execution summary, coverage matrix, tester workload ve release GO/NO-GO raporları."
-      active="management/reports"
-    >
-      <div className="grid gap-4 md:grid-cols-4">
-        <ManagementStat label="Progress" value={summary.isLoading ? "..." : percent(progress)} note="terminal / total" />
-        <ManagementStat label="Pass Rate" value={summary.isLoading ? "..." : percent(passRate)} note="passed / executed" />
-        <ManagementStat label="Coverage" value={traceability.isLoading ? "..." : `${coveragePct}%`} note="covered / total linked" />
-        <ManagementStat label="Readiness" value={loading ? "..." : reportDecision} note={`${readyChecks}/${reportChecklist.length} checklist passed`} />
+    <div className="flex items-center gap-3 rounded-lg border border-white/[0.04] bg-white/[0.02] px-4 py-3">
+      <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${dot}`} />
+      <span className="flex-1 text-[13px] text-slate-300">{item.label}</span>
+      <div className="flex items-center gap-2 w-40">
+        <div className="h-1 flex-1 rounded-full bg-white/[0.06] overflow-hidden">
+          <div className={`h-full rounded-full ${bar}`} style={{ width: `${pct}%` }} />
+        </div>
+        <span className="text-[11px] text-slate-500 w-12 text-right truncate">{item.metric}</span>
+      </div>
+    </div>
+  );
+}
+
+export default function ManagementReportsPage() {
+  const projectId = useRouteParam("projectId");
+  const mpid = useManagementProjectId(projectId || undefined);
+
+  const { data: summary, isLoading: sumLoading, isError: sumError }   = useExecutionSummary(mpid || undefined);
+  const { data: release, isLoading: relLoading, isError: relError }   = useReleaseReport(mpid || undefined);
+  const { data: runs, isLoading: runsLoading, isError: runsError }    = useManagementRuns(mpid || undefined);
+  const { data: defects }                                              = useManagementDefects(mpid || undefined);
+
+  const totalCases  = summary?.total ?? 0;
+  const passRate    = summary?.pass_rate_pct ?? 0;
+  const openDefects = (defects ?? []).filter(d => !["closed","resolved","fixed","done"].includes(d.status.toLowerCase())).length;
+  const activeRuns  = (runs ?? []).filter(r => r.status === "in_progress").length;
+
+  const passed  = summary?.passed  ?? 0;
+  const failed  = summary?.failed  ?? 0;
+  const blocked = summary?.blocked ?? 0;
+  const notRun  = summary?.not_run ?? 0;
+  const execTotal = passed + failed + blocked + notRun;
+
+  const checklist: ReleaseChecklistItem[] = release?.checklist ?? [];
+  const passedChecks = checklist.filter(c => c.status === "pass").length;
+  const recentRuns   = (runs ?? []).slice(0, 8);
+
+  return (
+    <div className="min-h-[calc(100vh-88px)] bg-[#0a0f1e] text-slate-200">
+      {/* Header */}
+      <div className="border-b border-white/[0.06] bg-[#0d1221] px-6 py-4">
+        <h1 className="text-[13px] font-semibold text-slate-200">Raporlar</h1>
       </div>
 
-      <section className={`mt-4 rounded-lg border p-5 ${decisionTone(reportDecision)}`}>
-        <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-wide opacity-70">Go / No-Go Decision</p>
-            <h2 className="mt-2 text-4xl font-bold tracking-tight">{loading ? "..." : reportDecision}</h2>
-            <p className="mt-2 max-w-3xl text-sm opacity-80">
-              Release gate is calculated from execution progress, pass rate, failed/blocked work, open defects, requirement coverage, and stale traceability.
-            </p>
-          </div>
-          <div className="grid min-w-64 grid-cols-2 gap-3 text-sm">
-            <div className="rounded-lg bg-slate-950/40 p-3">
-              <p className="text-xs uppercase text-slate-400">Failed</p>
-              <p className="mt-1 text-2xl font-semibold text-white">{summary.data?.failed ?? 0}</p>
-            </div>
-            <div className="rounded-lg bg-slate-950/40 p-3">
-              <p className="text-xs uppercase text-slate-400">Blocked</p>
-              <p className="mt-1 text-2xl font-semibold text-white">{summary.data?.blocked ?? 0}</p>
-            </div>
-            <div className="rounded-lg bg-slate-950/40 p-3">
-              <p className="text-xs uppercase text-slate-400">Open Defects</p>
-              <p className="mt-1 text-2xl font-semibold text-white">{releaseReport.data?.open_defect_count ?? openDefects}</p>
-            </div>
-            <div className="rounded-lg bg-slate-950/40 p-3">
-              <p className="text-xs uppercase text-slate-400">Stale Req.</p>
-              <p className="mt-1 text-2xl font-semibold text-white">{releaseReport.data?.stale_requirement_count ?? staleRequirements}</p>
-            </div>
-          </div>
+      <div className="p-6 space-y-6">
+        {/* KPI cards */}
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <KpiCard label="Toplam Case"  value={sumLoading ? "…" : totalCases}   sub="repository" />
+          <KpiCard label="Pass Rate"    value={sumLoading ? "…" : `${passRate.toFixed(1)}%`} sub="executed" />
+          <KpiCard label="Açık Defect"  value={openDefects}                     sub="open defects" />
+          <KpiCard label="Aktif Run"    value={runsLoading ? "…" : activeRuns}  sub="in progress" />
         </div>
-      </section>
 
-      <div className="mt-4 grid gap-4 xl:grid-cols-2">
-        <ManagementPanel title="Critical Blockers">
-          {reportBlockers.length ? (
+        {/* Execution Summary */}
+        <div className="rounded-xl border border-white/[0.06] bg-[#0d1221] p-5">
+          <h2 className="mb-4 text-[11px] font-medium uppercase tracking-wider text-slate-500">Execution Summary</h2>
+          {sumLoading ? (
             <div className="space-y-3">
-              {reportBlockers.map((blocker) => (
-                <div key={blocker.label} className="rounded-lg border border-slate-800 bg-slate-950/50 p-4">
-                  <div className="flex items-center justify-between gap-3">
-                    <p className="font-medium text-white">{blocker.label}</p>
-                    <span className="rounded-full bg-rose-500/15 px-3 py-1 text-sm font-semibold text-rose-200 ring-1 ring-rose-400/30">
-                      {blocker.value}
-                    </span>
-                  </div>
-                  <p className="mt-2 text-sm text-slate-400">{blocker.detail}</p>
-                </div>
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="h-20 w-full animate-pulse rounded-xl bg-white/[0.04]" />
               ))}
             </div>
+          ) : sumError ? (
+            <div className="flex items-center justify-center py-16">
+              <p className="text-sm text-red-400/80">Veri yüklenemedi — lütfen sayfayı yenileyin</p>
+            </div>
+          ) : execTotal === 0 ? (
+            <p className="text-[13px] text-slate-600">Henüz execution verisi yok.</p>
           ) : (
-            <p className="rounded-lg border border-emerald-500/20 bg-emerald-500/10 p-4 text-sm text-emerald-200">
-              No critical blockers detected from the current execution, defect, and traceability data.
-            </p>
-          )}
-        </ManagementPanel>
-
-        <ManagementPanel title="Release Readiness Checklist">
-          <div className="space-y-3">
-            {reportChecklist.map((item) => (
-              <div key={item.label} className="flex items-center justify-between gap-3 rounded-lg border border-slate-800 bg-slate-950/50 p-3">
-                <div>
-                  <p className="text-sm font-medium text-white">{item.label}</p>
-                  <p className="mt-1 text-xs text-slate-400">{item.metric}</p>
-                </div>
-                <span className={`rounded-full px-3 py-1 text-xs font-semibold uppercase ring-1 ${checkTone(item.status as CheckStatus)}`}>
-                  {item.status}
-                </span>
+            <>
+              <div className="flex h-3 overflow-hidden rounded-full gap-px">
+                {[
+                  { n: passed,  c: "bg-emerald-500" },
+                  { n: failed,  c: "bg-red-500"     },
+                  { n: blocked, c: "bg-amber-500"   },
+                  { n: notRun,  c: "bg-white/[0.08]"},
+                ].map(({ n, c }, i) => n > 0 ? (
+                  <div key={i} className={`${c} h-full`} style={{ width: `${(n / execTotal) * 100}%` }} />
+                ) : null)}
               </div>
-            ))}
-          </div>
-        </ManagementPanel>
-      </div>
-
-      <div className="mt-4">
-        <SignoffPanel projectId={params.projectId} decision={reportDecision} />
-      </div>
-
-      <div className="mt-4 grid gap-4 md:grid-cols-3">
-        <ManagementStat label="Stale Requirements" value={traceability.isLoading ? "..." : String(staleRequirements)} note={`${staleCoveragePct}% of linked requirements`} />
-        <ManagementStat label="Uncovered Requirements" value={traceability.isLoading ? "..." : String(uncoveredRequirements)} note={`${covered}/${requirements.length} covered`} />
-        <ManagementStat label="Stale Repository Cases" value={repository.isLoading ? "..." : String(staleCases)} note={`${staleCasePct}% not run in ${STALE_CASE_DAYS}d`} />
-      </div>
-
-      <div className="mt-4 grid gap-4 md:grid-cols-3">
-        <ManagementStat label="Defect Aging" value={defects.isLoading ? "..." : `${oldestOpenDefectDays}d`} note={`oldest open, avg ${avgOpenDefectDays}d`} />
-        <ManagementStat label="Failed Count" value={summary.isLoading ? "..." : String(summary.data?.failed ?? 0)} note="execution summary" />
-        <ManagementStat label="Runs In Flight" value={runs.isLoading ? "..." : String(activeRuns)} note={`${runs.data?.length ?? 0} total runs`} />
-      </div>
-
-      <ManagementPanel title="Report Formulas">
-        <div className="grid gap-3 text-sm text-slate-300 md:grid-cols-2">
-          <p>Progress = terminal run cases / total assigned run cases.</p>
-          <p>Pass Rate = passed / passed+failed+blocked+skipped.</p>
-          <p>Coverage = covered linked requirements / total linked requirements; stale = source updated after coverage.</p>
-          <p>GO/NO-GO = failed, blocked, open defects, stale requirements, coverage, progress ve pass rate eşikleri.</p>
+              <div className="mt-3 flex flex-wrap gap-4">
+                {[
+                  { label: "Passed",  count: passed,  dot: "bg-emerald-500" },
+                  { label: "Failed",  count: failed,  dot: "bg-red-500"     },
+                  { label: "Blocked", count: blocked, dot: "bg-amber-500"   },
+                  { label: "Not Run", count: notRun,  dot: "bg-slate-600"   },
+                ].map(({ label, count, dot }) => (
+                  <div key={label} className="flex items-center gap-1.5">
+                    <span className={`h-1.5 w-1.5 rounded-full ${dot}`} />
+                    <span className="text-[13px] font-medium text-slate-200">{count}</span>
+                    <span className="text-[11px] text-slate-500">{label}</span>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
         </div>
-      </ManagementPanel>
-    </ManagementShell>
+
+        {/* Release Readiness */}
+        <div className="rounded-xl border border-white/[0.06] bg-[#0d1221] p-5">
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="text-[11px] font-medium uppercase tracking-wider text-slate-500">Release Readiness</h2>
+            {!relLoading && checklist.length > 0 && (
+              <span className="text-[11px] text-slate-500">{passedChecks}/{checklist.length} geçti</span>
+            )}
+          </div>
+          {relLoading ? (
+            <div className="space-y-3">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="h-20 w-full animate-pulse rounded-xl bg-white/[0.04]" />
+              ))}
+            </div>
+          ) : relError ? (
+            <div className="flex items-center justify-center py-16">
+              <p className="text-sm text-red-400/80">Veri yüklenemedi — lütfen sayfayı yenileyin</p>
+            </div>
+          ) : checklist.length === 0 ? (
+            <p className="text-[13px] text-slate-600">Checklist verisi yok.</p>
+          ) : (
+            <div className="space-y-2">
+              {checklist.map((item, i) => <ChecklistRow key={i} item={item} />)}
+            </div>
+          )}
+        </div>
+
+        {/* Recent Runs */}
+        <div className="rounded-xl border border-white/[0.06] bg-[#0d1221] overflow-hidden">
+          <div className="border-b border-white/[0.06] px-5 py-3">
+            <h2 className="text-[11px] font-medium uppercase tracking-wider text-slate-500">Son Runlar</h2>
+          </div>
+          {runsLoading ? (
+            <div className="space-y-3 p-6">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="h-20 w-full animate-pulse rounded-xl bg-white/[0.04]" />
+              ))}
+            </div>
+          ) : runsError ? (
+            <div className="flex items-center justify-center py-16">
+              <p className="text-sm text-red-400/80">Veri yüklenemedi — lütfen sayfayı yenileyin</p>
+            </div>
+          ) : recentRuns.length === 0 ? (
+            <p className="px-5 py-6 text-[13px] text-slate-600">Henüz run yok.</p>
+          ) : (
+            <table className="w-full border-collapse">
+              <thead>
+                <tr className="border-b border-white/[0.04]">
+                  {["", "Run Adı", "Durum", "Tarih"].map(h => (
+                    <th key={h} className="px-4 py-2 text-left text-[10px] font-medium uppercase tracking-wider text-slate-600">{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {recentRuns.map((run: TestRun) => {
+                  const dot = RUN_STATUS_DOT[run.status] ?? "bg-slate-600";
+                  return (
+                    <tr key={run.id} className="border-b border-white/[0.04] hover:bg-white/[0.04] transition-colors">
+                      <td className="w-6 pl-4 py-3">
+                        <span className={`inline-block h-1.5 w-1.5 rounded-full ${dot}`} />
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className="text-[13px] text-slate-200">{run.name}</span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className="text-[11px] text-slate-400">{run.status}</span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className="text-[11px] text-slate-500">
+                          {run.started_at
+                            ? new Date(run.started_at).toLocaleDateString("tr-TR", { day: "2-digit", month: "short", year: "numeric" })
+                            : "—"}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          )}
+        </div>
+      </div>
+    </div>
   );
 }

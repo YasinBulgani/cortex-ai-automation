@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { apiFetch } from "@/lib/api-client";
 
 interface StandupData {
   health_score: number;
@@ -73,13 +74,12 @@ export default function StandupPage({ params }: { params: { projectId: string } 
 
   const fetchData = useCallback(async () => {
     try {
-      const [releaseRes, summaryRes] = await Promise.all([
-        fetch(`/api/v1/test-management/projects/${projectId}/intelligence/release-prediction`, { credentials: "include" }),
-        fetch(`/api/v1/test-management/projects/${projectId}/reports/execution-summary`, { credentials: "include" }),
+      type ReleasePrediction = { will_meet_gate?: boolean; blocking_factors?: string[] };
+      type ExecutionSummary = { not_run?: number; total?: number; passed?: number; failed?: number; blocked?: number; skipped?: number; pass_rate_pct?: number };
+      const [release, summary] = await Promise.all([
+        apiFetch<ReleasePrediction>(`/api/v1/test-management/projects/${projectId}/intelligence/release-prediction`).catch(() => null),
+        apiFetch<ExecutionSummary>(`/api/v1/test-management/projects/${projectId}/reports/execution-summary`).catch(() => null),
       ]);
-
-      const release = releaseRes.ok ? await releaseRes.json() : null;
-      const summary = summaryRes.ok ? await summaryRes.json() : null;
 
       if (release || summary) {
         setData({
@@ -88,7 +88,7 @@ export default function StandupPage({ params }: { params: { projectId: string } 
           eta_hours: null,
           remaining_cases: summary ? (summary.not_run ?? 0) : 0,
           total_cases: summary ? (summary.total ?? 0) : 0,
-          completed_cases: summary ? (summary.passed + summary.failed + summary.blocked + summary.skipped) : 0,
+          completed_cases: summary ? ((summary.passed ?? 0) + (summary.failed ?? 0) + (summary.blocked ?? 0) + (summary.skipped ?? 0)) : 0,
           pass_rate: summary ? (summary.pass_rate_pct ?? 0) : 0,
           blocked: summary?.blocked ?? 0,
           failed: summary?.failed ?? 0,

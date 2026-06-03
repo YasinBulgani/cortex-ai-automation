@@ -1,4 +1,4 @@
-"""Security configuration constants for TestwrightAI Banking Platform.
+"""Security configuration constants for Neurex Banking Platform.
 
 Complies with: KVKK, BDDK, PCI-DSS security requirements.
 """
@@ -12,6 +12,9 @@ SECURITY_HEADERS = {
     "X-XSS-Protection": "1; mode=block",
     "Referrer-Policy": "strict-origin-when-cross-origin",
     "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
+    "Content-Security-Policy": (
+        "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'"
+    ),
 }
 
 # Applied only when connection is over HTTPS
@@ -19,7 +22,7 @@ HSTS_HEADER = "max-age=31536000; includeSubDomains"
 
 # Applied to API responses (non-HTML)
 API_CACHE_CONTROL = "no-store, no-cache, must-revalidate"
-API_CSP = "default-src 'self'"
+API_CSP = "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'"
 
 # ---------------------------------------------------------------------------
 # Content & Size Limits

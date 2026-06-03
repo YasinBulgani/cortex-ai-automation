@@ -135,7 +135,7 @@ def _approx_tokens(text: str) -> int:
 _INTENT_KEYWORDS: dict[str, set[str]] = {
     "failure": {"bug", "debug", "error", "fail", "failure", "flaky", "hata", "neden", "root", "sorun"},
     "coverage": {"coverage", "eksik", "gap", "kapsam", "oran", "requirement"},
-    "automation": {"automation", "bdd", "cucumber", "gherkin", "java", "locator", "nexusqa", "playwright", "selector"},
+    "automation": {"automation", "bdd", "cucumber", "gherkin", "java", "locator", "neurex", "playwright", "selector"},
     "data": {"csv", "data", "dataset", "schema", "sql", "test data", "veri"},
     "scenario": {"senaryo", "scenario", "test case", "testcase", "test"},
 }

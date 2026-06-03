@@ -1,30 +1,36 @@
-"""OpenAPI / Swagger UI configuration for TestwrightAI Platform."""
+"""OpenAPI / Swagger UI configuration for Neurex Platform."""
 from __future__ import annotations
 
 # ── API Metadata ────────────────────────────────────────────────────────
 
-API_TITLE = "TestwrightAI Platform API"
-API_VERSION = "2.0.0"
-API_DESCRIPTION = (
-    "TestwrightAI — AI-powered test automation platform "
-    "for banking and fintech applications.\n\n"
-    "## Features\n"
-    "- **Test Process Management (TSPM)**: Projects, scenarios, executions, requirements\n"
-    "- **AI Intelligence**: LLM-powered test generation, analysis, and streaming\n"
-    "- **Playwright MCP**: Browser automation with live DOM healing\n"
-    "- **CoverUp**: Code coverage analysis and AI test generation\n"
-    "- **Locator Intelligence**: Self-healing selectors with 6-strategy fallback\n"
-    "- **API Testing**: Postman-compatible collection runner\n"
-    "- **Banking Compliance**: KVKK, BDDK, PCI-DSS aware testing\n\n"
-    "## Authentication\n"
-    "All endpoints (except /health, /ready) require a Bearer JWT token.\n"
-    "Obtain a token via `POST /api/v1/auth/login`.\n\n"
-    "## Rate Limiting\n"
-    "Default: 60 requests/minute per user. AI endpoints: 20/minute."
-)
+API_TITLE = "Neurex Platform API"
+API_VERSION = "2.1.0"
+API_DESCRIPTION = """
+**Neurex Platform API** — AI destekli test otomasyon platformu.
+
+## Ana Modüller
+- **Auth**: JWT kimlik doğrulama, TOTP MFA, SSO (Google/Azure)
+- **TSPM**: Test plan, test case, test run, defect yönetimi
+- **AI**: LLM entegrasyonu, test üretimi, kalite analizi
+- **Engine**: Test otomasyon motoru (Playwright, Appium)
+- **API Testing**: OpenAPI spec parse, güvenlik taraması
+
+## Ek Özellikler
+- **CoverUp**: Kod kapsam analizi ve AI test üretimi
+- **Synthetic Data**: KVKK uyumlu sentetik veri üretimi
+- **CI/CD**: GitHub, GitLab, Jenkins webhook entegrasyonları
+- **Audit Trail**: KVKK ve BDDK odaklı denetim izi kayıtları
+
+## Kimlik Doğrulama
+Bearer token (JWT) veya Cookie-based session kullanılır.
+Token almak için `POST /api/v1/auth/login` endpoint'ini kullanın.
+
+## Rate Limiting
+Varsayılan: 60 istek/dakika (kullanıcı bazında). AI endpoint'leri: 20/dakika.
+"""
 
 API_CONTACT = {
-    "name": "TestwrightAI Platform Team",
+    "name": "Neurex Platform Team",
     "email": "platform@testwright-ai.dev",
 }
 
@@ -218,6 +224,28 @@ OPENAPI_TAGS = [
             "- `POST /api/v1/cicd/quality-gate/evaluate` — Kosu ozetini kalite kapisindan gecirir"
         ),
     },
+    {
+        "name": "products",
+        "description": (
+            "**Urun Metrikleri ve Dashboard**\n\n"
+            "Urun bazli kalite metrikleri, KPI dashboard verileri ve trend analizlerini sunar.\n\n"
+            "### Ornek Endpoint'ler\n"
+            "- `GET /api/v1/products/{id}/metrics` — Urun kalite metriklerini getirir\n"
+            "- `GET /api/v1/products/{id}/dashboard` — Dashboard ozet verisini getirir\n"
+            "- `GET /api/v1/products/{id}/trends` — Zaman serisi trend analizini getirir"
+        ),
+    },
+    {
+        "name": "billing",
+        "description": (
+            "**Abonelik ve Faturalama**\n\n"
+            "Stripe tabanli abonelik yonetimi, fatura gecmisi ve kullanim kotasi takibini kapsar.\n\n"
+            "### Ornek Endpoint'ler\n"
+            "- `GET /api/v1/billing/subscription` — Aktif aboneligi getirir\n"
+            "- `POST /api/v1/billing/subscription/upgrade` — Plani yukseltir\n"
+            "- `GET /api/v1/billing/invoices` — Fatura gecmisini listeler"
+        ),
+    },
 ]
 
 # ── Custom OpenAPI Schema Hook ──────────────────────────────────────────
@@ -269,6 +297,7 @@ def custom_openapi_schema(app):
         {"name": "Altyapi", "tags": ["jobs", "artifacts", "notifications", "audit"]},
         {"name": "Veri & Kurallar", "tags": ["catalog", "rules", "synthetic"]},
         {"name": "Entegrasyonlar", "tags": ["cicd", "n8n"]},
+        {"name": "Platform", "tags": ["products", "billing"]},
     ]
 
     app.openapi_schema = schema

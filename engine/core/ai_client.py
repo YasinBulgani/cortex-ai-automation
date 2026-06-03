@@ -130,6 +130,78 @@ class AIClient:
             logger.error("Ollama completion failed: %s", e)
             return f"Error: {e}"
 
+    # ── Groq (açık ağırlıklı modeller — ücretsiz tier) ──────────────────────
+    def _complete_groq(self, prompt: str, max_tokens: int, temperature: float) -> str:
+        """Groq API — Llama/Mistral httpx ile OpenAI-compat çağrısı."""
+        api_key = (
+            os.getenv("GROQ_API_KEY")
+            or getattr(settings, "GROQ_API_KEY", "")
+        )
+        if not api_key:
+            raise RuntimeError(
+                "GROQ_API_KEY not set. Get a free key at console.groq.com."
+            )
+        model = (
+            os.getenv("GROQ_MODEL")
+            or getattr(settings, "GROQ_MODEL", "llama3-70b-8192")
+        )
+        try:
+            import requests  # type: ignore
+            headers = {
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json",
+            }
+            body = {
+                "model": model,
+                "messages": [{"role": "user", "content": prompt}],
+                "temperature": temperature,
+                "max_tokens": max_tokens,
+            }
+            r = requests.post(
+                "https://api.groq.com/openai/v1/chat/completions",
+                json=body, headers=headers, timeout=60,
+            )
+            r.raise_for_status()
+            return r.json()["choices"][0]["message"]["content"] or ""
+        except Exception as e:
+            logger.error("Groq completion failed: %s", e)
+            return f"Error: {e}"
+
+    def _chat_groq(
+        self,
+        messages: list[dict],
+        max_tokens: int,
+        temperature: float,
+        model: str | None = None,
+    ) -> str:
+        api_key = (
+            os.getenv("GROQ_API_KEY")
+            or getattr(settings, "GROQ_API_KEY", "")
+        )
+        if not api_key:
+            raise RuntimeError("GROQ_API_KEY not set.")
+        resolved_model = model or (
+            os.getenv("GROQ_MODEL")
+            or getattr(settings, "GROQ_MODEL", "llama3-70b-8192")
+        )
+        try:
+            import requests  # type: ignore
+            headers = {
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json",
+            }
+            r = requests.post(
+                "https://api.groq.com/openai/v1/chat/completions",
+                json={"model": resolved_model, "messages": messages,
+                      "temperature": temperature, "max_tokens": max_tokens},
+                headers=headers, timeout=60,
+            )
+            r.raise_for_status()
+            return r.json()["choices"][0]["message"]["content"] or ""
+        except Exception as e:
+            logger.error("Groq chat failed: %s", e)
+            return f"Error: {e}"
+
     # ── OpenAI (legacy) ──────────────────────────────────────────────────────
     def _complete_openai(self, prompt: str, max_tokens: int, temperature: float) -> str:
         try:
@@ -155,8 +227,8 @@ class AIClient:
             return self._complete_hf(prompt, max_tokens, temperature)
         if self.provider == "openai":
             return self._complete_openai(prompt, max_tokens, temperature)
-        if self.provider == "anthropic":
-            return f"Error: anthropic provider not yet implemented"
+        if self.provider == "groq":
+            return self._complete_groq(prompt, max_tokens, temperature)
         return f"Error: unknown LLM_PROVIDER={self.provider}"
 
     def chat(
@@ -211,6 +283,8 @@ class AIClient:
             except Exception as e:
                 logger.error("OpenAI chat failed: %s", e)
                 return f"Error: {e}"
+        if self.provider == "groq":
+            return self._chat_groq(messages, max_tokens, temperature, model)
         return self.complete(messages[-1]["content"] if messages else "", max_tokens, temperature)
 
     def analyze_text(self, text: str) -> dict:
@@ -238,6 +312,13 @@ JSON formatında döndür.
         if self.provider == "ollama":
             status["host"] = self.ollama_host
             status["model"] = self.ollama_model
+        elif self.provider == "groq":
+            api_key = os.getenv("GROQ_API_KEY") or getattr(settings, "GROQ_API_KEY", "")
+            status["api_key_set"] = bool(api_key)
+            status["model"] = os.getenv("GROQ_MODEL") or getattr(settings, "GROQ_MODEL", "llama3-70b-8192")
+            if not api_key:
+                status["error"] = "GROQ_API_KEY missing"
+                return status
         elif self.provider == "huggingface":
             status["token_set"] = bool(self.hf_token)
             status["model"] = self.hf_model

@@ -6,6 +6,7 @@ import logging
 from typing import Any, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.deps import get_current_user
@@ -291,15 +292,12 @@ def get_healing_log(
 ):
     """Get healing log entries for a specific run."""
     _ = user
-    logs = (
-        db.query(HealingLog)
-        .filter(
+    logs = db.execute(
+        select(HealingLog).where(
             HealingLog.project_id == project_id,
             HealingLog.run_id == run_id,
-        )
-        .order_by(HealingLog.created_at)
-        .all()
-    )
+        ).order_by(HealingLog.created_at)
+    ).scalars().all()
     return HealingLogResponse(
         run_id=run_id,
         items=[HealingLogItem.model_validate(log) for log in logs],
@@ -375,10 +373,12 @@ def suggest_assertions_endpoint(
     from app.domains.api_testing.assertion_suggester import suggest_assertions
 
     _ = user
-    tc = db.query(ApiTestCase).filter(
-        ApiTestCase.id == test_case_id,
-        ApiTestCase.project_id == project_id,
-    ).first()
+    tc = db.execute(
+        select(ApiTestCase).where(
+            ApiTestCase.id == test_case_id,
+            ApiTestCase.project_id == project_id,
+        )
+    ).scalars().first()
     if not tc:
         raise HTTPException(404, "Test case bulunamadi")
 
@@ -433,14 +433,16 @@ def scan_endpoint_endpoint(
     from app.domains.api_testing.security_scanner import scan_endpoint
 
     _ = user
-    ep = db.query(ApiEndpoint).filter(ApiEndpoint.id == endpoint_id).first()
+    ep = db.execute(select(ApiEndpoint).where(ApiEndpoint.id == endpoint_id)).scalars().first()
     if not ep:
         raise HTTPException(404, "Endpoint bulunamadi")
 
-    spec = db.query(ApiSpec).filter(
-        ApiSpec.id == ep.spec_id,
-        ApiSpec.project_id == project_id,
-    ).first()
+    spec = db.execute(
+        select(ApiSpec).where(
+            ApiSpec.id == ep.spec_id,
+            ApiSpec.project_id == project_id,
+        )
+    ).scalars().first()
     if not spec:
         raise HTTPException(404, "Endpoint bu projeye ait degil")
 
@@ -468,10 +470,12 @@ def scan_spec_endpoint(
     from app.domains.api_testing.security_scanner import scan_spec
 
     _ = user
-    spec = db.query(ApiSpec).filter(
-        ApiSpec.id == spec_id,
-        ApiSpec.project_id == project_id,
-    ).first()
+    spec = db.execute(
+        select(ApiSpec).where(
+            ApiSpec.id == spec_id,
+            ApiSpec.project_id == project_id,
+        )
+    ).scalars().first()
     if not spec:
         raise HTTPException(404, "Spec bulunamadi")
 
@@ -512,14 +516,16 @@ def generate_security_tests_endpoint(
     from app.domains.api_testing.security_scanner import generate_security_tests
 
     _ = user
-    ep = db.query(ApiEndpoint).filter(ApiEndpoint.id == body.endpoint_id).first()
+    ep = db.execute(select(ApiEndpoint).where(ApiEndpoint.id == body.endpoint_id)).scalars().first()
     if not ep:
         raise HTTPException(404, "Endpoint bulunamadi")
 
-    spec = db.query(ApiSpec).filter(
-        ApiSpec.id == ep.spec_id,
-        ApiSpec.project_id == project_id,
-    ).first()
+    spec = db.execute(
+        select(ApiSpec).where(
+            ApiSpec.id == ep.spec_id,
+            ApiSpec.project_id == project_id,
+        )
+    ).scalars().first()
     if not spec:
         raise HTTPException(404, "Endpoint bu projeye ait degil")
 

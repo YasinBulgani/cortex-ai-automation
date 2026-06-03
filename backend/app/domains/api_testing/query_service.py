@@ -5,6 +5,7 @@ from __future__ import annotations
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.domains.api_testing.models import (
@@ -24,47 +25,52 @@ from app.domains.api_testing.schemas import (
 
 
 def build_api_testing_stats(db: Session, project_id: str) -> dict:
-    from sqlalchemy import func
     from app.domains.api_testing.models import ApiChain, ApiEndpoint, ApiEnvironment
 
-    spec_count = db.query(ApiSpec).filter(ApiSpec.project_id == project_id).count()
-    endpoint_count = db.query(ApiEndpoint).join(ApiSpec).filter(
-        ApiSpec.project_id == project_id,
-    ).count()
-    test_case_count = db.query(ApiTestCase).filter(
-        ApiTestCase.project_id == project_id,
-    ).count()
-    ai_generated_count = db.query(ApiTestCase).filter(
-        ApiTestCase.project_id == project_id,
-        ApiTestCase.ai_generated == True,  # noqa: E712
-    ).count()
-    chain_count = db.query(ApiChain).filter(
-        ApiChain.project_id == project_id,
-    ).count()
-    env_count = db.query(ApiEnvironment).filter(
-        ApiEnvironment.project_id == project_id,
-    ).count()
+    spec_count = db.scalar(select(func.count(ApiSpec.id)).where(ApiSpec.project_id == project_id))
+    endpoint_count = db.scalar(
+        select(func.count(ApiEndpoint.id)).join(ApiSpec).where(ApiSpec.project_id == project_id)
+    )
+    test_case_count = db.scalar(
+        select(func.count(ApiTestCase.id)).where(ApiTestCase.project_id == project_id)
+    )
+    ai_generated_count = db.scalar(
+        select(func.count(ApiTestCase.id)).where(
+            ApiTestCase.project_id == project_id,
+            ApiTestCase.ai_generated == True,  # noqa: E712
+        )
+    )
+    chain_count = db.scalar(
+        select(func.count(ApiChain.id)).where(ApiChain.project_id == project_id)
+    )
+    env_count = db.scalar(
+        select(func.count(ApiEnvironment.id)).where(ApiEnvironment.project_id == project_id)
+    )
 
-    type_dist = db.query(
-        ApiTestCase.test_type, func.count(ApiTestCase.id),
-    ).filter(
-        ApiTestCase.project_id == project_id,
-    ).group_by(ApiTestCase.test_type).all()
+    type_dist = db.execute(
+        select(ApiTestCase.test_type, func.count(ApiTestCase.id)).where(
+            ApiTestCase.project_id == project_id,
+        ).group_by(ApiTestCase.test_type)
+    ).all()
 
-    review_dist = db.query(
-        ApiTestCase.review_status, func.count(ApiTestCase.id),
-    ).filter(
-        ApiTestCase.project_id == project_id,
-    ).group_by(ApiTestCase.review_status).all()
+    review_dist = db.execute(
+        select(ApiTestCase.review_status, func.count(ApiTestCase.id)).where(
+            ApiTestCase.project_id == project_id,
+        ).group_by(ApiTestCase.review_status)
+    ).all()
 
-    pass_count = db.query(ApiTestCase).filter(
-        ApiTestCase.project_id == project_id,
-        ApiTestCase.last_run_status == "passed",
-    ).count()
-    fail_count = db.query(ApiTestCase).filter(
-        ApiTestCase.project_id == project_id,
-        ApiTestCase.last_run_status == "failed",
-    ).count()
+    pass_count = db.scalar(
+        select(func.count(ApiTestCase.id)).where(
+            ApiTestCase.project_id == project_id,
+            ApiTestCase.last_run_status == "passed",
+        )
+    )
+    fail_count = db.scalar(
+        select(func.count(ApiTestCase.id)).where(
+            ApiTestCase.project_id == project_id,
+            ApiTestCase.last_run_status == "failed",
+        )
+    )
 
     return {
         "specs": spec_count,
@@ -92,10 +98,11 @@ def build_execution_history(
     test_type: Optional[str],
     status: Optional[str],
 ) -> ExecutionHistoryResponse:
-    from sqlalchemy import Date, case, cast, func
+    from sqlalchemy import Date, case, cast
 
+    # TODO(SQLAlchemy2): complex grouped query with dynamic HAVING — manual review advised
     q = (
-        db.query(
+        select(
             ApiExecutionDetail.run_id,
             func.min(ApiExecutionDetail.executed_at).label("timestamp"),
             func.count(ApiExecutionDetail.id).label("total"),
@@ -105,11 +112,11 @@ def build_execution_history(
             func.avg(ApiExecutionDetail.total_ms).label("avg_ms"),
         )
         .join(ApiTestCase, ApiExecutionDetail.test_case_id == ApiTestCase.id, isouter=True)
-        .filter(ApiTestCase.project_id == project_id)
+        .where(ApiTestCase.project_id == project_id)
     )
 
     if test_type:
-        q = q.filter(ApiTestCase.test_type == test_type)
+        q = q.where(ApiTestCase.test_type == test_type)
 
     q = q.group_by(ApiExecutionDetail.run_id)
 
@@ -124,11 +131,13 @@ def build_execution_history(
         )
 
     count_subq = q.subquery()
-    total_count = db.query(func.count()).select_from(count_subq).scalar() or 0
+    total_count = db.scalar(select(func.count()).select_from(count_subq)) or 0
 
-    rows = q.order_by(func.min(ApiExecutionDetail.executed_at).desc()).offset(
-        (page - 1) * per_page
-    ).limit(per_page).all()
+    rows = db.execute(
+        q.order_by(func.min(ApiExecutionDetail.executed_at).desc()).offset(
+            (page - 1) * per_page
+        ).limit(per_page)
+    ).all()
 
     items: list[ExecutionHistoryItem] = []
     for row in rows:
@@ -144,11 +153,13 @@ def build_execution_history(
         else:
             run_status = "mixed"
 
-        test_types = db.query(ApiTestCase.test_type).join(
-            ApiExecutionDetail, ApiExecutionDetail.test_case_id == ApiTestCase.id,
-        ).filter(
-            ApiExecutionDetail.run_id == row.run_id,
-        ).distinct().all()
+        test_types = db.execute(
+            select(ApiTestCase.test_type).join(
+                ApiExecutionDetail, ApiExecutionDetail.test_case_id == ApiTestCase.id,
+            ).where(
+                ApiExecutionDetail.run_id == row.run_id,
+            ).distinct()
+        ).all()
 
         items.append(ExecutionHistoryItem(
             run_id=row.run_id,
@@ -175,16 +186,15 @@ def build_execution_run_detail(
     project_id: str,
     run_id: str,
 ) -> ExecutionRunDetailResponse:
-    details = (
-        db.query(ApiExecutionDetail)
+    details = db.execute(
+        select(ApiExecutionDetail)
         .join(ApiTestCase, ApiExecutionDetail.test_case_id == ApiTestCase.id, isouter=True)
-        .filter(
+        .where(
             ApiExecutionDetail.run_id == run_id,
             ApiTestCase.project_id == project_id,
         )
         .order_by(ApiExecutionDetail.execution_order)
-        .all()
-    )
+    ).scalars().all()
 
     if not details:
         raise ValueError("Run bulunamadi")
@@ -206,7 +216,9 @@ def build_execution_run_detail(
     for detail in details:
         tc_title = None
         if detail.test_case_id:
-            tc = db.query(ApiTestCase.title).filter(ApiTestCase.id == detail.test_case_id).first()
+            tc = db.execute(
+                select(ApiTestCase.title).where(ApiTestCase.id == detail.test_case_id)
+            ).first()
             if tc:
                 tc_title = tc[0]
 
@@ -244,12 +256,12 @@ def build_execution_trends(
     *,
     days: int,
 ) -> TrendResponse:
-    from sqlalchemy import Date, case, cast, func
+    from sqlalchemy import Date, case, cast
 
     cutoff = datetime.now(timezone.utc) - timedelta(days=days)
 
-    daily_q = (
-        db.query(
+    daily_q = db.execute(
+        select(
             cast(ApiExecutionDetail.executed_at, Date).label("day"),
             func.count(ApiExecutionDetail.id).label("total"),
             func.sum(case((ApiExecutionDetail.passed == True, 1), else_=0)).label("passed"),  # noqa: E712
@@ -258,14 +270,13 @@ def build_execution_trends(
             func.count(ApiExecutionDetail.run_id.distinct()).label("run_count"),
         )
         .join(ApiTestCase, ApiExecutionDetail.test_case_id == ApiTestCase.id, isouter=True)
-        .filter(
+        .where(
             ApiTestCase.project_id == project_id,
             ApiExecutionDetail.executed_at >= cutoff,
         )
         .group_by(cast(ApiExecutionDetail.executed_at, Date))
         .order_by(cast(ApiExecutionDetail.executed_at, Date))
-        .all()
-    )
+    ).all()
 
     day_data: list[TrendDayData] = []
     total_runs = 0
@@ -296,21 +307,20 @@ def build_execution_trends(
             run_count=run_count,
         ))
 
-    type_dist_q = (
-        db.query(
+    type_dist_q = db.execute(
+        select(
             ApiTestCase.test_type,
             func.count(ApiExecutionDetail.id).label("count"),
             func.sum(case((ApiExecutionDetail.passed == True, 1), else_=0)).label("passed"),  # noqa: E712
             func.sum(case((ApiExecutionDetail.passed == False, 1), else_=0)).label("failed"),  # noqa: E712
         )
         .join(ApiTestCase, ApiExecutionDetail.test_case_id == ApiTestCase.id)
-        .filter(
+        .where(
             ApiTestCase.project_id == project_id,
             ApiExecutionDetail.executed_at >= cutoff,
         )
         .group_by(ApiTestCase.test_type)
-        .all()
-    )
+    ).all()
 
     type_items: list[TestTypeTrendItem] = []
     most_failed_type = None

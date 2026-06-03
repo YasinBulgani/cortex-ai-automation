@@ -37,6 +37,9 @@ from app.domains.test_management.schemas import (
     MgmtCommentUpdate,
     MgmtNotificationCreate,
 )
+from app.config import settings
+from app.services.email_service import send_email, EmailMessageData
+from app.services.notification_delivery import send_notification
 
 
 # ── helpers ──────────────────────────────────────────────────────────────────
@@ -421,24 +424,62 @@ def _create_notification(
 
 
 def _route_to_channel(notif: MgmtNotification) -> None:
-    """Fan a notification out to its delivery channel.
-
-    Today only `in_app` is wired (SSE bus). The other channels are
-    accepted at the schema layer so callers can already tag their
-    notifications; concrete delivery (email / push / slack / teams)
-    is implemented in M-46.
-    """
+    """Fan a notification out to its delivery channel."""
     channel = getattr(notif, "channel", "in_app") or "in_app"
+
     if channel == "in_app":
         _broadcast(notif.user_id, _serialize_notification(notif))
         return
-    # TODO(M-46): wire real email/push/slack/teams delivery.
-    logger.info(
-        "[mgmt.notif] channel routing for %r not yet implemented (notif=%s user=%s)",
-        channel,
-        notif.id,
-        notif.user_id,
-    )
+
+    if channel == "email":
+        try:
+            # User email'ini al (notif objesinden veya DB'den)
+            recipient = getattr(notif, "recipient_email", None)
+            if recipient:
+                send_email(EmailMessageData(
+                    to=recipient,
+                    subject=f"[Neurex] {notif.title or 'Yeni Bildirim'}",
+                    body_text=notif.message or notif.title or "Yeni bir bildirim var.",
+                    body_html=f"<p>{notif.message or notif.title or 'Yeni bir bildirim var.'}</p>",
+                ))
+            else:
+                logger.warning("[mgmt.notif] email kanalı için recipient_email yok: %s", notif.id)
+        except Exception as e:
+            logger.error("[mgmt.notif] email gönderilemedi: %s", e)
+        return
+
+    if channel == "slack":
+        sent = send_notification(
+            channel="slack",
+            title=notif.title or "Neurex Bildirimi",
+            message=notif.message or notif.title or "Yeni bildirim",
+            slack_webhook_url=settings.slack_webhook_url,
+        )
+        if not sent:
+            # Fallback: in_app
+            _broadcast(notif.user_id, _serialize_notification(notif))
+        return
+
+    if channel == "teams":
+        sent = send_notification(
+            channel="teams",
+            title=notif.title or "Neurex Bildirimi",
+            message=notif.message or notif.title or "Yeni bildirim",
+            teams_webhook_url=settings.teams_webhook_url,
+        )
+        if not sent:
+            _broadcast(notif.user_id, _serialize_notification(notif))
+        return
+
+    if channel == "push":
+        # Web push — push_notifications_enabled ise gönder
+        if settings.push_notifications_enabled:
+            logger.info("[mgmt.notif] push bildirimi: %s", notif.id)
+            # TODO(Push-v2): pywebpush entegrasyonu buraya gelecek
+        _broadcast(notif.user_id, _serialize_notification(notif))
+        return
+
+    logger.warning("[mgmt.notif] bilinmeyen kanal: %r", channel)
 
 
 def create_notification(

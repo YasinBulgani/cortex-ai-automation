@@ -1,5 +1,5 @@
 /**
- * TestwrightAI TanStack Query Hooks — Barrel Export
+ * Neurex TanStack Query Hooks — Barrel Export
  *
  * Kullanim:
  *   import { useProjects, useCurrentUser, usePipelineStatus } from "@/lib/hooks";

@@ -1020,7 +1020,9 @@ function QuickAddPanel({ disabled, onInjected }: { disabled: boolean; onInjected
         if (!pj.ok) {
           console.warn("[perform] failed:", pj.error);
         } else {
-          console.log("[perform]", type, "OK", pj);
+          if (process.env.NODE_ENV === "development") {
+            console.log("[perform]", type, "OK", pj);
+          }
         }
       } catch (e) {
         console.error("[perform] error", e);

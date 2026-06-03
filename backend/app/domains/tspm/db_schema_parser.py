@@ -860,7 +860,7 @@ def parse_db_connection(
                      if t["name"].startswith(("tspm_", "sd_", "alembic_"))]
     if platform_tbls:
         warnings.append(
-            f"TestwrightAI sistem tabloları da listede: {', '.join(platform_tbls[:5])}… "
+            f"Neurex sistem tabloları da listede: {', '.join(platform_tbls[:5])}… "
             "Simüle etmek istemiyorsanız dışarıda bırakın."
         )
 

@@ -1,4 +1,4 @@
-"""TC-1101..TC-1112: Schedule tests (desktop + Visium Farm mobil)."""
+"""TC-1101..TC-1112: Schedule tests (desktop + Neurex Farm mobil)."""
 
 from fastapi.testclient import TestClient
 
@@ -85,7 +85,7 @@ class TestTriggerSchedule:
 
 
 class TestMobileSchedule:
-    """TC-1106..TC-1112: Visium Farm mobil zamanlayıcı."""
+    """TC-1106..TC-1112: Neurex Farm mobil zamanlayıcı."""
 
     def test_create_mobile_schedule_ios(
         self, client: TestClient, auth_headers, project_id, create_scenario

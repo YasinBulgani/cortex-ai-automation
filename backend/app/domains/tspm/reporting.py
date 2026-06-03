@@ -1,5 +1,5 @@
 """
-TestwrightAI TSPM Reporting Service
+Neurex TSPM Reporting Service
 
 Test execution raporlama, coverage hesaplama, traceability zinciri ve
 root-cause analiz servisi.
@@ -666,7 +666,7 @@ class ReportRenderer:
 
         lines.extend([
             "---",
-            "*Otomatik üretildi — TestwrightAI Raporlama Motoru*",
+            "*Otomatik üretildi — Neurex Raporlama Motoru*",
         ])
 
         return "\n".join(lines)

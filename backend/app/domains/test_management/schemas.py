@@ -300,7 +300,6 @@ class TestRunCreate(BaseModel):
     environment: Optional[str] = None
     started_at: Optional[datetime] = None
     completed_at: Optional[datetime] = None
-    created_at: datetime
 
 
 class StepResultUpdate(BaseModel):
@@ -343,6 +342,22 @@ class RunCaseOut(BaseModel):
     completed_at: Optional[datetime] = None
     duration_seconds: Optional[int] = None
     step_results: list[StepResultOut] = Field(default_factory=list)
+
+
+class TestRunOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    cycle_id: str
+    name: str
+    status: str
+    source_type: str
+    source_ref: Optional[str] = None
+    scope_snapshot: dict[str, Any] = Field(default_factory=dict)
+    environment: Optional[str] = None
+    started_at: Optional[datetime] = None
+    completed_at: Optional[datetime] = None
+    created_at: datetime
 
 
 class RunDetailOut(TestRunOut):
@@ -583,14 +598,19 @@ class TracedCase(BaseModel):
 
 class TraceabilityRow(BaseModel):
     """One requirement row in the traceability matrix."""
+    requirement_id: Optional[str] = None
     requirement_key: str
+    external_key: str = ""
     title: str
+    status: str = "active"
+    priority: str = "medium"
     source: str
     url: Optional[str] = None
     cases: list[TracedCase] = Field(default_factory=list)
     # Derived
     covered: bool = False
     stale: bool = False  # source_updated_at newer than case's last run
+    coverage_pct: float = 0.0
 
 
 # ── Semantic search ───────────────────────────────────────────────────────────

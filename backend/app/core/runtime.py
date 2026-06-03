@@ -32,6 +32,34 @@ def _background_feature_enabled(feature_name: str, enabled: bool) -> bool:
     return True
 
 
+_SENTRY_SENSITIVE_KEYS = frozenset({
+    "password", "passwd", "secret", "token", "access_token", "refresh_token",
+    "authorization", "api_key", "apikey", "private_key", "client_secret",
+    "credit_card", "card_number", "cvv", "ssn",
+})
+
+
+def _scrub_pii(obj: object, depth: int = 0) -> object:
+    """Sentry event dict'inden hassas alanları sil (max 6 seviye)."""
+    if depth > 6:
+        return obj
+    if isinstance(obj, dict):
+        return {
+            k: "[Filtered]" if k.lower() in _SENTRY_SENSITIVE_KEYS else _scrub_pii(v, depth + 1)
+            for k, v in obj.items()
+        }
+    if isinstance(obj, list):
+        return [_scrub_pii(i, depth + 1) for i in obj]
+    return obj
+
+
+def _sentry_before_send(event: dict, hint: object) -> dict:
+    for section in ("request", "extra", "contexts"):
+        if section in event:
+            event[section] = _scrub_pii(event[section])
+    return event
+
+
 def initialize_sentry() -> None:
     """Initialize Sentry once when configured."""
     sentry_dsn = os.getenv("SENTRY_DSN", "")
@@ -45,9 +73,14 @@ def initialize_sentry() -> None:
         from sentry_sdk.integrations.redis import RedisIntegration
         from sentry_sdk.integrations.sqlalchemy import SqlalchemyIntegration
 
+        # APP_VERSION ortam değişkeni set edilmişse Sentry release tracking'e dahil et.
+        # CI/CD pipeline'da: APP_VERSION=$(git rev-parse --short HEAD)
+        app_version = os.getenv("APP_VERSION") or os.getenv("RENDER_GIT_COMMIT") or None
+
         sentry_sdk.init(
             dsn=sentry_dsn,
             environment=os.getenv("SENTRY_ENVIRONMENT", "production"),
+            release=app_version,
             traces_sample_rate=float(os.getenv("SENTRY_TRACES_SAMPLE_RATE", "0.1")),
             integrations=[
                 FastApiIntegration(transaction_style="endpoint"),
@@ -56,11 +89,12 @@ def initialize_sentry() -> None:
                 LoggingIntegration(level=logging.WARNING, event_level=logging.ERROR),
             ],
             send_default_pii=False,
-            before_send=lambda event, hint: event,
+            before_send=_sentry_before_send,
         )
         logger.info(
-            "Sentry aktif: environment=%s",
+            "Sentry aktif: environment=%s release=%s",
             os.getenv("SENTRY_ENVIRONMENT", "production"),
+            app_version or "unset",
         )
     except ImportError:
         logger.info("sentry-sdk kurulu değil, hata izleme devre dışı.")
@@ -378,3 +412,10 @@ async def app_lifespan(_app: FastAPI):
     _stop_autopilot_worker()
     _stop_file_watcher()
     shutdown_scheduler()
+
+    try:
+        from app.domains.ai.gateway_client import close_http_client
+        close_http_client()
+        logger.info("AI Gateway HTTP client kapatıldı.")
+    except Exception:
+        logger.debug("AI Gateway HTTP client kapatılırken hata oluştu.", exc_info=True)

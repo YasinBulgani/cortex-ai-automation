@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 AI_GATEWAY_BASE = os.environ.get("AI_GATEWAY_BASE_URL", "http://127.0.0.1:8080")
 INTERNAL_KEY = os.environ.get(
-    "GATEWAY_INTERNAL_KEY", "nexusqa-gateway-internal-key-change-me"
+    "GATEWAY_INTERNAL_KEY", "neurex-gateway-internal-key-change-me"
 )
 DEFAULT_TIMEOUT = 120.0
 MAX_RETRIES = 3

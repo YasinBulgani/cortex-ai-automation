@@ -161,7 +161,7 @@ def generate_ai_summary(results: list[dict[str, Any]], trigger: str) -> str:
         return gateway_complete(
             task_type="chat",
             system_message=(
-                "Sen TestwrightAI için arka planda çalışan operasyon ajanısın. "
+                "Sen Neurex için arka planda çalışan operasyon ajanısın. "
                 "Türkçe ve kısa Markdown üret. "
                 "Şu başlıkları kullan: Genel Durum, Dikkat Edilecekler, Sonraki Adım. "
                 "En fazla 180 kelime yaz. Gereksiz tekrar yapma."
@@ -187,7 +187,7 @@ def render_report(
     completed_at: str,
 ) -> str:
     lines = [
-        "# TestwrightAI AI Ops Report",
+        "# Neurex AI Ops Report",
         "",
         f"- Tetikleyici: `{trigger}`",
         f"- Başlangıç: `{started_at}`",

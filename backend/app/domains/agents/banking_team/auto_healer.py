@@ -404,15 +404,26 @@ class AutoHealerAgent(BaseAgent):
                 except Exception:
                     return False
 
-            # Mevcut event loop varsa kullan, yoksa yeni oluştur
+            # Mevcut event loop varsa yeni thread'de ayri loop ile calistir,
+            # yoksa dogrudan asyncio.run() kullan
             try:
-                loop = asyncio.get_running_loop()
+                asyncio.get_running_loop()
+                # FastAPI/async context — thread'de yeni event loop olustur
                 import concurrent.futures
-                with concurrent.futures.ThreadPoolExecutor() as pool:
-                    result = loop.run_in_executor(pool, lambda: asyncio.run(_check()))
-                    # Fire-and-forget olmadigi için sync bekle
-                    return False  # Async context'te sync bekleyemeyiz — guvenli default
+
+                def _run_in_thread() -> bool:
+                    _loop = asyncio.new_event_loop()
+                    asyncio.set_event_loop(_loop)
+                    try:
+                        return _loop.run_until_complete(_check())
+                    finally:
+                        _loop.close()
+
+                with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
+                    future = pool.submit(_run_in_thread)
+                    return future.result(timeout=15)
             except RuntimeError:
+                # Event loop yok — dogrudan calistir
                 return asyncio.run(_check())
 
         except (ImportError, Exception) as exc:

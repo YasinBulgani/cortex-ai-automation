@@ -19,6 +19,7 @@ import uuid
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from pydantic import BaseModel, Field
+from sqlalchemy import delete, func, or_, select
 from sqlalchemy.orm import Session
 
 from app.deps import get_current_user
@@ -188,17 +189,17 @@ def list_projects(
     user: User = Depends(get_current_user),
 ) -> list[ProjectOut]:
     """Kullanıcının sentetik veri projelerini listele."""
-    query = db.query(SyntheticProject)
+    stmt = select(SyntheticProject)
     owner_id = str(getattr(user, "id", "")) or None
     if owner_id:
-        query = query.filter(
-            (SyntheticProject.owner_id == owner_id) | (SyntheticProject.owner_id.is_(None))
+        stmt = stmt.where(
+            or_(SyntheticProject.owner_id == owner_id, SyntheticProject.owner_id.is_(None))
         )
-    projects = query.order_by(SyntheticProject.created_at.desc()).limit(200).all()
+    projects = db.execute(stmt.order_by(SyntheticProject.created_at.desc()).limit(200)).scalars().all()
 
     result = []
     for p in projects:
-        count = db.query(SyntheticDetectedSchema).filter_by(project_id=p.id).count()
+        count = db.scalar(select(func.count(SyntheticDetectedSchema.id)).where(SyntheticDetectedSchema.project_id == p.id))
         result.append(ProjectOut(
             id=p.id,
             name=p.name,
@@ -217,11 +218,11 @@ def get_project(
     user: User = Depends(get_current_user),
 ) -> ProjectOut:
     """Tek proje detayı."""
-    project = db.query(SyntheticProject).filter_by(id=project_id).first()
+    project = db.execute(select(SyntheticProject).where(SyntheticProject.id == project_id)).scalars().first()
     if not project:
         raise HTTPException(status_code=404, detail="Proje bulunamadı")
 
-    count = db.query(SyntheticDetectedSchema).filter_by(project_id=project_id).count()
+    count = db.scalar(select(func.count(SyntheticDetectedSchema.id)).where(SyntheticDetectedSchema.project_id == project_id))
     return ProjectOut(
         id=project.id,
         name=project.name,
@@ -241,7 +242,7 @@ def infer_rules(
     _user: User = Depends(get_current_user),
 ) -> InferRulesResponse:
     """Mevcut detected_schema için RuleEngine ile kurallar üret ve kaydet."""
-    schema_row = db.query(SyntheticDetectedSchema).filter_by(id=schema_id).first()
+    schema_row = db.execute(select(SyntheticDetectedSchema).where(SyntheticDetectedSchema.id == schema_id)).scalars().first()
     if not schema_row:
         raise HTTPException(status_code=404, detail="Schema bulunamadı")
 
@@ -254,7 +255,7 @@ def infer_rules(
     rules = engine.infer_rules(schema_dict)
 
     # Upsert: mevcut kuralları sil, yenilerini kaydet
-    db.query(SyntheticGenerationRule).filter_by(schema_id=schema_id).delete()
+    db.execute(delete(SyntheticGenerationRule).where(SyntheticGenerationRule.schema_id == schema_id))
     for rule in rules:
         db.add(SyntheticGenerationRule(
             id=str(uuid.uuid4()),
@@ -283,13 +284,16 @@ def analyze_learning(
     _user: User = Depends(get_current_user),
 ) -> LearningAnalyzeResponse:
     """Bir şemanın geçmiş üretim preview'lerini LearningEngine ile analiz et."""
-    schema_row = db.query(SyntheticDetectedSchema).filter_by(id=schema_id).first()
+    schema_row = db.execute(select(SyntheticDetectedSchema).where(SyntheticDetectedSchema.id == schema_id)).scalars().first()
     if not schema_row:
         raise HTTPException(status_code=404, detail="Schema bulunamadı")
 
-    rules = db.query(SyntheticGenerationRule).filter_by(
-        schema_id=schema_id, is_active=True
-    ).all()
+    rules = db.execute(
+        select(SyntheticGenerationRule).where(
+            SyntheticGenerationRule.schema_id == schema_id,
+            SyntheticGenerationRule.is_active == True,  # noqa: E712
+        )
+    ).scalars().all()
     rule_dicts = [
         {
             "column_name": r.column_name,
@@ -302,10 +306,16 @@ def analyze_learning(
     # Bu proje için son 10 başarılı üretimin preview'leri
     history_previews = []
     histories = (
-        db.query(SyntheticGenerationHistory)
-        .filter_by(project_id=schema_row.project_id, status="success")
-        .order_by(SyntheticGenerationHistory.created_at.desc())
-        .limit(10)
+        db.execute(
+            select(SyntheticGenerationHistory)
+            .where(
+                SyntheticGenerationHistory.project_id == schema_row.project_id,
+                SyntheticGenerationHistory.status == "success",
+            )
+            .order_by(SyntheticGenerationHistory.created_at.desc())
+            .limit(10)
+        )
+        .scalars()
         .all()
     )
     for h in histories:

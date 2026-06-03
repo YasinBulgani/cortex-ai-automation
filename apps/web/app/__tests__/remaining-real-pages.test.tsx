@@ -153,8 +153,8 @@ jest.mock("@/lib/ai-gateway", () => ({
 
 // product
 jest.mock("@/lib/product", () => ({
-  PRODUCT_FAMILY: [{ id: "one", name: "TestwrightAI", shortName: "TW", tagline: "", description: "", availability: "ga", defaultEntryKey: "scenarios", routeSegments: [] }],
-  PRODUCT_FAMILY_BY_ID: { one: { id: "one", name: "TestwrightAI" } },
+  PRODUCT_FAMILY: [{ id: "one", name: "Neurex", shortName: "TW", tagline: "", description: "", availability: "ga", defaultEntryKey: "scenarios", routeSegments: [] }],
+  PRODUCT_FAMILY_BY_ID: { one: { id: "one", name: "Neurex" } },
   DEFAULT_PRODUCT_FAMILY_ID: "one",
 }));
 

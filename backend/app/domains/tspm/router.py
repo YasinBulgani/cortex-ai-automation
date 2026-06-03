@@ -2787,17 +2787,17 @@ def test_notification(project_id: str, integration_id: str, db: DB, user: Curren
 
     if intg.provider == "slack":
         payload = {
-            "text": f"✅ TestwrightAI Test Bildirimi — *{project_name}* projesi için entegrasyon test edildi.",
+            "text": f"✅ Neurex Test Bildirimi — *{project_name}* projesi için entegrasyon test edildi.",
             "blocks": [{"type": "section", "text": {"type": "mrkdwn",
-                "text": f"✅ *TestwrightAI* bağlantı testi başarılı!\nProje: `{project_name}`"}}]
+                "text": f"✅ *Neurex* bağlantı testi başarılı!\nProje: `{project_name}`"}}]
         }
     else:  # microsoft_teams
         payload = {
             "@type": "MessageCard",
             "@context": "http://schema.org/extensions",
-            "summary": "TestwrightAI Test Bildirimi",
+            "summary": "Neurex Test Bildirimi",
             "themeColor": "0076D7",
-            "title": "TestwrightAI Test Bildirimi",
+            "title": "Neurex Test Bildirimi",
             "text": f"✅ **{project_name}** projesi için entegrasyon testi başarılı."
         }
 
@@ -3402,7 +3402,7 @@ def wizard_analyze(project_id: str, body: dict, db: DB, user: CurrentUser):
             )
 
         results["bdd_scenarios"] = bdd_from_gateway
-        results["ai_provider"] = "nexusqa-gateway"
+        results["ai_provider"] = "neurex-gateway"
         results["analysis_summary"] = {
             "modules": len(modules),
             "critical_flows": analysis.get("critical_flows", []),
@@ -3985,11 +3985,11 @@ def _fallback_automation(scenarios: list[dict], project_name: str) -> dict:
 
 
 # ═══════════════════════════════════════════════════════════════════════
-# NexusQA Otomasyon — Lokator + Feature Üretimi
+# Neurex Otomasyon — Lokator + Feature Üretimi
 # ═══════════════════════════════════════════════════════════════════════
 
-NEXUSQA_STEP_DEFS = """
-NexusQA adım tanımları (Java/Selenium/Cucumber):
+NEUREX_STEP_DEFS = """
+Neurex adım tanımları (Java/Selenium/Cucumber):
 - Given I open the application url "URL"
 - When I click on "LocatorKey"
 - When I double click on "LocatorKey"
@@ -4471,13 +4471,13 @@ def _extract_value_hint(step_text: str) -> str | None:
 
 
 @router.post("/projects/{project_id}/wizard/generate-maviyaka")
-def wizard_generate_nexusqa(project_id: str, body: dict, db: DB, user: CurrentUser):
-    """NexusQA formatında Cucumber feature dosyaları üretir."""
+def wizard_generate_neurex(project_id: str, body: dict, db: DB, user: CurrentUser):
+    """Neurex formatında Cucumber feature dosyaları üretir."""
     project = _get_project(db, project_id, user)
 
     scenario_ids: list[str] = body.get("scenario_ids", [])
     url: str = body.get("url", "")
-    domain: str = body.get("domain", "hrnexusqa")
+    domain: str = body.get("domain", "hrneurex")
     locators: list[dict] = body.get("locators", [])
 
     # Senaryoları DB'den çek
@@ -4498,7 +4498,7 @@ def wizard_generate_nexusqa(project_id: str, body: dict, db: DB, user: CurrentUs
     locator_keys = [l.get("key", "") for l in locators if l.get("key")]
     locator_list_str = "\n".join(f"- {l['key']} ({l.get('type','?')}={l.get('value','?')})" for l in locators[:30])
 
-    # AI ile NexusQA feature dosyaları üret
+    # AI ile Neurex feature dosyaları üret
     try:
         from app.domains.ai.service import call_llm
         import json as _json
@@ -4513,9 +4513,9 @@ def wizard_generate_nexusqa(project_id: str, body: dict, db: DB, user: CurrentUs
                 for s in sc["steps"]
             ) or f"(adım tanımlı değil)"
 
-            prompt = f"""Aşağıdaki test senaryosunu NexusQA Cucumber feature dosyasına çevir.
+            prompt = f"""Aşağıdaki test senaryosunu Neurex Cucumber feature dosyasına çevir.
 
-{NEXUSQA_STEP_DEFS}
+{NEUREX_STEP_DEFS}
 
 Mevcut lokator listesi:
 {locator_list_str or "(lokator tanımlı değil)"}
@@ -4529,14 +4529,14 @@ Adımlar:
 {steps_txt}
 
 KURALLAR:
-1. Yalnızca yukarıdaki NexusQA adım tanımlarını kullan
+1. Yalnızca yukarıdaki Neurex adım tanımlarını kullan
 2. Lokator adları olarak mevcut lokator listesindeki KEY değerlerini kullan (yoksa uygun Türkçe/İngilizce PascalCase isim koy)
 3. Test verisini @dataKey şeklinde referansla; data_json nesnesine de ekle
 4. Doğrudan JSON döndür: {{"title": "...", "content": "Feature: ...\\n  Scenario: ...\\n    ...", "data_json": {{"key": "value"}}}}
 5. JSON dışında hiçbir şey yazma"""
 
             raw = call_llm(
-                "Sen NexusQA Cucumber uzmanısın. JSON çıktısı ver.",
+                "Sen Neurex Cucumber uzmanısın. JSON çıktısı ver.",
                 prompt,
                 json_mode=True,
             )
@@ -4935,7 +4935,7 @@ def _json_compact(obj: Any) -> str:
 
 @router.post("/projects/{project_id}/wizard/crawl-locators")
 def wizard_crawl_locators(project_id: str, body: dict, db: DB, user: CurrentUser):
-    """Hedef URL'yi Playwright ile tarar, NexusQA lokator JSON üretir."""
+    """Hedef URL'yi Playwright ile tarar, Neurex lokator JSON üretir."""
     _get_project(db, project_id, user)
     url: str = body.get("url", "")
     if not url:
@@ -5074,7 +5074,7 @@ def wizard_crawl_locators(project_id: str, body: dict, db: DB, user: CurrentUser
             from app.domains.ai.service import call_llm
             import json as _json
             ai_raw = call_llm(
-                "Sen NexusQA Selenium lokator uzmanısın. Yalnızca JSON döndür.",
+                "Sen Neurex Selenium lokator uzmanısın. Yalnızca JSON döndür.",
                 f"""Hedef URL: {url}
 Domain/Uygulama: {body.get('domain', 'web')}
 
@@ -5518,7 +5518,7 @@ def wizard_suggest_locator(project_id: str, body: dict, db: DB, user: CurrentUse
         from app.domains.ai.service import call_llm
         import json as _json
         raw = call_llm(
-            "Sen NexusQA Selenium lokator uzmanısın. JSON döndür.",
+            "Sen Neurex Selenium lokator uzmanısın. JSON döndür.",
             f""""{key}" isimli lokator için uygun Selenium lokator öner.
 URL: {url}
 Domain: {domain}
@@ -5558,14 +5558,14 @@ def save_locator(project_id: str, body: dict, db: DB, user: CurrentUser):
         return {"saved": True, "note": "engine unavailable, skipped"}
 
 
-@router.post("/projects/{project_id}/wizard/run-nexusqa")
+@router.post("/projects/{project_id}/wizard/run-neurex")
 @router.post("/projects/{project_id}/wizard/run-maviyaka")
-def wizard_run_nexusqa(project_id: str, body: dict, db: DB, user: CurrentUser):
-    """NexusQA feature dosyalarını Python Playwright engine ile çalıştırır."""
+def wizard_run_neurex(project_id: str, body: dict, db: DB, user: CurrentUser):
+    """Neurex feature dosyalarını Python Playwright engine ile çalıştırır."""
     _get_project(db, project_id, user)
     try:
         resp = httpx.post(
-            f"{ENGINE_BASE_URL}/api/wizard/run-nexusqa",
+            f"{ENGINE_BASE_URL}/api/wizard/run-neurex",
             json=body,
             headers=_IKEY,
             timeout=300.0,
@@ -6403,7 +6403,7 @@ def generate_automation_code(
     user: CurrentUser,
 ):
     """
-    Onaylı test case'lerden Gherkin + Java NexusQA + Playwright TS kodu üretir.
+    Onaylı test case'lerden Gherkin + Java Neurex + Playwright TS kodu üretir.
 
     Kaynak önceliği:
       1. body.test_case_ids liste verilmişse → bunları kullan
@@ -6414,21 +6414,27 @@ def generate_automation_code(
 
     # Resolve which test cases to use
     if body.test_case_ids:
-        raw_cases = db.query(TspmTestCase).filter(
-            TspmTestCase.project_id == project_id,
-            TspmTestCase.id.in_(body.test_case_ids),
-        ).all()
+        raw_cases = db.execute(
+            select(TspmTestCase).where(
+                TspmTestCase.project_id == project_id,
+                TspmTestCase.id.in_(body.test_case_ids),
+            )
+        ).scalars().all()
     elif body.batch_id:
-        raw_cases = db.query(TspmTestCase).filter(
-            TspmTestCase.project_id == project_id,
-            TspmTestCase.batch_id == body.batch_id,
-            TspmTestCase.review_status == "approved",
-        ).all()
+        raw_cases = db.execute(
+            select(TspmTestCase).where(
+                TspmTestCase.project_id == project_id,
+                TspmTestCase.batch_id == body.batch_id,
+                TspmTestCase.review_status == "approved",
+            )
+        ).scalars().all()
     else:
-        raw_cases = db.query(TspmTestCase).filter(
-            TspmTestCase.project_id == project_id,
-            TspmTestCase.review_status == "approved",
-        ).limit(20).all()
+        raw_cases = db.execute(
+            select(TspmTestCase).where(
+                TspmTestCase.project_id == project_id,
+                TspmTestCase.review_status == "approved",
+            ).limit(20)
+        ).scalars().all()
 
     if not raw_cases:
         raise HTTPException(400, "Kullanılabilir onaylı test case bulunamadı")
@@ -6987,13 +6993,13 @@ def get_run_status(
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# Visium Farm — Mobil Koşum Endpoints
+# Neurex Farm — Mobil Koşum Endpoints
 # ═══════════════════════════════════════════════════════════════════════════════
 
 @router.post(
     "/projects/{project_id}/mobile-run",
     response_model=MobileRunOut,
-    summary="Visium Farm: Paralel mobil cihaz koşumu başlat",
+    summary="Neurex Farm: Paralel mobil cihaz koşumu başlat",
     status_code=202,
 )
 def start_mobile_run(
@@ -7024,7 +7030,7 @@ def start_mobile_run(
 
 @router.get(
     "/projects/{project_id}/mobile-run/{run_id}/stream",
-    summary="Visium Farm: SSE canlı mobil test akışı",
+    summary="Neurex Farm: SSE canlı mobil test akışı",
     response_class=StreamingResponse,
 )
 def stream_mobile_run(

@@ -26,9 +26,9 @@ def resolve_handles_to_users(db: Session, handles: Iterable[str]) -> list[User]:
     if not handles:
         return []
     # email LIKE handle@%   (case-insensitive)
-    from sqlalchemy import or_, func
+    from sqlalchemy import or_, func, select
     conds = [func.lower(User.email).like(f"{h}@%") for h in handles]
-    return list(db.query(User).filter(or_(*conds)).all())
+    return list(db.execute(select(User).where(or_(*conds))).scalars().all())
 
 
 def parse_and_resolve(db: Session, body: str) -> list[User]:

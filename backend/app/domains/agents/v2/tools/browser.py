@@ -53,7 +53,7 @@ class BrowserSession:
         self.headless = headless
         self.browser_type = browser_type
         self.viewport = viewport or {"width": 1280, "height": 800}
-        self.user_agent = user_agent or "TestwrightAI-Explorer/1.0"
+        self.user_agent = user_agent or "Neurex-Explorer/1.0"
         self.url_allowlist = url_allowlist or []
         self.default_timeout_ms = default_timeout_ms
         self._pw = None

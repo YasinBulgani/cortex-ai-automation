@@ -12,6 +12,7 @@ import { CommandPalette } from "@/components/CommandPalette";
 import { HelpWidget } from "@/components/HelpWidget";
 import { PageFeedbackWidget } from "@/components/PageFeedbackWidget";
 import { ProjectProvider, useProject } from "@/lib/useProject";
+import { ModuleOrchestratorProvider } from "./_components/module-orchestrator/ModuleOrchestratorProvider";
 
 function DashboardInner({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -100,10 +101,12 @@ export default function DashboardLayout({
       <ToastProvider>
         <ConfirmProvider>
           <ErrorBoundary>
-            <DashboardInner>{children}</DashboardInner>
-            <CommandPalette />
-            <HelpWidget />
-            <PageFeedbackWidget />
+            <ModuleOrchestratorProvider>
+              <DashboardInner>{children}</DashboardInner>
+              <CommandPalette />
+              <HelpWidget />
+              <PageFeedbackWidget />
+            </ModuleOrchestratorProvider>
           </ErrorBoundary>
         </ConfirmProvider>
       </ToastProvider>

@@ -154,7 +154,7 @@ class GitHubClient:
             "Authorization": self.auth.get_auth_header(),
             "Accept": "application/vnd.github+json",
             "X-GitHub-Api-Version": "2022-11-28",
-            "User-Agent": "TestwrightAI-SelfHealing/1.0",
+            "User-Agent": "Neurex-SelfHealing/1.0",
         }
 
     def _url(self, path: str) -> str:
@@ -221,6 +221,38 @@ class GitHubClient:
             },
         )
 
+    def verify_repository_access(self) -> bool:
+        """Repo'nun erişilebilir ve owner'ın doğru olduğunu doğrula."""
+        url = f"{GITHUB_API}/repos/{self.owner}/{self.repo}"
+        assert self.transport is not None
+        try:
+            resp = self.transport.request(
+                "GET",
+                url,
+                headers=self._headers(),
+            )
+            if resp.status_code == 404:
+                raise GitHubError(
+                    f"Repo bulunamadı veya erişim yok: {self.owner}/{self.repo}",
+                    status_code=404,
+                )
+            if resp.status_code == 403:
+                raise GitHubError(
+                    f"Repo'ya yazma izni yok: {self.owner}/{self.repo}",
+                    status_code=403,
+                )
+            repo_data = resp.body if isinstance(resp.body, dict) else {}
+            # Sadece fork olmayan veya izin verilen repo'lara PR aç
+            if repo_data.get("archived"):
+                raise GitHubError(
+                    f"Repo arşivlenmiş, PR açılamaz: {self.owner}/{self.repo}"
+                )
+            return True
+        except GitHubError:
+            raise
+        except Exception as e:
+            raise GitHubError(f"Repo doğrulaması başarısız: {e}") from e
+
     def open_pull_request(
         self,
         *,
@@ -230,6 +262,7 @@ class GitHubClient:
         body: str = "",
         draft: bool = False,
     ) -> PullRequestResult:
+        self.verify_repository_access()  # Ownership check
         resp = self._req(
             "POST",
             "/pulls",
@@ -244,3 +277,44 @@ class GitHubClient:
         number = int(resp.body.get("number") or 0)
         url = str(resp.body.get("html_url") or "")
         return PullRequestResult(number=number, html_url=url, head_ref=head, draft=draft)
+
+    def close_pull_request(self, pr_number: int, comment: str = "") -> bool:
+        """PR'ı kapat (PATCH state=closed)."""
+        try:
+            if comment:
+                self._req(
+                    "POST",
+                    f"/issues/{pr_number}/comments",
+                    json={"body": comment},
+                )
+            resp = self._req("PATCH", f"/pulls/{pr_number}", json={"state": "closed"})
+            return resp.status_code == 200
+        except GitHubError as exc:
+            logger.warning("[github] PR kapatılamadı #%d: %s", pr_number, exc)
+            return False
+
+    def get_pr_status(self, pr_number: int) -> dict:
+        """PR'ın mevcut durumunu döner."""
+        try:
+            resp = self._req("GET", f"/pulls/{pr_number}")
+            data = resp.body if isinstance(resp.body, dict) else {}
+            return {
+                "state": data.get("state", "unknown"),
+                "merged": data.get("merged", False),
+                "mergeable": data.get("mergeable"),
+                "title": data.get("title", ""),
+            }
+        except GitHubError as exc:
+            logger.warning("[github] PR durumu alınamadı #%d: %s", pr_number, exc)
+            return {"state": "error", "merged": False}
+
+    def delete_branch(self, branch_name: str) -> bool:
+        """Branch'i sil (PR merge sonrası temizlik)."""
+        assert self.transport is not None
+        url = f"{GITHUB_API}/repos/{self.owner}/{self.repo}/git/refs/heads/{branch_name}"
+        try:
+            resp = self.transport.request("DELETE", url, headers=self._headers())
+            return resp.status_code in (204, 200)
+        except Exception as exc:
+            logger.warning("[github] branch silinemedi %s: %s", branch_name, exc)
+            return False

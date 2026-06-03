@@ -1,12 +1,14 @@
-from typing import Annotated, Optional
+from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, Request, status
 from redis import Redis
 from rq import Queue
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.config import settings
+from app.core.error_messages import AppError
+from app.core.utils import client_ip
 from app.deps import get_current_user
 from app.domains.audit.service import log_audit
 from app.domains.jobs.schemas import (
@@ -24,12 +26,6 @@ router = APIRouter(prefix="/jobs", tags=["jobs"])
 
 def _queue() -> Queue:
     return Queue(settings.rq_queue_name, connection=Redis.from_url(settings.redis_url))
-
-
-def _client_ip(request: Request) -> Optional[str]:
-    if request.client:
-        return request.client.host
-    return None
 
 
 @router.get("", response_model=list[GenerationJobOut])
@@ -55,11 +51,11 @@ def enqueue_job(
     """Yeni arka plan isini kuyruga ekler."""
     ver = db.get(DatasetVersion, body.dataset_version_id)
     if ver is None:
-        raise HTTPException(status_code=404, detail="Veri seti sürümü bulunamadı")
+        raise AppError("job.dataset_version_not_found")
     if body.rule_set_id:
         rs = db.get(RuleSet, body.rule_set_id)
         if rs is None or rs.dataset_id != ver.dataset_id:
-            raise HTTPException(status_code=400, detail="Kural seti bu veri setine ait değil")
+            raise AppError("job.rule_set_mismatch")
     job = GenerationJob(
         dataset_version_id=body.dataset_version_id,
         rule_set_id=body.rule_set_id,
@@ -77,7 +73,7 @@ def enqueue_job(
         resource_type="generation_job",
         resource_id=job.id,
         payload={"rq_job_id": job.rq_job_id},
-        ip=_client_ip(request),
+        ip=client_ip(request),
     )
     db.commit()
     db.refresh(job)
@@ -93,7 +89,7 @@ def get_job(
     """Is detayini ve durumunu getirir."""
     job = db.get(GenerationJob, job_id)
     if job is None:
-        raise HTTPException(status_code=404, detail="İş bulunamadı")
+        raise AppError("job.not_found")
     return job
 
 
@@ -105,7 +101,7 @@ def list_events(
 ) -> list[JobEvent]:
     """Ise ait olay kayitlarini listeler."""
     if db.get(GenerationJob, job_id) is None:
-        raise HTTPException(status_code=404, detail="İş bulunamadı")
+        raise AppError("job.not_found")
     return list(
         db.scalars(
             select(JobEvent).where(JobEvent.job_id == job_id).order_by(JobEvent.ts.asc())
@@ -121,7 +117,7 @@ def list_job_artifacts(
 ):
     """Ise bagli artifact dosyalarini listeler."""
     if db.get(GenerationJob, job_id) is None:
-        raise HTTPException(status_code=404, detail="İş bulunamadı")
+        raise AppError("job.not_found")
     arts = db.scalars(select(Artifact).where(Artifact.job_id == job_id)).all()
     return [
         ArtifactOut(

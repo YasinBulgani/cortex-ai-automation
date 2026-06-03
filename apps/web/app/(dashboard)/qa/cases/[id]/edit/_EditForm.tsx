@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { apiFetch } from "@/lib/api-client";
 
 type TC = {
   id: string;
@@ -28,11 +29,7 @@ export default function EditForm({ tcId }: { tcId: string }) {
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
-    fetch(`/api/v1/qa/cases/${tcId}`)
-      .then((r) => {
-        if (!r.ok) throw new Error(`HTTP ${r.status}`);
-        return r.json();
-      })
+    apiFetch<TC>(`/api/v1/qa/cases/${tcId}`)
       .then((data) => setTc(data))
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));

@@ -25,6 +25,7 @@ from pathlib import Path
 from typing import Optional
 from urllib.parse import urlparse, urlunparse
 
+from sqlalchemy import select, update
 from sqlalchemy.orm import Session
 
 from app.config import settings
@@ -269,7 +270,9 @@ def run_crawl_job(job_id: str) -> None:
     tmp_dir: Optional[str] = None
 
     try:
-        job: Optional[NexusCrawlJob] = db.query(NexusCrawlJob).filter(NexusCrawlJob.id == job_id).first()
+        job: Optional[NexusCrawlJob] = db.execute(
+            select(NexusCrawlJob).where(NexusCrawlJob.id == job_id)
+        ).scalars().first()
         if not job:
             _log.error("CrawlJob bulunamadı: %s", job_id)
             return
@@ -391,10 +394,14 @@ def run_crawl_job(job_id: str) -> None:
 
                 if summary:
                     # İlgili NexusFile kaydını güncelle
-                    db.query(NexusFile).filter(
-                        NexusFile.crawl_job_id == job.id,
-                        NexusFile.path == rel_path,
-                    ).update({"summary": summary})
+                    db.execute(
+                        update(NexusFile)
+                        .where(
+                            NexusFile.crawl_job_id == job.id,
+                            NexusFile.path == rel_path,
+                        )
+                        .values(summary=summary)
+                    )
                     summarized += 1
 
                 # LLM log

@@ -9,7 +9,6 @@ import {
   useCommitImportJob,
   exportManagementRepository,
 } from "@/lib/hooks/use-management";
-import { ManagementPanel, ManagementShell, ManagementStat } from "../_components/ManagementShell";
 
 type ColumnKey =
   | "case_key"
@@ -160,7 +159,7 @@ function ImportJobDetailPanel({
   };
 
   return (
-    <ManagementPanel title={`Import Preview: ${job.filename}`}>
+    <section className="rounded-xl border border-white/[0.06] bg-[#0d1221] p-5">
       <div className="mb-5 grid gap-3 md:grid-cols-4">
         <div className="rounded-lg border border-slate-800 bg-slate-950 p-3">
           <p className="text-xs uppercase text-slate-500">Dry-run checked</p>
@@ -257,7 +256,7 @@ function ImportJobDetailPanel({
           <span className="text-sm text-emerald-400">✓ Commit tamamlandı</span>
         )}
       </div>
-    </ManagementPanel>
+    </section>
   );
 }
 
@@ -579,49 +578,39 @@ export default function ManagementImportExportPage({
 
   if (selectedJobId) {
     return (
-      <ManagementShell
-        projectId={projectId}
-        title="Import Preview"
-        description="Satır bazlı validation, conflict preview ve commit akışı."
-        active="management/import-export"
-      >
+    <div className="min-h-full bg-[#0a0f1e] px-5 py-5 space-y-5">
         <ImportJobDetailPanel
           jobId={selectedJobId}
           projectId={projectId}
           onClose={() => setSelectedJobId(null)}
         />
-      </ManagementShell>
+      </div>
     );
   }
 
   return (
-    <ManagementShell
-      projectId={projectId}
-      title="Import / Export"
-      description="Excel/CSV staging, satır bazlı validation, duplicate/conflict preview ve repository export akışı."
-      active="management/import-export"
-    >
+    <div className="min-h-full bg-[#0a0f1e] px-5 py-5 space-y-5">
       {/* Stats */}
       <div className="grid gap-4 md:grid-cols-3">
-        <ManagementStat
-          label="Import Jobs"
-          value={String(jobs.length)}
-          note={`${pendingJobs} preview bekliyor`}
-        />
-        <ManagementStat
-          label="Committed"
-          value={String(committedJobs)}
-          note="repository'ye yazıldı"
-        />
-        <ManagementStat
-          label="Formats"
-          value="XLSX / CSV"
-          note={`${failedJobs} failed job`}
-        />
+        <div className="rounded-xl border border-white/[0.06] bg-[#0d1221] px-4 py-3">
+          <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-600">Import Jobs</p>
+          <p className="mt-1.5 text-2xl font-bold text-slate-100 tabular-nums">{String(jobs.length)}</p>
+          <p className="mt-0.5 text-[11px] text-slate-600">{pendingJobs} preview bekliyor</p>
+        </div>
+        <div className="rounded-xl border border-white/[0.06] bg-[#0d1221] px-4 py-3">
+          <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-600">Committed</p>
+          <p className="mt-1.5 text-2xl font-bold text-slate-100 tabular-nums">{String(committedJobs)}</p>
+          <p className="mt-0.5 text-[11px] text-slate-600">repository'ye yazıldı</p>
+        </div>
+        <div className="rounded-xl border border-white/[0.06] bg-[#0d1221] px-4 py-3">
+          <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-600">Formats</p>
+          <p className="mt-1.5 text-2xl font-bold text-slate-100 tabular-nums">XLSX / CSV</p>
+          <p className="mt-0.5 text-[11px] text-slate-600">{failedJobs} failed job</p>
+        </div>
       </div>
 
       <div className="mt-6 grid gap-4 lg:grid-cols-[1.4fr_0.8fr]">
-        <ManagementPanel title="Template">
+        <section className="rounded-xl border border-white/[0.06] bg-[#0d1221] p-5">
           <div className="grid gap-4 md:grid-cols-[1fr_auto] md:items-center">
             <div>
               <p className="text-sm text-slate-300">Excel/CSV şablonu</p>
@@ -643,9 +632,9 @@ export default function ManagementImportExportPage({
               Template CSV
             </button>
           </div>
-        </ManagementPanel>
+        </section>
 
-        <ManagementPanel title="Export">
+        <section className="rounded-xl border border-white/[0.06] bg-[#0d1221] p-5">
           <div className="flex h-full flex-col justify-between gap-4">
             <p className="text-sm text-slate-400">
               Repository snapshot JSON olarak indirilir; import preview ve mapping ayarları backend job akışında kalır.
@@ -658,12 +647,12 @@ export default function ManagementImportExportPage({
               {exporting ? "Export hazırlanıyor…" : "Repository Export"}
             </button>
           </div>
-        </ManagementPanel>
+        </section>
       </div>
 
       {/* Upload zone */}
       <div className="mt-6 grid gap-4 xl:grid-cols-[0.95fr_1.45fr]">
-        <ManagementPanel title="Yeni İçe Aktarma">
+        <section className="rounded-xl border border-white/[0.06] bg-[#0d1221] p-5">
           <div
             onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
             onDragLeave={() => setDragOver(false)}
@@ -694,9 +683,9 @@ export default function ManagementImportExportPage({
               Dosya önce staging alanına alınır; mapping ve dry-run kontrolünden sonra import job oluşturulur.
             </p>
           </div>
-        </ManagementPanel>
+        </section>
 
-        <ManagementPanel title="Column Mapping & Dry-run">
+        <section className="rounded-xl border border-white/[0.06] bg-[#0d1221] p-5">
           {!stagedImport ? (
             <div className="flex min-h-56 items-center justify-center rounded-lg border border-slate-800 bg-slate-950 px-6 text-center">
               <div>
@@ -914,12 +903,12 @@ export default function ManagementImportExportPage({
               </div>
             </div>
           )}
-        </ManagementPanel>
+        </section>
       </div>
 
       {/* Job list */}
       <div className="mt-6">
-        <ManagementPanel title="Import Geçmişi">
+        <section className="rounded-xl border border-white/[0.06] bg-[#0d1221] p-5">
           {recentJobs.length > 0 && (
             <div className="mb-4 grid gap-2 md:grid-cols-5">
               {recentJobs.map((job) => (
@@ -984,8 +973,8 @@ export default function ManagementImportExportPage({
               </table>
             </div>
           )}
-        </ManagementPanel>
+        </section>
       </div>
-    </ManagementShell>
+    </div>
   );
 }

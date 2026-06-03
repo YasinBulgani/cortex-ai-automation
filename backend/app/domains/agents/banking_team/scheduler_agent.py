@@ -105,7 +105,7 @@ def _auto_collect_input() -> dict:
 
     # Fallback: minimal input
     return {
-        "description": "TestwrightAI bankacılık test platformu",
+        "description": "Neurex bankacılık test platformu",
         "regulations": ["BDDK", "PCI-DSS", "MASAK", "KYC", "KVKK"],
     }
 

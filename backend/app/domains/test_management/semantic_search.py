@@ -27,6 +27,7 @@ import time
 from dataclasses import dataclass
 from typing import Any
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.domains.test_management.models import TestCase
@@ -135,11 +136,13 @@ def find_similar_cases(
 
     # 1. Load active cases for the project
     cases: list[TestCase] = (
-        db.query(TestCase)
-        .filter(
-            TestCase.project_id == project_id,
-            TestCase.archived == False,  # noqa: E712
+        db.execute(
+            select(TestCase).where(
+                TestCase.project_id == project_id,
+                TestCase.archived == False,  # noqa: E712
+            )
         )
+        .scalars()
         .all()
     )
 

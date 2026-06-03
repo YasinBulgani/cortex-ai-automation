@@ -5,14 +5,14 @@ import os
 import secrets
 from functools import lru_cache
 
-from pydantic import model_validator
+from pydantic import ValidationInfo, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 _logger = logging.getLogger(__name__)
 
 _INSECURE_JWT_DEFAULT = "change-me-in-production-use-long-random-secret"
 _INSECURE_ENGINE_KEY_DEFAULT = "bgts-internal-key-change-me"
-_INSECURE_GATEWAY_KEY_DEFAULT = "nexusqa-gateway-internal-key-change-me"
+_INSECURE_GATEWAY_KEY_DEFAULT = "neurex-gateway-internal-key-change-me"
 _INSECURE_DATABASE_MARKERS = (
     "localhost",
     "127.0.0.1",
@@ -38,7 +38,7 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
-    app_name: str = "Sentetik Veri Platformu"
+    app_name: str = "Neurex"
     app_env: str = "development"
     debug: bool = False
     testing: bool = False
@@ -81,13 +81,8 @@ class Settings(BaseSettings):
     ai_rq_queue_name: str = "ai_workflows"
     agents_v2_queue_backend: str = "auto"  # auto | rq | background
 
-    cors_origins: str = (
-        "http://127.0.0.1:3000,http://localhost:3000,"
-        "http://127.0.0.1:3001,http://localhost:3001,"
-        "http://127.0.0.1:3100,http://localhost:3100,"
-        "http://127.0.0.1:3417,http://localhost:3417,"
-        "http://127.0.0.1:5173,http://localhost:5173"
-    )
+    # Production için CORS_ORIGINS env var'ı set edin
+    cors_origins: str = "http://localhost:3000,http://localhost:3001"
 
     openai_api_key: str = ""
     openai_base_url: str = "https://api.openai.com/v1"
@@ -110,10 +105,17 @@ class Settings(BaseSettings):
     # - quality_first   → tüm testler için PREMIUM (pahali; benchmark için)
     ai_routing_mode: str = "balanced"
 
-    anthropic_api_key: str = ""
-    anthropic_model: str = "claude-sonnet-4-20250514"
+    anthropic_api_key: str = ""   # deprecated — açık kaynak geçişte kullanılmaz
+    anthropic_model: str = "claude-sonnet-4-20250514"  # deprecated
 
-    ai_provider: str = "ollama"  # "openai" | "anthropic" | "ollama"
+    # ── Groq (açık ağırlıklı modeller — ücretsiz tier) ───────────────────
+    # Llama-3 / Mistral / Gemma modellerini ücretsiz bulut olarak çalıştırır.
+    # Key: console.groq.com → API Keys  |  Free: 30 req/dk, 14.400 token/dk
+    groq_api_key: str = ""
+    groq_base_url: str = "https://api.groq.com/openai/v1"
+    groq_model: str = "llama3-70b-8192"  # veya "mixtral-8x7b-32768", "gemma-7b-it"
+
+    ai_provider: str = "ollama"  # "ollama" | "groq" | "gateway"
     ai_max_context_messages: int = 20
     ai_prompt_registry_enabled: bool = True
     # Enterprise/self-hosted varsayılanı: müşteri verisi dış LLM endpoint'lerine gitmez.
@@ -146,7 +148,7 @@ class Settings(BaseSettings):
     # qwen2.5:32b → En iyi Turkce + JSON (analiz, senaryo, ogrenme)
     # mistral:latest → Hizli JSON karar (judge, regulation, otomasyon)
     # qwen2.5-coder:7b → Kod uretimi (Playwright, pytest, BDD)
-    ollama_model_analyst: str = "qwen2.5:32b"        # Veri analisti + senaryo uretici + self-improving
+    ollama_model_analyst: str = "qwen2.5:14b"        # Veri analisti + senaryo uretici + self-improving
     ollama_model_fast: str = "mistral:latest"         # Orkestrator + karar ajanlari (JSON native)
     ollama_model_coder: str = "qwen2.5-coder:7b"     # Playwright / pytest kod uretici
     ollama_model_chat: str = "mistral:latest"    # Chat icin hizli model (5-8x hizli)
@@ -155,7 +157,7 @@ class Settings(BaseSettings):
     n8n_base_url: str = "http://localhost:5678"
     n8n_api_key: str = ""
 
-    # ── Engine / NexusQA ─────────────────────────────────────────────
+    # ── Engine / Neurex ─────────────────────────────────────────────
     engine_base_url: str = "http://127.0.0.1:5001"
     # Engine'e yapilan internal istekler için paylasilan anahtar.
     # Production'da ENGINE_INTERNAL_KEY env degiskeni ile override edilmelidir.
@@ -194,13 +196,21 @@ class Settings(BaseSettings):
     stripe_cancel_url: str = "http://localhost:3000/admin/billing?status=cancel"
     stripe_portal_return_url: str = "http://localhost:3000/admin/billing"
 
+    # ── Slack / Teams / Push bildirimleri ─────────────────────────────
+    # Incoming Webhook URL'leri boşken ilgili kanal sessizce devre dışı kalır.
+    slack_webhook_url: str = ""
+    teams_webhook_url: str = ""
+    # Web push (pywebpush) — Push-v2 hazır olduğunda etkinleştirilecek
+    push_notifications_enabled: bool = False
+
     # ── Nexus Repo modülü ─────────────────────────────────────────────
     # Varsayılan kapalı — etkinleştirmek için NEXUS_REPO_ENABLED=true
     nexus_repo_enabled: bool = False
 
     # ── Rate Limiting ─────────────────────────────────────────────────
-    rate_limit_login: str = "5/minute"
-    rate_limit_register: str = "3/minute"
+    # Brute force koruması için düşük tutulmuştur
+    rate_limit_login: str = "3/minute"
+    rate_limit_register: str = "2/minute"
     rate_limit_default: str = "60/minute"
 
     # ── E-posta ────────────────────────────────────────────────────────
@@ -223,6 +233,21 @@ class Settings(BaseSettings):
     )
     ai_background_report_path: str = "./data/reports/ai_ops_latest.md"
 
+    # ── Bildirim Kanalları ────────────────────────────────────────
+    # Slack
+    slack_webhook_url: str = ""          # https://hooks.slack.com/services/...
+    slack_default_channel: str = "#notifications"
+    slack_bot_token: str = ""            # xoxb-... (bot API kullanımı için)
+
+    # Microsoft Teams
+    teams_webhook_url: str = ""          # https://outlook.office.com/webhook/...
+
+    # Web Push (VAPID)
+    push_notifications_enabled: bool = False
+    vapid_private_key: str = ""          # openssl ecparam -name prime256v1 -genkey -noout -out vapid_private.pem
+    vapid_public_key: str = ""           # Tarayıcıya gönderilen public key
+    vapid_claims_email: str = "admin@example.com"
+
     # ── Nexus AI Autopilot ────────────────────────────────────────────
     # Sıfır insan müdahalesi omurgası. Varsayılan kapalı başlar; manuel
     # endpoint'ler her zaman kullanılabilir. Ortam değişkeni ile açıldığında
@@ -233,6 +258,63 @@ class Settings(BaseSettings):
     nexus_autopilot_start_delay_seconds: int = 45
     nexus_autopilot_apply_safe_actions: bool = True
     nexus_autopilot_max_projects_per_tick: int = 20
+
+    # ── Field-level validators ─────────────────────────────────────────
+
+    @field_validator("secrets_encryption_keys")
+    @classmethod
+    def validate_fernet_keys(cls, v: str, info: ValidationInfo) -> str:
+        """SEC-003: Fernet encryption key production/staging'de zorunludur."""
+        data = info.data if hasattr(info, "data") else {}
+        app_env = (data.get("app_env") or "").strip().lower()
+        env_var = (os.environ.get("ENV") or os.environ.get("APP_ENV") or "").strip().lower()
+        effective_env = app_env or env_var
+        is_prod_like = effective_env in {"production", "prod", "staging"}
+        is_testing = data.get("testing", False) or data.get("ci", False)
+        if not v and is_prod_like and not is_testing:
+            raise ValueError(
+                "KRITIK: SECRETS_ENCRYPTION_KEYS production/staging ortaminda zorunludur. "
+                "Yeni anahtar uretmek icin: "
+                "python -c \"from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())\""
+            )
+        return v
+
+    @field_validator("email_backend")
+    @classmethod
+    def validate_email_backend(cls, v: str, info: ValidationInfo) -> str:
+        """SEC-010: Production/staging ortaminda console email backend kullanilamaz."""
+        if v == "console":
+            data = info.data if hasattr(info, "data") else {}
+            app_env = (data.get("app_env") or "").strip().lower()
+            env_var = (os.environ.get("ENV") or os.environ.get("APP_ENV") or "").strip().lower()
+            effective_env = app_env or env_var
+            is_prod_like = effective_env in {"production", "prod", "staging"}
+            is_testing = data.get("testing", False) or data.get("ci", False)
+            if is_prod_like and not is_testing:
+                raise ValueError(
+                    "KRITIK: EMAIL_BACKEND=console production/staging ortaminda kullanilamaz. "
+                    "EMAIL_BACKEND=smtp olarak ayarlayin ve SMTP sunucu bilgilerini girin."
+                )
+        return v
+
+    @field_validator("artifact_storage_backend")
+    @classmethod
+    def validate_artifact_storage_backend(cls, v: str, info: ValidationInfo) -> str:
+        """SEC-011: Production/staging'de local artifact storage multi-instance icin onerilmez."""
+        if v == "local":
+            data = info.data if hasattr(info, "data") else {}
+            app_env = (data.get("app_env") or "").strip().lower()
+            env_var = (os.environ.get("ENV") or os.environ.get("APP_ENV") or "").strip().lower()
+            effective_env = app_env or env_var
+            is_prod_like = effective_env in {"production", "prod", "staging"}
+            is_testing = data.get("testing", False) or data.get("ci", False)
+            if is_prod_like and not is_testing:
+                _logger.warning(
+                    "GUVENLIK UYARISI: ARTIFACT_STORAGE_BACKEND=local multi-instance "
+                    "production ortaminda veri kaybina yol acabilir. "
+                    "S3 uyumlu bir depolama kullanmaniz onerilir (ARTIFACT_STORAGE_BACKEND=s3)."
+                )
+        return v
 
     @model_validator(mode="after")
     def _validate_secrets(self) -> "Settings":

@@ -132,7 +132,7 @@ def _run_schedule_job(schedule_id: str):
                 sched.next_run_at = next_run
 
             if sched.platform and sched.device_name:
-                # ── Mobil koşum: Visium Farm ──────────────────────────────
+                # ── Mobil koşum: Neurex Farm ──────────────────────────────
                 db.commit()  # timestamps'i kaydet
                 logger.info("Schedule %s launching mobile run on %s (%s)",
                             schedule_id, sched.device_name, sched.platform)
