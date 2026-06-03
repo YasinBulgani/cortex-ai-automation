@@ -218,6 +218,24 @@ function CaseTable({
         <span className="rounded-full border border-border bg-surface-overlay px-2 py-0.5 text-[10px] font-medium tabular-nums text-fg-muted">
           {filtered.length}{hasFilter && `/${nodeCases.length}`}
         </span>
+        {/* Quick filters */}
+        {nodeCases.some(c => c.last_run_status === "failed") && (
+          <button type="button"
+            onClick={() => setStatus(status === "failed" ? "" : "failed")}
+            className={cn("rounded-full border px-2 py-0.5 text-[10px] font-medium transition-colors",
+              status === "failed" ? "bg-red-500/15 border-red-500/30 text-red-400" : "border-red-500/20 text-red-500/60 hover:text-red-400")}>
+            {nodeCases.filter(c => c.last_run_status === "failed").length} fail
+          </button>
+        )}
+        {nodeCases.some(c => c.last_run_status === "blocked") && (
+          <button type="button"
+            onClick={() => setStatus(status === "blocked" ? "" : "blocked")}
+            className={cn("rounded-full border px-2 py-0.5 text-[10px] font-medium transition-colors",
+              status === "blocked" ? "bg-amber-500/15 border-amber-500/30 text-amber-400" : "border-amber-500/20 text-amber-500/60 hover:text-amber-400")}>
+            {nodeCases.filter(c => c.last_run_status === "blocked").length} blk
+          </button>
+        )}
+
         <div className="flex-1" />
 
         {/* Search */}
