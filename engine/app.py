@@ -1,5 +1,5 @@
 """
-TestwrightAI Test Automation Engine — Flask backend
+Neurex Test Automation Engine — Flask backend
 Test altyapısını yönetmek için REST API + SSE ile gerçek zamanlı test çıktısı.
 
 Monorepo servisleri:
@@ -242,6 +242,8 @@ from routes.scheduler_routes import scheduler_bp
 from routes.webhook_routes import webhook_bp
 from routes.metrics_routes import metrics_bp
 from routes.visual_ai_routes import visual_ai_bp
+from routes.discovery_routes import discovery_bp
+from routes.rca_routes import rca_bp
 
 # mobile_routes bağımlılıkları opsiyonel (core.device_profiles repo'da olmayabilir).
 # Mobile blueprint'i yüklenemezse diğer servisleri bozmadan atlayalım.
@@ -271,7 +273,8 @@ for bp in [
     visual_bp, a11y_bp, recorder_bp, registry_bp, playback_bp, wizard_bp,
     ai_intel_bp, ai_gen_bp, ai_analysis_bp, ai_healing_bp, monkey_bp, llm_agent_bp,
     ai_openapi_bp, tm_bp, jira_bp, reporting_bp, banking_bp, magic_test_bp,
-    pipeline_bp, scheduler_bp, webhook_bp, metrics_bp, visual_ai_bp, *_optional_bps,
+    pipeline_bp, scheduler_bp, webhook_bp, metrics_bp, visual_ai_bp, discovery_bp,
+    rca_bp, *_optional_bps,
 ]:
     app.register_blueprint(bp)
 

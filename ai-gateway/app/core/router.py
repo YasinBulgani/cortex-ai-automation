@@ -14,7 +14,7 @@ from typing import Optional
 
 from app.core.config import settings
 from app.core.json_repair import repair_json_safe
-from app.core.models import AIRequest, AIResponse, ProviderAttempt, ProviderName
+from app.core.models import AIRequest, AIResponse, ProviderAttempt, ProviderName, TaskType, task_type_str
 from app.core.schema_contracts import SchemaContractError, validate_structured_contract
 from app.providers.base import BaseProvider
 from app.providers.groq_provider import GroqProvider
@@ -71,7 +71,7 @@ class AIRouter:
     def _cache_key(self, request: AIRequest) -> str:
         """İstek için deterministik cache key üret."""
         key_data = {
-            "task_type": request.task_type.value,
+            "task_type": task_type_str(request.task_type),
             "provider": request.provider.value,
             "model_override": request.model_override,
             "tenant_id": request.tenant_id,
@@ -336,16 +336,16 @@ class AIRouter:
         if not request.json_mode:
             return
         if request.task_type not in {
-            request.task_type.ANALYZE_DOCUMENT,
-            request.task_type.GENERATE_TEST_CASES,
-            request.task_type.SUGGEST_REGRESSION,
-            request.task_type.DEBUG_TEST,
+            TaskType.ANALYZE_DOCUMENT,
+            TaskType.GENERATE_TEST_CASES,
+            TaskType.SUGGEST_REGRESSION,
+            TaskType.DEBUG_TEST,
         }:
             return
         if request.schema_version is None:
             raise SchemaContractError(
                 kind="missing_contract",
-                task_type=request.task_type.value,
+                task_type=task_type_str(request.task_type),
                 detail="schema_version is required for structured gateway tasks.",
             )
 
@@ -360,13 +360,13 @@ class AIRouter:
         if all(error.startswith("schema_mismatch:") for error in errors):
             return SchemaContractError(
                 kind="schema_mismatch",
-                task_type=request.task_type.value,
+                task_type=task_type_str(request.task_type),
                 detail=errors[-1].split(":", 1)[1].strip(),
             )
         if all(error.startswith("invalid_json:") for error in errors):
             return SchemaContractError(
                 kind="invalid_json",
-                task_type=request.task_type.value,
+                task_type=task_type_str(request.task_type),
                 detail="All providers returned invalid JSON for a structured task.",
             )
         return None

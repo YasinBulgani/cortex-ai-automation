@@ -31,7 +31,7 @@ services:
     image: redis:7-alpine
     container_name: neurex_redis
     restart: unless-stopped
-    command: redis-server --requirepass ${REDIS_PASSWORD:?REDIS_PASSWORD env var zorunludur} --appendonly yes
+    command: redis-server --requirepass ${REDIS_PASSWORD:-neurex_dev_redis_2026} --appendonly yes
     ports:
       - "6379:6379"
     volumes:
@@ -53,7 +53,7 @@ services:
       - "8000:8000"
     environment:
       DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER:-neurex_user}:${POSTGRES_PASSWORD}@postgres:5432/syndata_db
-      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379/0
+      REDIS_URL: redis://:${REDIS_PASSWORD:-neurex_dev_redis_2026}@redis:6379/0
       ARTIFACTS_DIR: /app/data/artifacts
       AI_WORKFLOW_ARTIFACT_RETENTION_DAYS: "${AI_WORKFLOW_ARTIFACT_RETENTION_DAYS:-30}"
       AI_RQ_QUEUE_NAME: ai_workflows
@@ -102,9 +102,9 @@ services:
       redis:
         condition: service_healthy
       engine:
-        condition: service_healthy
+        condition: service_started   # service_healthy yerine service_started — engine opsiyonel
       ai-gateway:
-        condition: service_healthy
+        condition: service_started   # ai-gateway opsiyonel — ENGINE_REQUIRED_FOR_READY=false ile başlar
     healthcheck:
       test: ["CMD-SHELL", "curl -fsS http://localhost:8000/health || exit 1"]
       interval: 30s
@@ -124,7 +124,7 @@ services:
     command: ["sh", "-c", "rq worker -u $$REDIS_URL $$RQ_QUEUE_NAME"]
     environment:
       DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER:-neurex_user}:${POSTGRES_PASSWORD}@postgres:5432/syndata_db
-      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379/0
+      REDIS_URL: redis://:${REDIS_PASSWORD:-neurex_dev_redis_2026}@redis:6379/0
       ARTIFACTS_DIR: /app/data/artifacts
       RQ_QUEUE_NAME: syndata_jobs
       # Worker HTTP auth yapmıyor ama Settings model validator ayaklanırken
@@ -167,7 +167,7 @@ services:
     command: ["sh", "-c", "rq worker -u $$REDIS_URL $$AI_RQ_QUEUE_NAME"]
     environment:
       DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER:-neurex_user}:${POSTGRES_PASSWORD}@postgres:5432/syndata_db
-      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379/0
+      REDIS_URL: redis://:${REDIS_PASSWORD:-neurex_dev_redis_2026}@redis:6379/0
       ARTIFACTS_DIR: /app/data/artifacts
       AI_WORKFLOW_ARTIFACT_RETENTION_DAYS: "${AI_WORKFLOW_ARTIFACT_RETENTION_DAYS:-30}"
       AI_RQ_QUEUE_NAME: ai_workflows
@@ -232,7 +232,7 @@ services:
       HEADLESS: "true"
       BROWSER: chromium
       ENGINE_INTERNAL_KEY: ${ENGINE_INTERNAL_KEY:?ENGINE_INTERNAL_KEY env var must be set}
-      ENGINE_LLM_USE_GATEWAY: "${ENGINE_LLM_USE_GATEWAY:-0}"
+      ENGINE_LLM_USE_GATEWAY: "${ENGINE_LLM_USE_GATEWAY:-1}"
       ENGINE_LLM_ALLOW_DIRECT_PROVIDERS: "${ENGINE_LLM_ALLOW_DIRECT_PROVIDERS:-1}"
       AI_GATEWAY_BASE_URL: "http://ai-gateway:8080"
       GATEWAY_INTERNAL_KEY: ${GATEWAY_INTERNAL_KEY:?GATEWAY_INTERNAL_KEY env var must be set}
@@ -293,7 +293,7 @@ services:
       PORT: "8080"
       DEBUG: "false"
       INTERNAL_KEY: ${GATEWAY_INTERNAL_KEY:?GATEWAY_INTERNAL_KEY env var must be set}
-      REDIS_URL: "redis://:${REDIS_PASSWORD}@redis:6379/1"
+      REDIS_URL: "redis://:${REDIS_PASSWORD:-neurex_dev_redis_2026}@redis:6379/1"
       # AI sağlayıcı seçimi: "ollama" → Ollama primary; "auto" → vLLM→Groq→Gemini→Ollama
       AI_PROVIDER: "${AI_PROVIDER:-ollama}"
       AI_LOCAL_ONLY: "${AI_LOCAL_ONLY:-true}"

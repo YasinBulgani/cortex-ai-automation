@@ -5,7 +5,7 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
-from app.core.models import AIRequest, TaskType
+from app.core.models import AIRequest, TaskType, task_type_str
 
 
 class SchemaContractError(RuntimeError):
@@ -124,14 +124,14 @@ def validate_structured_contract(request: AIRequest, payload: dict[str, Any] | l
         if request.json_mode:
             raise SchemaContractError(
                 kind="missing_contract",
-                task_type=request.task_type.value,
+                task_type=task_type_str(request.task_type),
                 detail="Gateway contract is not defined for this JSON task.",
             )
         return payload
     if request.schema_version is None:
         raise SchemaContractError(
             kind="missing_contract",
-            task_type=request.task_type.value,
+            task_type=task_type_str(request.task_type),
             detail="schema_version is required for structured gateway tasks.",
         )
     try:
@@ -139,6 +139,6 @@ def validate_structured_contract(request: AIRequest, payload: dict[str, Any] | l
     except ValidationError as exc:
         raise SchemaContractError(
             kind="schema_mismatch",
-            task_type=request.task_type.value,
+            task_type=task_type_str(request.task_type),
             detail=str(exc),
         ) from exc

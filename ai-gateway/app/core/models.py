@@ -36,6 +36,16 @@ class TaskType(str, Enum):
     LLM_AGENT_SUMMARY = "llm_agent_summary"     # Executive özet (fast model)
 
 
+def task_type_str(task_type: "TaskType | str") -> str:
+    """task_type'ı (str veya TaskType enum) güvenli şekilde string değerine indirger.
+
+    AIRequest.task_type bilinçli olarak ``str`` tipindedir (rastgele backend
+    görevleri kabul edilir), bu yüzden router/contracts katmanında ``.value``
+    DOĞRUDAN ÇAĞRILAMAZ — bu helper hem str hem enum girdisini tolere eder.
+    """
+    return task_type.value if isinstance(task_type, TaskType) else str(task_type)
+
+
 class Message(BaseModel):
     role: str = Field(..., description="system | user | assistant")
     content: str = Field(..., description="Mesaj içeriği")

@@ -22,7 +22,7 @@ from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel, Field
 
 from app.core.config import settings
-from app.core.models import AIRequest, AIResponse, HealthResponse, ErrorResponse, ProviderName, TaskType
+from app.core.models import AIRequest, AIResponse, HealthResponse, ErrorResponse, ProviderName, TaskType, task_type_str
 from app.core.pipeline import run_pipeline, ALL_STEPS
 from app.core.router import ai_router
 from app.core.prompts import get_system_prompt
@@ -65,7 +65,7 @@ def _inject_model_override(request: AIRequest) -> AIRequest:
         return request
     first_provider = settings.PROVIDER_ORDER[0] if settings.PROVIDER_ORDER else None
     if settings.AI_PROVIDER.lower() == "ollama" or first_provider == "ollama":
-        model = settings.model_for_task(request.task_type.value)
+        model = settings.model_for_task(task_type_str(request.task_type))
         request = request.model_copy(update={"model_override": model})
     return request
 
