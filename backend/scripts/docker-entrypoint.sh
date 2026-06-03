@@ -14,7 +14,7 @@ if [ "${SKIP_APP_BOOTSTRAP:-}" != "1" ]; then
     sleep 1
   done
 
-  alembic upgrade head
+  alembic upgrade heads
   python scripts/seed.py
   if [ "${RUN_SEED_DEMO:-}" = "1" ] || [ "${RUN_SEED_DEMO:-}" = "true" ]; then
     python scripts/seed_demo.py
