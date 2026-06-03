@@ -7,6 +7,7 @@ import {
   useRequirementCatalog,
   useCreateRequirementCatalogItem,
   useCreateManagementRequirement,
+  useBulkCreateRequirements,
   useGenerateTestCases,
   type RequirementTraceabilityRow,
   type Requirement,
@@ -422,6 +423,8 @@ export default function ManagementRequirementsPage() {
   const createCatalogItem = useCreateRequirementCatalogItem(mpid || "");
   const createManagementReq = useCreateManagementRequirement(mpid || "");
   const generateCases = useGenerateTestCases(mpid || "");
+  const bulkCreateReqs = useBulkCreateRequirements(mpid || "");
+  const [csvImportMsg, setCsvImportMsg] = useState<string | null>(null);
 
   const [genForReq, setGenForReq] = useState<string | null>(null);
   const [genResult, setGenResult] = useState<{ req: Requirement; cases: import("@/lib/hooks/use-management").GeneratedCase[] } | null>(null);
@@ -594,6 +597,41 @@ export default function ManagementRequirementsPage() {
                 </button>
               ))}
             </div>
+            {/* CSV import button */}
+            <label className="flex cursor-pointer items-center gap-1.5 rounded border border-border px-3 py-1.5 text-[11px] font-medium text-fg-muted transition-colors hover:border-brand/40 hover:text-fg">
+              <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+              </svg>
+              CSV İçe Aktar
+              <input type="file" accept=".csv,.tsv" className="hidden" onChange={async e => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+                const text = await file.text();
+                const lines = text.split("\n").filter(l => l.trim());
+                const headers = lines[0].split(/[,\t]/).map(h => h.trim().toLowerCase());
+                const items = lines.slice(1).map(line => {
+                  const cells = line.split(/[,\t]/);
+                  const obj: Record<string, string> = {};
+                  headers.forEach((h, i) => { obj[h] = (cells[i] ?? "").trim().replace(/^"|"$/g, ""); });
+                  return obj;
+                }).filter(o => o.title || o.name || o["external_key"]);
+                const reqs = items.map(o => ({
+                  external_source: o["source"] || "csv_import",
+                  external_key: o["external_key"] || o["key"] || o["id"] || `CSV-${Math.random().toString(36).slice(2,7)}`,
+                  title: o["title"] || o["name"] || o["requirement"] || "İsimsiz Gereksinim",
+                  description: o["description"] || o["desc"] || undefined,
+                  priority: o["priority"] || "medium",
+                  status: o["status"] || "open",
+                  tags: o["tags"] ? o["tags"].split(";").map((t: string) => t.trim()) : [],
+                }));
+                if (reqs.length === 0) { setCsvImportMsg("Uygun satır bulunamadı"); return; }
+                const res = await bulkCreateReqs.mutateAsync(reqs);
+                setCsvImportMsg(`${res.created} gereksinim içe aktarıldı`);
+                setTimeout(() => setCsvImportMsg(null), 5000);
+                e.target.value = "";
+              }}/>
+            </label>
+
             {/* New requirement button */}
             <button
               onClick={() => setShowModal(true)}
@@ -1192,6 +1230,12 @@ export default function ManagementRequirementsPage() {
       )}
 
       {/* ── Toast ── */}
+      {csvImportMsg && (
+        <div className="fixed bottom-16 right-6 z-[60] rounded-lg border border-emerald-500/30 bg-surface-raised px-4 py-3 text-[12px] text-emerald-400 shadow-xl">
+          ✓ {csvImportMsg}
+        </div>
+      )}
+
       {toastMsg && (
         <div
           className={[

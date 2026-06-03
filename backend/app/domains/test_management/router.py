@@ -676,6 +676,26 @@ def create_requirement(
     return service.create_requirement(db, project_id, payload, user)
 
 
+@router.post(
+    "/projects/{project_id}/requirements/bulk",
+    summary="CSV veya JSON listeden toplu gereksinim oluştur",
+)
+def bulk_create_requirements(
+    project_id: str,
+    payload: list[RequirementCreate],
+    db: DB,
+    user: WriteUser,
+) -> dict:
+    created = 0
+    for req in payload[:200]:
+        try:
+            service.create_requirement(db, project_id, req, user)
+            created += 1
+        except Exception:
+            pass
+    return {"created": created, "total": len(payload)}
+
+
 @router.get("/projects/{project_id}/requirements", response_model=list[RequirementLinkOut])
 def list_requirement_links(
     project_id: str,

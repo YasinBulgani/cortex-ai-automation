@@ -1347,6 +1347,30 @@ export function useKiwiSyncJobs(projectId: string | undefined) {
   });
 }
 
+// ── Bulk Create Requirements ──────────────────────────────────────────────────
+
+export function useBulkCreateRequirements(projectId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (items: Array<{
+      external_source?: string;
+      external_key: string;
+      title: string;
+      description?: string;
+      priority?: string;
+      status?: string;
+      tags?: string[];
+    }>) =>
+      apiFetch<{ created: number; total: number }>(`${BASE(projectId)}/requirements/bulk`, {
+        method: "POST",
+        json: items,
+      }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: managementKeys.requirementCatalog(projectId) });
+    },
+  });
+}
+
 // ── Delete Plan ───────────────────────────────────────────────────────────────
 
 export function useDeleteManagementPlan(projectId: string) {
