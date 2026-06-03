@@ -1347,6 +1347,34 @@ export function useKiwiSyncJobs(projectId: string | undefined) {
   });
 }
 
+// ── Bulk Update Cases ─────────────────────────────────────────────────────────
+
+export interface BulkUpdateCasesInput {
+  case_ids: string[];
+  priority?: string;
+  type?: string;
+  status?: string;
+  suite_id?: string | null;
+  folder_id?: string | null;
+  tags_add?: string[];
+  tags_remove?: string[];
+}
+
+export function useBulkUpdateCases(projectId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: BulkUpdateCasesInput) =>
+      apiFetch<{ updated: number; failed: number }>(`${BASE(projectId)}/cases/bulk-update`, {
+        method: "POST",
+        json: payload,
+      }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: managementKeys.repository(projectId) });
+      void qc.invalidateQueries({ queryKey: managementKeys.cases(projectId) });
+    },
+  });
+}
+
 // ── AI Defect Root Cause ─────────────────────────────────────────────────────
 
 export interface DefectRootCauseResponse {

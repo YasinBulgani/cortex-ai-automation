@@ -93,6 +93,8 @@ from app.domains.test_management.schemas import (
     TestRunOut,
     StandupOut,
     TestCaseCloneRequest,
+    BulkUpdateCasesRequest,
+    BulkUpdateCasesResponse,
     DefectRootCauseRequest,
     DefectRootCauseResponse,
     TestCaseImproveRequest,
@@ -309,6 +311,38 @@ def generate_cases(project_id: str, payload: TestCaseGenerateRequest, db: DB, us
         return TestCaseGenerateResponse(cases=cases)
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Üretim hatası: {exc}") from exc
+
+
+@router.post(
+    "/projects/{project_id}/cases/bulk-update",
+    response_model=BulkUpdateCasesResponse,
+    summary="Toplu case güncelleme — priority/type/status/suite/folder/tag",
+)
+def bulk_update_cases(project_id: str, payload: BulkUpdateCasesRequest, db: DB, user: WriteUser) -> BulkUpdateCasesResponse:
+    updated = 0
+    failed  = 0
+    for case_id in payload.case_ids:
+        try:
+            patch: dict = {}
+            if payload.priority:   patch["priority"]  = payload.priority
+            if payload.type:       patch["type"]       = payload.type
+            if payload.status:     patch["status"]     = payload.status
+            if payload.suite_id:   patch["suite_id"]   = payload.suite_id
+            if payload.folder_id is not None:
+                patch["folder_id"] = payload.folder_id
+            if patch:
+                from app.domains.test_management.schemas import TestCaseUpdate
+                service.update_case(db, project_id, case_id, TestCaseUpdate(**patch), user)
+            if payload.tags_add or payload.tags_remove:
+                case = service.get_case(db, service.resolve_project_id(db, project_id), case_id)
+                tags = set(case.tags or [])
+                tags.update(payload.tags_add)
+                tags.difference_update(payload.tags_remove)
+                service.update_case(db, project_id, case_id, TestCaseUpdate(tags=list(tags)), user)
+            updated += 1
+        except Exception:
+            failed += 1
+    return BulkUpdateCasesResponse(updated=updated, failed=failed)
 
 
 @router.get(

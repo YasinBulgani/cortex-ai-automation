@@ -937,6 +937,22 @@ class ExpandCaseResponse(BaseModel):
 
 # ── AI Test Üretimi ───────────────────────────────────────────────────────────
 
+class BulkUpdateCasesRequest(BaseModel):
+    case_ids: list[str] = Field(..., min_items=1)
+    priority: Optional[str] = None
+    type: Optional[str] = None
+    status: Optional[str] = None
+    suite_id: Optional[str] = None
+    folder_id: Optional[str] = None
+    tags_add: list[str] = Field(default_factory=list)
+    tags_remove: list[str] = Field(default_factory=list)
+
+
+class BulkUpdateCasesResponse(BaseModel):
+    updated: int
+    failed: int = 0
+
+
 class TestCaseGenerateRequest(BaseModel):
     prompt: str = Field(..., min_length=5, max_length=2000, description="Test senaryosu üretmek için açıklama")
     count: int = Field(default=5, ge=1, le=20)

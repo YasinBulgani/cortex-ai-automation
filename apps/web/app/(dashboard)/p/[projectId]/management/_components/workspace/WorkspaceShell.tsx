@@ -17,6 +17,7 @@ import {
   useUpdateManagementFolder,
   usePromoteCases,
   useArchiveManagementCase,
+  useBulkUpdateCases,
   type TestCase, type TestSuite, type TestFolder,
 } from "@/lib/hooks/use-management";
 import { SuiteTree, type DragKind } from "./SuiteTree";
@@ -171,7 +172,7 @@ const SEL_CLS = "h-8 rounded-lg border border-border bg-surface-raised px-2.5 te
 function CaseTable({
   nodeName, nodeCases, loading, projectId,
   selId, onSelect, checked, onCheck, onClearChecked, onToggleAll,
-  onNewCase, onCreateRun, onPromote, onArchiveMany, onBulkMove, busy,
+  onNewCase, onCreateRun, onPromote, onArchiveMany, onBulkMove, onBulkUpdate, busy,
   suites, folders,
 }: {
   nodeName: string; nodeCases: TestCase[]; loading: boolean; projectId: string;
@@ -181,6 +182,7 @@ function CaseTable({
   onNewCase: () => void; onCreateRun: () => void;
   onPromote: () => void; onArchiveMany: () => void;
   onBulkMove: (caseId: string, suiteId: string, folderId: string | null) => Promise<void>;
+  onBulkUpdate: (payload: { case_ids: string[]; priority?: string; type?: string; status?: string }) => Promise<void>;
   busy: boolean;
   suites: TestSuite[];
   folders: TestFolder[];
@@ -265,6 +267,17 @@ function CaseTable({
             className="rounded border border-border px-2.5 py-1 text-[11px] text-fg-muted hover:text-fg disabled:opacity-40 transition-colors">
             Aktife Al
           </button>
+          {/* Bulk priority */}
+          <select disabled={busy} onChange={async e => {
+            if (!e.target.value) return;
+            await onBulkUpdate({ case_ids: [...checked], priority: e.target.value });
+            onClearChecked();
+            e.target.value = "";
+          }}
+            className="rounded border border-border bg-surface-raised px-2 py-1 text-[11px] text-fg-muted disabled:opacity-40 outline-none">
+            <option value="">Öncelik →</option>
+            {["P0","P1","P2","P3"].map(p => <option key={p} value={p}>{p}</option>)}
+          </select>
           {/* Bulk move: suite picker */}
           <select disabled={busy} onChange={async e => {
             if (!e.target.value) return;
@@ -426,6 +439,7 @@ export function WorkspaceShell({
   const updateFolder = useUpdateManagementFolder(mpid || "");
   const promote      = usePromoteCases(mpid || "");
   const archive      = useArchiveManagementCase(mpid || "");
+  const bulkUpdate   = useBulkUpdateCases(mpid || "");
 
   const [mode,           setMode]           = useState<"cases" | "runs">(initialMode);
   const [node,           setNode]           = useState<WsNode>({ type: "all" });
@@ -589,6 +603,9 @@ export function WorkspaceShell({
               onArchiveMany={onArchiveMany}
               onBulkMove={async (caseId, suiteId, folderId) => {
                 await moveCase.mutateAsync({ caseId, suite_id: suiteId, folder_id: folderId });
+              }}
+              onBulkUpdate={async payload => {
+                await bulkUpdate.mutateAsync(payload);
               }}
               busy={busy}
               suites={suites}
