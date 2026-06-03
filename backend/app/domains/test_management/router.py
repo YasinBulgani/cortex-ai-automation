@@ -261,6 +261,30 @@ def archive_case(project_id: str, case_id: str, db: DB, user: WriteUser) -> Test
     return service.archive_case(db, project_id, case_id, user)
 
 
+@router.patch(
+    "/projects/{project_id}/cases/{case_id}/move",
+    response_model=TestCaseOut,
+    summary="Case'i farklı suite/folder'a taşı",
+)
+def move_case(
+    project_id: str,
+    case_id: str,
+    payload: dict,
+    db: DB,
+    user: WriteUser,
+) -> TestCaseOut:
+    from app.domains.test_management.schemas import TestCaseUpdate
+    patch_data: dict = {}
+    if "suite_id" in payload:
+        patch_data["suite_id"] = payload["suite_id"]
+    if "folder_id" in payload:
+        patch_data["folder_id"] = payload["folder_id"]
+    try:
+        return service.update_case(db, project_id, case_id, TestCaseUpdate(**patch_data), user)
+    except (KeyError, ValueError) as exc:
+        raise HTTPException(status_code=404 if isinstance(exc, KeyError) else 400, detail=str(exc)) from exc
+
+
 @router.delete(
     "/projects/{project_id}/cases/{case_id}",
     status_code=status.HTTP_204_NO_CONTENT,
