@@ -144,6 +144,7 @@ const NAV_PRIMARY: NavItem[] = [
 
 const NAV_UTILITY: NavItem[] = [
   { label: "Import/Export", segment: "management/import-export", Icon: IcUpload },
+  { label: "Denetim İzi",   segment: "management/audit",         Icon: IcPulse  },
   { label: "Ayarlar",       segment: "management/settings",      Icon: IcGear   },
 ];
 
