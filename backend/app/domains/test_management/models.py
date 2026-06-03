@@ -292,6 +292,7 @@ class ReleaseSignoff(Base):
     id: Mapped[str] = mapped_column(UUID(as_uuid=False), primary_key=True, default=_uuid)
     project_id: Mapped[str] = mapped_column(UUID(as_uuid=False), ForeignKey("test_management_projects.id", ondelete="CASCADE"), nullable=False, index=True)
     release_name: Mapped[Optional[str]] = mapped_column(String(200), nullable=True)
+    role: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
     decision: Mapped[str] = mapped_column(String(32), nullable=False)
     status: Mapped[str] = mapped_column(String(32), default="signed", server_default="signed", nullable=False)
     comment: Mapped[Optional[str]] = mapped_column(Text, nullable=True)

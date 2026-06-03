@@ -8,6 +8,8 @@ import {
   useUpdateManagementCase,
   useArchiveManagementCase,
   useCloneManagementCase,
+  useImproveManagementCase,
+  type ImproveTestCaseResponse,
 } from "@/lib/hooks/use-management";
 import { P_BADGE, SB_BADGE, STATUS_LABEL_TR } from "./shared";
 import { CommentThread } from "../CommentThread";
@@ -27,7 +29,10 @@ export function CaseDetailDrawer({ caseId, pid, projectId, onClose }: {
   const update  = useUpdateManagementCase(pid);
   const archive = useArchiveManagementCase(pid);
   const clone   = useCloneManagementCase(pid);
-  const [cloneSuccess, setCloneSuccess] = useState<string | null>(null);
+  const improve = useImproveManagementCase(pid);
+  const [cloneSuccess,   setCloneSuccess]   = useState<string | null>(null);
+  const [improveResult,  setImproveResult]  = useState<ImproveTestCaseResponse | null>(null);
+  const [showImprove,    setShowImprove]    = useState(false);
 
   const [tab, setTab] = useState<Tab>("detail");
   const [editing,  setEditing]  = useState(false);
@@ -305,7 +310,55 @@ export function CaseDetailDrawer({ caseId, pid, projectId, onClose }: {
               </div>
             )}
 
-            <div className="border-t border-border pt-3 space-y-2">
+            {/* AI İyileştir */}
+            <div className="border-t border-border pt-3">
+              <button type="button"
+                onClick={async () => {
+                  setShowImprove(true);
+                  const res = await improve.mutateAsync({ caseId: tc.id, focus: "all" });
+                  setImproveResult(res);
+                }}
+                disabled={improve.isPending}
+                className="w-full rounded-xl border border-purple-500/20 bg-purple-500/5 py-2 text-[12px] text-purple-400 hover:bg-purple-500/10 disabled:opacity-40 transition-colors">
+                {improve.isPending ? "✦ AI İyileştiriyor…" : "✦ AI İyileştir"}
+              </button>
+
+              {/* AI Improve sonuçları */}
+              {showImprove && improveResult && (
+                <div className="mt-2 rounded-xl border border-purple-500/20 bg-purple-500/5 p-3 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <p className="text-[10px] font-semibold uppercase tracking-widest text-purple-400">AI Önerileri</p>
+                    <button type="button" onClick={() => { setShowImprove(false); setImproveResult(null); }}
+                      className="text-[10px] text-fg-subtle hover:text-fg">✕</button>
+                  </div>
+                  {improveResult.suggestions.length > 0 && (
+                    <ul className="space-y-1">
+                      {improveResult.suggestions.map((s, i) => (
+                        <li key={i} className="text-[11px] text-fg-muted">• {s}</li>
+                      ))}
+                    </ul>
+                  )}
+                  {(improveResult.title || improveResult.objective) && (
+                    <button type="button"
+                      onClick={async () => {
+                        await update.mutateAsync({
+                          caseId: tc.id,
+                          ...(improveResult.title ? { title: improveResult.title } : {}),
+                          ...(improveResult.objective ? { objective: improveResult.objective } : {}),
+                          ...(improveResult.preconditions ? { preconditions: improveResult.preconditions } : {}),
+                        });
+                        setShowImprove(false); setImproveResult(null);
+                      }}
+                      disabled={update.isPending}
+                      className="w-full rounded-lg bg-purple-600 py-1.5 text-[11px] font-semibold text-white hover:bg-purple-500 disabled:opacity-40 transition-colors">
+                      {update.isPending ? "Uygulanıyor…" : "Önerileri Uygula"}
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <div className="pt-1 space-y-2">
               {cloneSuccess && (
                 <p className="rounded-lg border border-emerald-500/20 bg-emerald-500/5 px-3 py-1.5 text-[11px] text-emerald-400">
                   Kopyalandı: {cloneSuccess}

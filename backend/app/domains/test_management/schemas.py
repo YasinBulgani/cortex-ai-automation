@@ -976,6 +976,18 @@ class TestCaseCloneRequest(BaseModel):
     folder_id: Optional[str] = None
 
 
+class TestCaseImproveRequest(BaseModel):
+    focus: str = Field(default="all", description="all | steps | title | preconditions")
+
+
+class TestCaseImproveResponse(BaseModel):
+    title: Optional[str] = None
+    objective: Optional[str] = None
+    preconditions: Optional[str] = None
+    steps: Optional[list[GeneratedStepOut]] = None
+    suggestions: list[str] = Field(default_factory=list)
+
+
 # ── Standup ───────────────────────────────────────────────────────────────────
 
 class StandupAnomaly(BaseModel):

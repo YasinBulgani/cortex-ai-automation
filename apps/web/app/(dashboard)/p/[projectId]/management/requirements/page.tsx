@@ -2,26 +2,50 @@
 
 import { useState, useMemo } from "react";
 import {
+  useManagementRequirements,
   useRequirementTraceability,
   useRequirementCatalog,
   useCreateRequirementCatalogItem,
+  useCreateManagementRequirement,
   type RequirementTraceabilityRow,
   type Requirement,
 } from "@/lib/hooks/use-management";
 import { useManagementProjectId } from "@/lib/hooks/use-management-project-id";
 import { useRouteParam } from "@/lib/use-route-param";
 
+// ── Constants ──────────────────────────────────────────────────────────────────
+
 const LAST_RUN_DOT: Record<string, string> = {
-  passed:  "bg-emerald-500",
-  failed:  "bg-red-500",
+  passed: "bg-emerald-500",
+  failed: "bg-red-500",
   blocked: "bg-amber-500",
   skipped: "bg-slate-500",
   not_run: "bg-slate-600",
 };
 
-type ViewTab = "traceability" | "catalog";
+const PRIORITY_COLORS: Record<string, string> = {
+  P0: "text-red-400 border-red-500/30 bg-red-500/10",
+  P1: "text-orange-400 border-orange-500/30 bg-orange-500/10",
+  P2: "text-amber-400 border-amber-500/30 bg-amber-500/10",
+  P3: "text-slate-400 border-slate-500/30 bg-slate-500/10",
+};
 
-const PAGE_SIZE = 20;
+const STATUS_COLORS: Record<string, string> = {
+  open: "text-blue-400 border-blue-500/30 bg-blue-500/10",
+  in_progress: "text-amber-400 border-amber-500/30 bg-amber-500/10",
+  done: "text-emerald-400 border-emerald-500/30 bg-emerald-500/10",
+  deferred: "text-slate-400 border-slate-500/30 bg-slate-500/10",
+  draft: "text-slate-400 border-slate-500/30 bg-slate-500/10",
+  approved: "text-emerald-400 border-emerald-500/30 bg-emerald-500/10",
+  rejected: "text-red-400 border-red-500/30 bg-red-500/10",
+};
+
+const COVERAGE_COLORS: Record<string, string> = {
+  covered: "text-emerald-400 border-emerald-500/30 bg-emerald-500/10",
+  partially_covered: "text-amber-400 border-amber-500/30 bg-amber-500/10",
+  not_covered: "text-slate-400 border-slate-500/30 bg-slate-500/10",
+  out_of_scope: "text-purple-400 border-purple-500/30 bg-purple-500/10",
+};
 
 const MODULE_OPTIONS = [
   "Kimlik Doğrulama",
@@ -32,8 +56,17 @@ const MODULE_OPTIONS = [
   "Diğer",
 ];
 
+const EXTERNAL_SOURCES = ["jira", "confluence", "notion", "github", "linear", "manual"];
+
+const PAGE_SIZE = 20;
+
+type ViewTab = "traceability" | "catalog";
+
+// ── Form fields ────────────────────────────────────────────────────────────────
+
 interface NewReqFields {
   external_key: string;
+  external_source: string;
   title: string;
   description: string;
   module: string;
@@ -44,6 +77,7 @@ interface NewReqFields {
 
 const EMPTY_FIELDS: NewReqFields = {
   external_key: "",
+  external_source: "manual",
   title: "",
   description: "",
   module: "",
@@ -52,16 +86,116 @@ const EMPTY_FIELDS: NewReqFields = {
   coverage_status: "not_covered",
 };
 
+// ── Sub-components ─────────────────────────────────────────────────────────────
+
+function Badge({ label, colorClass }: { label: string; colorClass: string }) {
+  return (
+    <span className={`inline-flex items-center rounded border px-1.5 py-0.5 text-[10px] font-medium ${colorClass}`}>
+      {label}
+    </span>
+  );
+}
+
 function CoverageBar({ pct }: { pct: number }) {
+  const color = pct >= 80 ? "bg-emerald-500" : pct >= 40 ? "bg-amber-500" : "bg-red-500";
   return (
     <div className="flex items-center gap-2">
-      <div className="h-1 w-20 rounded-full bg-white/[0.06] overflow-hidden">
-        <div
-          className={`h-full rounded-full ${pct >= 80 ? "bg-emerald-500" : pct >= 40 ? "bg-teal-500" : "bg-red-500"}`}
-          style={{ width: `${Math.min(pct, 100)}%` }}
-        />
+      <div className="h-1.5 w-24 rounded-full bg-white/[0.06] overflow-hidden">
+        <div className={`h-full rounded-full ${color}`} style={{ width: `${Math.min(pct, 100)}%` }} />
       </div>
-      <span className="text-[11px] text-slate-500">{pct.toFixed(0)}%</span>
+      <span className="text-[11px] text-fg-subtle">{pct.toFixed(0)}%</span>
+    </div>
+  );
+}
+
+function DonutChart({
+  covered,
+  partial,
+  notCovered,
+  outOfScope,
+}: {
+  covered: number;
+  partial: number;
+  notCovered: number;
+  outOfScope: number;
+}) {
+  const total = covered + partial + notCovered + outOfScope;
+  if (total === 0) return null;
+
+  const size = 120;
+  const cx = size / 2;
+  const cy = size / 2;
+  const r = 44;
+  const strokeWidth = 18;
+  const circumference = 2 * Math.PI * r;
+
+  const segments = [
+    { value: covered, color: "#10b981", label: "Kapsandı" },
+    { value: partial, color: "#f59e0b", label: "Kısmi" },
+    { value: notCovered, color: "#475569", label: "Kapsamdışı" },
+    { value: outOfScope, color: "#a855f7", label: "Kapsam Dışı" },
+  ];
+
+  let cumulativeAngle = -90;
+  const paths = segments.map((seg, i) => {
+    if (seg.value === 0) return null;
+    const angle = (seg.value / total) * 360;
+    const startAngle = cumulativeAngle;
+    const endAngle = cumulativeAngle + angle;
+    cumulativeAngle = endAngle;
+
+    const startRad = (startAngle * Math.PI) / 180;
+    const endRad = (endAngle * Math.PI) / 180;
+
+    const x1 = cx + r * Math.cos(startRad);
+    const y1 = cy + r * Math.sin(startRad);
+    const x2 = cx + r * Math.cos(endRad);
+    const y2 = cy + r * Math.sin(endRad);
+
+    const largeArc = angle > 180 ? 1 : 0;
+    const d = `M ${x1} ${y1} A ${r} ${r} 0 ${largeArc} 1 ${x2} ${y2}`;
+
+    return (
+      <path
+        key={i}
+        d={d}
+        fill="none"
+        stroke={seg.color}
+        strokeWidth={strokeWidth}
+        strokeLinecap="butt"
+      />
+    );
+  });
+
+  const pct = total > 0 ? Math.round((covered / total) * 100) : 0;
+
+  return (
+    <div className="flex items-center gap-5">
+      <div className="relative shrink-0">
+        <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+          <circle cx={cx} cy={cy} r={r} fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth={strokeWidth} />
+          {paths}
+        </svg>
+        <div className="absolute inset-0 flex flex-col items-center justify-center">
+          <span className="text-[18px] font-bold text-fg">{pct}%</span>
+          <span className="text-[9px] text-fg-subtle">kapsandı</span>
+        </div>
+      </div>
+      <div className="space-y-1.5">
+        {segments.map((seg) => (
+          seg.value > 0 && (
+            <div key={seg.label} className="flex items-center gap-2">
+              <span className="h-2 w-2 rounded-sm shrink-0" style={{ backgroundColor: seg.color }} />
+              <span className="text-[11px] text-fg-muted">{seg.label}</span>
+              <span className="text-[11px] font-medium text-fg ml-auto pl-4">{seg.value}</span>
+            </div>
+          )
+        ))}
+        <div className="flex items-center gap-2 border-t border-border pt-1.5 mt-1">
+          <span className="text-[10px] text-fg-subtle">Toplam</span>
+          <span className="text-[11px] font-medium text-fg ml-auto pl-4">{total}</span>
+        </div>
+      </div>
     </div>
   );
 }
@@ -72,39 +206,57 @@ function TraceRow({ row }: { row: RequirementTraceabilityRow }) {
     <>
       <tr
         className="border-b border-border hover:bg-white/[0.04] cursor-pointer transition-colors"
-        onClick={() => setOpen(v => !v)}
+        onClick={() => setOpen((v) => !v)}
       >
         <td className="px-4 py-3">
           <div className="flex items-center gap-1.5">
-            <span className="text-[10px] text-slate-600">{open ? "▼" : "▶"}</span>
-            <span className="text-[11px] font-mono text-slate-400">{row.external_key}</span>
+            <span className="text-[10px] text-fg-subtle">{open ? "▼" : "▶"}</span>
+            <span className="text-[11px] font-mono text-fg-muted">{row.external_key}</span>
           </div>
         </td>
         <td className="px-4 py-3">
-          <span className="text-[13px] text-slate-200">{row.title}</span>
+          <span className="text-[13px] text-fg">{row.title}</span>
         </td>
         <td className="px-4 py-3">
-          <span className="text-[11px] text-slate-400">{row.status}</span>
+          <Badge
+            label={row.status}
+            colorClass={STATUS_COLORS[row.status] ?? "text-fg-muted border-border bg-surface-overlay"}
+          />
+        </td>
+        <td className="px-4 py-3">
+          <Badge
+            label={row.priority || "—"}
+            colorClass={PRIORITY_COLORS[row.priority] ?? "text-fg-muted border-border bg-surface-overlay"}
+          />
         </td>
         <td className="px-4 py-3">
           <CoverageBar pct={row.coverage_pct} />
         </td>
         <td className="px-4 py-3">
-          <span className="text-[11px] text-slate-400">{row.cases.length}</span>
+          <span className="text-[11px] text-fg-muted">{row.cases.length}</span>
         </td>
       </tr>
       {open && row.cases.length > 0 && (
         <tr className="border-b border-border">
-          <td colSpan={5} className="px-8 py-3 bg-white/[0.02]">
-            <div className="space-y-1.5">
-              {row.cases.map(c => {
+          <td colSpan={6} className="px-8 py-3 bg-surface-overlay">
+            <div className="space-y-2">
+              {row.cases.map((c) => {
                 const dot = LAST_RUN_DOT[c.last_run_status ?? "not_run"] ?? "bg-slate-600";
                 return (
                   <div key={c.case_id} className="flex items-center gap-3">
                     <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${dot}`} />
-                    <span className="text-[11px] font-mono text-slate-500 w-20 shrink-0">{c.case_key}</span>
-                    <span className="text-[11px] text-slate-300 flex-1 truncate">{c.title}</span>
-                    <span className="text-[10px] text-slate-500">{c.last_run_status ?? "not_run"}</span>
+                    <span className="text-[11px] font-mono text-fg-subtle w-24 shrink-0">{c.case_key}</span>
+                    <span className="text-[11px] text-fg flex-1 truncate">{c.title}</span>
+                    <Badge
+                      label={c.coverage_status}
+                      colorClass={
+                        COVERAGE_COLORS[c.coverage_status] ??
+                        "text-fg-muted border-border bg-surface-overlay"
+                      }
+                    />
+                    <span className="text-[10px] text-fg-subtle w-16 text-right">
+                      {c.last_run_status ?? "not_run"}
+                    </span>
                   </div>
                 );
               })}
@@ -116,89 +268,263 @@ function TraceRow({ row }: { row: RequirementTraceabilityRow }) {
   );
 }
 
+function CatalogDetailPanel({
+  req,
+  onClose,
+}: {
+  req: Requirement;
+  onClose: () => void;
+}) {
+  return (
+    <div className="flex flex-col h-full">
+      <div className="flex items-center justify-between border-b border-border px-5 py-4 shrink-0">
+        <div className="flex items-center gap-2">
+          <span className="text-[11px] font-mono text-fg-muted">{req.external_key}</span>
+          <span className="text-[10px] text-fg-subtle">·</span>
+          <span className="text-[11px] text-fg-subtle">{req.external_source}</span>
+        </div>
+        <button
+          onClick={onClose}
+          className="rounded p-1 text-fg-subtle hover:bg-white/[0.06] hover:text-fg transition-colors"
+        >
+          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+      <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
+        <h3 className="text-[14px] font-semibold text-fg leading-snug">{req.title}</h3>
+
+        <div className="flex flex-wrap gap-1.5">
+          <Badge
+            label={req.priority}
+            colorClass={PRIORITY_COLORS[req.priority] ?? "text-fg-muted border-border bg-surface-overlay"}
+          />
+          <Badge
+            label={req.status}
+            colorClass={STATUS_COLORS[req.status] ?? "text-fg-muted border-border bg-surface-overlay"}
+          />
+        </div>
+
+        {req.description && (
+          <div className="space-y-1">
+            <p className="text-[10px] font-medium uppercase tracking-wider text-fg-subtle">Açıklama</p>
+            <p className="text-[12px] text-fg-muted leading-relaxed">{req.description}</p>
+          </div>
+        )}
+
+        {req.tags.length > 0 && (
+          <div className="space-y-1.5">
+            <p className="text-[10px] font-medium uppercase tracking-wider text-fg-subtle">Etiketler</p>
+            <div className="flex flex-wrap gap-1">
+              {req.tags.map((tag) => (
+                <span key={tag} className="rounded bg-white/[0.06] px-2 py-0.5 text-[11px] text-fg-muted">
+                  {tag}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {req.acceptance_criteria.length > 0 && (
+          <div className="space-y-1.5">
+            <p className="text-[10px] font-medium uppercase tracking-wider text-fg-subtle">
+              Kabul Kriterleri
+            </p>
+            <div className="space-y-1">
+              {req.acceptance_criteria.map((ac, i) => (
+                <div key={i} className="flex items-start gap-2">
+                  <span className="text-emerald-500 text-[10px] mt-0.5">✓</span>
+                  <span className="text-[12px] text-fg-muted">
+                    {typeof ac === "string" ? ac : JSON.stringify(ac)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div className="space-y-1.5 border-t border-border pt-3">
+          <p className="text-[10px] font-medium uppercase tracking-wider text-fg-subtle">Meta</p>
+          <div className="space-y-1 text-[11px]">
+            <div className="flex justify-between">
+              <span className="text-fg-subtle">Versiyon</span>
+              <span className="text-fg-muted">v{req.version_no}</span>
+            </div>
+            {req.url && (
+              <div className="flex justify-between">
+                <span className="text-fg-subtle">URL</span>
+                <a
+                  href={req.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-brand truncate max-w-[160px] hover:underline"
+                >
+                  {req.url}
+                </a>
+              </div>
+            )}
+            <div className="flex justify-between">
+              <span className="text-fg-subtle">Oluşturuldu</span>
+              <span className="text-fg-muted">{new Date(req.created_at).toLocaleDateString("tr-TR")}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-fg-subtle">Güncellendi</span>
+              <span className="text-fg-muted">{new Date(req.updated_at).toLocaleDateString("tr-TR")}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function LoadingSkeleton() {
+  return (
+    <div className="space-y-3 p-6">
+      {Array.from({ length: 5 }).map((_, i) => (
+        <div key={i} className="flex items-center gap-4 rounded-lg border border-border p-4">
+          <div className="h-4 w-4 animate-pulse rounded bg-white/[0.08]" />
+          <div className="flex-1 space-y-2">
+            <div className="h-3 w-3/4 animate-pulse rounded bg-white/[0.08]" />
+            <div className="h-2 w-1/2 animate-pulse rounded bg-white/[0.05]" />
+          </div>
+          <div className="h-5 w-16 animate-pulse rounded-full bg-white/[0.06]" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ── Page ───────────────────────────────────────────────────────────────────────
+
 export default function ManagementRequirementsPage() {
   const projectId = useRouteParam("projectId");
   const mpid = useManagementProjectId(projectId || undefined);
 
-  const { data: traceRows, isLoading: traceLoading, isError: traceError, refetch: traceRefetch } = useRequirementTraceability(mpid || undefined);
-  const { data: catalog, isLoading: catalogLoading, isError: catalogError, refetch: catalogRefetch } = useRequirementCatalog(mpid || undefined);
-  const createReq = useCreateRequirementCatalogItem(mpid || "");
+  const {
+    data: traceRows,
+    isLoading: traceLoading,
+    isError: traceError,
+    refetch: traceRefetch,
+  } = useRequirementTraceability(mpid || undefined);
+  const {
+    data: catalog,
+    isLoading: catalogLoading,
+    isError: catalogError,
+    refetch: catalogRefetch,
+  } = useRequirementCatalog(mpid || undefined);
+  const {
+    data: managementReqs,
+  } = useManagementRequirements(mpid || undefined);
 
+  const createCatalogItem = useCreateRequirementCatalogItem(mpid || "");
+  const createManagementReq = useCreateManagementRequirement(mpid || "");
+
+  // ── View state ─────────────────────────────────────────────────────────────
   const [activeTab, setActiveTab] = useState<ViewTab>("traceability");
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [priorityFilter, setPriorityFilter] = useState("all");
+  const [coverageFilter, setCoverageFilter] = useState("all");
   const [tracePage, setTracePage] = useState(0);
   const [catalogPage, setCatalogPage] = useState(0);
+  const [selectedReq, setSelectedReq] = useState<Requirement | null>(null);
 
-  // New requirement panel state
-  const [showNewPanel, setShowNewPanel] = useState(false);
+  // ── Modal state ────────────────────────────────────────────────────────────
+  const [showModal, setShowModal] = useState(false);
   const [fields, setFields] = useState<NewReqFields>(EMPTY_FIELDS);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
+  const [toastError, setToastError] = useState(false);
 
-  const rows     = traceRows ?? [];
-  const covered  = rows.filter(r => r.covered).length;
-  const total    = rows.length;
-  const coverPct = total > 0 ? Math.round((covered / total) * 100) : 0;
-
-  // Coverage stats from catalog
+  // ── Derived data ───────────────────────────────────────────────────────────
+  const rows = traceRows ?? [];
   const catalogItems = catalog ?? [];
-  const statsCovered    = catalogItems.filter((r: Requirement) => (r as any).coverage_pct >= 80).length;
-  const statsPartial    = catalogItems.filter((r: Requirement) => { const pct = (r as any).coverage_pct; return pct > 0 && pct < 80; }).length;
-  const statsNotCovered = catalogItems.filter((r: Requirement) => (r as any).coverage_pct === 0).length;
+
+  const coveredCount = rows.filter((r) => r.coverage_pct >= 80).length;
+  const partialCount = rows.filter((r) => r.coverage_pct > 0 && r.coverage_pct < 80).length;
+  const notCoveredCount = rows.filter((r) => r.coverage_pct === 0).length;
+  const outOfScopeCount = 0; // traceability doesn't expose this yet; catalog below
+
+  // Catalog-based coverage summary for summary cards
+  const catCovered = catalogItems.filter(
+    (r: Requirement) => (r as unknown as { coverage_status?: string }).coverage_status === "covered"
+  ).length;
+  const catPartial = catalogItems.filter(
+    (r: Requirement) =>
+      (r as unknown as { coverage_status?: string }).coverage_status === "partially_covered"
+  ).length;
+  const catNotCovered = catalogItems.filter(
+    (r: Requirement) =>
+      (r as unknown as { coverage_status?: string }).coverage_status === "not_covered" ||
+      !(r as unknown as { coverage_status?: string }).coverage_status
+  ).length;
+  const catOutOfScope = catalogItems.filter(
+    (r: Requirement) =>
+      (r as unknown as { coverage_status?: string }).coverage_status === "out_of_scope"
+  ).length;
+
+  const totalForDonut = catCovered + catPartial + catNotCovered + catOutOfScope;
+  const useTraceForDonut = totalForDonut === 0;
 
   const filteredRows = useMemo(() => {
-    return rows.filter(r => {
+    return rows.filter((r) => {
       const q = search.toLowerCase();
-      const matchSearch = !search || (
+      const matchSearch =
+        !search ||
         r.title?.toLowerCase().includes(q) ||
-        r.status?.toLowerCase().includes(q) ||
-        r.external_key?.toLowerCase().includes(q)
-      );
+        r.external_key?.toLowerCase().includes(q);
       const matchStatus = statusFilter === "all" || r.status === statusFilter;
-      return matchSearch && matchStatus;
+      const matchPriority = priorityFilter === "all" || r.priority === priorityFilter;
+      return matchSearch && matchStatus && matchPriority;
     });
-  }, [rows, search, statusFilter]);
+  }, [rows, search, statusFilter, priorityFilter]);
 
   const tracePageCount = Math.ceil(filteredRows.length / PAGE_SIZE);
   const pagedTraceRows = filteredRows.slice(tracePage * PAGE_SIZE, (tracePage + 1) * PAGE_SIZE);
 
   const filteredCatalog = useMemo(() => {
-    return (catalog ?? []).filter((r: Requirement) => {
+    return catalogItems.filter((r: Requirement) => {
       const q = search.toLowerCase();
-      const matchSearch = !search || (
+      const matchSearch =
+        !search ||
         r.title?.toLowerCase().includes(q) ||
-        r.description?.toLowerCase().includes(q) ||
-        r.status?.toLowerCase().includes(q) ||
-        r.external_key?.toLowerCase().includes(q)
-      );
+        r.external_key?.toLowerCase().includes(q) ||
+        r.description?.toLowerCase().includes(q);
       const matchStatus = statusFilter === "all" || r.status === statusFilter;
-      return matchSearch && matchStatus;
+      const matchPriority = priorityFilter === "all" || r.priority === priorityFilter;
+      const rCoverage = (r as unknown as { coverage_status?: string }).coverage_status ?? "";
+      const matchCoverage = coverageFilter === "all" || rCoverage === coverageFilter;
+      return matchSearch && matchStatus && matchPriority && matchCoverage;
     });
-  }, [catalog, search, statusFilter]);
+  }, [catalogItems, search, statusFilter, priorityFilter, coverageFilter]);
 
   const catalogPageCount = Math.ceil(filteredCatalog.length / PAGE_SIZE);
   const pagedCatalog = filteredCatalog.slice(catalogPage * PAGE_SIZE, (catalogPage + 1) * PAGE_SIZE);
 
-  function showToast(msg: string) {
+  // ── Helpers ────────────────────────────────────────────────────────────────
+  function showToast(msg: string, error = false) {
     setToastMsg(msg);
-    setTimeout(() => setToastMsg(null), 3000);
+    setToastError(error);
+    setTimeout(() => setToastMsg(null), 3500);
   }
 
   function handleFieldChange(key: keyof NewReqFields, value: string) {
-    setFields(prev => ({ ...prev, [key]: value }));
+    setFields((prev) => ({ ...prev, [key]: value }));
   }
 
-  function handleClosePanel() {
-    setShowNewPanel(false);
+  function handleCloseModal() {
+    setShowModal(false);
     setFields(EMPTY_FIELDS);
   }
 
-  async function handleSubmitNew(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!fields.external_key.trim() || !fields.title.trim()) return;
     try {
-      await createReq.mutateAsync({
+      await createCatalogItem.mutateAsync({
         external_key: fields.external_key.trim(),
+        external_source: fields.external_source,
         title: fields.title.trim(),
         description: fields.description.trim() || null,
         priority: fields.priority,
@@ -206,34 +532,57 @@ export default function ManagementRequirementsPage() {
         tags: fields.module ? [fields.module] : [],
       });
       showToast("Gereksinim oluşturuldu.");
-      handleClosePanel();
+      handleCloseModal();
     } catch {
-      showToast("API yakında — gereksinim kaydedilemedi.");
-      handleClosePanel();
+      showToast("Gereksinim kaydedilemedi. Tekrar deneyin.", true);
+      handleCloseModal();
     }
   }
 
+  function resetFilters() {
+    setSearch("");
+    setStatusFilter("all");
+    setPriorityFilter("all");
+    setCoverageFilter("all");
+    setTracePage(0);
+    setCatalogPage(0);
+  }
+
+  // ── Coverage summary card values ───────────────────────────────────────────
+  const summaryCardData = useTraceForDonut
+    ? {
+        covered: coveredCount,
+        partial: partialCount,
+        notCovered: notCoveredCount,
+        outOfScope: outOfScopeCount,
+      }
+    : { covered: catCovered, partial: catPartial, notCovered: catNotCovered, outOfScope: catOutOfScope };
+
+  // ── Render ─────────────────────────────────────────────────────────────────
   return (
-    <div className="min-h-[calc(100vh-88px)] bg-bg text-slate-200">
-      {/* Header */}
-      <div className="border-b border-border bg-surface-raised px-6 py-4 space-y-3">
+    <div className="min-h-[calc(100vh-88px)] bg-surface-base text-fg flex flex-col">
+      {/* ── Header ── */}
+      <div className="border-b border-border bg-surface-raised px-6 py-4 space-y-4 shrink-0">
+        {/* Title row */}
         <div className="flex items-center justify-between">
+          <h1 className="text-[13px] font-semibold text-fg">Gereksinim Kapsamı</h1>
           <div className="flex items-center gap-3">
-            <h1 className="text-[13px] font-semibold text-slate-200">Gereksinim Kapsamı</h1>
-            <span className="rounded-full border border-border px-2 py-0.5 text-[10px] text-slate-400">
-              {coverPct}% kapsandı
-            </span>
-          </div>
-          <div className="flex items-center gap-3">
-            {/* View tabs */}
+            {/* Tab switcher */}
             <div className="flex items-center gap-1 rounded-md border border-border p-0.5">
-              {(["traceability", "catalog"] as const).map(tab => (
+              {(["traceability", "catalog"] as const).map((tab) => (
                 <button
                   key={tab}
-                  onClick={() => { setActiveTab(tab); setTracePage(0); setCatalogPage(0); }}
+                  onClick={() => {
+                    setActiveTab(tab);
+                    setTracePage(0);
+                    setCatalogPage(0);
+                    setSelectedReq(null);
+                  }}
                   className={[
                     "rounded px-3 py-1.5 text-[11px] font-medium transition-colors",
-                    activeTab === tab ? "bg-white/[0.08] text-slate-200" : "text-slate-500 hover:text-slate-300",
+                    activeTab === tab
+                      ? "bg-white/[0.08] text-fg"
+                      : "text-fg-subtle hover:text-fg-muted",
                   ].join(" ")}
                 >
                   {tab === "traceability" ? "Traceability Matrix" : "Gereksinim Kataloğu"}
@@ -242,8 +591,8 @@ export default function ManagementRequirementsPage() {
             </div>
             {/* New requirement button */}
             <button
-              onClick={() => setShowNewPanel(true)}
-              className="flex items-center gap-1.5 rounded border border-teal-500/40 bg-teal-500/10 px-3 py-1.5 text-[11px] font-medium text-teal-400 transition-colors hover:bg-teal-500/20 hover:border-teal-500/60"
+              onClick={() => setShowModal(true)}
+              className="flex items-center gap-1.5 rounded border border-brand/40 bg-brand/10 px-3 py-1.5 text-[11px] font-medium text-brand-fg transition-colors hover:bg-brand/20 hover:border-brand/60"
             >
               <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
@@ -253,397 +602,581 @@ export default function ManagementRequirementsPage() {
           </div>
         </div>
 
-        {/* Coverage stats bar */}
-        {catalogItems.length > 0 && (
-          <div className="flex items-center gap-2">
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-0.5 text-[11px] text-emerald-400">
-              <span>✓</span>
-              <span>{statsCovered} Kapsandı</span>
-            </span>
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-0.5 text-[11px] text-amber-400">
-              <span>~</span>
-              <span>{statsPartial} Kısmi</span>
-            </span>
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-500/30 bg-slate-500/10 px-2.5 py-0.5 text-[11px] text-slate-400">
-              <span>○</span>
-              <span>{statsNotCovered} Kapsamdışı</span>
-            </span>
+        {/* Coverage summary cards + donut */}
+        <div className="flex items-start gap-4">
+          {/* Summary cards */}
+          <div className="grid grid-cols-4 gap-3 flex-1">
+            {[
+              {
+                label: "Kapsandı",
+                value: summaryCardData.covered,
+                color: "border-emerald-500/30 bg-emerald-500/10",
+                textColor: "text-emerald-400",
+                dot: "bg-emerald-500",
+              },
+              {
+                label: "Kısmi",
+                value: summaryCardData.partial,
+                color: "border-amber-500/30 bg-amber-500/10",
+                textColor: "text-amber-400",
+                dot: "bg-amber-500",
+              },
+              {
+                label: "Kapsamdışı",
+                value: summaryCardData.notCovered,
+                color: "border-slate-500/30 bg-surface-overlay",
+                textColor: "text-fg-muted",
+                dot: "bg-slate-500",
+              },
+              {
+                label: "Kapsam Dışı",
+                value: summaryCardData.outOfScope,
+                color: "border-purple-500/30 bg-purple-500/10",
+                textColor: "text-purple-400",
+                dot: "bg-purple-500",
+              },
+            ].map((card) => (
+              <div
+                key={card.label}
+                className={`rounded-lg border px-4 py-3 space-y-1 ${card.color}`}
+              >
+                <div className="flex items-center gap-1.5">
+                  <span className={`h-1.5 w-1.5 rounded-full ${card.dot}`} />
+                  <span className="text-[10px] font-medium text-fg-subtle uppercase tracking-wider">
+                    {card.label}
+                  </span>
+                </div>
+                <p className={`text-[22px] font-bold ${card.textColor}`}>{card.value}</p>
+              </div>
+            ))}
           </div>
-        )}
 
-        {/* Search + Status filter bar */}
+          {/* Donut chart */}
+          <div className="rounded-lg border border-border bg-surface-overlay px-5 py-3 shrink-0">
+            <DonutChart
+              covered={summaryCardData.covered}
+              partial={summaryCardData.partial}
+              notCovered={summaryCardData.notCovered}
+              outOfScope={summaryCardData.outOfScope}
+            />
+          </div>
+        </div>
+
+        {/* Search + Filters */}
         <div className="flex items-center gap-2">
-          <input
-            type="text"
-            value={search}
-            onChange={e => { setSearch(e.target.value); setTracePage(0); setCatalogPage(0); }}
-            placeholder="Ara: başlık, açıklama, durum, anahtar..."
-            className="flex-1 rounded border border-border bg-bg px-3 py-1.5 text-[12px] text-slate-300 placeholder-slate-600 outline-none focus:border-teal-500/50"
-          />
+          <div className="relative flex-1">
+            <svg
+              className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-fg-subtle"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+              />
+            </svg>
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setTracePage(0);
+                setCatalogPage(0);
+              }}
+              placeholder="Başlık veya external key ara..."
+              className="w-full rounded border border-border bg-surface-base pl-8 pr-3 py-1.5 text-[12px] text-fg placeholder-fg-subtle outline-none focus:border-brand/50"
+            />
+          </div>
           <select
             value={statusFilter}
-            onChange={e => { setStatusFilter(e.target.value); setTracePage(0); setCatalogPage(0); }}
-            className="rounded border border-border bg-surface-raised px-2 py-1.5 text-[12px] text-slate-400 outline-none focus:border-teal-500/50"
+            onChange={(e) => {
+              setStatusFilter(e.target.value);
+              setTracePage(0);
+              setCatalogPage(0);
+            }}
+            className="rounded border border-border bg-surface-raised px-2 py-1.5 text-[12px] text-fg-muted outline-none focus:border-brand/50"
           >
             <option value="all">Tüm Durumlar</option>
-            <option value="draft">Taslak</option>
-            <option value="approved">Onaylandı</option>
-            <option value="rejected">Reddedildi</option>
+            <option value="open">open</option>
+            <option value="in_progress">in_progress</option>
+            <option value="done">done</option>
+            <option value="deferred">deferred</option>
+            <option value="draft">draft</option>
+            <option value="approved">approved</option>
+            <option value="rejected">rejected</option>
           </select>
+          <select
+            value={priorityFilter}
+            onChange={(e) => {
+              setPriorityFilter(e.target.value);
+              setTracePage(0);
+              setCatalogPage(0);
+            }}
+            className="rounded border border-border bg-surface-raised px-2 py-1.5 text-[12px] text-fg-muted outline-none focus:border-brand/50"
+          >
+            <option value="all">Tüm Öncelikler</option>
+            {["P0", "P1", "P2", "P3"].map((p) => (
+              <option key={p} value={p}>{p}</option>
+            ))}
+          </select>
+          {activeTab === "catalog" && (
+            <select
+              value={coverageFilter}
+              onChange={(e) => {
+                setCoverageFilter(e.target.value);
+                setCatalogPage(0);
+              }}
+              className="rounded border border-border bg-surface-raised px-2 py-1.5 text-[12px] text-fg-muted outline-none focus:border-brand/50"
+            >
+              <option value="all">Tüm Kapsam</option>
+              <option value="covered">covered</option>
+              <option value="partially_covered">partially_covered</option>
+              <option value="not_covered">not_covered</option>
+              <option value="out_of_scope">out_of_scope</option>
+            </select>
+          )}
         </div>
       </div>
 
-      {/* Traceability view */}
-      {activeTab === "traceability" && (
-        traceLoading ? (
-          <div className="space-y-3 p-6">
-            {Array.from({ length: 5 }).map((_, i) => (
-              <div key={i} className="flex items-center gap-4 rounded-lg border border-border p-4">
-                <div className="h-4 w-4 animate-pulse rounded bg-white/[0.08]" />
-                <div className="flex-1 space-y-2">
-                  <div className="h-3 w-3/4 animate-pulse rounded bg-white/[0.08]" />
-                  <div className="h-2 w-1/2 animate-pulse rounded bg-white/[0.05]" />
-                </div>
-                <div className="h-5 w-16 animate-pulse rounded-full bg-white/[0.06]" />
-              </div>
-            ))}
-          </div>
-        ) : traceError ? (
-          <div className="flex flex-col items-center justify-center py-16 gap-3">
-            <p className="text-sm text-red-400">Gereksinimler yüklenemedi</p>
-            <button onClick={() => traceRefetch()} className="text-xs text-slate-500 hover:text-slate-300">
-              Tekrar Dene
-            </button>
-          </div>
-        ) : filteredRows.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 gap-3 text-center">
-            <div className="rounded-full bg-white/[0.04] p-4">
-              <svg className="h-8 w-8 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-              </svg>
-            </div>
-            {(search || statusFilter !== "all") ? (
-              <>
-                <p className="text-sm text-slate-400">Arama kriterlerine uyan gereksinim bulunamadı</p>
+      {/* ── Content ── */}
+      <div className="flex flex-1 min-h-0">
+        {/* Main panel */}
+        <div className={`flex flex-col flex-1 min-w-0 ${selectedReq ? "border-r border-border" : ""}`}>
+          {/* Traceability tab */}
+          {activeTab === "traceability" &&
+            (traceLoading ? (
+              <LoadingSkeleton />
+            ) : traceError ? (
+              <div className="flex flex-col items-center justify-center py-16 gap-3">
+                <p className="text-sm text-red-400">Gereksinimler yüklenemedi</p>
                 <button
-                  onClick={() => { setSearch(""); setStatusFilter("all"); setTracePage(0); setCatalogPage(0); }}
-                  className="text-xs text-slate-600 hover:text-slate-400"
+                  onClick={() => traceRefetch()}
+                  className="text-xs text-fg-subtle hover:text-fg-muted"
                 >
-                  Filtreleri Temizle
+                  Tekrar Dene
                 </button>
-              </>
+              </div>
+            ) : filteredRows.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-20 gap-3 text-center">
+                <div className="rounded-full bg-white/[0.04] p-4">
+                  <svg className="h-8 w-8 text-fg-subtle" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={1.5}
+                      d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+                    />
+                  </svg>
+                </div>
+                {search || statusFilter !== "all" || priorityFilter !== "all" ? (
+                  <>
+                    <p className="text-sm text-fg-muted">Kriterlere uyan gereksinim bulunamadı</p>
+                    <button onClick={resetFilters} className="text-xs text-fg-subtle hover:text-fg-muted">
+                      Filtreleri Temizle
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-sm font-medium text-fg">Henüz gereksinim bağlantısı yok</p>
+                    <p className="text-xs text-fg-muted max-w-xs">
+                      Test case&apos;lerinizi gereksinimlerle ilişkilendirdiğinizde kapsam matrisi burada görünecek.
+                    </p>
+                  </>
+                )}
+              </div>
             ) : (
               <>
-                <p className="text-sm font-medium text-slate-300">Henüz gereksinim bağlantısı yok</p>
-                <p className="text-xs text-slate-500 max-w-xs">Test case&apos;lerinizi gereksinimlerle ilişkilendirdiğinizde kapsam matrisi burada görünecek.</p>
-              </>
-            )}
-          </div>
-        ) : (
-          <>
-            <table className="w-full border-collapse">
-              <thead>
-                <tr className="border-b border-border bg-surface-raised">
-                  {["Req. Key", "Başlık", "Durum", "Kapsam", "Case Sayısı"].map(h => (
-                    <th key={h} className="px-4 py-2.5 text-left text-[10px] font-medium uppercase tracking-wider text-slate-600">{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {pagedTraceRows.map(row => <TraceRow key={row.requirement_id} row={row} />)}
-              </tbody>
-            </table>
-            {tracePageCount > 1 && (
-              <div className="flex items-center justify-between border-t border-border bg-surface-raised px-6 py-3">
-                <span className="text-[11px] text-slate-500">
-                  {filteredRows.length} sonuç — Sayfa {tracePage + 1} / {tracePageCount}
-                </span>
-                <div className="flex items-center gap-1">
-                  <button
-                    onClick={() => setTracePage(p => Math.max(0, p - 1))}
-                    disabled={tracePage === 0}
-                    className="rounded px-2.5 py-1 text-[11px] text-slate-400 hover:text-slate-200 disabled:opacity-30"
-                  >
-                    ← Önceki
-                  </button>
-                  <button
-                    onClick={() => setTracePage(p => Math.min(tracePageCount - 1, p + 1))}
-                    disabled={tracePage >= tracePageCount - 1}
-                    className="rounded px-2.5 py-1 text-[11px] text-slate-400 hover:text-slate-200 disabled:opacity-30"
-                  >
-                    Sonraki →
-                  </button>
-                </div>
-              </div>
-            )}
-          </>
-        )
-      )}
-
-      {/* Catalog view */}
-      {activeTab === "catalog" && (
-        catalogLoading ? (
-          <div className="space-y-3 p-6">
-            {Array.from({ length: 5 }).map((_, i) => (
-              <div key={i} className="flex items-center gap-4 rounded-lg border border-border p-4">
-                <div className="h-4 w-4 animate-pulse rounded bg-white/[0.08]" />
-                <div className="flex-1 space-y-2">
-                  <div className="h-3 w-3/4 animate-pulse rounded bg-white/[0.08]" />
-                  <div className="h-2 w-1/2 animate-pulse rounded bg-white/[0.05]" />
-                </div>
-                <div className="h-5 w-16 animate-pulse rounded-full bg-white/[0.06]" />
-              </div>
-            ))}
-          </div>
-        ) : catalogError ? (
-          <div className="flex flex-col items-center justify-center py-16 gap-3">
-            <p className="text-sm text-red-400">Gereksinimler yüklenemedi</p>
-            <button onClick={() => catalogRefetch()} className="text-xs text-slate-500 hover:text-slate-300">
-              Tekrar Dene
-            </button>
-          </div>
-        ) : filteredCatalog.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 gap-3 text-center">
-            <div className="rounded-full bg-white/[0.04] p-4">
-              <svg className="h-8 w-8 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-              </svg>
-            </div>
-            {(search || statusFilter !== "all") ? (
-              <>
-                <p className="text-sm text-slate-400">Arama kriterlerine uyan gereksinim bulunamadı</p>
-                <button
-                  onClick={() => { setSearch(""); setStatusFilter("all"); setTracePage(0); setCatalogPage(0); }}
-                  className="text-xs text-slate-600 hover:text-slate-400"
-                >
-                  Filtreleri Temizle
-                </button>
-              </>
-            ) : (
-              <>
-                <p className="text-sm font-medium text-slate-300">Gereksinim kataloğu boş</p>
-                <p className="text-xs text-slate-500 max-w-xs">İlk gereksinimi oluşturmak için yukarıdaki butonu kullanın.</p>
-              </>
-            )}
-          </div>
-        ) : (
-          <>
-            <table className="w-full border-collapse">
-              <thead>
-                <tr className="border-b border-border bg-surface-raised">
-                  {["External Key", "Başlık", "Öncelik", "Durum", "Etiketler"].map(h => (
-                    <th key={h} className="px-4 py-2.5 text-left text-[10px] font-medium uppercase tracking-wider text-slate-600">{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {pagedCatalog.map((req: Requirement) => (
-                  <tr key={req.id} className="border-b border-border hover:bg-white/[0.04] transition-colors">
-                    <td className="px-4 py-3">
-                      <span className="text-[11px] font-mono text-slate-400">{req.external_key}</span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className="text-[13px] text-slate-200">{req.title}</span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className="text-[11px] text-slate-400">{req.priority}</span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className="text-[11px] text-slate-400">{req.status}</span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex flex-wrap gap-1">
-                        {req.tags.slice(0, 3).map(tag => (
-                          <span key={tag} className="rounded bg-white/[0.04] px-1.5 py-0.5 text-[10px] text-slate-500">{tag}</span>
+                <div className="overflow-x-auto flex-1">
+                  <table className="w-full border-collapse">
+                    <thead>
+                      <tr className="border-b border-border bg-surface-raised sticky top-0 z-10">
+                        {["Req. Key", "Başlık", "Durum", "Öncelik", "Kapsam", "Case Sayısı"].map((h) => (
+                          <th
+                            key={h}
+                            className="px-4 py-2.5 text-left text-[10px] font-medium uppercase tracking-wider text-fg-subtle"
+                          >
+                            {h}
+                          </th>
                         ))}
-                        {req.tags.length > 3 && (
-                          <span className="text-[10px] text-slate-600">+{req.tags.length - 3}</span>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            {catalogPageCount > 1 && (
-              <div className="flex items-center justify-between border-t border-border bg-surface-raised px-6 py-3">
-                <span className="text-[11px] text-slate-500">
-                  {filteredCatalog.length} sonuç — Sayfa {catalogPage + 1} / {catalogPageCount}
-                </span>
-                <div className="flex items-center gap-1">
-                  <button
-                    onClick={() => setCatalogPage(p => Math.max(0, p - 1))}
-                    disabled={catalogPage === 0}
-                    className="rounded px-2.5 py-1 text-[11px] text-slate-400 hover:text-slate-200 disabled:opacity-30"
-                  >
-                    ← Önceki
-                  </button>
-                  <button
-                    onClick={() => setCatalogPage(p => Math.min(catalogPageCount - 1, p + 1))}
-                    disabled={catalogPage >= catalogPageCount - 1}
-                    className="rounded px-2.5 py-1 text-[11px] text-slate-400 hover:text-slate-200 disabled:opacity-30"
-                  >
-                    Sonraki →
-                  </button>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {pagedTraceRows.map((row) => (
+                        <TraceRow key={row.requirement_id} row={row} />
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
+                {tracePageCount > 1 && (
+                  <div className="flex items-center justify-between border-t border-border bg-surface-raised px-6 py-3 shrink-0">
+                    <span className="text-[11px] text-fg-subtle">
+                      {filteredRows.length} sonuç — Sayfa {tracePage + 1} / {tracePageCount}
+                    </span>
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => setTracePage((p) => Math.max(0, p - 1))}
+                        disabled={tracePage === 0}
+                        className="rounded px-2.5 py-1 text-[11px] text-fg-muted hover:text-fg disabled:opacity-30"
+                      >
+                        ← Önceki
+                      </button>
+                      <button
+                        onClick={() => setTracePage((p) => Math.min(tracePageCount - 1, p + 1))}
+                        disabled={tracePage >= tracePageCount - 1}
+                        className="rounded px-2.5 py-1 text-[11px] text-fg-muted hover:text-fg disabled:opacity-30"
+                      >
+                        Sonraki →
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </>
+            ))}
+
+          {/* Catalog tab */}
+          {activeTab === "catalog" &&
+            (catalogLoading ? (
+              <LoadingSkeleton />
+            ) : catalogError ? (
+              <div className="flex flex-col items-center justify-center py-16 gap-3">
+                <p className="text-sm text-red-400">Gereksinimler yüklenemedi</p>
+                <button onClick={() => catalogRefetch()} className="text-xs text-fg-subtle hover:text-fg-muted">
+                  Tekrar Dene
+                </button>
               </div>
-            )}
-          </>
-        )
-      )}
-
-      {/* New Requirement side panel */}
-      {showNewPanel && (
-        <>
-          {/* Backdrop */}
-          <div
-            className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm"
-            onClick={handleClosePanel}
-          />
-          {/* Panel */}
-          <div className="fixed right-0 top-0 z-50 flex h-full w-[400px] flex-col border-l border-border bg-surface-raised shadow-2xl">
-            {/* Panel header */}
-            <div className="flex items-center justify-between border-b border-border px-5 py-4">
-              <h2 className="text-[13px] font-semibold text-slate-200">Yeni Gereksinim</h2>
-              <button
-                onClick={handleClosePanel}
-                className="rounded p-1 text-slate-500 hover:bg-white/[0.06] hover:text-slate-300 transition-colors"
-              >
-                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-            {/* Form */}
-            <form onSubmit={handleSubmitNew} className="flex flex-1 flex-col overflow-y-auto">
-              <div className="flex-1 space-y-4 px-5 py-5">
-                {/* External Key */}
-                <div className="space-y-1.5">
-                  <label className="text-[11px] font-medium text-slate-400">
-                    External Key <span className="text-red-400">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={fields.external_key}
-                    onChange={e => handleFieldChange("external_key", e.target.value)}
-                    placeholder="REQ-001"
-                    required
-                    className="w-full rounded border border-border bg-bg px-3 py-2 text-[12px] text-slate-200 placeholder-slate-600 outline-none focus:border-teal-500/50 transition-colors"
-                  />
+            ) : filteredCatalog.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-20 gap-3 text-center">
+                <div className="rounded-full bg-white/[0.04] p-4">
+                  <svg className="h-8 w-8 text-fg-subtle" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={1.5}
+                      d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+                    />
+                  </svg>
                 </div>
-
-                {/* Title */}
-                <div className="space-y-1.5">
-                  <label className="text-[11px] font-medium text-slate-400">
-                    Başlık <span className="text-red-400">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={fields.title}
-                    onChange={e => handleFieldChange("title", e.target.value)}
-                    placeholder="Gereksinim başlığı..."
-                    required
-                    className="w-full rounded border border-border bg-bg px-3 py-2 text-[12px] text-slate-200 placeholder-slate-600 outline-none focus:border-teal-500/50 transition-colors"
-                  />
-                </div>
-
-                {/* Description */}
-                <div className="space-y-1.5">
-                  <label className="text-[11px] font-medium text-slate-400">Açıklama</label>
-                  <textarea
-                    value={fields.description}
-                    onChange={e => handleFieldChange("description", e.target.value)}
-                    placeholder="İsteğe bağlı açıklama..."
-                    rows={3}
-                    className="w-full resize-none rounded border border-border bg-bg px-3 py-2 text-[12px] text-slate-200 placeholder-slate-600 outline-none focus:border-teal-500/50 transition-colors"
-                  />
-                </div>
-
-                {/* Module */}
-                <div className="space-y-1.5">
-                  <label className="text-[11px] font-medium text-slate-400">Modül</label>
-                  <select
-                    value={fields.module}
-                    onChange={e => handleFieldChange("module", e.target.value)}
-                    className="w-full rounded border border-border bg-bg px-3 py-2 text-[12px] text-slate-300 outline-none focus:border-teal-500/50 transition-colors"
-                  >
-                    <option value="">Seçiniz...</option>
-                    {MODULE_OPTIONS.map(m => (
-                      <option key={m} value={m}>{m}</option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Priority + Status row */}
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1.5">
-                    <label className="text-[11px] font-medium text-slate-400">Öncelik</label>
-                    <select
-                      value={fields.priority}
-                      onChange={e => handleFieldChange("priority", e.target.value)}
-                      className="w-full rounded border border-border bg-bg px-3 py-2 text-[12px] text-slate-300 outline-none focus:border-teal-500/50 transition-colors"
+                {search || statusFilter !== "all" || priorityFilter !== "all" || coverageFilter !== "all" ? (
+                  <>
+                    <p className="text-sm text-fg-muted">Kriterlere uyan gereksinim bulunamadı</p>
+                    <button onClick={resetFilters} className="text-xs text-fg-subtle hover:text-fg-muted">
+                      Filtreleri Temizle
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-sm font-medium text-fg">Gereksinim kataloğu boş</p>
+                    <p className="text-xs text-fg-muted max-w-xs">
+                      İlk gereksinimi oluşturmak için yukarıdaki butonu kullanın.
+                    </p>
+                    <button
+                      onClick={() => setShowModal(true)}
+                      className="mt-1 rounded border border-brand/40 bg-brand/10 px-3 py-1.5 text-[11px] text-brand-fg hover:bg-brand/20"
                     >
-                      {["P0", "P1", "P2", "P3"].map(p => (
-                        <option key={p} value={p}>{p}</option>
+                      Gereksinim Ekle
+                    </button>
+                  </>
+                )}
+              </div>
+            ) : (
+              <>
+                <div className="overflow-x-auto flex-1">
+                  <table className="w-full border-collapse">
+                    <thead>
+                      <tr className="border-b border-border bg-surface-raised sticky top-0 z-10">
+                        {["External Key", "Kaynak", "Başlık", "Öncelik", "Durum", "Etiketler"].map((h) => (
+                          <th
+                            key={h}
+                            className="px-4 py-2.5 text-left text-[10px] font-medium uppercase tracking-wider text-fg-subtle"
+                          >
+                            {h}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {pagedCatalog.map((req: Requirement) => (
+                        <tr
+                          key={req.id}
+                          onClick={() => setSelectedReq(selectedReq?.id === req.id ? null : req)}
+                          className={[
+                            "border-b border-border hover:bg-white/[0.04] transition-colors cursor-pointer",
+                            selectedReq?.id === req.id ? "bg-brand/5 border-l-2 border-l-brand" : "",
+                          ].join(" ")}
+                        >
+                          <td className="px-4 py-3">
+                            <span className="text-[11px] font-mono text-fg-muted">{req.external_key}</span>
+                          </td>
+                          <td className="px-4 py-3">
+                            <span className="text-[11px] text-fg-subtle">{req.external_source}</span>
+                          </td>
+                          <td className="px-4 py-3 max-w-[280px]">
+                            <span className="text-[13px] text-fg truncate block">{req.title}</span>
+                            {req.description && (
+                              <span className="text-[11px] text-fg-subtle truncate block mt-0.5">
+                                {req.description}
+                              </span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3">
+                            <Badge
+                              label={req.priority}
+                              colorClass={
+                                PRIORITY_COLORS[req.priority] ??
+                                "text-fg-muted border-border bg-surface-overlay"
+                              }
+                            />
+                          </td>
+                          <td className="px-4 py-3">
+                            <Badge
+                              label={req.status}
+                              colorClass={
+                                STATUS_COLORS[req.status] ??
+                                "text-fg-muted border-border bg-surface-overlay"
+                              }
+                            />
+                          </td>
+                          <td className="px-4 py-3">
+                            <div className="flex flex-wrap gap-1">
+                              {req.tags.slice(0, 2).map((tag) => (
+                                <span
+                                  key={tag}
+                                  className="rounded bg-white/[0.04] px-1.5 py-0.5 text-[10px] text-fg-subtle"
+                                >
+                                  {tag}
+                                </span>
+                              ))}
+                              {req.tags.length > 2 && (
+                                <span className="text-[10px] text-fg-subtle">+{req.tags.length - 2}</span>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                {catalogPageCount > 1 && (
+                  <div className="flex items-center justify-between border-t border-border bg-surface-raised px-6 py-3 shrink-0">
+                    <span className="text-[11px] text-fg-subtle">
+                      {filteredCatalog.length} sonuç — Sayfa {catalogPage + 1} / {catalogPageCount}
+                    </span>
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => setCatalogPage((p) => Math.max(0, p - 1))}
+                        disabled={catalogPage === 0}
+                        className="rounded px-2.5 py-1 text-[11px] text-fg-muted hover:text-fg disabled:opacity-30"
+                      >
+                        ← Önceki
+                      </button>
+                      <button
+                        onClick={() => setCatalogPage((p) => Math.min(catalogPageCount - 1, p + 1))}
+                        disabled={catalogPage >= catalogPageCount - 1}
+                        className="rounded px-2.5 py-1 text-[11px] text-fg-muted hover:text-fg disabled:opacity-30"
+                      >
+                        Sonraki →
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </>
+            ))}
+        </div>
+
+        {/* Catalog detail side panel (inline) */}
+        {activeTab === "catalog" && selectedReq && (
+          <div className="w-[340px] shrink-0 border-l border-border bg-surface-raised overflow-hidden flex flex-col">
+            <CatalogDetailPanel req={selectedReq} onClose={() => setSelectedReq(null)} />
+          </div>
+        )}
+      </div>
+
+      {/* ── New Requirement Modal ── */}
+      {showModal && (
+        <>
+          <div
+            className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm"
+            onClick={handleCloseModal}
+          />
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div
+              className="relative w-full max-w-lg rounded-xl border border-border bg-surface-raised shadow-2xl flex flex-col max-h-[90vh]"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Modal header */}
+              <div className="flex items-center justify-between border-b border-border px-6 py-4 shrink-0">
+                <h2 className="text-[14px] font-semibold text-fg">Yeni Gereksinim</h2>
+                <button
+                  onClick={handleCloseModal}
+                  className="rounded p-1 text-fg-subtle hover:bg-white/[0.06] hover:text-fg transition-colors"
+                >
+                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              {/* Form */}
+              <form onSubmit={handleSubmit} className="flex flex-col overflow-hidden">
+                <div className="overflow-y-auto px-6 py-5 space-y-4">
+                  {/* External Key + Source row */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <label className="text-[11px] font-medium text-fg-muted">
+                        External Key <span className="text-red-400">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={fields.external_key}
+                        onChange={(e) => handleFieldChange("external_key", e.target.value)}
+                        placeholder="REQ-001"
+                        required
+                        className="w-full rounded border border-border bg-surface-base px-3 py-2 text-[12px] text-fg placeholder-fg-subtle outline-none focus:border-brand/50 transition-colors"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-[11px] font-medium text-fg-muted">External Source</label>
+                      <select
+                        value={fields.external_source}
+                        onChange={(e) => handleFieldChange("external_source", e.target.value)}
+                        className="w-full rounded border border-border bg-surface-base px-3 py-2 text-[12px] text-fg outline-none focus:border-brand/50 transition-colors"
+                      >
+                        {EXTERNAL_SOURCES.map((s) => (
+                          <option key={s} value={s}>{s}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Title */}
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] font-medium text-fg-muted">
+                      Başlık <span className="text-red-400">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={fields.title}
+                      onChange={(e) => handleFieldChange("title", e.target.value)}
+                      placeholder="Gereksinim başlığı..."
+                      required
+                      className="w-full rounded border border-border bg-surface-base px-3 py-2 text-[12px] text-fg placeholder-fg-subtle outline-none focus:border-brand/50 transition-colors"
+                    />
+                  </div>
+
+                  {/* Description */}
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] font-medium text-fg-muted">Açıklama</label>
+                    <textarea
+                      value={fields.description}
+                      onChange={(e) => handleFieldChange("description", e.target.value)}
+                      placeholder="İsteğe bağlı açıklama..."
+                      rows={3}
+                      className="w-full resize-none rounded border border-border bg-surface-base px-3 py-2 text-[12px] text-fg placeholder-fg-subtle outline-none focus:border-brand/50 transition-colors"
+                    />
+                  </div>
+
+                  {/* Module */}
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] font-medium text-fg-muted">Modül / Etiket</label>
+                    <select
+                      value={fields.module}
+                      onChange={(e) => handleFieldChange("module", e.target.value)}
+                      className="w-full rounded border border-border bg-surface-base px-3 py-2 text-[12px] text-fg outline-none focus:border-brand/50 transition-colors"
+                    >
+                      <option value="">Seçiniz...</option>
+                      {MODULE_OPTIONS.map((m) => (
+                        <option key={m} value={m}>{m}</option>
                       ))}
                     </select>
                   </div>
+
+                  {/* Priority + Status */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <label className="text-[11px] font-medium text-fg-muted">Öncelik</label>
+                      <select
+                        value={fields.priority}
+                        onChange={(e) => handleFieldChange("priority", e.target.value)}
+                        className="w-full rounded border border-border bg-surface-base px-3 py-2 text-[12px] text-fg outline-none focus:border-brand/50 transition-colors"
+                      >
+                        {["P0", "P1", "P2", "P3"].map((p) => (
+                          <option key={p} value={p}>{p}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-[11px] font-medium text-fg-muted">Durum</label>
+                      <select
+                        value={fields.status}
+                        onChange={(e) => handleFieldChange("status", e.target.value)}
+                        className="w-full rounded border border-border bg-surface-base px-3 py-2 text-[12px] text-fg outline-none focus:border-brand/50 transition-colors"
+                      >
+                        <option value="open">open</option>
+                        <option value="in_progress">in_progress</option>
+                        <option value="done">done</option>
+                        <option value="deferred">deferred</option>
+                        <option value="draft">draft</option>
+                        <option value="approved">approved</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Coverage Status */}
                   <div className="space-y-1.5">
-                    <label className="text-[11px] font-medium text-slate-400">Durum</label>
+                    <label className="text-[11px] font-medium text-fg-muted">Kapsam Durumu</label>
                     <select
-                      value={fields.status}
-                      onChange={e => handleFieldChange("status", e.target.value)}
-                      className="w-full rounded border border-border bg-bg px-3 py-2 text-[12px] text-slate-300 outline-none focus:border-teal-500/50 transition-colors"
+                      value={fields.coverage_status}
+                      onChange={(e) => handleFieldChange("coverage_status", e.target.value)}
+                      className="w-full rounded border border-border bg-surface-base px-3 py-2 text-[12px] text-fg outline-none focus:border-brand/50 transition-colors"
                     >
-                      <option value="open">open</option>
-                      <option value="in_progress">in_progress</option>
-                      <option value="done">done</option>
-                      <option value="deferred">deferred</option>
+                      <option value="covered">covered</option>
+                      <option value="partially_covered">partially_covered</option>
+                      <option value="not_covered">not_covered</option>
+                      <option value="out_of_scope">out_of_scope</option>
                     </select>
                   </div>
                 </div>
 
-                {/* Coverage Status */}
-                <div className="space-y-1.5">
-                  <label className="text-[11px] font-medium text-slate-400">Kapsam Durumu</label>
-                  <select
-                    value={fields.coverage_status}
-                    onChange={e => handleFieldChange("coverage_status", e.target.value)}
-                    className="w-full rounded border border-border bg-bg px-3 py-2 text-[12px] text-slate-300 outline-none focus:border-teal-500/50 transition-colors"
+                {/* Modal footer */}
+                <div className="flex items-center justify-end gap-2 border-t border-border px-6 py-4 shrink-0">
+                  <button
+                    type="button"
+                    onClick={handleCloseModal}
+                    className="rounded px-4 py-2 text-[12px] text-fg-muted hover:bg-white/[0.06] hover:text-fg transition-colors"
                   >
-                    <option value="covered">covered</option>
-                    <option value="partially_covered">partially_covered</option>
-                    <option value="not_covered">not_covered</option>
-                    <option value="out_of_scope">out_of_scope</option>
-                  </select>
+                    İptal
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={
+                      createCatalogItem.isPending ||
+                      !fields.external_key.trim() ||
+                      !fields.title.trim()
+                    }
+                    className="rounded border border-brand/40 bg-brand/10 px-4 py-2 text-[12px] font-medium text-brand-fg transition-colors hover:bg-brand/20 disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    {createCatalogItem.isPending ? "Kaydediliyor..." : "Oluştur"}
+                  </button>
                 </div>
-              </div>
-
-              {/* Panel footer */}
-              <div className="flex items-center justify-end gap-2 border-t border-border px-5 py-4">
-                <button
-                  type="button"
-                  onClick={handleClosePanel}
-                  className="rounded px-4 py-2 text-[12px] text-slate-400 hover:bg-white/[0.06] hover:text-slate-200 transition-colors"
-                >
-                  İptal
-                </button>
-                <button
-                  type="submit"
-                  disabled={createReq.isPending || !fields.external_key.trim() || !fields.title.trim()}
-                  className="rounded border border-teal-500/40 bg-teal-500/10 px-4 py-2 text-[12px] font-medium text-teal-400 transition-colors hover:bg-teal-500/20 disabled:cursor-not-allowed disabled:opacity-40"
-                >
-                  {createReq.isPending ? "Kaydediliyor..." : "Oluştur"}
-                </button>
-              </div>
-            </form>
+              </form>
+            </div>
           </div>
         </>
       )}
 
-      {/* Toast */}
+      {/* ── Toast ── */}
       {toastMsg && (
-        <div className="fixed bottom-6 right-6 z-[60] rounded-lg border border-border bg-surface-raised px-4 py-3 text-[12px] text-slate-200 shadow-xl">
+        <div
+          className={[
+            "fixed bottom-6 right-6 z-[60] rounded-lg border px-4 py-3 text-[12px] shadow-xl",
+            toastError
+              ? "border-red-500/30 bg-surface-raised text-red-400"
+              : "border-border bg-surface-raised text-fg",
+          ].join(" ")}
+        >
           {toastMsg}
         </div>
       )}

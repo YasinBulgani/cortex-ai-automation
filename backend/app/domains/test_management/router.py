@@ -93,6 +93,8 @@ from app.domains.test_management.schemas import (
     TestRunOut,
     StandupOut,
     TestCaseCloneRequest,
+    TestCaseImproveRequest,
+    TestCaseImproveResponse,
     TestCaseGenerateRequest,
     TestCaseGenerateResponse,
     TestSuiteCreate,
@@ -276,6 +278,20 @@ def clone_case(project_id: str, case_id: str, payload: TestCaseCloneRequest, db:
         return service.clone_case(db, project_id, case_id, payload, user)
     except KeyError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@router.post(
+    "/projects/{project_id}/cases/{case_id}/improve",
+    response_model=TestCaseImproveResponse,
+    summary="AI ile mevcut test case'i iyileştir",
+)
+def improve_case(project_id: str, case_id: str, payload: TestCaseImproveRequest, db: DB, user: WriteUser) -> TestCaseImproveResponse:
+    try:
+        return service.improve_case(db, project_id, case_id, payload, user)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"İyileştirme hatası: {exc}") from exc
 
 
 @router.post(

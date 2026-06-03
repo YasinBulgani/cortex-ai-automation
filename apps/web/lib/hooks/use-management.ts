@@ -1347,6 +1347,26 @@ export function useKiwiSyncJobs(projectId: string | undefined) {
   });
 }
 
+// ── AI Case Improve ───────────────────────────────────────────────────────────
+
+export interface ImproveTestCaseResponse {
+  title?: string | null;
+  objective?: string | null;
+  preconditions?: string | null;
+  steps?: GeneratedStep[] | null;
+  suggestions: string[];
+}
+
+export function useImproveManagementCase(projectId: string) {
+  return useMutation({
+    mutationFn: ({ caseId, focus = "all" }: { caseId: string; focus?: string }) =>
+      apiFetch<ImproveTestCaseResponse>(`${BASE(projectId)}/cases/${caseId}/improve`, {
+        method: "POST",
+        json: { focus },
+      }),
+  });
+}
+
 // ── AI Test Generation ────────────────────────────────────────────────────────
 
 export interface GeneratedStep {

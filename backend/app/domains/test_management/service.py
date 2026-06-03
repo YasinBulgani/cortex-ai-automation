@@ -50,6 +50,8 @@ from app.domains.test_management.schemas import (
     GeneratedCaseOut,
     GeneratedStepOut,
     ManagementProjectCreate,
+    TestCaseImproveRequest,
+    TestCaseImproveResponse,
     ReleaseReportOut,
     RegressionCandidateOut,
     RegressionSetCaseIn,
@@ -556,6 +558,71 @@ def archive_case(db: Session, project_id: str, case_id: str, user: Any | None) -
     audit(db, "case.archived", "case", case.id, project_id, user)
     db.commit()
     return get_case(db, project_id, case_id)
+
+
+def improve_case(
+    db: Session,
+    project_id: str,
+    case_id: str,
+    payload: "TestCaseImproveRequest",
+    user: Any | None = None,
+) -> "TestCaseImproveResponse":
+    """AI kullanarak mevcut case'i iyileştirir."""
+    from app.domains.ai import service as ai_svc
+
+    project_id = resolve_project_id(db, project_id)
+    case = get_case(db, project_id, case_id)
+
+    existing_steps = "\n".join(
+        f"{s.step_no}. {s.action} → {s.expected_result}"
+        for s in sorted(case.steps, key=lambda x: x.step_no)
+    ) if case.steps else "Adım yok"
+
+    prompt = (
+        f"Mevcut test case:\n"
+        f"Başlık: {case.title}\n"
+        f"Amaç: {case.objective or '—'}\n"
+        f"Ön Koşullar: {case.preconditions or '—'}\n"
+        f"Adımlar:\n{existing_steps}\n\n"
+        f"Odak: {payload.focus}\n\n"
+        "Bu test case'i iyileştir. JSON formatında yanıt ver:\n"
+        '{"title": "...", "objective": "...", "preconditions": "...", '
+        '"steps": [{"step_no": 1, "action": "...", "expected_result": "...", "is_required": true}], '
+        '"suggestions": ["öneri1", "öneri2"]}'
+    )
+
+    try:
+        raw = ai_svc.call_llm(
+            "Sen kıdemli bir QA mühendisisin. Test case'leri iyileştir. JSON döndür.",
+            prompt,
+            json_mode=True,
+            _trace_project_id=project_id,
+            _trace_user_id=_actor_id(user),
+            _trace_task_type="case_improvement",
+        )
+        data = json.loads(raw) if isinstance(raw, str) else raw
+    except Exception:
+        data = {}
+
+    steps = None
+    if "steps" in data and isinstance(data["steps"], list):
+        steps = [
+            GeneratedStepOut(
+                step_no=s.get("step_no", i + 1),
+                action=s.get("action", ""),
+                expected_result=s.get("expected_result", ""),
+                is_required=s.get("is_required", True),
+            )
+            for i, s in enumerate(data["steps"])
+        ]
+
+    return TestCaseImproveResponse(
+        title=data.get("title"),
+        objective=data.get("objective"),
+        preconditions=data.get("preconditions"),
+        steps=steps,
+        suggestions=data.get("suggestions", []),
+    )
 
 
 def delete_case(db: Session, project_id: str, case_id: str, user: Any | None) -> None:
@@ -1236,6 +1303,7 @@ def create_release_signoff(db: Session, project_id: str, payload: ReleaseSignoff
     signoff = ReleaseSignoff(
         project_id=project_id,
         release_name=payload.release_name,
+        role=getattr(payload, "role", None),
         decision=payload.decision,
         status=payload.status,
         comment=payload.comment,
