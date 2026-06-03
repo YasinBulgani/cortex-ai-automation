@@ -401,6 +401,26 @@ def run_progress(project_id: str, run_id: str, db: DB, _user: ReadUser) -> dict:
     }
 
 
+@router.post(
+    "/projects/{project_id}/runs/{run_id}/complete",
+    response_model=TestRunOut,
+    summary="Koşumu manuel olarak tamamlandı olarak işaretle",
+)
+def complete_run(project_id: str, run_id: str, db: DB, user: WriteUser) -> TestRunOut:
+    from app.domains.test_management.models import TestRun as TR
+    from sqlalchemy import select as _sel
+    pid = service.resolve_project_id(db, project_id)
+    run = db.scalar(_sel(TR).where(TR.id == run_id))
+    if not run:
+        raise HTTPException(status_code=404, detail="Run bulunamadı")
+    run.status = "completed"
+    from datetime import datetime, timezone as _tz
+    run.completed_at = run.completed_at or datetime.now(_tz.utc)
+    db.commit()
+    db.refresh(run)
+    return run
+
+
 @router.get(
     "/projects/{project_id}/cases/quality-scan",
     response_model=QualityScanResponse,

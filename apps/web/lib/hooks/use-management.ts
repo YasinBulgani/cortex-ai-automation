@@ -1347,6 +1347,19 @@ export function useKiwiSyncJobs(projectId: string | undefined) {
   });
 }
 
+// ── Complete Run ──────────────────────────────────────────────────────────────
+
+export function useCompleteRun(projectId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (runId: string) =>
+      apiFetch<TestRun>(`${BASE(projectId)}/runs/${runId}/complete`, { method: "POST" }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: managementKeys.runs(projectId) });
+    },
+  });
+}
+
 // ── Run Progress ─────────────────────────────────────────────────────────────
 
 export interface RunProgressData {
