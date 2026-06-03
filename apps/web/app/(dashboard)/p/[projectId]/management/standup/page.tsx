@@ -119,6 +119,11 @@ export default function StandupPage() {
         </div>
       ) : (
         <>
+          {/* Run adı */}
+          {data?.run_name && (
+            <p className="text-center text-[11px] text-slate-500 truncate">📋 {data.run_name}</p>
+          )}
+
           {/* Ana gauge */}
           <div className="flex justify-center py-2">
             <HealthGaugeMobile score={data?.health_score ?? 0} health={health} />
@@ -188,6 +193,21 @@ export default function StandupPage() {
                   ))}
                 </ul>
               )}
+            </div>
+          )}
+
+          {/* Anomaliler */}
+          {data && data.anomalies.length > 0 && (
+            <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 space-y-2">
+              <p className="text-xs font-bold text-amber-400 uppercase tracking-widest">⚠ Anomaliler</p>
+              <ul className="space-y-1">
+                {data.anomalies.map((a, i) => (
+                  <li key={i} className="text-xs text-slate-300 flex items-start gap-2">
+                    <span className={`mt-0.5 shrink-0 ${a.severity === "critical" ? "text-red-400" : "text-amber-400"}`}>▲</span>
+                    {a.title}
+                  </li>
+                ))}
+              </ul>
             </div>
           )}
 
