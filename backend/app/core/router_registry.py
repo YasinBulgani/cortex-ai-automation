@@ -37,7 +37,6 @@ from app.domains.evals.router import router as evals_router
 from app.domains.jobs.router import router as jobs_router
 from app.domains.n8n.router import router as n8n_router
 from app.domains.notifications.router import router as notifications_router
-from app.domains.notifications.push_router import router as push_router
 from app.domains.organizations.router import router as organizations_router
 from app.domains.sso.router import router as sso_router
 from app.domains.collaboration.router import router as collaboration_router
@@ -129,7 +128,6 @@ _PREFIXED_ROUTERS = [
     artifacts_router,
     tspm_router,
     notifications_router,
-    push_router,
     organizations_router,
     sso_router,
     collaboration_router,
