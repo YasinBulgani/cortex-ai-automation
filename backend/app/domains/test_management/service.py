@@ -52,6 +52,8 @@ from app.domains.test_management.schemas import (
     ManagementProjectCreate,
     TestCaseImproveRequest,
     TestCaseImproveResponse,
+    TestPlanAIGenerateRequest,
+    TestPlanAIGenerateResponse,
     ReleaseReportOut,
     RegressionCandidateOut,
     RegressionSetCaseIn,
@@ -558,6 +560,50 @@ def archive_case(db: Session, project_id: str, case_id: str, user: Any | None) -
     audit(db, "case.archived", "case", case.id, project_id, user)
     db.commit()
     return get_case(db, project_id, case_id)
+
+
+def ai_generate_plan(
+    db: Session,
+    project_id: str,
+    payload: "TestPlanAIGenerateRequest",
+    user: Any | None = None,
+) -> "TestPlanAIGenerateResponse":
+    """AI ile test planı adı, özeti ve scope önerileri üretir."""
+    from app.domains.ai import service as ai_svc
+
+    project_id = resolve_project_id(db, project_id)
+    suites = list(db.scalars(select(TestSuite).where(TestSuite.project_id == project_id)).all())
+    suite_names = ", ".join(s.name for s in suites[:20]) or "Henüz suite yok"
+
+    prompt = (
+        f"Release adı: {payload.release_name}\n"
+        f"Hedef: {payload.goal or 'Belirtilmemiş'}\n"
+        f"Plan türü: {payload.plan_type}\n"
+        f"Mevcut suite'ler: {suite_names}\n\n"
+        "Bu release için test planı oluştur. JSON formatında yanıt ver:\n"
+        '{"name": "plan adı", "scope_summary": "kapsamlı özet", '
+        '"suggested_suite_ids": [], "suggestions": ["öneri1", "öneri2"]}'
+    )
+
+    try:
+        raw = ai_svc.call_llm(
+            "Sen kıdemli bir QA yöneticisisin. Test planları oluştur. JSON döndür.",
+            prompt,
+            json_mode=True,
+            _trace_project_id=project_id,
+            _trace_user_id=_actor_id(user),
+            _trace_task_type="plan_generation",
+        )
+        data = json.loads(raw) if isinstance(raw, str) else raw
+    except Exception:
+        data = {}
+
+    return TestPlanAIGenerateResponse(
+        name=data.get("name") or f"{payload.release_name} Test Planı",
+        scope_summary=data.get("scope_summary") or f"{payload.release_name} için test kapsamı",
+        suggested_suite_ids=data.get("suggested_suite_ids") or [],
+        suggestions=data.get("suggestions") or [],
+    )
 
 
 def improve_case(

@@ -976,6 +976,19 @@ class TestCaseCloneRequest(BaseModel):
     folder_id: Optional[str] = None
 
 
+class TestPlanAIGenerateRequest(BaseModel):
+    release_name: str = Field(..., min_length=1, max_length=200)
+    goal: Optional[str] = Field(default=None, max_length=500)
+    plan_type: str = "regression"
+
+
+class TestPlanAIGenerateResponse(BaseModel):
+    name: str
+    scope_summary: str
+    suggested_suite_ids: list[str] = Field(default_factory=list)
+    suggestions: list[str] = Field(default_factory=list)
+
+
 class TestCaseImproveRequest(BaseModel):
     focus: str = Field(default="all", description="all | steps | title | preconditions")
 

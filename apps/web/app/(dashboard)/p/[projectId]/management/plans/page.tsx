@@ -11,6 +11,7 @@ import {
   useManagementRuns,
   useCreateManagementRun,
   useCreateManagementCycle,
+  useAIGeneratePlan,
   type TestPlan,
   type TestCycle,
   type TestRun,
@@ -315,9 +316,10 @@ export default function ManagementPlansPage() {
   const { data: plans, isLoading } = useManagementPlans(mpid || undefined);
   const { data: allCycles }        = useManagementCycles(mpid || undefined);
   const { data: allRuns }          = useManagementRuns(mpid || undefined);
-  const createPlan                 = useCreateManagementPlan(mpid || "");
-  const createRun                  = useCreateManagementRun(mpid || "");
-  const createCycle                = useCreateManagementCycle(mpid || "");
+  const createPlan   = useCreateManagementPlan(mpid || "");
+  const createRun    = useCreateManagementRun(mpid || "");
+  const createCycle  = useCreateManagementCycle(mpid || "");
+  const aiGenPlan    = useAIGeneratePlan(mpid || "");
 
   const [showPlanForm,  setShowPlanForm]  = useState(false);
   const [planName,      setPlanName]      = useState("");
@@ -457,15 +459,30 @@ export default function ManagementPlansPage() {
                 className="w-full rounded-lg border border-border bg-white/[0.04] px-3 py-2 text-[13px] text-slate-200 placeholder-slate-600 outline-none focus:border-teal-500/50"
               />
             </div>
-            <div className="w-full">
-              <label className="mb-1 block text-[11px] text-slate-500">Kapsam Özeti</label>
-              <textarea
-                value={planScope}
-                onChange={e => setPlanScope(e.target.value)}
-                placeholder="Bu planın kapsamı ve hedefleri hakkında kısa bir açıklama…"
-                rows={2}
-                className="w-full resize-none rounded-lg border border-border bg-white/[0.04] px-3 py-2 text-[13px] text-slate-200 placeholder-slate-600 outline-none focus:border-teal-500/50"
-              />
+            <div className="w-full flex gap-2">
+              <div className="flex-1">
+                <label className="mb-1 block text-[11px] text-slate-500">Kapsam Özeti</label>
+                <textarea
+                  value={planScope}
+                  onChange={e => setPlanScope(e.target.value)}
+                  placeholder="Bu planın kapsamı ve hedefleri hakkında kısa bir açıklama…"
+                  rows={2}
+                  className="w-full resize-none rounded-lg border border-border bg-white/[0.04] px-3 py-2 text-[13px] text-slate-200 placeholder-slate-600 outline-none focus:border-teal-500/50"
+                />
+              </div>
+              <div className="flex flex-col justify-end">
+                <button type="button"
+                  disabled={!planRelease.trim() || aiGenPlan.isPending}
+                  onClick={async () => {
+                    if (!planRelease.trim()) return;
+                    const res = await aiGenPlan.mutateAsync({ release_name: planRelease.trim(), plan_type: planType });
+                    if (!planName) setPlanName(res.name);
+                    setPlanScope(res.scope_summary);
+                  }}
+                  className="flex items-center gap-1.5 rounded-lg border border-teal-500/30 bg-teal-500/10 px-3 py-2 text-[11px] font-medium text-teal-400 hover:bg-teal-500/20 disabled:opacity-40 transition-colors whitespace-nowrap">
+                  {aiGenPlan.isPending ? "AI üretiyor…" : "✦ AI Öner"}
+                </button>
+              </div>
             </div>
             <button
               type="submit"

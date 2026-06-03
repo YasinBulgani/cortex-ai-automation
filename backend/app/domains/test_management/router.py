@@ -95,6 +95,8 @@ from app.domains.test_management.schemas import (
     TestCaseCloneRequest,
     TestCaseImproveRequest,
     TestCaseImproveResponse,
+    TestPlanAIGenerateRequest,
+    TestPlanAIGenerateResponse,
     TestCaseGenerateRequest,
     TestCaseGenerateResponse,
     TestSuiteCreate,
@@ -327,6 +329,18 @@ def get_standup(
 @router.post("/projects/{project_id}/plans", response_model=TestPlanOut, status_code=status.HTTP_201_CREATED)
 def create_plan(project_id: str, payload: TestPlanCreate, db: DB, user: WriteUser) -> TestPlanOut:
     return service.create_plan(db, project_id, payload, user)
+
+
+@router.post(
+    "/projects/{project_id}/plans/ai-generate",
+    response_model=TestPlanAIGenerateResponse,
+    summary="AI ile test planı önerileri üret",
+)
+def ai_generate_plan(project_id: str, payload: TestPlanAIGenerateRequest, db: DB, user: WriteUser) -> TestPlanAIGenerateResponse:
+    try:
+        return service.ai_generate_plan(db, project_id, payload, user)
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Plan üretim hatası: {exc}") from exc
 
 
 @router.get("/projects/{project_id}/plans", response_model=list[TestPlanOut])

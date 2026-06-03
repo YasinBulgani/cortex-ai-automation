@@ -1347,6 +1347,25 @@ export function useKiwiSyncJobs(projectId: string | undefined) {
   });
 }
 
+// ── AI Plan Generate ─────────────────────────────────────────────────────────
+
+export interface AIPlanGenerateResponse {
+  name: string;
+  scope_summary: string;
+  suggested_suite_ids: string[];
+  suggestions: string[];
+}
+
+export function useAIGeneratePlan(projectId: string) {
+  return useMutation({
+    mutationFn: (payload: { release_name: string; goal?: string; plan_type?: string }) =>
+      apiFetch<AIPlanGenerateResponse>(`${BASE(projectId)}/plans/ai-generate`, {
+        method: "POST",
+        json: payload,
+      }),
+  });
+}
+
 // ── AI Case Improve ───────────────────────────────────────────────────────────
 
 export interface ImproveTestCaseResponse {
