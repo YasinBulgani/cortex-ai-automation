@@ -1003,6 +1003,18 @@ class TestCaseImproveResponse(BaseModel):
 
 # ── Standup ───────────────────────────────────────────────────────────────────
 
+class DefectRootCauseRequest(BaseModel):
+    defect_title: str = Field(..., min_length=1)
+    defect_status: Optional[str] = None
+    test_context: Optional[str] = None
+
+
+class DefectRootCauseResponse(BaseModel):
+    root_cause: str
+    suggestions: list[str] = Field(default_factory=list)
+    category: Optional[str] = None
+
+
 class StandupAnomaly(BaseModel):
     severity: str
     title: str

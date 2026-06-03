@@ -1347,6 +1347,24 @@ export function useKiwiSyncJobs(projectId: string | undefined) {
   });
 }
 
+// ── AI Defect Root Cause ─────────────────────────────────────────────────────
+
+export interface DefectRootCauseResponse {
+  root_cause: string;
+  suggestions: string[];
+  category?: string | null;
+}
+
+export function useAnalyzeDefectRootCause(projectId: string) {
+  return useMutation({
+    mutationFn: (payload: { defect_title: string; defect_status?: string; test_context?: string }) =>
+      apiFetch<DefectRootCauseResponse>(`${BASE(projectId)}/defects/analyze-root-cause`, {
+        method: "POST",
+        json: payload,
+      }),
+  });
+}
+
 // ── AI Plan Generate ─────────────────────────────────────────────────────────
 
 export interface AIPlanGenerateResponse {

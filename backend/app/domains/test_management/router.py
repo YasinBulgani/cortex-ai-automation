@@ -93,6 +93,8 @@ from app.domains.test_management.schemas import (
     TestRunOut,
     StandupOut,
     TestCaseCloneRequest,
+    DefectRootCauseRequest,
+    DefectRootCauseResponse,
     TestCaseImproveRequest,
     TestCaseImproveResponse,
     TestPlanAIGenerateRequest,
@@ -592,6 +594,43 @@ def update_defect_link(
     user: WriteUser,
 ) -> DefectLinkOut:
     return service.update_defect_link(db, project_id, defect_id, payload, user)
+
+
+@router.post(
+    "/projects/{project_id}/defects/analyze-root-cause",
+    response_model=DefectRootCauseResponse,
+    summary="AI ile defect root cause analizi yap",
+)
+def analyze_defect_root_cause(
+    project_id: str,
+    payload: DefectRootCauseRequest,
+    db: DB,
+    user: WriteUser,
+) -> DefectRootCauseResponse:
+    try:
+        from app.domains.ai import service as ai_svc
+        import json as _json
+        prompt = (
+            f"Defect: {payload.defect_title}\n"
+            f"Durum: {payload.defect_status or 'open'}\n"
+            f"Test bağlamı: {payload.test_context or 'Belirtilmemiş'}\n\n"
+            "Bu defectin kök nedenini analiz et. JSON döndür:\n"
+            '{"root_cause": "açıklama", "suggestions": ["öneri1", "öneri2"], "category": "ui|api|db|logic|env|data"}'
+        )
+        raw = ai_svc.call_llm(
+            "Sen kıdemli bir QA ve yazılım mühendisisin. Defect root cause analizi yap. JSON döndür.",
+            prompt, json_mode=True,
+            _trace_project_id=str(project_id),
+            _trace_task_type="root_cause_analysis",
+        )
+        data = _json.loads(raw) if isinstance(raw, str) else raw
+        return DefectRootCauseResponse(
+            root_cause=data.get("root_cause", "Analiz yapılamadı"),
+            suggestions=data.get("suggestions", []),
+            category=data.get("category"),
+        )
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Analiz hatası: {exc}") from exc
 
 
 @router.get("/projects/{project_id}/imports", response_model=list[TestImportJobOut])

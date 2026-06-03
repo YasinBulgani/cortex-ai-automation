@@ -7,6 +7,7 @@ import {
   useManagementDefects,
   useUpdateManagementDefect,
   useCreateManagementDefect,
+  useAnalyzeDefectRootCause,
   type DefectLink,
 } from "@/lib/hooks/use-management";
 import { useManagementProjectId } from "@/lib/hooks/use-management-project-id";
@@ -251,13 +252,15 @@ function CreateDefectModal({ mpid, onClose, onDone }: CreateDefectModalProps) {
 // ─── Defect Edit Modal ────────────────────────────────────────────────────────
 
 function DefectEditModal({ defect, mpid, onClose }: DefectEditModalProps) {
-  const update = useUpdateManagementDefect(mpid);
+  const update   = useUpdateManagementDefect(mpid);
+  const analyze  = useAnalyzeDefectRootCause(mpid);
 
   const [status,       setStatus]       = useState(defect.status);
   const [severity,     setSeverity]     = useState(defect.severity);
   const [priority,     setPriority]     = useState(defect.priority);
   const [retestStatus, setRetestStatus] = useState(defect.retest_status);
   const [rootCause,    setRootCause]    = useState(defect.root_cause ?? "");
+  const [aiSuggestions, setAiSuggestions] = useState<string[]>([]);
 
   const save = async () => {
     await update.mutateAsync({
@@ -346,10 +349,29 @@ function DefectEditModal({ defect, mpid, onClose }: DefectEditModalProps) {
           </div>
 
           <div>
-            <label className="mb-1 block text-[10px] uppercase tracking-widest text-slate-600">Root Cause</label>
+            <div className="mb-1 flex items-center justify-between">
+              <label className="text-[10px] uppercase tracking-widest text-slate-600">Root Cause</label>
+              <button type="button"
+                disabled={analyze.isPending}
+                onClick={async () => {
+                  const res = await analyze.mutateAsync({ defect_title: defect.title, defect_status: status });
+                  if (!rootCause) setRootCause(res.root_cause);
+                  setAiSuggestions(res.suggestions);
+                }}
+                className="flex items-center gap-1 text-[10px] text-teal-400 hover:text-teal-300 disabled:opacity-40 transition-colors">
+                {analyze.isPending ? "Analiz ediliyor…" : "✦ AI Analiz"}
+              </button>
+            </div>
             <textarea value={rootCause} onChange={e => setRootCause(e.target.value)}
               rows={3} placeholder="Hatanın temel nedeni…"
               className={cn(inp, "resize-none")}/>
+            {aiSuggestions.length > 0 && (
+              <div className="mt-2 space-y-1 rounded-lg border border-teal-500/20 bg-teal-500/5 px-3 py-2">
+                {aiSuggestions.map((s, i) => (
+                  <p key={i} className="text-[11px] text-teal-300/80">• {s}</p>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 
