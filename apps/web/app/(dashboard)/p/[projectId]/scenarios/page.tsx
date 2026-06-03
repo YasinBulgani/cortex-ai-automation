@@ -35,7 +35,11 @@ import {
   useManagementRequirements,
   useManagementCaseVersions,
   useGenerateTestCases,
+  useCloneManagementCase,
+  useImproveManagementCase,
+  useMoveManagementCase,
   type GeneratedCase,
+  type ImproveTestCaseResponse,
   type TestCase,
   type TestFolder,
   type TestSuite,
@@ -640,6 +644,10 @@ function DetailPanel({ tc, suites, folders, onClose, projectId, mgmtProjectId }:
   onClose: () => void; projectId: string; mgmtProjectId: string;
 }) {
   const [tab, setTab] = useState<DetailTab>("overview");
+  const [cloneMsg,      setCloneMsg]      = useState<string | null>(null);
+  const [improveResult, setImproveResult] = useState<ImproveTestCaseResponse | null>(null);
+  const clone   = useCloneManagementCase(mgmtProjectId);
+  const improve = useImproveManagementCase(mgmtProjectId);
 
   const suite  = suites.find(s => s.id === tc.suite_id);
   const folder = folders.find(f => f.id === tc.folder_id);
@@ -680,15 +688,47 @@ function DetailPanel({ tc, suites, folders, onClose, projectId, mgmtProjectId }:
           className="flex items-center gap-1.5 rounded-lg border border-slate-700 px-2.5 py-1.5 text-xs text-slate-300 hover:bg-slate-800 hover:text-white transition-colors">
           <IcEdit/> Düzenle
         </Link>
-        <button type="button"
-          className="flex items-center gap-1.5 rounded-lg border border-slate-700 px-2.5 py-1.5 text-xs text-slate-400 hover:bg-slate-800 transition-colors">
-          <IcCopy/> Kopyala
+        <button type="button" disabled={clone.isPending}
+          onClick={async () => {
+            const cloned = await clone.mutateAsync({ caseId: tc.id });
+            setCloneMsg(cloned.case_key ?? cloned.title);
+            setTimeout(() => setCloneMsg(null), 3000);
+          }}
+          className="flex items-center gap-1.5 rounded-lg border border-slate-700 px-2.5 py-1.5 text-xs text-slate-400 hover:bg-slate-800 disabled:opacity-40 transition-colors">
+          <IcCopy/> {clone.isPending ? "Kopyalanıyor…" : "Kopyala"}
         </button>
-        <button type="button"
-          className="ml-auto flex items-center gap-1.5 rounded-lg border border-blue-500/20 bg-slate-800/60 px-2.5 py-1.5 text-xs text-blue-400 hover:bg-blue-500/8 transition-colors">
-          <IcSparkle/> AI İyileştir
+        {cloneMsg && (
+          <span className="text-[10px] text-emerald-400">✓ {cloneMsg}</span>
+        )}
+        <button type="button" disabled={improve.isPending}
+          onClick={async () => {
+            const res = await improve.mutateAsync({ caseId: tc.id, focus: "all" });
+            setImproveResult(res);
+          }}
+          className="ml-auto flex items-center gap-1.5 rounded-lg border border-blue-500/20 bg-slate-800/60 px-2.5 py-1.5 text-xs text-blue-400 hover:bg-blue-500/8 disabled:opacity-40 transition-colors">
+          <IcSparkle/> {improve.isPending ? "İyileştiriliyor…" : "AI İyileştir"}
         </button>
       </div>
+
+      {/* AI Improve result */}
+      {improveResult && (
+        <div className="border-b border-slate-800 bg-blue-500/5 px-4 py-3 space-y-2">
+          <div className="flex items-center justify-between">
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-blue-400">AI Önerileri</p>
+            <button type="button" onClick={() => setImproveResult(null)} className="text-[10px] text-slate-600 hover:text-slate-300">✕</button>
+          </div>
+          {improveResult.suggestions.length > 0 && (
+            <ul className="space-y-0.5">
+              {improveResult.suggestions.map((s, i) => (
+                <li key={i} className="text-[11px] text-slate-400">• {s}</li>
+              ))}
+            </ul>
+          )}
+          {improveResult.title && (
+            <p className="text-[11px] text-slate-300"><span className="text-slate-500">Önerilen başlık:</span> {improveResult.title}</p>
+          )}
+        </div>
+      )}
 
       {/* Tabs */}
       <div className="flex border-b border-slate-800 px-2 overflow-x-auto">
@@ -1193,6 +1233,7 @@ export default function ScenariosPage() {
 
   const effectivePid = mgmtProjectId ?? projectId;
   const repoQuery    = useManagementRepository(effectivePid || undefined);
+  const moveCase     = useMoveManagementCase(effectivePid || "");
 
   const suites   = repoQuery.data?.suites  ?? [];
   const folders  = repoQuery.data?.folders ?? [];
@@ -1337,14 +1378,34 @@ export default function ScenariosPage() {
         {checkedIds.size > 0 && (
           <div className="flex flex-wrap items-center gap-2 border-b border-brand/15 bg-brand-soft/70 px-4 py-1.5">
             <span className="text-[10px] font-semibold text-brand">{checkedIds.size} seçili</span>
-            {["Aktife Al","Arşivle","Regresyon Setine Ekle","Sil"].map(lbl => (
+            {["Aktife Al","Arşivle"].map(lbl => (
               <button key={lbl} type="button"
                 className={cn("rounded-lg border px-2.5 py-1 text-[10px] transition-colors",
-                  lbl === "Sil" ? "border-danger/20 text-danger hover:bg-danger-subtle"
-                               : "border-border bg-surface-raised text-fg-muted hover:border-brand/25 hover:text-fg")}>
+                  lbl === "Arşivle" ? "border-danger/20 text-danger hover:bg-danger-subtle"
+                                   : "border-border bg-surface-raised text-fg-muted hover:border-brand/25 hover:text-fg")}>
                 {lbl}
               </button>
             ))}
+            {/* Bulk move */}
+            <select onChange={async e => {
+              if (!e.target.value) return;
+              const [suiteId, folderId] = e.target.value.split("|");
+              for (const id of checkedIds) {
+                await moveCase.mutateAsync({ caseId: id, suite_id: suiteId || null, folder_id: folderId || null });
+              }
+              setCheckedIds(new Set());
+              e.target.value = "";
+            }} className="rounded-lg border border-border bg-surface-raised px-2 py-1 text-[10px] text-fg-muted outline-none">
+              <option value="">Taşı →</option>
+              {suites.map(s => (
+                <optgroup key={s.id} label={s.name}>
+                  <option value={`${s.id}|`}>{s.name} (kök)</option>
+                  {folders.filter(f => f.suite_id === s.id && !f.parent_id).map(f => (
+                    <option key={f.id} value={`${s.id}|${f.id}`}>&nbsp;&nbsp;{f.name}</option>
+                  ))}
+                </optgroup>
+              ))}
+            </select>
             <button type="button" onClick={() => setCheckedIds(new Set())} className="ml-auto text-[10px] font-medium text-fg-subtle hover:text-fg">Temizle</button>
           </div>
         )}
