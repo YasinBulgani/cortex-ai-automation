@@ -21,7 +21,12 @@ if [ "${SKIP_APP_BOOTSTRAP:-}" != "1" ]; then
     sleep 2
   done
 
-  alembic upgrade heads
+  # Fresh DB: SQLAlchemy create_all + stamp (broken migration history bypass)
+  # Existing DB: normal alembic upgrade
+  python scripts/init_schema.py || true
+  if python scripts/init_schema.py --check 2>/dev/null | grep -q "^Mevcut DB"; then
+    alembic upgrade heads || echo "Alembic uyarısı: migration hatası, devam ediliyor..."
+  fi
   python scripts/seed.py || echo "Seed uyarısı: seed.py hata verdi, devam ediliyor..."
   if [ "${RUN_SEED_DEMO:-}" = "1" ] || [ "${RUN_SEED_DEMO:-}" = "true" ]; then
     python scripts/seed_demo.py
