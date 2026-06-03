@@ -371,6 +371,37 @@ def bulk_update_cases(project_id: str, payload: BulkUpdateCasesRequest, db: DB, 
 
 
 @router.get(
+    "/projects/{project_id}/runs/{run_id}/progress",
+    summary="Test koşumunun canlı ilerleme durumunu döner",
+)
+def run_progress(project_id: str, run_id: str, db: DB, _user: ReadUser) -> dict:
+    from app.domains.test_management.models import TestRunCase as TRC
+    from sqlalchemy import select as _sel, func as _func
+    pid = service.resolve_project_id(db, project_id)
+    run_cases = list(db.scalars(_sel(TRC).where(TRC.run_id == run_id)).all())
+    total = len(run_cases)
+    done_set = {"passed", "failed", "blocked", "skipped"}
+    done = len([rc for rc in run_cases if rc.status in done_set])
+    passed = len([rc for rc in run_cases if rc.status == "passed"])
+    failed = len([rc for rc in run_cases if rc.status == "failed"])
+    blocked = len([rc for rc in run_cases if rc.status == "blocked"])
+    not_run = total - done
+    pct = round((done / total * 100) if total > 0 else 0, 1)
+    pass_rate = round((passed / done * 100) if done > 0 else 0, 1)
+    return {
+        "run_id": run_id,
+        "total": total,
+        "done": done,
+        "passed": passed,
+        "failed": failed,
+        "blocked": blocked,
+        "not_run": not_run,
+        "progress_pct": pct,
+        "pass_rate_pct": pass_rate,
+    }
+
+
+@router.get(
     "/projects/{project_id}/cases/quality-scan",
     response_model=QualityScanResponse,
     summary="Test case kalite taraması — kısa başlık, boş adım, vs.",

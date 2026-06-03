@@ -1347,6 +1347,30 @@ export function useKiwiSyncJobs(projectId: string | undefined) {
   });
 }
 
+// ── Run Progress ─────────────────────────────────────────────────────────────
+
+export interface RunProgressData {
+  run_id: string;
+  total: number;
+  done: number;
+  passed: number;
+  failed: number;
+  blocked: number;
+  not_run: number;
+  progress_pct: number;
+  pass_rate_pct: number;
+}
+
+export function useRunProgress(projectId: string | undefined, runId: string | undefined) {
+  return useQuery({
+    queryKey: [...(projectId ? managementKeys.project(projectId) : []), "runs", runId, "progress"],
+    queryFn: () => apiFetch<RunProgressData>(`${BASE(projectId!)}/runs/${runId}/progress`),
+    enabled: !!projectId && !!runId,
+    refetchInterval: 10_000,
+    staleTime: 5_000,
+  });
+}
+
 // ── Bulk Create Requirements ──────────────────────────────────────────────────
 
 export function useBulkCreateRequirements(projectId: string) {

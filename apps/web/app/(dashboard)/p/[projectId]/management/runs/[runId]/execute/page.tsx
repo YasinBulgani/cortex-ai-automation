@@ -7,6 +7,7 @@ import { useManagementProjectId } from "@/lib/hooks/use-management-project-id";
 import { cn } from "@/lib/utils";
 import {
   useManagementRun,
+  useRunProgress,
   useUpdateManagementRunCase,
   useUpdateManagementStepResult,
   useCreateManagementDefect,
@@ -524,9 +525,11 @@ export default function ManagementRunExecutePage() {
   const runId     = useRouteParam("runId") ?? "";
   const mpid      = useManagementProjectId(projectId || undefined) ?? "";
 
-  const runQuery = useManagementRun(projectId || undefined, runId || undefined);
-  const run      = runQuery.data;
-  const runCases = run?.run_cases ?? [];
+  const runQuery    = useManagementRun(projectId || undefined, runId || undefined);
+  const progressQ   = useRunProgress(mpid || undefined, runId || undefined);
+  const run         = runQuery.data;
+  const runCases    = run?.run_cases ?? [];
+  const progress    = progressQ.data;
 
   const [selectedRcId, setSelectedRcId] = useState<string | null>(null);
 
@@ -575,16 +578,29 @@ export default function ManagementRunExecutePage() {
         <div className="border-b border-border px-4 py-2.5">
           <div className="flex items-center justify-between mb-1.5">
             <span className="text-[10px] text-slate-500">İlerleme</span>
-            <span className="text-[10px] font-bold tabular-nums text-slate-300">{pct}%</span>
+            <span className="text-[10px] font-bold tabular-nums text-slate-300">
+              {progress?.progress_pct ?? pct}%
+            </span>
           </div>
           <div className="h-1 rounded-full bg-surface-overlay overflow-hidden">
-            <div className="h-full rounded-full bg-emerald-500/70 transition-all duration-500" style={{ width: `${pct}%` }}/>
+            <div className="h-full rounded-full bg-emerald-500/70 transition-all duration-500"
+              style={{ width: `${progress?.progress_pct ?? pct}%` }}/>
           </div>
+          {progress && (
+            <div className="mt-1.5 flex gap-1.5 flex-wrap text-[9px]">
+              {progress.passed  > 0 && <span className="text-emerald-400">{progress.passed} pass</span>}
+              {progress.failed  > 0 && <span className="text-red-400">{progress.failed} fail</span>}
+              {progress.blocked > 0 && <span className="text-amber-400">{progress.blocked} blk</span>}
+              <span className="text-slate-600">{progress.not_run} left</span>
+            </div>
+          )}
+          {!progress && (
           <div className="mt-1.5 flex justify-between text-[9px] text-slate-600">
             <span>{passed} passed</span>
             <span>{failed > 0 ? `${failed} fail` : ""}</span>
             <span>{notRun} left</span>
           </div>
+          )}
         </div>
 
         {/* Case list */}
