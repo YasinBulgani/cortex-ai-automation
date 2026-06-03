@@ -194,29 +194,49 @@ def _pages_digest(pages: list[dict]) -> str:
     return "\n".join(lines)
 
 
-def _extract_json(raw: str) -> dict:
-    """LLM çıktısından ilk geçerli JSON nesnesini çıkarır (markdown-tolerant)."""
+def _repair_json(s: str) -> str:
+    """Yerel LLM'lerin sık yaptığı JSON hatalarını onarır (trailing comma vb.)."""
+    # `... ,]` / `... ,}` → trailing virgülü sil
+    s = re.sub(r",\s*([}\]])", r"\1", s)
+    return s
+
+
+def _loads_tolerant(s: str):
+    """json.loads + trailing-comma onarımı fallback'i."""
+    try:
+        return json.loads(s)
+    except json.JSONDecodeError:
+        return json.loads(_repair_json(s))
+
+
+def _extract_json(raw: str):
+    """LLM çıktısından ilk geçerli JSON değerini çıkarır (markdown + onarım tolere eder).
+
+    Hem nesne ``{...}`` hem dizi ``[...]`` döndürebilir.
+    """
     raw = raw.strip()
     # ```json ... ``` bloğunu soy
     fence = re.search(r"```(?:json)?\s*(.+?)```", raw, re.DOTALL)
     if fence:
         raw = fence.group(1).strip()
     try:
-        return json.loads(raw)
+        return _loads_tolerant(raw)
     except json.JSONDecodeError:
         pass
-    # İlk { ... } dengeli bloğunu yakala
-    start = raw.find("{")
-    if start != -1:
+    # İlk dengeli { ... } veya [ ... ] bloğunu yakala
+    for open_ch, close_ch in (("{", "}"), ("[", "]")):
+        start = raw.find(open_ch)
+        if start == -1:
+            continue
         depth = 0
         for i in range(start, len(raw)):
-            if raw[i] == "{":
+            if raw[i] == open_ch:
                 depth += 1
-            elif raw[i] == "}":
+            elif raw[i] == close_ch:
                 depth -= 1
                 if depth == 0:
                     try:
-                        return json.loads(raw[start : i + 1])
+                        return _loads_tolerant(raw[start : i + 1])
                     except json.JSONDecodeError:
                         break
     raise ValueError("LLM çıktısından geçerli JSON çıkarılamadı")
