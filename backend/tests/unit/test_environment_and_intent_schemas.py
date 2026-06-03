@@ -190,7 +190,7 @@ class TestResolveStringBuiltins:
 
     def test_random_email_format(self):
         result = resolve_string("{{$randomEmail}}", {})
-        assert "@nexusqa.test" in result
+        assert "@neurex.test" in result
 
     def test_random_phone_format(self):
         result = resolve_string("{{$randomPhone}}", {})

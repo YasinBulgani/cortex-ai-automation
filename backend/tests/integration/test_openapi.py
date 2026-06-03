@@ -9,7 +9,7 @@ class TestOpenAPI:
         assert r.status_code == 200
         schema = r.json()
         assert "openapi" in schema
-        assert schema["info"]["title"] == "TestwrightAI Platform API"
+        assert schema["info"]["title"] == "Neurex Platform API"
 
     def test_openapi_has_security_scheme(self, client: TestClient):
         schema = client.get("/openapi.json").json()

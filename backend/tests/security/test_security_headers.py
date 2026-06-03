@@ -1,4 +1,4 @@
-"""Security header and middleware tests for TestwrightAI Banking Platform.
+"""Security header and middleware tests for Neurex Banking Platform.
 
 Validates OWASP-recommended headers, CORS restrictions, and body-size limits.
 """

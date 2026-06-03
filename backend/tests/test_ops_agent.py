@@ -54,7 +54,7 @@ def test_run_maintenance_cycle_writes_report(monkeypatch, tmp_path: Path) -> Non
     assert status["last_status"] == "degraded"
     report_path = Path(status["last_report_path"])
     assert report_path.exists()
-    assert "TestwrightAI AI Ops Report" in report_path.read_text(encoding="utf-8")
+    assert "Neurex AI Ops Report" in report_path.read_text(encoding="utf-8")
 
 
 def test_read_last_report_returns_content(monkeypatch, tmp_path: Path) -> None:

@@ -1,7 +1,7 @@
 """Config sır doğrulama testleri.
 
 Varsayılan `change-me` / `bgts-internal-key-change-me` /
-`nexusqa-gateway-internal-key-change-me` değerlerinin production ortamında
+`neurex-gateway-internal-key-change-me` değerlerinin production ortamında
 startup'ta ValueError fırlattığını doğrular. Development modunda yalnızca
 uyarı verilir, startup başarılı olur.
 """
@@ -77,7 +77,7 @@ def test_all_custom_secrets_pass_in_production(monkeypatch: pytest.MonkeyPatch) 
     monkeypatch.setenv("JWT_SECRET", "x" * 64)
     monkeypatch.setenv("ENGINE_INTERNAL_KEY", "engine-key-" + "y" * 30)
     monkeypatch.setenv("GATEWAY_INTERNAL_KEY", "gateway-key-" + "z" * 30)
-    monkeypatch.setenv("DATABASE_URL", "postgresql://prod_user:securepwd@db:5432/nexusqa")
+    monkeypatch.setenv("DATABASE_URL", "postgresql://prod_user:securepwd@db:5432/neurex_db")
 
     settings = _load_settings()
     assert settings.jwt_secret == "x" * 64

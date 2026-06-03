@@ -37,7 +37,7 @@ def _make_template(**overrides):
         "description": "End-to-end login scenario template.",
         "category": "auth",
         "tags": ["login", "e2e"],
-        "author": "TestwrightAI",
+        "author": "Neurex",
         "version": "1.0.0",
         "downloads": 120,
         "rating": 4.7,

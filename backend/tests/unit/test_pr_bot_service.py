@@ -152,7 +152,7 @@ class TestRenderMarkdown:
     def test_contains_header(self):
         summary = _build_summary()
         md = render_markdown(summary)
-        assert "TestwrightAI" in md or "PR Bot" in md or "Shift-left" in md
+        assert "Neurex" in md or "PR Bot" in md or "Shift-left" in md
 
     def test_blocking_icon_when_eval_fails(self):
         ev = EvalSnapshot(overall_passed=False, failed_suites=2, total_suites=4)
