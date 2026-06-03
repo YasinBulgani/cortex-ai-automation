@@ -252,6 +252,19 @@ def archive_case(project_id: str, case_id: str, db: DB, user: WriteUser) -> Test
     return service.archive_case(db, project_id, case_id, user)
 
 
+@router.delete(
+    "/projects/{project_id}/cases/{case_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Test case'i kalıcı olarak sil",
+)
+def delete_case(project_id: str, case_id: str, db: DB, user: WriteUser) -> None:
+    try:
+        service.delete_case(db, project_id, case_id, user)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+
 @router.post(
     "/projects/{project_id}/cases/{case_id}/clone",
     response_model=TestCaseOut,

@@ -338,6 +338,10 @@ def update_folder(db: Session, project_id: str, folder_id: str, payload: TestFol
             if parent is not None and parent.suite_id != folder.suite_id:
                 raise ValueError("Parent folder aynı suite içinde olmalı")
         folder.parent_id = new_parent_id
+    if "suite_id" in data and data["suite_id"] is not None:
+        _ensure_suite(db, project_id, data["suite_id"])
+        folder.suite_id = data["suite_id"]
+        folder.parent_id = None  # taşıma kök seviyeye alır
     for field in ("name", "path", "order_index"):
         if field in data and data[field] is not None:
             setattr(folder, field, data[field])
@@ -552,6 +556,14 @@ def archive_case(db: Session, project_id: str, case_id: str, user: Any | None) -
     audit(db, "case.archived", "case", case.id, project_id, user)
     db.commit()
     return get_case(db, project_id, case_id)
+
+
+def delete_case(db: Session, project_id: str, case_id: str, user: Any | None) -> None:
+    project_id = resolve_project_id(db, project_id)
+    case = get_case(db, project_id, case_id)
+    audit(db, "case.deleted", "case", case.id, project_id, user)
+    db.delete(case)
+    db.commit()
 
 
 def create_plan(db: Session, project_id: str, payload: TestPlanCreate, user: Any | None) -> TestPlan:

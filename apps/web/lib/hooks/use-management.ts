@@ -596,6 +596,7 @@ export function useUpdateManagementFolder(projectId: string) {
       folderId: string;
       name?: string;
       path?: string;
+      suite_id?: string | null;
       parent_id?: string | null;
       order_index?: number;
     }) => apiFetch<TestFolder>(`${BASE(projectId)}/folders/${folderId}`, { method: "PATCH", json: payload }),

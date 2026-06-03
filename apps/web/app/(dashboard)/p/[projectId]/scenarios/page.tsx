@@ -34,6 +34,8 @@ import {
   useEnsureManagementProject,
   useManagementRequirements,
   useManagementCaseVersions,
+  useGenerateTestCases,
+  type GeneratedCase,
   type TestCase,
   type TestFolder,
   type TestSuite,
@@ -846,7 +848,8 @@ function NewCaseModal({ projectId, suites, folders, defSuiteId, defFolderId, onC
   defSuiteId?: string; defFolderId?: string;
   onClose: () => void; onDone: (tc: TestCase) => void;
 }) {
-  const createCase = useCreateManagementCase(projectId);
+  const createCase  = useCreateManagementCase(projectId);
+  const generateAI  = useGenerateTestCases(projectId);
   const [title,         setTitle]         = useState("");
   const [objective,     setObjective]     = useState("");
   const [preconditions, setPreconditions] = useState("");
@@ -859,6 +862,9 @@ function NewCaseModal({ projectId, suites, folders, defSuiteId, defFolderId, onC
   const [tagsText,      setTagsText]      = useState("");
   const [steps,         setSteps]         = useState<DraftStep[]>([makeStep(), makeStep()]);
   const [err,           setErr]           = useState("");
+  const [showAI,        setShowAI]        = useState(false);
+  const [aiPrompt,      setAiPrompt]      = useState("");
+  const [aiResults,     setAiResults]     = useState<GeneratedCase[]>([]);
 
   const avFolders = folders.filter(f => !suiteId || f.suite_id === suiteId);
   const sensors   = useSensors(
@@ -907,8 +913,11 @@ function NewCaseModal({ projectId, suites, folders, defSuiteId, defFolderId, onC
             <p className="mt-0.5 text-[10px] text-slate-500">Manuel test case oluştur</p>
           </div>
           <div className="flex items-center gap-2">
-            <button type="button"
-              className="flex items-center gap-1.5 rounded-xl border border-blue-500/20 bg-slate-800/60 px-3 py-1.5 text-xs text-blue-400 hover:bg-blue-500/8 transition-colors">
+            <button type="button" onClick={() => setShowAI(v => !v)}
+              className={cn("flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs transition-colors",
+                showAI
+                  ? "border-blue-500/40 bg-blue-500/10 text-blue-400"
+                  : "border-blue-500/20 bg-slate-800/60 text-blue-400 hover:bg-blue-500/8")}>
               <IcSparkle/> AI ile Üret
             </button>
             <button type="button" onClick={onClose}
@@ -918,9 +927,59 @@ function NewCaseModal({ projectId, suites, folders, defSuiteId, defFolderId, onC
           </div>
         </div>
 
+        {/* AI Panel */}
+        {showAI && (
+          <div className="border-b border-slate-800 bg-slate-900/60 px-6 py-4 space-y-3">
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-blue-400">AI Test Üretimi</p>
+            <textarea
+              autoFocus
+              value={aiPrompt}
+              onChange={e => setAiPrompt(e.target.value)}
+              rows={2}
+              placeholder="Ne test etmek istiyorsunuz? (ör: Kullanıcı girişi, ödeme akışı, şifre sıfırlama…)"
+              className="w-full resize-none rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-xs text-white placeholder-slate-600 focus:border-slate-600 focus:outline-none"
+            />
+            <div className="flex items-center gap-2">
+              <button type="button"
+                onClick={async () => {
+                  if (!aiPrompt.trim()) return;
+                  const res = await generateAI.mutateAsync({ prompt: aiPrompt.trim(), count: 3, suite_id: suiteId || null, folder_id: folderId || null, save: false });
+                  setAiResults(res.cases);
+                }}
+                disabled={!aiPrompt.trim() || generateAI.isPending}
+                className="flex items-center gap-1.5 rounded-xl bg-blue-600 px-3 py-1.5 text-[10px] font-semibold text-white hover:bg-blue-500 disabled:opacity-40">
+                {generateAI.isPending ? "Üretiliyor…" : <><IcSparkle/> Üret (3 senaryo)</>}
+              </button>
+            </div>
+            {aiResults.length > 0 && (
+              <div className="space-y-1.5 max-h-48 overflow-y-auto">
+                {aiResults.map((gc, i) => (
+                  <button key={i} type="button"
+                    onClick={() => {
+                      if (!title) setTitle(gc.title);
+                      if (!objective) setObjective(gc.objective);
+                      setPriority(gc.priority);
+                      if (gc.tags.length) setTagsText(gc.tags.join(", "));
+                      if (gc.steps.length) setSteps(gc.steps.map(s => makeStep({ action: s.action, expected_result: s.expected_result, is_required: s.is_required })));
+                      setShowAI(false);
+                    }}
+                    className="flex w-full items-start gap-2 rounded-lg border border-slate-700 bg-slate-800/60 px-3 py-2 text-left hover:border-blue-500/30 transition-colors">
+                    <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-slate-700 text-[9px] font-bold text-slate-300">{i+1}</span>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs font-medium text-slate-200 line-clamp-1">{gc.title}</p>
+                      <p className="text-[10px] text-slate-500">{gc.steps.length} adım · {gc.priority}</p>
+                    </div>
+                    <span className="shrink-0 text-[10px] text-blue-400">Uygula →</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Body */}
         <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
-          <input autoFocus type="text" value={title} onChange={e => setTitle(e.target.value)}
+          <input autoFocus={!showAI} type="text" value={title} onChange={e => setTitle(e.target.value)}
             placeholder="Senaryo başlığı *"
             className="w-full rounded-xl border border-slate-700 bg-slate-900/80 px-4 py-3 text-sm text-white placeholder-slate-500 focus:border-slate-600 focus:outline-none transition-colors"/>
 

@@ -247,6 +247,9 @@ function PlanRow({
           {plan.release_name && (
             <span className="shrink-0 rounded bg-surface-overlay px-2 py-0.5 text-[10px] text-slate-400">{plan.release_name}</span>
           )}
+          {plan.scope_summary && (
+            <span className="hidden lg:block truncate text-[11px] text-slate-600 max-w-xs">{plan.scope_summary}</span>
+          )}
         </div>
 
         {/* Inline progress */}
@@ -320,6 +323,7 @@ export default function ManagementPlansPage() {
   const [planName,      setPlanName]      = useState("");
   const [planType,      setPlanType]      = useState<PlanType>("regression");
   const [planRelease,   setPlanRelease]   = useState("");
+  const [planScope,     setPlanScope]     = useState("");
 
   const [addCycleForPlan, setAddCycleForPlan] = useState<string | null>(null);
   const [cycleName,       setCycleName]       = useState("");
@@ -337,8 +341,9 @@ export default function ManagementPlansPage() {
       name: planName.trim(),
       plan_type: planType,
       release_name: planRelease.trim() || null,
+      scope_summary: planScope.trim() || null,
     });
-    setPlanName(""); setPlanRelease(""); setShowPlanForm(false);
+    setPlanName(""); setPlanRelease(""); setPlanScope(""); setShowPlanForm(false);
   };
 
   const handleStartRun = async (cycle: TestCycle) => {
@@ -395,6 +400,19 @@ export default function ManagementPlansPage() {
             {(plans ?? []).length} plan · {(allCycles ?? []).length} cycle · {(allRuns ?? []).length} run
           </p>
         </div>
+        {/* ── Stats chips ── */}
+        <div className="hidden sm:flex items-center gap-2 flex-1 justify-center">
+          {[
+            { label: "Toplam",    value: (plans ?? []).length,                                                         color: "text-slate-400  border-slate-700" },
+            { label: "Aktif",     value: (plans ?? []).filter((p: TestPlan) => p.status === "active").length,          color: "text-blue-400   border-blue-500/20 bg-blue-500/10" },
+            { label: "Tamamlandı",value: (plans ?? []).filter((p: TestPlan) => p.status === "completed").length,       color: "text-emerald-400 border-emerald-500/20 bg-emerald-500/10" },
+          ].map(stat => (
+            <div key={stat.label} className={cn("flex items-center gap-1.5 rounded-full border px-3 py-1 text-[11px]", stat.color)}>
+              <span className="font-semibold tabular-nums">{stat.value}</span>
+              <span className="text-current opacity-70">{stat.label}</span>
+            </div>
+          ))}
+        </div>
         <button
           onClick={() => setShowPlanForm(v => !v)}
           className="flex items-center gap-1.5 rounded-lg bg-teal-600 px-3 py-1.5 text-[12px] font-medium text-white hover:bg-teal-700 transition-colors"
@@ -437,6 +455,16 @@ export default function ManagementPlansPage() {
                 onChange={e => setPlanRelease(e.target.value)}
                 placeholder="v2.4.0"
                 className="w-full rounded-lg border border-border bg-white/[0.04] px-3 py-2 text-[13px] text-slate-200 placeholder-slate-600 outline-none focus:border-teal-500/50"
+              />
+            </div>
+            <div className="w-full">
+              <label className="mb-1 block text-[11px] text-slate-500">Kapsam Özeti</label>
+              <textarea
+                value={planScope}
+                onChange={e => setPlanScope(e.target.value)}
+                placeholder="Bu planın kapsamı ve hedefleri hakkında kısa bir açıklama…"
+                rows={2}
+                className="w-full resize-none rounded-lg border border-border bg-white/[0.04] px-3 py-2 text-[13px] text-slate-200 placeholder-slate-600 outline-none focus:border-teal-500/50"
               />
             </div>
             <button

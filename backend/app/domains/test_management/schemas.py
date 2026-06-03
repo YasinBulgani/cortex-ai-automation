@@ -78,6 +78,7 @@ class TestFolderOut(BaseModel):
 class TestFolderUpdate(BaseModel):
     name: Optional[str] = Field(default=None, min_length=1, max_length=200)
     path: Optional[str] = Field(default=None, min_length=1, max_length=1000)
+    suite_id: Optional[str] = None
     parent_id: Optional[str] = None
     order_index: Optional[int] = None
 

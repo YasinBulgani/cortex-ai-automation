@@ -2,6 +2,8 @@
 
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
+import { useManagementProjectId } from "@/lib/hooks/use-management-project-id";
+import { useRouteParam } from "@/lib/use-route-param";
 
 type MyCase = {
   run_case_id: string;
@@ -123,23 +125,26 @@ function CaseCard({ c, projectId }: { c: MyCase; projectId: string }) {
   );
 }
 
-export default function TesterHomePage({ params }: { params: { projectId: string } }) {
-  const { projectId } = params;
+export default function TesterHomePage() {
+  const projectId = useRouteParam("projectId") ?? "";
+  const mpid      = useManagementProjectId(projectId || undefined);
   const [cases, setCases] = useState<MyCase[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"all" | "not_run" | "failed" | "passed">("all");
 
   const fetchCases = useCallback(async () => {
+    const pid = mpid || projectId;
+    if (!pid) { setLoading(false); return; }
     try {
       const res = await fetch(
-        `/api/v1/test-management/projects/${projectId}/my-cases`,
+        `/api/v1/test-management/projects/${pid}/my-cases`,
         { credentials: "include" }
       );
       if (res.ok) setCases(await res.json());
     } finally {
       setLoading(false);
     }
-  }, [projectId]);
+  }, [mpid, projectId]);
 
   useEffect(() => { fetchCases(); }, [fetchCases]);
 
