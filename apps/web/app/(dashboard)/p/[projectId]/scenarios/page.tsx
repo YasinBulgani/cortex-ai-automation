@@ -38,6 +38,7 @@ import {
   useCloneManagementCase,
   useImproveManagementCase,
   useMoveManagementCase,
+  useBulkUpdateCases,
   type GeneratedCase,
   type ImproveTestCaseResponse,
   type TestCase,
@@ -1233,7 +1234,8 @@ export default function ScenariosPage() {
 
   const effectivePid = mgmtProjectId ?? projectId;
   const repoQuery    = useManagementRepository(effectivePid || undefined);
-  const moveCase     = useMoveManagementCase(effectivePid || "");
+  const moveCase      = useMoveManagementCase(effectivePid || "");
+  const bulkUpdateCases = useBulkUpdateCases(effectivePid || "");
 
   const suites   = repoQuery.data?.suites  ?? [];
   const folders  = repoQuery.data?.folders ?? [];
@@ -1386,6 +1388,16 @@ export default function ScenariosPage() {
                 {lbl}
               </button>
             ))}
+            {/* Bulk priority */}
+            <select onChange={async e => {
+              if (!e.target.value) return;
+              await bulkUpdateCases.mutateAsync({ case_ids: [...checkedIds], priority: e.target.value });
+              setCheckedIds(new Set());
+              e.target.value = "";
+            }} className="rounded-lg border border-border bg-surface-raised px-2 py-1 text-[10px] text-fg-muted outline-none">
+              <option value="">Öncelik →</option>
+              {["P0","P1","P2","P3"].map(p => <option key={p} value={p}>{p}</option>)}
+            </select>
             {/* Bulk move */}
             <select onChange={async e => {
               if (!e.target.value) return;

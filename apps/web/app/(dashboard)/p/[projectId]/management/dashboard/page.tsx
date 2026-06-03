@@ -6,6 +6,7 @@ import { useRouteParam } from "@/lib/use-route-param";
 import { useManagementProjectId } from "@/lib/hooks/use-management-project-id";
 import {
   useExecutionSummary,
+  useManagementAuditEvents,
   useManagementDefects,
   useManagementRepository,
   useManagementRequirements,
@@ -93,6 +94,7 @@ export default function ManagementDashboardPage() {
   const defectsQ = useManagementDefects(mpid || undefined);
   const requirementsQ = useManagementRequirements(mpid || undefined);
   const releaseQ = useReleaseReport(mpid || undefined);
+  const auditQ = useManagementAuditEvents(mpid || undefined, 10);
 
   const cases = useMemo(() => (repoQ.data?.cases ?? []).filter(tc => !tc.archived), [repoQ.data]);
   const runs = runsQ.data ?? [];
@@ -260,6 +262,30 @@ export default function ManagementDashboardPage() {
               </div>
             </section>
           </div>
+
+          {/* Activity Feed */}
+          {auditQ.data && auditQ.data.length > 0 && (
+            <section className="rounded-xl border border-border bg-surface-raised p-5 shadow-sm">
+              <div className="mb-4 flex items-center justify-between">
+                <h2 className="text-[14px] font-semibold text-fg">Son Aktiviteler</h2>
+                <Link href={`/p/${projectId}/management/audit`}
+                  className="text-[11px] text-brand hover:underline">Tümünü gör →</Link>
+              </div>
+              <div className="space-y-2">
+                {auditQ.data.slice(0, 8).map(ev => (
+                  <div key={ev.id} className="flex items-center gap-3 rounded-lg border border-border bg-surface-overlay px-3 py-2">
+                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-surface-accent text-[9px] font-bold text-fg-subtle">
+                      {ev.entity_type?.[0]?.toUpperCase() ?? "?"}
+                    </span>
+                    <span className="flex-1 min-w-0 truncate text-[12px] text-fg-muted">{ev.action}</span>
+                    <span className="shrink-0 text-[10px] text-fg-subtle tabular-nums">
+                      {new Date(ev.created_at).toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" })}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
         </>
       )}
     </div>
