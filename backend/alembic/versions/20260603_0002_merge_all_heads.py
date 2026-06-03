@@ -21,14 +21,9 @@ revision: str = "20260603_0002"
 down_revision: Union[str, tuple, None] = (
     "20260603_0001",
     "20260528_0005",
-    "20260524_0005",
     "agents_v2_workflow_durability_0001",
-    "approval_draft_0005",
+    "automation_brain_runs_0001",
     "few_shot_bank_0001",
-    "llm_traces_0002",
-    "nexus_repo_0001",
-    "project_runtime_core_0010",
-    "syndata_0001",
     "synthetic_platform_0001",
     "tspm_execution_simulated_0001",
 )
