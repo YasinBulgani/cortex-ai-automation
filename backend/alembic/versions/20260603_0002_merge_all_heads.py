@@ -21,11 +21,6 @@ revision: str = "20260603_0002"
 down_revision: Union[str, tuple, None] = (
     "20260603_0001",
     "20260528_0005",
-    "agents_v2_workflow_durability_0001",
-    "automation_brain_runs_0001",
-    "few_shot_bank_0001",
-    "synthetic_platform_0001",
-    "tspm_execution_simulated_0001",
 )
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
