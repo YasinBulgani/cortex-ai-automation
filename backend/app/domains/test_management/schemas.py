@@ -1019,6 +1019,22 @@ class TestCaseImproveResponse(BaseModel):
 
 # ── Standup ───────────────────────────────────────────────────────────────────
 
+class QualityScanResult(BaseModel):
+    case_id: str
+    case_key: str
+    title: str
+    issues: list[str]
+    score: int
+    recommendation: str
+
+
+class QualityScanResponse(BaseModel):
+    total: int
+    scanned: int
+    issues_found: int
+    results: list[QualityScanResult]
+
+
 class DefectRootCauseRequest(BaseModel):
     defect_title: str = Field(..., min_length=1)
     defect_status: Optional[str] = None

@@ -95,6 +95,7 @@ from app.domains.test_management.schemas import (
     TestCaseCloneRequest,
     BulkUpdateCasesRequest,
     BulkUpdateCasesResponse,
+    QualityScanResponse,
     DefectRootCauseRequest,
     DefectRootCauseResponse,
     TestCaseImproveRequest,
@@ -343,6 +344,64 @@ def bulk_update_cases(project_id: str, payload: BulkUpdateCasesRequest, db: DB, 
         except Exception:
             failed += 1
     return BulkUpdateCasesResponse(updated=updated, failed=failed)
+
+
+@router.get(
+    "/projects/{project_id}/cases/quality-scan",
+    response_model=QualityScanResponse,
+    summary="Test case kalite taraması — kısa başlık, boş adım, vs.",
+)
+def quality_scan(
+    project_id: str,
+    db: DB,
+    _user: ReadUser,
+    limit: int = Query(default=50, ge=1, le=200),
+) -> QualityScanResponse:
+    from app.domains.test_management.schemas import QualityScanResult
+    cases = service.list_cases(db, project_id)[:limit]
+    results = []
+    for case in cases:
+        issues = []
+        score  = 100
+        if len((case.title or "").split()) < 3:
+            issues.append("Başlık çok kısa (< 3 kelime)")
+            score -= 20
+        if not case.objective:
+            issues.append("Amaç eksik")
+            score -= 10
+        if not case.steps or len(case.steps) == 0:
+            issues.append("Test adımı yok")
+            score -= 30
+        elif len(case.steps) == 1:
+            issues.append("Sadece 1 test adımı var")
+            score -= 10
+        if case.steps:
+            empty_steps = [s for s in case.steps if not s.action.strip()]
+            if empty_steps:
+                issues.append(f"{len(empty_steps)} boş adım var")
+                score -= 15
+            missing_expected = [s for s in case.steps if not s.expected_result.strip()]
+            if len(missing_expected) > len(case.steps) // 2:
+                issues.append("Adımların yarısından fazlasında beklenen sonuç eksik")
+                score -= 15
+        if not case.tags or len(case.tags) == 0:
+            issues.append("Etiket yok")
+            score -= 5
+        if issues:
+            results.append(QualityScanResult(
+                case_id=case.id,
+                case_key=case.case_key,
+                title=case.title,
+                issues=issues,
+                score=max(0, score),
+                recommendation="İyileştir" if score < 60 else "Gözden geçir",
+            ))
+    return QualityScanResponse(
+        total=len(cases),
+        scanned=len(cases),
+        issues_found=len(results),
+        results=sorted(results, key=lambda r: r.score),
+    )
 
 
 @router.get(

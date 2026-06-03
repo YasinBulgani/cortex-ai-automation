@@ -18,6 +18,8 @@ import {
   usePromoteCases,
   useArchiveManagementCase,
   useBulkUpdateCases,
+  useQualityScan,
+  type QualityScanResult,
   type TestCase, type TestSuite, type TestFolder,
 } from "@/lib/hooks/use-management";
 import { SuiteTree, type DragKind } from "./SuiteTree";
@@ -443,6 +445,8 @@ export function WorkspaceShell({
 
   const [mode,           setMode]           = useState<"cases" | "runs">(initialMode);
   const [node,           setNode]           = useState<WsNode>({ type: "all" });
+  const [showQualityScan, setShowQualityScan] = useState(false);
+  const qualityScan = useQualityScan(mpid || undefined);
   const [selId,          setSelId]          = useState<string | null>(null);
   const [checked,        setChecked]        = useState<Set<string>>(new Set());
   const [showNewCase,    setShowNewCase]    = useState(false);
@@ -565,12 +569,70 @@ export function WorkspaceShell({
 
         {/* Active run indicator */}
         {activeRunCount > 0 && (
-          <div className="flex items-center gap-1.5 mr-4 rounded-full bg-blue-500/10 border border-blue-500/20 px-2.5 py-1">
+          <div className="flex items-center gap-1.5 mr-2 rounded-full bg-blue-500/10 border border-blue-500/20 px-2.5 py-1">
             <span className="h-1.5 w-1.5 rounded-full bg-blue-400 animate-pulse" />
             <span className="text-[11px] text-blue-400">{activeRunCount} aktif</span>
           </div>
         )}
+
+        {/* Quality scan button */}
+        <button type="button" onClick={() => setShowQualityScan(v => !v)}
+          className={cn(
+            "flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[11px] font-medium transition-colors mr-2",
+            showQualityScan
+              ? "border-purple-500/30 bg-purple-500/10 text-purple-400"
+              : "border-border text-fg-subtle hover:border-purple-500/20 hover:text-purple-400",
+          )}>
+          ✦ Kalite
+          {qualityScan.data && qualityScan.data.issues_found > 0 && (
+            <span className="rounded-full bg-amber-500/20 px-1.5 py-0.5 text-[9px] text-amber-400">
+              {qualityScan.data.issues_found}
+            </span>
+          )}
+        </button>
       </div>
+
+      {/* ── Quality Scan Panel ───────────────────────────────────────────────── */}
+      {showQualityScan && (
+        <div className="border-b border-border bg-surface-overlay px-4 py-3 space-y-2 max-h-64 overflow-y-auto">
+          <div className="flex items-center justify-between mb-1">
+            <p className="text-[11px] font-semibold text-fg">
+              Kalite Taraması
+              {qualityScan.data && <span className="ml-2 text-fg-subtle">· {qualityScan.data.issues_found}/{qualityScan.data.total} sorunlu</span>}
+            </p>
+            <button type="button" onClick={() => void qualityScan.refetch()}
+              className="text-[10px] text-fg-subtle hover:text-fg">↺</button>
+          </div>
+          {qualityScan.isLoading ? (
+            <div className="space-y-1">
+              {[1,2,3].map(i => <div key={i} className="h-8 rounded bg-surface-accent animate-pulse" />)}
+            </div>
+          ) : qualityScan.data?.results.length === 0 ? (
+            <p className="text-[12px] text-emerald-400 py-2">✓ Tüm case'ler kalite standartlarını karşılıyor</p>
+          ) : (
+            <div className="space-y-1.5">
+              {(qualityScan.data?.results ?? []).map((r: QualityScanResult) => (
+                <div key={r.case_id} className="flex items-start gap-2.5 rounded-lg border border-border px-3 py-2">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono text-[10px] text-fg-subtle">{r.case_key}</span>
+                      <span className="truncate text-[12px] text-fg">{r.title}</span>
+                    </div>
+                    <p className="text-[10px] text-amber-400">{r.issues.slice(0,2).join(" · ")}</p>
+                  </div>
+                  <span className={cn("shrink-0 rounded px-1.5 py-0.5 text-[9px] font-bold",
+                    r.score < 40 ? "bg-red-500/20 text-red-400" :
+                    r.score < 70 ? "bg-amber-500/20 text-amber-400" :
+                    "bg-emerald-500/20 text-emerald-400"
+                  )}>
+                    {r.score}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* ── Content ──────────────────────────────────────────────────────────── */}
       {mode === "cases" ? (

@@ -1347,6 +1347,33 @@ export function useKiwiSyncJobs(projectId: string | undefined) {
   });
 }
 
+// ── Quality Scan ──────────────────────────────────────────────────────────────
+
+export interface QualityScanResult {
+  case_id: string;
+  case_key: string;
+  title: string;
+  issues: string[];
+  score: number;
+  recommendation: string;
+}
+
+export interface QualityScanResponse {
+  total: number;
+  scanned: number;
+  issues_found: number;
+  results: QualityScanResult[];
+}
+
+export function useQualityScan(projectId: string | undefined) {
+  return useQuery({
+    queryKey: [...(projectId ? managementKeys.project(projectId) : []), "quality-scan"],
+    queryFn: () => apiFetch<QualityScanResponse>(`${BASE(projectId!)}/cases/quality-scan?limit=100`),
+    enabled: !!projectId,
+    staleTime: 120_000,
+  });
+}
+
 // ── Bulk Update Cases ─────────────────────────────────────────────────────────
 
 export interface BulkUpdateCasesInput {
