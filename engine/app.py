@@ -244,6 +244,7 @@ from routes.metrics_routes import metrics_bp
 from routes.visual_ai_routes import visual_ai_bp
 from routes.discovery_routes import discovery_bp
 from routes.rca_routes import rca_bp
+from routes.self_heal_routes import self_heal_bp
 
 # mobile_routes bağımlılıkları opsiyonel (core.device_profiles repo'da olmayabilir).
 # Mobile blueprint'i yüklenemezse diğer servisleri bozmadan atlayalım.
@@ -274,7 +275,7 @@ for bp in [
     ai_intel_bp, ai_gen_bp, ai_analysis_bp, ai_healing_bp, monkey_bp, llm_agent_bp,
     ai_openapi_bp, tm_bp, jira_bp, reporting_bp, banking_bp, magic_test_bp,
     pipeline_bp, scheduler_bp, webhook_bp, metrics_bp, visual_ai_bp, discovery_bp,
-    rca_bp, *_optional_bps,
+    rca_bp, self_heal_bp, *_optional_bps,
 ]:
     app.register_blueprint(bp)
 
