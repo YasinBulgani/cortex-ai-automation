@@ -7,6 +7,7 @@ import {
   useRequirementCatalog,
   useCreateRequirementCatalogItem,
   useCreateManagementRequirement,
+  useGenerateTestCases,
   type RequirementTraceabilityRow,
   type Requirement,
 } from "@/lib/hooks/use-management";
@@ -420,6 +421,10 @@ export default function ManagementRequirementsPage() {
 
   const createCatalogItem = useCreateRequirementCatalogItem(mpid || "");
   const createManagementReq = useCreateManagementRequirement(mpid || "");
+  const generateCases = useGenerateTestCases(mpid || "");
+
+  const [genForReq, setGenForReq] = useState<string | null>(null);
+  const [genResult, setGenResult] = useState<{ req: Requirement; cases: import("@/lib/hooks/use-management").GeneratedCase[] } | null>(null);
 
   // ── View state ─────────────────────────────────────────────────────────────
   const [activeTab, setActiveTab] = useState<ViewTab>("traceability");
@@ -954,6 +959,25 @@ export default function ManagementRequirementsPage() {
                               )}
                             </div>
                           </td>
+                          <td className="px-4 py-3" onClick={e => e.stopPropagation()}>
+                            <button type="button"
+                              disabled={genForReq === req.id}
+                              onClick={async () => {
+                                setGenForReq(req.id);
+                                try {
+                                  const res = await generateCases.mutateAsync({
+                                    prompt: `${req.title}${req.description ? ": " + req.description : ""}`,
+                                    count: 3, save: false,
+                                  });
+                                  setGenResult({ req, cases: res.cases });
+                                } finally {
+                                  setGenForReq(null);
+                                }
+                              }}
+                              className="rounded-lg border border-teal-500/25 bg-teal-500/5 px-2 py-1 text-[10px] text-teal-400 hover:bg-teal-500/15 disabled:opacity-40 transition-colors whitespace-nowrap">
+                              {genForReq === req.id ? "Üretiliyor…" : "✦ Case Üret"}
+                            </button>
+                          </td>
                         </tr>
                       ))}
                     </tbody>
@@ -1178,6 +1202,70 @@ export default function ManagementRequirementsPage() {
           ].join(" ")}
         >
           {toastMsg}
+        </div>
+      )}
+
+      {/* AI Generated Cases Modal */}
+      {genResult && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="w-full max-w-2xl rounded-xl border border-border bg-surface-raised shadow-2xl overflow-hidden">
+            <div className="flex items-center justify-between border-b border-border px-5 py-4">
+              <div>
+                <h3 className="text-[14px] font-semibold text-fg">AI ile Üretilen Test Case&apos;leri</h3>
+                <p className="mt-0.5 text-[11px] text-fg-subtle truncate max-w-md">{genResult.req.title}</p>
+              </div>
+              <button type="button" onClick={() => setGenResult(null)}
+                className="rounded-lg p-1.5 text-fg-subtle hover:bg-surface-overlay hover:text-fg">✕</button>
+            </div>
+            <div className="max-h-[60vh] overflow-y-auto p-5 space-y-3">
+              {genResult.cases.map((gc, i) => (
+                <div key={i} className="rounded-xl border border-border bg-surface-overlay p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-[13px] font-medium text-fg">{gc.title}</p>
+                      {gc.objective && <p className="mt-0.5 text-[11px] text-fg-muted">{gc.objective}</p>}
+                      <div className="mt-1.5 flex gap-1.5">
+                        <span className="rounded border border-border px-1.5 py-0.5 text-[10px] text-fg-subtle">{gc.priority}</span>
+                        {gc.tags.slice(0, 3).map(t => (
+                          <span key={t} className="rounded bg-surface-accent px-1.5 py-0.5 text-[10px] text-fg-subtle">{t}</span>
+                        ))}
+                        <span className="text-[10px] text-fg-subtle">{gc.steps.length} adım</span>
+                      </div>
+                    </div>
+                    <button type="button"
+                      onClick={async () => {
+                        await generateCases.mutateAsync({
+                          prompt: gc.title,
+                          count: 1,
+                          save: true,
+                        });
+                        setGenResult(null);
+                      }}
+                      className="shrink-0 rounded-lg bg-brand px-2.5 py-1.5 text-[11px] font-semibold text-brand-fg hover:brightness-105 transition-colors">
+                      Kaydet
+                    </button>
+                  </div>
+                  {gc.steps.length > 0 && (
+                    <div className="mt-3 space-y-1 border-t border-border pt-3">
+                      {gc.steps.slice(0, 3).map(s => (
+                        <div key={s.step_no} className="flex items-start gap-2 text-[11px]">
+                          <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-surface-accent font-mono text-[9px] text-fg-subtle">{s.step_no}</span>
+                          <span className="text-fg-muted">{s.action}</span>
+                        </div>
+                      ))}
+                      {gc.steps.length > 3 && <p className="text-[10px] text-fg-subtle">+{gc.steps.length - 3} adım daha</p>}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+            <div className="border-t border-border px-5 py-3 flex justify-end">
+              <button type="button" onClick={() => setGenResult(null)}
+                className="rounded-xl border border-border px-4 py-2 text-[12px] text-fg-muted hover:text-fg transition-colors">
+                Kapat
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
