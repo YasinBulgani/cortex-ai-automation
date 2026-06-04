@@ -6,7 +6,7 @@ import uuid
 from datetime import datetime, timezone
 from typing import Any, Optional
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Index, Integer, String, Text, UniqueConstraint
+from sqlalchemy import JSON, Boolean, DateTime, ForeignKey, Index, Integer, String, Text, UniqueConstraint
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -38,6 +38,8 @@ class TestManagementProject(Base):
     created_by: Mapped[Optional[str]] = mapped_column(UUID(as_uuid=False), ForeignKey("sd_users.id", ondelete="SET NULL"), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow, nullable=False)
+    # Proje başına özelleştirilebilir ayarlar (default_priority, modules, tags, vb.)
+    settings_data: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True, default=None)
 
     suites: Mapped[list["TestSuite"]] = relationship(back_populates="project", cascade="all, delete-orphan")
     cases: Mapped[list["TestCase"]] = relationship(back_populates="project", cascade="all, delete-orphan")

@@ -56,6 +56,7 @@ from app.domains.test_management.schemas import (
     ManagementProjectCreate,
     ManagementProjectOut,
     ManagementSettingsOut,
+    ManagementUserSettingsUpdate,
     RegressionCandidateOut,
     RegressionSelectionFilter,
     RegressionSetAddCases,
@@ -157,6 +158,18 @@ def ensure_project_for_tspm(tspm_project_id: str, db: DB, user: WriteUser) -> Ma
 @router.get("/projects/{project_id}/settings", response_model=ManagementSettingsOut)
 def get_settings(project_id: str, db: DB, _user: ReadUser) -> ManagementSettingsOut:
     return service.management_settings(db, project_id)  # type: ignore[return-value]
+
+
+@router.patch("/projects/{project_id}/settings/user", response_model=dict)
+def update_user_settings(
+    project_id: str,
+    payload: ManagementUserSettingsUpdate,
+    db: DB,
+    user: WriteUser,
+) -> dict:
+    """Kullanıcı tarafından özelleştirilebilen proje ayarlarını güncelle."""
+    updates = payload.model_dump(exclude_none=True)
+    return service.update_management_user_settings(db, project_id, updates)
 
 
 @router.get("/projects/{project_id}/audit-events", response_model=list[AuditEventOut])

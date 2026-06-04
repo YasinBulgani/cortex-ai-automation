@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
@@ -101,6 +101,200 @@ function IcTrash() {
     <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
     </svg>
+  );
+}
+
+// ── Plan Run Modal — case seçimi ──────────────────────────────────────────────
+function PlanStartRunModal({
+  cycle,
+  cases,
+  suites,
+  onClose,
+  onConfirm,
+  busy,
+}: {
+  cycle: TestCycle;
+  cases: import("@/lib/hooks/use-management").TestCase[];
+  suites: import("@/lib/hooks/use-management").TestSuite[];
+  onClose: () => void;
+  onConfirm: (runName: string, caseIds: string[]) => void;
+  busy: boolean;
+}) {
+  const [name, setName] = useState(`Koşum — ${cycle.name}`);
+  const [search, setSearch] = useState("");
+  const [selected, setSelected] = useState<Set<string>>(() => {
+    const active = cases.filter(c => !c.archived);
+    return new Set(active.map(c => c.id));
+  });
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    const active = cases.filter(c => !c.archived);
+    if (!q) return active;
+    return active.filter(c =>
+      c.title.toLowerCase().includes(q) || c.case_key.toLowerCase().includes(q)
+    );
+  }, [cases, search]);
+
+  const bySuite = useMemo(() => {
+    const map = new Map<string, typeof cases>();
+    for (const s of suites) map.set(s.id, []);
+    for (const c of filtered) {
+      const key = c.suite_id ?? "__unassigned__";
+      if (!map.has(key)) map.set(key, []);
+      map.get(key)!.push(c);
+    }
+    return map;
+  }, [filtered, suites]);
+
+  const toggle = (id: string) =>
+    setSelected(p => { const n = new Set(p); n.has(id) ? n.delete(id) : n.add(id); return n; });
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto p-6 bg-black/70 backdrop-blur-sm">
+      <div className="relative flex max-h-[88vh] w-full max-w-lg flex-col rounded-2xl border border-border bg-surface-raised shadow-2xl">
+        {/* Header */}
+        <div className="flex items-center justify-between border-b border-border px-5 py-4">
+          <div>
+            <h2 className="text-[14px] font-semibold text-fg">Koşum Başlat</h2>
+            <p className="mt-0.5 text-[11px] text-fg-subtle">{cycle.name} cycle'ı için test koşumu oluştur</p>
+          </div>
+          <button type="button" onClick={onClose}
+            className="rounded-lg p-1.5 text-fg-subtle hover:bg-surface-overlay hover:text-fg transition-colors">
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+          </button>
+        </div>
+
+        {/* Run name */}
+        <div className="px-5 pt-4 pb-2">
+          <label className="mb-1 block text-[11px] font-medium text-fg-muted">Koşum Adı *</label>
+          <input
+            autoFocus
+            value={name}
+            onChange={e => setName(e.target.value)}
+            className="w-full rounded-xl border border-border bg-surface-overlay px-3 py-2 text-[13px] text-fg placeholder:text-fg-subtle outline-none focus:border-brand focus:ring-2 focus:ring-brand/15"
+          />
+        </div>
+
+        {/* Search + header */}
+        <div className="flex items-center justify-between px-5 pb-2">
+          <span className="text-[11px] font-semibold uppercase tracking-widest text-fg-subtle">
+            Senaryolar ({selected.size} seçili / {cases.filter(c => !c.archived).length} toplam)
+          </span>
+          <div className="flex items-center gap-3">
+            <button type="button"
+              onClick={() => setSelected(new Set(filtered.map(c => c.id)))}
+              className="text-[11px] text-brand hover:underline">
+              Tümünü Seç
+            </button>
+            <button type="button"
+              onClick={() => setSelected(new Set())}
+              className="text-[11px] text-fg-subtle hover:text-fg-muted">
+              Hiçbiri
+            </button>
+          </div>
+        </div>
+
+        {/* Search input */}
+        <div className="mx-5 mb-2 flex items-center gap-2 rounded-xl border border-border bg-surface-raised px-2.5 py-1.5">
+          <svg className="h-3.5 w-3.5 shrink-0 text-fg-subtle" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+          </svg>
+          <input
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Senaryo ara…"
+            className="flex-1 bg-transparent text-[12px] text-fg placeholder:text-fg-subtle outline-none"
+          />
+        </div>
+
+        {/* Case list */}
+        <div className="flex-1 overflow-y-auto border-y border-border">
+          {filtered.length === 0 ? (
+            <p className="py-8 text-center text-[13px] text-fg-subtle">Senaryo bulunamadı</p>
+          ) : (
+            Array.from(bySuite.entries())
+              .filter(([, cs]) => cs.length > 0)
+              .map(([suiteId, suiteCases]) => {
+                const sName = suites.find(s => s.id === suiteId)?.name ?? "Atanmamış";
+                const allSel = suiteCases.every(c => selected.has(c.id));
+                const someSel = !allSel && suiteCases.some(c => selected.has(c.id));
+                return (
+                  <div key={suiteId}>
+                    <div className="sticky top-0 z-10 flex items-center gap-2 border-b border-border bg-surface-overlay px-4 py-1.5">
+                      <label className="flex cursor-pointer items-center gap-2 select-none">
+                        <span className={cn(
+                          "flex h-4 w-4 shrink-0 items-center justify-center rounded border transition-colors",
+                          allSel ? "border-brand bg-brand" : someSel ? "border-brand bg-brand/30" : "border-border"
+                        )}>
+                          <input type="checkbox" className="sr-only" checked={allSel}
+                            onChange={e => {
+                              if (e.target.checked)
+                                setSelected(p => new Set([...p, ...suiteCases.map(c => c.id)]));
+                              else
+                                setSelected(p => { const n = new Set(p); suiteCases.forEach(c => n.delete(c.id)); return n; });
+                            }}
+                          />
+                          {allSel && <svg className="h-2.5 w-2.5 text-brand-fg" fill="none" viewBox="0 0 10 10" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M1.5 5l2.5 2.5 4.5-4.5"/></svg>}
+                          {someSel && !allSel && <svg className="h-2 w-2 text-brand" fill="currentColor" viewBox="0 0 10 10"><rect x="1.5" y="4" width="7" height="2" rx="1"/></svg>}
+                        </span>
+                        <span className="text-[11px] font-semibold text-fg-muted">{sName}</span>
+                      </label>
+                      <span className="text-[10px] text-fg-subtle">{suiteCases.length} senaryo</span>
+                    </div>
+                    {suiteCases.map(c => {
+                      const on = selected.has(c.id);
+                      return (
+                        <button key={c.id} type="button" onClick={() => toggle(c.id)}
+                          className={cn(
+                            "flex w-full items-center gap-3 border-b border-border px-5 py-2 text-left transition-colors",
+                            on ? "bg-brand/5" : "hover:bg-surface-overlay"
+                          )}>
+                          <span className={cn("flex h-4 w-4 shrink-0 items-center justify-center rounded border",
+                            on ? "border-brand bg-brand" : "border-border")}>
+                            {on && <svg className="h-2.5 w-2.5 text-brand-fg" fill="none" viewBox="0 0 10 10" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M1.5 5l2.5 2.5 4.5-4.5"/></svg>}
+                          </span>
+                          <span className="font-mono text-[10px] text-fg-subtle">{c.case_key}</span>
+                          <span className="flex-1 truncate text-[12px] text-fg-muted">{c.title}</span>
+                          <span className={cn("shrink-0 text-[10px] font-medium",
+                            c.priority === "P0" ? "text-red-400" : c.priority === "P1" ? "text-orange-400" : "text-fg-subtle")}>
+                            {c.priority}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                );
+              })
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="flex items-center justify-between px-5 py-4">
+          <p className="text-[11px] text-fg-subtle">
+            {selected.size === 0 ? (
+              <span className="text-amber-400">En az 1 senaryo seçin</span>
+            ) : (
+              <span className="text-emerald-400">{selected.size} senaryo dahil edilecek</span>
+            )}
+          </p>
+          <div className="flex items-center gap-2">
+            <button type="button" onClick={onClose}
+              className="rounded-xl border border-border px-4 py-2 text-[13px] text-fg-muted hover:text-fg transition-colors">
+              İptal
+            </button>
+            <button type="button"
+              disabled={busy || !name.trim() || selected.size === 0}
+              onClick={() => onConfirm(name.trim(), [...selected])}
+              className="rounded-xl bg-brand px-5 py-2 text-[13px] font-semibold text-brand-fg hover:brightness-105 disabled:opacity-40 transition-colors">
+              {busy ? "Oluşturuluyor…" : "Koşumu Başlat"}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -214,7 +408,7 @@ function PlanRow({
   cycles: TestCycle[];
   runs: TestRun[];
   projectId: string;
-  onStartRun: (cycle: TestCycle) => void;
+  onStartRun: (cycle: TestCycle) => void;  // triggers modal
   runCreating: boolean;
   onAddCycle: (planId: string) => void;
   onDelete: (plan: TestPlan) => void;
@@ -352,6 +546,7 @@ export default function ManagementPlansPage() {
   const [deletingPlan,    setDeletingPlan]     = useState<TestPlan | null>(null);
   const [deleteLoading,   setDeleteLoading]    = useState(false);
   const [creating,        setCreating]         = useState(false);
+  const [runCycleForModal, setRunCycleForModal] = useState<TestCycle | null>(null);
   const [runCreatingFlag, setRunCreatingFlag]  = useState(false);
   const [cycleCreating,   setCycleCreating]    = useState(false);
   const [error,           setError]            = useState<string | null>(null);
@@ -379,17 +574,18 @@ export default function ManagementPlansPage() {
     }
   };
 
-  const handleStartRun = async (cycle: TestCycle) => {
+  const handleStartRun = async (cycle: TestCycle, caseIds: string[], runName?: string) => {
     setActiveCycleId(cycle.id);
     setRunCreatingFlag(true);
     setError(null);
     try {
       const run = await createRun.mutateAsync({
         cycle_id: cycle.id,
-        name: `Run — ${cycle.name}`,
-        case_ids: [],
+        name: runName?.trim() || `Koşum — ${cycle.name}`,
+        case_ids: caseIds,
         environment: cycle.environment ?? null,
       });
+      setRunCycleForModal(null);
       router.push(`/p/${projectId}/management/runs/${run.id}/execute`);
     } catch {
       setError("Koşum başlatılamadı.");
@@ -609,7 +805,7 @@ export default function ManagementPlansPage() {
                 cycles={cycles}
                 runs={runs}
                 projectId={projectId ?? ""}
-                onStartRun={handleStartRun}
+                onStartRun={setRunCycleForModal}
                 runCreating={(createRun.isPending || runCreatingFlag) && activeCycleId !== ""}
                 onAddCycle={id => { setAddCycleForPlan(id); }}
                 onDelete={setDeletingPlan}
@@ -618,6 +814,18 @@ export default function ManagementPlansPage() {
           })
         )}
       </div>
+
+      {/* ── Plan Run Modal — case seçimi ──────────────────────────────────── */}
+      {runCycleForModal && (
+        <PlanStartRunModal
+          cycle={runCycleForModal}
+          cases={repoQ.data?.cases ?? []}
+          suites={repoQ.data?.suites ?? []}
+          onClose={() => setRunCycleForModal(null)}
+          onConfirm={(runName, caseIds) => void handleStartRun(runCycleForModal, caseIds, runName)}
+          busy={createRun.isPending || runCreatingFlag}
+        />
+      )}
 
       {/* ── Delete plan modal ─────────────────────────────────────────────── */}
       {deletingPlan && (

@@ -177,6 +177,23 @@ def list_projects(db: Session) -> list[TestManagementProject]:
     return list(db.scalars(select(TestManagementProject).order_by(TestManagementProject.created_at.desc())).all())
 
 
+def update_management_user_settings(db: Session, project_id: str, updates: dict[str, Any]) -> dict[str, Any]:
+    """Proje bazında özelleştirilebilir ayarları güncelle ve kaydet."""
+    project_id = resolve_project_id(db, project_id)
+    project = db.scalars(
+        select(TestManagementProject).where(TestManagementProject.id == project_id)
+    ).first()
+    if not project:
+        raise ValueError(f"Management project not found: {project_id}")
+
+    current: dict[str, Any] = project.settings_data or {}
+    # Sadece None olmayan değerleri güncelle
+    merged = {**current, **{k: v for k, v in updates.items() if v is not None}}
+    project.settings_data = merged
+    db.commit()
+    return merged
+
+
 def management_settings(db: Session, project_id: str) -> dict[str, Any]:
     """Return the effective management policy snapshot for the project."""
     project_id = resolve_project_id(db, project_id)
@@ -202,6 +219,12 @@ def management_settings(db: Session, project_id: str) -> dict[str, Any]:
         )
         or 0
     )
+    # Kullanıcı ayarlarını da al
+    project = db.scalars(
+        select(TestManagementProject).where(TestManagementProject.id == project_id)
+    ).first()
+    user_settings: dict[str, Any] = (project.settings_data or {}) if project else {}
+
     return {
         "project_id": project_id,
         "permissions": [
@@ -234,6 +257,7 @@ def management_settings(db: Session, project_id: str) -> dict[str, Any]:
             "cases_with_custom_fields": len(custom_field_rows),
             "evidence_count": evidence_count,
         },
+        "user_settings": user_settings,
     }
 
 

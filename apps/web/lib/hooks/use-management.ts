@@ -630,6 +630,20 @@ export function useManagementSettings(projectId: string | undefined) {
   });
 }
 
+export function useUpdateManagementUserSettings(projectId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (updates: Record<string, unknown>) =>
+      apiFetch<Record<string, unknown>>(`${BASE(projectId)}/settings/user`, {
+        method: "PATCH",
+        json: updates,
+      }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: managementKeys.settings(projectId) });
+    },
+  });
+}
+
 export function useManagementAuditEvents(projectId: string | undefined, limit = 50) {
   return useQuery({
     queryKey: [...managementKeys.audit(projectId), limit] as const,

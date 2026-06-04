@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useManagementSettings } from "@/lib/hooks/use-management";
+import { useManagementSettings, useUpdateManagementUserSettings } from "@/lib/hooks/use-management";
 import { useManagementProjectId } from "@/lib/hooks/use-management-project-id";
 import { useRouteParam } from "@/lib/use-route-param";
 
@@ -75,6 +75,7 @@ export default function ManagementSettingsPage() {
   const mpid      = useManagementProjectId(projectId || undefined);
 
   const { data: settings, isLoading } = useManagementSettings(mpid || undefined);
+  const updateSettings = useUpdateManagementUserSettings(mpid || "");
 
   /* ── state ── */
   const [activeTab, setActiveTab]          = useState<TabId>("general");
@@ -109,9 +110,25 @@ export default function ManagementSettingsPage() {
     localStorage.setItem(storageKey, JSON.stringify(current));
   }
 
-  /* ── load from localStorage ── */
+  /* ── load: önce API'dan, fallback localStorage ── */
   useEffect(() => {
-    if (!storageKey) return;
+    if (!storageKey || loaded) return;
+
+    // API'dan gelen user_settings varsa öncelikli kullan
+    const apiSettings = (settings as { user_settings?: StoredSettings } | undefined)?.user_settings;
+    if (apiSettings && Object.keys(apiSettings).length > 0) {
+      setDefaultPriority(apiSettings.defaultPriority ?? DEFAULT_STORED.defaultPriority);
+      setDefaultType(apiSettings.defaultType ?? DEFAULT_STORED.defaultType);
+      setCaseKeyPrefix(apiSettings.caseKeyPrefix ?? DEFAULT_STORED.caseKeyPrefix);
+      setCaseKeyFormat(apiSettings.caseKeyFormat ?? DEFAULT_STORED.caseKeyFormat);
+      setNotifications(apiSettings.notifications ?? {});
+      setModules(apiSettings.modules ?? []);
+      setTags(apiSettings.tags ?? []);
+      setLoaded(true);
+      return;
+    }
+
+    // Fallback: localStorage
     try {
       const raw = localStorage.getItem(storageKey);
       if (raw) {
@@ -128,16 +145,39 @@ export default function ManagementSettingsPage() {
       // ignore parse errors
     }
     setLoaded(true);
-  }, [storageKey]);
+  }, [storageKey, settings]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  /* ── auto-save reactive fields ── */
-  useEffect(() => { if (storageKey && loaded) persistAll({ notifications }); }, [notifications]); // eslint-disable-line react-hooks/exhaustive-deps
-  useEffect(() => { if (storageKey && loaded) persistAll({ modules }); }, [modules]);             // eslint-disable-line react-hooks/exhaustive-deps
-  useEffect(() => { if (storageKey && loaded) persistAll({ tags }); }, [tags]);                   // eslint-disable-line react-hooks/exhaustive-deps
+  /* ── auto-save reactive fields (localStorage + API) ── */
+  useEffect(() => {
+    if (!storageKey || !loaded) return;
+    persistAll({ notifications });
+    if (mpid) void updateSettings.mutateAsync({ notifications });
+  }, [notifications]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (!storageKey || !loaded) return;
+    persistAll({ modules });
+    if (mpid) void updateSettings.mutateAsync({ modules });
+  }, [modules]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (!storageKey || !loaded) return;
+    persistAll({ tags });
+    if (mpid) void updateSettings.mutateAsync({ tags });
+  }, [tags]); // eslint-disable-line react-hooks/exhaustive-deps
 
   /* ── actions ── */
-  function handleSaveGeneral() {
+  async function handleSaveGeneral() {
     persistAll({ defaultPriority, defaultType, caseKeyPrefix, caseKeyFormat });
+    // Backend'e de kaydet
+    if (mpid) {
+      await updateSettings.mutateAsync({
+        default_priority: defaultPriority,
+        default_type: defaultType,
+        case_key_prefix: caseKeyPrefix,
+        case_key_format: caseKeyFormat,
+      });
+    }
     setSaveToast(true);
     setTimeout(() => setSaveToast(false), 2500);
   }
@@ -161,7 +201,7 @@ export default function ManagementSettingsPage() {
   }
   function removeTag(name: string) { setTags(prev => prev.filter(t => t !== name)); }
 
-  function handleReset() {
+  async function handleReset() {
     if (!storageKey) return;
     localStorage.removeItem(storageKey);
     setDefaultPriority(DEFAULT_STORED.defaultPriority);
@@ -171,6 +211,18 @@ export default function ManagementSettingsPage() {
     setNotifications({});
     setModules([]);
     setTags([]);
+    // Backend'deki ayarları da sıfırla
+    if (mpid) {
+      await updateSettings.mutateAsync({
+        default_priority: DEFAULT_STORED.defaultPriority,
+        default_type: DEFAULT_STORED.defaultType,
+        case_key_prefix: DEFAULT_STORED.caseKeyPrefix,
+        case_key_format: DEFAULT_STORED.caseKeyFormat,
+        notifications: {},
+        modules: [],
+        tags: [],
+      });
+    }
     setConfirmReset(false);
   }
 

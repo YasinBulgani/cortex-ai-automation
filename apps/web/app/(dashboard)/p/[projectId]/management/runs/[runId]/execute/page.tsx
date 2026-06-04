@@ -667,7 +667,7 @@ export default function ManagementRunExecutePage() {
                   { dot: "bg-emerald-500/70", label: `${passed} ok` },
                   { dot: "bg-red-500/80",     label: `${failed} fail` },
                   { dot: "bg-amber-500/60",   label: `${blocked} blk` },
-                  { dot: "bg-slate-600",      label: `${notRun} left` },
+                  { dot: "bg-slate-600",      label: `${notRun} bekliyor` },
                 ].map(s => (
                   <span key={s.label} className="flex items-center gap-1">
                     <span className={cn("h-1.5 w-1.5 rounded-full shrink-0", s.dot)}/>
@@ -677,10 +677,22 @@ export default function ManagementRunExecutePage() {
               </div>
               {run?.status !== "completed" && notRun === 0 && (
                 <button type="button"
-                  onClick={() => completeRun.mutateAsync(runId)}
+                  onClick={() => void completeRun.mutateAsync(runId)}
                   disabled={completeRun.isPending}
                   className="w-full rounded-lg bg-emerald-600 py-1.5 text-[11px] font-semibold text-white hover:bg-emerald-500 disabled:opacity-40 transition-colors">
                   {completeRun.isPending ? "Tamamlanıyor…" : "✓ Koşumu Tamamla"}
+                </button>
+              )}
+              {run?.status !== "completed" && notRun > 0 && (passed + failed + blocked) > 0 && (
+                <button type="button"
+                  title={`${notRun} senaryo henüz test edilmedi — yine de tamamla`}
+                  onClick={() => {
+                    if (!window.confirm(`${notRun} senaryo henüz test edilmedi. Koşumu tamamlamak istediğinizden emin misiniz?`)) return;
+                    void completeRun.mutateAsync(runId);
+                  }}
+                  disabled={completeRun.isPending}
+                  className="w-full rounded-lg border border-amber-500/30 py-1.5 text-[11px] font-medium text-amber-400 hover:bg-amber-500/10 disabled:opacity-40 transition-colors">
+                  {completeRun.isPending ? "Tamamlanıyor…" : `⚠ Erken Tamamla (${notRun} bekliyor)`}
                 </button>
               )}
             </div>

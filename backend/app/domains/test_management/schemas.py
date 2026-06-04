@@ -695,6 +695,20 @@ class ManagementSettingsOut(BaseModel):
     evidence_retention_days: dict[str, int]
     aggregation_policy: dict[str, Any]
     custom_field_usage: dict[str, Any]
+    # Kullanıcı tarafından özelleştirilebilen proje ayarları
+    user_settings: dict[str, Any] = Field(default_factory=dict)
+
+
+class ManagementUserSettingsUpdate(BaseModel):
+    """Proje bazında özelleştirilebilir ayarlar — isteğe bağlı alanlar."""
+    default_priority: Optional[str] = None
+    default_type: Optional[str] = None
+    case_key_prefix: Optional[str] = None
+    case_key_format: Optional[str] = None
+    modules: Optional[list[str]] = None
+    tags: Optional[list[str]] = None
+    notifications: Optional[dict[str, bool]] = None
+    roles: Optional[list[dict[str, Any]]] = None
 
 
 # ── M-50 Threaded Comments ───────────────────────────────────────────────────

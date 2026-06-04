@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useMemo, useRef } from "react";
-import { useManagementStandup } from "@/lib/hooks/use-management";
+import { useManagementStandup, useManagementRuns } from "@/lib/hooks/use-management";
 import { useManagementProjectId } from "@/lib/hooks/use-management-project-id";
 import { useRouteParam } from "@/lib/use-route-param";
 
@@ -160,21 +160,40 @@ function PageHeader({
   health,
   cfg,
   countdown,
+  activeRuns,
+  selectedRunId,
+  onSelectRun,
 }: {
   runName: string;
   health: "healthy" | "at_risk" | "critical";
   cfg: (typeof HEALTH_CONFIG)[keyof typeof HEALTH_CONFIG];
   countdown: number;
+  activeRuns?: { id: string; name: string }[];
+  selectedRunId?: string;
+  onSelectRun?: (id: string) => void;
 }) {
   return (
     <div className="flex justify-between items-center px-8 py-4 border-b border-slate-800/80">
       <div className="flex flex-col gap-0.5">
         <span className="text-xs font-semibold uppercase tracking-widest text-slate-500">
-          Standup
+          Stand-up
         </span>
-        <span className="text-white font-bold text-lg leading-tight truncate max-w-xs">
-          {runName}
-        </span>
+        {/* Run seçici — birden fazla aktif run varsa göster */}
+        {activeRuns && activeRuns.length > 1 && onSelectRun ? (
+          <select
+            value={selectedRunId ?? ""}
+            onChange={e => onSelectRun(e.target.value)}
+            className="mt-0.5 rounded-lg border border-slate-700 bg-slate-900 px-2 py-1 text-[13px] font-bold text-white outline-none focus:border-teal-500/50 max-w-xs"
+          >
+            {activeRuns.map(r => (
+              <option key={r.id} value={r.id}>{r.name}</option>
+            ))}
+          </select>
+        ) : (
+          <span className="text-white font-bold text-lg leading-tight truncate max-w-xs">
+            {runName}
+          </span>
+        )}
       </div>
 
       <LiveClock />
@@ -1015,7 +1034,20 @@ function ErrorScreen({ onRetry }: { onRetry: () => void }) {
 export default function StandupPage() {
   const projectId = useRouteParam("projectId") ?? "";
   const mpid = useManagementProjectId(projectId || undefined);
-  const standupQ = useManagementStandup(mpid || undefined);
+
+  // Aktif run seçimi
+  const runsQ = useManagementRuns(mpid || undefined, "in_progress");
+  const activeRuns = runsQ.data ?? [];
+  const [selectedRunId, setSelectedRunId] = useState<string | undefined>(undefined);
+
+  // İlk yüklemede aktif run varsa otomatik seç
+  useEffect(() => {
+    if (selectedRunId) return;
+    const first = activeRuns[0];
+    if (first) setSelectedRunId(first.id);
+  }, [activeRuns]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const standupQ = useManagementStandup(mpid || undefined, selectedRunId);
 
   const [countdown, setCountdown] = useState(60);
   const [lastUpdateStr, setLastUpdateStr] = useState<string | null>(null);
@@ -1069,6 +1101,9 @@ export default function StandupPage() {
         health={health}
         cfg={cfg}
         countdown={countdown}
+        activeRuns={activeRuns.map(r => ({ id: r.id, name: r.name }))}
+        selectedRunId={selectedRunId}
+        onSelectRun={id => { setSelectedRunId(id); setCountdown(60); }}
       />
 
       {/* Main grid — flex-1, overflow-hidden */}
