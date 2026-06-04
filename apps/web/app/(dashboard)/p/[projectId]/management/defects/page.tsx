@@ -144,7 +144,7 @@ function OpenDefectSparkline({ defects }: SparklineProps) {
   return (
     <div className="flex items-center gap-3 rounded-xl border border-border bg-surface-raised px-4 py-3">
       <div className="flex-1 min-w-0">
-        <p className="text-[10px] font-semibold uppercase tracking-widest text-fg-muted">Açık Defect Trendi</p>
+        <p className="text-[10px] font-semibold uppercase tracking-widest text-fg-muted">Açık Defekt Trendi</p>
         <p className="text-[10px] text-fg-subtle mt-0.5">Son 7 gün</p>
       </div>
       <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} className="shrink-0">
@@ -206,10 +206,10 @@ function ConfirmDeleteDialog({ onConfirm, onCancel, isPending }: ConfirmDeleteDi
             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-red-500/10">
               <IcTrash/>
             </div>
-            <h3 className="text-[14px] font-semibold text-fg">Defect Silinecek</h3>
+            <h3 className="text-[14px] font-semibold text-fg">Defekt Silinecek</h3>
           </div>
           <p className="text-[12px] text-fg-muted leading-relaxed">
-            Bu defect kalıcı olarak silinecek. Onaylıyor musunuz?
+            Bu defekt kalıcı olarak silinecek. Onaylıyor musunuz?
           </p>
         </div>
         <div className="flex items-center justify-end gap-2 border-t border-border px-5 py-3">
@@ -278,7 +278,7 @@ function CreateDefectModal({ mpid, onClose, onDone }: CreateDefectModalProps) {
 
         {/* Header */}
         <div className="flex items-center justify-between border-b border-border px-5 py-4">
-          <h2 className="text-[14px] font-semibold text-fg">Yeni Defect Oluştur</h2>
+          <h2 className="text-[14px] font-semibold text-fg">Yeni Defekt Oluştur</h2>
           <button type="button" onClick={onClose} aria-label="Modalı kapat"
             className="ml-2 shrink-0 rounded-lg p-1.5 text-fg-subtle hover:bg-surface-overlay hover:text-fg transition-colors">
             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -299,7 +299,7 @@ function CreateDefectModal({ mpid, onClose, onDone }: CreateDefectModalProps) {
               type="text"
               value={title}
               onChange={e => setTitle(e.target.value)}
-              placeholder="Defect başlığı…"
+              placeholder="Defekt başlığı…"
               className={inp}
             />
           </div>
@@ -307,7 +307,7 @@ function CreateDefectModal({ mpid, onClose, onDone }: CreateDefectModalProps) {
           {/* External Key & URL */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label htmlFor="create-defect-key" className="mb-1 block text-[10px] uppercase tracking-widest text-fg-subtle">External Key</label>
+              <label htmlFor="create-defect-key" className="mb-1 block text-[10px] uppercase tracking-widest text-fg-subtle">Harici Anahtar</label>
               <input
                 id="create-defect-key"
                 type="text"
@@ -341,7 +341,7 @@ function CreateDefectModal({ mpid, onClose, onDone }: CreateDefectModalProps) {
               </select>
             </div>
             <div>
-              <label htmlFor="create-defect-priority" className="mb-1 block text-[10px] uppercase tracking-widest text-fg-subtle">Priority</label>
+              <label htmlFor="create-defect-priority" className="mb-1 block text-[10px] uppercase tracking-widest text-fg-subtle">Öncelik</label>
               <select id="create-defect-priority" value={priority} onChange={e => setPriority(e.target.value)} className={sel}>
                 {["P0","P1","P2","P3"].map(v => <option key={v} value={v}>{v}</option>)}
               </select>
@@ -364,7 +364,7 @@ function CreateDefectModal({ mpid, onClose, onDone }: CreateDefectModalProps) {
               value={description}
               onChange={e => setDescription(e.target.value)}
               rows={3}
-              placeholder="Defect açıklaması…"
+              placeholder="Defekt açıklaması…"
               className={cn(inp, "resize-none")}
             />
           </div>
@@ -517,7 +517,7 @@ function DefectEditModal({ defect, mpid, onClose, onDeleted }: DefectEditModalPr
                 </select>
               </div>
               <div>
-                <label className="mb-1 block text-[10px] uppercase tracking-widest text-fg-subtle">Priority</label>
+                <label className="mb-1 block text-[10px] uppercase tracking-widest text-fg-subtle">Öncelik</label>
                 <select value={priority} onChange={e => setPriority(e.target.value)} className={sel}>
                   {["P0","P1","P2","P3"].map(v => <option key={v} value={v}>{v}</option>)}
                 </select>
@@ -526,7 +526,7 @@ function DefectEditModal({ defect, mpid, onClose, onDeleted }: DefectEditModalPr
 
             <div>
               <div className="mb-1 flex items-center justify-between">
-                <label className="text-[10px] uppercase tracking-widest text-fg-subtle">Root Cause</label>
+                <label className="text-[10px] uppercase tracking-widest text-fg-subtle">Kök Neden</label>
                 <button type="button"
                   disabled={analyze.isPending}
                   onClick={async () => {
@@ -784,25 +784,25 @@ export default function ManagementDefectsPage() {
         {/* Header */}
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h1 className="text-lg font-bold text-fg">Defect Management</h1>
-            <p className="mt-0.5 text-xs text-fg-muted">Test koşumlarından bağlanan defect&apos;ler ve retest durumu</p>
+            <h1 className="text-lg font-bold text-fg">Defekt Yönetimi</h1>
+            <p className="mt-0.5 text-xs text-fg-muted">Test koşumlarından bağlanan defektler ve retest durumu</p>
           </div>
           <button
             type="button"
             onClick={() => setShowCreate(true)}
-            aria-label="Yeni defect oluştur"
+            aria-label="Yeni defekt oluştur"
             className="rounded-xl bg-brand px-4 py-2 text-[12px] font-semibold text-brand-fg hover:brightness-105 transition-colors"
           >
-            + Yeni Defect
+            + Yeni Defekt
           </button>
         </div>
 
         {/* Stats */}
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <StatCard label="Toplam Defect"  value={loading ? "—" : rows.length}     hint="bağlı defect"    loading={loading}/>
-          <StatCard label="Açık"           value={loading ? "—" : open.length}     hint="kapatılmamış"   loading={loading}/>
-          <StatCard label="Blocker"        value={loading ? "—" : critical.length} hint="release blocker" loading={loading}/>
-          <StatCard label="Reopen"         value={loading ? "—" : reopened.length} hint="yeniden açılan"  loading={loading}/>
+          <StatCard label="Toplam Defekt"   value={loading ? "—" : rows.length}     hint="bağlı defekt"      loading={loading}/>
+          <StatCard label="Açık"           value={loading ? "—" : open.length}     hint="kapatılmamış"     loading={loading}/>
+          <StatCard label="Engelleyici"    value={loading ? "—" : critical.length} hint="sürümü engelleyen" loading={loading}/>
+          <StatCard label="Yeniden Açılan" value={loading ? "—" : reopened.length} hint="tekrar açıldı"    loading={loading}/>
         </div>
 
         {/* Bug fix 3: Açık defect trendi sparkline */}
@@ -819,19 +819,19 @@ export default function ManagementDefectsPage() {
             {search && <button type="button" onClick={() => handleSearchChange("")} aria-label="Aramayı temizle" className="text-fg-subtle hover:text-fg"><IcClose/></button>}
           </div>
 
-          <label htmlFor="defect-severity-filter" className="sr-only">Severity filtresi</label>
+          <label htmlFor="defect-severity-filter" className="sr-only">Önem derecesi filtresi</label>
           <select id="defect-severity-filter" value={severityF} onChange={e => handleSeverityChange(e.target.value)} className={SEL}>
-            <option value="">Severity</option>
+            <option value="">Önem Derecesi</option>
             {["blocker","critical","major","minor","trivial"].map(v => <option key={v} value={v}>{v}</option>)}
           </select>
-          <label htmlFor="defect-status-filter" className="sr-only">Status filtresi</label>
+          <label htmlFor="defect-status-filter" className="sr-only">Durum filtresi</label>
           <select id="defect-status-filter" value={statusF} onChange={e => handleStatusChange(e.target.value)} className={SEL}>
-            <option value="">Status</option>
+            <option value="">Durum</option>
             {ALL_STATUSES.map(v => <option key={v} value={v}>{v.replace(/_/g, " ")}</option>)}
           </select>
-          <label htmlFor="defect-priority-filter" className="sr-only">Priority filtresi</label>
+          <label htmlFor="defect-priority-filter" className="sr-only">Öncelik filtresi</label>
           <select id="defect-priority-filter" value={priorityF} onChange={e => handlePriorityChange(e.target.value)} className={SEL}>
-            <option value="">Priority</option>
+            <option value="">Öncelik</option>
             {["P0","P1","P2","P3"].map(v => <option key={v} value={v}>{v}</option>)}
           </select>
 
@@ -871,14 +871,14 @@ export default function ManagementDefectsPage() {
             <div className="flex flex-col items-center justify-center py-20 px-6 text-center gap-3">
               <IcBug/>
               <h3 className="text-sm font-semibold text-fg-muted">
-                {hasFilter ? "Defect bulunamadı" : "Henüz defect yok"}
+                {hasFilter ? "Defekt bulunamadı" : "Henüz defekt yok"}
               </h3>
               <p className="text-xs text-fg-subtle">
                 {hasFilter ? "Filtre veya arama terimini değiştirin." : (
                   <>
-                    Test koşumları sırasında defect bağlayabilirsiniz.
+                    Test koşumları sırasında defekt bağlayabilirsiniz.
                     <Link href={`/p/${projectId}/management/runs`} className="ml-1 text-brand underline text-[12px]">
-                      Run başlat →
+                      Koşum başlat →
                     </Link>
                   </>
                 )}
@@ -899,8 +899,8 @@ export default function ManagementDefectsPage() {
                     <th scope="col" className="px-3 py-2.5 text-left text-[9px] font-semibold uppercase tracking-widest text-fg-subtle">Key</th>
                     <SortTh col="title" label="Başlık"/>
                     <SortTh col="status" label="Durum"/>
-                    <SortTh col="severity" label="Severity" className="hidden md:table-cell"/>
-                    <SortTh col="priority" label="Priority" className="hidden md:table-cell"/>
+                    <SortTh col="severity" label="Önem" className="hidden md:table-cell"/>
+                    <SortTh col="priority" label="Öncelik" className="hidden md:table-cell"/>
                     <th scope="col" className="hidden px-3 py-2.5 text-left text-[9px] font-semibold uppercase tracking-widest text-fg-subtle md:table-cell">Retest</th>
                     <th scope="col" className="hidden px-3 py-2.5 text-left text-[9px] font-semibold uppercase tracking-widest text-fg-subtle xl:table-cell">Yaş</th>
                     <SortTh col="created_at" label="Tarih" className="hidden xl:table-cell"/>

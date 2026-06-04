@@ -295,3 +295,166 @@ html:not(.dark) [class*="divide-slate-8"] { border-color: var(--border) !importa
     0%, 100% { transform: none; }
   }
 }
+
+/* ══════════════════════════════════════════════════════════════════════
+   DARK MODE POLISH
+   Genel görsel kaliteyi artıran global dark mode iyileştirmeleri.
+   ══════════════════════════════════════════════════════════════════════ */
+
+/* ── Dark mode scrollbar ─────────────────────────────────────────────── */
+html.dark ::-webkit-scrollbar { width: 5px; height: 5px; }
+html.dark ::-webkit-scrollbar-track { background: transparent; }
+html.dark ::-webkit-scrollbar-thumb {
+  background-color: rgba(148, 163, 184, 0.18);
+  border-radius: 9999px;
+}
+html.dark ::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(148, 163, 184, 0.35);
+}
+
+/* ── Yatay scroll için scrollbar gizleme ─────────────────────────────── */
+.scrollbar-none { scrollbar-width: none; }
+.scrollbar-none::-webkit-scrollbar { display: none; }
+
+/* ── Kart hover efekti ───────────────────────────────────────────────── */
+html.dark .hover-card {
+  transition: box-shadow 0.2s ease, transform 0.15s ease;
+}
+html.dark .hover-card:hover {
+  box-shadow: 0 0 0 1px rgba(45, 212, 191, 0.15), 0 4px 20px rgba(0,0,0,0.35);
+  transform: translateY(-1px);
+}
+
+/* ── Navigasyon link active glow ────────────────────────────────────── */
+html.dark nav a[aria-current="page"],
+html.dark nav a.active {
+  box-shadow: inset 2px 0 0 var(--brand-primary);
+}
+
+/* ── Input focus ring improvement ───────────────────────────────────── */
+html.dark input:focus,
+html.dark textarea:focus,
+html.dark select:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(45, 212, 191, 0.2);
+  border-color: rgba(45, 212, 191, 0.5) !important;
+}
+
+/* ── Heading brand accent ────────────────────────────────────────────── */
+html.dark h1.page-title {
+  background: linear-gradient(135deg, #f1f5f9 0%, #94a3b8 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* ── Button base improvements ───────────────────────────────────────── */
+html.dark button:not([disabled]):focus-visible {
+  outline: 2px solid rgba(45, 212, 191, 0.6);
+  outline-offset: 2px;
+}
+
+/* ── Stat card number prominence ────────────────────────────────────── */
+html.dark [data-stat-value] {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+/* ── Sidebar nav section headers ────────────────────────────────────── */
+html.dark aside nav p.text-\\[10px\\] {
+  letter-spacing: 0.08em;
+}
+
+/* ── Management sidebar nav active state ────────────────────────────── */
+html.dark aside[class*="w-\\[208px\\]"] a[class*="bg-brand"] {
+  border-right: none;
+  position: relative;
+}
+html.dark aside[class*="w-\\[208px\\]"] a[class*="bg-brand"]::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  top: 25%;
+  height: 50%;
+  width: 2px;
+  background: var(--brand-primary);
+  border-radius: 9999px;
+}
+
+/* ── Empty state shimmer ─────────────────────────────────────────────── */
+html.dark .empty-state-icon {
+  opacity: 0.3;
+  filter: blur(0.5px);
+}
+
+/* ── Tooltip content polish ──────────────────────────────────────────── */
+html.dark [role="tooltip"] {
+  backdrop-filter: blur(8px) !important;
+  border: 1px solid rgba(148, 163, 184, 0.15) !important;
+}
+
+/* ── Table row hover glow ────────────────────────────────────────────── */
+html.dark tbody tr:hover {
+  background-color: rgba(45, 212, 191, 0.03) !important;
+  border-left: 2px solid rgba(45, 212, 191, 0.2);
+}
+
+/* ── Badge/chip consistency ──────────────────────────────────────────── */
+html.dark [class*="rounded-full"][class*="border"][class*="px-2"] {
+  letter-spacing: 0.01em;
+}
+
+/* ── Progress bar aesthetics ────────────────────────────────────────── */
+html.dark [class*="h-1"][class*="rounded-full"] {
+  overflow: hidden;
+}
+
+/* ── Modal overlay blur ──────────────────────────────────────────────── */
+html.dark [role="dialog"] {
+  backdrop-filter: blur(2px) !important;
+}
+
+/* ── Gradient border for feature cards ──────────────────────────────── */
+html.dark .feature-card {
+  background: linear-gradient(145deg, rgba(30, 41, 59, 0.8) 0%, rgba(15, 23, 42, 0.9) 100%);
+  border: 1px solid rgba(148, 163, 184, 0.08);
+}
+
+/* ── Toast improvement (bottom-right) ───────────────────────────────── */
+[data-testid="toast-container"] {
+  z-index: 99999 !important;
+}
+
+/* ── ThemeToggle: metin içeriğini gizle, sadece ikon göster ─────────── */
+[data-testid="header-btn-theme"] {
+  overflow: hidden;
+  width: 2rem !important;
+  height: 2rem !important;
+  padding: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 0 !important;
+}
+[data-testid="header-btn-theme"] svg {
+  font-size: initial;
+  flex-shrink: 0;
+  width: 1rem;
+  height: 1rem;
+}
+
+/* ── ServiceRestart: metin spanları gizle ───────────────────────────── */
+[data-testid="header-btn-restart-services"] span.hidden,
+[data-testid="header-btn-restart-services"] span.md\\:hidden,
+[data-testid="header-btn-restart-services"] span.hidden.md\\:inline {
+  display: none !important;
+}
+
+/* ── Page transition feel ────────────────────────────────────────────── */
+main#main-content > * {
+  animation: fadeIn 0.15s ease;
+}
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}

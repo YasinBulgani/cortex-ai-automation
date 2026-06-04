@@ -132,38 +132,38 @@ const NAV_GROUPS: NavGroup[] = [
   {
     label: "QA Akışı",
     items: [
-      { label: "Dashboard",     segment: "management/dashboard",    Icon: IcHome     },
-      { label: "Repository",    segment: "management/repository",   Icon: IcDatabase },
-      { label: "Planlar",       segment: "management/plans",        Icon: IcCalendar },
-      { label: "Runs",          segment: "management/runs",         Icon: IcPlay     },
-      { label: "Regression",    segment: "management/regression",   Icon: IcRefresh  },
+      { label: "Dashboard",       segment: "management/dashboard",    Icon: IcHome     },
+      { label: "Test Deposu",     segment: "management/repository",   Icon: IcDatabase },
+      { label: "Planlar",         segment: "management/plans",        Icon: IcCalendar },
+      { label: "Test Koşuları",   segment: "management/runs",         Icon: IcPlay     },
+      { label: "Regresyon",       segment: "management/regression",   Icon: IcRefresh  },
     ],
   },
   {
     label: "Analiz",
     items: [
-      { label: "Gereksinimler", segment: "management/requirements", Icon: IcLink  },
-      { label: "Defektler",     segment: "management/defects",      Icon: IcBug   },
-      { label: "Raporlar",      segment: "management/reports",      Icon: IcChart },
-      { label: "Tester",        segment: "management/tester",       Icon: IcUser  },
-      { label: "Standup",       segment: "management/standup",      Icon: IcPulse },
+      { label: "Gereksinimler",   segment: "management/requirements", Icon: IcLink  },
+      { label: "Defektler",       segment: "management/defects",      Icon: IcBug   },
+      { label: "Raporlar",        segment: "management/reports",      Icon: IcChart },
+      { label: "Tester",          segment: "management/tester",       Icon: IcUser  },
+      { label: "Stand-up",        segment: "management/standup",      Icon: IcPulse },
     ],
   },
   {
     label: "Test Tasarımı",
     items: [
-      { label: "BVA",            segment: "management/design/bva",  Icon: IcGrid },
-      { label: "EQ Partition",   segment: "management/design/eq",   Icon: IcGrid },
-      { label: "Decision Table", segment: "management/design/dt",   Icon: IcGrid },
+      { label: "BVA",                    segment: "management/design/bva",  Icon: IcGrid },
+      { label: "Eşdeğerlik Bölümü",      segment: "management/design/eq",   Icon: IcGrid },
+      { label: "Karar Tablosu",          segment: "management/design/dt",   Icon: IcGrid },
     ],
   },
 ];
 
 const NAV_UTILITY: NavItem[] = [
-  { label: "Import/Export",  segment: "management/import-export", Icon: IcUpload },
-  { label: "Entegrasyonlar", segment: "management/integrations",  Icon: IcLink   },
-  { label: "Denetim İzi",    segment: "management/audit",         Icon: IcPulse  },
-  { label: "Ayarlar",        segment: "management/settings",      Icon: IcGear   },
+  { label: "İçe/Dışa Aktar",  segment: "management/import-export", Icon: IcUpload },
+  { label: "Entegrasyonlar",  segment: "management/integrations",  Icon: IcLink   },
+  { label: "Denetim İzi",     segment: "management/audit",         Icon: IcPulse  },
+  { label: "Ayarlar",         segment: "management/settings",      Icon: IcGear   },
 ];
 
 // Execute sayfası tam ekran — sidebar gizlenir

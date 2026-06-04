@@ -173,7 +173,7 @@ function SetStats({ cases }: { cases: RegressionSetCase[] }) {
   return (
     <div className="space-y-3">
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-        {([["Toplam",passed+failed+blocked+notRun,"text-fg"],["Passed",passed,"text-emerald-500"],["Failed",failed,"text-red-400"],["Blocked",blocked,"text-amber-400"]] as [string,number,string][]).map(([l,v,c]) => (
+        {([["Toplam",passed+failed+blocked+notRun,"text-fg"],["Geçti",passed,"text-emerald-500"],["Başarısız",failed,"text-red-400"],["Engellendi",blocked,"text-amber-400"]] as [string,number,string][]).map(([l,v,c]) => (
           <div key={l} className="rounded-xl border border-border bg-surface-base px-3 py-2.5 text-center">
             <p className="text-[10px] font-medium uppercase tracking-widest text-fg-subtle">{l}</p>
             <p className={cn("mt-1 text-2xl font-semibold", c)}>{v}</p>

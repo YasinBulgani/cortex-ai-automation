@@ -72,65 +72,39 @@ export function ServiceRestartButton() {
         : "text-slate-500";
 
   return (
-    <div className="flex items-center gap-2">
-      <Button
-        type="button"
-        variant="secondary"
-        size="sm"
-        onClick={handleRestart}
-        disabled={status === "loading"}
-        className="border-amber-600/40 bg-amber-500/10 text-amber-200 hover:bg-amber-500/20 hover:text-amber-100"
-        data-testid="header-btn-restart-services"
-      >
-        <span className="mr-1.5 inline-flex h-3.5 w-3.5 items-center justify-center">
-          {status === "loading" ? (
-            <svg
-              className="h-3.5 w-3.5 animate-spin"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M21 12a9 9 0 11-6.219-8.56"
-              />
-            </svg>
-          ) : (
-            <svg
-              className="h-3.5 w-3.5"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M4 4v6h6M20 20v-6h-6"
-              />
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M20 9a8 8 0 00-13.657-3.657L4 7m16 10-2.343 2.343A8 8 0 014 15"
-              />
-            </svg>
-          )}
-        </span>
-        <span className="hidden md:inline">{buttonLabel}</span>
-        <span className="md:hidden">Yeniden Başlat</span>
-      </Button>
-
-      {message && (
-        <span
-          className={`hidden max-w-[280px] truncate text-xs xl:inline ${statusColor}`}
-          data-testid="header-restart-services-status"
-          title={message}
-        >
-          {message}
-        </span>
+    <button
+      type="button"
+      onClick={handleRestart}
+      disabled={status === "loading"}
+      title={message || buttonLabel}
+      aria-label={buttonLabel}
+      data-testid="header-btn-restart-services"
+      className={`flex h-8 w-8 items-center justify-center rounded-lg transition-colors ${
+        status === "success"
+          ? "text-emerald-400 hover:bg-emerald-500/10"
+          : status === "error"
+          ? "text-red-400 hover:bg-red-500/10"
+          : "text-amber-400/70 hover:bg-amber-500/10 hover:text-amber-300"
+      }`}
+    >
+      {status === "loading" ? (
+        <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M21 12a9 9 0 11-6.219-8.56"/>
+        </svg>
+      ) : status === "success" ? (
+        <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"/>
+        </svg>
+      ) : status === "error" ? (
+        <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"/>
+        </svg>
+      ) : (
+        <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v6h6M20 20v-6h-6"/>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M20 9a8 8 0 00-13.657-3.657L4 7m16 10-2.343 2.343A8 8 0 014 15"/>
+        </svg>
       )}
-    </div>
+    </button>
   );
 }

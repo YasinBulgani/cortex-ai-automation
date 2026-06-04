@@ -336,9 +336,10 @@ export default function PortfolioPage() {
       </div>
 
       {/* Ürün ailesi sekme filtresi */}
-      <div className="flex flex-wrap items-center gap-1.5 border-b border-slate-800 pb-3">
+      <div className="flex items-center gap-1.5 border-b border-slate-800 pb-3 overflow-x-auto scrollbar-none"
+        style={{ WebkitOverflowScrolling: "touch", msOverflowStyle: "none", scrollbarWidth: "none" }}>
         <button
-          className="flex items-center gap-1.5 rounded-lg bg-blue-900/30 px-3 py-1.5 text-xs font-semibold text-blue-400 border border-blue-500/30"
+          className="flex shrink-0 items-center gap-1.5 rounded-lg bg-blue-900/30 px-3 py-1.5 text-xs font-semibold text-blue-400 border border-blue-500/30"
           aria-current="page"
         >
           Tümü
@@ -348,7 +349,7 @@ export default function PortfolioPage() {
           <Link
             key={p.id}
             href={`/products/${p.id}`}
-            className="flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-800/60 px-3 py-1.5 text-xs font-medium text-slate-400 hover:text-white hover:border-slate-500 hover:bg-slate-800 transition-colors"
+            className="flex shrink-0 items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-800/60 px-3 py-1.5 text-xs font-medium text-slate-400 hover:text-white hover:border-slate-500 hover:bg-slate-800 transition-colors"
             data-testid={`product-tab-${p.id}`}
             title={p.tagline}
           >

@@ -309,10 +309,10 @@ function ExecutionDonut({
   const circumference = 2 * Math.PI * r;
 
   const segments = [
-    { key: "passed",  value: passed,  color: "#10b981", label: "Passed" },
-    { key: "failed",  value: failed,  color: "#ef4444", label: "Failed" },
-    { key: "blocked", value: blocked, color: "#f59e0b", label: "Blocked" },
-    { key: "notRun",  value: notRun,  color: "#475569", label: "Not Run" },
+    { key: "passed",  value: passed,  color: "#10b981", label: "Geçti" },
+    { key: "failed",  value: failed,  color: "#ef4444", label: "Başarısız" },
+    { key: "blocked", value: blocked, color: "#f59e0b", label: "Engellendi" },
+    { key: "notRun",  value: notRun,  color: "#475569", label: "Bekliyor" },
   ];
 
   const safeTotal = total > 0 ? total : 1;
@@ -320,7 +320,7 @@ function ExecutionDonut({
 
   return (
     <div className="flex flex-col items-center gap-3">
-      <svg width="200" height="200" viewBox="0 0 200 200" aria-label="Execution donut chart">
+      <svg width="200" height="200" viewBox="0 0 200 200" aria-label="Yürütme dağılımı grafiği">
         <circle
           cx={cx} cy={cy} r={r}
           fill="none"
@@ -363,7 +363,7 @@ function ExecutionDonut({
           fontWeight="600"
           letterSpacing="1"
         >
-          CASE
+          TEST
         </text>
       </svg>
       <div className="flex gap-4 flex-wrap justify-center">
@@ -400,10 +400,10 @@ function StackedBar({
   const safeTotal = total > 0 ? total : 1;
 
   const segments = [
-    { key: "passed",  value: passed,  color: "#10b981", label: "Passed" },
-    { key: "failed",  value: failed,  color: "#ef4444", label: "Failed" },
-    { key: "blocked", value: blocked, color: "#f59e0b", label: "Blocked" },
-    { key: "notRun",  value: notRun,  color: "#475569", label: "Not Run" },
+    { key: "passed",  value: passed,  color: "#10b981", label: "Geçti" },
+    { key: "failed",  value: failed,  color: "#ef4444", label: "Başarısız" },
+    { key: "blocked", value: blocked, color: "#f59e0b", label: "Engellendi" },
+    { key: "notRun",  value: notRun,  color: "#475569", label: "Bekliyor" },
   ];
 
   return (
@@ -787,7 +787,7 @@ function BlockerList({
           {willMeetGate ? "GO" : "NO-GO"}
         </span>
         <span className="text-sm font-semibold uppercase tracking-wider text-slate-400">
-          Release Gate
+          Sürüm Kapısı
         </span>
       </div>
       {factors.length === 0 ? (
@@ -1076,7 +1076,7 @@ export default function StandupPage() {
         {/* Sol: col-span-3 — MetricCard dikey liste */}
         <div className="col-span-3 flex flex-col gap-3 overflow-hidden">
           <MetricCard
-            label="Pass Rate"
+            label="Geçme Oranı"
             value={`${Math.round(data?.pass_rate ?? 0)}%`}
             accent={
               (data?.pass_rate ?? 0) >= 90
@@ -1087,12 +1087,12 @@ export default function StandupPage() {
             }
           />
           <MetricCard
-            label="Blocked"
+            label="Engellenmiş"
             value={data?.blocked ?? 0}
             accent={(data?.blocked ?? 0) === 0 ? "#34d399" : "#f59e0b"}
           />
           <MetricCard
-            label="Failed"
+            label="Başarısız"
             value={data?.failed ?? 0}
             accent={(data?.failed ?? 0) === 0 ? "#34d399" : "#f87171"}
             trend={(data?.failed ?? 0) === 0 ? "flat" : "down"}
@@ -1114,7 +1114,7 @@ export default function StandupPage() {
           </div>
           <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-4">
             <p className="text-xs text-slate-500 uppercase tracking-widest font-semibold mb-3">
-              Execution Dağılımı
+              Yürütme Dağılımı
             </p>
             <ExecutionDonut
               passed={passed}

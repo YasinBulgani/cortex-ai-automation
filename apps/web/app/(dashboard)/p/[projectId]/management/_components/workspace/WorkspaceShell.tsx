@@ -655,7 +655,7 @@ function RunTabHeader({ onNewRun }: { onNewRun: () => void }) {
       <div className="flex-1" />
       <button type="button" onClick={onNewRun}
         className="rounded-lg bg-brand px-3 py-1.5 text-[12px] font-semibold text-brand-fg shadow-sm transition-colors hover:brightness-105">
-        + Yeni Run
+        + Yeni Koşum
       </button>
     </div>
   );

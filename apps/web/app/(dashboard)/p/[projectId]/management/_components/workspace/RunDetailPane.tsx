@@ -82,8 +82,8 @@ export function RunDetailPane({
     return (
       <div className="flex flex-1 flex-col items-center justify-center text-center p-8">
         <IcPlay />
-        <p className="mt-3 text-[13px] font-medium text-fg-muted">Bir run seçin</p>
-        <p className="mt-1 text-[11px] text-fg-subtle">Sol panelden bir run seçerek case'lerini ve ilerlemesini görün.</p>
+        <p className="mt-3 text-[13px] font-medium text-fg-muted">Bir koşum seçin</p>
+        <p className="mt-1 text-[11px] text-fg-subtle">Sol panelden bir test koşumu seçerek senaryolarını ve ilerlemesini görün.</p>
       </div>
     );
   }

@@ -24,10 +24,10 @@ import { useRouteParam } from "@/lib/use-route-param";
 type ReportTab = "execution" | "regression" | "defects" | "release";
 
 const REPORT_TABS: { id: ReportTab; label: string }[] = [
-  { id: "execution",  label: "Execution Summary"  },
-  { id: "regression", label: "Regression Report"  },
-  { id: "defects",    label: "Defect Summary"      },
-  { id: "release",    label: "Release Readiness"   },
+  { id: "execution",  label: "Yürütme Özeti"      },
+  { id: "regression", label: "Regresyon Raporu"   },
+  { id: "defects",    label: "Defekt Özeti"        },
+  { id: "release",    label: "Sürüm Hazırlığı"    },
 ];
 
 const RUN_STATUS_DOT: Record<string, string> = {
@@ -144,10 +144,10 @@ function ExecutionBarChart({
 }) {
   const total = passed + failed + blocked + notRun || 1;
   const bars = [
-    { label: "Passed",   count: passed,  heightPct: (passed  / total) * 100, color: "bg-emerald-500", text: "text-emerald-400" },
-    { label: "Failed",   count: failed,  heightPct: (failed  / total) * 100, color: "bg-red-500",     text: "text-red-400"     },
-    { label: "Blocked",  count: blocked, heightPct: (blocked / total) * 100, color: "bg-amber-500",   text: "text-amber-400"   },
-    { label: "Not Run",  count: notRun,  heightPct: (notRun  / total) * 100, color: "bg-slate-600",   text: "text-slate-400"   },
+    { label: "Geçti",     count: passed,  heightPct: (passed  / total) * 100, color: "bg-emerald-500", text: "text-emerald-400" },
+    { label: "Başarısız", count: failed,  heightPct: (failed  / total) * 100, color: "bg-red-500",     text: "text-red-400"     },
+    { label: "Engellendi",count: blocked, heightPct: (blocked / total) * 100, color: "bg-amber-500",   text: "text-amber-400"   },
+    { label: "Bekliyor",  count: notRun,  heightPct: (notRun  / total) * 100, color: "bg-slate-600",   text: "text-slate-400"   },
   ];
 
   return (

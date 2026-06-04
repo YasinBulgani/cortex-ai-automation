@@ -392,7 +392,7 @@ export default function ManagementPlansPage() {
       });
       router.push(`/p/${projectId}/management/runs/${run.id}/execute`);
     } catch {
-      setError("Run başlatılamadı.");
+      setError("Koşum başlatılamadı.");
     } finally {
       setRunCreatingFlag(false);
     }
