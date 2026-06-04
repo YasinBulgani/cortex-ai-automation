@@ -44,6 +44,7 @@ export default function ManagementCaseDetailPage() {
   const [steps, setSteps]             = useState<DraftStep[]>([makeStep(1)]);
   const [dirty, setDirty]             = useState(false);
   const [saving, setSaving]           = useState(false);
+  const [saveError, setSaveError]     = useState("");
   const [activeTab, setActiveTab]     = useState<"edit" | "comments" | "history">("edit");
 
   useEffect(() => {
@@ -73,6 +74,7 @@ export default function ManagementCaseDetailPage() {
 
   const handleSave = async () => {
     if (!caseId || !mpid) return;
+    setSaveError("");
     setSaving(true);
     try {
       await update.mutateAsync({
@@ -95,10 +97,19 @@ export default function ManagementCaseDetailPage() {
         })),
       });
       setDirty(false);
+    } catch {
+      setSaveError("Kayıt başarısız. Lütfen tekrar deneyin.");
     } finally {
       setSaving(false);
     }
   };
+
+  useEffect(() => {
+    if (!dirty) return;
+    const handler = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = ""; };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [dirty]);
 
   const addStep = () => {
     setSteps(prev => [...prev, makeStep(prev.length + 1)]);
@@ -151,13 +162,17 @@ export default function ManagementCaseDetailPage() {
           {activeTab === "edit" && (
             <>
               {dirty && <span className="text-[10px] text-slate-600">Kaydedilmemiş</span>}
-              <button
-                onClick={handleSave}
-                disabled={saving || !dirty}
-                className="rounded-md bg-teal-600 px-4 py-1.5 text-[11px] font-medium text-white hover:bg-teal-700 disabled:opacity-40 transition-colors"
-              >
-                {saving ? "Kaydediliyor…" : "Kaydet"}
-              </button>
+              <div className="flex flex-col items-end gap-0.5">
+                <button
+                  type="button"
+                  onClick={handleSave}
+                  disabled={saving || !dirty}
+                  className="rounded-md bg-teal-600 px-4 py-1.5 text-[11px] font-medium text-white hover:bg-teal-700 disabled:opacity-40 transition-colors"
+                >
+                  {saving ? "Kaydediliyor…" : "Kaydet"}
+                </button>
+                {saveError && <p className="text-[12px] text-red-400 mt-1">{saveError}</p>}
+              </div>
             </>
           )}
         </div>
@@ -249,6 +264,7 @@ export default function ManagementCaseDetailPage() {
             <div className="mb-2 flex items-center justify-between">
               <label className="text-[10px] font-medium uppercase tracking-wider text-slate-600">Adımlar</label>
               <button
+                type="button"
                 onClick={addStep}
                 className="text-[11px] text-teal-500 hover:text-teal-400 transition-colors"
               >
@@ -262,6 +278,7 @@ export default function ManagementCaseDetailPage() {
                     <span className="text-[10px] text-slate-600">Adım {idx + 1}</span>
                     {steps.length > 1 && (
                       <button
+                        type="button"
                         onClick={() => removeStep(idx)}
                         className="text-[10px] text-slate-600 hover:text-red-400 transition-colors"
                       >

@@ -544,6 +544,9 @@ export function useCreateManagementSuite(projectId: string) {
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: managementKeys.repository(projectId) });
     },
+    onError: (error: unknown) => {
+      console.error("[use-management] mutation failed:", error);
+    },
   });
 }
 
@@ -749,6 +752,9 @@ export function useCreateRegressionSet(projectId: string) {
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: managementKeys.regressionSets(projectId) });
     },
+    onError: (error: unknown) => {
+      console.error("[use-management] mutation failed:", error);
+    },
   });
 }
 
@@ -813,6 +819,9 @@ export function useCreateManagementPlan(projectId: string) {
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: managementKeys.plans(projectId) });
     },
+    onError: (error: unknown) => {
+      console.error("[use-management] mutation failed:", error);
+    },
   });
 }
 
@@ -838,6 +847,9 @@ export function useCreateManagementRun(projectId: string) {
       apiFetch<TestRun>(`${BASE(projectId)}/runs`, { method: "POST", json: payload }),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: managementKeys.runs(projectId) });
+    },
+    onError: (error: unknown) => {
+      console.error("[use-management] mutation failed:", error);
     },
   });
 }
@@ -1182,6 +1194,9 @@ export function useCreateManagementCase(projectId: string) {
       void qc.invalidateQueries({ queryKey: managementKeys.repository(projectId) });
       void qc.invalidateQueries({ queryKey: managementKeys.cases(projectId) });
     },
+    onError: (error: unknown) => {
+      console.error("[use-management] mutation failed:", error);
+    },
   });
 }
 
@@ -1357,7 +1372,14 @@ export function useKiwiSyncJobs(projectId: string | undefined) {
     queryKey: kiwiKeys.syncJobs(projectId),
     queryFn: () => apiFetch<KiwiSyncJob[]>(`${KIWI_BASE(projectId!)}/sync-jobs`),
     enabled: !!projectId,
-    refetchInterval: 5_000,
+    refetchInterval: (query) => {
+      const jobs = query.state.data as Array<{ status: string }> | undefined;
+      if (!jobs) return false;
+      const hasActive = jobs.some((j) =>
+        ["running", "pending", "queued", "processing"].includes(j.status ?? ""),
+      );
+      return hasActive ? 5000 : false;
+    },
   });
 }
 

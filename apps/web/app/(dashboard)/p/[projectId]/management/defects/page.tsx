@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo, useCallback, useEffect } from "react";
+import Link from "next/link";
 import { useRouteParam } from "@/lib/use-route-param";
 import { cn } from "@/lib/utils";
 import {
@@ -811,6 +812,13 @@ export default function ManagementDefectsPage() {
                 </div>
               ))}
             </div>
+          ) : defectsQuery.isError ? (
+            <div className="flex flex-col items-center gap-3 py-12 text-center">
+              <p className="text-[13px] text-red-400">Defect&apos;ler yüklenemedi.</p>
+              <button onClick={() => void defectsQuery.refetch()} className="text-[12px] text-teal-400 hover:underline">
+                Tekrar dene
+              </button>
+            </div>
           ) : filtered.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-20 px-6 text-center gap-3">
               <IcBug/>
@@ -818,7 +826,14 @@ export default function ManagementDefectsPage() {
                 {hasFilter ? "Defect bulunamadı" : "Henüz defect yok"}
               </h3>
               <p className="text-xs text-slate-600">
-                {hasFilter ? "Filtre veya arama terimini değiştirin." : "Test koşumları sırasında defect bağlayabilirsiniz."}
+                {hasFilter ? "Filtre veya arama terimini değiştirin." : (
+                  <>
+                    Test koşumları sırasında defect bağlayabilirsiniz.
+                    <Link href={`/p/${projectId}/management/runs`} className="ml-1 text-brand underline text-[12px]">
+                      Run başlat →
+                    </Link>
+                  </>
+                )}
               </p>
               {hasFilter && (
                 <button type="button" onClick={clearFilters}

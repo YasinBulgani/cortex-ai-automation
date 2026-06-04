@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import Link from "next/link";
 import {
   useExecutionSummary,
@@ -199,9 +199,9 @@ function ChecklistRow({ item }: { item: ReleaseChecklistItem }) {
 // ─── Execution Summary Tab ────────────────────────────────────────────────────
 
 function ExecutionSummaryTab({
-  summary, runs, sumLoading, sumError, runsLoading, runsError, projectId, trendData,
+  summary, runs, filteredRuns, sumLoading, sumError, runsLoading, runsError, projectId, trendData,
 }: {
-  summary: any; runs: TestRun[] | undefined;
+  summary: any; runs: TestRun[] | undefined; filteredRuns: TestRun[];
   sumLoading: boolean; sumError: boolean;
   runsLoading: boolean; runsError: boolean;
   projectId: string | null;
@@ -212,7 +212,7 @@ function ExecutionSummaryTab({
   const blocked = summary?.blocked ?? 0;
   const notRun  = summary?.not_run ?? 0;
   const execTotal = passed + failed + blocked + notRun;
-  const recentRuns = (runs ?? []).slice(0, 8);
+  const recentRuns = filteredRuns.slice(0, 8);
 
   return (
     <div className="space-y-6">
@@ -725,6 +725,29 @@ export default function ManagementReportsPage() {
   const openDefects = (defects ?? []).filter(d => !["closed", "resolved", "fixed", "done"].includes(d.status.toLowerCase())).length;
   const activeRuns  = (runs ?? []).filter(r => r.status === "in_progress").length;
 
+  // Filtered runs: dateRange (days) + moduleFilter + platformFilter
+  const filteredRuns = useMemo(() => {
+    if (!runs) return [];
+    const now = Date.now();
+    const cutoffMs = dateRange * 24 * 60 * 60 * 1000;
+    return runs.filter(r => {
+      // Date filter: use created_at or started_at if available
+      const dateField = (r as any).created_at || r.started_at;
+      if (dateField) {
+        const age = now - new Date(dateField).getTime();
+        if (age > cutoffMs) return false;
+      }
+      // Module filter: match run name
+      if (moduleFilter && !r.name.toLowerCase().includes(moduleFilter.toLowerCase())) return false;
+      // Platform filter: match against platform field if exists
+      if (platformFilter) {
+        const platform = ((r as any).platform ?? "").toLowerCase();
+        if (platform && !platform.includes(platformFilter.toLowerCase())) return false;
+      }
+      return true;
+    });
+  }, [runs, dateRange, moduleFilter, platformFilter]);
+
   const checklist: ReleaseChecklistItem[] = release?.checklist ?? [];
   const trendData = [62, 68, 71, 65, 74, 78, Math.round(passRate)];
 
@@ -855,6 +878,7 @@ export default function ManagementReportsPage() {
           <ExecutionSummaryTab
             summary={summary}
             runs={runs}
+            filteredRuns={filteredRuns}
             sumLoading={sumLoading}
             sumError={sumError}
             runsLoading={runsLoading}

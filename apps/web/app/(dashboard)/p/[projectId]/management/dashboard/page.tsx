@@ -15,6 +15,7 @@ import {
   type TestCase,
 } from "@/lib/hooks/use-management";
 import { cn } from "@/lib/utils";
+import { QuickSetupWizard } from "../_components/QuickSetupWizard";
 
 function asText(value: unknown, fallback = "Tanimsiz") {
   return typeof value === "string" && value.trim() ? value : fallback;
@@ -160,7 +161,7 @@ export default function ManagementDashboardPage() {
           {Array.from({ length: 8 }).map((_, i) => <div key={i} className="h-28 animate-pulse rounded-xl border border-border bg-surface-raised" />)}
         </div>
       ) : !hasData ? (
-        <EmptyState projectId={projectId} />
+        <QuickSetupWizard projectId={projectId} mpid={mpid ?? projectId} />
       ) : (
         <>
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">

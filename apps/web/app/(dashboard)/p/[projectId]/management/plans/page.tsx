@@ -168,6 +168,7 @@ function CycleRow({
       <button
         onClick={() => onStartRun(cycle)}
         disabled={loading}
+        title="Run Başlat"
         className="shrink-0 flex items-center gap-1.5 rounded-lg border border-teal-500/25 px-3 py-1.5 text-[11px] font-medium text-teal-400 hover:bg-teal-500/10 hover:border-teal-500/40 disabled:opacity-40 transition-colors"
       >
         <IcPlay /> Run
@@ -276,7 +277,16 @@ function PlanRow({
       {open && (
         <div className="border-t border-border">
           {cycles.length === 0 ? (
-            <p className="px-6 py-4 text-[11px] text-slate-600">Bu plana ait cycle yok.</p>
+            <div className="flex items-center justify-between px-6 py-4">
+              <p className="text-[11px] text-slate-600">Bu plana ait cycle yok.</p>
+              <button
+                disabled={!cycles.length}
+                title={!cycles.length ? "Önce cycle oluşturun" : undefined}
+                className="flex items-center gap-1.5 rounded-lg border border-teal-500/25 px-3 py-1.5 text-[11px] font-medium text-teal-400 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              >
+                <IcPlay /> Run Başlat
+              </button>
+            </div>
           ) : (
             cycles.map(cycle => {
               const cycleRuns = runs.filter(r => r.cycle_id === cycle.id);
@@ -314,7 +324,7 @@ export default function ManagementPlansPage() {
   const mpid      = useManagementProjectId(projectId || undefined);
   const qc        = useQueryClient();
 
-  const { data: plans, isLoading } = useManagementPlans(mpid || undefined);
+  const { data: plans, isLoading, isError: plansError, refetch: refetchPlans } = useManagementPlans(mpid || undefined);
   const { data: allCycles }        = useManagementCycles(mpid || undefined);
   const { data: allRuns }          = useManagementRuns(mpid || undefined);
   const createPlan   = useCreateManagementPlan(mpid || "");
@@ -337,47 +347,78 @@ export default function ManagementPlansPage() {
   const [activeCycleId,   setActiveCycleId]   = useState("");
   const [deletingPlan,    setDeletingPlan]     = useState<TestPlan | null>(null);
   const [deleteLoading,   setDeleteLoading]    = useState(false);
+  const [creating,        setCreating]         = useState(false);
+  const [runCreatingFlag, setRunCreatingFlag]  = useState(false);
+  const [cycleCreating,   setCycleCreating]    = useState(false);
+  const [error,           setError]            = useState<string | null>(null);
 
   const handleCreatePlan = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!planName.trim()) return;
-    await createPlan.mutateAsync({
-      name: planName.trim(),
-      plan_type: planType,
-      release_name: planRelease.trim() || null,
-      scope_summary: planScope.trim() || null,
-    });
-    setPlanName(""); setPlanRelease(""); setPlanScope(""); setShowPlanForm(false);
+    setCreating(true);
+    setError(null);
+    try {
+      await createPlan.mutateAsync({
+        name: planName.trim(),
+        plan_type: planType,
+        release_name: planRelease.trim() || null,
+        scope_summary: planScope.trim() || null,
+      });
+      setPlanName(""); setPlanRelease(""); setPlanScope(""); setShowPlanForm(false);
+    } catch {
+      setError("Plan oluşturulamadı.");
+    } finally {
+      setCreating(false);
+    }
   };
 
   const handleStartRun = async (cycle: TestCycle) => {
     setActiveCycleId(cycle.id);
-    const run = await createRun.mutateAsync({
-      cycle_id: cycle.id,
-      name: `Run — ${cycle.name}`,
-      case_ids: [],
-      environment: cycle.environment ?? null,
-    });
-    router.push(`/p/${projectId}/management/runs/${run.id}/execute`);
+    setRunCreatingFlag(true);
+    setError(null);
+    try {
+      const run = await createRun.mutateAsync({
+        cycle_id: cycle.id,
+        name: `Run — ${cycle.name}`,
+        case_ids: [],
+        environment: cycle.environment ?? null,
+      });
+      router.push(`/p/${projectId}/management/runs/${run.id}/execute`);
+    } catch {
+      setError("Run başlatılamadı.");
+    } finally {
+      setRunCreatingFlag(false);
+    }
   };
 
   const handleCreateCycle = async (planId: string) => {
     if (!cycleName.trim() || !mpid) return;
-    await createCycle.mutateAsync({
-      plan_id: planId,
-      name: cycleName.trim(),
-      environment: cycleEnv.trim() || null,
-      build_version: cycleBuild.trim() || null,
-    });
-    setCycleName(""); setCycleEnv(""); setCycleBuild(""); setAddCycleForPlan(null);
+    setCycleCreating(true);
+    setError(null);
+    try {
+      await createCycle.mutateAsync({
+        plan_id: planId,
+        name: cycleName.trim(),
+        environment: cycleEnv.trim() || null,
+        build_version: cycleBuild.trim() || null,
+      });
+      setCycleName(""); setCycleEnv(""); setCycleBuild(""); setAddCycleForPlan(null);
+    } catch {
+      setError("Cycle oluşturulamadı.");
+    } finally {
+      setCycleCreating(false);
+    }
   };
 
   const handleDeletePlan = async () => {
     if (!deletingPlan || !mpid) return;
     setDeleteLoading(true);
+    setError(null);
     try {
       await deletePlan.mutateAsync(deletingPlan.id);
       setDeletingPlan(null);
+    } catch {
+      setError("Plan silinemedi.");
     } finally {
       setDeleteLoading(false);
     }
@@ -470,7 +511,8 @@ export default function ManagementPlansPage() {
               </div>
               <div className="flex flex-col justify-end">
                 <button type="button"
-                  disabled={!planRelease.trim() || aiGenPlan.isPending}
+                  disabled={isLoading || aiGenPlan.isPending}
+                  title="Plan oluşturulduktan sonra AI önerisi alabilirsiniz"
                   onClick={async () => {
                     if (!planRelease.trim()) return;
                     const res = await aiGenPlan.mutateAsync({ release_name: planRelease.trim(), plan_type: planType });
@@ -484,10 +526,10 @@ export default function ManagementPlansPage() {
             </div>
             <button
               type="submit"
-              disabled={createPlan.isPending || !planName.trim()}
+              disabled={creating || createPlan.isPending || !planName.trim()}
               className="rounded-lg bg-teal-600 px-4 py-2 text-[12px] font-medium text-white hover:bg-teal-700 disabled:opacity-40 transition-colors"
             >
-              {createPlan.isPending ? "Oluşturuluyor…" : "Oluştur"}
+              {creating || createPlan.isPending ? "Oluşturuluyor…" : "Oluştur"}
             </button>
           </form>
         </div>
@@ -495,7 +537,14 @@ export default function ManagementPlansPage() {
 
       {/* ── Plan list ──────────────────────────────────────────────────────── */}
       <div className="p-6 space-y-3">
-        {isLoading ? (
+        {plansError ? (
+          <div className="flex flex-col items-center gap-3 py-12 text-center">
+            <p className="text-[13px] text-red-400">Planlar yüklenemedi.</p>
+            <button onClick={() => void refetchPlans()} className="text-[12px] text-brand hover:underline">
+              Tekrar dene
+            </button>
+          </div>
+        ) : isLoading ? (
           <div className="space-y-2">
             {[1,2,3].map(i => (
               <div key={i} className="h-14 animate-pulse rounded-xl bg-surface-raised" />

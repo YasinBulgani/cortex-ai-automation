@@ -11,8 +11,8 @@ function makeQueryClient() {
         staleTime: 5 * 60 * 1000,
         // 30 dakika boyunca garbage-collect etme
         gcTime: 30 * 60 * 1000,
-        // Pencere odaga geldiginde tekrar cek (UX için iyi)
-        refetchOnWindowFocus: true,
+        // Pencere odağa geldiğinde yeniden fetch yapma — management'ta 7 istek önlenir
+        refetchOnWindowFocus: false,
         // Ag kesintisinden sonra tekrar dene (3 kez, artarak)
         retry: 2,
         retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 10000),

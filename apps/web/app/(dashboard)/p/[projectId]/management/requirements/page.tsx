@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import Link from "next/link";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   useRequirementTraceability,
@@ -1323,6 +1324,10 @@ export default function ManagementRequirementsPage() {
                       Test case&apos;lerinizi gereksinimlerle ilişkilendirdiğinizde kapsam matrisi
                       burada görünecek.
                     </p>
+                    <div className="flex gap-2 mt-3">
+                      <Link href={`/p/${projectId}/management/cases/new`} className="rounded-lg bg-brand px-3 py-1.5 text-[12px] font-medium text-brand-fg">Case Ekle</Link>
+                      <Link href={`/p/${projectId}/management/import-export`} className="rounded-lg border border-border px-3 py-1.5 text-[12px] text-fg-muted">Import Et</Link>
+                    </div>
                   </>
                 )}
               </div>

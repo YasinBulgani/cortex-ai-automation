@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import Link from "next/link";
 import { cn } from "@/lib/utils";
 import {
   useRegressionSets,
@@ -486,8 +487,21 @@ export default function ManagementRegressionPage() {
           </>
         )}
 
+        {/* Error */}
+        {isError && !selectedSet && !showNew && (
+          <div className="flex flex-1 flex-col items-center justify-center gap-3 text-center">
+            <p className="text-[13px] text-red-400">Regresyon setleri yüklenemedi.</p>
+            <button
+              onClick={() => window.location.reload()}
+              className="text-[12px] text-brand hover:underline"
+            >
+              Tekrar dene
+            </button>
+          </div>
+        )}
+
         {/* Empty */}
-        {!selectedSet && !showNew && (
+        {!isError && !selectedSet && !showNew && (
           <div className="flex flex-1 flex-col items-center justify-center gap-4 text-center">
             <div className="rounded-full bg-surface-overlay p-6">
               <svg className="h-12 w-12 text-fg-subtle" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
@@ -540,7 +554,12 @@ export default function ManagementRegressionPage() {
             {!(cyclesQ.data??[]).length ? (
               <div className="mt-4 space-y-3">
                 <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-4">
-                  <p className="text-[12px] text-amber-400">Run başlatmak için önce Plans &gt; Cycle oluşturun.</p>
+                  <p className="text-[12px] text-amber-400">
+                    Run başlatmak için önce{" "}
+                    <Link href={`/p/${projectId}/management/plans`} className="underline hover:text-amber-300">
+                      Plans sayfasından Cycle oluşturun
+                    </Link>.
+                  </p>
                 </div>
                 <div className="flex justify-end">
                   <button onClick={()=>setShowRun(false)} className="rounded-xl border border-border px-4 py-2 text-[12px] text-fg-muted">Kapat</button>
