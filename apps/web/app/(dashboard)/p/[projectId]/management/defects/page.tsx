@@ -143,8 +143,8 @@ function OpenDefectSparkline({ defects }: SparklineProps) {
   return (
     <div className="flex items-center gap-3 rounded-xl border border-border bg-surface-raised px-4 py-3">
       <div className="flex-1 min-w-0">
-        <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-500">Açık Defect Trendi</p>
-        <p className="text-[10px] text-slate-600 mt-0.5">Son 7 gün</p>
+        <p className="text-[10px] font-semibold uppercase tracking-widest text-fg-muted">Açık Defect Trendi</p>
+        <p className="text-[10px] text-fg-subtle mt-0.5">Son 7 gün</p>
       </div>
       <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} className="shrink-0">
         <polyline
@@ -165,8 +165,8 @@ function OpenDefectSparkline({ defects }: SparklineProps) {
         })}
       </svg>
       <div className="shrink-0 text-right">
-        <p className="text-lg font-bold tabular-nums text-white">{points[6]}</p>
-        <p className="text-[9px] text-slate-600">bugün</p>
+        <p className="text-lg font-bold tabular-nums text-fg">{points[6]}</p>
+        <p className="text-[9px] text-fg-subtle">bugün</p>
       </div>
     </div>
   );
@@ -177,13 +177,13 @@ function OpenDefectSparkline({ defects }: SparklineProps) {
 function StatCard({ label, value, hint, loading }: StatCardProps) {
   return (
     <div className="rounded-xl border border-border bg-surface-raised p-4">
-      <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-500">{label}</p>
+      <p className="text-[10px] font-semibold uppercase tracking-widest text-fg-muted">{label}</p>
       {loading ? (
         <div className="mt-2 h-7 w-14 animate-pulse rounded bg-surface-overlay"/>
       ) : (
-        <p className="mt-1 text-2xl font-bold tabular-nums text-white">{value}</p>
+        <p className="mt-1 text-2xl font-bold tabular-nums text-fg">{value}</p>
       )}
-      <p className="mt-1 text-[10px] text-slate-500">{hint}</p>
+      <p className="mt-1 text-[10px] text-fg-muted">{hint}</p>
     </div>
   );
 }
@@ -205,9 +205,9 @@ function ConfirmDeleteDialog({ onConfirm, onCancel, isPending }: ConfirmDeleteDi
             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-red-500/10">
               <IcTrash/>
             </div>
-            <h3 className="text-[14px] font-semibold text-slate-100">Defect Silinecek</h3>
+            <h3 className="text-[14px] font-semibold text-fg">Defect Silinecek</h3>
           </div>
-          <p className="text-[12px] text-slate-400 leading-relaxed">
+          <p className="text-[12px] text-fg-muted leading-relaxed">
             Bu defect kalıcı olarak silinecek. Onaylıyor musunuz?
           </p>
         </div>
@@ -216,7 +216,7 @@ function ConfirmDeleteDialog({ onConfirm, onCancel, isPending }: ConfirmDeleteDi
             type="button"
             onClick={onCancel}
             disabled={isPending}
-            className="rounded-xl border border-border px-4 py-2 text-[12px] text-slate-400 hover:text-slate-200 disabled:opacity-40 transition-colors"
+            className="rounded-xl border border-border px-4 py-2 text-[12px] text-fg-muted hover:text-fg disabled:opacity-40 transition-colors"
           >
             İptal
           </button>
@@ -253,8 +253,8 @@ function CreateDefectModal({ mpid, onClose, onDone }: CreateDefectModalProps) {
   const [status,      setStatus]      = useState("open");
   const [description, setDescription] = useState("");
 
-  const inp = "w-full rounded-xl border border-border bg-white/[0.04] px-3 py-2 text-[13px] text-slate-200 placeholder-slate-600 outline-none focus:border-teal-500/40 transition-colors";
-  const sel = "w-full rounded-xl border border-border bg-white/[0.04] px-3 py-2 text-[13px] text-slate-200 outline-none focus:border-teal-500/40 transition-colors";
+  const inp = "w-full rounded-xl border border-border bg-surface-overlay px-3 py-2 text-[13px] text-fg placeholder-slate-600 outline-none focus:border-teal-500/40 transition-colors";
+  const sel = "w-full rounded-xl border border-border bg-surface-overlay px-3 py-2 text-[13px] text-fg outline-none focus:border-teal-500/40 transition-colors";
 
   const handleSubmit = async () => {
     if (!title.trim()) return;
@@ -277,9 +277,9 @@ function CreateDefectModal({ mpid, onClose, onDone }: CreateDefectModalProps) {
 
         {/* Header */}
         <div className="flex items-center justify-between border-b border-border px-5 py-4">
-          <h2 className="text-[14px] font-semibold text-slate-100">Yeni Defect Oluştur</h2>
+          <h2 className="text-[14px] font-semibold text-fg">Yeni Defect Oluştur</h2>
           <button type="button" onClick={onClose} aria-label="Modalı kapat"
-            className="ml-2 shrink-0 rounded-lg p-1.5 text-slate-600 hover:bg-white/[0.06] hover:text-slate-300 transition-colors">
+            className="ml-2 shrink-0 rounded-lg p-1.5 text-fg-subtle hover:bg-surface-overlay hover:text-fg transition-colors">
             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"/>
             </svg>
@@ -290,7 +290,7 @@ function CreateDefectModal({ mpid, onClose, onDone }: CreateDefectModalProps) {
         <div className="p-5 space-y-4">
           {/* Title */}
           <div>
-            <label htmlFor="create-defect-title" className="mb-1 block text-[10px] uppercase tracking-widest text-slate-600">
+            <label htmlFor="create-defect-title" className="mb-1 block text-[10px] uppercase tracking-widest text-fg-subtle">
               Başlık <span className="text-red-400">*</span>
             </label>
             <input
@@ -306,7 +306,7 @@ function CreateDefectModal({ mpid, onClose, onDone }: CreateDefectModalProps) {
           {/* External Key & URL */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label htmlFor="create-defect-key" className="mb-1 block text-[10px] uppercase tracking-widest text-slate-600">External Key</label>
+              <label htmlFor="create-defect-key" className="mb-1 block text-[10px] uppercase tracking-widest text-fg-subtle">External Key</label>
               <input
                 id="create-defect-key"
                 type="text"
@@ -317,7 +317,7 @@ function CreateDefectModal({ mpid, onClose, onDone }: CreateDefectModalProps) {
               />
             </div>
             <div>
-              <label htmlFor="create-defect-url" className="mb-1 block text-[10px] uppercase tracking-widest text-slate-600">URL</label>
+              <label htmlFor="create-defect-url" className="mb-1 block text-[10px] uppercase tracking-widest text-fg-subtle">URL</label>
               <input
                 id="create-defect-url"
                 type="text"
@@ -332,7 +332,7 @@ function CreateDefectModal({ mpid, onClose, onDone }: CreateDefectModalProps) {
           {/* Severity / Priority / Status */}
           <div className="grid grid-cols-3 gap-3">
             <div>
-              <label htmlFor="create-defect-severity" className="mb-1 block text-[10px] uppercase tracking-widest text-slate-600">Severity</label>
+              <label htmlFor="create-defect-severity" className="mb-1 block text-[10px] uppercase tracking-widest text-fg-subtle">Severity</label>
               <select id="create-defect-severity" value={severity} onChange={e => setSeverity(e.target.value)} className={sel}>
                 {["blocker","critical","major","minor","trivial"].map(v => (
                   <option key={v} value={v}>{v}</option>
@@ -340,13 +340,13 @@ function CreateDefectModal({ mpid, onClose, onDone }: CreateDefectModalProps) {
               </select>
             </div>
             <div>
-              <label htmlFor="create-defect-priority" className="mb-1 block text-[10px] uppercase tracking-widest text-slate-600">Priority</label>
+              <label htmlFor="create-defect-priority" className="mb-1 block text-[10px] uppercase tracking-widest text-fg-subtle">Priority</label>
               <select id="create-defect-priority" value={priority} onChange={e => setPriority(e.target.value)} className={sel}>
                 {["P0","P1","P2","P3"].map(v => <option key={v} value={v}>{v}</option>)}
               </select>
             </div>
             <div>
-              <label htmlFor="create-defect-status" className="mb-1 block text-[10px] uppercase tracking-widest text-slate-600">Status</label>
+              <label htmlFor="create-defect-status" className="mb-1 block text-[10px] uppercase tracking-widest text-fg-subtle">Status</label>
               <select id="create-defect-status" value={status} onChange={e => setStatus(e.target.value)} className={sel}>
                 {ALL_STATUSES.map(v => (
                   <option key={v} value={v}>{v.replace(/_/g, " ")}</option>
@@ -357,7 +357,7 @@ function CreateDefectModal({ mpid, onClose, onDone }: CreateDefectModalProps) {
 
           {/* Description */}
           <div>
-            <label htmlFor="create-defect-desc" className="mb-1 block text-[10px] uppercase tracking-widest text-slate-600">Açıklama</label>
+            <label htmlFor="create-defect-desc" className="mb-1 block text-[10px] uppercase tracking-widest text-fg-subtle">Açıklama</label>
             <textarea
               id="create-defect-desc"
               value={description}
@@ -372,14 +372,14 @@ function CreateDefectModal({ mpid, onClose, onDone }: CreateDefectModalProps) {
         {/* Footer */}
         <div className="flex items-center justify-between border-t border-border px-5 py-4">
           <button type="button" onClick={onClose}
-            className="rounded-xl border border-border px-4 py-2 text-[13px] text-slate-500 hover:text-slate-300 transition-colors">
+            className="rounded-xl border border-border px-4 py-2 text-[13px] text-fg-muted hover:text-fg transition-colors">
             İptal
           </button>
           <button
             type="button"
             onClick={handleSubmit}
             disabled={create.isPending || !title.trim()}
-            className="rounded-xl bg-teal-600 px-5 py-2 text-[13px] font-medium text-white hover:bg-teal-700 disabled:opacity-40 transition-colors"
+            className="rounded-xl bg-brand px-5 py-2 text-[13px] font-medium text-brand-fg hover:brightness-105 disabled:opacity-40 transition-colors"
           >
             {create.isPending ? "Oluşturuluyor…" : "Oluştur"}
           </button>
@@ -428,8 +428,8 @@ function DefectEditModal({ defect, mpid, onClose, onDeleted }: DefectEditModalPr
     onDeleted();
   };
 
-  const inp = "w-full rounded-xl border border-border bg-white/[0.04] px-3 py-2 text-[13px] text-slate-200 placeholder-slate-600 outline-none focus:border-teal-500/40 transition-colors";
-  const sel = "w-full rounded-xl border border-border bg-white/[0.04] px-3 py-2 text-[13px] text-slate-200 outline-none focus:border-teal-500/40 transition-colors";
+  const inp = "w-full rounded-xl border border-border bg-surface-overlay px-3 py-2 text-[13px] text-fg placeholder-slate-600 outline-none focus:border-teal-500/40 transition-colors";
+  const sel = "w-full rounded-xl border border-border bg-surface-overlay px-3 py-2 text-[13px] text-fg outline-none focus:border-teal-500/40 transition-colors";
 
   const days = daysSince(defect.created_at);
   const hasRunLink = !!defect.run_case_id && defect.run_case_id !== "";
@@ -443,8 +443,8 @@ function DefectEditModal({ defect, mpid, onClose, onDeleted }: DefectEditModalPr
           <div className="flex items-center justify-between border-b border-border px-5 py-4">
             <div className="flex items-center gap-2.5 min-w-0">
               <span className={cn("h-1.5 w-1.5 shrink-0 rounded-full", SEVERITY_DOT[defect.severity.toLowerCase()] ?? "bg-slate-600")}/>
-              <span className="font-mono text-[11px] text-slate-400 shrink-0">{defect.external_key}</span>
-              <span className="truncate text-[14px] font-semibold text-slate-100">{defect.title}</span>
+              <span className="font-mono text-[11px] text-fg-muted shrink-0">{defect.external_key}</span>
+              <span className="truncate text-[14px] font-semibold text-fg">{defect.title}</span>
             </div>
             <div className="ml-2 flex shrink-0 items-center gap-1">
               {/* Delete button */}
@@ -453,12 +453,12 @@ function DefectEditModal({ defect, mpid, onClose, onDeleted }: DefectEditModalPr
                 onClick={() => setShowConfirmDelete(true)}
                 aria-label="Defect'i sil"
                 title="Defect'i sil"
-                className="rounded-lg p-1.5 text-slate-600 hover:bg-red-500/10 hover:text-red-400 transition-colors"
+                className="rounded-lg p-1.5 text-fg-subtle hover:bg-red-500/10 hover:text-red-400 transition-colors"
               >
                 <IcTrash/>
               </button>
               <button type="button" onClick={onClose} aria-label="Modalı kapat"
-                className="rounded-lg p-1.5 text-slate-600 hover:bg-white/[0.06] hover:text-slate-300 transition-colors">
+                className="rounded-lg p-1.5 text-fg-subtle hover:bg-surface-overlay hover:text-fg transition-colors">
                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"/>
                 </svg>
@@ -476,13 +476,13 @@ function DefectEditModal({ defect, mpid, onClose, onDeleted }: DefectEditModalPr
               </a>
             )}
             {hasRunLink && (
-              <span className="flex items-center gap-1 text-slate-500">
-                <span className="text-slate-600">Bağlı Run Case:</span>
-                <span className="font-mono text-slate-400">{defect.run_case_id.slice(0, 8)}…</span>
+              <span className="flex items-center gap-1 text-fg-muted">
+                <span className="text-fg-subtle">Bağlı Run Case:</span>
+                <span className="font-mono text-fg-muted">{defect.run_case_id.slice(0, 8)}…</span>
               </span>
             )}
             {days !== null && (
-              <span className={cn("text-slate-500", days > 14 ? "text-red-400/70" : "")}>
+              <span className={cn("text-fg-muted", days > 14 ? "text-red-400/70" : "")}>
                 {days}g önce oluşturuldu
               </span>
             )}
@@ -492,7 +492,7 @@ function DefectEditModal({ defect, mpid, onClose, onDeleted }: DefectEditModalPr
           <div className="p-5 space-y-4">
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="mb-1 block text-[10px] uppercase tracking-widest text-slate-600">Status</label>
+                <label className="mb-1 block text-[10px] uppercase tracking-widest text-fg-subtle">Status</label>
                 <select value={status} onChange={e => setStatus(e.target.value)} className={sel}>
                   {ALL_STATUSES.map(v => (
                     <option key={v} value={v}>{v.replace(/_/g," ")}</option>
@@ -500,7 +500,7 @@ function DefectEditModal({ defect, mpid, onClose, onDeleted }: DefectEditModalPr
                 </select>
               </div>
               <div>
-                <label className="mb-1 block text-[10px] uppercase tracking-widest text-slate-600">Retest</label>
+                <label className="mb-1 block text-[10px] uppercase tracking-widest text-fg-subtle">Retest</label>
                 <select value={retestStatus} onChange={e => setRetestStatus(e.target.value)} className={sel}>
                   {["pending","passed","failed","not_required","retest_failed"].map(v => (
                     <option key={v} value={v}>{v.replace(/_/g," ")}</option>
@@ -508,7 +508,7 @@ function DefectEditModal({ defect, mpid, onClose, onDeleted }: DefectEditModalPr
                 </select>
               </div>
               <div>
-                <label className="mb-1 block text-[10px] uppercase tracking-widest text-slate-600">Severity</label>
+                <label className="mb-1 block text-[10px] uppercase tracking-widest text-fg-subtle">Severity</label>
                 <select value={severity} onChange={e => setSeverity(e.target.value)} className={sel}>
                   {["blocker","critical","major","minor","trivial"].map(v => (
                     <option key={v} value={v}>{v}</option>
@@ -516,7 +516,7 @@ function DefectEditModal({ defect, mpid, onClose, onDeleted }: DefectEditModalPr
                 </select>
               </div>
               <div>
-                <label className="mb-1 block text-[10px] uppercase tracking-widest text-slate-600">Priority</label>
+                <label className="mb-1 block text-[10px] uppercase tracking-widest text-fg-subtle">Priority</label>
                 <select value={priority} onChange={e => setPriority(e.target.value)} className={sel}>
                   {["P0","P1","P2","P3"].map(v => <option key={v} value={v}>{v}</option>)}
                 </select>
@@ -525,7 +525,7 @@ function DefectEditModal({ defect, mpid, onClose, onDeleted }: DefectEditModalPr
 
             <div>
               <div className="mb-1 flex items-center justify-between">
-                <label className="text-[10px] uppercase tracking-widest text-slate-600">Root Cause</label>
+                <label className="text-[10px] uppercase tracking-widest text-fg-subtle">Root Cause</label>
                 <button type="button"
                   disabled={analyze.isPending}
                   onClick={async () => {
@@ -553,11 +553,11 @@ function DefectEditModal({ defect, mpid, onClose, onDeleted }: DefectEditModalPr
           {/* Footer */}
           <div className="flex items-center justify-between border-t border-border px-5 py-4">
             <button type="button" onClick={onClose}
-              className="rounded-xl border border-border px-4 py-2 text-[13px] text-slate-500 hover:text-slate-300 transition-colors">
+              className="rounded-xl border border-border px-4 py-2 text-[13px] text-fg-muted hover:text-fg transition-colors">
               İptal
             </button>
             <button type="button" onClick={save} disabled={update.isPending}
-              className="rounded-xl bg-teal-600 px-5 py-2 text-[13px] font-medium text-white hover:bg-teal-700 disabled:opacity-40 transition-colors">
+              className="rounded-xl bg-brand px-5 py-2 text-[13px] font-medium text-brand-fg hover:brightness-105 disabled:opacity-40 transition-colors">
               {update.isPending ? "Kaydediliyor…" : "Kaydet"}
             </button>
           </div>
@@ -588,10 +588,10 @@ function DefectRow({ defect, mpid, onClick, onDeleted }: DefectRowProps) {
   const sevDot  = SEVERITY_DOT[defect.severity.toLowerCase()] ?? "bg-slate-600";
   const sttDot  = statusDot(defect.status);
 
-  const ageCls = closed                              ? "text-slate-600"
+  const ageCls = closed                              ? "text-fg-subtle"
                : days !== null && days > 14          ? "text-red-400"
-               : days !== null && days > 7           ? "text-slate-400"
-               :                                       "text-slate-500";
+               : days !== null && days > 7           ? "text-fg-muted"
+               :                                       "text-fg-muted";
 
   const handleDeleteConfirm = async () => {
     await del.mutateAsync(defect.id);
@@ -614,12 +614,12 @@ function DefectRow({ defect, mpid, onClick, onDeleted }: DefectRowProps) {
               onClick={e => e.stopPropagation()}
               className="font-mono text-[10px] text-teal-400 hover:underline">{defect.external_key}</a>
           ) : (
-            <span className="font-mono text-[10px] text-slate-500">{defect.external_key}</span>
+            <span className="font-mono text-[10px] text-fg-muted">{defect.external_key}</span>
           )}
         </td>
         {/* Title */}
         <td className="px-3 py-3">
-          <p className="text-xs text-slate-200 line-clamp-1">{defect.title}</p>
+          <p className="text-xs text-fg line-clamp-1">{defect.title}</p>
           {blocker && (
             <span className="mt-0.5 inline-flex items-center gap-1">
               <span className="h-1 w-1 rounded-full bg-red-500 inline-block"/>
@@ -631,20 +631,20 @@ function DefectRow({ defect, mpid, onClick, onDeleted }: DefectRowProps) {
         <td className="w-28 px-3 py-3">
           <span className="inline-flex items-center gap-1.5">
             <span className={cn("h-1.5 w-1.5 shrink-0 rounded-full", sttDot)}/>
-            <span className="text-[10px] text-slate-400">{defect.status.replace(/_/g, " ")}</span>
+            <span className="text-[10px] text-fg-muted">{defect.status.replace(/_/g, " ")}</span>
           </span>
         </td>
         {/* Severity */}
         <td className="hidden w-20 px-3 py-3 md:table-cell">
-          <span className="text-[10px] text-slate-400">{defect.severity}</span>
+          <span className="text-[10px] text-fg-muted">{defect.severity}</span>
         </td>
         {/* Priority */}
         <td className="hidden w-14 px-3 py-3 md:table-cell">
-          <span className="font-mono text-[10px] text-slate-500">{defect.priority}</span>
+          <span className="font-mono text-[10px] text-fg-muted">{defect.priority}</span>
         </td>
         {/* Retest */}
         <td className="hidden w-28 px-3 py-3 lg:table-cell">
-          <span className="text-[10px] text-slate-500">{defect.retest_status.replace(/_/g, " ")}</span>
+          <span className="text-[10px] text-fg-muted">{defect.retest_status.replace(/_/g, " ")}</span>
         </td>
         {/* Age */}
         <td className="hidden w-16 px-3 py-3 xl:table-cell">
@@ -654,7 +654,7 @@ function DefectRow({ defect, mpid, onClick, onDeleted }: DefectRowProps) {
         </td>
         {/* Date */}
         <td className="hidden w-20 px-3 py-3 xl:table-cell">
-          <span className="text-[10px] text-slate-600">
+          <span className="text-[10px] text-fg-subtle">
             {new Date(defect.created_at).toLocaleDateString("tr-TR", { day: "2-digit", month: "short" })}
           </span>
         </td>
@@ -665,7 +665,7 @@ function DefectRow({ defect, mpid, onClick, onDeleted }: DefectRowProps) {
             aria-label="Defect'i sil"
             title="Defect'i sil"
             onClick={e => { e.stopPropagation(); setShowConfirmDelete(true); }}
-            className="rounded-lg p-1 text-slate-600 hover:bg-red-500/10 hover:text-red-400 transition-colors"
+            className="rounded-lg p-1 text-fg-subtle hover:bg-red-500/10 hover:text-red-400 transition-colors"
           >
             <IcTrash/>
           </button>
@@ -699,6 +699,8 @@ export default function ManagementDefectsPage() {
   const [editDefect,   setEditDefect]   = useState<DefectLink | null>(null);
   const [showCreate,   setShowCreate]   = useState(false);
   const [page,         setPage]         = useState(1);
+  const [sortCol,      setSortCol]      = useState<string>("created_at");
+  const [sortDir,      setSortDir]      = useState<"asc" | "desc">("desc");
   const PAGE_SIZE = 20;
 
   const open      = rows.filter(d => !isClosed(d));
@@ -715,19 +717,44 @@ export default function ManagementDefectsPage() {
     return r;
   }, [rows, search, severityF, statusF, priorityF]);
 
+  const sorted = useMemo(() => {
+    const PRIO_ORDER: Record<string, number> = { P0: 0, P1: 1, P2: 2, P3: 3 };
+    const SEV_ORDER: Record<string, number> = { critical: 0, major: 1, minor: 2, trivial: 3 };
+    return [...filtered].sort((a, b) => {
+      let va: string | number = "";
+      let vb: string | number = "";
+      if (sortCol === "priority") { va = PRIO_ORDER[a.priority] ?? 9; vb = PRIO_ORDER[b.priority] ?? 9; }
+      else if (sortCol === "severity") { va = SEV_ORDER[a.severity] ?? 9; vb = SEV_ORDER[b.severity] ?? 9; }
+      else { va = String((a as unknown as Record<string, unknown>)[sortCol] ?? ""); vb = String((b as unknown as Record<string, unknown>)[sortCol] ?? ""); }
+      if (typeof va === "number" && typeof vb === "number") return sortDir === "asc" ? va - vb : vb - va;
+      const sa = String(va); const sb = String(vb);
+      return sortDir === "asc" ? sa.localeCompare(sb) : sb.localeCompare(sa);
+    });
+  }, [filtered, sortCol, sortDir]);
+
+  function SortTh({ col, label, className }: { col: string; label: string; className?: string }) {
+    const active = sortCol === col;
+    return (
+      <th onClick={() => { setSortDir(active && sortDir === "desc" ? "asc" : "desc"); setSortCol(col); }}
+        className={cn("cursor-pointer select-none px-4 py-2.5 text-left text-[9px] font-semibold uppercase tracking-widest text-fg-subtle hover:text-fg", className)}>
+        {label}{active ? (sortDir === "asc" ? " ↑" : " ↓") : ""}
+      </th>
+    );
+  }
+
   // Bug fix 1: tüm filtre değişkenlerini bağımlılık listesine ekle
   useEffect(() => { setPage(1); }, [search, severityF, statusF, priorityF]);
 
   const hasFilter = !!(search || severityF || statusF || priorityF);
   const clearFilters = useCallback(() => { setSearch(""); setSeverityF(""); setStatusF(""); setPriorityF(""); setPage(1); }, []);
 
-  const totalPages     = useMemo(() => Math.ceil(filtered.length / PAGE_SIZE), [filtered]);
+  const totalPages     = useMemo(() => Math.ceil(sorted.length / PAGE_SIZE), [sorted]);
   const paginatedItems = useMemo(
-    () => filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE),
-    [filtered, page]
+    () => sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE),
+    [sorted, page]
   );
 
-  const SEL = "rounded-xl border border-border bg-surface-overlay px-2.5 py-1.5 text-[10px] text-slate-300 outline-none focus:border-border-strong transition-colors";
+  const SEL = "rounded-xl border border-border bg-surface-overlay px-2.5 py-1.5 text-[10px] text-fg outline-none focus:border-border-strong transition-colors";
 
   return (
     <div className="min-h-screen bg-bg px-5 py-5">
@@ -736,14 +763,14 @@ export default function ManagementDefectsPage() {
         {/* Header */}
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h1 className="text-lg font-bold text-white">Defect Management</h1>
-            <p className="mt-0.5 text-xs text-slate-500">Test koşumlarından bağlanan defect&apos;ler ve retest durumu</p>
+            <h1 className="text-lg font-bold text-fg">Defect Management</h1>
+            <p className="mt-0.5 text-xs text-fg-muted">Test koşumlarından bağlanan defect&apos;ler ve retest durumu</p>
           </div>
           <button
             type="button"
             onClick={() => setShowCreate(true)}
             aria-label="Yeni defect oluştur"
-            className="rounded-xl bg-teal-600 px-4 py-2 text-[12px] font-semibold text-white hover:bg-teal-700 transition-colors"
+            className="rounded-xl bg-brand px-4 py-2 text-[12px] font-semibold text-brand-fg hover:brightness-105 transition-colors"
           >
             + Yeni Defect
           </button>
@@ -767,8 +794,8 @@ export default function ManagementDefectsPage() {
             <IcSearch/>
             <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="Ara…"
               aria-label="Defect ara"
-              className="flex-1 bg-transparent text-[10px] text-slate-300 placeholder-slate-600 outline-none min-w-0"/>
-            {search && <button type="button" onClick={() => setSearch("")} aria-label="Aramayı temizle" className="text-slate-600 hover:text-slate-300"><IcClose/></button>}
+              className="flex-1 bg-transparent text-[10px] text-fg placeholder-slate-600 outline-none min-w-0"/>
+            {search && <button type="button" onClick={() => setSearch("")} aria-label="Aramayı temizle" className="text-fg-subtle hover:text-fg"><IcClose/></button>}
           </div>
 
           <label htmlFor="defect-severity-filter" className="sr-only">Severity filtresi</label>
@@ -794,8 +821,8 @@ export default function ManagementDefectsPage() {
             </button>
           )}
 
-          <span className="ml-auto text-[10px] text-slate-600">
-            {hasFilter ? `${filtered.length} / ${rows.length}` : `${rows.length} defect`}
+          <span className="ml-auto text-[10px] text-fg-subtle">
+            {hasFilter ? `${sorted.length} / ${rows.length}` : `${rows.length} defect`}
           </span>
         </div>
 
@@ -819,13 +846,13 @@ export default function ManagementDefectsPage() {
                 Tekrar dene
               </button>
             </div>
-          ) : filtered.length === 0 ? (
+          ) : sorted.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-20 px-6 text-center gap-3">
               <IcBug/>
-              <h3 className="text-sm font-semibold text-slate-400">
+              <h3 className="text-sm font-semibold text-fg-muted">
                 {hasFilter ? "Defect bulunamadı" : "Henüz defect yok"}
               </h3>
-              <p className="text-xs text-slate-600">
+              <p className="text-xs text-fg-subtle">
                 {hasFilter ? "Filtre veya arama terimini değiştirin." : (
                   <>
                     Test koşumları sırasında defect bağlayabilirsiniz.
@@ -837,7 +864,7 @@ export default function ManagementDefectsPage() {
               </p>
               {hasFilter && (
                 <button type="button" onClick={clearFilters}
-                  className="rounded-xl border border-border px-4 py-2 text-xs text-slate-400 hover:text-slate-200 transition-colors">
+                  className="rounded-xl border border-border px-4 py-2 text-xs text-fg-muted hover:text-fg transition-colors">
                   Filtreleri Temizle
                 </button>
               )}
@@ -848,15 +875,14 @@ export default function ManagementDefectsPage() {
                 <thead className="sticky top-0 z-10 bg-surface-raised border-b border-border">
                   <tr>
                     <th scope="col" className="w-8 px-3 py-2.5"/>
-                    {["Key","Başlık","Status","Severity","Priority","Retest","Yaş","Tarih"].map((h, i) => (
-                      <th key={h} scope="col" className={cn(
-                        "px-3 py-2.5 text-left text-[9px] font-semibold uppercase tracking-widest text-slate-600",
-                        i >= 4 && "hidden md:table-cell",
-                        i >= 6 && "hidden xl:table-cell",
-                      )}>
-                        {h}
-                      </th>
-                    ))}
+                    <th scope="col" className="px-3 py-2.5 text-left text-[9px] font-semibold uppercase tracking-widest text-fg-subtle">Key</th>
+                    <SortTh col="title" label="Başlık"/>
+                    <SortTh col="status" label="Durum"/>
+                    <SortTh col="severity" label="Severity" className="hidden md:table-cell"/>
+                    <SortTh col="priority" label="Priority" className="hidden md:table-cell"/>
+                    <th scope="col" className="hidden px-3 py-2.5 text-left text-[9px] font-semibold uppercase tracking-widest text-fg-subtle md:table-cell">Retest</th>
+                    <th scope="col" className="hidden px-3 py-2.5 text-left text-[9px] font-semibold uppercase tracking-widest text-fg-subtle xl:table-cell">Yaş</th>
+                    <SortTh col="created_at" label="Tarih" className="hidden xl:table-cell"/>
                     <th scope="col" className="w-10 px-2 py-2.5"/>
                   </tr>
                 </thead>
@@ -874,22 +900,22 @@ export default function ManagementDefectsPage() {
               </table>
               {totalPages > 1 && (
                 <div className="flex items-center justify-between border-t border-border px-4 pt-4 pb-3">
-                  <span className="text-sm text-muted-foreground text-slate-500">
-                    {filtered.length} sonuçtan {Math.min(page * PAGE_SIZE, filtered.length)} tanesi gösteriliyor
+                  <span className="text-sm text-muted-foreground text-fg-muted">
+                    {sorted.length} sonuçtan {Math.min(page * PAGE_SIZE, sorted.length)} tanesi gösteriliyor
                   </span>
                   <div className="flex gap-2">
                     <button
                       disabled={page === 1}
                       onClick={() => setPage(p => p - 1)}
-                      className="rounded px-3 py-1 text-sm border border-border text-slate-300 disabled:opacity-50 hover:bg-surface-overlay transition-colors"
+                      className="rounded px-3 py-1 text-sm border border-border text-fg disabled:opacity-50 hover:bg-surface-overlay transition-colors"
                     >
                       ← Önceki
                     </button>
-                    <span className="px-3 py-1 text-sm text-slate-500">{page} / {totalPages}</span>
+                    <span className="px-3 py-1 text-sm text-fg-muted">{page} / {totalPages}</span>
                     <button
                       disabled={page === totalPages}
                       onClick={() => setPage(p => p + 1)}
-                      className="rounded px-3 py-1 text-sm border border-border text-slate-300 disabled:opacity-50 hover:bg-surface-overlay transition-colors"
+                      className="rounded px-3 py-1 text-sm border border-border text-fg disabled:opacity-50 hover:bg-surface-overlay transition-colors"
                     >
                       Sonraki →
                     </button>
@@ -930,7 +956,7 @@ export default function ManagementDefectsPage() {
             ].map(s => (
               <span key={s.label} className="flex items-center gap-1.5">
                 <span className={cn("h-1.5 w-1.5 rounded-full shrink-0", s.dot)}/>
-                <span className="text-[10px] text-slate-500">{s.label}</span>
+                <span className="text-[10px] text-fg-muted">{s.label}</span>
               </span>
             ))}
           </div>

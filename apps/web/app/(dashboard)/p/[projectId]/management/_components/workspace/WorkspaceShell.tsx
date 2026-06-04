@@ -274,6 +274,8 @@ function CaseTable({
   const [cloningId,    setCloningId]    = useState<string | null>(null);
   const [unarchivedId, setUnarchivedId] = useState<string | null>(null);
   const [cloneProgress, setCloneProgress] = useState<{ done: number; total: number } | null>(null);
+  const [sortCol, setSortCol] = useState<string>("updated_at");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
 
   const filtered = useMemo(() => {
     let r = nodeCases;
@@ -284,6 +286,26 @@ function CaseTable({
     if (status)   r = r.filter(c => c.last_run_status === status);
     return r;
   }, [nodeCases, search, priority, type, status]);
+
+  const sorted = useMemo(() => {
+    const PRIO = { P0: 0, P1: 1, P2: 2, P3: 3 } as Record<string, number>;
+    return [...filtered].sort((a, b) => {
+      if (sortCol === "priority") {
+        const pa = PRIO[a.priority] ?? 9; const pb = PRIO[b.priority] ?? 9;
+        return sortDir === "asc" ? pa - pb : pb - pa;
+      }
+      const va = String((a as unknown as Record<string, unknown>)[sortCol] ?? "");
+      const vb = String((b as unknown as Record<string, unknown>)[sortCol] ?? "");
+      return sortDir === "asc" ? va.localeCompare(vb) : vb.localeCompare(va);
+    });
+  }, [filtered, sortCol, sortDir]);
+
+  const activeFilterCount = [search, priority, type, status].filter(Boolean).length;
+
+  const toggleSort = (col: string) => {
+    if (sortCol === col) setSortDir(d => d === "asc" ? "desc" : "asc");
+    else { setSortCol(col); setSortDir("asc"); }
+  };
 
   const allChecked = filtered.length > 0 && filtered.every(c => checked.has(c.id));
   const hasFilter  = !!(search || priority || type || status);
@@ -360,14 +382,21 @@ function CaseTable({
 
         <div className="flex-1" />
 
-        {/* Search */}
-        <div className="flex w-44 items-center gap-1.5 rounded-lg border border-border bg-surface-raised px-2.5 py-1.5 shadow-xs transition-colors focus-within:border-brand focus-within:ring-2 focus-within:ring-brand/15">
-          <IcSearch />
-          <input
-            type="text" value={search} onChange={e => setSearch(e.target.value)}
-            placeholder="Ara…"
-            className="flex-1 bg-transparent text-[11px] text-fg placeholder:text-fg-subtle outline-none min-w-0"
-          />
+        {/* Search + active filter badge */}
+        <div className="flex items-center gap-1.5">
+          <div className="flex w-44 items-center gap-1.5 rounded-lg border border-border bg-surface-raised px-2.5 py-1.5 shadow-xs transition-colors focus-within:border-brand focus-within:ring-2 focus-within:ring-brand/15">
+            <IcSearch />
+            <input
+              type="text" value={search} onChange={e => setSearch(e.target.value)}
+              placeholder="Ara…"
+              className="flex-1 bg-transparent text-[11px] text-fg placeholder:text-fg-subtle outline-none min-w-0"
+            />
+          </div>
+          {activeFilterCount > 0 && (
+            <span className="rounded-full bg-brand px-2 py-0.5 text-[10px] font-semibold text-brand-fg">
+              {activeFilterCount}
+            </span>
+          )}
         </div>
 
         {/* Filters */}
@@ -517,23 +546,30 @@ function CaseTable({
                   </button>
                 </th>
                 {[
-                  { label: "ID",       cls: "w-20"                       },
-                  { label: "Başlık",   cls: ""                           },
-                  { label: "P",        cls: "w-14"                       },
-                  { label: "Tür",      cls: "hidden w-24 lg:table-cell"  },
-                  { label: "Son Koşum",cls: "hidden w-24 md:table-cell"  },
-                  { label: "Adım",     cls: "hidden w-12 xl:table-cell"  },
-                  { label: "",         cls: "w-16"                       },
-                ].map(({ label, cls }) => (
+                  { label: "ID",        col: null,         cls: "w-20"                       },
+                  { label: "Başlık",    col: "title",      cls: ""                           },
+                  { label: "Öncelik",   col: "priority",   cls: "w-14"                       },
+                  { label: "Tür",       col: "type",       cls: "hidden w-24 lg:table-cell"  },
+                  { label: "Güncelleme",col: "updated_at", cls: "hidden w-24 md:table-cell"  },
+                  { label: "Adım",      col: null,         cls: "hidden w-12 xl:table-cell"  },
+                  { label: "",          col: null,         cls: "w-16"                       },
+                ].map(({ label, col, cls }) => (
                   <th key={label}
-                    className={cn("px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-widest text-fg-muted", cls)}>
+                    className={cn("px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-widest text-fg-muted", cls, col && "cursor-pointer select-none hover:text-fg")}
+                    onClick={col ? () => toggleSort(col) : undefined}>
                     {label}
+                    {col && sortCol === col && (
+                      <span className="ml-1 text-brand">{sortDir === "asc" ? "↑" : "↓"}</span>
+                    )}
+                    {col && sortCol !== col && (
+                      <span className="ml-1 opacity-30">↕</span>
+                    )}
                   </th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {filtered.map(tc => (
+              {sorted.map(tc => (
                 <CaseRow
                   key={tc.id} tc={tc}
                   selected={selId === tc.id}
