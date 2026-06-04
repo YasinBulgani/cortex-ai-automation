@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import {
@@ -174,6 +174,11 @@ export function QuickSetupWizard({ projectId, mpid }: { projectId: string; mpid:
   const [cycleEnv,     setCycleEnv]     = useState("");
   const [createdCycle, setCreatedCycle] = useState<TestCycle | null>(null);
   const [runName,      setRunName]      = useState("");
+  const [selectedCaseIds, setSelectedCaseIds] = useState<Set<string>>(new Set());
+
+  const suiteCases = useMemo(() =>
+    (repoQ.data?.cases ?? []).filter(c => c.suite_id === createdSuite?.id && !c.archived),
+  [repoQ.data, createdSuite]);
 
   const markDone = (s: WizardStep) => setDone(p => new Set([...p, s]));
 
@@ -266,7 +271,7 @@ export function QuickSetupWizard({ projectId, mpid }: { projectId: string; mpid:
       const run = await createRun.mutateAsync({
         cycle_id: createdCycle.id,
         name: runName.trim(),
-        case_ids: [],
+        case_ids: [...selectedCaseIds],
       });
       markDone("run");
       setStep("done");
@@ -546,11 +551,41 @@ export function QuickSetupWizard({ projectId, mpid }: { projectId: string; mpid:
                         placeholder="örn. Sprint 1 Run, Login Tests…"
                         className={INP}/>
                     </div>
-                    <div className="rounded-xl border border-border bg-surface-base p-3">
-                      <p className="text-[11px] text-fg-subtle">
-                        Run başlatıldığında execute sayfasına yönlendirileceksiniz.
-                        Test case'lerini repository'den ekleyebilirsiniz.
-                      </p>
+                    <div>
+                      <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-widest text-fg-subtle">
+                        Case Seçimi ({selectedCaseIds.size} / {suiteCases.length} seçili)
+                      </label>
+                      {suiteCases.length > 0 ? (
+                        <div className="max-h-32 overflow-y-auto rounded-xl border border-border bg-surface-base p-2 space-y-1">
+                          <label className="flex items-center gap-2 px-2 py-1 cursor-pointer">
+                            <input type="checkbox"
+                              checked={selectedCaseIds.size === suiteCases.length && suiteCases.length > 0}
+                              onChange={e => setSelectedCaseIds(e.target.checked ? new Set(suiteCases.map(c => c.id)) : new Set())}
+                            />
+                            <span className="text-[11px] font-semibold text-fg">Tümünü seç ({suiteCases.length} case)</span>
+                          </label>
+                          {suiteCases.map(c => (
+                            <label key={c.id} className="flex items-center gap-2 px-2 py-1 hover:bg-surface-overlay rounded cursor-pointer">
+                              <input type="checkbox" checked={selectedCaseIds.has(c.id)}
+                                onChange={e => setSelectedCaseIds(p => {
+                                  const n = new Set(p);
+                                  e.target.checked ? n.add(c.id) : n.delete(c.id);
+                                  return n;
+                                })}
+                              />
+                              <span className="text-[11px] text-fg">{c.case_key} — {c.title}</span>
+                            </label>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="rounded-xl border border-border bg-surface-base p-3">
+                          <p className="text-[11px] text-fg-subtle">
+                            {createdSuite
+                              ? "Bu suite'e ait case bulunamadı. Case'leri Repository'den ekleyebilirsiniz."
+                              : "Case'leri Repository'den ekleyebilirsiniz."}
+                          </p>
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}

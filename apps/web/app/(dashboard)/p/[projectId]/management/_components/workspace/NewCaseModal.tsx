@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import {
   DndContext, PointerSensor, KeyboardSensor,
@@ -250,6 +250,12 @@ export function NewCaseModal({ pid, suites, folders, defSuiteId, defFolderId, on
   const [err,      setErr]      = useState("");
   const [showAI,   setShowAI]   = useState(false);
 
+  useEffect(() => {
+    const h = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    document.addEventListener("keydown", h);
+    return () => document.removeEventListener("keydown", h);
+  }, [onClose]);
+
   const avFolders = folders.filter(f => !suiteId || f.suite_id === suiteId);
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -328,7 +334,12 @@ export function NewCaseModal({ pid, suites, folders, defSuiteId, defFolderId, on
           </div>
 
           <div className="space-y-4 overflow-y-auto px-6 py-5" style={{ maxHeight: "calc(85vh - 130px)" }}>
-            <input autoFocus type="text" value={title} onChange={e => setTitle(e.target.value)} placeholder="Senaryo başlığı *" className={inp} />
+            <div className="space-y-1">
+              <label className="text-[10px] font-semibold uppercase tracking-widest text-fg-subtle">
+                Başlık<span className="text-red-400 ml-0.5">*</span>
+              </label>
+              <input autoFocus type="text" value={title} onChange={e => setTitle(e.target.value)} placeholder="Senaryo başlığı" className={inp} />
+            </div>
 
             <div className="grid grid-cols-4 gap-2">
               <select value={priority} onChange={e => setPriority(e.target.value)} className={sel}>

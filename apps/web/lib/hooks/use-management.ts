@@ -1779,3 +1779,27 @@ export function useManagementRunTrend(projectId: string | undefined) {
 
 // ── Aliases ───────────────────────────────────────────────────────────────────
 export const useDeleteRequirementCatalogItem = useDeleteManagementRequirement;
+
+// ── Dashboard Summary ─────────────────────────────────────────────────────────
+
+export interface DashboardSummary {
+  total_cases: number;
+  active_runs: number;
+  pass_rate_pct: number;
+  failed_cases: number;
+  blocked_cases: number;
+  not_run_cases: number;
+  critical_defects: number;
+  coverage_pct: number;
+  suite_count: number;
+  folder_count: number;
+}
+
+export function useManagementDashboardSummary(projectId: string | undefined) {
+  return useQuery({
+    queryKey: [...managementKeys.project(projectId), "dashboard-summary"],
+    queryFn: () => apiFetch<DashboardSummary>(`${BASE(projectId!)}/reports/dashboard-summary`),
+    enabled: !!projectId,
+    staleTime: 2 * 60_000,
+  });
+}

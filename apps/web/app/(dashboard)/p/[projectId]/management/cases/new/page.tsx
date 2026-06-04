@@ -3,6 +3,8 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
+type FormErrors = { title?: boolean };
+
 import { useCreateManagementCase, useManagementRepository } from "@/lib/hooks/use-management";
 
 
@@ -37,6 +39,7 @@ export default function NewManagementCasePage({ params }: { params: { projectId:
     { action: "", expected_result: "", test_data: "", notes: "", is_required: true },
   ]);
   const [formError, setFormError] = useState("");
+  const [errors, setErrors] = useState<FormErrors>({});
 
   const addStep = () => {
     setSteps((current) => [...current, { action: "", expected_result: "", test_data: "", notes: "", is_required: true }]);
@@ -55,6 +58,7 @@ export default function NewManagementCasePage({ params }: { params: { projectId:
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
     setFormError("");
+    setErrors({});
     const cleanSteps = steps
       .map((step, index) => ({
         step_no: index + 1,
@@ -67,7 +71,8 @@ export default function NewManagementCasePage({ params }: { params: { projectId:
       .filter((step) => step.action && step.expected_result);
 
     if (!title.trim()) {
-      setFormError("Başlık zorunlu.");
+      setErrors({ title: true });
+      setFormError("Başlık zorunludur.");
       return;
     }
     if (cleanSteps.length === 0) {
@@ -109,13 +114,16 @@ export default function NewManagementCasePage({ params }: { params: { projectId:
           ) : null}
           <div className="grid gap-4 md:grid-cols-2">
             <label className="space-y-1">
-              <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Title</span>
+              <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                Title<span className="text-red-400 ml-0.5">*</span>
+              </span>
               <input
                 value={title}
                 onChange={(event) => setTitle(event.target.value)}
                 className="w-full rounded-lg border border-border bg-bg px-3 py-2 text-sm text-white focus:border-teal-500/50 focus:outline-none"
                 placeholder="Login valid credentials"
               />
+              {errors.title && <p className="text-[12px] text-red-400 mt-1">Başlık zorunludur.</p>}
             </label>
             <div className="grid grid-cols-2 gap-3">
               <label className="space-y-1">
@@ -284,16 +292,27 @@ export default function NewManagementCasePage({ params }: { params: { projectId:
               </div>
             ))}
           </div>
-          <div className="flex justify-end">
-            <button
-              type="submit"
-              disabled={createCase.isPending}
-              className="rounded-lg bg-teal-500 px-5 py-2 text-sm font-semibold text-slate-950 hover:bg-teal-400 disabled:opacity-40"
-            >
-              {createCase.isPending ? "Saving..." : "Save Test Case"}
-            </button>
-          </div>
         </form>
+        <div className="sticky bottom-0 z-10 border-t border-border bg-surface-base px-6 py-3 flex justify-end gap-2">
+          <button
+            type="button"
+            onClick={() => router.back()}
+            className="rounded-lg border border-border px-4 py-2 text-sm text-slate-300 hover:bg-surface-overlay"
+          >
+            İptal
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              const form = document.querySelector("form");
+              form?.requestSubmit();
+            }}
+            disabled={!title.trim() || createCase.isPending}
+            className="rounded-lg bg-teal-500 px-5 py-2 text-sm font-semibold text-slate-950 hover:bg-teal-400 disabled:opacity-40"
+          >
+            {createCase.isPending ? "Kaydediliyor..." : "Kaydet"}
+          </button>
+        </div>
       </section>
     </div>
   );

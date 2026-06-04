@@ -486,9 +486,9 @@ def quality_scan(
 )
 def get_standup(
     project_id: str,
+    db: DB,
+    _user: ReadUser,
     run_id: Optional[str] = Query(default=None),
-    db: DB = Depends(get_db),
-    _user: ReadUser = Depends(require_permission("read")),
 ) -> StandupOut:
     try:
         return service.get_standup(db, project_id, run_id)
@@ -671,6 +671,11 @@ def update_step_result(
     user: ExecuteUser,
 ) -> RunCaseOut:
     return service.update_step_result(db, project_id, run_case_id, step_no, payload, user)
+
+
+@router.get("/projects/{project_id}/reports/dashboard-summary")
+def dashboard_summary(project_id: str, db: DB, _user: ReadUser) -> dict:
+    return service.dashboard_summary(db, project_id)
 
 
 @router.get("/projects/{project_id}/reports/execution-summary", response_model=ExecutionSummaryOut)

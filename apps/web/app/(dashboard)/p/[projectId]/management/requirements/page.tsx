@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import Link from "next/link";
 import { useQueryClient } from "@tanstack/react-query";
+import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import {
   useRequirementTraceability,
   useRequirementCatalog,
@@ -832,6 +833,9 @@ function LoadingSkeleton() {
 export default function ManagementRequirementsPage() {
   const projectId = useRouteParam("projectId");
   const mpid = useManagementProjectId(projectId || undefined);
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
 
   const {
     data: traceRows,
@@ -859,15 +863,36 @@ export default function ManagementRequirementsPage() {
     cases: import("@/lib/hooks/use-management").GeneratedCase[];
   } | null>(null);
 
-  // ── View state ─────────────────────────────────────────────────────────────
+  // ── View state — URL-backed ────────────────────────────────────────────────
   const [activeTab, setActiveTab] = useState<ViewTab>("traceability");
-  const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [priorityFilter, setPriorityFilter] = useState("all");
-  const [coverageFilter, setCoverageFilter] = useState("all");
+  const [search, setSearch] = useState(() => searchParams.get("q") ?? "");
+  const [statusFilter, setStatusFilter] = useState(() => searchParams.get("status") ?? "all");
+  const [priorityFilter, setPriorityFilter] = useState(() => searchParams.get("priority") ?? "all");
+  const [coverageFilter, setCoverageFilter] = useState(() => searchParams.get("coverage") ?? "all");
   const [tracePage, setTracePage] = useState(0);
   const [catalogPage, setCatalogPage] = useState(0);
   const [selectedReq, setSelectedReq] = useState<Requirement | null>(null);
+
+  // ── URL sync helper ────────────────────────────────────────────────────────
+  const updateUrl = useCallback(
+    (overrides: { q?: string; status?: string; priority?: string; coverage?: string }) => {
+      const params = new URLSearchParams(searchParams.toString());
+      const set = (key: string, val: string) => {
+        if (val && val !== "all" && val !== "") {
+          params.set(key, val);
+        } else {
+          params.delete(key);
+        }
+      };
+      set("q", overrides.q ?? search);
+      set("status", overrides.status ?? statusFilter);
+      set("priority", overrides.priority ?? priorityFilter);
+      set("coverage", overrides.coverage ?? coverageFilter);
+      const qs = params.toString();
+      router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+    },
+    [searchParams, pathname, router, search, statusFilter, priorityFilter, coverageFilter]
+  );
 
   // ── Modal state ────────────────────────────────────────────────────────────
   const [showModal, setShowModal] = useState(false);
@@ -984,6 +1009,7 @@ export default function ManagementRequirementsPage() {
     setCoverageFilter("all");
     setTracePage(0);
     setCatalogPage(0);
+    router.replace(pathname, { scroll: false });
   }
 
   async function handleDeleteRequirement(req: Requirement) {
@@ -1214,9 +1240,11 @@ export default function ManagementRequirementsPage() {
               type="text"
               value={search}
               onChange={(e) => {
-                setSearch(e.target.value);
+                const val = e.target.value;
+                setSearch(val);
                 setTracePage(0);
                 setCatalogPage(0);
+                updateUrl({ q: val });
               }}
               placeholder="Başlık veya external key ara..."
               className="w-full rounded border border-border bg-surface-base pl-8 pr-3 py-1.5 text-[12px] text-fg placeholder-fg-subtle outline-none focus:border-brand/50"
@@ -1225,9 +1253,11 @@ export default function ManagementRequirementsPage() {
           <select
             value={statusFilter}
             onChange={(e) => {
-              setStatusFilter(e.target.value);
+              const val = e.target.value;
+              setStatusFilter(val);
               setTracePage(0);
               setCatalogPage(0);
+              updateUrl({ status: val });
             }}
             className="rounded border border-border bg-surface-raised px-2 py-1.5 text-[12px] text-fg-muted outline-none focus:border-brand/50"
           >
@@ -1243,9 +1273,11 @@ export default function ManagementRequirementsPage() {
           <select
             value={priorityFilter}
             onChange={(e) => {
-              setPriorityFilter(e.target.value);
+              const val = e.target.value;
+              setPriorityFilter(val);
               setTracePage(0);
               setCatalogPage(0);
+              updateUrl({ priority: val });
             }}
             className="rounded border border-border bg-surface-raised px-2 py-1.5 text-[12px] text-fg-muted outline-none focus:border-brand/50"
           >
@@ -1258,8 +1290,10 @@ export default function ManagementRequirementsPage() {
             <select
               value={coverageFilter}
               onChange={(e) => {
-                setCoverageFilter(e.target.value);
+                const val = e.target.value;
+                setCoverageFilter(val);
                 setCatalogPage(0);
+                updateUrl({ coverage: val });
               }}
               className="rounded border border-border bg-surface-raised px-2 py-1.5 text-[12px] text-fg-muted outline-none focus:border-brand/50"
             >

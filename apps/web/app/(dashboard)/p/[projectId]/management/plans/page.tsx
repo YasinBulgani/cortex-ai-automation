@@ -13,6 +13,7 @@ import {
   useCreateManagementRun,
   useCreateManagementCycle,
   useAIGeneratePlan,
+  useManagementRepository,
   type TestPlan,
   type TestCycle,
   type TestRun,
@@ -30,11 +31,11 @@ const PLAN_TYPE_BADGE: Record<string, string> = {
   regression: "bg-purple-500/15 text-purple-400 border-purple-500/20",
   sprint:     "bg-blue-500/15 text-blue-400 border-blue-500/20",
   smoke:      "bg-amber-500/15 text-amber-400 border-amber-500/20",
-  uat:        "bg-slate-500/15 text-slate-400 border-slate-500/20",
+  uat:        "bg-slate-500/15 text-fg-muted border-slate-500/20",
 };
 
 const RUN_STATUS_COLOR: Record<string, string> = {
-  not_started: "text-slate-500",
+  not_started: "text-fg-muted",
   in_progress: "text-blue-400",
   completed:   "text-emerald-400",
 };
@@ -49,7 +50,7 @@ function RunProgress({ passed, failed, blocked, notRun }: {
   passed: number; failed: number; blocked: number; notRun: number;
 }) {
   const total = passed + failed + blocked + notRun;
-  if (total === 0) return <span className="text-[11px] text-slate-600">Case eklenmemiş</span>;
+  if (total === 0) return <span className="text-[11px] text-fg-subtle">Case eklenmemiş</span>;
   const pct = Math.round((passed / total) * 100);
 
   return (
@@ -62,11 +63,11 @@ function RunProgress({ passed, failed, blocked, notRun }: {
       </div>
       {/* Counts */}
       <div className="flex items-center gap-2.5 text-[11px] tabular-nums">
-        {passed  > 0 && <span className="text-emerald-400">{passed} <span className="text-slate-600">ok</span></span>}
-        {failed  > 0 && <span className="text-red-400">{failed} <span className="text-slate-600">fail</span></span>}
-        {blocked > 0 && <span className="text-amber-400">{blocked} <span className="text-slate-600">blk</span></span>}
-        {notRun  > 0 && <span className="text-slate-600">{notRun} left</span>}
-        <span className="text-slate-500 font-medium">{pct}%</span>
+        {passed  > 0 && <span className="text-emerald-400">{passed} <span className="text-fg-subtle">ok</span></span>}
+        {failed  > 0 && <span className="text-red-400">{failed} <span className="text-fg-subtle">fail</span></span>}
+        {blocked > 0 && <span className="text-amber-400">{blocked} <span className="text-fg-subtle">blk</span></span>}
+        {notRun  > 0 && <span className="text-fg-subtle">{notRun} left</span>}
+        <span className="text-fg-muted font-medium">{pct}%</span>
       </div>
     </div>
   );
@@ -75,7 +76,7 @@ function RunProgress({ passed, failed, blocked, notRun }: {
 // ── Icons ─────────────────────────────────────────────────────────────────────
 function IcChevron({ open }: { open: boolean }) {
   return (
-    <svg className={cn("h-3.5 w-3.5 shrink-0 text-slate-600 transition-transform", open && "rotate-90")}
+    <svg className={cn("h-3.5 w-3.5 shrink-0 text-fg-subtle transition-transform", open && "rotate-90")}
       fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M9 18l6-6-6-6"/>
     </svg>
@@ -127,8 +128,8 @@ function CycleRow({
 
       {/* Name */}
       <div className="flex-1 min-w-0">
-        <p className="truncate text-[13px] text-slate-300">{cycle.name}</p>
-        <p className="text-[11px] text-slate-600">
+        <p className="truncate text-[13px] text-fg">{cycle.name}</p>
+        <p className="text-[11px] text-fg-subtle">
           {cycle.environment ? `${cycle.environment} · ` : ""}{cycle.build_version ?? ""}{total > 0 ? ` · ${total} case` : ""}
         </p>
       </div>
@@ -144,7 +145,7 @@ function CycleRow({
                   ? "border-blue-500/20 text-blue-400"
                   : run.status === "completed"
                     ? "border-emerald-500/20 text-emerald-400"
-                    : "border-border text-slate-500",
+                    : "border-border text-fg-muted",
               )}
               title={run.name}
             >
@@ -159,7 +160,7 @@ function CycleRow({
       <span className={cn("rounded-full border px-2 py-0.5 text-[10px] shrink-0",
         cycle.status === "completed" ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-400" :
         cycle.status === "active"    ? "border-blue-500/20    bg-blue-500/10    text-blue-400"    :
-                                       "border-border         bg-surface-overlay text-slate-500",
+                                       "border-border         bg-surface-overlay text-fg-muted",
       )}>
         {cycle.status}
       </span>
@@ -183,10 +184,10 @@ function DeletePlanModal({ plan, onConfirm, onClose, loading }: {
 }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
-      <div className="w-full max-w-sm rounded-xl border border-border bg-[#0d1117] p-6 shadow-2xl">
-        <h2 className="text-[14px] font-semibold text-slate-200">Planı Sil</h2>
-        <p className="mt-2 text-[13px] text-slate-400">
-          <span className="text-slate-200 font-medium">{plan.name}</span> planını silmek istediğinizden emin misiniz?
+      <div className="w-full max-w-sm rounded-xl border border-border bg-surface-raised p-6 shadow-2xl">
+        <h2 className="text-[14px] font-semibold text-fg">Planı Sil</h2>
+        <p className="mt-2 text-[13px] text-fg-muted">
+          <span className="text-fg font-medium">{plan.name}</span> planını silmek istediğinizden emin misiniz?
           Bu işlem geri alınamaz.
         </p>
         <div className="mt-5 flex gap-2">
@@ -195,7 +196,7 @@ function DeletePlanModal({ plan, onConfirm, onClose, loading }: {
             {loading ? "Siliniyor…" : "Sil"}
           </button>
           <button onClick={onClose}
-            className="rounded-lg border border-border px-4 py-2 text-[13px] text-slate-400 hover:text-slate-200 transition-colors">
+            className="rounded-lg border border-border px-4 py-2 text-[13px] text-fg-muted hover:text-fg transition-colors">
             İptal
           </button>
         </div>
@@ -243,15 +244,15 @@ function PlanRow({
         <IcChevron open={open} />
 
         <div className="flex flex-1 min-w-0 items-center gap-3 flex-wrap">
-          <p className="text-[13px] font-semibold text-slate-200 truncate">{plan.name}</p>
+          <p className="text-[13px] font-semibold text-fg truncate">{plan.name}</p>
           <span className={cn("shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-medium", typeCls)}>
             {plan.plan_type}
           </span>
           {plan.release_name && (
-            <span className="shrink-0 rounded bg-surface-overlay px-2 py-0.5 text-[10px] text-slate-400">{plan.release_name}</span>
+            <span className="shrink-0 rounded bg-surface-overlay px-2 py-0.5 text-[10px] text-fg-muted">{plan.release_name}</span>
           )}
           {plan.scope_summary && (
-            <span className="hidden lg:block truncate text-[11px] text-slate-600 max-w-xs">{plan.scope_summary}</span>
+            <span className="hidden lg:block truncate text-[11px] text-fg-subtle max-w-xs">{plan.scope_summary}</span>
           )}
         </div>
 
@@ -261,12 +262,12 @@ function PlanRow({
         </div>
 
         {/* Meta */}
-        <span className="shrink-0 text-[11px] text-slate-600">{fmtDate(plan.created_at)}</span>
-        <span className="shrink-0 text-[11px] text-slate-600">{cycles.length} cycle</span>
+        <span className="shrink-0 text-[11px] text-fg-subtle">{fmtDate(plan.created_at)}</span>
+        <span className="shrink-0 text-[11px] text-fg-subtle">{cycles.length} cycle</span>
         <button
           type="button"
           onClick={e => { e.stopPropagation(); onDelete(plan); }}
-          className="shrink-0 rounded-md p-1.5 text-slate-700 hover:bg-red-500/10 hover:text-red-400 transition-colors"
+          className="shrink-0 rounded-md p-1.5 text-fg-subtle hover:bg-red-500/10 hover:text-red-400 transition-colors"
           title="Planı Sil"
         >
           <IcTrash />
@@ -278,7 +279,7 @@ function PlanRow({
         <div className="border-t border-border">
           {cycles.length === 0 ? (
             <div className="flex items-center justify-between px-6 py-4">
-              <p className="text-[11px] text-slate-600">Bu plana ait cycle yok.</p>
+              <p className="text-[11px] text-fg-subtle">Bu plana ait cycle yok.</p>
               <button
                 disabled={!cycles.length}
                 title={!cycles.length ? "Önce cycle oluşturun" : undefined}
@@ -306,7 +307,7 @@ function PlanRow({
             <button
               type="button"
               onClick={() => onAddCycle(plan.id)}
-              className="flex items-center gap-1.5 text-[12px] text-slate-600 hover:text-slate-300 transition-colors py-1"
+              className="flex items-center gap-1.5 text-[12px] text-fg-subtle hover:text-fg transition-colors py-1"
             >
               <IcPlus /> Yeni Cycle
             </button>
@@ -332,12 +333,15 @@ export default function ManagementPlansPage() {
   const createRun    = useCreateManagementRun(mpid || "");
   const createCycle  = useCreateManagementCycle(mpid || "");
   const aiGenPlan    = useAIGeneratePlan(mpid || "");
+  const repoQ        = useManagementRepository(mpid || undefined);
+  const suites       = repoQ.data?.suites ?? [];
 
-  const [showPlanForm,  setShowPlanForm]  = useState(false);
-  const [planName,      setPlanName]      = useState("");
-  const [planType,      setPlanType]      = useState<PlanType>("regression");
-  const [planRelease,   setPlanRelease]   = useState("");
-  const [planScope,     setPlanScope]     = useState("");
+  const [showPlanForm,     setShowPlanForm]     = useState(false);
+  const [planName,         setPlanName]         = useState("");
+  const [planType,         setPlanType]         = useState<PlanType>("regression");
+  const [planRelease,      setPlanRelease]       = useState("");
+  const [planScope,        setPlanScope]         = useState("");
+  const [selectedSuiteIds, setSelectedSuiteIds] = useState<string[]>([]);
 
   const [addCycleForPlan, setAddCycleForPlan] = useState<string | null>(null);
   const [cycleName,       setCycleName]       = useState("");
@@ -358,13 +362,16 @@ export default function ManagementPlansPage() {
     setCreating(true);
     setError(null);
     try {
+      const suiteScope = selectedSuiteIds.length > 0
+        ? "Kapsam: " + selectedSuiteIds.map(id => suites.find(s => s.id === id)?.name ?? id).join(", ")
+        : (planScope.trim() || null);
       await createPlan.mutateAsync({
         name: planName.trim(),
         plan_type: planType,
         release_name: planRelease.trim() || null,
-        scope_summary: planScope.trim() || null,
+        scope_summary: suiteScope,
       });
-      setPlanName(""); setPlanRelease(""); setPlanScope(""); setShowPlanForm(false);
+      setPlanName(""); setPlanRelease(""); setPlanScope(""); setSelectedSuiteIds([]); setShowPlanForm(false);
     } catch {
       setError("Plan oluşturulamadı.");
     } finally {
@@ -431,20 +438,20 @@ export default function ManagementPlansPage() {
   };
 
   return (
-    <div className="min-h-[calc(100vh-88px)] bg-bg text-slate-200">
+    <div className="min-h-[calc(100vh-88px)] bg-bg text-fg">
 
       {/* ── Header ─────────────────────────────────────────────────────────── */}
       <div className="flex items-center justify-between border-b border-border bg-surface-raised px-6 py-4">
         <div>
-          <h1 className="text-[13px] font-semibold text-slate-200">Test Planları</h1>
-          <p className="mt-0.5 text-[11px] text-slate-500">
+          <h1 className="text-[13px] font-semibold text-fg">Test Planları</h1>
+          <p className="mt-0.5 text-[11px] text-fg-muted">
             {(plans ?? []).length} plan · {(allCycles ?? []).length} cycle · {(allRuns ?? []).length} run
           </p>
         </div>
         {/* ── Stats chips ── */}
         <div className="hidden sm:flex items-center gap-2 flex-1 justify-center">
           {[
-            { label: "Toplam",    value: (plans ?? []).length,                                                         color: "text-slate-400  border-slate-700" },
+            { label: "Toplam",    value: (plans ?? []).length,                                                         color: "text-fg-muted  border-slate-700" },
             { label: "Aktif",     value: (plans ?? []).filter((p: TestPlan) => p.status === "active").length,          color: "text-blue-400   border-blue-500/20 bg-blue-500/10" },
             { label: "Tamamlandı",value: (plans ?? []).filter((p: TestPlan) => p.status === "completed").length,       color: "text-emerald-400 border-emerald-500/20 bg-emerald-500/10" },
           ].map(stat => (
@@ -456,33 +463,41 @@ export default function ManagementPlansPage() {
         </div>
         <button
           onClick={() => setShowPlanForm(v => !v)}
-          className="flex items-center gap-1.5 rounded-lg bg-teal-600 px-3 py-1.5 text-[12px] font-medium text-white hover:bg-teal-700 transition-colors"
+          className="flex items-center gap-1.5 rounded-lg bg-brand px-3 py-1.5 text-[12px] font-medium text-brand-fg hover:brightness-105 transition-colors"
         >
           <IcPlus /> {showPlanForm ? "İptal" : "Yeni Plan"}
         </button>
       </div>
+
+      {/* ── Error banner ──────────────────────────────────────────────────── */}
+      {error && (
+        <div className="flex items-center justify-between border-b border-red-500/20 bg-red-500/10 px-6 py-2.5">
+          <p className="text-[12px] text-red-400">{error}</p>
+          <button onClick={() => setError(null)} className="text-[11px] text-red-400/60 hover:text-red-400 transition-colors">Kapat</button>
+        </div>
+      )}
 
       {/* ── Create plan form ───────────────────────────────────────────────── */}
       {showPlanForm && (
         <div className="border-b border-border bg-surface-raised px-6 py-4">
           <form onSubmit={handleCreatePlan} className="flex flex-wrap items-end gap-3">
             <div className="flex-1 min-w-40">
-              <label className="mb-1 block text-[11px] text-slate-500">Plan Adı *</label>
+              <label className="mb-1 block text-[11px] text-fg-muted">Plan Adı *</label>
               <input
                 autoFocus
                 value={planName}
                 onChange={e => setPlanName(e.target.value)}
                 placeholder="örn. Q3 Release Plan"
                 required
-                className="w-full rounded-lg border border-border bg-white/[0.04] px-3 py-2 text-[13px] text-slate-200 placeholder-slate-600 outline-none focus:border-teal-500/50"
+                className="w-full rounded-lg border border-border bg-surface-overlay px-3 py-2 text-[13px] text-fg placeholder-slate-600 outline-none focus:border-teal-500/50"
               />
             </div>
             <div className="w-36">
-              <label className="mb-1 block text-[11px] text-slate-500">Tip</label>
+              <label className="mb-1 block text-[11px] text-fg-muted">Tip</label>
               <select
                 value={planType}
                 onChange={e => setPlanType(e.target.value as PlanType)}
-                className="w-full rounded-lg border border-border bg-white/[0.04] px-3 py-2 text-[13px] text-slate-200 outline-none focus:border-teal-500/50"
+                className="w-full rounded-lg border border-border bg-surface-overlay px-3 py-2 text-[13px] text-fg outline-none focus:border-teal-500/50"
               >
                 {(["release","regression","sprint","smoke","uat"] as PlanType[]).map(t => (
                   <option key={t} value={t}>{t}</option>
@@ -490,23 +505,45 @@ export default function ManagementPlansPage() {
               </select>
             </div>
             <div className="w-36">
-              <label className="mb-1 block text-[11px] text-slate-500">Release adı</label>
+              <label className="mb-1 block text-[11px] text-fg-muted">Release adı</label>
               <input
                 value={planRelease}
                 onChange={e => setPlanRelease(e.target.value)}
                 placeholder="v2.4.0"
-                className="w-full rounded-lg border border-border bg-white/[0.04] px-3 py-2 text-[13px] text-slate-200 placeholder-slate-600 outline-none focus:border-teal-500/50"
+                className="w-full rounded-lg border border-border bg-surface-overlay px-3 py-2 text-[13px] text-fg placeholder-slate-600 outline-none focus:border-teal-500/50"
               />
             </div>
+            {suites.length > 0 && (
+              <div className="w-full">
+                <label className="mb-2 block text-[11px] font-semibold uppercase tracking-widest text-fg-subtle">
+                  Kapsam — Suite Seçin <span className="normal-case text-fg-subtle font-normal">(opsiyonel)</span>
+                </label>
+                <div className="space-y-1.5 rounded-xl border border-border bg-surface-base p-3 max-h-40 overflow-y-auto">
+                  {suites.map(s => {
+                    const caseCount = (repoQ.data?.cases ?? []).filter(c => c.suite_id === s.id && !c.archived).length;
+                    return (
+                      <label key={s.id} className="flex cursor-pointer items-center gap-2.5 rounded-lg px-2 py-1.5 hover:bg-surface-overlay">
+                        <input type="checkbox" className="h-3.5 w-3.5 accent-brand rounded"
+                          checked={selectedSuiteIds.includes(s.id)}
+                          onChange={e => setSelectedSuiteIds(p => e.target.checked ? [...p, s.id] : p.filter(x => x !== s.id))}
+                        />
+                        <span className="flex-1 text-[12px] text-fg">{s.name}</span>
+                        <span className="text-[10px] text-fg-subtle">{caseCount} case</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
             <div className="w-full flex gap-2">
               <div className="flex-1">
-                <label className="mb-1 block text-[11px] text-slate-500">Kapsam Özeti</label>
+                <label className="mb-1 block text-[11px] text-fg-muted">Kapsam Özeti</label>
                 <textarea
                   value={planScope}
                   onChange={e => setPlanScope(e.target.value)}
                   placeholder="Bu planın kapsamı ve hedefleri hakkında kısa bir açıklama…"
                   rows={2}
-                  className="w-full resize-none rounded-lg border border-border bg-white/[0.04] px-3 py-2 text-[13px] text-slate-200 placeholder-slate-600 outline-none focus:border-teal-500/50"
+                  className="w-full resize-none rounded-lg border border-border bg-surface-overlay px-3 py-2 text-[13px] text-fg placeholder-slate-600 outline-none focus:border-teal-500/50"
                 />
               </div>
               <div className="flex flex-col justify-end">
@@ -527,7 +564,7 @@ export default function ManagementPlansPage() {
             <button
               type="submit"
               disabled={creating || createPlan.isPending || !planName.trim()}
-              className="rounded-lg bg-teal-600 px-4 py-2 text-[12px] font-medium text-white hover:bg-teal-700 disabled:opacity-40 transition-colors"
+              className="rounded-lg bg-brand px-4 py-2 text-[12px] font-medium text-brand-fg hover:brightness-105 disabled:opacity-40 transition-colors"
             >
               {creating || createPlan.isPending ? "Oluşturuluyor…" : "Oluştur"}
             </button>
@@ -552,11 +589,11 @@ export default function ManagementPlansPage() {
           </div>
         ) : (plans ?? []).length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 gap-3">
-            <p className="text-[13px] text-slate-500">Henüz plan yok</p>
-            <p className="text-[11px] text-slate-600">Test planları; release'leri, döngüleri ve koşumları organize eder.</p>
+            <p className="text-[13px] text-fg-muted">Henüz plan yok</p>
+            <p className="text-[11px] text-fg-subtle">Test planları; release'leri, döngüleri ve koşumları organize eder.</p>
             <button
               onClick={() => setShowPlanForm(true)}
-              className="mt-2 rounded-lg border border-border px-4 py-2 text-[12px] text-slate-400 hover:border-white/[0.15] hover:text-slate-200 transition-colors"
+              className="mt-2 rounded-lg border border-border px-4 py-2 text-[12px] text-fg-muted hover:border-border-strong hover:text-fg transition-colors"
             >
               İlk Planı Oluştur
             </button>
@@ -573,7 +610,7 @@ export default function ManagementPlansPage() {
                 runs={runs}
                 projectId={projectId ?? ""}
                 onStartRun={handleStartRun}
-                runCreating={createRun.isPending && activeCycleId !== ""}
+                runCreating={(createRun.isPending || runCreatingFlag) && activeCycleId !== ""}
                 onAddCycle={id => { setAddCycleForPlan(id); }}
                 onDelete={setDeletingPlan}
               />
@@ -595,11 +632,11 @@ export default function ManagementPlansPage() {
       {/* ── Add cycle modal (inline) ───────────────────────────────────────── */}
       {addCycleForPlan && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-6 sm:items-center">
-          <div className="w-full max-w-md rounded-2xl border border-border bg-[#0d1117] p-6 shadow-2xl">
-            <h2 className="mb-4 text-[14px] font-semibold text-slate-200">Yeni Cycle</h2>
+          <div className="w-full max-w-md rounded-2xl border border-border bg-surface-raised p-6 shadow-2xl">
+            <h2 className="mb-4 text-[14px] font-semibold text-fg">Yeni Cycle</h2>
             <div className="space-y-3">
               <div>
-                <label className="mb-1 block text-[11px] text-slate-500">Cycle Adı *</label>
+                <label className="mb-1 block text-[11px] text-fg-muted">Cycle Adı *</label>
                 <input
                   autoFocus
                   value={cycleName}
@@ -609,32 +646,32 @@ export default function ManagementPlansPage() {
                     if (e.key === "Escape") { setAddCycleForPlan(null); setCycleName(""); }
                   }}
                   placeholder="örn. Sprint 5 Regression"
-                  className="w-full rounded-lg border border-border bg-white/[0.04] px-3 py-2 text-[13px] text-slate-200 placeholder-slate-600 outline-none focus:border-teal-500/50"
+                  className="w-full rounded-lg border border-border bg-surface-overlay px-3 py-2 text-[13px] text-fg placeholder-slate-600 outline-none focus:border-teal-500/50"
                 />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="mb-1 block text-[11px] text-slate-500">Ortam</label>
+                  <label className="mb-1 block text-[11px] text-fg-muted">Ortam</label>
                   <input value={cycleEnv} onChange={e => setCycleEnv(e.target.value)}
-                    placeholder="prod / staging" className="w-full rounded-lg border border-border bg-white/[0.04] px-3 py-2 text-[12px] text-slate-200 placeholder-slate-600 outline-none focus:border-teal-500/50"/>
+                    placeholder="prod / staging" className="w-full rounded-lg border border-border bg-surface-overlay px-3 py-2 text-[12px] text-fg placeholder-slate-600 outline-none focus:border-teal-500/50"/>
                 </div>
                 <div>
-                  <label className="mb-1 block text-[11px] text-slate-500">Build</label>
+                  <label className="mb-1 block text-[11px] text-fg-muted">Build</label>
                   <input value={cycleBuild} onChange={e => setCycleBuild(e.target.value)}
-                    placeholder="v2.1.0" className="w-full rounded-lg border border-border bg-white/[0.04] px-3 py-2 text-[12px] text-slate-200 placeholder-slate-600 outline-none focus:border-teal-500/50"/>
+                    placeholder="v2.1.0" className="w-full rounded-lg border border-border bg-surface-overlay px-3 py-2 text-[12px] text-fg placeholder-slate-600 outline-none focus:border-teal-500/50"/>
                 </div>
               </div>
               <div className="flex gap-2 pt-1">
                 <button
                   onClick={() => void handleCreateCycle(addCycleForPlan)}
-                  disabled={!cycleName.trim() || createCycle.isPending}
-                  className="flex-1 rounded-lg bg-teal-600 py-2 text-[13px] font-medium text-white hover:bg-teal-700 disabled:opacity-40 transition-colors"
+                  disabled={!cycleName.trim() || cycleCreating || createCycle.isPending}
+                  className="flex-1 rounded-lg bg-brand py-2 text-[13px] font-medium text-brand-fg hover:brightness-105 disabled:opacity-40 transition-colors"
                 >
-                  {createCycle.isPending ? "Oluşturuluyor…" : "Cycle Oluştur"}
+                  {cycleCreating || createCycle.isPending ? "Oluşturuluyor…" : "Cycle Oluştur"}
                 </button>
                 <button
                   onClick={() => { setAddCycleForPlan(null); setCycleName(""); setCycleEnv(""); setCycleBuild(""); }}
-                  className="rounded-lg border border-border px-4 py-2 text-[13px] text-slate-500 hover:text-slate-300 transition-colors"
+                  className="rounded-lg border border-border px-4 py-2 text-[13px] text-fg-muted hover:text-fg transition-colors"
                 >
                   İptal
                 </button>

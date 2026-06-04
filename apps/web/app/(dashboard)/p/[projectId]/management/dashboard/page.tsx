@@ -8,6 +8,7 @@ import {
   useExecutionSummary,
   useManagementAuditEvents,
   useManagementDefects,
+  useManagementDashboardSummary,
   useManagementRepository,
   useManagementRequirements,
   useManagementRuns,
@@ -89,6 +90,8 @@ export default function ManagementDashboardPage() {
   const projectId = useRouteParam("projectId") ?? "";
   const mpid = useManagementProjectId(projectId || undefined);
 
+  const summaryFast = useManagementDashboardSummary(mpid || undefined);
+
   const repoQ = useManagementRepository(mpid || undefined);
   const runsQ = useManagementRuns(mpid || undefined);
   const summaryQ = useExecutionSummary(mpid || undefined);
@@ -104,14 +107,18 @@ export default function ManagementDashboardPage() {
   const summary = summaryQ.data;
   const release = releaseQ.data;
 
-  const activeRuns = runs.filter(run => ["running", "in_progress", "active"].includes(run.status)).length;
-  const failedCases = cases.filter(tc => tc.last_run_status === "failed").length;
-  const blockedCases = cases.filter(tc => tc.last_run_status === "blocked").length;
-  const notRunCases = cases.filter(tc => !tc.last_run_status || tc.last_run_status === "not_run").length;
-  const criticalDefects = defects.filter(d => ["critical", "blocker", "P0"].includes(d.severity)).length;
-  const coveragePct = requirements.length
+  // Use the fast aggregated endpoint when available, fall back to client-side computation
+  const activeRuns = summaryFast.data?.active_runs ?? runs.filter(run => ["running", "in_progress", "active"].includes(run.status)).length;
+  const failedCases = summaryFast.data?.failed_cases ?? cases.filter(tc => tc.last_run_status === "failed").length;
+  const blockedCases = summaryFast.data?.blocked_cases ?? cases.filter(tc => tc.last_run_status === "blocked").length;
+  const notRunCases = summaryFast.data?.not_run_cases ?? cases.filter(tc => !tc.last_run_status || tc.last_run_status === "not_run").length;
+  const criticalDefects = summaryFast.data?.critical_defects ?? defects.filter(d => ["critical", "blocker", "P0"].includes(d.severity)).length;
+  const coveragePct = summaryFast.data?.coverage_pct ?? (requirements.length
     ? Math.round((requirements.filter(r => r.coverage_status === "covered").length / requirements.length) * 100)
-    : release?.requirement_coverage_pct ?? 0;
+    : release?.requirement_coverage_pct ?? 0);
+  const totalCases = summaryFast.data?.total_cases ?? cases.length;
+  const suiteCount = summaryFast.data?.suite_count ?? (repoQ.data?.suites.length ?? 0);
+  const folderCount = summaryFast.data?.folder_count ?? (repoQ.data?.folders.length ?? 0);
 
   const latestCases = [...cases]
     .sort((a, b) => Date.parse(b.updated_at) - Date.parse(a.updated_at))
@@ -135,8 +142,11 @@ export default function ManagementDashboardPage() {
     return [...byModule.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5);
   }, [cases]);
 
-  const isLoading = repoQ.isLoading || runsQ.isLoading || summaryQ.isLoading;
-  const hasData = cases.length > 0 || runs.length > 0 || defects.length > 0 || requirements.length > 0;
+  // If the fast summary endpoint already returned data, skip showing the skeleton
+  const isLoading = summaryFast.data
+    ? false
+    : (repoQ.isLoading || runsQ.isLoading || summaryQ.isLoading);
+  const hasData = totalCases > 0 || runs.length > 0 || defects.length > 0 || requirements.length > 0;
 
   return (
     <div className="min-h-full space-y-5 bg-surface-base px-6 py-6">
@@ -165,12 +175,12 @@ export default function ManagementDashboardPage() {
       ) : (
         <>
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-            <StatCard label="Toplam manuel case" value={cases.length} note={`${repoQ.data?.suites.length ?? 0} suite, ${repoQ.data?.folders.length ?? 0} klasor`} />
+            <StatCard label="Toplam manuel case" value={totalCases} note={`${suiteCount} suite, ${folderCount} klasor`} />
             <StatCard label="Aktif test run" value={activeRuns} note={`${runs.length} toplam run`} tone="info" />
-            <StatCard label="Pass rate" value={`${summary?.pass_rate_pct ?? release?.pass_rate_pct ?? 0}%`} note={`${summary?.passed ?? 0} passed`} tone="success" />
-            <StatCard label="Failed case" value={summary?.failed ?? failedCases} note="Acil triage bekleyen case" tone="danger" />
-            <StatCard label="Blocked case" value={summary?.blocked ?? blockedCases} note="Ortam veya veri engeli" tone="warning" />
-            <StatCard label="Not run case" value={summary?.not_run ?? notRunCases} note="Kapsama alinmis ama kosulmamis" />
+            <StatCard label="Pass rate" value={`${summaryFast.data?.pass_rate_pct ?? summary?.pass_rate_pct ?? release?.pass_rate_pct ?? 0}%`} note={`${summary?.passed ?? 0} passed`} tone="success" />
+            <StatCard label="Failed case" value={failedCases} note="Acil triage bekleyen case" tone="danger" />
+            <StatCard label="Blocked case" value={blockedCases} note="Ortam veya veri engeli" tone="warning" />
+            <StatCard label="Not run case" value={notRunCases} note="Kapsama alinmis ama kosulmamis" />
             <StatCard label="Kritik defect" value={criticalDefects} note={`${defects.length} toplam defect`} tone={criticalDefects ? "danger" : "success"} />
             <StatCard label="Test kapsami" value={`${coveragePct}%`} note={`${requirements.length} requirement linki`} tone="info" />
           </div>

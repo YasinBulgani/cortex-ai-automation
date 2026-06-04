@@ -5,22 +5,32 @@ import { cn } from "@/lib/utils";
 import {
   useManagementCycles,
   useManagementPlans,
+  useManagementRepository,
   useCreateManagementPlan,
   useCreateManagementCycle,
   useCreateManagementRun,
   type TestCase,
+  type TestSuite,
 } from "@/lib/hooks/use-management";
 import { P_DOT, IcClose, IcSearch } from "./shared";
 
-export function NewRunModal({ pid, cases, initialCaseIds, onClose, onDone }: {
-  pid: string; cases: TestCase[]; initialCaseIds: string[];
-  onClose: () => void; onDone: (runId: string) => void;
+export function NewRunModal({ pid, cases: casesProp, suites: suitesProp, initialCaseIds, onClose, onDone }: {
+  pid: string;
+  cases?: TestCase[];
+  suites?: TestSuite[];
+  initialCaseIds: string[];
+  onClose: () => void;
+  onDone: (runId: string) => void;
 }) {
   const { data: cycles } = useManagementCycles(pid || undefined);
   const { data: plans } = useManagementPlans(pid || undefined);
+  const { data: repo } = useManagementRepository((!casesProp || !suitesProp) ? pid : undefined);
   const createPlan = useCreateManagementPlan(pid);
   const createCycle = useCreateManagementCycle(pid);
   const createRun = useCreateManagementRun(pid);
+
+  const allCases: TestCase[] = casesProp ?? repo?.cases ?? [];
+  const suites: TestSuite[] = suitesProp ?? repo?.suites ?? [];
 
   const [name, setName] = useState("");
   const [environment, setEnvironment] = useState("");
@@ -31,9 +41,21 @@ export function NewRunModal({ pid, cases, initialCaseIds, onClose, onDone }: {
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return cases;
-    return cases.filter(c => c.title.toLowerCase().includes(q) || c.case_key.toLowerCase().includes(q));
-  }, [cases, search]);
+    const active = allCases.filter(c => !c.archived);
+    if (!q) return active;
+    return active.filter(c => c.title.toLowerCase().includes(q) || c.case_key.toLowerCase().includes(q));
+  }, [allCases, search]);
+
+  const bySuite = useMemo(() => {
+    const map = new Map<string, TestCase[]>();
+    for (const s of suites) map.set(s.id, []);
+    for (const c of filtered) {
+      const key = c.suite_id ?? "__unassigned__";
+      if (!map.has(key)) map.set(key, []);
+      map.get(key)!.push(c);
+    }
+    return map;
+  }, [filtered, suites]);
 
   const toggle = (id: string) => setSelected(p => { const n = new Set(p); n.has(id) ? n.delete(id) : n.add(id); return n; });
 
@@ -96,7 +118,7 @@ export function NewRunModal({ pid, cases, initialCaseIds, onClose, onDone }: {
             <IcSearch />
             <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Senaryo ara…"
               className="flex-1 bg-transparent text-[12px] text-fg placeholder:text-fg-subtle outline-none" />
-            <button type="button" onClick={() => setSelected(new Set(filtered.map(c => c.id)))} className="text-[11px] text-fg-muted hover:text-fg">Tümü</button>
+            <button type="button" onClick={() => setSelected(new Set(filtered.map(c => c.id)))} className="text-[11px] text-fg-muted hover:text-fg">Tümünü Seç</button>
             <button type="button" onClick={() => setSelected(new Set())} className="text-[11px] text-fg-subtle hover:text-fg-muted">Hiçbiri</button>
           </div>
         </div>
@@ -105,22 +127,66 @@ export function NewRunModal({ pid, cases, initialCaseIds, onClose, onDone }: {
           {filtered.length === 0 ? (
             <p className="px-6 py-8 text-center text-[13px] text-fg-subtle">Senaryo bulunamadı</p>
           ) : (
-            filtered.map(c => {
-              const on = selected.has(c.id);
-              return (
-                <button key={c.id} type="button" onClick={() => toggle(c.id)}
-                  className={cn("flex w-full items-center gap-3 border-b border-border px-6 py-2 text-left transition-colors",
-                    on ? "bg-brand-soft" : "hover:bg-surface-overlay")}>
-                  <span className={cn("flex h-4 w-4 shrink-0 items-center justify-center rounded border",
-                    on ? "border-brand bg-brand" : "border-border")}>
-                    {on && <svg className="h-2.5 w-2.5 text-brand-fg" fill="none" viewBox="0 0 10 10" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M1.5 5l2.5 2.5 4.5-4.5" /></svg>}
-                  </span>
-                  <span className={cn("h-1.5 w-1.5 shrink-0 rounded-full", P_DOT[c.priority] ?? P_DOT.P3)} />
-                  <span className="font-mono text-[10px] text-fg-subtle">{c.case_key}</span>
-                  <span className="flex-1 truncate text-[12px] text-fg-muted">{c.title}</span>
-                </button>
-              );
-            })
+            Array.from(bySuite.entries())
+              .filter(([, cases]) => cases.length > 0)
+              .map(([suiteId, suiteCases]) => {
+                const suiteName = suites.find(s => s.id === suiteId)?.name ?? "Atanmamış";
+                const allSuiteSelected = suiteCases.every(c => selected.has(c.id));
+                const someSuiteSelected = !allSuiteSelected && suiteCases.some(c => selected.has(c.id));
+                return (
+                  <div key={suiteId}>
+                    <div className="flex items-center gap-2 px-3 py-1.5 bg-surface-overlay border-b border-border sticky top-0 z-10">
+                      <label className="flex items-center gap-2 cursor-pointer select-none">
+                        <span className={cn(
+                          "flex h-4 w-4 shrink-0 items-center justify-center rounded border transition-colors",
+                          allSuiteSelected ? "border-brand bg-brand" : someSuiteSelected ? "border-brand bg-brand/30" : "border-border"
+                        )}>
+                          <input
+                            type="checkbox"
+                            className="sr-only"
+                            checked={allSuiteSelected}
+                            onChange={e => {
+                              if (e.target.checked) {
+                                setSelected(p => new Set([...p, ...suiteCases.map(c => c.id)]));
+                              } else {
+                                setSelected(p => { const n = new Set(p); suiteCases.forEach(c => n.delete(c.id)); return n; });
+                              }
+                            }}
+                          />
+                          {allSuiteSelected && (
+                            <svg className="h-2.5 w-2.5 text-brand-fg" fill="none" viewBox="0 0 10 10" stroke="currentColor" strokeWidth={2.5}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M1.5 5l2.5 2.5 4.5-4.5" />
+                            </svg>
+                          )}
+                          {someSuiteSelected && !allSuiteSelected && (
+                            <svg className="h-2 w-2 text-brand" fill="currentColor" viewBox="0 0 10 10">
+                              <rect x="1.5" y="4" width="7" height="2" rx="1" />
+                            </svg>
+                          )}
+                        </span>
+                        <span className="text-[11px] font-semibold text-fg-muted">{suiteName}</span>
+                      </label>
+                      <span className="text-[10px] text-fg-subtle">{suiteCases.length} case</span>
+                    </div>
+                    {suiteCases.map(c => {
+                      const on = selected.has(c.id);
+                      return (
+                        <button key={c.id} type="button" onClick={() => toggle(c.id)}
+                          className={cn("flex w-full items-center gap-3 border-b border-border px-6 py-2 text-left transition-colors",
+                            on ? "bg-brand-soft" : "hover:bg-surface-overlay")}>
+                          <span className={cn("flex h-4 w-4 shrink-0 items-center justify-center rounded border",
+                            on ? "border-brand bg-brand" : "border-border")}>
+                            {on && <svg className="h-2.5 w-2.5 text-brand-fg" fill="none" viewBox="0 0 10 10" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M1.5 5l2.5 2.5 4.5-4.5" /></svg>}
+                          </span>
+                          <span className={cn("h-1.5 w-1.5 shrink-0 rounded-full", P_DOT[c.priority] ?? P_DOT.P3)} />
+                          <span className="font-mono text-[10px] text-fg-subtle">{c.case_key}</span>
+                          <span className="flex-1 truncate text-[12px] text-fg-muted">{c.title}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                );
+              })
           )}
         </div>
 

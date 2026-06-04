@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect, useCallback } from "react";
+import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
 import { useRouteParam } from "@/lib/use-route-param";
 import { useManagementProjectId } from "@/lib/hooks/use-management-project-id";
@@ -73,15 +73,15 @@ function IcSave()  { return <svg className="h-4 w-4 shrink-0" fill="none" viewBo
 
 // ─── Case Sidebar Item ────────────────────────────────────────────────────────
 
-function CaseListItem({ rc, isSelected, onClick }: {
-  rc: RunCase; isSelected: boolean; onClick: () => void;
+function CaseListItem({ rc, isSelected, onClick, itemRef }: {
+  rc: RunCase; isSelected: boolean; onClick: () => void; itemRef?: React.Ref<HTMLButtonElement>;
 }) {
   const snap     = rc.case_snapshot as { case?: SnapshotCase };
   const caseInfo = snap.case ?? {};
   const dot      = STATUS_DOT[rc.status] ?? STATUS_DOT.not_run;
 
   return (
-    <button type="button" onClick={onClick}
+    <button ref={itemRef} type="button" onClick={onClick}
       className={cn(
         "flex w-full items-start gap-2 rounded-lg px-3 py-2 text-left transition-all",
         isSelected ? "bg-teal-500/10 border border-teal-500/20" : "hover:bg-surface-overlay border border-transparent",
@@ -329,7 +329,8 @@ function ExecutionPanel({ rc, projectId, runId, onNext, mpid }: {
       if (e.metaKey || e.ctrlKey || e.altKey) return;
       const map: Record<string, TestRunStatus> = { p: "passed", f: "failed", b: "blocked", s: "skipped", r: "not_run" };
       const action = map[e.key.toLowerCase()];
-      if (action) { e.preventDefault(); void handleCaseStatus(action); }
+      if (action) { e.preventDefault(); void handleCaseStatus(action); return; }
+      if (e.key.toLowerCase() === "n") { e.preventDefault(); onNext(); }
     };
     document.addEventListener("keydown", handler);
     return () => document.removeEventListener("keydown", handler);
@@ -536,6 +537,7 @@ export default function ManagementRunExecutePage() {
 
   const [selectedRcId, setSelectedRcId] = useState<string | null>(null);
   const [sidebarTab, setSidebarTab] = useState<"cases" | "ai">("cases");
+  const activeCaseRef = useRef<HTMLButtonElement>(null);
 
   const selectedRc = useMemo(() => {
     if (selectedRcId) return runCases.find(rc => rc.id === selectedRcId) ?? null;
@@ -548,12 +550,20 @@ export default function ManagementRunExecutePage() {
     if (next) setSelectedRcId(next.id);
   };
 
-  const passed    = runCases.filter(rc => rc.status === "passed").length;
-  const failed    = runCases.filter(rc => rc.status === "failed").length;
-  const blocked   = runCases.filter(rc => rc.status === "blocked").length;
-  const notRun    = runCases.filter(rc => rc.status === "not_run").length;
-  const total     = runCases.length;
-  const pct       = total > 0 ? Math.round((passed / total) * 100) : 0;
+  const passed      = runCases.filter(rc => rc.status === "passed").length;
+  const failed      = runCases.filter(rc => rc.status === "failed").length;
+  const blocked     = runCases.filter(rc => rc.status === "blocked").length;
+  const notRun      = runCases.filter(rc => rc.status === "not_run").length;
+  const total       = runCases.length;
+  const pct         = total > 0 ? Math.round((passed / total) * 100) : 0;
+  const pendingCount = runCases.filter(rc => rc.status === "not_run" || rc.status === "in_progress").length;
+
+  const activeCaseId = selectedRc?.id ?? "";
+
+  // Scroll active case into view when it changes
+  useEffect(() => {
+    activeCaseRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }, [activeCaseId]);
 
   const loading = runQuery.isLoading;
 
@@ -561,7 +571,7 @@ export default function ManagementRunExecutePage() {
     <div className="flex bg-bg" style={{ height: "calc(100vh - 48px)" }}>
 
       {/* LEFT: Case List / AI Sidebar */}
-      <aside className="hidden w-64 flex-none flex-col border-r border-border bg-surface-raised lg:flex overflow-hidden">
+      <aside className="hidden w-64 flex-none flex-col border-r border-border bg-surface-raised md:flex overflow-hidden">
         {/* Run info */}
         <div className="border-b border-border px-4 py-3">
           <div className="flex items-center gap-2 mb-1">
@@ -644,7 +654,9 @@ export default function ManagementRunExecutePage() {
                   <div key={i} className="h-10 rounded-lg bg-surface-overlay animate-pulse" style={{ opacity: Math.max(0.2, 1 - i * 0.1) }}/>
                 ))
               ) : runCases.map(rc => (
-                <CaseListItem key={rc.id} rc={rc} isSelected={rc.id === (selectedRc?.id ?? "")} onClick={() => setSelectedRcId(rc.id)}/>
+                <CaseListItem key={rc.id} rc={rc} isSelected={rc.id === activeCaseId}
+                  itemRef={rc.id === activeCaseId ? activeCaseRef : undefined}
+                  onClick={() => setSelectedRcId(rc.id)}/>
               ))}
             </div>
 
@@ -700,8 +712,30 @@ export default function ManagementRunExecutePage() {
             </Link>
           </div>
         ) : (
-          <ExecutionPanel rc={selectedRc} projectId={projectId} runId={runId} onNext={goNext} mpid={mpid}/>
+          <>
+            {pendingCount === 0 && (
+              <div className="mx-4 mb-3 mt-3 rounded-xl border border-emerald-500/30 bg-emerald-500/8 px-4 py-3">
+                <p className="text-[13px] font-semibold text-emerald-400">Tüm case&apos;ler tamamlandı!</p>
+                <p className="text-[11px] text-emerald-500/70">Koşumu tamamlamak için butona tıklayın.</p>
+              </div>
+            )}
+            <ExecutionPanel rc={selectedRc} projectId={projectId} runId={runId} onNext={goNext} mpid={mpid}/>
+          </>
         )}
+
+        {/* Mobile sticky footer */}
+        <div className="md:hidden sticky bottom-0 border-t border-border bg-surface-raised px-4 py-3">
+          {pendingCount === 0 ? (
+            <button
+              onClick={() => completeRun.mutateAsync(runId)}
+              disabled={completeRun.isPending}
+              className="w-full rounded-xl bg-emerald-600 py-3 text-[13px] font-semibold text-white disabled:opacity-40">
+              {completeRun.isPending ? "Tamamlanıyor…" : "Koşumu Tamamla"}
+            </button>
+          ) : (
+            <p className="text-center text-[12px] text-fg-muted">{pendingCount} case kaldı</p>
+          )}
+        </div>
       </div>
 
     </div>

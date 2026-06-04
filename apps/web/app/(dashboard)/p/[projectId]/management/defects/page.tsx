@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useCallback, useEffect } from "react";
 import Link from "next/link";
+import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { useRouteParam } from "@/lib/use-route-param";
 import { cn } from "@/lib/utils";
 import {
@@ -692,16 +693,31 @@ export default function ManagementDefectsPage() {
   const rows         = defectsQuery.data ?? [];
   const loading      = defectsQuery.isLoading;
 
-  const [search,       setSearch]       = useState("");
-  const [severityF,    setSeverityF]    = useState("");
-  const [statusF,      setStatusF]      = useState("");
-  const [priorityF,    setPriorityF]    = useState("");
+  const searchParams = useSearchParams();
+  const router       = useRouter();
+  const pathname     = usePathname();
+
+  const [search,       setSearch]       = useState(searchParams.get("q") ?? "");
+  const [severityF,    setSeverityF]    = useState(searchParams.get("severity") ?? "");
+  const [statusF,      setStatusF]      = useState(searchParams.get("status") ?? "");
+  const [priorityF,    setPriorityF]    = useState(searchParams.get("priority") ?? "");
   const [editDefect,   setEditDefect]   = useState<DefectLink | null>(null);
   const [showCreate,   setShowCreate]   = useState(false);
   const [page,         setPage]         = useState(1);
   const [sortCol,      setSortCol]      = useState<string>("created_at");
   const [sortDir,      setSortDir]      = useState<"asc" | "desc">("desc");
   const PAGE_SIZE = 20;
+
+  const updateUrl = (params: Record<string, string>) => {
+    const sp = new URLSearchParams(searchParams.toString());
+    Object.entries(params).forEach(([k, v]) => { if (v) sp.set(k, v); else sp.delete(k); });
+    router.replace(pathname + "?" + sp.toString(), { scroll: false });
+  };
+
+  const handleSearchChange   = (v: string) => { setSearch(v);    updateUrl({ q: v }); };
+  const handleSeverityChange = (v: string) => { setSeverityF(v); updateUrl({ severity: v }); };
+  const handleStatusChange   = (v: string) => { setStatusF(v);   updateUrl({ status: v }); };
+  const handlePriorityChange = (v: string) => { setPriorityF(v); updateUrl({ priority: v }); };
 
   const open      = rows.filter(d => !isClosed(d));
   const critical  = rows.filter(d => isBlocker(d));
@@ -746,7 +762,12 @@ export default function ManagementDefectsPage() {
   useEffect(() => { setPage(1); }, [search, severityF, statusF, priorityF]);
 
   const hasFilter = !!(search || severityF || statusF || priorityF);
-  const clearFilters = useCallback(() => { setSearch(""); setSeverityF(""); setStatusF(""); setPriorityF(""); setPage(1); }, []);
+  const clearFilters = useCallback(() => {
+    setSearch(""); setSeverityF(""); setStatusF(""); setPriorityF(""); setPage(1);
+    const sp = new URLSearchParams(searchParams.toString());
+    sp.delete("q"); sp.delete("severity"); sp.delete("status"); sp.delete("priority");
+    router.replace(pathname + (sp.toString() ? "?" + sp.toString() : ""), { scroll: false });
+  }, [searchParams, router, pathname]);
 
   const totalPages     = useMemo(() => Math.ceil(sorted.length / PAGE_SIZE), [sorted]);
   const paginatedItems = useMemo(
@@ -792,24 +813,24 @@ export default function ManagementDefectsPage() {
           {/* Search */}
           <div className="flex w-full sm:w-48 items-center gap-1.5 rounded-xl border border-border bg-surface-overlay px-2.5 py-1.5 sm:w-64">
             <IcSearch/>
-            <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="Ara…"
+            <input type="text" value={search} onChange={e => handleSearchChange(e.target.value)} placeholder="Ara…"
               aria-label="Defect ara"
               className="flex-1 bg-transparent text-[10px] text-fg placeholder-slate-600 outline-none min-w-0"/>
-            {search && <button type="button" onClick={() => setSearch("")} aria-label="Aramayı temizle" className="text-fg-subtle hover:text-fg"><IcClose/></button>}
+            {search && <button type="button" onClick={() => handleSearchChange("")} aria-label="Aramayı temizle" className="text-fg-subtle hover:text-fg"><IcClose/></button>}
           </div>
 
           <label htmlFor="defect-severity-filter" className="sr-only">Severity filtresi</label>
-          <select id="defect-severity-filter" value={severityF} onChange={e => setSeverityF(e.target.value)} className={SEL}>
+          <select id="defect-severity-filter" value={severityF} onChange={e => handleSeverityChange(e.target.value)} className={SEL}>
             <option value="">Severity</option>
             {["blocker","critical","major","minor","trivial"].map(v => <option key={v} value={v}>{v}</option>)}
           </select>
           <label htmlFor="defect-status-filter" className="sr-only">Status filtresi</label>
-          <select id="defect-status-filter" value={statusF} onChange={e => setStatusF(e.target.value)} className={SEL}>
+          <select id="defect-status-filter" value={statusF} onChange={e => handleStatusChange(e.target.value)} className={SEL}>
             <option value="">Status</option>
             {ALL_STATUSES.map(v => <option key={v} value={v}>{v.replace(/_/g, " ")}</option>)}
           </select>
           <label htmlFor="defect-priority-filter" className="sr-only">Priority filtresi</label>
-          <select id="defect-priority-filter" value={priorityF} onChange={e => setPriorityF(e.target.value)} className={SEL}>
+          <select id="defect-priority-filter" value={priorityF} onChange={e => handlePriorityChange(e.target.value)} className={SEL}>
             <option value="">Priority</option>
             {["P0","P1","P2","P3"].map(v => <option key={v} value={v}>{v}</option>)}
           </select>

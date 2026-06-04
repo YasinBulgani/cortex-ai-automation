@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
@@ -277,15 +277,24 @@ function CaseTable({
   const [sortCol, setSortCol] = useState<string>("updated_at");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
 
+  const searchTimer = useRef<ReturnType<typeof setTimeout>>();
+  const [debouncedSearch, setDebouncedSearch] = useState(search);
+
+  useEffect(() => {
+    clearTimeout(searchTimer.current);
+    searchTimer.current = setTimeout(() => setDebouncedSearch(search), 250);
+    return () => clearTimeout(searchTimer.current);
+  }, [search]);
+
   const filtered = useMemo(() => {
     let r = nodeCases;
-    const q = search.trim().toLowerCase();
+    const q = debouncedSearch.trim().toLowerCase();
     if (q)        r = r.filter(c => c.title.toLowerCase().includes(q) || c.case_key.toLowerCase().includes(q));
     if (priority) r = r.filter(c => c.priority === priority);
     if (type)     r = r.filter(c => c.type === type);
     if (status)   r = r.filter(c => c.last_run_status === status);
     return r;
-  }, [nodeCases, search, priority, type, status]);
+  }, [nodeCases, debouncedSearch, priority, type, status]);
 
   const sorted = useMemo(() => {
     const PRIO = { P0: 0, P1: 1, P2: 2, P3: 3 } as Record<string, number>;
@@ -300,7 +309,7 @@ function CaseTable({
     });
   }, [filtered, sortCol, sortDir]);
 
-  const activeFilterCount = [search, priority, type, status].filter(Boolean).length;
+  const activeFilterCount = [priority, type, status].filter(Boolean).length + (debouncedSearch ? 1 : 0);
 
   const toggleSort = (col: string) => {
     if (sortCol === col) setSortDir(d => d === "asc" ? "desc" : "asc");
@@ -308,7 +317,7 @@ function CaseTable({
   };
 
   const allChecked = filtered.length > 0 && filtered.every(c => checked.has(c.id));
-  const hasFilter  = !!(search || priority || type || status);
+  const hasFilter  = !!(debouncedSearch || priority || type || status);
   const clearAll   = () => { setSearch(""); setPriority(""); setType(""); setStatus(""); };
   const checkedIds = [...checked];
 
@@ -415,8 +424,21 @@ function CaseTable({
           {["passed","failed","blocked","skipped"].map(v => <option key={v} value={v}>{v}</option>)}
         </select>
         {hasFilter && (
-          <button type="button" onClick={clearAll}
-            className="text-[11px] text-fg-subtle transition-colors hover:text-danger">Temizle</button>
+          <button
+            type="button"
+            onClick={clearAll}
+            title="Filtreleri temizle"
+            className="relative inline-flex items-center justify-center h-6 w-6 rounded-full bg-red-500/15 border border-red-500/25 text-red-400 transition-colors hover:bg-red-500/25 hover:border-red-500/40"
+          >
+            <svg className="h-3 w-3" fill="none" viewBox="0 0 12 12" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M2 2l8 8M10 2l-8 8" />
+            </svg>
+            {activeFilterCount > 0 && (
+              <span className="absolute -top-1 -right-1 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-red-500 text-[8px] font-bold text-white leading-none">
+                {activeFilterCount}
+              </span>
+            )}
+          </button>
         )}
 
         {/* Add case */}

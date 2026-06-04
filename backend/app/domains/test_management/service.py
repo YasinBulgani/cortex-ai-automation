@@ -1234,6 +1234,74 @@ def execution_summary(db: Session, project_id: str) -> ExecutionSummaryOut:
     )
 
 
+def dashboard_summary(db: Session, project_id: str) -> dict[str, Any]:
+    """Single endpoint aggregating all dashboard metrics — replaces 7 parallel queries."""
+    project_id = resolve_project_id(db, project_id)
+
+    # Cases
+    all_cases = list(db.scalars(
+        select(TestCase).where(TestCase.project_id == project_id, TestCase.archived == False)  # noqa: E712
+    ).all())
+    total_cases = len(all_cases)
+
+    # Suite / folder counts
+    suite_count = db.scalar(
+        select(func.count()).select_from(TestSuite).where(TestSuite.project_id == project_id)
+    ) or 0
+    folder_count = db.scalar(
+        select(func.count()).select_from(TestFolder)
+        .join(TestSuite, TestFolder.suite_id == TestSuite.id)
+        .where(TestSuite.project_id == project_id)
+    ) or 0
+
+    # Last run status from cases
+    failed_cases  = sum(1 for c in all_cases if c.last_run_status == "failed")
+    blocked_cases = sum(1 for c in all_cases if c.last_run_status == "blocked")
+    not_run_cases = sum(1 for c in all_cases if not c.last_run_status or c.last_run_status == "not_run")
+
+    # Active runs
+    active_runs = db.scalar(
+        select(func.count()).select_from(TestRun)
+        .join(TestCycle, TestRun.cycle_id == TestCycle.id)
+        .where(TestCycle.project_id == project_id, TestRun.status.in_(["running", "in_progress"]))
+    ) or 0
+
+    # Pass rate from execution summary
+    try:
+        es = execution_summary(db, project_id)
+        pass_rate = es.pass_rate_pct
+    except Exception:
+        pass_rate = 0.0
+
+    # Critical defects
+    critical_defects = db.scalar(
+        select(func.count()).select_from(DefectLink)
+        .join(TestRunCase, DefectLink.run_case_id == TestRunCase.id)
+        .join(TestCase, TestRunCase.case_id == TestCase.id)
+        .where(TestCase.project_id == project_id, DefectLink.severity.in_(["critical", "blocker"]))
+    ) or 0
+
+    # Coverage
+    req_links = list(db.scalars(
+        select(RequirementLink).where(RequirementLink.project_id == project_id)
+    ).all())
+    covered = sum(1 for r in req_links if r.coverage_status == "covered")
+    coverage_pct = round(covered / len(req_links) * 100) if req_links else 0
+
+    return {
+        "total_cases": total_cases,
+        "active_runs": active_runs,
+        "pass_rate_pct": pass_rate,
+        "failed_cases": failed_cases,
+        "blocked_cases": blocked_cases,
+        "not_run_cases": not_run_cases,
+        "critical_defects": critical_defects,
+        "coverage_pct": coverage_pct,
+        "suite_count": suite_count,
+        "folder_count": folder_count,
+    }
+
+
 def _days_since(value: datetime | None) -> int | None:
     if value is None:
         return None
