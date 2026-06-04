@@ -54,8 +54,11 @@ export interface DesignRun {
 export interface CreateDesignRunInput {
   project_id?: string | null;
   requirement_id?: string | null;
-  fields: DesignFieldSpec[];
+  fields?: DesignFieldSpec[];
   requirement_text?: string;
+  conditions?: string[];
+  actions?: string[];
+  [key: string]: unknown;
 }
 
 export interface PromoteCasesInput {
@@ -130,6 +133,28 @@ export function useCreateEqRun() {
   return useMutation({
     mutationFn: (payload: CreateDesignRunInput) =>
       apiFetch<DesignRun>(`${BASE}/design/eq`, { method: "POST", json: payload }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: designKeys.all });
+    },
+  });
+}
+
+export function useCreateDtRun() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: CreateDesignRunInput) =>
+      apiFetch<DesignRun>(`${BASE}/design/dt`, { method: "POST", json: payload }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: designKeys.all });
+    },
+  });
+}
+
+export function useCreatePairwiseRun() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: CreateDesignRunInput) =>
+      apiFetch<DesignRun>(`${BASE}/design/pairwise`, { method: "POST", json: payload }),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: designKeys.all });
     },

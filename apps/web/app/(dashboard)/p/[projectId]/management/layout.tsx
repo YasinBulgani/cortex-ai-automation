@@ -140,6 +140,7 @@ const NAV_PRIMARY: NavItem[] = [
   { label: "Standup",       segment: "management/standup",      Icon: IcPulse    },
   { label: "BVA",           segment: "management/design/bva",   Icon: IcGrid     },
   { label: "EQ Partition",  segment: "management/design/eq",    Icon: IcGrid     },
+  { label: "Decision Table",segment: "management/design/dt",    Icon: IcGrid     },
 ];
 
 const NAV_UTILITY: NavItem[] = [

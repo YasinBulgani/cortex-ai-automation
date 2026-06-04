@@ -15,6 +15,7 @@ import {
   type RunCase,
   type TestRunStatus,
 } from "@/lib/hooks/use-management";
+import { IntelligencePanel } from "../../../_components/IntelligencePanel";
 
 // ─── Config ──────────────────────────────────────────────────────────────────
 
@@ -534,6 +535,7 @@ export default function ManagementRunExecutePage() {
   const progress    = progressQ.data;
 
   const [selectedRcId, setSelectedRcId] = useState<string | null>(null);
+  const [sidebarTab, setSidebarTab] = useState<"cases" | "ai">("cases");
 
   const selectedRc = useMemo(() => {
     if (selectedRcId) return runCases.find(rc => rc.id === selectedRcId) ?? null;
@@ -558,8 +560,8 @@ export default function ManagementRunExecutePage() {
   return (
     <div className="flex bg-bg" style={{ height: "calc(100vh - 48px)" }}>
 
-      {/* LEFT: Case List Sidebar */}
-      <aside className="hidden w-56 flex-none flex-col border-r border-border bg-surface-raised lg:flex overflow-hidden">
+      {/* LEFT: Case List / AI Sidebar */}
+      <aside className="hidden w-64 flex-none flex-col border-r border-border bg-surface-raised lg:flex overflow-hidden">
         {/* Run info */}
         <div className="border-b border-border px-4 py-3">
           <div className="flex items-center gap-2 mb-1">
@@ -576,70 +578,108 @@ export default function ManagementRunExecutePage() {
           )}
         </div>
 
-        {/* Progress */}
-        <div className="border-b border-border px-4 py-2.5">
-          <div className="flex items-center justify-between mb-1.5">
-            <span className="text-[10px] text-slate-500">İlerleme</span>
-            <span className="text-[10px] font-bold tabular-nums text-slate-300">
-              {progress?.progress_pct ?? pct}%
-            </span>
-          </div>
-          <div className="h-1 rounded-full bg-surface-overlay overflow-hidden">
-            <div className="h-full rounded-full bg-emerald-500/70 transition-all duration-500"
-              style={{ width: `${progress?.progress_pct ?? pct}%` }}/>
-          </div>
-          {progress && (
-            <div className="mt-1.5 flex gap-1.5 flex-wrap text-[9px]">
-              {progress.passed  > 0 && <span className="text-emerald-400">{progress.passed} pass</span>}
-              {progress.failed  > 0 && <span className="text-red-400">{progress.failed} fail</span>}
-              {progress.blocked > 0 && <span className="text-amber-400">{progress.blocked} blk</span>}
-              <span className="text-slate-600">{progress.not_run} left</span>
+        {/* Tab buttons */}
+        <div className="flex border-b border-border">
+          <button
+            type="button"
+            onClick={() => setSidebarTab("cases")}
+            className={cn(
+              "flex-1 py-2 text-[11px] font-medium transition-colors",
+              sidebarTab === "cases"
+                ? "border-b-2 border-teal-500 text-teal-300"
+                : "text-slate-500 hover:text-slate-300 border-b-2 border-transparent",
+            )}
+          >
+            Case Listesi
+          </button>
+          <button
+            type="button"
+            onClick={() => setSidebarTab("ai")}
+            className={cn(
+              "flex-1 py-2 text-[11px] font-medium transition-colors",
+              sidebarTab === "ai"
+                ? "border-b-2 border-teal-500 text-teal-300"
+                : "text-slate-500 hover:text-slate-300 border-b-2 border-transparent",
+            )}
+          >
+            AI Intelligence
+          </button>
+        </div>
+
+        {sidebarTab === "cases" ? (
+          <>
+            {/* Progress */}
+            <div className="border-b border-border px-4 py-2.5">
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-[10px] text-slate-500">İlerleme</span>
+                <span className="text-[10px] font-bold tabular-nums text-slate-300">
+                  {progress?.progress_pct ?? pct}%
+                </span>
+              </div>
+              <div className="h-1 rounded-full bg-surface-overlay overflow-hidden">
+                <div className="h-full rounded-full bg-emerald-500/70 transition-all duration-500"
+                  style={{ width: `${progress?.progress_pct ?? pct}%` }}/>
+              </div>
+              {progress && (
+                <div className="mt-1.5 flex gap-1.5 flex-wrap text-[9px]">
+                  {progress.passed  > 0 && <span className="text-emerald-400">{progress.passed} pass</span>}
+                  {progress.failed  > 0 && <span className="text-red-400">{progress.failed} fail</span>}
+                  {progress.blocked > 0 && <span className="text-amber-400">{progress.blocked} blk</span>}
+                  <span className="text-slate-600">{progress.not_run} left</span>
+                </div>
+              )}
+              {!progress && (
+                <div className="mt-1.5 flex justify-between text-[9px] text-slate-600">
+                  <span>{passed} passed</span>
+                  <span>{failed > 0 ? `${failed} fail` : ""}</span>
+                  <span>{notRun} left</span>
+                </div>
+              )}
             </div>
-          )}
-          {!progress && (
-          <div className="mt-1.5 flex justify-between text-[9px] text-slate-600">
-            <span>{passed} passed</span>
-            <span>{failed > 0 ? `${failed} fail` : ""}</span>
-            <span>{notRun} left</span>
-          </div>
-          )}
-        </div>
 
-        {/* Case list */}
-        <div className="flex-1 overflow-y-auto px-2 py-2 space-y-0.5">
-          {loading ? (
-            Array.from({ length: 8 }).map((_, i) => (
-              <div key={i} className="h-10 rounded-lg bg-surface-overlay animate-pulse" style={{ opacity: Math.max(0.2, 1 - i * 0.1) }}/>
-            ))
-          ) : runCases.map(rc => (
-            <CaseListItem key={rc.id} rc={rc} isSelected={rc.id === (selectedRc?.id ?? "")} onClick={() => setSelectedRcId(rc.id)}/>
-          ))}
-        </div>
+            {/* Case list */}
+            <div className="flex-1 overflow-y-auto px-2 py-2 space-y-0.5">
+              {loading ? (
+                Array.from({ length: 8 }).map((_, i) => (
+                  <div key={i} className="h-10 rounded-lg bg-surface-overlay animate-pulse" style={{ opacity: Math.max(0.2, 1 - i * 0.1) }}/>
+                ))
+              ) : runCases.map(rc => (
+                <CaseListItem key={rc.id} rc={rc} isSelected={rc.id === (selectedRc?.id ?? "")} onClick={() => setSelectedRcId(rc.id)}/>
+              ))}
+            </div>
 
-        {/* Stats footer */}
-        <div className="border-t border-border px-3 py-2 space-y-2">
-          <div className="flex flex-wrap gap-x-3 gap-y-0.5">
-            {[
-              { dot: "bg-emerald-500/70", label: `${passed} ok` },
-              { dot: "bg-red-500/80",     label: `${failed} fail` },
-              { dot: "bg-amber-500/60",   label: `${blocked} blk` },
-              { dot: "bg-slate-600",      label: `${notRun} left` },
-            ].map(s => (
-              <span key={s.label} className="flex items-center gap-1">
-                <span className={cn("h-1.5 w-1.5 rounded-full shrink-0", s.dot)}/>
-                <span className="text-[9px] text-slate-600">{s.label}</span>
-              </span>
-            ))}
+            {/* Stats footer */}
+            <div className="border-t border-border px-3 py-2 space-y-2">
+              <div className="flex flex-wrap gap-x-3 gap-y-0.5">
+                {[
+                  { dot: "bg-emerald-500/70", label: `${passed} ok` },
+                  { dot: "bg-red-500/80",     label: `${failed} fail` },
+                  { dot: "bg-amber-500/60",   label: `${blocked} blk` },
+                  { dot: "bg-slate-600",      label: `${notRun} left` },
+                ].map(s => (
+                  <span key={s.label} className="flex items-center gap-1">
+                    <span className={cn("h-1.5 w-1.5 rounded-full shrink-0", s.dot)}/>
+                    <span className="text-[9px] text-slate-600">{s.label}</span>
+                  </span>
+                ))}
+              </div>
+              {run?.status !== "completed" && notRun === 0 && (
+                <button type="button"
+                  onClick={() => completeRun.mutateAsync(runId)}
+                  disabled={completeRun.isPending}
+                  className="w-full rounded-lg bg-emerald-600 py-1.5 text-[11px] font-semibold text-white hover:bg-emerald-500 disabled:opacity-40 transition-colors">
+                  {completeRun.isPending ? "Tamamlanıyor…" : "✓ Koşumu Tamamla"}
+                </button>
+              )}
+            </div>
+          </>
+        ) : (
+          <div className="flex-1 overflow-y-auto">
+            {projectId && runId && (
+              <IntelligencePanel projectId={projectId} runId={runId} />
+            )}
           </div>
-          {run?.status !== "completed" && notRun === 0 && (
-            <button type="button"
-              onClick={() => completeRun.mutateAsync(runId)}
-              disabled={completeRun.isPending}
-              className="w-full rounded-lg bg-emerald-600 py-1.5 text-[11px] font-semibold text-white hover:bg-emerald-500 disabled:opacity-40 transition-colors">
-              {completeRun.isPending ? "Tamamlanıyor…" : "✓ Koşumu Tamamla"}
-            </button>
-          )}
-        </div>
+        )}
       </aside>
 
       {/* MAIN: Execution Panel */}

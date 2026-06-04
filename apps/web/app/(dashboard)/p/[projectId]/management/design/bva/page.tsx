@@ -6,7 +6,9 @@ import { cn } from "@/lib/utils";
 import {
   type DesignDataType,
   type DesignFieldSpec,
+  type DesignRun,
   useCreateBvaRun,
+  useDesignRuns,
   usePromoteCases,
 } from "@/lib/hooks/use-mgmt-design";
 
@@ -23,10 +25,13 @@ export default function BvaPage() {
   const [fields, setFields]   = useState<DesignFieldSpec[]>([emptyField()]);
   const [context, setContext] = useState("");
   const [promoted, setPromoted] = useState<Set<number>>(new Set());
+  const [selectedHistory, setSelectedHistory] = useState<DesignRun | null>(null);
 
   const runMut     = useCreateBvaRun();
   const run        = runMut.data;
   const promoteMut = usePromoteCases(run?.id);
+
+  const { data: historyRuns = [] } = useDesignRuns({ technique: "BVA", projectId });
 
   const update = (i: number, patch: Partial<DesignFieldSpec>) =>
     setFields(f => f.map((x, idx) => idx === i ? { ...x, ...patch } : x));
@@ -45,6 +50,9 @@ export default function BvaPage() {
 
   const cases = run?.generated_cases ?? [];
 
+  const recentRuns = historyRuns.slice(0, 5);
+  const displayCases = selectedHistory ? selectedHistory.generated_cases : cases;
+
   return (
     <div className="min-h-full bg-bg px-6 py-6 space-y-5">
       <div className="flex items-center justify-between">
@@ -52,8 +60,43 @@ export default function BvaPage() {
           <h1 className="text-[15px] font-semibold text-slate-100">Boundary Value Analysis</h1>
           <p className="mt-0.5 text-[12px] text-slate-500">Alan sınırlarından otomatik test senaryosu üret</p>
         </div>
-        {run && <span className="text-[11px] text-slate-600">{cases.length} case üretildi · {promoted.size} kaydedildi</span>}
+        {run && !selectedHistory && <span className="text-[11px] text-slate-600">{cases.length} case üretildi · {promoted.size} kaydedildi</span>}
       </div>
+
+      {/* Recent Runs */}
+      {recentRuns.length > 0 && (
+        <div className="rounded-xl border border-border bg-surface-raised p-4 space-y-2">
+          <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-500">Son Çalışmalar</p>
+          <div className="flex flex-wrap gap-2">
+            {recentRuns.map((r) => (
+              <button
+                key={r.id}
+                type="button"
+                onClick={() => setSelectedHistory(prev => prev?.id === r.id ? null : r)}
+                className={cn(
+                  "flex items-center gap-2 rounded-lg border px-3 py-1.5 text-[11px] transition-colors",
+                  selectedHistory?.id === r.id
+                    ? "border-teal-500/40 bg-teal-500/10 text-teal-300"
+                    : "border-border bg-white/[0.02] text-slate-400 hover:text-slate-200 hover:border-slate-600"
+                )}
+              >
+                <span className="text-slate-500 font-mono">
+                  {new Date(r.created_at).toLocaleDateString("tr-TR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}
+                </span>
+                <span className="text-slate-400">{r.generated_cases.length} case</span>
+                <span className="text-slate-600">·</span>
+                <span className="text-slate-500">{((r.input_spec.fields as unknown[])?.length ?? "?")} alan</span>
+              </button>
+            ))}
+          </div>
+          {selectedHistory && (
+            <p className="text-[11px] text-teal-400/70">
+              {new Date(selectedHistory.created_at).toLocaleString("tr-TR")} tarihli çalışma görüntüleniyor —{" "}
+              <button type="button" onClick={() => setSelectedHistory(null)} className="underline hover:text-teal-300">kapat</button>
+            </p>
+          )}
+        </div>
+      )}
 
       <div className="grid gap-5 xl:grid-cols-2">
         {/* Form */}
@@ -107,39 +150,45 @@ export default function BvaPage() {
 
         {/* Results */}
         <div className="rounded-xl border border-border bg-surface-raised p-5 space-y-3">
-          <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-500">Üretilen Senaryolar</p>
+          <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-500">
+            {selectedHistory ? "Geçmiş Çalışma Senaryoları" : "Üretilen Senaryolar"}
+          </p>
 
-          {!run ? (
+          {!run && !selectedHistory ? (
             <div className="py-12 text-center text-[13px] text-slate-600">Henüz çalıştırılmadı</div>
-          ) : cases.length === 0 ? (
+          ) : displayCases.length === 0 ? (
             <div className="py-8 text-center text-[13px] text-slate-600">Senaryo üretilemedi</div>
           ) : (
             <>
               <div className="space-y-2 max-h-96 overflow-y-auto">
-                {cases.map((c, i) => (
+                {displayCases.map((c, i) => (
                   <div key={i} className="flex items-start gap-3 rounded-lg border border-border bg-white/[0.02] px-3 py-2.5">
                     <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-teal-500/60"/>
                     <div className="flex-1 min-w-0">
                       <p className="text-[13px] text-slate-300">{c.name}</p>
                       {c.rationale && <p className="mt-0.5 text-[11px] text-slate-600 line-clamp-1">{c.rationale}</p>}
                     </div>
-                    {promoted.has(i) ? (
-                      <span className="shrink-0 text-[11px] text-emerald-500/70">✓</span>
-                    ) : (
-                      <button type="button" onClick={() => promote([i])}
-                        className="shrink-0 rounded border border-border px-2 py-0.5 text-[11px] text-slate-500 hover:text-teal-400 transition-colors">
-                        Kaydet
-                      </button>
+                    {!selectedHistory && (
+                      promoted.has(i) ? (
+                        <span className="shrink-0 text-[11px] text-emerald-500/70">✓</span>
+                      ) : (
+                        <button type="button" onClick={() => promote([i])}
+                          className="shrink-0 rounded border border-border px-2 py-0.5 text-[11px] text-slate-500 hover:text-teal-400 transition-colors">
+                          Kaydet
+                        </button>
+                      )
                     )}
                   </div>
                 ))}
               </div>
-              <button type="button"
-                onClick={() => promote(cases.map((_, i) => i).filter(i => !promoted.has(i)))}
-                disabled={promoteMut.isPending || promoted.size === cases.length}
-                className="w-full rounded-xl border border-border py-2 text-[12px] text-slate-400 hover:text-slate-200 disabled:opacity-40 transition-colors">
-                {promoteMut.isPending ? "Kaydediliyor…" : "Tümünü Repository'ye Kaydet"}
-              </button>
+              {!selectedHistory && (
+                <button type="button"
+                  onClick={() => promote(cases.map((_, i) => i).filter(i => !promoted.has(i)))}
+                  disabled={promoteMut.isPending || promoted.size === cases.length}
+                  className="w-full rounded-xl border border-border py-2 text-[12px] text-slate-400 hover:text-slate-200 disabled:opacity-40 transition-colors">
+                  {promoteMut.isPending ? "Kaydediliyor…" : "Tümünü Repository'ye Kaydet"}
+                </button>
+              )}
             </>
           )}
         </div>

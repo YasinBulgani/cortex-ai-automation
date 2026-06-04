@@ -267,6 +267,7 @@ export interface TestRun {
   source_ref?: string | null;
   scope_snapshot: Record<string, unknown>;
   environment?: string | null;
+  assigned_to?: string | null;
   started_at?: string | null;
   completed_at?: string | null;
   created_at: string;
@@ -1042,6 +1043,19 @@ export function useSearchSimilarCases(projectId: string) {
   });
 }
 
+// ── Defect delete ─────────────────────────────────────────────────────────────
+
+export function useDeleteManagementDefect(projectId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (defectId: string) =>
+      apiFetch<void>(`${BASE(projectId)}/defects/${defectId}`, { method: "DELETE" }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: managementKeys.defects(projectId) });
+    },
+  });
+}
+
 // ── Defects list ──────────────────────────────────────────────────────────────
 
 export function useManagementDefects(projectId: string | undefined) {
@@ -1643,3 +1657,103 @@ export function useDeleteManagementCase(projectId: string) {
     },
   });
 }
+
+// ── Unarchive Case ────────────────────────────────────────────────────────────
+
+export function useUnarchiveManagementCase(projectId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (caseId: string) =>
+      apiFetch<TestCase>(`${BASE(projectId)}/cases/${caseId}/unarchive`, { method: "POST", json: {} }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: managementKeys.repository(projectId) });
+      void qc.invalidateQueries({ queryKey: managementKeys.cases(projectId) });
+    },
+  });
+}
+
+// ── Plan / Cycle / Run CRUD ──────────────────────────────────────────────────
+
+export interface TestPlanUpdate { name?: string; plan_type?: string; release_name?: string | null; status?: string; scope_summary?: string | null; }
+export interface TestCycleUpdate { name?: string; environment?: string | null; build_version?: string | null; status?: string; }
+export interface TestRunUpdate { name?: string; environment?: string | null; status?: string; }
+export interface RequirementUpdate { title?: string; priority?: string; status?: string; description?: string | null; coverage_status?: string; }
+
+export function useUpdateManagementPlan(projectId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, ...payload }: TestPlanUpdate & { id: string }) =>
+      apiFetch<TestPlan>(`${BASE(projectId)}/plans/${id}`, { method: "PATCH", json: payload }),
+    onSuccess: () => { void qc.invalidateQueries({ queryKey: managementKeys.plans(projectId) }); },
+  });
+}
+
+export function useUpdateManagementCycle(projectId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, ...payload }: TestCycleUpdate & { id: string }) =>
+      apiFetch<TestCycle>(`${BASE(projectId)}/cycles/${id}`, { method: "PATCH", json: payload }),
+    onSuccess: () => { void qc.invalidateQueries({ queryKey: managementKeys.cycles(projectId) }); },
+  });
+}
+
+export function useDeleteManagementCycle(projectId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => apiFetch<void>(`${BASE(projectId)}/cycles/${id}`, { method: "DELETE" }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: managementKeys.cycles(projectId) });
+      void qc.invalidateQueries({ queryKey: managementKeys.plans(projectId) });
+    },
+  });
+}
+
+export function useUpdateManagementRun(projectId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, ...payload }: TestRunUpdate & { id: string }) =>
+      apiFetch<TestRun>(`${BASE(projectId)}/runs/${id}`, { method: "PATCH", json: payload }),
+    onSuccess: () => { void qc.invalidateQueries({ queryKey: managementKeys.runs(projectId) }); },
+  });
+}
+
+export function useDeleteManagementRun(projectId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => apiFetch<void>(`${BASE(projectId)}/runs/${id}`, { method: "DELETE" }),
+    onSuccess: () => { void qc.invalidateQueries({ queryKey: managementKeys.runs(projectId) }); },
+  });
+}
+
+export function useUpdateManagementRequirement(projectId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, ...payload }: RequirementUpdate & { id: string }) =>
+      apiFetch<Requirement>(`${BASE(projectId)}/requirements/${id}`, { method: "PATCH", json: payload }),
+    onSuccess: () => { void qc.invalidateQueries({ queryKey: managementKeys.requirements(projectId) }); },
+  });
+}
+
+export function useDeleteManagementRequirement(projectId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (reqId: string) => apiFetch<void>(`${BASE(projectId)}/requirements/${reqId}`, { method: "DELETE" }),
+    onSuccess: () => { void qc.invalidateQueries({ queryKey: managementKeys.requirements(projectId) }); },
+  });
+}
+
+// ── Run Trend ─────────────────────────────────────────────────────────────────
+
+export interface RunTrendPoint { run_id: string; name: string; created_at: string; pass_rate_pct: number; total_cases: number; passed: number; failed: number; }
+
+export function useManagementRunTrend(projectId: string | undefined) {
+  return useQuery({
+    queryKey: [...managementKeys.project(projectId), "run-trend"],
+    queryFn: () => apiFetch<RunTrendPoint[]>(`${BASE(projectId!)}/reports/run-trend`),
+    enabled: !!projectId,
+    staleTime: 60_000,
+  });
+}
+
+// ── Aliases ───────────────────────────────────────────────────────────────────
+export const useDeleteRequirementCatalogItem = useDeleteManagementRequirement;

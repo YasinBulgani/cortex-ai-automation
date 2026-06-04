@@ -1,11 +1,13 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import {
   DndContext, DragOverlay, PointerSensor, KeyboardSensor,
   useSensor, useSensors, closestCenter,
+  useDraggable,
   type DragStartEvent, type DragEndEvent,
 } from "@dnd-kit/core";
 import { arrayMove, sortableKeyboardCoordinates } from "@dnd-kit/sortable";
@@ -17,7 +19,9 @@ import {
   useUpdateManagementFolder,
   usePromoteCases,
   useArchiveManagementCase,
+  useUnarchiveManagementCase,
   useBulkUpdateCases,
+  useCloneManagementCase,
   useQualityScan,
   type QualityScanResult,
   type TestCase, type TestSuite, type TestFolder,
@@ -53,11 +57,21 @@ function IcEdit() {
 
 // ─── Case Row ─────────────────────────────────────────────────────────────────
 
-function CaseRow({ tc, selected, onSelect, checked, onCheck, projectId }: {
+function IcCopy() {
+  return <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>;
+}
+
+function CaseRow({
+  tc, selected, onSelect, checked, onCheck, projectId, onClone, cloning,
+}: {
   tc: TestCase; selected: boolean; onSelect: () => void;
   checked: boolean; onCheck: (e: React.MouseEvent) => void; projectId: string;
+  onClone: () => void; cloning: boolean;
 }) {
-  const { attributes, listeners, setNodeRef, isDragging } = useDraggable(tc.id);
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
+    id: `case:${tc.id}`,
+    data: { kind: "case", caseId: tc.id },
+  });
   const rd  = tc.last_run_status ? (R_DOT[tc.last_run_status] ?? null) : null;
   const ad  = AUTO_DOT[tc.automation_status] ?? AUTO_DOT.not_automated;
 
@@ -150,21 +164,80 @@ function CaseRow({ tc, selected, onSelect, checked, onCheck, projectId }: {
         {tc.steps?.length ?? 0}
       </td>
 
-      {/* Edit link */}
-      <td className="w-10 px-2">
-        <Link href={`/p/${projectId}/management/cases/${tc.id}`}
-          onClick={e => e.stopPropagation()}
-          className="invisible group-hover:visible inline-flex rounded p-1 text-fg-subtle hover:bg-surface-overlay hover:text-fg transition-all">
-          <IcEdit />
-        </Link>
+      {/* Row actions: Clone + Edit */}
+      <td className="w-16 px-2">
+        <div className="invisible group-hover:visible flex items-center gap-0.5">
+          <button
+            type="button"
+            onClick={e => { e.stopPropagation(); onClone(); }}
+            disabled={cloning}
+            title="Klonla"
+            className="inline-flex rounded p-1 text-fg-subtle hover:bg-surface-overlay hover:text-brand transition-all disabled:opacity-40"
+          >
+            <IcCopy />
+          </button>
+          <Link href={`/p/${projectId}/management/cases/${tc.id}`}
+            onClick={e => e.stopPropagation()}
+            className="inline-flex rounded p-1 text-fg-subtle hover:bg-surface-overlay hover:text-fg transition-all">
+            <IcEdit />
+          </Link>
+        </div>
       </td>
     </tr>
   );
 }
 
-function useDraggable(id: string) {
-  const { useDraggable: dnd } = require("@dnd-kit/core");
-  return dnd({ id: `case:${id}`, data: { kind: "case", caseId: id } });
+// ─── Archived Case Row ────────────────────────────────────────────────────────
+
+function ArchivedCaseRow({
+  tc, checked, onCheck, projectId, onUnarchive, unarchiving,
+}: {
+  tc: TestCase; checked: boolean; onCheck: (e: React.MouseEvent) => void; projectId: string;
+  onUnarchive: () => void; unarchiving: boolean;
+}) {
+  const ad = AUTO_DOT[tc.automation_status] ?? AUTO_DOT.not_automated;
+  return (
+    <tr className="group border-b border-border/30 select-none opacity-60 hover:opacity-90 hover:bg-surface-overlay transition-opacity">
+      <td className="hidden w-5 sm:table-cell" />
+      <td className="w-8 px-2">
+        <button type="button" onClick={onCheck}
+          className={cn("flex h-4 w-4 items-center justify-center rounded border transition-colors",
+            checked ? "border-brand bg-brand text-brand-fg" : "border-border-strong bg-surface-raised hover:border-brand")}>
+          {checked && <IcCheck />}
+        </button>
+      </td>
+      <td className="w-24 px-3 py-2.5">
+        <Link
+          href={`/p/${projectId}/management/cases/${tc.id}`}
+          onClick={e => e.stopPropagation()}
+          className="inline-flex items-center rounded-md border border-border/40 bg-surface-overlay px-1.5 py-0.5 font-mono text-[10px] font-semibold text-fg-muted transition-colors hover:border-border"
+        >
+          {tc.case_key}
+        </Link>
+      </td>
+      <td className="px-3 py-2.5">
+        <div className="flex items-center gap-2">
+          <span className={cn("h-1.5 w-1.5 shrink-0 rounded-full opacity-50", ad.dot)} title={ad.label} />
+          <span className="text-[13px] text-fg-muted line-clamp-1 line-through">{tc.title}</span>
+        </div>
+      </td>
+      <td className="w-14 px-3 py-2.5"><span className="text-[11px] text-fg-subtle font-mono">{tc.priority}</span></td>
+      <td className="hidden w-24 px-3 py-2.5 lg:table-cell" />
+      <td className="hidden w-24 px-3 py-2.5 md:table-cell" />
+      <td className="hidden w-12 px-3 py-2.5 xl:table-cell" />
+      <td className="w-16 px-2">
+        <button
+          type="button"
+          onClick={e => { e.stopPropagation(); onUnarchive(); }}
+          disabled={unarchiving}
+          title="Geri Yükle"
+          className="invisible group-hover:visible rounded border border-emerald-500/25 px-2 py-0.5 text-[10px] font-medium text-emerald-400 hover:bg-emerald-500/10 disabled:opacity-40 transition-colors whitespace-nowrap"
+        >
+          {unarchiving ? "…" : "Geri Yükle"}
+        </button>
+      </td>
+    </tr>
+  );
 }
 
 // ─── Case Table (ultra-clean TestRail style) ──────────────────────────────────
@@ -172,27 +245,35 @@ function useDraggable(id: string) {
 const SEL_CLS = "h-8 rounded-lg border border-border bg-surface-raised px-2.5 text-[11px] font-medium text-fg-muted outline-none transition-colors cursor-pointer hover:border-border-strong focus:border-brand focus:ring-2 focus:ring-brand/15";
 
 function CaseTable({
-  nodeName, nodeCases, loading, projectId,
+  nodeName, nodeCases, archivedCases, loading, projectId,
   selId, onSelect, checked, onCheck, onClearChecked, onToggleAll,
-  onNewCase, onCreateRun, onPromote, onArchiveMany, onBulkMove, onBulkUpdate, busy,
-  suites, folders,
+  onNewCase, onCreateRun, onPromote, onArchiveMany, onUnarchiveMany,
+  onBulkMove, onBulkUpdate, onBulkClone, onCloneCase, onUnarchivedSingle,
+  busy, suites, folders,
 }: {
-  nodeName: string; nodeCases: TestCase[]; loading: boolean; projectId: string;
+  nodeName: string; nodeCases: TestCase[]; archivedCases: TestCase[]; loading: boolean; projectId: string;
   selId: string | null; onSelect: (id: string) => void;
   checked: Set<string>; onCheck: (id: string) => void;
   onClearChecked: () => void; onToggleAll: (ids: string[]) => void;
   onNewCase: () => void; onCreateRun: () => void;
-  onPromote: () => void; onArchiveMany: () => void;
+  onPromote: () => void; onArchiveMany: () => void; onUnarchiveMany: () => void;
   onBulkMove: (caseId: string, suiteId: string, folderId: string | null) => Promise<void>;
-  onBulkUpdate: (payload: { case_ids: string[]; priority?: string; type?: string; status?: string }) => Promise<void>;
+  onBulkUpdate: (payload: { case_ids: string[]; priority?: string; type?: string; status?: string; tags_add?: string[] }) => Promise<void>;
+  onBulkClone: (caseIds: string[]) => Promise<void>;
+  onCloneCase: (caseId: string) => Promise<void>;
+  onUnarchivedSingle: (caseId: string) => Promise<void>;
   busy: boolean;
   suites: TestSuite[];
   folders: TestFolder[];
 }) {
-  const [search,    setSearch]    = useState("");
-  const [priority,  setPriority]  = useState("");
-  const [type,      setType]      = useState("");
-  const [status,    setStatus]    = useState("");
+  const [search,       setSearch]       = useState("");
+  const [priority,     setPriority]     = useState("");
+  const [type,         setType]         = useState("");
+  const [status,       setStatus]       = useState("");
+  const [showArchived, setShowArchived] = useState(false);
+  const [cloningId,    setCloningId]    = useState<string | null>(null);
+  const [unarchivedId, setUnarchivedId] = useState<string | null>(null);
+  const [cloneProgress, setCloneProgress] = useState<{ done: number; total: number } | null>(null);
 
   const filtered = useMemo(() => {
     let r = nodeCases;
@@ -207,6 +288,33 @@ function CaseTable({
   const allChecked = filtered.length > 0 && filtered.every(c => checked.has(c.id));
   const hasFilter  = !!(search || priority || type || status);
   const clearAll   = () => { setSearch(""); setPriority(""); setType(""); setStatus(""); };
+  const checkedIds = [...checked];
+
+  const checkedArchivedCount = useMemo(
+    () => checkedIds.filter(id => archivedCases.some(c => c.id === id)).length,
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [checked, archivedCases],
+  );
+
+  const handleBulkClone = async () => {
+    if (!checkedIds.length) return;
+    setCloneProgress({ done: 0, total: checkedIds.length });
+    await onBulkClone(checkedIds);
+    setCloneProgress(null);
+    onClearChecked();
+  };
+
+  const handleCloneRow = async (caseId: string) => {
+    setCloningId(caseId);
+    try { await onCloneCase(caseId); }
+    finally { setCloningId(null); }
+  };
+
+  const handleUnarchiveRow = async (caseId: string) => {
+    setUnarchivedId(caseId);
+    try { await onUnarchivedSingle(caseId); }
+    finally { setUnarchivedId(null); }
+  };
 
   return (
     <div className="flex flex-1 flex-col min-w-0 overflow-hidden">
@@ -233,6 +341,20 @@ function CaseTable({
             className={cn("rounded-full border px-2 py-0.5 text-[10px] font-medium transition-colors",
               status === "blocked" ? "bg-amber-500/15 border-amber-500/30 text-amber-400" : "border-amber-500/20 text-amber-500/60 hover:text-amber-400")}>
             {nodeCases.filter(c => c.last_run_status === "blocked").length} blk
+          </button>
+        )}
+
+        {/* Archived toggle */}
+        {archivedCases.length > 0 && (
+          <button type="button"
+            onClick={() => setShowArchived(v => !v)}
+            className={cn(
+              "rounded-full border px-2 py-0.5 text-[10px] font-medium transition-colors",
+              showArchived
+                ? "border-amber-500/30 bg-amber-500/10 text-amber-400"
+                : "border-border text-fg-subtle hover:text-fg",
+            )}>
+            {showArchived ? "Arşivi Gizle" : `Arşiv (${archivedCases.length})`}
           </button>
         )}
 
@@ -320,6 +442,26 @@ function CaseTable({
               </optgroup>
             ))}
           </select>
+          {/* Bulk Clone */}
+          <button
+            type="button"
+            onClick={() => void handleBulkClone()}
+            disabled={busy || cloneProgress !== null}
+            className="rounded border border-border px-2.5 py-1 text-[11px] text-fg-muted hover:text-fg disabled:opacity-40 transition-colors"
+          >
+            {cloneProgress
+              ? `${cloneProgress.done}/${cloneProgress.total} kopyalandı`
+              : "Klonla"}
+          </button>
+
+          {/* Arşiv'den Çıkar — only when archived cases are selected */}
+          {checkedArchivedCount > 0 && (
+            <button type="button" onClick={onUnarchiveMany} disabled={busy}
+              className="rounded border border-emerald-500/25 px-2.5 py-1 text-[11px] text-emerald-400 hover:bg-emerald-500/10 disabled:opacity-40 transition-colors">
+              Arşiv&apos;den Çıkar ({checkedArchivedCount})
+            </button>
+          )}
+
           <button type="button" onClick={onArchiveMany} disabled={busy}
             className="rounded border border-red-500/20 px-2.5 py-1 text-[11px] text-red-400 hover:bg-red-500/10 disabled:opacity-40 transition-colors">
             Arşivle
@@ -341,7 +483,7 @@ function CaseTable({
               </div>
             ))}
           </div>
-        ) : filtered.length === 0 ? (
+        ) : filtered.length === 0 && !showArchived ? (
           <div className="flex flex-col items-center justify-center py-24 gap-3">
             {hasFilter ? (
               <>
@@ -381,7 +523,7 @@ function CaseTable({
                   { label: "Tür",      cls: "hidden w-24 lg:table-cell"  },
                   { label: "Son Koşum",cls: "hidden w-24 md:table-cell"  },
                   { label: "Adım",     cls: "hidden w-12 xl:table-cell"  },
-                  { label: "",         cls: "w-10"                       },
+                  { label: "",         cls: "w-16"                       },
                 ].map(({ label, cls }) => (
                   <th key={label}
                     className={cn("px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-widest text-fg-muted", cls)}>
@@ -399,8 +541,32 @@ function CaseTable({
                   checked={checked.has(tc.id)}
                   onCheck={e => { e.stopPropagation(); onCheck(tc.id); }}
                   projectId={projectId}
+                  onClone={() => void handleCloneRow(tc.id)}
+                  cloning={cloningId === tc.id}
                 />
               ))}
+              {/* ── Archived section ────────────────────────────────── */}
+              {showArchived && archivedCases.length > 0 && (
+                <>
+                  <tr>
+                    <td colSpan={9} className="px-4 py-2 bg-surface-overlay border-y border-border/60">
+                      <span className="text-[10px] font-semibold uppercase tracking-widest text-fg-subtle">
+                        Arşivlendi ({archivedCases.length})
+                      </span>
+                    </td>
+                  </tr>
+                  {archivedCases.map(tc => (
+                    <ArchivedCaseRow
+                      key={tc.id} tc={tc}
+                      checked={checked.has(tc.id)}
+                      onCheck={e => { e.stopPropagation(); onCheck(tc.id); }}
+                      projectId={projectId}
+                      onUnarchive={() => void handleUnarchiveRow(tc.id)}
+                      unarchiving={unarchivedId === tc.id}
+                    />
+                  ))}
+                </>
+              )}
             </tbody>
           </table>
         )}
@@ -410,6 +576,9 @@ function CaseTable({
       <div className="flex items-center justify-between border-t border-border bg-surface-raised px-4 py-2">
         <span className="text-[10px] text-fg-muted">
           {hasFilter ? `${filtered.length} / ${nodeCases.length} senaryo` : `${nodeCases.length} senaryo`}
+          {archivedCases.length > 0 && (
+            <span className="ml-2 text-fg-subtle">· {archivedCases.length} arşivde</span>
+          )}
         </span>
         {checked.size > 0 && (
           <span className="text-[10px] font-medium text-brand">{checked.size} seçili</span>
@@ -450,16 +619,21 @@ export function WorkspaceShell({
 
   const suites  = useMemo<TestSuite[]>(() => repoQ.data?.suites ?? [], [repoQ.data]);
   const folders = useMemo<TestFolder[]>(() => repoQ.data?.folders ?? [], [repoQ.data]);
-  const allCases= useMemo(() => repoQ.data?.cases ?? [], [repoQ.data]);
-  const active  = useMemo(() => allCases.filter(c => !c.archived), [allCases]);
-  const runs    = runsQ.data ?? [];
+  const allCases  = useMemo(() => repoQ.data?.cases ?? [], [repoQ.data]);
+  const active    = useMemo(() => allCases.filter(c => !c.archived), [allCases]);
+  const archived  = useMemo(() => allCases.filter(c => c.archived), [allCases]);
+  const runs      = runsQ.data ?? [];
 
   const moveCase     = useMoveManagementCase(mpid || "");
   const updateSuite  = useUpdateManagementSuite(mpid || "");
   const updateFolder = useUpdateManagementFolder(mpid || "");
   const promote      = usePromoteCases(mpid || "");
-  const archive      = useArchiveManagementCase(mpid || "");
+  const archiveMut   = useArchiveManagementCase(mpid || "");
+  const unarchiveMut = useUnarchiveManagementCase(mpid || "");
   const bulkUpdate   = useBulkUpdateCases(mpid || "");
+  const cloneMut     = useCloneManagementCase(mpid || "");
+
+  const router = useRouter();
 
   const [mode,           setMode]           = useState<"cases" | "runs">(initialMode);
   const [node,           setNode]           = useState<WsNode>({ type: "all" });
@@ -487,6 +661,14 @@ export function WorkspaceShell({
       default:       return active;
     }
   }, [active, node]);
+
+  const nodeArchivedCases = useMemo(() => {
+    switch (node.type) {
+      case "suite":  return archived.filter(c => c.suite_id === node.id);
+      case "folder": return archived.filter(c => c.folder_id === node.id);
+      default:       return archived;
+    }
+  }, [archived, node]);
 
   const nodeName = node.type === "all" ? "Tüm Senaryolar"
     : node.type === "suite"  ? (suites.find(s => s.id === node.id)?.name ?? "Suite")
@@ -546,9 +728,38 @@ export function WorkspaceShell({
   const onArchiveMany = async () => {
     if (!checkedIds.length) return;
     setBusy(true);
-    try { for (const id of checkedIds) await archive.mutateAsync(id); setChecked(new Set()); }
+    try { for (const id of checkedIds) await archiveMut.mutateAsync(id); setChecked(new Set()); }
     finally { setBusy(false); }
   };
+
+  const onUnarchiveMany = async () => {
+    const archivedChecked = checkedIds.filter(id => archived.some(c => c.id === id));
+    if (!archivedChecked.length) return;
+    setBusy(true);
+    try { for (const id of archivedChecked) await unarchiveMut.mutateAsync(id); setChecked(new Set()); }
+    finally { setBusy(false); }
+  };
+
+  const onBulkClone = async (caseIds: string[]) => {
+    setBusy(true);
+    try {
+      for (const id of caseIds) await cloneMut.mutateAsync({ caseId: id });
+    } finally { setBusy(false); }
+  };
+
+  // Single-row clone: navigate to new case
+  const onCloneCase = async (caseId: string) => {
+    const newCase = await cloneMut.mutateAsync({ caseId });
+    if (newCase?.id) router.push(`/p/${projectId}/management/cases/${newCase.id}`);
+  };
+
+  // Single-row unarchive
+  const onUnarchivedSingle = async (caseId: string) => {
+    setBusy(true);
+    try { await unarchiveMut.mutateAsync(caseId); }
+    finally { setBusy(false); }
+  };
+
   const openNewRun = () => { setRunInitCaseIds(checkedIds); setShowNewRun(true); };
   const onRunCreated = (runId: string) => {
     setShowNewRun(false); setChecked(new Set());
@@ -670,9 +881,13 @@ export function WorkspaceShell({
 
             {/* ── Right: Case table ───────────────────────────────────────── */}
             <CaseTable
-              nodeName={nodeName} nodeCases={nodeCases}
-              loading={repoQ.isLoading} projectId={projectId}
-              selId={selId} onSelect={id => setSelId(selId === id ? null : id)}
+              nodeName={nodeName}
+              nodeCases={nodeCases}
+              archivedCases={nodeArchivedCases}
+              loading={repoQ.isLoading}
+              projectId={projectId}
+              selId={selId}
+              onSelect={id => setSelId(selId === id ? null : id)}
               checked={checked}
               onCheck={id => setChecked(p => { const n = new Set(p); n.has(id) ? n.delete(id) : n.add(id); return n; })}
               onClearChecked={() => setChecked(new Set())}
@@ -681,12 +896,16 @@ export function WorkspaceShell({
               onCreateRun={openNewRun}
               onPromote={onPromote}
               onArchiveMany={onArchiveMany}
+              onUnarchiveMany={onUnarchiveMany}
               onBulkMove={async (caseId, suiteId, folderId) => {
                 await moveCase.mutateAsync({ caseId, suite_id: suiteId, folder_id: folderId });
               }}
               onBulkUpdate={async payload => {
                 await bulkUpdate.mutateAsync(payload);
               }}
+              onBulkClone={onBulkClone}
+              onCloneCase={onCloneCase}
+              onUnarchivedSingle={onUnarchivedSingle}
               busy={busy}
               suites={suites}
               folders={folders}

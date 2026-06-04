@@ -1,19 +1,23 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import {
-  useManagementRequirements,
   useRequirementTraceability,
   useRequirementCatalog,
   useCreateRequirementCatalogItem,
+  useDeleteManagementRequirement,
   useCreateManagementRequirement,
+  useManagementCases,
   useBulkCreateRequirements,
   useGenerateTestCases,
   type RequirementTraceabilityRow,
   type Requirement,
+  type TestCase,
 } from "@/lib/hooks/use-management";
 import { useManagementProjectId } from "@/lib/hooks/use-management-project-id";
 import { useRouteParam } from "@/lib/use-route-param";
+import { apiFetch } from "@/lib/api-client";
 
 // ── Constants ──────────────────────────────────────────────────────────────────
 
@@ -63,6 +67,17 @@ const EXTERNAL_SOURCES = ["jira", "confluence", "notion", "github", "linear", "m
 const PAGE_SIZE = 20;
 
 type ViewTab = "traceability" | "catalog";
+
+// ── Edit fields ────────────────────────────────────────────────────────────────
+
+interface EditReqFields {
+  title: string;
+  description: string;
+  module: string;
+  priority: string;
+  status: string;
+  coverage_status: string;
+}
 
 // ── Form fields ────────────────────────────────────────────────────────────────
 
@@ -129,7 +144,6 @@ function DonutChart({
   const cy = size / 2;
   const r = 44;
   const strokeWidth = 18;
-  const circumference = 2 * Math.PI * r;
 
   const segments = [
     { value: covered, color: "#10b981", label: "Kapsandı" },
@@ -145,27 +159,16 @@ function DonutChart({
     const startAngle = cumulativeAngle;
     const endAngle = cumulativeAngle + angle;
     cumulativeAngle = endAngle;
-
     const startRad = (startAngle * Math.PI) / 180;
     const endRad = (endAngle * Math.PI) / 180;
-
     const x1 = cx + r * Math.cos(startRad);
     const y1 = cy + r * Math.sin(startRad);
     const x2 = cx + r * Math.cos(endRad);
     const y2 = cy + r * Math.sin(endRad);
-
     const largeArc = angle > 180 ? 1 : 0;
     const d = `M ${x1} ${y1} A ${r} ${r} 0 ${largeArc} 1 ${x2} ${y2}`;
-
     return (
-      <path
-        key={i}
-        d={d}
-        fill="none"
-        stroke={seg.color}
-        strokeWidth={strokeWidth}
-        strokeLinecap="butt"
-      />
+      <path key={i} d={d} fill="none" stroke={seg.color} strokeWidth={strokeWidth} strokeLinecap="butt" />
     );
   });
 
@@ -184,15 +187,16 @@ function DonutChart({
         </div>
       </div>
       <div className="space-y-1.5">
-        {segments.map((seg) => (
-          seg.value > 0 && (
-            <div key={seg.label} className="flex items-center gap-2">
-              <span className="h-2 w-2 rounded-sm shrink-0" style={{ backgroundColor: seg.color }} />
-              <span className="text-[11px] text-fg-muted">{seg.label}</span>
-              <span className="text-[11px] font-medium text-fg ml-auto pl-4">{seg.value}</span>
-            </div>
-          )
-        ))}
+        {segments.map(
+          (seg) =>
+            seg.value > 0 && (
+              <div key={seg.label} className="flex items-center gap-2">
+                <span className="h-2 w-2 rounded-sm shrink-0" style={{ backgroundColor: seg.color }} />
+                <span className="text-[11px] text-fg-muted">{seg.label}</span>
+                <span className="text-[11px] font-medium text-fg ml-auto pl-4">{seg.value}</span>
+              </div>
+            )
+        )}
         <div className="flex items-center gap-2 border-t border-border pt-1.5 mt-1">
           <span className="text-[10px] text-fg-subtle">Toplam</span>
           <span className="text-[11px] font-medium text-fg ml-auto pl-4">{total}</span>
@@ -202,8 +206,199 @@ function DonutChart({
   );
 }
 
-function TraceRow({ row }: { row: RequirementTraceabilityRow }) {
+// ── LinkCaseModal ──────────────────────────────────────────────────────────────
+
+function LinkCaseModal({
+  row,
+  mpid,
+  onClose,
+  onLinked,
+}: {
+  row: RequirementTraceabilityRow;
+  mpid: string;
+  onClose: () => void;
+  onLinked: () => void;
+}) {
+  const { data: allCases, isLoading } = useManagementCases(mpid);
+  const createReq = useCreateManagementRequirement(mpid);
+  const [search, setSearch] = useState("");
+  const [selectedCaseId, setSelectedCaseId] = useState<string | null>(null);
+  const [coverageStatus, setCoverageStatus] = useState("covered");
+  const [linking, setLinking] = useState(false);
+  const [linkError, setLinkError] = useState<string | null>(null);
+
+  const linkedCaseIds = useMemo(() => new Set(row.cases.map((c) => c.case_id)), [row.cases]);
+
+  const filteredCases = useMemo(() => {
+    if (!allCases) return [];
+    const q = search.toLowerCase();
+    return allCases.filter(
+      (c: TestCase) =>
+        !linkedCaseIds.has(c.id) &&
+        (!q || c.title.toLowerCase().includes(q) || (c.case_key ?? "").toLowerCase().includes(q))
+    );
+  }, [allCases, search, linkedCaseIds]);
+
+  async function handleLink() {
+    if (!selectedCaseId) return;
+    setLinking(true);
+    setLinkError(null);
+    try {
+      await createReq.mutateAsync({
+        requirement_id: row.requirement_id,
+        case_id: selectedCaseId,
+        external_source: row.source ?? "manual",
+        external_key: row.external_key,
+        title_snapshot: row.title,
+        coverage_status: coverageStatus,
+      });
+      onLinked();
+    } catch {
+      setLinkError("Case bağlanamadı. Tekrar deneyin.");
+    } finally {
+      setLinking(false);
+    }
+  }
+
+  return (
+    <>
+      <div className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div
+          className="relative w-full max-w-lg rounded-xl border border-border bg-surface-raised shadow-2xl flex flex-col max-h-[85vh]"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="flex items-center justify-between border-b border-border px-6 py-4 shrink-0">
+            <div>
+              <h2 className="text-[14px] font-semibold text-fg">Case Bağla</h2>
+              <p className="text-[11px] text-fg-subtle mt-0.5 font-mono">
+                {row.external_key} — {row.title}
+              </p>
+            </div>
+            <button
+              onClick={onClose}
+              className="rounded p-1 text-fg-subtle hover:bg-white/[0.06] hover:text-fg transition-colors"
+            >
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+          <div className="flex flex-col overflow-hidden flex-1">
+            <div className="px-6 pt-4 pb-2 space-y-3 shrink-0">
+              <div className="relative">
+                <svg
+                  className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-fg-subtle"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+                <input
+                  type="text"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Case ara..."
+                  className="w-full rounded border border-border bg-surface-base pl-8 pr-3 py-2 text-[12px] text-fg placeholder-fg-subtle outline-none focus:border-brand/50"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-medium text-fg-muted">Kapsam Durumu</label>
+                <select
+                  value={coverageStatus}
+                  onChange={(e) => setCoverageStatus(e.target.value)}
+                  className="w-full rounded border border-border bg-surface-base px-3 py-2 text-[12px] text-fg outline-none focus:border-brand/50"
+                >
+                  <option value="covered">covered</option>
+                  <option value="partially_covered">partially_covered</option>
+                  <option value="not_covered">not_covered</option>
+                  <option value="out_of_scope">out_of_scope</option>
+                </select>
+              </div>
+            </div>
+            <div className="flex-1 overflow-y-auto px-6 py-2 space-y-1">
+              {isLoading ? (
+                <div className="py-8 text-center text-[12px] text-fg-subtle">
+                  Case&apos;ler yükleniyor...
+                </div>
+              ) : filteredCases.length === 0 ? (
+                <div className="py-8 text-center text-[12px] text-fg-subtle">
+                  {search ? "Arama kriterine uyan case bulunamadı" : "Bağlanabilecek case yok"}
+                </div>
+              ) : (
+                filteredCases.map((c: TestCase) => (
+                  <button
+                    key={c.id}
+                    type="button"
+                    onClick={() => setSelectedCaseId(selectedCaseId === c.id ? null : c.id)}
+                    className={[
+                      "w-full text-left rounded-lg border px-3 py-2.5 transition-colors",
+                      selectedCaseId === c.id
+                        ? "border-brand/50 bg-brand/10"
+                        : "border-border bg-surface-overlay hover:bg-white/[0.04]",
+                    ].join(" ")}
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-mono text-fg-muted shrink-0">{c.case_key}</span>
+                      <span className="text-[12px] text-fg truncate">{c.title}</span>
+                      {selectedCaseId === c.id && (
+                        <svg
+                          className="h-3.5 w-3.5 text-brand shrink-0 ml-auto"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                          strokeWidth={2.5}
+                        >
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                        </svg>
+                      )}
+                    </div>
+                  </button>
+                ))
+              )}
+            </div>
+            {linkError && (
+              <p className="px-6 pb-2 text-[11px] text-red-400 shrink-0">{linkError}</p>
+            )}
+            <div className="flex items-center justify-end gap-2 border-t border-border px-6 py-4 shrink-0">
+              <button
+                type="button"
+                onClick={onClose}
+                className="rounded px-4 py-2 text-[12px] text-fg-muted hover:bg-white/[0.06] hover:text-fg transition-colors"
+              >
+                İptal
+              </button>
+              <button
+                type="button"
+                disabled={!selectedCaseId || linking}
+                onClick={handleLink}
+                className="rounded border border-brand/40 bg-brand/10 px-4 py-2 text-[12px] font-medium text-brand-fg transition-colors hover:bg-brand/20 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                {linking ? "Bağlanıyor..." : "Bağla"}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
+
+// ── TraceRow ───────────────────────────────────────────────────────────────────
+
+function TraceRow({
+  row,
+  mpid,
+  onLinked,
+}: {
+  row: RequirementTraceabilityRow;
+  mpid: string;
+  onLinked: () => void;
+}) {
   const [open, setOpen] = useState(false);
+  const [showLinkModal, setShowLinkModal] = useState(false);
   return (
     <>
       <tr
@@ -237,10 +432,19 @@ function TraceRow({ row }: { row: RequirementTraceabilityRow }) {
         <td className="px-4 py-3">
           <span className="text-[11px] text-fg-muted">{row.cases.length}</span>
         </td>
+        <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+          <button
+            type="button"
+            onClick={() => setShowLinkModal(true)}
+            className="rounded border border-brand/30 bg-brand/5 px-2 py-1 text-[10px] text-brand-fg hover:bg-brand/15 transition-colors whitespace-nowrap"
+          >
+            + Case Bağla
+          </button>
+        </td>
       </tr>
       {open && row.cases.length > 0 && (
         <tr className="border-b border-border">
-          <td colSpan={6} className="px-8 py-3 bg-surface-overlay">
+          <td colSpan={7} className="px-8 py-3 bg-surface-overlay">
             <div className="space-y-2">
               {row.cases.map((c) => {
                 const dot = LAST_RUN_DOT[c.last_run_status ?? "not_run"] ?? "bg-slate-600";
@@ -266,16 +470,31 @@ function TraceRow({ row }: { row: RequirementTraceabilityRow }) {
           </td>
         </tr>
       )}
+      {showLinkModal && (
+        <LinkCaseModal
+          row={row}
+          mpid={mpid}
+          onClose={() => setShowLinkModal(false)}
+          onLinked={() => {
+            setShowLinkModal(false);
+            onLinked();
+          }}
+        />
+      )}
     </>
   );
 }
 
+// ── CatalogDetailPanel ─────────────────────────────────────────────────────────
+
 function CatalogDetailPanel({
   req,
   onClose,
+  onEdit,
 }: {
   req: Requirement;
   onClose: () => void;
+  onEdit: (req: Requirement) => void;
 }) {
   return (
     <div className="flex flex-col h-full">
@@ -285,14 +504,29 @@ function CatalogDetailPanel({
           <span className="text-[10px] text-fg-subtle">·</span>
           <span className="text-[11px] text-fg-subtle">{req.external_source}</span>
         </div>
-        <button
-          onClick={onClose}
-          className="rounded p-1 text-fg-subtle hover:bg-white/[0.06] hover:text-fg transition-colors"
-        >
-          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => onEdit(req)}
+            className="rounded p-1 text-fg-subtle hover:bg-white/[0.06] hover:text-fg transition-colors"
+            title="Düzenle"
+          >
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+              />
+            </svg>
+          </button>
+          <button
+            onClick={onClose}
+            className="rounded p-1 text-fg-subtle hover:bg-white/[0.06] hover:text-fg transition-colors"
+          >
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
       </div>
       <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
         <h3 className="text-[14px] font-semibold text-fg leading-snug">{req.title}</h3>
@@ -306,6 +540,15 @@ function CatalogDetailPanel({
             label={req.status}
             colorClass={STATUS_COLORS[req.status] ?? "text-fg-muted border-border bg-surface-overlay"}
           />
+          {(req as unknown as { coverage_status?: string }).coverage_status && (
+            <Badge
+              label={(req as unknown as { coverage_status: string }).coverage_status}
+              colorClass={
+                COVERAGE_COLORS[(req as unknown as { coverage_status: string }).coverage_status] ??
+                "text-fg-muted border-border bg-surface-overlay"
+              }
+            />
+          )}
         </div>
 
         {req.description && (
@@ -381,6 +624,191 @@ function CatalogDetailPanel({
   );
 }
 
+// ── EditRequirementModal ───────────────────────────────────────────────────────
+
+function EditRequirementModal({
+  req,
+  mpid,
+  onClose,
+  onSaved,
+}: {
+  req: Requirement;
+  mpid: string;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const qc = useQueryClient();
+  const [fields, setFields] = useState<EditReqFields>({
+    title: req.title,
+    description: req.description ?? "",
+    module: req.tags[0] ?? "",
+    priority: req.priority,
+    status: req.status,
+    coverage_status:
+      (req as unknown as { coverage_status?: string }).coverage_status ?? "not_covered",
+  });
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleSave(e: React.FormEvent) {
+    e.preventDefault();
+    if (!fields.title.trim()) return;
+    setSaving(true);
+    setError(null);
+    try {
+      await apiFetch<Requirement>(
+        `/api/v1/test-management/projects/${mpid}/requirements/catalog/${req.id}`,
+        {
+          method: "PATCH",
+          json: {
+            title: fields.title.trim(),
+            description: fields.description.trim() || null,
+            priority: fields.priority,
+            status: fields.status,
+            coverage_status: fields.coverage_status,
+            tags: fields.module.trim() ? [fields.module.trim()] : [],
+          },
+        }
+      );
+      void qc.invalidateQueries({ queryKey: ["management", mpid, "requirementCatalog"] });
+      void qc.invalidateQueries({ queryKey: ["management", mpid, "requirements"] });
+      onSaved();
+    } catch {
+      setError("Gereksinim güncellenemedi. Tekrar deneyin.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <>
+      <div className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div
+          className="relative w-full max-w-lg rounded-xl border border-border bg-surface-raised shadow-2xl flex flex-col max-h-[90vh]"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="flex items-center justify-between border-b border-border px-6 py-4 shrink-0">
+            <div>
+              <h2 className="text-[14px] font-semibold text-fg">Gereksinimi Düzenle</h2>
+              <p className="text-[11px] text-fg-subtle mt-0.5 font-mono">{req.external_key}</p>
+            </div>
+            <button
+              onClick={onClose}
+              className="rounded p-1 text-fg-subtle hover:bg-white/[0.06] hover:text-fg transition-colors"
+            >
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+          <form onSubmit={handleSave} className="flex flex-col overflow-hidden">
+            <div className="overflow-y-auto px-6 py-5 space-y-4">
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-medium text-fg-muted">
+                  Başlık <span className="text-red-400">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={fields.title}
+                  onChange={(e) => setFields((f) => ({ ...f, title: e.target.value }))}
+                  required
+                  className="w-full rounded border border-border bg-surface-base px-3 py-2 text-[12px] text-fg placeholder-fg-subtle outline-none focus:border-brand/50 transition-colors"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-medium text-fg-muted">Açıklama</label>
+                <textarea
+                  value={fields.description}
+                  onChange={(e) => setFields((f) => ({ ...f, description: e.target.value }))}
+                  rows={3}
+                  className="w-full resize-none rounded border border-border bg-surface-base px-3 py-2 text-[12px] text-fg placeholder-fg-subtle outline-none focus:border-brand/50 transition-colors"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-medium text-fg-muted">Modül / Etiket</label>
+                <input
+                  type="text"
+                  list="edit-module-suggestions"
+                  value={fields.module}
+                  onChange={(e) => setFields((f) => ({ ...f, module: e.target.value }))}
+                  placeholder="Modül adı girin veya seçin..."
+                  className="w-full rounded border border-border bg-surface-base px-3 py-2 text-[12px] text-fg placeholder-fg-subtle outline-none focus:border-brand/50 transition-colors"
+                />
+                <datalist id="edit-module-suggestions">
+                  {MODULE_OPTIONS.map((m) => (
+                    <option key={m} value={m} />
+                  ))}
+                </datalist>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <label className="text-[11px] font-medium text-fg-muted">Öncelik</label>
+                  <select
+                    value={fields.priority}
+                    onChange={(e) => setFields((f) => ({ ...f, priority: e.target.value }))}
+                    className="w-full rounded border border-border bg-surface-base px-3 py-2 text-[12px] text-fg outline-none focus:border-brand/50 transition-colors"
+                  >
+                    {["P0", "P1", "P2", "P3"].map((p) => (
+                      <option key={p} value={p}>{p}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-[11px] font-medium text-fg-muted">Durum</label>
+                  <select
+                    value={fields.status}
+                    onChange={(e) => setFields((f) => ({ ...f, status: e.target.value }))}
+                    className="w-full rounded border border-border bg-surface-base px-3 py-2 text-[12px] text-fg outline-none focus:border-brand/50 transition-colors"
+                  >
+                    {["open", "in_progress", "done", "deferred", "draft", "approved", "rejected"].map(
+                      (s) => (
+                        <option key={s} value={s}>{s}</option>
+                      )
+                    )}
+                  </select>
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-medium text-fg-muted">Kapsam Durumu</label>
+                <select
+                  value={fields.coverage_status}
+                  onChange={(e) => setFields((f) => ({ ...f, coverage_status: e.target.value }))}
+                  className="w-full rounded border border-border bg-surface-base px-3 py-2 text-[12px] text-fg outline-none focus:border-brand/50 transition-colors"
+                >
+                  <option value="covered">covered</option>
+                  <option value="partially_covered">partially_covered</option>
+                  <option value="not_covered">not_covered</option>
+                  <option value="out_of_scope">out_of_scope</option>
+                </select>
+              </div>
+              {error && <p className="text-[11px] text-red-400">{error}</p>}
+            </div>
+            <div className="flex items-center justify-end gap-2 border-t border-border px-6 py-4 shrink-0">
+              <button
+                type="button"
+                onClick={onClose}
+                className="rounded px-4 py-2 text-[12px] text-fg-muted hover:bg-white/[0.06] hover:text-fg transition-colors"
+              >
+                İptal
+              </button>
+              <button
+                type="submit"
+                disabled={saving || !fields.title.trim()}
+                className="rounded border border-brand/40 bg-brand/10 px-4 py-2 text-[12px] font-medium text-brand-fg transition-colors hover:bg-brand/20 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                {saving ? "Kaydediliyor..." : "Kaydet"}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </>
+  );
+}
+
+// ── LoadingSkeleton ────────────────────────────────────────────────────────────
+
 function LoadingSkeleton() {
   return (
     <div className="space-y-3 p-6">
@@ -416,18 +844,19 @@ export default function ManagementRequirementsPage() {
     isError: catalogError,
     refetch: catalogRefetch,
   } = useRequirementCatalog(mpid || undefined);
-  const {
-    data: managementReqs,
-  } = useManagementRequirements(mpid || undefined);
 
   const createCatalogItem = useCreateRequirementCatalogItem(mpid || "");
-  const createManagementReq = useCreateManagementRequirement(mpid || "");
+  const deleteCatalogItem = useDeleteManagementRequirement(mpid || "");
   const generateCases = useGenerateTestCases(mpid || "");
   const bulkCreateReqs = useBulkCreateRequirements(mpid || "");
+  const qc = useQueryClient();
   const [csvImportMsg, setCsvImportMsg] = useState<string | null>(null);
 
   const [genForReq, setGenForReq] = useState<string | null>(null);
-  const [genResult, setGenResult] = useState<{ req: Requirement; cases: import("@/lib/hooks/use-management").GeneratedCase[] } | null>(null);
+  const [genResult, setGenResult] = useState<{
+    req: Requirement;
+    cases: import("@/lib/hooks/use-management").GeneratedCase[];
+  } | null>(null);
 
   // ── View state ─────────────────────────────────────────────────────────────
   const [activeTab, setActiveTab] = useState<ViewTab>("traceability");
@@ -444,6 +873,8 @@ export default function ManagementRequirementsPage() {
   const [fields, setFields] = useState<NewReqFields>(EMPTY_FIELDS);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
   const [toastError, setToastError] = useState(false);
+  const [editReq, setEditReq] = useState<Requirement | null>(null);
+  const [deletingReqId, setDeletingReqId] = useState<string | null>(null);
 
   // ── Derived data ───────────────────────────────────────────────────────────
   const rows = traceRows ?? [];
@@ -452,9 +883,7 @@ export default function ManagementRequirementsPage() {
   const coveredCount = rows.filter((r) => r.coverage_pct >= 80).length;
   const partialCount = rows.filter((r) => r.coverage_pct > 0 && r.coverage_pct < 80).length;
   const notCoveredCount = rows.filter((r) => r.coverage_pct === 0).length;
-  const outOfScopeCount = 0; // traceability doesn't expose this yet; catalog below
 
-  // Catalog-based coverage summary for summary cards
   const catCovered = catalogItems.filter(
     (r: Requirement) => (r as unknown as { coverage_status?: string }).coverage_status === "covered"
   ).length;
@@ -556,13 +985,39 @@ export default function ManagementRequirementsPage() {
     setCatalogPage(0);
   }
 
+  async function handleDeleteRequirement(req: Requirement) {
+    if (!window.confirm(`"${req.title}" silinsin mi?`)) return;
+    setDeletingReqId(req.id);
+    // Optimistic update
+    const prevCatalog = qc.getQueryData<Requirement[]>(["management", mpid, "requirementCatalog"]);
+    if (prevCatalog) {
+      qc.setQueryData(
+        ["management", mpid, "requirementCatalog"],
+        prevCatalog.filter((r) => r.id !== req.id)
+      );
+    }
+    if (selectedReq?.id === req.id) setSelectedReq(null);
+    try {
+      await deleteCatalogItem.mutateAsync(req.id);
+      showToast("Gereksinim silindi.");
+    } catch {
+      // Rollback
+      if (prevCatalog) {
+        qc.setQueryData(["management", mpid, "requirementCatalog"], prevCatalog);
+      }
+      showToast("Gereksinim silinemedi. Sunucu değişikliği bekliyor.", true);
+    } finally {
+      setDeletingReqId(null);
+    }
+  }
+
   // ── Coverage summary card values ───────────────────────────────────────────
   const summaryCardData = useTraceForDonut
     ? {
         covered: coveredCount,
         partial: partialCount,
         notCovered: notCoveredCount,
-        outOfScope: outOfScopeCount,
+        outOfScope: 0,
       }
     : { covered: catCovered, partial: catPartial, notCovered: catNotCovered, outOfScope: catOutOfScope };
 
@@ -599,37 +1054,67 @@ export default function ManagementRequirementsPage() {
             </div>
             {/* CSV import button */}
             <label className="flex cursor-pointer items-center gap-1.5 rounded border border-border px-3 py-1.5 text-[11px] font-medium text-fg-muted transition-colors hover:border-brand/40 hover:text-fg">
-              <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+              <svg
+                className="h-3 w-3"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2.5}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"
+                />
               </svg>
               CSV İçe Aktar
-              <input type="file" accept=".csv,.tsv" className="hidden" onChange={async e => {
-                const file = e.target.files?.[0];
-                if (!file) return;
-                const text = await file.text();
-                const lines = text.split("\n").filter(l => l.trim());
-                const headers = lines[0].split(/[,\t]/).map(h => h.trim().toLowerCase());
-                const items = lines.slice(1).map(line => {
-                  const cells = line.split(/[,\t]/);
-                  const obj: Record<string, string> = {};
-                  headers.forEach((h, i) => { obj[h] = (cells[i] ?? "").trim().replace(/^"|"$/g, ""); });
-                  return obj;
-                }).filter(o => o.title || o.name || o["external_key"]);
-                const reqs = items.map(o => ({
-                  external_source: o["source"] || "csv_import",
-                  external_key: o["external_key"] || o["key"] || o["id"] || `CSV-${Math.random().toString(36).slice(2,7)}`,
-                  title: o["title"] || o["name"] || o["requirement"] || "İsimsiz Gereksinim",
-                  description: o["description"] || o["desc"] || undefined,
-                  priority: o["priority"] || "medium",
-                  status: o["status"] || "open",
-                  tags: o["tags"] ? o["tags"].split(";").map((t: string) => t.trim()) : [],
-                }));
-                if (reqs.length === 0) { setCsvImportMsg("Uygun satır bulunamadı"); return; }
-                const res = await bulkCreateReqs.mutateAsync(reqs);
-                setCsvImportMsg(`${res.created} gereksinim içe aktarıldı`);
-                setTimeout(() => setCsvImportMsg(null), 5000);
-                e.target.value = "";
-              }}/>
+              <input
+                type="file"
+                accept=".csv,.tsv"
+                className="hidden"
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  const text = await file.text();
+                  const lines = text.split("\n").filter((l) => l.trim());
+                  const headers = lines[0].split(/[,\t]/).map((h) => h.trim().toLowerCase());
+                  const items = lines
+                    .slice(1)
+                    .map((line) => {
+                      const cells = line.split(/[,\t]/);
+                      const obj: Record<string, string> = {};
+                      headers.forEach((h, i) => {
+                        obj[h] = (cells[i] ?? "").trim().replace(/^"|"$/g, "");
+                      });
+                      return obj;
+                    })
+                    .filter((o) => o.title || o.name || o["external_key"]);
+                  const reqs = items.map((o) => ({
+                    external_source: o["source"] || "csv_import",
+                    external_key:
+                      o["external_key"] ||
+                      o["key"] ||
+                      o["id"] ||
+                      `CSV-${Math.random().toString(36).slice(2, 7)}`,
+                    title:
+                      o["title"] || o["name"] || o["requirement"] || "İsimsiz Gereksinim",
+                    description: o["description"] || o["desc"] || undefined,
+                    priority: o["priority"] || "medium",
+                    status: o["status"] || "open",
+                    tags: o["tags"]
+                      ? o["tags"].split(";").map((t: string) => t.trim())
+                      : [],
+                  }));
+                  if (reqs.length === 0) {
+                    setCsvImportMsg("Uygun satır bulunamadı");
+                    return;
+                  }
+                  const res = await bulkCreateReqs.mutateAsync(reqs);
+                  setCsvImportMsg(`${res.created} gereksinim içe aktarıldı`);
+                  setTimeout(() => setCsvImportMsg(null), 5000);
+                  e.target.value = "";
+                }}
+              />
             </label>
 
             {/* New requirement button */}
@@ -637,7 +1122,13 @@ export default function ManagementRequirementsPage() {
               onClick={() => setShowModal(true)}
               className="flex items-center gap-1.5 rounded border border-brand/40 bg-brand/10 px-3 py-1.5 text-[11px] font-medium text-brand-fg transition-colors hover:bg-brand/20 hover:border-brand/60"
             >
-              <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <svg
+                className="h-3 w-3"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2.5}
+              >
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
               </svg>
               Yeni Gereksinim
@@ -647,7 +1138,6 @@ export default function ManagementRequirementsPage() {
 
         {/* Coverage summary cards + donut */}
         <div className="flex items-start gap-4">
-          {/* Summary cards */}
           <div className="grid grid-cols-4 gap-3 flex-1">
             {[
               {
@@ -693,8 +1183,6 @@ export default function ManagementRequirementsPage() {
               </div>
             ))}
           </div>
-
-          {/* Donut chart */}
           <div className="rounded-lg border border-border bg-surface-overlay px-5 py-3 shrink-0">
             <DonutChart
               covered={summaryCardData.covered}
@@ -786,7 +1274,6 @@ export default function ManagementRequirementsPage() {
 
       {/* ── Content ── */}
       <div className="flex flex-1 min-h-0">
-        {/* Main panel */}
         <div className={`flex flex-col flex-1 min-w-0 ${selectedReq ? "border-r border-border" : ""}`}>
           {/* Traceability tab */}
           {activeTab === "traceability" &&
@@ -805,7 +1292,12 @@ export default function ManagementRequirementsPage() {
             ) : filteredRows.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-20 gap-3 text-center">
                 <div className="rounded-full bg-white/[0.04] p-4">
-                  <svg className="h-8 w-8 text-fg-subtle" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg
+                    className="h-8 w-8 text-fg-subtle"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
                     <path
                       strokeLinecap="round"
                       strokeLinejoin="round"
@@ -817,7 +1309,10 @@ export default function ManagementRequirementsPage() {
                 {search || statusFilter !== "all" || priorityFilter !== "all" ? (
                   <>
                     <p className="text-sm text-fg-muted">Kriterlere uyan gereksinim bulunamadı</p>
-                    <button onClick={resetFilters} className="text-xs text-fg-subtle hover:text-fg-muted">
+                    <button
+                      onClick={resetFilters}
+                      className="text-xs text-fg-subtle hover:text-fg-muted"
+                    >
                       Filtreleri Temizle
                     </button>
                   </>
@@ -825,7 +1320,8 @@ export default function ManagementRequirementsPage() {
                   <>
                     <p className="text-sm font-medium text-fg">Henüz gereksinim bağlantısı yok</p>
                     <p className="text-xs text-fg-muted max-w-xs">
-                      Test case&apos;lerinizi gereksinimlerle ilişkilendirdiğinizde kapsam matrisi burada görünecek.
+                      Test case&apos;lerinizi gereksinimlerle ilişkilendirdiğinizde kapsam matrisi
+                      burada görünecek.
                     </p>
                   </>
                 )}
@@ -836,7 +1332,15 @@ export default function ManagementRequirementsPage() {
                   <table className="w-full border-collapse">
                     <thead>
                       <tr className="border-b border-border bg-surface-raised sticky top-0 z-10">
-                        {["Req. Key", "Başlık", "Durum", "Öncelik", "Kapsam", "Case Sayısı"].map((h) => (
+                        {[
+                          "Req. Key",
+                          "Başlık",
+                          "Durum",
+                          "Öncelik",
+                          "Kapsam",
+                          "Case Sayısı",
+                          "",
+                        ].map((h) => (
                           <th
                             key={h}
                             className="px-4 py-2.5 text-left text-[10px] font-medium uppercase tracking-wider text-fg-subtle"
@@ -848,7 +1352,15 @@ export default function ManagementRequirementsPage() {
                     </thead>
                     <tbody>
                       {pagedTraceRows.map((row) => (
-                        <TraceRow key={row.requirement_id} row={row} />
+                        <TraceRow
+                          key={row.requirement_id}
+                          row={row}
+                          mpid={mpid ?? ""}
+                          onLinked={() => {
+                            void traceRefetch();
+                            showToast("Case başarıyla bağlandı.");
+                          }}
+                        />
                       ))}
                     </tbody>
                   </table>
@@ -886,14 +1398,22 @@ export default function ManagementRequirementsPage() {
             ) : catalogError ? (
               <div className="flex flex-col items-center justify-center py-16 gap-3">
                 <p className="text-sm text-red-400">Gereksinimler yüklenemedi</p>
-                <button onClick={() => catalogRefetch()} className="text-xs text-fg-subtle hover:text-fg-muted">
+                <button
+                  onClick={() => catalogRefetch()}
+                  className="text-xs text-fg-subtle hover:text-fg-muted"
+                >
                   Tekrar Dene
                 </button>
               </div>
             ) : filteredCatalog.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-20 gap-3 text-center">
                 <div className="rounded-full bg-white/[0.04] p-4">
-                  <svg className="h-8 w-8 text-fg-subtle" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg
+                    className="h-8 w-8 text-fg-subtle"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
                     <path
                       strokeLinecap="round"
                       strokeLinejoin="round"
@@ -902,10 +1422,16 @@ export default function ManagementRequirementsPage() {
                     />
                   </svg>
                 </div>
-                {search || statusFilter !== "all" || priorityFilter !== "all" || coverageFilter !== "all" ? (
+                {search ||
+                statusFilter !== "all" ||
+                priorityFilter !== "all" ||
+                coverageFilter !== "all" ? (
                   <>
                     <p className="text-sm text-fg-muted">Kriterlere uyan gereksinim bulunamadı</p>
-                    <button onClick={resetFilters} className="text-xs text-fg-subtle hover:text-fg-muted">
+                    <button
+                      onClick={resetFilters}
+                      className="text-xs text-fg-subtle hover:text-fg-muted"
+                    >
                       Filtreleri Temizle
                     </button>
                   </>
@@ -930,7 +1456,15 @@ export default function ManagementRequirementsPage() {
                   <table className="w-full border-collapse">
                     <thead>
                       <tr className="border-b border-border bg-surface-raised sticky top-0 z-10">
-                        {["External Key", "Kaynak", "Başlık", "Öncelik", "Durum", "Etiketler"].map((h) => (
+                        {[
+                          "External Key",
+                          "Kaynak",
+                          "Başlık",
+                          "Öncelik",
+                          "Durum",
+                          "Etiketler",
+                          "",
+                        ].map((h) => (
                           <th
                             key={h}
                             className="px-4 py-2.5 text-left text-[10px] font-medium uppercase tracking-wider text-fg-subtle"
@@ -944,20 +1478,30 @@ export default function ManagementRequirementsPage() {
                       {pagedCatalog.map((req: Requirement) => (
                         <tr
                           key={req.id}
-                          onClick={() => setSelectedReq(selectedReq?.id === req.id ? null : req)}
+                          onClick={() =>
+                            setSelectedReq(selectedReq?.id === req.id ? null : req)
+                          }
                           className={[
                             "border-b border-border hover:bg-white/[0.04] transition-colors cursor-pointer",
-                            selectedReq?.id === req.id ? "bg-brand/5 border-l-2 border-l-brand" : "",
+                            selectedReq?.id === req.id
+                              ? "bg-brand/5 border-l-2 border-l-brand"
+                              : "",
                           ].join(" ")}
                         >
                           <td className="px-4 py-3">
-                            <span className="text-[11px] font-mono text-fg-muted">{req.external_key}</span>
+                            <span className="text-[11px] font-mono text-fg-muted">
+                              {req.external_key}
+                            </span>
                           </td>
                           <td className="px-4 py-3">
-                            <span className="text-[11px] text-fg-subtle">{req.external_source}</span>
+                            <span className="text-[11px] text-fg-subtle">
+                              {req.external_source}
+                            </span>
                           </td>
                           <td className="px-4 py-3 max-w-[280px]">
-                            <span className="text-[13px] text-fg truncate block">{req.title}</span>
+                            <span className="text-[13px] text-fg truncate block">
+                              {req.title}
+                            </span>
                             {req.description && (
                               <span className="text-[11px] text-fg-subtle truncate block mt-0.5">
                                 {req.description}
@@ -993,28 +1537,79 @@ export default function ManagementRequirementsPage() {
                                 </span>
                               ))}
                               {req.tags.length > 2 && (
-                                <span className="text-[10px] text-fg-subtle">+{req.tags.length - 2}</span>
+                                <span className="text-[10px] text-fg-subtle">
+                                  +{req.tags.length - 2}
+                                </span>
                               )}
                             </div>
                           </td>
-                          <td className="px-4 py-3" onClick={e => e.stopPropagation()}>
-                            <button type="button"
-                              disabled={genForReq === req.id}
-                              onClick={async () => {
-                                setGenForReq(req.id);
-                                try {
-                                  const res = await generateCases.mutateAsync({
-                                    prompt: `${req.title}${req.description ? ": " + req.description : ""}`,
-                                    count: 3, save: false,
-                                  });
-                                  setGenResult({ req, cases: res.cases });
-                                } finally {
-                                  setGenForReq(null);
-                                }
-                              }}
-                              className="rounded-lg border border-teal-500/25 bg-teal-500/5 px-2 py-1 text-[10px] text-teal-400 hover:bg-teal-500/15 disabled:opacity-40 transition-colors whitespace-nowrap">
-                              {genForReq === req.id ? "Üretiliyor…" : "✦ Case Üret"}
-                            </button>
+                          <td
+                            className="px-4 py-3"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <div className="flex items-center gap-1.5">
+                              <button
+                                type="button"
+                                disabled={genForReq === req.id}
+                                onClick={async () => {
+                                  setGenForReq(req.id);
+                                  try {
+                                    const res = await generateCases.mutateAsync({
+                                      prompt: `${req.title}${req.description ? ": " + req.description : ""}`,
+                                      count: 3,
+                                      save: false,
+                                    });
+                                    setGenResult({ req, cases: res.cases });
+                                  } finally {
+                                    setGenForReq(null);
+                                  }
+                                }}
+                                className="rounded-lg border border-teal-500/25 bg-teal-500/5 px-2 py-1 text-[10px] text-teal-400 hover:bg-teal-500/15 disabled:opacity-40 transition-colors whitespace-nowrap"
+                              >
+                                {genForReq === req.id ? "Üretiliyor…" : "✦ Case Üret"}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setEditReq(req)}
+                                className="rounded p-1 text-fg-subtle hover:bg-white/[0.06] hover:text-fg transition-colors"
+                                title="Düzenle"
+                              >
+                                <svg
+                                  className="h-3.5 w-3.5"
+                                  fill="none"
+                                  viewBox="0 0 24 24"
+                                  stroke="currentColor"
+                                  strokeWidth={2}
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                                  />
+                                </svg>
+                              </button>
+                              <button
+                                type="button"
+                                disabled={deletingReqId === req.id}
+                                onClick={() => handleDeleteRequirement(req)}
+                                className="rounded p-1 text-fg-subtle hover:bg-red-500/10 hover:text-red-400 transition-colors disabled:opacity-40"
+                                title="Sil"
+                              >
+                                <svg
+                                  className="h-3.5 w-3.5"
+                                  fill="none"
+                                  viewBox="0 0 24 24"
+                                  stroke="currentColor"
+                                  strokeWidth={2}
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                                  />
+                                </svg>
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       ))}
@@ -1035,7 +1630,9 @@ export default function ManagementRequirementsPage() {
                         ← Önceki
                       </button>
                       <button
-                        onClick={() => setCatalogPage((p) => Math.min(catalogPageCount - 1, p + 1))}
+                        onClick={() =>
+                          setCatalogPage((p) => Math.min(catalogPageCount - 1, p + 1))
+                        }
                         disabled={catalogPage >= catalogPageCount - 1}
                         className="rounded px-2.5 py-1 text-[11px] text-fg-muted hover:text-fg disabled:opacity-30"
                       >
@@ -1048,13 +1645,31 @@ export default function ManagementRequirementsPage() {
             ))}
         </div>
 
-        {/* Catalog detail side panel (inline) */}
+        {/* Catalog detail side panel */}
         {activeTab === "catalog" && selectedReq && (
           <div className="w-[340px] shrink-0 border-l border-border bg-surface-raised overflow-hidden flex flex-col">
-            <CatalogDetailPanel req={selectedReq} onClose={() => setSelectedReq(null)} />
+            <CatalogDetailPanel
+              req={selectedReq}
+              onClose={() => setSelectedReq(null)}
+              onEdit={(req) => setEditReq(req)}
+            />
           </div>
         )}
       </div>
+
+      {/* ── Edit Requirement Modal ── */}
+      {editReq && mpid && (
+        <EditRequirementModal
+          req={editReq}
+          mpid={mpid}
+          onClose={() => setEditReq(null)}
+          onSaved={() => {
+            setEditReq(null);
+            showToast("Gereksinim güncellendi.");
+            void catalogRefetch();
+          }}
+        />
+      )}
 
       {/* ── New Requirement Modal ── */}
       {showModal && (
@@ -1068,23 +1683,26 @@ export default function ManagementRequirementsPage() {
               className="relative w-full max-w-lg rounded-xl border border-border bg-surface-raised shadow-2xl flex flex-col max-h-[90vh]"
               onClick={(e) => e.stopPropagation()}
             >
-              {/* Modal header */}
               <div className="flex items-center justify-between border-b border-border px-6 py-4 shrink-0">
                 <h2 className="text-[14px] font-semibold text-fg">Yeni Gereksinim</h2>
                 <button
                   onClick={handleCloseModal}
                   className="rounded p-1 text-fg-subtle hover:bg-white/[0.06] hover:text-fg transition-colors"
                 >
-                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <svg
+                    className="h-4 w-4"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                  >
                     <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                   </svg>
                 </button>
               </div>
 
-              {/* Form */}
               <form onSubmit={handleSubmit} className="flex flex-col overflow-hidden">
                 <div className="overflow-y-auto px-6 py-5 space-y-4">
-                  {/* External Key + Source row */}
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-1.5">
                       <label className="text-[11px] font-medium text-fg-muted">
@@ -1100,7 +1718,9 @@ export default function ManagementRequirementsPage() {
                       />
                     </div>
                     <div className="space-y-1.5">
-                      <label className="text-[11px] font-medium text-fg-muted">External Source</label>
+                      <label className="text-[11px] font-medium text-fg-muted">
+                        External Source
+                      </label>
                       <select
                         value={fields.external_source}
                         onChange={(e) => handleFieldChange("external_source", e.target.value)}
@@ -1113,7 +1733,6 @@ export default function ManagementRequirementsPage() {
                     </div>
                   </div>
 
-                  {/* Title */}
                   <div className="space-y-1.5">
                     <label className="text-[11px] font-medium text-fg-muted">
                       Başlık <span className="text-red-400">*</span>
@@ -1128,7 +1747,6 @@ export default function ManagementRequirementsPage() {
                     />
                   </div>
 
-                  {/* Description */}
                   <div className="space-y-1.5">
                     <label className="text-[11px] font-medium text-fg-muted">Açıklama</label>
                     <textarea
@@ -1140,7 +1758,6 @@ export default function ManagementRequirementsPage() {
                     />
                   </div>
 
-                  {/* Module */}
                   <div className="space-y-1.5">
                     <label className="text-[11px] font-medium text-fg-muted">Modül / Etiket</label>
                     <select
@@ -1155,7 +1772,6 @@ export default function ManagementRequirementsPage() {
                     </select>
                   </div>
 
-                  {/* Priority + Status */}
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-1.5">
                       <label className="text-[11px] font-medium text-fg-muted">Öncelik</label>
@@ -1186,7 +1802,6 @@ export default function ManagementRequirementsPage() {
                     </div>
                   </div>
 
-                  {/* Coverage Status */}
                   <div className="space-y-1.5">
                     <label className="text-[11px] font-medium text-fg-muted">Kapsam Durumu</label>
                     <select
@@ -1202,7 +1817,6 @@ export default function ManagementRequirementsPage() {
                   </div>
                 </div>
 
-                {/* Modal footer */}
                 <div className="flex items-center justify-end gap-2 border-t border-border px-6 py-4 shrink-0">
                   <button
                     type="button"
@@ -1255,11 +1869,20 @@ export default function ManagementRequirementsPage() {
           <div className="w-full max-w-2xl rounded-xl border border-border bg-surface-raised shadow-2xl overflow-hidden">
             <div className="flex items-center justify-between border-b border-border px-5 py-4">
               <div>
-                <h3 className="text-[14px] font-semibold text-fg">AI ile Üretilen Test Case&apos;leri</h3>
-                <p className="mt-0.5 text-[11px] text-fg-subtle truncate max-w-md">{genResult.req.title}</p>
+                <h3 className="text-[14px] font-semibold text-fg">
+                  AI ile Üretilen Test Case&apos;leri
+                </h3>
+                <p className="mt-0.5 text-[11px] text-fg-subtle truncate max-w-md">
+                  {genResult.req.title}
+                </p>
               </div>
-              <button type="button" onClick={() => setGenResult(null)}
-                className="rounded-lg p-1.5 text-fg-subtle hover:bg-surface-overlay hover:text-fg">✕</button>
+              <button
+                type="button"
+                onClick={() => setGenResult(null)}
+                className="rounded-lg p-1.5 text-fg-subtle hover:bg-surface-overlay hover:text-fg"
+              >
+                ✕
+              </button>
             </div>
             <div className="max-h-[60vh] overflow-y-auto p-5 space-y-3">
               {genResult.cases.map((gc, i) => (
@@ -1267,16 +1890,26 @@ export default function ManagementRequirementsPage() {
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <p className="text-[13px] font-medium text-fg">{gc.title}</p>
-                      {gc.objective && <p className="mt-0.5 text-[11px] text-fg-muted">{gc.objective}</p>}
+                      {gc.objective && (
+                        <p className="mt-0.5 text-[11px] text-fg-muted">{gc.objective}</p>
+                      )}
                       <div className="mt-1.5 flex gap-1.5">
-                        <span className="rounded border border-border px-1.5 py-0.5 text-[10px] text-fg-subtle">{gc.priority}</span>
-                        {gc.tags.slice(0, 3).map(t => (
-                          <span key={t} className="rounded bg-surface-accent px-1.5 py-0.5 text-[10px] text-fg-subtle">{t}</span>
+                        <span className="rounded border border-border px-1.5 py-0.5 text-[10px] text-fg-subtle">
+                          {gc.priority}
+                        </span>
+                        {gc.tags.slice(0, 3).map((t) => (
+                          <span
+                            key={t}
+                            className="rounded bg-surface-accent px-1.5 py-0.5 text-[10px] text-fg-subtle"
+                          >
+                            {t}
+                          </span>
                         ))}
                         <span className="text-[10px] text-fg-subtle">{gc.steps.length} adım</span>
                       </div>
                     </div>
-                    <button type="button"
+                    <button
+                      type="button"
                       onClick={async () => {
                         await generateCases.mutateAsync({
                           prompt: gc.title,
@@ -1285,27 +1918,37 @@ export default function ManagementRequirementsPage() {
                         });
                         setGenResult(null);
                       }}
-                      className="shrink-0 rounded-lg bg-brand px-2.5 py-1.5 text-[11px] font-semibold text-brand-fg hover:brightness-105 transition-colors">
+                      className="shrink-0 rounded-lg bg-brand px-2.5 py-1.5 text-[11px] font-semibold text-brand-fg hover:brightness-105 transition-colors"
+                    >
                       Kaydet
                     </button>
                   </div>
                   {gc.steps.length > 0 && (
                     <div className="mt-3 space-y-1 border-t border-border pt-3">
-                      {gc.steps.slice(0, 3).map(s => (
+                      {gc.steps.slice(0, 3).map((s) => (
                         <div key={s.step_no} className="flex items-start gap-2 text-[11px]">
-                          <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-surface-accent font-mono text-[9px] text-fg-subtle">{s.step_no}</span>
+                          <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-surface-accent font-mono text-[9px] text-fg-subtle">
+                            {s.step_no}
+                          </span>
                           <span className="text-fg-muted">{s.action}</span>
                         </div>
                       ))}
-                      {gc.steps.length > 3 && <p className="text-[10px] text-fg-subtle">+{gc.steps.length - 3} adım daha</p>}
+                      {gc.steps.length > 3 && (
+                        <p className="text-[10px] text-fg-subtle">
+                          +{gc.steps.length - 3} adım daha
+                        </p>
+                      )}
                     </div>
                   )}
                 </div>
               ))}
             </div>
             <div className="border-t border-border px-5 py-3 flex justify-end">
-              <button type="button" onClick={() => setGenResult(null)}
-                className="rounded-xl border border-border px-4 py-2 text-[12px] text-fg-muted hover:text-fg transition-colors">
+              <button
+                type="button"
+                onClick={() => setGenResult(null)}
+                className="rounded-xl border border-border px-4 py-2 text-[12px] text-fg-muted hover:text-fg transition-colors"
+              >
                 Kapat
               </button>
             </div>
