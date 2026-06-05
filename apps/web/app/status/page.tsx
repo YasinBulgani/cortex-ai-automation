@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { apiFetch } from "@/lib/api-client";
 
 type ServiceStatus = {
   name: string;
@@ -56,13 +57,11 @@ export default function StatusPage() {
   useEffect(() => {
     const load = async () => {
       try {
-        const res = await fetch("/api/v1/status", { credentials: "include" });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const body = (await res.json()) as StatusResponse;
+        const body = await apiFetch<StatusResponse>("/api/v1/status");
         setData(body);
         setError(null);
-      } catch (e: any) {
-        setError(e?.message ?? "Bilinmeyen hata");
+      } catch (e: unknown) {
+        setError(e instanceof Error ? e.message : "Bilinmeyen hata");
       } finally {
         setLoading(false);
       }

@@ -57,13 +57,11 @@ export default function AiSuggestPanel() {
       if (form.source === "requirement" && form.requirement) body.requirement = form.requirement;
       if (form.source === "brief" && form.brief) body.brief = form.brief;
 
-      const res = await fetch("/api/v1/qa/ai-suggest", {
+      const data = await apiFetch<Response>("/api/v1/qa/ai-suggest", {
         method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify(body),
+        json: body,
       });
-      if (!res.ok) throw new Error(`HTTP ${res.status}: ${await res.text()}`);
-      setResult(await res.json());
+      setResult(data);
     } catch (e: any) {
       setError(e.message);
     } finally {

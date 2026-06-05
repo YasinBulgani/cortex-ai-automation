@@ -75,12 +75,12 @@ export default function CaseTable({ initialCases }: { initialCases: TestCase[] }
       if (suiteFilter) params.set("suite", suiteFilter);
       if (prioFilter) params.set("priority", prioFilter);
       if (autoFilter) params.set("automation_status", autoFilter);
-      const res = await fetch(`/api/v1/qa/cases?${params.toString()}`);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
+      const data = await apiFetch<{ items: TestCase[] }>(
+        `/api/v1/qa/cases?${params.toString()}`,
+      );
       setCases(data.items);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Bilinmeyen hata");
     } finally {
       setLoading(false);
     }

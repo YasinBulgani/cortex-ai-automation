@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { apiFetch } from "@/lib/api";
 
 export type KbArticle = {
@@ -78,25 +78,31 @@ function nowIso(): string {
 
 export function useKnowledgeBase() {
   const [articles, setArticles] = useState<KbArticle[]>([]);
+  const articlesRef = useRef<KbArticle[]>([]);
+
+  const replaceArticles = useCallback((next: KbArticle[]) => {
+    articlesRef.current = next;
+    setArticles(next);
+  }, []);
 
   useEffect(() => {
     // Load from localStorage immediately for instant display
     const local = loadFromStorage();
-    if (local.length > 0) setArticles(local);
+    if (local.length > 0) replaceArticles(local);
 
     // Then try backend — if it responds, prefer its data (authoritative source)
     fetchFromBackend().then((backendData) => {
       if (backendData && backendData.length > 0) {
-        setArticles(backendData);
+        replaceArticles(backendData);
         saveToStorage(backendData); // sync to localStorage for offline use
       }
     });
-  }, []);
+  }, [replaceArticles]);
 
   const persist = useCallback((next: KbArticle[]) => {
-    setArticles(next);
+    replaceArticles(next);
     saveToStorage(next);
-  }, []);
+  }, [replaceArticles]);
 
   const create = useCallback(
     (input: {
@@ -121,39 +127,39 @@ export function useKnowledgeBase() {
         helpful_count: 0,
         unhelpful_count: 0,
       };
-      persist([article, ...articles]);
+      persist([article, ...articlesRef.current]);
       return article;
     },
-    [articles, persist],
+    [persist],
   );
 
   const update = useCallback(
     (id: string, patch: Partial<Pick<KbArticle, "title" | "body" | "tags" | "category">>) => {
-      const next = articles.map((a) =>
+      const next = articlesRef.current.map((a) =>
         a.id === id ? { ...a, ...patch, updated_at: nowIso() } : a,
       );
       persist(next);
       return next.find((a) => a.id === id) ?? null;
     },
-    [articles, persist],
+    [persist],
   );
 
   const remove = useCallback(
     (id: string) => {
-      persist(articles.filter((a) => a.id !== id));
+      persist(articlesRef.current.filter((a) => a.id !== id));
     },
-    [articles, persist],
+    [persist],
   );
 
   const incrementView = useCallback((id: string) => {
-    const next = articles.map((a) =>
+    const next = articlesRef.current.map((a) =>
       a.id === id ? { ...a, view_count: a.view_count + 1 } : a,
     );
     persist(next);
-  }, [articles, persist]);
+  }, [persist]);
 
   const vote = useCallback((id: string, helpful: boolean) => {
-    const next = articles.map((a) =>
+    const next = articlesRef.current.map((a) =>
       a.id === id
         ? {
             ...a,
@@ -163,7 +169,7 @@ export function useKnowledgeBase() {
         : a,
     );
     persist(next);
-  }, [articles, persist]);
+  }, [persist]);
 
   const list = useCallback(
     (filter: ListFilter = {}) => {

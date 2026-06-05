@@ -93,23 +93,21 @@ export default function RunWizard() {
 
   async function saveRun() {
     if (!chosenPlan) return;
-    const res = await fetch("/api/v1/qa/runs", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        plan: chosenPlan.id,
-        executor: "@web-ui",
-        environment: env,
-        results: Object.values(results),
-      }),
-    });
-    if (!res.ok) {
-      alert(`Save failed: HTTP ${res.status}`);
-      return;
+    try {
+      const run = await apiFetch<{ id: string }>("/api/v1/qa/runs", {
+        method: "POST",
+        json: {
+          plan: chosenPlan.id,
+          executor: "@web-ui",
+          environment: env,
+          results: Object.values(results),
+        },
+      });
+      setSavedRunId(run.id);
+      setStep("done");
+    } catch (err) {
+      alert(`Save failed: ${err instanceof Error ? err.message : "Bilinmeyen hata"}`);
     }
-    const run = await res.json();
-    setSavedRunId(run.id);
-    setStep("done");
   }
 
   if (step === "pick-plan") {

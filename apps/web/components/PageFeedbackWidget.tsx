@@ -2,6 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
+import { apiFetch } from "@/lib/api-client";
 
 /**
  * Sayfa altına yerleştirilebilir "Bu sayfa faydalı mı?" widget.
@@ -89,21 +90,16 @@ export function PageFeedbackWidget() {
       setSubmitted(true);
     }
 
-    // Production: also POST to /api/v1/feedback
-    if (typeof fetch !== "undefined") {
-      fetch("/api/v1/feedback", {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          path: pathname,
-          helpful,
-          comment: comment.trim() || undefined,
-        }),
-      }).catch(() => {
-        // Endpoint may not exist yet; localStorage'a kaydetmek yeterli
-      });
-    }
+    void apiFetch("/api/v1/feedback", {
+      method: "POST",
+      json: {
+        path: pathname,
+        helpful,
+        comment: comment.trim() || undefined,
+      },
+    }).catch(() => {
+      // Endpoint may not exist yet; localStorage'a kaydetmek yeterli
+    });
   };
 
   const submitComment = () => {
