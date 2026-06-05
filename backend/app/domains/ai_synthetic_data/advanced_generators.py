@@ -41,8 +41,8 @@ except ImportError:
 
 _HAS_SDV = False
 try:
-    from sdv.single_table import CTGANSynthesizer
     from sdv.metadata import SingleTableMetadata
+    from sdv.single_table import CTGANSynthesizer
     _HAS_SDV = True
 except ImportError:
     _logger.info("sdv not installed — CTGAN will use KDE fallback")
@@ -476,7 +476,6 @@ class CTGANGenerator:
 
         if self.model is not None and not self.fallback:
             try:
-                import pandas as pd  # type: ignore
                 if conditions:
                     from sdv.sampling import Condition  # type: ignore
                     cond = Condition(conditions, num_rows=count)

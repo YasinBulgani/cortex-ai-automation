@@ -27,8 +27,9 @@ modulune ayrilmali — human-in-the-loop onayi ile (Faz H confidence queue'ya ba
 from __future__ import annotations
 
 import logging
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any, Callable, Optional
+from typing import Any, Optional
 
 from pydantic import BaseModel, Field, ValidationError
 
@@ -66,7 +67,8 @@ class ListScenariosArgs(BaseModel):
 
 
 def _get_project_stats(args: GetProjectStatsArgs) -> dict[str, Any]:
-    from app.infra.database import SessionLocal
+    from sqlalchemy import func, select
+
     from app.domains.tspm.models import (
         TspmExecution,
         TspmExecutionMetrics,
@@ -75,7 +77,7 @@ def _get_project_stats(args: GetProjectStatsArgs) -> dict[str, Any]:
         TspmScenario,
         TspmTestCase,
     )
-    from sqlalchemy import func, select
+    from app.infra.database import SessionLocal
 
     with SessionLocal() as db:
         p = db.get(TspmProject, args.project_id)
@@ -111,12 +113,14 @@ def _get_project_stats(args: GetProjectStatsArgs) -> dict[str, Any]:
 
 
 def _get_recent_failures(args: GetRecentFailuresArgs) -> dict[str, Any]:
-    from app.infra.database import SessionLocal
-    from app.domains.tspm.models import TspmExecution, TspmExecutionResult, TspmScenario
-    from sqlalchemy import select
-    from datetime import datetime, timedelta, timezone
+    from datetime import datetime, timedelta
 
-    cutoff = datetime.now(timezone.utc) - timedelta(days=args.days)
+    from sqlalchemy import select
+
+    from app.domains.tspm.models import TspmExecution, TspmExecutionResult, TspmScenario
+    from app.infra.database import SessionLocal
+
+    cutoff = datetime.now(datetime.timezone.utc) - timedelta(days=args.days)
     with SessionLocal() as db:
         execs = list(db.scalars(
             select(TspmExecution)
@@ -154,9 +158,10 @@ def _get_recent_failures(args: GetRecentFailuresArgs) -> dict[str, Any]:
 
 
 def _get_coverage_gaps(args: GetCoverageGapsArgs) -> dict[str, Any]:
-    from app.infra.database import SessionLocal
-    from app.domains.tspm.models import TspmRequirement, TspmScenarioRequirement
     from sqlalchemy import select
+
+    from app.domains.tspm.models import TspmRequirement, TspmScenarioRequirement
+    from app.infra.database import SessionLocal
 
     with SessionLocal() as db:
         all_reqs = list(db.scalars(
@@ -188,8 +193,8 @@ def _get_coverage_gaps(args: GetCoverageGapsArgs) -> dict[str, Any]:
 
 
 def _get_scenario_by_id(args: GetScenarioByIdArgs) -> dict[str, Any]:
-    from app.infra.database import SessionLocal
     from app.domains.tspm.models import TspmScenario
+    from app.infra.database import SessionLocal
 
     with SessionLocal() as db:
         sc = db.get(TspmScenario, args.scenario_id)
@@ -206,9 +211,10 @@ def _get_scenario_by_id(args: GetScenarioByIdArgs) -> dict[str, Any]:
 
 
 def _list_scenarios(args: ListScenariosArgs) -> dict[str, Any]:
-    from app.infra.database import SessionLocal
-    from app.domains.tspm.models import TspmScenario
     from sqlalchemy import select
+
+    from app.domains.tspm.models import TspmScenario
+    from app.infra.database import SessionLocal
 
     with SessionLocal() as db:
         stmt = select(TspmScenario).where(TspmScenario.project_id == args.project_id)

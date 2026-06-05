@@ -6,7 +6,6 @@ from typing import Any, Dict, List, Literal, Optional
 
 from pydantic import BaseModel, Field
 
-
 Framework = Literal["playwright", "selenium", "cypress"]
 RunStatus = Literal["queued", "running", "passed", "failed", "error", "cancelled"]
 

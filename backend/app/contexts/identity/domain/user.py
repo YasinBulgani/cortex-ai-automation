@@ -18,7 +18,6 @@ from .events import (
     UserRegistered,
 )
 
-
 # ─── Value Objects ───────────────────────────────────────────────────────
 
 @dataclass(frozen=True, slots=True)
@@ -84,7 +83,7 @@ class User(AggregateRoot[UserId]):
         email: Email,
         password: HashedPassword,
         display_name: str,
-    ) -> "User":
+    ) -> User:
         user = cls(
             id=UserId.new(),
             email=email,

@@ -6,6 +6,7 @@ from dataclasses import dataclass, field
 from uuid import UUID
 
 from app.contexts.execution.domain.test_run import TestRun, TestRunId
+
 from .run_commands import RunRepository
 
 
@@ -42,7 +43,7 @@ class RunDTO:
     step_results: list[StepResultDTO] = field(default_factory=list)
 
     @classmethod
-    def from_aggregate(cls, r: TestRun) -> "RunDTO":
+    def from_aggregate(cls, r: TestRun) -> RunDTO:
         return cls(
             id=str(r.id.value),
             project_id=str(r.project_id),

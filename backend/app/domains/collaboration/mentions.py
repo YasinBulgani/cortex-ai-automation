@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import re
-from typing import Iterable
+from collections.abc import Iterable
 
 from sqlalchemy.orm import Session
 
@@ -26,7 +26,7 @@ def resolve_handles_to_users(db: Session, handles: Iterable[str]) -> list[User]:
     if not handles:
         return []
     # email LIKE handle@%   (case-insensitive)
-    from sqlalchemy import or_, func, select
+    from sqlalchemy import func, or_, select
     conds = [func.lower(User.email).like(f"{h}@%") for h in handles]
     return list(db.execute(select(User).where(or_(*conds))).scalars().all())
 

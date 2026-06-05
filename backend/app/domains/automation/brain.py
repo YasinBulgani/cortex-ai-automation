@@ -8,7 +8,7 @@ specialized runner UI/API instead of moving runner ownership all at once.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime, timezone as _tz
 from threading import RLock
 from uuid import uuid4
 
@@ -16,6 +16,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.infra.models import AutomationRun
+
 from .schemas import (
     AutomationBrainSummary,
     AutomationCapability,
@@ -112,7 +113,7 @@ class AutomationRunStore:
 
     def create(self, request: AutomationRunCreate, *, created_by: str | None = None, retry_of: str | None = None) -> AutomationRunOut:
         adapter = ADAPTERS[request.kind]
-        now = datetime.now(timezone.utc)
+        now = datetime.now(_tz.utc)
         initial_provenance: AutomationProvenance = "fallback"
         if request.execute_now and (
             (request.kind == "web" and request.target) or request.kind == "mobile"
@@ -179,7 +180,7 @@ class AutomationBrainService:
             last_run=runs[0] if runs else None,
         )
 
-    def create_run(self, db_or_request: "object | AutomationRunCreate", request: "AutomationRunCreate | None" = None, *, created_by: str | None = None) -> AutomationRunOut:  # noqa: ANN001
+    def create_run(self, db_or_request: object | AutomationRunCreate, request: AutomationRunCreate | None = None, *, created_by: str | None = None) -> AutomationRunOut:  # noqa: ANN001
         # Accept (db, request) or (request,) signatures for service-layer compatibility
         if request is None:
             actual_request = db_or_request  # type: ignore[assignment]
@@ -203,7 +204,7 @@ class AutomationBrainService:
         updated = run.model_copy(
             update={
                 "status": "cancelled",
-                "finished_at": datetime.now(timezone.utc),
+                "finished_at": datetime.now(_tz.utc),
                 "error": "Kullanıcı tarafından iptal edildi",
             },
         )
@@ -237,7 +238,7 @@ class SqlAlchemyAutomationRunStore:
 
     def create(self, request: AutomationRunCreate, *, created_by: str | None = None, retry_of: str | None = None) -> AutomationRunOut:
         adapter = ADAPTERS[request.kind]
-        now = datetime.now(timezone.utc)
+        now = datetime.now(_tz.utc)
         initial_provenance: AutomationProvenance = "fallback"
         if request.execute_now and (
             (request.kind == "web" and request.target) or request.kind == "mobile"

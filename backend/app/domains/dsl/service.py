@@ -287,7 +287,7 @@ class CategoryNode:
     id: str
     label: str
     count: int
-    children: List["CategoryNode"]
+    children: List[CategoryNode]
 
 
 def category_tree() -> List[CategoryNode]:

@@ -31,11 +31,8 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
-import re
-import textwrap
-from datetime import datetime, timezone
+from datetime import datetime, timezone as _tz
 from pathlib import Path
-from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -120,7 +117,7 @@ class ScriptCache:
             "url": url,
             "action_count": len(actions),
             "dom_hash": dom_hash,
-            "created_at": datetime.now(timezone.utc).isoformat(),
+            "created_at": datetime.now(_tz.utc).isoformat(),
             "locator_count": len(locators or []),
         }
         meta_path = self.cache_dir / f"{cache_key}.meta.json"

@@ -2,6 +2,12 @@
 
 from __future__ import annotations
 
+import json
+import json as _json
+import logging
+import os
+import threading
+import uuid
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -10,40 +16,32 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 
-from app.domains.ai.qa_nl_router import router as qa_nl_router
+from app.config import settings
 from app.domains.ai.router_shared import (
-    CurrentUser,
     DB,
+    CurrentUser,
+)
+from app.domains.ai.router_shared import (
     check_llm_access as _check_llm_access,
+)
+from app.domains.ai.router_shared import (
     raise_structured_internal_error as _raise_structured_internal_error,
+)
+from app.domains.ai.router_shared import (
     record_llm_usage_safe as _record_llm_usage_safe,
+)
+from app.domains.ai.router_shared import (
     require_project_access as _require_project_access,
 )
-from app.domains.tspm.models import AiChatSession, AiChatMessage
 from app.domains.ai.service import (
-    # sync (backward compat)
-    call_llm,
-    chat_completion,
-    chat_completion_stream,
-    analyze_test_results,
-    generate_scenarios,
-    generate_test_data,
-    _parse_json_response,
+    async_analyze_test_results,
     # async
     async_call_llm,
     async_chat_completion,
     async_chat_completion_stream,
-    async_analyze_test_results,
     async_generate_scenarios,
-    async_generate_test_data,
 )
-from app.config import settings
-
-import json
-import json as _json
-import logging
-import threading
-import uuid
+from app.domains.tspm.models import AiChatMessage, AiChatSession
 
 _logger = logging.getLogger(__name__)
 
@@ -671,7 +669,7 @@ class AnalyzeExecutionRequest(BaseModel):
 
 @router.post("/projects/{project_id}/suggest-scenarios")
 async def suggest_scenarios(project_id: str, body: SuggestScenariosRequest, db: DB, user: CurrentUser):
-    from app.domains.tspm.models import TspmScenario, TspmProject
+    from app.domains.tspm.models import TspmProject, TspmScenario
     _check_llm_access(str(user.id))
     p = db.get(TspmProject, project_id)
     if p is None:
@@ -733,7 +731,7 @@ def prioritize_tests(project_id: str, body: dict, db: DB, user: CurrentUser):
     Değişen dosyalara ve geçmiş başarısızlık oranlarına göre testleri önceliklendirir.
     body: { changed_files: list[str], history: dict[str, {fail_rate: float, avg_duration: float}] }
     """
-    from app.domains.tspm.models import TspmScenario, TspmExecutionResult, TspmExecution
+    from app.domains.tspm.models import TspmScenario
     changed_files = body.get("changed_files", [])
     history = body.get("history", {})
 
@@ -781,7 +779,7 @@ def anomaly_detect(project_id: str, body: dict, db: DB, user: CurrentUser):
     results = body.get("test_results", [])
     if not results:
         # Projedeki son koşu sonuçlarını kullan
-        from app.domains.tspm.models import TspmExecutionResult, TspmExecution
+        from app.domains.tspm.models import TspmExecution, TspmExecutionResult
         last_exec = db.scalars(
             select(TspmExecution).where(TspmExecution.project_id == project_id)
             .order_by(TspmExecution.created_at.desc()).limit(1)
@@ -1076,11 +1074,11 @@ def quality_dashboard(user: CurrentUser, days: int = 7):
       - ingestion (RAG KnowledgeStore source istatistikleri)
       - eval_latest (son eval run)
     """
-    from app.domains.ai.quality_metrics import get_llm_quality_metrics
-    from app.domains.ai.quality_judge import get_judge_stats
-    from app.domains.ai.smart_model_router import get_routing_stats
-    from app.domains.ai.rag_ingestion import get_ingestion_stats
     from app.domains.ai.eval_suite import get_latest_eval_report
+    from app.domains.ai.quality_judge import get_judge_stats
+    from app.domains.ai.quality_metrics import get_llm_quality_metrics
+    from app.domains.ai.rag_ingestion import get_ingestion_stats
+    from app.domains.ai.smart_model_router import get_routing_stats
     from app.domains.evals.reporting import history_report, history_summary, latest_report
 
     metrics = get_llm_quality_metrics(days=days)
@@ -1189,7 +1187,7 @@ def few_shot_seed(user: CurrentUser, force: bool = False):
 @router.post("/knowledge/ingest/bdd")
 def knowledge_ingest_bdd(
     user: CurrentUser,
-    base_path: str = "/Users/yasin_bulgan/Desktop/BGTS_Test_Donusum",
+    base_path: str = os.environ.get("BDD_FEATURES_PATH", "./features"),
     limit: int = 0,
 ):
     """Manuel BDD .feature ingest. Yalnizca admin."""
@@ -1615,7 +1613,7 @@ def cross_agent_memory_entries(
 def few_shot_bank_stats(user: CurrentUser):
     """Few-shot ornek bankasi istatistikleri."""
     try:
-        from app.domains.ai.few_shot_bank import list_available_examples, get_example_count
+        from app.domains.ai.few_shot_bank import get_example_count, list_available_examples
         return {
             "categories": list_available_examples(),
             "counts": get_example_count(),
@@ -2097,6 +2095,7 @@ def nl_test_validate(
 
     try:
         from app.domains.ai.nl_test_generator import NLTestGenerator
+
         # validate_code is stateless, so we can use a lightweight instance
         from app.infra.database import SessionLocal
         with SessionLocal() as db:
@@ -2194,7 +2193,7 @@ def ai_quality_dashboard(
 
     # 3. Smart model router state
     try:
-        from app.domains.ai.smart_model_router import get_routing_stats, _circuit_state
+        from app.domains.ai.smart_model_router import _circuit_state, get_routing_stats
         routing_raw = get_routing_stats()
         circuit_snapshot = {
             model: {"failures": state[0], "last_failure_ts": int(state[1])}

@@ -43,7 +43,8 @@ import logging
 import os
 import threading
 import time
-from typing import List, Sequence, TypeVar
+from collections.abc import Sequence
+from typing import List, TypeVar
 
 logger = logging.getLogger(__name__)
 
@@ -106,7 +107,7 @@ class DslReranker:
         query: str,
         candidates: Sequence[_T],
         *,
-        text_of: "callable[[_T], str]",
+        text_of: callable[[_T], str],
         top_k: int | None = None,
     ) -> List[_T]:
         """Cross-encoder ile yeniden sırala.

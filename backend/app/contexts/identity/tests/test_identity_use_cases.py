@@ -14,7 +14,7 @@ from app.contexts.identity.application import (
     RegisterUserHandler,
     UserNotFoundError,
 )
-from app.contexts.identity.domain import Email, UserId
+from app.contexts.identity.domain import UserId
 from app.contexts.identity.infrastructure import InMemoryUserRepository
 from app.contexts.identity.infrastructure.bcrypt_hasher import FakePasswordHasher
 

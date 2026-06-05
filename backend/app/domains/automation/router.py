@@ -1,9 +1,10 @@
 from __future__ import annotations
+
 """Automation Engine proxy — forwards requests to the Flask engine service."""
 
 import logging
 import os
-from datetime import datetime, timezone
+from datetime import datetime, timezone as _tz
 from typing import Any
 
 import httpx
@@ -17,6 +18,7 @@ from app.infra.models import User
 logger = logging.getLogger(__name__)
 
 from app.config import settings
+from app.domains.api_testing import service as api_testing_service
 from app.domains.automation.brain import AutomationBrainService, SqlAlchemyAutomationRunStore, brain_service
 from app.domains.automation.schemas import (
     AutomationBrainSummary,
@@ -27,7 +29,6 @@ from app.domains.automation.schemas import (
 )
 from app.domains.automation_suite import service as suite_service
 from app.domains.automation_suite.schemas import SuiteRunRequest
-from app.domains.api_testing import service as api_testing_service
 from app.domains.mobile.orchestrator import get_store as get_mobile_store
 from app.domains.mobile.orchestrator import start_suite as start_mobile_suite
 from app.domains.mobile.schemas import AppiumAction
@@ -68,7 +69,7 @@ _FORWARDED_REQUEST_HEADERS = {
 
 
 def _utcnow() -> datetime:
-    return datetime.now(timezone.utc)
+    return datetime.now(_tz.utc)
 
 
 def _map_suite_status(status: str) -> str:

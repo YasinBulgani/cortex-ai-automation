@@ -7,13 +7,12 @@ network access or real model credentials.
 from __future__ import annotations
 
 import json
-from typing import AsyncIterator
-from unittest.mock import AsyncMock, MagicMock, patch
+from collections.abc import AsyncIterator
+from unittest.mock import AsyncMock
 
 import pytest
 
 from app.domains.ai.streaming_service import StreamingLLMService, get_streaming_service
-
 
 # ---------------------------------------------------------------------------
 # Helpers

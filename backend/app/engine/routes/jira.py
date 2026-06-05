@@ -19,7 +19,6 @@ Endpoints:
 
 import json
 import logging
-import os
 from pathlib import Path
 from typing import Optional
 
@@ -182,6 +181,133 @@ def jira_list_projects():
         return [{"key": p.key, "name": p.name} for p in projects]
     except Exception as exc:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(exc))
+
+
+@router.get("/projects/{project_key}/issues")
+def jira_list_issues(
+    project_key: str,
+    search: str = "",
+    issue_type: str = "",
+    status_filter: str = "",
+    max_results: int = 50,
+):
+    """Bir Jira projesinin issue'larını listeler. JQL ile arama ve filtre destekler."""
+    client, err = get_jira_client()
+    if err:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=err)
+
+    # JQL sorgusu oluştur
+    jql_parts = [f'project = "{project_key}"']
+    if search.strip():
+        safe = search.replace('"', '\\"')
+        jql_parts.append(f'(summary ~ "{safe}" OR description ~ "{safe}" OR text ~ "{safe}")')
+    if issue_type.strip():
+        jql_parts.append(f'issuetype = "{issue_type}"')
+    if status_filter.strip():
+        jql_parts.append(f'status = "{status_filter}"')
+    jql_parts.append("ORDER BY updated DESC")
+
+    jql = " AND ".join(jql_parts)
+
+    try:
+        issues = client.search_issues(
+            jql,
+            maxResults=min(max_results, 100),
+            fields=["summary", "description", "issuetype", "status", "priority", "assignee", "labels", "comment"],
+        )
+        result = []
+        for issue in issues:
+            f = issue.fields
+            # Açıklama metnini çıkar (Jira ADF veya düz metin)
+            desc_raw = getattr(f, "description", None) or ""
+            if isinstance(desc_raw, dict):
+                # Atlassian Document Format → düz metin
+                desc_text = _extract_adf_text(desc_raw)
+            else:
+                desc_text = str(desc_raw)
+
+            result.append({
+                "key": issue.key,
+                "summary": f.summary or "",
+                "description": desc_text[:1000],
+                "issue_type": getattr(getattr(f, "issuetype", None), "name", ""),
+                "status": getattr(getattr(f, "status", None), "name", ""),
+                "priority": getattr(getattr(f, "priority", None), "name", ""),
+                "assignee": getattr(getattr(f, "assignee", None), "displayName", None),
+                "labels": list(getattr(f, "labels", []) or []),
+                "url": f"{load_jira_config().get('url', '')}/browse/{issue.key}",
+            })
+        return result
+    except Exception as exc:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(exc))
+
+
+@router.get("/issues/{issue_key}")
+def jira_get_issue(issue_key: str):
+    """Tek bir Jira issue'nun tüm detaylarını döner (yorumlar + acceptance criteria dahil)."""
+    client, err = get_jira_client()
+    if err:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=err)
+    try:
+        issue = client.issue(issue_key, fields=[
+            "summary", "description", "issuetype", "status", "priority",
+            "assignee", "labels", "comment", "customfield_10016",  # story points
+        ])
+        f = issue.fields
+        desc_raw = getattr(f, "description", None) or ""
+        desc_text = _extract_adf_text(desc_raw) if isinstance(desc_raw, dict) else str(desc_raw)
+
+        # Yorumları da çek (genellikle AC burada olur)
+        comments = []
+        comment_obj = getattr(f, "comment", None)
+        if comment_obj:
+            for c in (getattr(comment_obj, "comments", []) or [])[:10]:
+                body_raw = getattr(c, "body", "") or ""
+                body_text = _extract_adf_text(body_raw) if isinstance(body_raw, dict) else str(body_raw)
+                comments.append({
+                    "author": getattr(getattr(c, "author", None), "displayName", ""),
+                    "body": body_text[:500],
+                })
+
+        return {
+            "key": issue.key,
+            "summary": f.summary or "",
+            "description": desc_text,
+            "issue_type": getattr(getattr(f, "issuetype", None), "name", ""),
+            "status": getattr(getattr(f, "status", None), "name", ""),
+            "priority": getattr(getattr(f, "priority", None), "name", ""),
+            "assignee": getattr(getattr(f, "assignee", None), "displayName", None),
+            "labels": list(getattr(f, "labels", []) or []),
+            "comments": comments,
+            "url": f"{load_jira_config().get('url', '')}/browse/{issue.key}",
+        }
+    except Exception as exc:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(exc))
+
+
+@router.get("/status")
+def jira_connection_status():
+    """Jira bağlantısının yapılandırılıp yapılandırılmadığını kontrol eder (token açık değil)."""
+    config = load_jira_config()
+    configured = bool(config.get("url") and config.get("email") and config.get("token"))
+    return {
+        "configured": configured,
+        "url": config.get("url", ""),
+        "email": config.get("email", ""),
+        "project_key": config.get("project_key", ""),
+    }
+
+
+def _extract_adf_text(node: object) -> str:
+    """Atlassian Document Format (ADF) JSON'ından düz metin çıkarır."""
+    if not isinstance(node, dict):
+        return str(node) if node else ""
+    parts: list[str] = []
+    if node.get("type") == "text":
+        parts.append(node.get("text", ""))
+    for child in node.get("content", []) or []:
+        parts.append(_extract_adf_text(child))
+    return " ".join(p for p in parts if p).strip()
 
 
 @router.post("/bugs/{bug_id}/push")

@@ -3,8 +3,8 @@ from __future__ import annotations
 
 import logging
 
-from ..prompts.reviewer import REVIEWER_SYSTEM_PROMPT, build_reviewer_user_prompt
 from ..prompts.registry import resolve_agent_system_prompt
+from ..prompts.reviewer import REVIEWER_SYSTEM_PROMPT, build_reviewer_user_prompt
 from ..schemas.review import ReviewAction, ReviewFinding, ReviewResult
 from ..state import AgentState
 from ..tools.ai_gateway import ai_complete

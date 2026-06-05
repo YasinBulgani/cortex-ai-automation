@@ -92,6 +92,10 @@ def _load_pillow():
 
         return Image
     except ImportError:
+        logger.warning(
+            "Opsiyonel bağımlılık 'Pillow' yüklenemedi, görsel karşılaştırma devre dışı. "
+            "pip install Pillow ile ekleyin."
+        )
         return None
 
 

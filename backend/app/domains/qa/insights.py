@@ -6,7 +6,7 @@ ve haftalık raporlar için.
 from __future__ import annotations
 
 from collections import defaultdict
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone as _tz
 from typing import Dict, List
 
 from pydantic import BaseModel
@@ -80,7 +80,7 @@ def velocity(weeks: int = 12) -> List[VelocityPoint]:
         except (ValueError, TypeError):
             pass
 
-    now = datetime.now(timezone.utc).date()
+    now = datetime.now(_tz.utc).date()
     points = []
     for i in range(weeks - 1, -1, -1):
         wk_date = now - timedelta(days=now.weekday() + 7 * i)
@@ -111,7 +111,7 @@ def pass_rate_trend(days: int = 30) -> List[TrendPoint]:
         by_day[d]["passed"] += s.passed
         by_day[d]["failed"] += s.failed
 
-    now = datetime.now(timezone.utc).date()
+    now = datetime.now(_tz.utc).date()
     points = []
     for i in range(days - 1, -1, -1):
         day = (now - timedelta(days=i)).isoformat()
@@ -192,7 +192,7 @@ def insights_response() -> InsightsResponse:
         owners=owner_stats(),
         top_failing=top_failing(10),
         coverage_by_priority=by_prio,
-        generated_at=datetime.now(timezone.utc).isoformat(),
+        generated_at=datetime.now(_tz.utc).isoformat(),
     )
 
 

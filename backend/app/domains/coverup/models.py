@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime, timezone as _tz
 from typing import Optional
 
 from sqlalchemy import DateTime, Float, ForeignKey, Integer, String, Text
@@ -13,7 +13,7 @@ from app.infra.models import Base
 
 
 def utcnow() -> datetime:
-    return datetime.now(timezone.utc)
+    return datetime.now(_tz.utc)
 
 
 class CoverageReportRecord(Base):
@@ -41,7 +41,7 @@ class CoverageReportRecord(Base):
         DateTime(timezone=True), default=utcnow, nullable=False
     )
 
-    file_details: Mapped[list["CoverageFileDetailRecord"]] = relationship(
+    file_details: Mapped[list[CoverageFileDetailRecord]] = relationship(
         back_populates="report",
         cascade="all, delete-orphan",
     )

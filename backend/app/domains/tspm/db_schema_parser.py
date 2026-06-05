@@ -303,7 +303,7 @@ Kurallar:
 
 def _parse_ddl_llm(ddl: str) -> dict:
     """LLM ile DDL ayrıştır."""
-    from app.domains.ai.service import call_llm, _parse_json_response  # type: ignore
+    from app.domains.ai.service import _parse_json_response, call_llm  # type: ignore
     try:
         raw = call_llm(
             SYSTEM_PROMPT_DDL_PARSE,
@@ -508,7 +508,7 @@ Tasarım kuralları:
 
 def parse_natural_language(description: str) -> dict:
     """Doğal dil açıklamasından WizardTable[] üret."""
-    from app.domains.ai.service import call_llm, _parse_json_response  # type: ignore
+    from app.domains.ai.service import _parse_json_response, call_llm  # type: ignore
     try:
         raw = call_llm(
             SYSTEM_PROMPT_NL_SCHEMA,
@@ -581,7 +581,7 @@ def enrich_schema(tables: list[dict], domain_hint: str = "") -> dict:
                 pii_columns.append(f"{tbl['name']}.{col['name']}")
 
     # Pass 2: LLM zenginleştirme
-    from app.domains.ai.service import call_llm, _parse_json_response  # type: ignore
+    from app.domains.ai.service import _parse_json_response, call_llm  # type: ignore
     try:
         schema_json = json.dumps(tables, ensure_ascii=False, indent=2)[:5000]
         raw = call_llm(
@@ -739,7 +739,8 @@ def parse_db_connection(
       sqlite:///path/to/file.db
     """
     try:
-        from sqlalchemy import create_engine, inspect as sa_inspect, text
+        from sqlalchemy import create_engine, text
+        from sqlalchemy import inspect as sa_inspect
     except ImportError:
         raise ValueError("sqlalchemy paketi yüklü değil.")
 

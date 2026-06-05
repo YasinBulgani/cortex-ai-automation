@@ -13,7 +13,8 @@ Model: qwen2.5:14b (en iyi analitik model)
 from __future__ import annotations
 
 from app.config import settings
-from .base_agent import BaseAgent, AgentResult
+
+from .base_agent import AgentResult, BaseAgent
 
 SYSTEM = """\
 Sen kıdemli bir Sistem Analisti ve QA Mimarısın.

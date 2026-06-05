@@ -13,7 +13,8 @@ Model: llama3.1:8b (kural tabanlı, hız önemli)
 from __future__ import annotations
 
 from app.config import settings
-from .base_agent import BaseAgent, AgentResult
+
+from .base_agent import AgentResult, BaseAgent
 
 SYSTEM = """\
 Sen Türk Bankacılık ve Finans Regülasyon Uzmanısın. Türkçe yanıt ver.

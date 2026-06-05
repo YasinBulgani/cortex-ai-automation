@@ -81,7 +81,7 @@ def _gateway_headers() -> dict:
     }
     # Correlation ID — aktif request'ten al (varsa)
     try:
-        from app.domains.ai.correlation import get_correlation_id, HEADER_NAME
+        from app.domains.ai.correlation import HEADER_NAME, get_correlation_id
         cid = get_correlation_id()
         if cid:
             headers[HEADER_NAME] = cid
@@ -153,7 +153,7 @@ def _redact_pii(text: str) -> tuple[str, int]:
         pass
 
     try:
-        from app.domains.ai.knowledge_store import mask_sensitive, _MASK_PATTERNS
+        from app.domains.ai.knowledge_store import _MASK_PATTERNS, mask_sensitive
         if not text:
             return text, 0
         original = text
@@ -182,8 +182,8 @@ def _resolve_from_registry(
     - Bulursa (system_prompt, meta) doner; meta = {"version": N, "prompt_id": ...}.
     """
     try:
-        from app.domains.feature_flags.service import feature_flags
         from app.config import settings
+        from app.domains.feature_flags.service import feature_flags
 
         if not feature_flags.is_enabled(
             "ai.prompts.registry",
@@ -297,7 +297,7 @@ def gateway_complete(
     for attempt in range(1, _MAX_RETRIES + 1):
         # Deadline check — asildiysa erken fail (Faz 1.D)
         try:
-            from app.domains.ai.deadline import check_deadline, remaining_ms, DeadlineExceededError
+            from app.domains.ai.deadline import DeadlineExceededError, check_deadline, remaining_ms
             check_deadline(f"gateway_complete attempt={attempt}")
             rem = remaining_ms()
             effective_timeout = TIMEOUT
@@ -335,10 +335,10 @@ def gateway_complete(
             # Structured output validation + auto-fix retry (Faz 1.A)
             try:
                 from app.domains.ai.structured_output import (
-                    structured_enabled,
-                    validate_response,
                     build_retry_prompt,
                     should_validate_task,
+                    structured_enabled,
+                    validate_response,
                 )
                 if structured_enabled(tenant_id) and should_validate_task(task_type):
                     valid, err_msg, _ = validate_response(task_type, content)

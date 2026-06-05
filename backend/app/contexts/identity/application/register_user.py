@@ -9,10 +9,9 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Protocol
 
-from app.contexts._shared.outbox import OutboxRepository, OutboxEntry
+from app.contexts._shared.outbox import OutboxEntry, OutboxRepository
 from app.contexts.identity.domain import Email, User, UserId
 from app.contexts.identity.domain.user import HashedPassword
-
 
 # ─── Command ─────────────────────────────────────────────────────────────
 

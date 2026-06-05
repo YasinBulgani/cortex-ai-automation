@@ -2,30 +2,40 @@
 
 from __future__ import annotations
 
+import base64
 import threading
-from typing import Optional
+from typing import Annotated, Optional
+
+import httpx
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.deps import get_current_user
+from app.infra.models import User
+
+CurrentUser = Annotated[User, Depends(get_current_user)]
+
 from app.config import settings
 from app.infra.database import get_db
+
 from . import service
 from .schemas import (
+    NexusCrawlJobOut,
+    NexusEndpointOut,
+    NexusExportCreate,
+    NexusExportOut,
+    NexusFileOut,
+    NexusGenerateRequest,
     NexusHealthOut,
     NexusProjectCreate,
     NexusProjectOut,
     NexusProjectUpdate,
-    NexusCrawlJobOut,
     NexusScenarioCreate,
-    NexusScenarioUpdate,
     NexusScenarioOut,
-    NexusEndpointOut,
-    NexusFileOut,
+    NexusScenarioUpdate,
     NexusStatsOut,
-    NexusExportCreate,
-    NexusExportOut,
-    NexusGenerateRequest,
 )
 
 router = APIRouter(prefix="/nexus-repo", tags=["nexus-repo"])
@@ -340,6 +350,7 @@ def download_export(
 ):
     """Hazır export dosyasını indir."""
     from fastapi.responses import FileResponse
+
     from .models import NexusExport
 
     export = db.execute(
@@ -369,3 +380,71 @@ def download_export(
         filename=fpath.name,
         media_type=media_types.get(export.format, "application/octet-stream"),
     )
+
+
+# ── Bitbucket Proxy ──────────────────────────────────────────────────────────
+# Frontend'den gelen Bitbucket API isteklerini backend üzerinden proxy'ler.
+# Böylece kullanıcı kimlik bilgileri tarayıcı network loglarında görünmez.
+
+class BitbucketFetchRequest(BaseModel):
+    workspace: str
+    repo: str
+    branch: str
+    path: str = ""
+    username: str
+    app_password: str
+
+
+@router.post(
+    "/bitbucket/fetch",
+    summary="Bitbucket repo içeriğini backend proxy üzerinden getir",
+)
+async def bitbucket_proxy_fetch(
+    body: BitbucketFetchRequest,
+    user: CurrentUser,
+) -> dict:
+    """Bitbucket src API'ye backend üzerinden istek atar.
+
+    Kimlik bilgileri tarayıcıya hiçbir zaman döndürülmez — sadece içerik iletilir.
+    """
+    base = (
+        f"https://api.bitbucket.org/2.0/repositories/"
+        f"{body.workspace}/{body.repo}"
+    )
+    src_path = f"{body.branch}/{body.path}" if body.path else body.branch
+    url = f"{base}/src/{src_path}"
+    credentials = base64.b64encode(
+        f"{body.username}:{body.app_password}".encode()
+    ).decode()
+
+    try:
+        async with httpx.AsyncClient(timeout=15) as client:
+            resp = await client.get(
+                url,
+                headers={"Authorization": f"Basic {credentials}"},
+            )
+    except httpx.RequestError as exc:
+        raise HTTPException(502, f"Bitbucket'e ulaşılamadı: {exc}") from exc
+
+    if not resp.is_success:
+        raise HTTPException(
+            resp.status_code,
+            f"Bitbucket API hatası: {resp.text[:200]}",
+        )
+
+    content_type = resp.headers.get("content-type", "")
+    if "application/json" in content_type:
+        data = resp.json()
+        if isinstance(data, dict) and "values" in data:
+            listing = "\n".join(
+                f"{'📁' if f.get('type') == 'commit_directory' else '📄'} {f.get('path','')}"
+                for f in data["values"]
+            )
+            return {
+                "type": "directory",
+                "content": f"Repo: {body.workspace}/{body.repo} ({body.branch})\n"
+                           f"Dizin: /{body.path or 'kök'}\n\n{listing}",
+            }
+        return {"type": "json", "content": resp.text}
+
+    return {"type": "text", "content": resp.text}

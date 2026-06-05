@@ -70,7 +70,7 @@ class ProjectResponse(BaseModel):
     status: str
 
     @classmethod
-    def from_dto(cls, dto: ProjectDTO) -> "ProjectResponse":
+    def from_dto(cls, dto: ProjectDTO) -> ProjectResponse:
         return cls(**dto.__dict__)
 
 

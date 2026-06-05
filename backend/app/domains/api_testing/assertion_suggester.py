@@ -17,14 +17,13 @@ Usage:
 """
 
 import logging
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.domains.api_testing.models import (
     ApiEndpoint,
-    ApiSpec,
     ApiTestCase,
 )
 

@@ -26,10 +26,10 @@ from __future__ import annotations
 import json
 import logging
 import re
-from typing import Any, List, Optional
+from typing import List
 
 from app.config import settings
-from app.domains.agents.banking_team.base_agent import BaseAgent, AgentResult
+from app.domains.agents.banking_team.base_agent import AgentResult, BaseAgent
 
 logger = logging.getLogger(__name__)
 

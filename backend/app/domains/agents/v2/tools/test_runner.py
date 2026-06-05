@@ -5,12 +5,11 @@ import asyncio
 import logging
 import os
 import shutil
-from urllib.parse import urlparse
 import uuid
 import xml.etree.ElementTree as ET
 from datetime import datetime
 from pathlib import Path
-from typing import Any
+from urllib.parse import urlparse
 
 from ..schemas.run import FailureContext, RunResult, TestStatus
 

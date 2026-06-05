@@ -17,10 +17,9 @@ import hmac
 import json
 import logging
 import os
-from datetime import datetime, timezone
+from datetime import datetime, timezone as _tz
 from typing import Any, Optional
 
-import httpx
 from fastapi import APIRouter, BackgroundTasks, Depends, Header, HTTPException, Request
 from pydantic import BaseModel
 from sqlalchemy import func, select, text
@@ -30,8 +29,7 @@ from app.config import settings
 from app.deps import get_current_user, get_optional_user
 from app.domains.tspm.models import TspmProject, TspmProjectMember
 from app.infra.database import get_db
-from app.config import settings
-from fastapi import Depends
+from app.infra.models import User
 
 router = APIRouter(prefix="/cicd", tags=["cicd"])
 logger = logging.getLogger(__name__)
@@ -167,12 +165,12 @@ def _store_event(
     """Persist webhook event while preserving the public response shape."""
     event = {
         "id": hashlib.md5(
-            f"{source}{event_type}{datetime.now(timezone.utc).isoformat()}".encode()
+            f"{source}{event_type}{datetime.now(_tz.utc).isoformat()}".encode()
         ).hexdigest()[:12],
         "source": source,
         "event_type": event_type,
         "project_ref": project_ref,
-        "received_at": datetime.now(timezone.utc).isoformat(),
+        "received_at": datetime.now(_tz.utc).isoformat(),
         "payload_summary": _summarize(payload),
     }
 
@@ -538,9 +536,11 @@ async def impact_analysis(project_id: str, body: ImpactAnalysisRequest,
                            _current_user=Depends(get_current_user)):
     """Git diff'e göre hangi testlerin etkilendiğini hesaplar ve önceliklendirir."""
     _require_project_access(db, _current_user, project_id)
-    from sqlalchemy import select
-    from app.domains.tspm.models import TspmScenario, TspmExecutionResult, TspmExecution
     import statistics
+
+    from sqlalchemy import select
+
+    from app.domains.tspm.models import TspmExecution, TspmExecutionResult, TspmScenario
 
     scenarios = list(db.execute(
         select(TspmScenario).where(TspmScenario.project_id == project_id)

@@ -1,11 +1,11 @@
-from .project import Project, ProjectId, ProjectName, ProductFamily, ProjectStatus
 from .events import (
-    ProjectCreated,
     ProjectArchived,
-    ProjectRestored,
-    ProjectRenamed,
+    ProjectCreated,
     ProjectProductFamilyAssigned,
+    ProjectRenamed,
+    ProjectRestored,
 )
+from .project import ProductFamily, Project, ProjectId, ProjectName, ProjectStatus
 
 __all__ = [
     "Project", "ProjectId", "ProjectName", "ProductFamily", "ProjectStatus",

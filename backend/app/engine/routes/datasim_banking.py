@@ -22,7 +22,7 @@ import sys
 from datetime import datetime
 from typing import Any
 
-from fastapi import APIRouter, HTTPException, Query, status
+from fastapi import APIRouter, HTTPException, status
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
@@ -44,31 +44,51 @@ if _CORE_PYTHON not in sys.path:
 
 # ── Lazy import — banking paketi yüklü değilse graceful degradation ───────────
 try:
-    from banking.generators.identity import (
-        generate_tc_kimlik, validate_tc_kimlik,
-        generate_vkn, validate_vkn, generate_tc_kimlik_batch,
+    from banking.factories.banking_factories import (
+        FACTORY_MAP,
+        generate_banking_data,
+        generate_relational_dataset,
     )
     from banking.generators.account import (
-        generate_tr_iban, validate_tr_iban, generate_swift,
-        get_bank_list, TR_BANK_CODES,
+        TR_BANK_CODES,
+        generate_swift,
+        generate_tr_iban,
+        get_bank_list,
+        validate_tr_iban,
     )
     from banking.generators.card import (
-        generate_card_number, luhn_check, generate_cvv,
-        generate_card_expiry, mask_card_number,
-    )
-    from banking.generators.transaction import (
-        generate_eft_reference, generate_fast_reference,
-        generate_doviz_kuru, generate_transaction_date,
-        generate_cek_numarasi, generate_aciklama, generate_merchant,
-        DOVIZ_KURLAR,
+        generate_card_expiry,
+        generate_card_number,
+        generate_cvv,
+        luhn_check,
+        mask_card_number,
     )
     from banking.generators.credit import (
-        generate_faiz_orani, generate_kredi_limiti, generate_risk_skoru,
-        classify_segment, generate_aylik_gelir,
-        SEGMENT_KURALLAR, FAIZ_SPREAD, TCMB_POLITIKA_FAIZ,
+        FAIZ_SPREAD,
+        SEGMENT_KURALLAR,
+        TCMB_POLITIKA_FAIZ,
+        classify_segment,
+        generate_aylik_gelir,
+        generate_faiz_orani,
+        generate_kredi_limiti,
+        generate_risk_skoru,
     )
-    from banking.factories.banking_factories import (
-        generate_banking_data, generate_relational_dataset, FACTORY_MAP,
+    from banking.generators.identity import (
+        generate_tc_kimlik,
+        generate_tc_kimlik_batch,
+        generate_vkn,
+        validate_tc_kimlik,
+        validate_vkn,
+    )
+    from banking.generators.transaction import (
+        DOVIZ_KURLAR,
+        generate_aciklama,
+        generate_cek_numarasi,
+        generate_doviz_kuru,
+        generate_eft_reference,
+        generate_fast_reference,
+        generate_merchant,
+        generate_transaction_date,
     )
     BANKING_AVAILABLE = True
     _IMPORT_ERROR = ""

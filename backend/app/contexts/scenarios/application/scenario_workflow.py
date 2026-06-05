@@ -12,8 +12,8 @@ from uuid import UUID
 
 from app.contexts._shared.outbox import OutboxEntry, OutboxRepository
 from app.contexts.scenarios.domain.scenario import ScenarioId, ScenarioStep, StepType
-from .create_scenario import ScenarioRepository
 
+from .create_scenario import ScenarioRepository
 
 # ─── Commands ─────────────────────────────────────────────────────────────
 

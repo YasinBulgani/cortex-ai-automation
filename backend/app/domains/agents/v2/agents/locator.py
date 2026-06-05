@@ -5,7 +5,6 @@ import logging
 
 from ..state import AgentState
 from ..tools.locator import LocatorPipeline
-from ..tools.locator.extraction import extract_from_html
 from .base import BaseAgent
 
 logger = logging.getLogger(__name__)

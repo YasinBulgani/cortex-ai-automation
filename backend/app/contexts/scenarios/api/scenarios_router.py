@@ -82,7 +82,7 @@ class ScenarioResponse(BaseModel):
     steps: list[StepResponse]
 
     @classmethod
-    def from_dto(cls, dto: ScenarioDTO) -> "ScenarioResponse":
+    def from_dto(cls, dto: ScenarioDTO) -> ScenarioResponse:
         return cls(
             id=dto.id,
             project_id=dto.project_id,

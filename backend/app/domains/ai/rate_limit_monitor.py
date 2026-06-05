@@ -160,9 +160,9 @@ def _parse_duration(val: Any) -> Optional[float]:
         return total
     # ISO timestamp -> relative
     try:
-        from datetime import datetime, timezone
+        from datetime import datetime, timezone as _tz
         dt = datetime.fromisoformat(s.replace("Z", "+00:00"))
-        delta = (dt - datetime.now(timezone.utc)).total_seconds()
+        delta = (dt - datetime.now(_tz.utc)).total_seconds()
         return max(0.0, delta)
     except Exception:
         return None

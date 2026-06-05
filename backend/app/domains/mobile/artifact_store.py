@@ -9,12 +9,11 @@ import hashlib
 import os
 import re
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timezone as _tz
 from pathlib import Path
 from typing import Optional
 
 from .schemas import MobileArtifact
-
 
 _SAFE_PART_RE = re.compile(r"[^a-zA-Z0-9_.-]+")
 
@@ -78,7 +77,7 @@ class MobileArtifactStore:
             mime_type=mime_type,
             size_bytes=len(data),
             sha256=hashlib.sha256(data).hexdigest(),
-            created_at=datetime.now(timezone.utc),
+            created_at=datetime.now(_tz.utc),
         )
         self._artifacts[artifact.id] = artifact
         return artifact

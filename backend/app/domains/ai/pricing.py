@@ -12,7 +12,6 @@ değişmedi; çağrı yerleri etkilenmez.
 from __future__ import annotations
 
 import logging
-from typing import Tuple
 
 from app.domains.ai.model_registry import (
     ModelPrice,

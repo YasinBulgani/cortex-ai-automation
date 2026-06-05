@@ -1,7 +1,6 @@
 """Locator Agent — AI XPath üretim prompt'u."""
 from __future__ import annotations
 
-
 LOCATOR_XPATH_SYSTEM_PROMPT = """Sen DOM uzmanı bir test mühendisisin. KIRILGAN OLMAYAN XPath üretirsin.
 
 KURALLAR:

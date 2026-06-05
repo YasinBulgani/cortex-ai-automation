@@ -7,15 +7,12 @@ when payments are wired in.
 from __future__ import annotations
 
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone as _tz
 from typing import Optional
 
 from sqlalchemy import (
     Boolean,
-    Column,
     DateTime,
-    ForeignKey,
-    Integer,
     Numeric,
     String,
     UniqueConstraint,
@@ -30,8 +27,7 @@ def _uuid() -> str:
 
 
 def _utcnow() -> datetime:
-    from datetime import timezone
-    return datetime.now(timezone.utc)
+    return datetime.now(_tz.utc)
 
 
 class Subscription(Base):

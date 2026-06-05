@@ -32,9 +32,10 @@ import logging
 import os
 import re
 import subprocess
+from collections.abc import Iterable
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Dict, Iterable, List, Optional, Set, Tuple
+from typing import Dict, List, Optional, Set
 from xml.etree import ElementTree as ET
 
 logger = logging.getLogger(__name__)

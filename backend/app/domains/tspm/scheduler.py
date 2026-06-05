@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timezone
+from datetime import datetime, timezone as _tz
 from typing import Optional
 
 logger = logging.getLogger(__name__)
@@ -46,7 +46,7 @@ def shutdown_scheduler():
 def compute_next_run(cron_expression: str) -> Optional[datetime]:
     try:
         from croniter import croniter
-        c = croniter(cron_expression, datetime.now(timezone.utc))
+        c = croniter(cron_expression, datetime.now(_tz.utc))
         return c.get_next(datetime)
     except Exception:
         return None
@@ -84,9 +84,10 @@ def load_schedules_from_db():
     if s is None:
         return
     try:
-        from app.infra.database import SessionLocal
-        from app.domains.tspm.models import TspmSchedule
         from sqlalchemy import select
+
+        from app.domains.tspm.models import TspmSchedule
+        from app.infra.database import SessionLocal
         with SessionLocal() as db:
             rows = list(db.scalars(select(TspmSchedule).where(TspmSchedule.is_active == True)))
             for sched in rows:
@@ -108,9 +109,10 @@ def _run_schedule_job(schedule_id: str):
     Masaüstü schedule → TspmExecution kaydı oluşturur.
     """
     try:
+        from datetime import datetime
+
+        from app.domains.tspm.models import TspmExecution, TspmExecutionResult, TspmRegressionSet, TspmSchedule
         from app.infra.database import SessionLocal
-        from app.domains.tspm.models import TspmSchedule, TspmExecution, TspmExecutionResult, TspmRegressionSet
-        from datetime import datetime, timezone
 
         with SessionLocal() as db:
             sched = db.get(TspmSchedule, schedule_id)
@@ -126,7 +128,7 @@ def _run_schedule_job(schedule_id: str):
                 return
 
             # Timestamps güncelle (commit sonrası çakışmasın diye burada yapılır)
-            sched.last_run_at = datetime.now(timezone.utc)
+            sched.last_run_at = datetime.now(_tz.utc)
             next_run = compute_next_run(sched.cron_expression)
             if next_run:
                 sched.next_run_at = next_run

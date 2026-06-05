@@ -18,26 +18,22 @@ import logging
 from typing import Any, Dict, List, Optional
 
 import httpx
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Query
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
 from pydantic import BaseModel
-from sqlalchemy import func, select, update, delete
+from sqlalchemy import delete, func, select, update
 from sqlalchemy.orm import Session
 
-from app.infra.database import get_db
 from app.deps import get_current_user
-from app.domains.api_testing.environment import resolve_string
-from app.domains.api_testing.network_security import UnsafeTargetError, validate_outbound_url
 from app.domains.api_testing.analytics_router import router as analytics_router
-from app.domains.tspm.models import TspmProject, TspmProjectMember
-
+from app.domains.api_testing.environment import resolve_string
 from app.domains.api_testing.models import (
     ApiChain,
     ApiEndpoint,
     ApiEnvironment,
-    ApiExecutionDetail,
     ApiSpec,
     ApiTestCase,
 )
+from app.domains.api_testing.network_security import UnsafeTargetError, validate_outbound_url
 from app.domains.api_testing.schemas import (
     AIGenerateRequest,
     AIGenerateResponse,
@@ -69,6 +65,8 @@ from app.domains.api_testing.schemas import (
     TestCaseUpdate,
     TrendResponse,
 )
+from app.domains.tspm.models import TspmProject, TspmProjectMember
+from app.infra.database import get_db
 
 logger = logging.getLogger(__name__)
 
@@ -579,7 +577,6 @@ async def execute_single_request(
     Degisken cozumleme, assertion degerlendirme, schema dogrulama dahil.
     """
     from app.domains.api_testing.request_executor import execute_request
-    from app.domains.api_testing.environment import merge_variables
 
     # Environment degiskenlerini al
     env_vars: Dict[str, str] = {}
@@ -767,8 +764,10 @@ async def run_chain(
     Dönen ``ChainRunResult`` şekli FE ``useRunChain`` hook'unun beklediği
     TypeScript tipine birebir eşleşir.
     """
+    import time
+    import uuid
+
     from app.domains.api_testing.request_executor import execute_request
-    import time, uuid
 
     chain = db.execute(
         select(ApiChain).where(

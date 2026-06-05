@@ -8,8 +8,8 @@ to avoid injection via user-controlled fields like display names.
 from __future__ import annotations
 
 import html
+from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Mapping
 
 
 @dataclass(frozen=True)

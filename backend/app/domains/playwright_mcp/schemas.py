@@ -1,5 +1,5 @@
 """Playwright MCP — Pydantic semalari."""
-from typing import Optional, List, Dict, Any
+from typing import Dict, List, Optional
 
 from pydantic import BaseModel, Field
 

@@ -9,9 +9,16 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime
+
 from sqlalchemy import (
-    Column, String, Text, Integer, Boolean, DateTime,
-    ForeignKey, JSON,
+    JSON,
+    Boolean,
+    Column,
+    DateTime,
+    ForeignKey,
+    Integer,
+    String,
+    Text,
 )
 from sqlalchemy.orm import relationship
 

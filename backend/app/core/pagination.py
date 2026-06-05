@@ -14,7 +14,7 @@ Kullanım::
 
 from __future__ import annotations
 
-from typing import Any, Generic, List, Literal, Optional, TypeVar
+from typing import Any, Generic, List, Literal, TypeVar
 
 from fastapi import Query
 from sqlalchemy import func, select

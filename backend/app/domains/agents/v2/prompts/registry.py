@@ -59,7 +59,7 @@ def _resolve_db_prompt(
 
 def _resolve_file_prompt(prompt_id: str) -> str | None:
     try:
-        from prompt_center.registry import registry, PromptNotFoundError, PromptDriftError
+        from prompt_center.registry import PromptDriftError, PromptNotFoundError, registry
         return registry.build(prompt_id)
     except PromptNotFoundError:
         return None

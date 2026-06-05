@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone as _tz
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
@@ -157,7 +157,7 @@ def build_global_dashboard(db: Session, user: User) -> GlobalDashboardOut:
     overall_rate = round(sum(metric.pass_rate for metric in all_metrics) / len(all_metrics), 1) if all_metrics else 0.0
 
     day_names = ["Pzt", "Sal", "Çar", "Per", "Cum", "Cmt", "Paz"]
-    now = datetime.now(timezone.utc)
+    now = datetime.now(_tz.utc)
     week_start = (now - timedelta(days=6)).replace(hour=0, minute=0, second=0, microsecond=0)
     weekly_metrics = list(
         db.scalars(
@@ -169,7 +169,7 @@ def build_global_dashboard(db: Session, user: User) -> GlobalDashboardOut:
     )
     day_buckets: dict[int, tuple[int, int]] = {day: (0, 0) for day in range(7)}
     for metric in weekly_metrics:
-        ts = metric.executed_at.replace(tzinfo=timezone.utc) if metric.executed_at.tzinfo is None else metric.executed_at
+        ts = metric.executed_at.replace(tzinfo=_tz.utc) if metric.executed_at.tzinfo is None else metric.executed_at
         days_ago = (now.date() - ts.date()).days
         if 0 <= days_ago <= 6:
             slot = 6 - days_ago
@@ -299,7 +299,7 @@ def build_global_dashboard(db: Session, user: User) -> GlobalDashboardOut:
 
 
 def _time_ago(now: datetime, value: datetime) -> str:
-    diff = now - (value.replace(tzinfo=timezone.utc) if value.tzinfo is None else value)
+    diff = now - (value.replace(tzinfo=_tz.utc) if value.tzinfo is None else value)
     if diff.days > 0:
         return f"{diff.days} gün önce"
     if diff.seconds > 3600:

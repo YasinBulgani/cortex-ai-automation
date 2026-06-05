@@ -20,6 +20,7 @@ def _get_queue():
     """Lazy import to avoid Redis connection at import time."""
     from redis import Redis
     from rq import Queue
+
     from app.config import settings
 
     return Queue(settings.rq_queue_name, connection=Redis.from_url(settings.redis_url))
@@ -46,8 +47,8 @@ def enqueue(
         KeyError: dataset_version_id or rule_set_id not found.
         ValueError: RuleSet belongs to a different dataset.
     """
-    from app.infra.models import DatasetVersion, RuleSet
     from app.domains.jobs.tasks import run_generation_job
+    from app.infra.models import DatasetVersion, RuleSet
 
     ver = db.get(DatasetVersion, dataset_version_id)
     if ver is None:

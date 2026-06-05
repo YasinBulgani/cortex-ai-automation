@@ -25,8 +25,7 @@ import json
 import logging
 import re
 import time
-import uuid
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
 from sqlalchemy.orm import Session
 
@@ -505,8 +504,9 @@ class NLTestGenerator:
 
         Fuzzy matching: path segment'leri, method, entity isimleri.
         """
-        from app.domains.api_testing.models import ApiEndpoint, ApiSpec
         from sqlalchemy import select
+
+        from app.domains.api_testing.models import ApiEndpoint, ApiSpec
 
         # Get all endpoints for this project's specs
         stmt = (
@@ -674,8 +674,8 @@ class NLTestGenerator:
         Returns:
             {"generated": {...}, "model_used": str}
         """
-        from app.domains.ai.smart_model_router import route_model
         from app.domains.ai.service import call_llm
+        from app.domains.ai.smart_model_router import route_model
 
         # Route model
         rec = route_model(

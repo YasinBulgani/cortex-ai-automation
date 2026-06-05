@@ -10,7 +10,6 @@ import os
 from typing import Any, Dict, List, Optional
 
 import httpx
-from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.domains.tspm.models import TspmN8nExecution, TspmN8nWorkflow

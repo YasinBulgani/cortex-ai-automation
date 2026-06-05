@@ -11,7 +11,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.config import settings
-from app.deps import get_current_user, require_permission, _user_permissions
+from app.deps import _user_permissions, get_current_user
 from app.domains.audit.service import log_audit
 from app.domains.auth.service import hash_password
 from app.infra.database import get_db

@@ -10,7 +10,8 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
-from datetime import datetime, timezone
+from datetime import datetime, timezone as _tz
+UTC = _tz.utc  # Python 3.9 uyumlu alias
 from pathlib import Path
 from typing import Any
 
@@ -223,7 +224,7 @@ async def create_ai_workflow(
         workflow_id,
         {
             "event_type": "workflow_created",
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(_tz.utc).isoformat(),
             "run_id": workflow_id,
             "workflow_id": workflow_id,
             "data": input_payload["workflow"],
@@ -235,7 +236,7 @@ async def create_ai_workflow(
             workflow_id,
             {
                 "event_type": "approval_required",
-                "timestamp": datetime.utcnow().isoformat(),
+                "timestamp": datetime.now(_tz.utc).isoformat(),
                 "run_id": workflow_id,
                 "workflow_id": workflow_id,
                 "message": "Workflow approval bekliyor",
@@ -248,7 +249,7 @@ async def create_ai_workflow(
         workflow_id=workflow_id,
         run_id=workflow_id,
         status=initial_status,
-        created_at=datetime.utcnow(),
+        created_at=datetime.now(_tz.utc),
         stream_url=f"/api/v1/agents/v2/runs/{workflow_id}/stream",
         detail_url=f"/api/v1/ai/workflows/{workflow_id}",
         events_url=f"/api/v1/ai/workflows/{workflow_id}/events",
@@ -329,7 +330,7 @@ async def download_ai_workflow_artifact(
         workflow_id,
         {
             "event_type": "artifact_downloaded",
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(_tz.utc).isoformat(),
             "run_id": workflow_id,
             "workflow_id": workflow_id,
             "artifact_id": artifact_id,
@@ -384,7 +385,7 @@ async def approve_ai_workflow(
         workflow_id,
         {
             "event_type": "approval_recorded",
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(_tz.utc).isoformat(),
             "run_id": workflow_id,
             "workflow_id": workflow_id,
             "data": approval,
@@ -422,7 +423,7 @@ async def cancel_ai_workflow(
         workflow_id,
         {
             "event_type": "cancelled",
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(_tz.utc).isoformat(),
             "run_id": workflow_id,
             "workflow_id": workflow_id,
             "message": "Kullanici iptal etti",
@@ -495,7 +496,7 @@ def _enqueue_or_fail(workflow_id: str, state: dict[str, Any], background: Backgr
             workflow_id,
             {
                 "event_type": "queue_failed",
-                "timestamp": datetime.utcnow().isoformat(),
+                "timestamp": datetime.now(_tz.utc).isoformat(),
                 "run_id": workflow_id,
                 "workflow_id": workflow_id,
                 "message": str(exc),
@@ -558,7 +559,7 @@ def _verify_artifact_integrity(workflow_id: str, artifact: dict[str, Any], path:
             workflow_id,
             {
                 "event_type": "artifact_integrity_missing",
-                "timestamp": datetime.utcnow().isoformat(),
+                "timestamp": datetime.now(_tz.utc).isoformat(),
                 "run_id": workflow_id,
                 "workflow_id": workflow_id,
                 "artifact_id": artifact.get("artifact_id"),
@@ -587,7 +588,7 @@ def _verify_artifact_integrity(workflow_id: str, artifact: dict[str, Any], path:
         workflow_id,
         {
             "event_type": "artifact_integrity_failed",
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(_tz.utc).isoformat(),
             "run_id": workflow_id,
             "workflow_id": workflow_id,
             "artifact_id": artifact.get("artifact_id"),
@@ -729,7 +730,7 @@ def _build_workflow_health(limit: int) -> AIWorkflowHealthSummary:
     event_counts: dict[str, int] = {}
     active_statuses = {"pending_approval", "queued", "running"}
     active_ages: list[float] = []
-    now = datetime.now(timezone.utc)
+    now = datetime.now(_tz.utc)
     totals = {
         "cost_usd": 0.0,
         "tokens_used": 0,
@@ -786,8 +787,8 @@ def _build_workflow_health(limit: int) -> AIWorkflowHealthSummary:
 
 def _as_utc(value: datetime) -> datetime:
     if value.tzinfo is None:
-        return value.replace(tzinfo=timezone.utc)
-    return value.astimezone(timezone.utc)
+        return value.replace(tzinfo=UTC)
+    return value.astimezone(UTC)
 
 
 def _workflow_queue_depth() -> int | None:

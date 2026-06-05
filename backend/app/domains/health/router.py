@@ -11,9 +11,15 @@ olursa ``X-Skip-Rate-Limit`` header'ı eklenebilir (ayrı iş).
 from __future__ import annotations
 
 import time
+from typing import Annotated
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel
+
+from app.deps import get_current_user
+from app.infra.models import User
+
+CurrentUser = Annotated[User, Depends(get_current_user)]
 
 from app.domains.health.schemas import ExtendedHealth
 from app.domains.health.service import get_extended_health
@@ -27,7 +33,7 @@ router = APIRouter(prefix="/health", tags=["health"])
     summary="Tüm bağımlılıkların detaylı sağlık durumu",
     response_description="Bileşen listesi + overall durum",
 )
-def extended() -> ExtendedHealth:
+def extended(user: CurrentUser) -> ExtendedHealth:
     """Postgres, Redis, Engine, AI Gateway, Ollama — tümünün tek seferde durumu."""
     return get_extended_health()
 
@@ -40,10 +46,11 @@ class DbHealthResponse(BaseModel):
 
 
 @router.get("/db", response_model=DbHealthResponse, summary="PostgreSQL sağlık durumu")
-def db_health() -> DbHealthResponse:
+def db_health(user: CurrentUser) -> DbHealthResponse:
     """Veritabanı ping + bağlantı havuzu istatistikleri."""
     try:
         from sqlalchemy import text
+
         from app.infra.database import engine
 
         t0 = time.monotonic()

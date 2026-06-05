@@ -1,5 +1,5 @@
 """CoverUp — Code coverage analizi Pydantic şemaları."""
-from typing import Optional, List, Dict, Any
+from typing import List, Optional
 
 from pydantic import BaseModel, Field
 

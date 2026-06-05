@@ -1,5 +1,5 @@
-from .user import User, UserId, Email
-from .events import UserRegistered, UserEmailChanged, UserDeactivated, UserLoggedIn
+from .events import UserDeactivated, UserEmailChanged, UserLoggedIn, UserRegistered
+from .user import Email, User, UserId
 
 __all__ = [
     "User", "UserId", "Email",

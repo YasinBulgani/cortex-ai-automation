@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-import inspect
 import logging
 import time
 from functools import wraps
@@ -19,7 +18,6 @@ logger = logging.getLogger(__name__)
 # Ollama, vLLM, Groq, LM Studio — sıfır tescilli SDK bağımlılığı.
 # OpenAI-uyumlu /chat/completions endpoint'i kullanan her yerel/bulut
 # açık kaynak sağlayıcıyla doğrudan HTTP üzerinden çalışır.
-import threading
 
 
 def _call_compat(
@@ -964,7 +962,9 @@ def _stream_gateway(
 ):
     """AI Gateway /ai/stream SSE endpoint'inden sync token yield eder."""
     import json as _json
+
     import httpx
+
     from app.domains.ai.gateway_client import _gateway_base, _gateway_headers
 
     payload: dict = {
@@ -1011,8 +1011,9 @@ def _stream_compat(
     """OpenAI-uyumlu streaming — httpx SSE ile token yield eder.
     Ollama, vLLM, Groq ve diğer OpenAI-compat endpoint'lerle çalışır.
     """
-    import httpx as _httpx
     import json as _json
+
+    import httpx as _httpx
     headers = {
         "Authorization": f"Bearer {api_key or 'no-key'}",
         "Content-Type": "application/json",
@@ -1332,10 +1333,10 @@ async def async_generate_test_data(description: str, columns: list[dict] | None 
 # ── Async Streaming for ALL LLM Operations ──────────────────────────────
 
 # Persistent async HTTP client — event loop'a bağlı, lazy başlatılır.
-_async_http_client: "httpx.AsyncClient | None" = None  # noqa: F821
+_async_http_client: httpx.AsyncClient | None = None  # noqa: F821
 
 
-def _get_async_http_client() -> "httpx.AsyncClient":
+def _get_async_http_client() -> httpx.AsyncClient:
     global _async_http_client
     import httpx as _httpx
     if _async_http_client is None or _async_http_client.is_closed:

@@ -5,11 +5,10 @@ geçerlilik kontrollerini ve istatistik hesaplamalarını burada merkezileştiri
 """
 from __future__ import annotations
 
-import random
-from datetime import datetime, timezone
-from typing import Any
-
 import logging
+import random
+from datetime import datetime, timezone as _tz
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -30,7 +29,7 @@ def _sparkline(base: int, n: int = 7) -> list[int]:
 
 
 def _now_iso() -> str:
-    return datetime.now(timezone.utc).isoformat()
+    return datetime.now(_tz.utc).isoformat()
 
 
 def validate_product_id(product_id: str) -> None:

@@ -23,9 +23,10 @@ Tasarım:
 from __future__ import annotations
 
 import logging
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Callable, List, Optional, Sequence
+from typing import List, Optional
 
 from app.domains.cicd.tia import ImpactResult, map_changes_to_tests
 

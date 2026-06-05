@@ -82,7 +82,7 @@ class HttpTransport(Protocol):
         *,
         headers: dict,
         json: Optional[dict] = None,
-    ) -> "HttpResponse":  # pragma: no cover - protocol
+    ) -> HttpResponse:  # pragma: no cover - protocol
         ...
 
 

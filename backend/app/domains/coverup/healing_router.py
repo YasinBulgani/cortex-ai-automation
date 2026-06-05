@@ -135,7 +135,6 @@ def _gateway_llm_callable(
     Healing özelinde düşük sıcaklık (deterministik JSON) ve coder modeli
     tercih edilir — selector üretimi yaratıcılık değil, DOM okuma.
     """
-    from .healing.locator_healer import LlmCallable  # re-export hatırlatma
     from app.domains.ai import gateway_client as _gc
 
     def _call(system_prompt: str, user_prompt: str) -> str:

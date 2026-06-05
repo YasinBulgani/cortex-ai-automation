@@ -15,6 +15,7 @@ from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.deps import get_current_user, require_permission
+from app.domains.billing import stripe_client, stripe_sync
 from app.domains.billing.models import ProcessedWebhook
 from app.domains.billing.plans import PLAN_CATALOG, list_plans
 from app.domains.billing.service import (
@@ -22,7 +23,6 @@ from app.domains.billing.service import (
     get_or_create_subscription,
     set_plan,
 )
-from app.domains.billing import stripe_client, stripe_sync
 from app.infra.database import get_db
 from app.infra.models import User
 

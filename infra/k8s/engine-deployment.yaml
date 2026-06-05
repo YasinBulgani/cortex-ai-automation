@@ -1,0 +1,124 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# Neurex — Engine (Flask, internal) Kubernetes Manifests
+#
+# Notlar:
+#   - Engine stateful'dur (screenshot storage) — replicas: 1 olarak kalmalı
+#   - Dışarıdan erişilemez (ClusterIP), sadece backend erişir
+#   - X-Internal-Key header ile auth zorunludur
+# ═══════════════════════════════════════════════════════════════════════════════
+
+---
+# ── Engine Deployment ─────────────────────────────────────────────────────────
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: neurex-engine
+  namespace: neurex
+  labels:
+    app: neurex-engine
+    app.kubernetes.io/name: neurex
+    tier: engine
+    version: "1.0"
+spec:
+  replicas: 1  # Stateful — screenshot storage, tek replika zorunlu
+  selector:
+    matchLabels:
+      app: neurex-engine
+  strategy:
+    type: Recreate  # Stateful servis için Recreate — RollingUpdate veri kaybına yol açabilir
+  template:
+    metadata:
+      labels:
+        app: neurex-engine
+        tier: engine
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+      containers:
+        - name: engine
+          image: ghcr.io/neurex-ai/neurex-engine:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 5001
+              name: http
+          env:
+            - name: ENGINE_PORT
+              value: "5001"
+            - name: HEADLESS
+              value: "true"
+            - name: ENGINE_INTERNAL_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: neurex-secrets
+                  key: engine-internal-key
+            - name: REDIS_URL
+              value: "redis://neurex-redis:6379/0"
+            - name: LOG_FORMAT
+              value: "json"
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: "http://neurex-otel-collector:4317"
+            - name: OTEL_SERVICE_NAME
+              value: "neurex-engine"
+            - name: OTEL_RESOURCE_ATTRIBUTES
+              value: "deployment.environment=production"
+          volumeMounts:
+            - name: engine-data
+              mountPath: /app/reports
+            - name: engine-screenshots
+              mountPath: /app/screenshots
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 5001
+            initialDelaySeconds: 30
+            periodSeconds: 15
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 5001
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: "500m"
+              memory: "1Gi"
+            limits:
+              cpu: "2"
+              memory: "2Gi"
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+            capabilities:
+              drop: ["ALL"]
+      volumes:
+        - name: engine-data
+          persistentVolumeClaim:
+            claimName: engine-data-pvc
+        - name: engine-screenshots
+          persistentVolumeClaim:
+            claimName: engine-screenshots-pvc
+
+---
+# ── Engine Service (ClusterIP — internal only) ────────────────────────────────
+apiVersion: v1
+kind: Service
+metadata:
+  name: neurex-engine
+  namespace: neurex
+  labels:
+    app: neurex-engine
+    app.kubernetes.io/name: neurex
+    tier: engine
+spec:
+  type: ClusterIP
+  selector:
+    app: neurex-engine
+  ports:
+    - port: 5001
+      targetPort: 5001
+      protocol: TCP
+      name: http

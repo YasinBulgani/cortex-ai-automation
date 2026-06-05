@@ -4,11 +4,9 @@ qa/tools/schemas/*.json ile aynı şemaya bağlı. Frontend type-safe consume ed
 """
 from __future__ import annotations
 
-from datetime import date, datetime
 from typing import List, Literal, Optional
 
 from pydantic import BaseModel, ConfigDict, Field
-
 
 Priority = Literal["P0", "P1", "P2", "P3"]
 TestStatus = Literal["pass", "fail", "blocked", "skipped", "untested", "retest", "not-applicable"]

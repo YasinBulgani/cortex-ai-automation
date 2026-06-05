@@ -21,7 +21,6 @@ Endpointler:
 from __future__ import annotations
 
 import logging
-from typing import Annotated, Optional
 
 from fastapi import APIRouter, File, HTTPException, UploadFile, status
 from pydantic import BaseModel, Field
@@ -37,13 +36,13 @@ def _db():
     """Engine core.db modülünden manuel test CRUD işlemlerini getirir."""
     try:
         from core.db import (  # type: ignore
-            create_manual_test,
-            delete_manual_test,
             add_manual_step,
+            create_manual_test,
             delete_manual_step,
+            delete_manual_test,
+            get_manual_tests,
             update_manual_step_status,
             update_manual_test_status,
-            get_manual_tests,
         )
         return {
             "create_manual_test": create_manual_test,

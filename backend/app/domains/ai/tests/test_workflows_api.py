@@ -3,14 +3,15 @@
 from __future__ import annotations
 
 import json
-from datetime import datetime, timezone
+from datetime import datetime, timezone as _tz
 
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from app.deps import get_current_user
 from app.config import settings
-from app.domains.ai.workflows_router import register_state_artifacts, router as workflows_router
+from app.deps import get_current_user
+from app.domains.ai.workflows_router import register_state_artifacts
+from app.domains.ai.workflows_router import router as workflows_router
 
 
 def _client(monkeypatch, *, user_id: str = "u1", permissions: list[str] | None = None) -> TestClient:
@@ -330,7 +331,7 @@ def test_workflow_health_summary_handles_aware_created_at(monkeypatch):
     store = get_run_store()
     rec = store.get(created["workflow_id"])
     assert rec is not None
-    rec.created_at = datetime.now(timezone.utc)
+    rec.created_at = datetime.now(_tz.utc)
 
     resp = client.get("/api/v1/ai/workflows/health?limit=20")
 

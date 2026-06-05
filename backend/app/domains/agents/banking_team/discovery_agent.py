@@ -23,13 +23,11 @@ Entegrasyon:
 
 from __future__ import annotations
 
-import json
 import logging
 import re
-from typing import Any
-from urllib.parse import urlparse, urljoin
+from urllib.parse import urljoin, urlparse
 
-from .base_agent import BaseAgent, AgentResult
+from .base_agent import AgentResult, BaseAgent
 
 logger = logging.getLogger(__name__)
 

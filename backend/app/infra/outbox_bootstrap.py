@@ -44,7 +44,7 @@ class _AsyncSyncOutboxRepo:
 
     async def append(self, entry) -> None:
         import asyncio
-        from app.contexts._shared.outbox.sql_repository import SqlAlchemyOutboxRepository
+
         loop = asyncio.get_running_loop()
         await loop.run_in_executor(None, self._sync_append, entry)
 
@@ -63,9 +63,10 @@ class _AsyncSyncOutboxRepo:
         return await loop.run_in_executor(None, self._sync_fetch_pending, limit)
 
     def _sync_fetch_pending(self, limit: int):
-        from app.contexts._shared.outbox.sql_repository import OutboxRow
-        from app.contexts._shared.outbox.outbox import OutboxStatus
         from sqlalchemy import select
+
+        from app.contexts._shared.outbox.outbox import OutboxStatus
+        from app.contexts._shared.outbox.sql_repository import OutboxRow
         db = self._get_session()
         try:
             rows = db.execute(
@@ -84,9 +85,10 @@ class _AsyncSyncOutboxRepo:
         await loop.run_in_executor(None, self._sync_mark_processing, ids)
 
     def _sync_mark_processing(self, ids):
-        from app.contexts._shared.outbox.sql_repository import OutboxRow
-        from app.contexts._shared.outbox.outbox import OutboxStatus
         from sqlalchemy import update
+
+        from app.contexts._shared.outbox.outbox import OutboxStatus
+        from app.contexts._shared.outbox.sql_repository import OutboxRow
         db = self._get_session()
         try:
             db.execute(
@@ -104,8 +106,8 @@ class _AsyncSyncOutboxRepo:
         await loop.run_in_executor(None, self._sync_mark_delivered, id)
 
     def _sync_mark_delivered(self, id):
-        from app.contexts._shared.outbox.sql_repository import OutboxRow
         from app.contexts._shared.outbox.outbox import OutboxStatus
+        from app.contexts._shared.outbox.sql_repository import OutboxRow
         db = self._get_session()
         try:
             row = db.get(OutboxRow, id)
@@ -121,8 +123,8 @@ class _AsyncSyncOutboxRepo:
         await loop.run_in_executor(None, self._sync_mark_failed, id, error, max_retries)
 
     def _sync_mark_failed(self, id, error: str, max_retries: int):
-        from app.contexts._shared.outbox.sql_repository import OutboxRow
         from app.contexts._shared.outbox.outbox import OutboxStatus
+        from app.contexts._shared.outbox.sql_repository import OutboxRow
         db = self._get_session()
         try:
             row = db.get(OutboxRow, id)

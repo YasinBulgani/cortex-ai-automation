@@ -1,7 +1,6 @@
 """Analyst Agent prompt template'leri."""
 from __future__ import annotations
 
-
 ANALYST_JSON_SCHEMA_HINT = """
 {
   "domain": "banking" | "insurance" | "retail" | string,

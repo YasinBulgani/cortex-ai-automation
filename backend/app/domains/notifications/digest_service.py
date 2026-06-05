@@ -8,8 +8,9 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timedelta, timezone
-from typing import Iterable, Optional
+from collections.abc import Iterable
+from datetime import datetime, timedelta, timezone as _tz
+from typing import Optional
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -22,7 +23,7 @@ logger = logging.getLogger(__name__)
 
 
 def _now() -> datetime:
-    return datetime.now(timezone.utc)
+    return datetime.now(_tz.utc)
 
 
 def _user_channels(prefs: Optional[NotificationPrefs]) -> set[str]:

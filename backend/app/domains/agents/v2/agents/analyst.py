@@ -11,7 +11,7 @@ from ..prompts.registry import resolve_agent_system_prompt
 from ..schemas.intent import IntentGraph
 from ..state import AgentState
 from ..tools.ai_gateway import ai_complete, parse_json_safe
-from ..tools.intake import intake_to_text, IntakeError
+from ..tools.intake import IntakeError, intake_to_text
 from .base import BaseAgent
 
 logger = logging.getLogger(__name__)

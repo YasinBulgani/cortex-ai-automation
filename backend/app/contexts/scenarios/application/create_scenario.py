@@ -12,7 +12,7 @@ from dataclasses import dataclass
 from typing import Protocol
 from uuid import UUID
 
-from app.contexts._shared.outbox import OutboxRepository, OutboxEntry
+from app.contexts._shared.outbox import OutboxEntry, OutboxRepository
 from app.contexts.scenarios.domain import Scenario, ScenarioId, ScenarioTitle
 
 from .repositories import ScenarioRepository

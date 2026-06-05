@@ -13,11 +13,10 @@ Tasarım notu:
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import datetime, timezone as _tz
 from typing import Any, Dict, List, Optional, Protocol, runtime_checkable
 
 from pydantic import BaseModel, Field
-
 
 # ── Statik (YAML) tipler ──────────────────────────────────────────────────
 
@@ -33,7 +32,7 @@ class EvalCase:
     description: str = ""
 
     @classmethod
-    def from_dict(cls, raw: Dict[str, Any]) -> "EvalCase":
+    def from_dict(cls, raw: Dict[str, Any]) -> EvalCase:
         if "id" not in raw or not str(raw["id"]).strip():
             raise ValueError("EvalCase.id zorunlu ve boş olamaz")
         return cls(
@@ -61,7 +60,7 @@ class SuiteThresholds:
     min_case_pass_rate: float = 1.0
 
     @classmethod
-    def from_dict(cls, raw: Optional[Dict[str, Any]]) -> "SuiteThresholds":
+    def from_dict(cls, raw: Optional[Dict[str, Any]]) -> SuiteThresholds:
         if not raw:
             return cls()
         raw_mean: Dict[str, Any] = dict(raw.get("mean") or {})
@@ -88,7 +87,7 @@ class Suite:
     description: str = ""
 
     @classmethod
-    def from_dict(cls, raw: Dict[str, Any]) -> "Suite":
+    def from_dict(cls, raw: Dict[str, Any]) -> Suite:
         if "name" not in raw or not str(raw["name"]).strip():
             raise ValueError("Suite.name zorunlu")
         if "adapter" not in raw or not str(raw["adapter"]).strip():
@@ -143,7 +142,7 @@ class SuiteResult(BaseModel):
     suite_name: str
     adapter_name: str
     cases: List[CaseResult] = Field(default_factory=list)
-    started_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    started_at: datetime = Field(default_factory=lambda: datetime.now(_tz.utc))
     finished_at: Optional[datetime] = None
     passed: bool = False  # Suite seviyesi threshold'lar geçtiyse True
     aggregate: Dict[str, float] = Field(default_factory=dict)

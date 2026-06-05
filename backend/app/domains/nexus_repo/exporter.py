@@ -13,9 +13,8 @@ import csv
 import io
 import json
 import logging
-import os
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timezone as _tz
 from pathlib import Path
 from typing import Optional
 
@@ -24,6 +23,7 @@ from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.infra.database import SessionLocal
+
 from .models import NexusCase, NexusExport, NexusProject, NexusScenario
 
 _log = logging.getLogger(__name__)
@@ -42,7 +42,7 @@ def _to_gherkin(project: NexusProject, scenarios: list[NexusScenario]) -> str:
     """Senaryoları tek .feature dosyasına dönüştür."""
     lines: list[str] = [
         f"# Nexus Repo — {project.name}",
-        f"# Üretildi: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}",
+        f"# Üretildi: {datetime.now(_tz.utc).strftime('%Y-%m-%d %H:%M UTC')}",
         f"# Repo: {project.repo_url}",
         "",
     ]
@@ -135,7 +135,7 @@ def _to_postman(project: NexusProject, scenarios: list[NexusScenario]) -> dict:
         "info": {
             "_postman_id": str(uuid.uuid4()),
             "name": f"Nexus Repo — {project.name}",
-            "description": f"Repo: {project.repo_url}\nÜretildi: {datetime.now(timezone.utc).isoformat()}",
+            "description": f"Repo: {project.repo_url}\nÜretildi: {datetime.now(_tz.utc).isoformat()}",
             "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
         },
         "variable": [
@@ -220,7 +220,7 @@ def _to_excel(project: NexusProject, scenarios: list[NexusScenario], cases_by_sc
     ws2.append(["Nexus Repo — Test Senaryosu Raporu"])
     ws2.append(["Proje", project.name])
     ws2.append(["Repo", project.repo_url])
-    ws2.append(["Üretildi", datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")])
+    ws2.append(["Üretildi", datetime.now(_tz.utc).strftime("%Y-%m-%d %H:%M UTC")])
     ws2.append([""])
     ws2.append(["Toplam Senaryo", len(scenarios)])
     for stype in ("manual", "service", "automation"):
@@ -363,7 +363,7 @@ def run_export_job(export_id: str) -> None:
             return
 
         out_dir = _ensure_dir(_EXPORTS_BASE / export.project_id)
-        timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+        timestamp = datetime.now(_tz.utc).strftime("%Y%m%d_%H%M%S")
         fmt = export.format
 
         if fmt == "gherkin":

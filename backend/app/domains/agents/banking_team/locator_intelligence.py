@@ -18,10 +18,10 @@ from __future__ import annotations
 import logging
 import re
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any
 
-from .base_agent import BaseAgent, AgentResult
+from .base_agent import AgentResult, BaseAgent
 
 logger = logging.getLogger(__name__)
 

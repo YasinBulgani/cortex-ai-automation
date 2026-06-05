@@ -163,7 +163,7 @@ class QualityGate:
         self.name = name
         self._checks: list[BaseCheck] = []
 
-    def add_check(self, check: BaseCheck) -> "QualityGate":
+    def add_check(self, check: BaseCheck) -> QualityGate:
         self._checks.append(check)
         return self
 

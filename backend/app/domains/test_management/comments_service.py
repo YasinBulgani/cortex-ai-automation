@@ -12,16 +12,18 @@ import json
 import logging
 import os
 import re
-from datetime import datetime, timedelta, timezone
-from typing import Any, AsyncIterator, Optional
+from collections.abc import AsyncIterator
+from datetime import timedelta
+from typing import Any, Optional
 
-from sqlalchemy import select, func, update
+from sqlalchemy import func, select, update
 from sqlalchemy.orm import Session
 
 logger = logging.getLogger(__name__)
 
 ALLOWED_NOTIFICATION_CHANNELS: set[str] = {"in_app", "email", "push", "slack", "teams"}
 
+from app.config import settings
 from app.domains.test_management.models import (
     DEFAULT_TENANT_ID,
     MgmtComment,
@@ -37,10 +39,8 @@ from app.domains.test_management.schemas import (
     MgmtCommentUpdate,
     MgmtNotificationCreate,
 )
-from app.config import settings
-from app.services.email_service import send_email, EmailMessageData
+from app.services.email_service import EmailMessageData, send_email
 from app.services.notification_delivery import send_notification
-
 
 # ── helpers ──────────────────────────────────────────────────────────────────
 

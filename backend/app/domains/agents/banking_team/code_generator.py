@@ -13,7 +13,8 @@ Model: qwen2.5-coder:7b (kod üretimi için en iyi model)
 from __future__ import annotations
 
 from app.config import settings
-from .base_agent import BaseAgent, AgentResult
+
+from .base_agent import AgentResult, BaseAgent
 
 SYSTEM_BDD = """\
 Sen kıdemli bir Test Otomasyon Mühendisisin. Türkçe açıklamalar, İngilizce kod yaz.

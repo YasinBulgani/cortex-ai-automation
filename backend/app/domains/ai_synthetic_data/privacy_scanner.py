@@ -32,11 +32,11 @@ from __future__ import annotations
 
 import logging
 import re
-import string
 from collections import Counter, defaultdict
+from collections.abc import Sequence
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
-from typing import Any, Dict, Iterable, List, Literal, Optional, Sequence, Tuple
+from datetime import datetime, timezone as _tz
+from typing import Any, Dict, List, Literal, Optional, Tuple
 
 from pydantic import BaseModel, Field
 
@@ -184,7 +184,7 @@ class CheckResult(BaseModel):
 
 class PrivacyReport(BaseModel):
     dataset_id: str
-    generated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    generated_at: datetime = Field(default_factory=lambda: datetime.now(_tz.utc))
     rows_scanned: int
     overall_passed: bool
     checks: List[CheckResult] = Field(default_factory=list)

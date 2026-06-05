@@ -4,17 +4,17 @@ Domain layer unit tests — saf, infrastructure-bağımsız.
 
 import pytest
 
+from app.contexts.identity.domain.events import (
+    UserDeactivated,
+    UserEmailChanged,
+    UserLoggedIn,
+    UserRegistered,
+)
 from app.contexts.identity.domain.user import (
     Email,
     HashedPassword,
     User,
     UserId,
-)
-from app.contexts.identity.domain.events import (
-    UserRegistered,
-    UserEmailChanged,
-    UserDeactivated,
-    UserLoggedIn,
 )
 
 

@@ -12,8 +12,10 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from app.contexts.projects.api.router import router as projects_router, _projects_repo
-from app.contexts.scenarios.api.router import router as scenarios_router, _scenarios_repo
+from app.contexts.projects.api.router import _projects_repo
+from app.contexts.projects.api.router import router as projects_router
+from app.contexts.scenarios.api.router import _scenarios_repo
+from app.contexts.scenarios.api.router import router as scenarios_router
 from app.contexts.scenarios.domain import ScenarioStep, StepType
 
 
@@ -145,8 +147,9 @@ def test_submit_missing_scenario_returns_404(client):
 # ─── APPROVE ─────────────────────────────────────────────────────────────────
 
 def test_approve_after_submit_succeeds(client):
-    from app.contexts.scenarios.domain import ScenarioId
     from uuid import UUID
+
+    from app.contexts.scenarios.domain import ScenarioId
 
     pid = _create_project(client)
     sid_str = client.post("/api/v1/contexts/scenarios", json={"project_id": pid, "title": "T"}).json()["id"]

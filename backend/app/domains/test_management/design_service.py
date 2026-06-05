@@ -18,8 +18,8 @@ import io
 import json
 import logging
 import uuid as _uuid_mod
-from datetime import datetime
-from typing import Any, Iterable, Optional
+from collections.abc import Iterable
+from typing import Any, Optional
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -35,10 +35,8 @@ from app.domains.test_management.models import (
     MgmtDesignTechniqueRun,
     TestCase,
     TestManagementAuditEvent,
-    utcnow,
 )
 from app.domains.test_management.schemas import (
-    ALLOWED_DATA_TYPES,
     ALLOWED_TECHNIQUES,
     BvaRunCreate,
     CaseDataGenerateRequest,

@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from unittest.mock import AsyncMock, patch
-
 import httpx
 import pytest
 
@@ -14,7 +12,6 @@ from app.domains.agents.v2.tools.ai_gateway import (
     parse_json_safe,
 )
 from app.domains.ai.structured_output import StructuredOutputValidationError
-
 
 # ═══════════════════════════════════════════════════════════════════════════
 # JSON parser

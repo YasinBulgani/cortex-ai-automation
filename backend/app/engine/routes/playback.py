@@ -63,8 +63,8 @@ def replay_session(body: ReplaySessionRequest):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Oturum dosyası bulunamadı")
 
     try:
-        from playwright.sync_api import sync_playwright  # type: ignore[import]
         from core.playback_engine import PlaybackEngine  # type: ignore[import]
+        from playwright.sync_api import sync_playwright  # type: ignore[import]
 
         with sync_playwright() as pw:
             launcher = getattr(pw, body.browser, pw.chromium)
@@ -93,8 +93,8 @@ def replay_events(body: ReplayEventsRequest):
     Doğrudan event listesi ile oynatma.
     """
     try:
-        from playwright.sync_api import sync_playwright  # type: ignore[import]
         from core.playback_engine import PlaybackEngine  # type: ignore[import]
+        from playwright.sync_api import sync_playwright  # type: ignore[import]
 
         with sync_playwright() as pw:
             browser = pw.chromium.launch(headless=body.headless)

@@ -26,8 +26,9 @@ import io
 import logging
 import os
 import threading
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Any, Iterable, Optional
+from typing import Any, Optional
 
 from ruamel.yaml import YAML  # type: ignore[import-untyped]
 from ruamel.yaml.comments import CommentedMap  # type: ignore[import-untyped]

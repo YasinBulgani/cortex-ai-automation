@@ -28,8 +28,9 @@ import concurrent.futures as _cf
 import logging
 import os
 import time
-from datetime import datetime, timezone
-from typing import Iterable, List, Optional
+from collections.abc import Iterable
+from datetime import datetime, timezone as _tz
+from typing import List, Optional
 
 from app.infra.telemetry import set_span_attr, trace_span
 
@@ -184,7 +185,7 @@ def _run_suite_inner(
         result.threshold_failures = [
             f"SKIPPED: adapter '{suite.adapter_name}' available değil"
         ]
-        result.finished_at = datetime.now(timezone.utc)
+        result.finished_at = datetime.now(_tz.utc)
         return result
 
     workers = max_workers if max_workers is not None else _default_max_workers()
@@ -207,7 +208,7 @@ def _run_suite_inner(
         order = {c.id: i for i, c in enumerate(suite.cases)}
         result.cases.sort(key=lambda cr: order.get(cr.case_id, 1_000_000))
 
-    result.finished_at = datetime.now(timezone.utc)
+    result.finished_at = datetime.now(_tz.utc)
     _aggregate(result)
     _check_thresholds(suite, result)
     return result

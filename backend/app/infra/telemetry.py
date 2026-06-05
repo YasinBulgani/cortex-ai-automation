@@ -26,7 +26,8 @@ import contextlib
 import functools
 import logging
 import os
-from typing import Any, Callable, Dict, Iterator, Optional, TypeVar
+from collections.abc import Callable, Iterator
+from typing import Any, Dict, Optional, TypeVar
 
 logger = logging.getLogger(__name__)
 

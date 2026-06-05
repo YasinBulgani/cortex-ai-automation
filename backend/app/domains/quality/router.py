@@ -6,9 +6,15 @@ Kullanıcı: dashboard "Platform Sağlığı" widget'ı (UX-F2-201).
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Query
+from typing import Annotated
 
+from fastapi import APIRouter, Depends, Query
+
+from app.deps import get_current_user
 from app.domains.quality.service import QualityMetrics, get_quality_metrics
+from app.infra.models import User
+
+CurrentUser = Annotated[User, Depends(get_current_user)]
 
 router = APIRouter(prefix="/quality", tags=["quality"])
 
@@ -19,6 +25,7 @@ router = APIRouter(prefix="/quality", tags=["quality"])
     summary="Dashboard için platform kalite metrikleri",
 )
 def metrics(
+    user: CurrentUser,
     history_limit: int = Query(10, ge=1, le=50, description="Geçmiş rapor sayısı"),
 ) -> QualityMetrics:
     """Latest eval raporu + son N koşumun özeti.

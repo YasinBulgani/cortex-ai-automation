@@ -7,16 +7,18 @@ SqlProjectRepository      — async SQLAlchemy (requires DB session).
 
 from __future__ import annotations
 
+import logging
 from uuid import UUID
 
+logger = logging.getLogger(__name__)
+
 from app.contexts.projects.domain.project import (
+    ProductFamily,
     Project,
     ProjectId,
     ProjectName,
-    ProductFamily,
     ProjectStatus,
 )
-
 
 # ─── In-memory (for tests) ────────────────────────────────────────────────
 
@@ -46,8 +48,9 @@ class InMemoryProjectRepository:
 # ─── SQLAlchemy async implementation ────────────────────────────────────────
 
 try:
-    from sqlalchemy.ext.asyncio import AsyncSession
     from sqlalchemy import select, text
+    from sqlalchemy.ext.asyncio import AsyncSession
+
     from app.models.project import ProjectModel  # type: ignore[import]
 
     class SqlProjectRepository:
@@ -88,7 +91,7 @@ try:
             await self._session.flush()
 
         @staticmethod
-        def _to_domain(row: "ProjectModel") -> Project:
+        def _to_domain(row: ProjectModel) -> Project:
             family = ProductFamily(row.product_family) if row.product_family else None
             return Project(
                 id=ProjectId(UUID(row.id)),
@@ -101,4 +104,7 @@ try:
 
 except ImportError:
     # ProjectModel not yet generated — SQL repo unavailable in this environment
-    pass
+    logger.warning(
+        "Opsiyonel bağımlılık 'sqlalchemy' veya 'app.models.project' yüklenemedi, "
+        "SqlProjectRepository devre dışı (sadece InMemoryProjectRepository kullanılabilir)."
+    )

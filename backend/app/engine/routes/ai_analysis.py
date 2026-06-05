@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 """
 AI analiz endpoint'leri — Flask engine'den FastAPI'ye port edilmiştir.
 
@@ -17,8 +18,7 @@ POST /api/ai/analyze-assertions   — Test dosyası assertion analizi
 POST /api/ai/security-scan        — Güvenlik taraması başlat
 """
 
-from typing import Annotated
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel, Field
 
 router = APIRouter(prefix="/api/ai", tags=["engine", "ai-analysis"])

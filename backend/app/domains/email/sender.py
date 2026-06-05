@@ -13,11 +13,12 @@ from __future__ import annotations
 import logging
 import os
 import smtplib
+from collections.abc import Mapping
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import datetime, timezone as _tz
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-from typing import Any, Mapping, Optional, Protocol
+from typing import Any, Optional, Protocol
 
 from app.domains.email.templates import render
 
@@ -41,7 +42,7 @@ class SendOutcome:
     delivered: bool
     message_id: Optional[str] = None
     error: Optional[str] = None
-    timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    timestamp: datetime = field(default_factory=lambda: datetime.now(_tz.utc))
 
 
 class EmailProvider(Protocol):
@@ -74,7 +75,7 @@ class ConsoleProvider:
         return SendOutcome(
             provider=self.name,
             delivered=True,
-            message_id=f"console-{datetime.now(timezone.utc).timestamp():.0f}",
+            message_id=f"console-{datetime.now(_tz.utc).timestamp():.0f}",
         )
 
 

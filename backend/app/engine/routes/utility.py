@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 """
 Utility routes — Flask engine'den FastAPI'ye port edilmiştir.
 
@@ -20,7 +21,6 @@ GET  /api/export                 — Feature dosyalarını ZIP olarak indir
 import io
 import time
 import zipfile
-from typing import Any
 
 from fastapi import APIRouter, HTTPException, status
 from fastapi.responses import StreamingResponse
@@ -67,7 +67,7 @@ class ProxyRequest(BaseModel):
 def get_settings():
     """Mevcut .env ayarlarını okur."""
     try:
-        from config.settings import settings, BASE_DIR  # type: ignore[import]
+        from config.settings import BASE_DIR, settings  # type: ignore[import]
     except ImportError as exc:
         raise HTTPException(status_code=status.HTTP_501_NOT_IMPLEMENTED, detail=str(exc))
 

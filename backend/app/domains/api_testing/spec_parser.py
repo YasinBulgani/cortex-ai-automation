@@ -175,9 +175,10 @@ def resolve_refs(spec: dict) -> dict:
     prance kutuphanesi varsa kullanir, yoksa basit fallback.
     """
     try:
-        import prance
-        import tempfile
         import os
+        import tempfile
+
+        import prance
 
         # prance dosya/url bekliyor, gecici dosyaya yaz
         with tempfile.NamedTemporaryFile(

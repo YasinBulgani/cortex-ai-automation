@@ -2,14 +2,14 @@
 
 from __future__ import annotations
 
-from typing import Annotated, Callable, Optional
-
-from fastapi import Depends, HTTPException, Request, status
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from sqlalchemy import select
-from sqlalchemy.orm import Session
+from collections.abc import Callable
+from functools import lru_cache
+from typing import Annotated, Optional
 
 import jwt
+from fastapi import Depends, HTTPException, Request, status
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from sqlalchemy.orm import Session
 
 from app.domains.auth.service import decode_token
 from app.infra.database import get_db
@@ -65,6 +65,7 @@ def _user_permissions(user: User) -> set[str]:
     return perms
 
 
+@lru_cache(maxsize=None)
 def require_permission(perm: str) -> Callable:
     def dependency(
         user: Annotated[User, Depends(get_current_user)],

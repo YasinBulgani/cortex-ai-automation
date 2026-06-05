@@ -11,7 +11,6 @@ import uuid
 from typing import Any, Dict, List, Optional
 
 from app.domains.ai_synthetic_data.advanced_generators import (
-    BankingDataGenerator,
     CTGANGenerator,
     KDEGenerator,
 )

@@ -7,27 +7,27 @@ instead of HTTPException so the service layer is framework-independent.
 from __future__ import annotations
 
 import json
+from collections.abc import Iterable
+from datetime import datetime, timezone as _tz
 from pathlib import Path
-from typing import Any, Iterable, Optional
-from datetime import datetime, timezone
+from typing import Any, Optional
 
 from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
 
-from app.domains.tspm.models import TspmProject
 from app.domains.test_management.models import (
     DEFAULT_TENANT_ID,
     DefectLink,
     ExecutionEvidence,
-    MgmtComment,
-    MgmtNotification,
     RegressionSet,
     RegressionSetCase,
     ReleaseSignoff,
     Requirement,
     RequirementLink,
+    SharedStep,
     TestCase,
+    TestCaseDependency,
     TestCaseStep,
     TestCaseVersion,
     TestCycle,
@@ -50,34 +50,41 @@ from app.domains.test_management.schemas import (
     GeneratedCaseOut,
     GeneratedStepOut,
     ManagementProjectCreate,
-    TestCaseImproveRequest,
-    TestCaseImproveResponse,
-    TestPlanAIGenerateRequest,
-    TestPlanAIGenerateResponse,
-    ReleaseReportOut,
     RegressionCandidateOut,
+    RegressionSelectionFilter,
     RegressionSetCaseIn,
     RegressionSetCreate,
-    RegressionSelectionFilter,
+    ReleaseReportOut,
+    ReleaseSignoffCreate,
     RequirementCreate,
     RequirementLinkCreate,
-    ReleaseSignoffCreate,
-    StandupOut,
     StandupAnomaly,
+    StandupOut,
     StepResultUpdate,
     TestCaseCloneRequest,
     TestCaseCreate,
     TestCaseGenerateRequest,
+    TestCaseImproveRequest,
+    TestCaseImproveResponse,
     TestCaseUpdate,
     TestCycleCreate,
     TestFolderCreate,
     TestFolderUpdate,
     TestImportJobCreate,
+    TestPlanAIGenerateRequest,
+    TestPlanAIGenerateResponse,
     TestPlanCreate,
+    TestPlanUpdate,
+    TestCycleUpdate,
     TestRunCreate,
+    TestRunUpdate,
     TestSuiteCreate,
     TestSuiteUpdate,
+    RequirementLinkUpdate,
+    SharedStepCreate,
+    SharedStepUpdate,
 )
+from app.domains.tspm.models import TspmProject
 
 
 def _actor_id(user: Any | None) -> Optional[str]:
@@ -528,6 +535,38 @@ def list_cases(db: Session, project_id: str, q: str | None = None, include_archi
     return list(db.scalars(stmt.order_by(TestCase.created_at.desc())).all())
 
 
+def list_sub_cases(db: Session, project_id: str, parent_id: str) -> list[TestCase]:
+    """List all direct sub-cases of a parent case."""
+    project_id = resolve_project_id(db, project_id)
+    # Verify parent exists and belongs to project
+    get_case(db, project_id, parent_id)
+    return list(db.scalars(
+        select(TestCase)
+        .options(selectinload(TestCase.steps))
+        .where(TestCase.project_id == project_id, TestCase.parent_id == parent_id, TestCase.archived.is_(False))
+        .order_by(TestCase.created_at.asc())
+    ).all())
+
+
+def create_sub_case(db: Session, project_id: str, parent_id: str, payload: TestCaseCreate, user: Any | None) -> TestCase:
+    """Create a sub-case under a parent case, inheriting suite/folder."""
+    parent = get_case(db, project_id, parent_id)
+    # Inherit suite/folder from parent unless overridden
+    if payload.suite_id is None:
+        payload = payload.model_copy(update={"suite_id": parent.suite_id})
+    if payload.folder_id is None:
+        payload = payload.model_copy(update={"folder_id": parent.folder_id})
+    case = create_case(db, project_id, payload, user)
+    # Set parent_id after creation
+    case_obj = db.get(TestCase, case.id)
+    if case_obj:
+        case_obj.parent_id = parent_id
+        db.commit()
+        db.refresh(case_obj)
+    audit(db, "case.sub_case_created", "case", case.id, project_id, user, {"parent_id": parent_id})
+    return case
+
+
 def repository(db: Session, project_id: str) -> dict[str, Any]:
     project_id = resolve_project_id(db, project_id)
     suites = list(db.scalars(select(TestSuite).where(TestSuite.project_id == project_id).order_by(TestSuite.order_index, TestSuite.name)).all())
@@ -589,9 +628,9 @@ def archive_case(db: Session, project_id: str, case_id: str, user: Any | None) -
 def ai_generate_plan(
     db: Session,
     project_id: str,
-    payload: "TestPlanAIGenerateRequest",
+    payload: TestPlanAIGenerateRequest,
     user: Any | None = None,
-) -> "TestPlanAIGenerateResponse":
+) -> TestPlanAIGenerateResponse:
     """AI ile test planı adı, özeti ve scope önerileri üretir."""
     from app.domains.ai import service as ai_svc
 
@@ -634,9 +673,9 @@ def improve_case(
     db: Session,
     project_id: str,
     case_id: str,
-    payload: "TestCaseImproveRequest",
+    payload: TestCaseImproveRequest,
     user: Any | None = None,
-) -> "TestCaseImproveResponse":
+) -> TestCaseImproveResponse:
     """AI kullanarak mevcut case'i iyileştirir."""
     from app.domains.ai import service as ai_svc
 
@@ -732,6 +771,32 @@ def list_plans(db: Session, project_id: str) -> list[TestPlan]:
     )
 
 
+def update_plan(db: Session, project_id: str, plan_id: str, payload: TestPlanUpdate, user: Any | None) -> TestPlan:
+    project_id = resolve_project_id(db, project_id)
+    plan = db.scalar(select(TestPlan).where(TestPlan.id == plan_id, TestPlan.project_id == project_id))
+    if plan is None:
+        raise KeyError("Plan bulunamadı")
+    changed: list[str] = []
+    for key, value in payload.model_dump(exclude_unset=True).items():
+        setattr(plan, key, value)
+        changed.append(key)
+    if changed:
+        audit(db, "plan.updated", "plan", plan.id, project_id, user, {"changed_fields": changed})
+    db.commit()
+    db.refresh(plan)
+    return plan
+
+
+def delete_plan(db: Session, project_id: str, plan_id: str, user: Any | None) -> None:
+    project_id = resolve_project_id(db, project_id)
+    plan = db.scalar(select(TestPlan).where(TestPlan.id == plan_id, TestPlan.project_id == project_id))
+    if plan is None:
+        raise KeyError("Plan bulunamadı")
+    audit(db, "plan.deleted", "plan", plan_id, project_id, user)
+    db.delete(plan)
+    db.commit()
+
+
 def create_cycle(db: Session, project_id: str, payload: TestCycleCreate, user: Any | None) -> TestCycle:
     project_id = resolve_project_id(db, project_id)
     plan = db.get(TestPlan, payload.plan_id)
@@ -744,6 +809,40 @@ def create_cycle(db: Session, project_id: str, payload: TestCycleCreate, user: A
     db.commit()
     db.refresh(cycle)
     return cycle
+
+
+def update_cycle(db: Session, project_id: str, cycle_id: str, payload: TestCycleUpdate, user: Any | None) -> TestCycle:
+    project_id = resolve_project_id(db, project_id)
+    cycle = db.scalar(
+        select(TestCycle)
+        .join(TestPlan, TestCycle.plan_id == TestPlan.id)
+        .where(TestCycle.id == cycle_id, TestPlan.project_id == project_id)
+    )
+    if cycle is None:
+        raise KeyError("Cycle bulunamadı")
+    changed: list[str] = []
+    for key, value in payload.model_dump(exclude_unset=True).items():
+        setattr(cycle, key, value)
+        changed.append(key)
+    if changed:
+        audit(db, "cycle.updated", "cycle", cycle.id, project_id, user, {"changed_fields": changed})
+    db.commit()
+    db.refresh(cycle)
+    return cycle
+
+
+def delete_cycle(db: Session, project_id: str, cycle_id: str, user: Any | None) -> None:
+    project_id = resolve_project_id(db, project_id)
+    cycle = db.scalar(
+        select(TestCycle)
+        .join(TestPlan, TestCycle.plan_id == TestPlan.id)
+        .where(TestCycle.id == cycle_id, TestPlan.project_id == project_id)
+    )
+    if cycle is None:
+        raise KeyError("Cycle bulunamadı")
+    audit(db, "cycle.deleted", "cycle", cycle_id, project_id, user)
+    db.delete(cycle)
+    db.commit()
 
 
 def list_cycles(db: Session, project_id: str, plan_id: str | None = None) -> list[TestCycle]:
@@ -1132,6 +1231,42 @@ def create_run(db: Session, project_id: str, payload: TestRunCreate, user: Any |
     return run
 
 
+def update_run(db: Session, project_id: str, run_id: str, payload: TestRunUpdate, user: Any | None) -> TestRun:
+    project_id = resolve_project_id(db, project_id)
+    run = db.scalar(
+        select(TestRun)
+        .join(TestCycle, TestRun.cycle_id == TestCycle.id)
+        .join(TestPlan, TestCycle.plan_id == TestPlan.id)
+        .where(TestRun.id == run_id, TestPlan.project_id == project_id)
+    )
+    if run is None:
+        raise KeyError("Test run bulunamadı")
+    changed: list[str] = []
+    for key, value in payload.model_dump(exclude_unset=True).items():
+        setattr(run, key, value)
+        changed.append(key)
+    if changed:
+        audit(db, "run.updated", "run", run.id, project_id, user, {"changed_fields": changed})
+    db.commit()
+    db.refresh(run)
+    return run
+
+
+def delete_run(db: Session, project_id: str, run_id: str, user: Any | None) -> None:
+    project_id = resolve_project_id(db, project_id)
+    run = db.scalar(
+        select(TestRun)
+        .join(TestCycle, TestRun.cycle_id == TestCycle.id)
+        .join(TestPlan, TestCycle.plan_id == TestPlan.id)
+        .where(TestRun.id == run_id, TestPlan.project_id == project_id)
+    )
+    if run is None:
+        raise KeyError("Test run bulunamadı")
+    audit(db, "run.deleted", "run", run_id, project_id, user)
+    db.delete(run)
+    db.commit()
+
+
 def _sync_run_status(run: TestRun) -> None:
     statuses = [case.status for case in run.run_cases]
     if not statuses:
@@ -1331,7 +1466,7 @@ def _days_since(value: datetime | None) -> int | None:
         return None
     now = utcnow()
     if value.tzinfo is None:
-        value = value.replace(tzinfo=timezone.utc)
+        value = value.replace(tzinfo=_tz.utc)
     return max(0, (now - value).days)
 
 
@@ -1672,6 +1807,32 @@ def create_requirement_link(db: Session, project_id: str, payload: RequirementLi
     return link
 
 
+def update_requirement_link(db: Session, project_id: str, req_id: str, payload: RequirementLinkUpdate, user: Any | None) -> RequirementLink:
+    project_id = resolve_project_id(db, project_id)
+    link = db.scalar(select(RequirementLink).where(RequirementLink.id == req_id, RequirementLink.project_id == project_id))
+    if link is None:
+        raise KeyError("Requirement link bulunamadı")
+    changed: list[str] = []
+    for key, value in payload.model_dump(exclude_unset=True).items():
+        setattr(link, key, value)
+        changed.append(key)
+    if changed:
+        audit(db, "requirement_link.updated", "requirement_link", link.id, project_id, user, {"changed_fields": changed})
+    db.commit()
+    db.refresh(link)
+    return link
+
+
+def delete_requirement_link(db: Session, project_id: str, req_id: str, user: Any | None) -> None:
+    project_id = resolve_project_id(db, project_id)
+    link = db.scalar(select(RequirementLink).where(RequirementLink.id == req_id, RequirementLink.project_id == project_id))
+    if link is None:
+        raise KeyError("Requirement link bulunamadı")
+    audit(db, "requirement_link.deleted", "requirement_link", req_id, project_id, user)
+    db.delete(link)
+    db.commit()
+
+
 def list_defect_links(db: Session, project_id: str) -> list[DefectLink]:
     project_id = resolve_project_id(db, project_id)
     stmt = (
@@ -1725,6 +1886,19 @@ def update_defect_link(db: Session, project_id: str, defect_id: str, payload: De
     db.commit()
     db.refresh(defect)
     return defect
+
+
+def delete_defect_link(db: Session, project_id: str, defect_id: str, user: Any | None) -> None:
+    project_id = resolve_project_id(db, project_id)
+    defect = db.get(DefectLink, defect_id)
+    if defect is None:
+        raise KeyError("Defect bağlantısı bulunamadı")
+    run_case = db.get(TestRunCase, defect.run_case_id)
+    if run_case is None or run_case.case.project_id != project_id:
+        raise KeyError("Defect bağlantısı bulunamadı")
+    audit(db, "defect_link.deleted", "defect_link", defect_id, project_id, user)
+    db.delete(defect)
+    db.commit()
 
 
 def _evidence_out(evidence: ExecutionEvidence) -> dict[str, Any]:
@@ -1997,7 +2171,7 @@ def _bdd_steps_to_management(bdd_steps: list[dict]) -> list[dict]:
 def generate_test_cases(
     db: Session,
     project_id: str,
-    payload: "TestCaseGenerateRequest",
+    payload: TestCaseGenerateRequest,
     user: Any | None = None,
 ) -> list[GeneratedCaseOut]:
     """AI kullanarak test case'leri üretir; save=True ise DB'ye kaydeder."""
@@ -2071,9 +2245,9 @@ def clone_case(
     db: Session,
     project_id: str,
     case_id: str,
-    payload: "TestCaseCloneRequest",
+    payload: TestCaseCloneRequest,
     user: Any | None = None,
-) -> "TestCase":
+) -> TestCase:
     """Mevcut bir case'i kopyalar ve yeni bir case döner."""
     project_id = resolve_project_id(db, project_id)
     source = get_case(db, project_id, case_id)
@@ -2113,7 +2287,7 @@ def get_standup(
     db: Session,
     project_id: str,
     run_id: str | None = None,
-) -> "StandupOut":
+) -> StandupOut:
     """Aktif veya belirtilen run için standup verisini hesaplar."""
     from app.domains.test_management import intelligence_service
 
@@ -2189,7 +2363,6 @@ def get_standup(
     eta_hours = None
     predicted = None
     if eta and eta.predicted_end_at:
-        from datetime import timezone as _tz
         now = datetime.now(_tz.utc)
         diff = (eta.predicted_end_at.replace(tzinfo=_tz.utc) if eta.predicted_end_at.tzinfo is None else eta.predicted_end_at) - now
         eta_hours = max(0.0, diff.total_seconds() / 3600)
@@ -2214,3 +2387,116 @@ def get_standup(
         will_meet_gate=summary_health != "critical",
         blocking_factors=blocking_factors,
     )
+
+
+# ── Shared Steps ──────────────────────────────────────────────────────────────
+
+def list_shared_steps(db: Session, project_id: str) -> list[SharedStep]:
+    project_id = resolve_project_id(db, project_id)
+    return list(db.scalars(
+        select(SharedStep)
+        .where(SharedStep.project_id == project_id)
+        .order_by(SharedStep.name)
+    ).all())
+
+
+def get_shared_step(db: Session, project_id: str, step_id: str) -> SharedStep:
+    project_id = resolve_project_id(db, project_id)
+    step = db.scalar(select(SharedStep).where(SharedStep.id == step_id, SharedStep.project_id == project_id))
+    if step is None:
+        raise KeyError("Shared step bulunamadı")
+    return step
+
+
+def create_shared_step(db: Session, project_id: str, payload: SharedStepCreate, user: Any | None) -> SharedStep:
+    project_id = resolve_project_id(db, project_id)
+    step = SharedStep(
+        project_id=project_id,
+        name=payload.name,
+        description=payload.description,
+        steps=[s.model_dump() for s in payload.steps],
+        tags=payload.tags,
+        created_by=_actor_id(user),
+    )
+    db.add(step)
+    db.flush()
+    audit(db, "shared_step.created", "shared_step", step.id, project_id, user)
+    db.commit()
+    db.refresh(step)
+    return step
+
+
+def update_shared_step(db: Session, project_id: str, step_id: str, payload: SharedStepUpdate, user: Any | None) -> SharedStep:
+    step = get_shared_step(db, project_id, step_id)
+    changed: list[str] = []
+    data = payload.model_dump(exclude_unset=True)
+    if "steps" in data and data["steps"] is not None:
+        data["steps"] = [s.model_dump() if hasattr(s, "model_dump") else s for s in data["steps"]]
+    for key, value in data.items():
+        setattr(step, key, value)
+        changed.append(key)
+    if changed:
+        audit(db, "shared_step.updated", "shared_step", step.id, resolve_project_id(db, project_id), user, {"changed_fields": changed})
+    db.commit()
+    db.refresh(step)
+    return step
+
+
+def delete_shared_step(db: Session, project_id: str, step_id: str, user: Any | None) -> None:
+    step = get_shared_step(db, project_id, step_id)
+    pid = resolve_project_id(db, project_id)
+    audit(db, "shared_step.deleted", "shared_step", step_id, pid, user)
+    db.delete(step)
+    db.commit()
+
+
+def increment_shared_step_usage(db: Session, step_id: str) -> None:
+    step = db.get(SharedStep, step_id)
+    if step:
+        step.usage_count += 1
+
+
+# ── Case Dependencies ──────────────────────────────────────────────────────────
+
+def list_case_dependencies(db: Session, project_id: str, case_id: str) -> list[dict]:
+    get_case(db, project_id, case_id)  # existence check
+    deps = db.scalars(select(TestCaseDependency).where(TestCaseDependency.case_id == case_id)).all()
+    result = []
+    for d in deps:
+        dep_case = db.get(TestCase, d.depends_on_id)
+        result.append({
+            "id": d.id, "case_id": d.case_id, "depends_on_id": d.depends_on_id,
+            "dep_type": d.dep_type,
+            "depends_on_key": dep_case.case_key if dep_case else "",
+            "depends_on_title": dep_case.title if dep_case else "",
+            "created_at": d.created_at,
+        })
+    return result
+
+
+def add_case_dependency(db: Session, project_id: str, case_id: str, payload: Any, user: Any | None) -> dict:
+    parent = get_case(db, project_id, case_id)
+    dep_case = get_case(db, project_id, payload.depends_on_id)
+    if dep_case.id == parent.id:
+        raise ValueError("Bir case kendisine bağımlı olamaz")
+    dep = TestCaseDependency(case_id=case_id, depends_on_id=payload.depends_on_id, dep_type=payload.dep_type)
+    db.add(dep)
+    db.flush()
+    audit(db, "case.dependency_added", "case", case_id, resolve_project_id(db, project_id), user, {"depends_on": payload.depends_on_id})
+    db.commit()
+    db.refresh(dep)
+    return {
+        "id": dep.id, "case_id": dep.case_id, "depends_on_id": dep.depends_on_id,
+        "dep_type": dep.dep_type,
+        "depends_on_key": dep_case.case_key, "depends_on_title": dep_case.title,
+        "created_at": dep.created_at,
+    }
+
+
+def remove_case_dependency(db: Session, project_id: str, case_id: str, dep_id: str, user: Any | None) -> None:
+    get_case(db, project_id, case_id)
+    dep = db.get(TestCaseDependency, dep_id)
+    if dep is None or dep.case_id != case_id:
+        raise KeyError("Bağımlılık bulunamadı")
+    db.delete(dep)
+    db.commit()

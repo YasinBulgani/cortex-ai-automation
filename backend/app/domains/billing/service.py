@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime, timezone as _tz
 from typing import Optional
 
 from sqlalchemy import func, select
@@ -23,7 +23,6 @@ from app.domains.billing.plans import (
     Plan,
     get_plan,
     is_unlimited,
-    within_limit,
 )
 
 logger = logging.getLogger(__name__)
@@ -99,7 +98,7 @@ def set_plan(
     sub = get_or_create_subscription(db, tenant_id)
     sub.plan_code = plan_code
     sub.status = "active"
-    sub.current_period_start = datetime.now(timezone.utc)
+    sub.current_period_start = datetime.now(_tz.utc)
     if period_end is not None:
         sub.current_period_end = period_end
     if external_subscription_id is not None:
@@ -134,7 +133,7 @@ def record_usage(
 
 
 def _start_of_month() -> datetime:
-    now = datetime.now(timezone.utc)
+    now = datetime.now(_tz.utc)
     return now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
 
 
@@ -183,10 +182,9 @@ def compute_usage_snapshot(db: Session, tenant_id: str) -> UsageSnapshot:
     # tspm tables are present in production; fall back to 0 if missing.
     try:
         from app.domains.tspm.models import (
-            TspmProject,
-            TspmScenario,
             TspmExecution,
             TspmProjectMember,
+            TspmScenario,
         )
 
         # Project count: distinct projects whose members belong to the tenant.
@@ -221,7 +219,7 @@ def compute_usage_snapshot(db: Session, tenant_id: str) -> UsageSnapshot:
     ai_token_spend_usd = _sum_usage(
         db, tenant_id, "ai.token_spend", _start_of_month()
     )
-    storage_mb = int(_sum_usage(db, tenant_id, "storage.delta_mb", datetime.fromtimestamp(0, tz=timezone.utc)))
+    storage_mb = int(_sum_usage(db, tenant_id, "storage.delta_mb", datetime.fromtimestamp(0, tz=_tz.utc)))
 
     return UsageSnapshot(
         plan=plan.code,

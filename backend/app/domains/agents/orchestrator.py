@@ -9,13 +9,14 @@ Execution order:
 from __future__ import annotations
 
 import asyncio
-from datetime import datetime, timezone
+from datetime import datetime, timezone as _tz
 from enum import Enum
 from typing import Any
 
 import httpx
 
 from app.config import settings as _cfg
+
 ENGINE_BASE = _cfg.engine_base_url
 
 
@@ -32,7 +33,7 @@ class LogEntry:
     __slots__ = ("ts", "phase", "agent", "message", "level")
 
     def __init__(self, phase: str, agent: str, message: str, level: str = "info"):
-        self.ts = datetime.now(timezone.utc).isoformat()
+        self.ts = datetime.now(_tz.utc).isoformat()
         self.phase = phase
         self.agent = agent
         self.message = message
@@ -128,7 +129,7 @@ async def run_all_agents(run_id: str, project_id: str | None = None) -> None:
     """Execute the three-phase agent pipeline, repeated TOTAL_ROUNDS times."""
     pipeline.running = True
     pipeline.run_id = run_id
-    pipeline.started_at = datetime.now(timezone.utc).isoformat()
+    pipeline.started_at = datetime.now(_tz.utc).isoformat()
     pipeline.progress = 0
 
     total = STEPS_PER_ROUND * TOTAL_ROUNDS
@@ -233,4 +234,4 @@ async def run_all_agents(run_id: str, project_id: str | None = None) -> None:
         pipeline.log("error", "Orkestratör", f"Pipeline hatası (döngü {step // STEPS_PER_ROUND + 1}): {exc}", "error")
     finally:
         pipeline.running = False
-        pipeline.completed_at = datetime.now(timezone.utc).isoformat()
+        pipeline.completed_at = datetime.now(_tz.utc).isoformat()

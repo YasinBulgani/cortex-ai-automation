@@ -6,6 +6,7 @@ from dataclasses import dataclass, field
 from uuid import UUID
 
 from app.contexts.scenarios.domain.scenario import Scenario, ScenarioId
+
 from .create_scenario import ScenarioRepository
 
 
@@ -36,7 +37,7 @@ class ScenarioDTO:
     steps: list[StepDTO] = field(default_factory=list)
 
     @classmethod
-    def from_aggregate(cls, s: Scenario) -> "ScenarioDTO":
+    def from_aggregate(cls, s: Scenario) -> ScenarioDTO:
         return cls(
             id=str(s.id.value),
             project_id=str(s.project_id),

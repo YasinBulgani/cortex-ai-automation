@@ -12,14 +12,11 @@ from app.deps import require_permission
 from app.infra.models import User
 
 from .mapping import (
-    Control,
-    Mapping,
     build_evidence_pack,
     export_evidence,
     get_control,
     list_controls,
     mappings_for,
-    unmapped_controls,
 )
 
 router = APIRouter(prefix="/compliance", tags=["compliance"])

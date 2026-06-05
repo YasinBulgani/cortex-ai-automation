@@ -15,17 +15,18 @@ Covers:
 """
 from __future__ import annotations
 
-import pytest
 from unittest.mock import patch
+
+import pytest
 
 try:
     from app.domains.ai.output_shield import (
-        inspect_output,
-        ShieldResult,
-        ShieldHit,
         ShieldDecision,
+        ShieldHit,
+        ShieldResult,
         _luhn,
         _redact,
+        inspect_output,
     )
     _IMPORT_OK = True
 except ImportError:

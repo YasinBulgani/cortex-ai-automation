@@ -1,19 +1,19 @@
+from .events import (
+    ScenarioApproved,
+    ScenarioArchived,
+    ScenarioCreated,
+    ScenarioPublished,
+    ScenarioRejected,
+    ScenarioStepAdded,
+    ScenarioStepRemoved,
+)
 from .scenario import (
     Scenario,
     ScenarioId,
     ScenarioStatus,
     ScenarioStep,
-    StepType,
     ScenarioTitle,
-)
-from .events import (
-    ScenarioCreated,
-    ScenarioStepAdded,
-    ScenarioStepRemoved,
-    ScenarioApproved,
-    ScenarioRejected,
-    ScenarioPublished,
-    ScenarioArchived,
+    StepType,
 )
 
 __all__ = [

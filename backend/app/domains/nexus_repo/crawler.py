@@ -20,7 +20,7 @@ import shutil
 import subprocess
 import tempfile
 import time
-from datetime import datetime, timezone
+from datetime import datetime, timezone as _tz
 from pathlib import Path
 from typing import Optional
 from urllib.parse import urlparse, urlunparse
@@ -28,9 +28,9 @@ from urllib.parse import urlparse, urlunparse
 from sqlalchemy import select, update
 from sqlalchemy.orm import Session
 
-from app.config import settings
 from app.infra.database import SessionLocal
-from .models import NexusCrawlJob, NexusFile, NexusEndpoint, NexusLLMLog
+
+from .models import NexusCrawlJob, NexusEndpoint, NexusFile, NexusLLMLog
 
 _log = logging.getLogger(__name__)
 
@@ -279,7 +279,7 @@ def run_crawl_job(job_id: str) -> None:
 
         project = job.project
         job.status = "running"
-        job.started_at = datetime.now(timezone.utc)
+        job.started_at = datetime.now(_tz.utc)
         db.commit()
 
         # ── 1. Klonla ────────────────────────────────────────────────
@@ -290,7 +290,7 @@ def run_crawl_job(job_id: str) -> None:
         if commit_sha is None and not os.path.isdir(repo_dir):
             job.status = "failed"
             job.error_message = "Repo klonlanamadı. URL ve kimlik bilgilerini kontrol edin."
-            job.finished_at = datetime.now(timezone.utc)
+            job.finished_at = datetime.now(_tz.utc)
             db.commit()
             return
 
@@ -421,7 +421,7 @@ def run_crawl_job(job_id: str) -> None:
         job.files_scanned = files_scanned
         job.endpoints_found = len(seen)
         job.status = "done"
-        job.finished_at = datetime.now(timezone.utc)
+        job.finished_at = datetime.now(_tz.utc)
         db.commit()
         _log.info("CrawlJob %s tamamlandı: %d dosya, %d endpoint", job_id, files_scanned, len(seen))
 
@@ -430,7 +430,7 @@ def run_crawl_job(job_id: str) -> None:
         if job:
             job.status = "failed"
             job.error_message = str(exc)
-            job.finished_at = datetime.now(timezone.utc)
+            job.finished_at = datetime.now(_tz.utc)
             try:
                 db.commit()
             except Exception:

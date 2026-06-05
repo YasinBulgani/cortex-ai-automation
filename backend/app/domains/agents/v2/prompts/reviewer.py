@@ -1,7 +1,6 @@
 """Reviewer Agent prompt."""
 from __future__ import annotations
 
-
 REVIEWER_SYSTEM_PROMPT = """Sen kıdemli bir test code reviewer'ısın.
 
 KRİTERLER:

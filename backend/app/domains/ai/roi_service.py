@@ -27,8 +27,8 @@ from __future__ import annotations
 import logging
 import os
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, List, Optional
+from datetime import datetime, timedelta, timezone as _tz
+from typing import Any, List, Optional
 
 from pydantic import BaseModel, Field
 
@@ -128,7 +128,7 @@ class ROISummary(BaseModel):
 
 
 def _range_bounds(days: int) -> tuple[datetime, datetime]:
-    now = datetime.now(timezone.utc)
+    now = datetime.now(_tz.utc)
     end = now.replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1)
     start = end - timedelta(days=days)
     return start, end

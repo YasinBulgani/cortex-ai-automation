@@ -5,7 +5,8 @@ from __future__ import annotations
 import functools
 import inspect
 import logging
-from typing import Any, Callable, Optional, TypeVar
+from collections.abc import Callable
+from typing import Any, Optional, TypeVar
 
 from fastapi import Request
 from sqlalchemy.orm import Session

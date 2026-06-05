@@ -19,8 +19,9 @@ import argparse
 import json
 import logging
 import sys
+from collections.abc import Sequence
 from pathlib import Path
-from typing import List, Optional, Sequence
+from typing import List, Optional
 
 from .loader import default_suites_dir, load_suites
 from .reporting import write_reports

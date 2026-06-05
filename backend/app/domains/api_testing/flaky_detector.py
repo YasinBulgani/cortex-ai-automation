@@ -21,10 +21,10 @@ Recommendation thresholds:
 """
 
 import logging
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone as _tz
 from typing import Any, Dict, List, Optional
 
-from sqlalchemy import case, cast, Date, func, select
+from sqlalchemy import Date, case, cast, func, select
 from sqlalchemy.orm import Session
 
 from app.domains.api_testing.models import ApiExecutionDetail, ApiTestCase
@@ -47,7 +47,7 @@ def detect_flaky_tests(
 
     Returns a list of test dicts sorted by flaky_score descending.
     """
-    cutoff = datetime.now(timezone.utc) - timedelta(days=window_days)
+    cutoff = datetime.now(_tz.utc) - timedelta(days=window_days)
 
     # 1. Fetch test cases with enough runs
     test_cases = db.execute(
@@ -145,7 +145,7 @@ def get_flaky_trends(
     """
     Return daily aggregated flaky / quarantine counts over time.
     """
-    cutoff = datetime.now(timezone.utc) - timedelta(days=days)
+    cutoff = datetime.now(_tz.utc) - timedelta(days=days)
 
     # Total test count per day (tests that had executions)
     daily_rows = db.execute(

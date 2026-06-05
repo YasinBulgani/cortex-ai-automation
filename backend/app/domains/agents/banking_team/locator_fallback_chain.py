@@ -20,8 +20,8 @@ Entegrasyon:
 from __future__ import annotations
 
 import logging
-import time
 import re
+import time
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -874,6 +874,7 @@ class LocatorFallbackChain:
 
         try:
             import asyncio
+
             from app.domains.playwright_mcp.browser_manager import BrowserManager
         except ImportError:
             return _not_found("playwright_live", "BrowserManager import edilemedi")

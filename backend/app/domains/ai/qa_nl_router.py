@@ -9,8 +9,8 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
 from app.domains.ai.router_shared import (
-    CurrentUser,
     DB,
+    CurrentUser,
     check_llm_access,
     raise_structured_internal_error,
     record_llm_usage_safe,

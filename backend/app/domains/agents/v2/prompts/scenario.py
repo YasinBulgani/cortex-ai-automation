@@ -1,7 +1,6 @@
 """Scenario Agent prompt template'leri."""
 from __future__ import annotations
 
-
 SCENARIO_SYSTEM_PROMPT = """Sen deneyimli bir BDD test mühendisisin. Verilen Intent Graph ve App Map'ten Gherkin feature üretirsin.
 
 ÖNCELİKLER:

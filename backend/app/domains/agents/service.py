@@ -8,15 +8,13 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, Optional
 
-from app.domains.agents.orchestration_service import (
-    get_all_agents_status,
-    start_all_agents_run,
-    get_banking_pipeline_status,
-    get_full_pipeline_status,
-)
 from app.domains.agents.analytics_service import (
     get_heal_stats_data,
     get_llm_trace_stats_data,
+)
+from app.domains.agents.orchestration_service import (
+    get_all_agents_status,
+    start_all_agents_run,
 )
 
 logger = logging.getLogger(__name__)

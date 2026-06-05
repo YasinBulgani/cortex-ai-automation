@@ -7,9 +7,12 @@ from __future__ import annotations
 
 import hashlib
 import secrets
-from datetime import UTC
+from datetime import datetime as _datetime, timezone as _timezone
+
+_UTC = _timezone.utc  # Python 3.9 uyumlu
 from typing import Annotated, cast
 from urllib.parse import urlparse
+from uuid import uuid4
 
 import httpx
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
@@ -127,6 +130,8 @@ from app.domains.test_management.schemas import (
     TestSuiteOut,
     TestSuiteUpdate,
     TraceabilityRow,
+    WebhookSubscription,
+    WebhookSubscriptionCreate,
     WebhookTestRequest,
     WebhookTestResponse,
 )
@@ -627,8 +632,8 @@ def complete_run(project_id: str, run_id: str, db: DB, user: WriteUser) -> TestR
     if not run:
         raise HTTPException(status_code=404, detail="Run bulunamadı")
     run.status = "completed"
-    from datetime import datetime
-    run.completed_at = run.completed_at or datetime.now(UTC)
+    from datetime import datetime as _dt_local
+    run.completed_at = run.completed_at or _datetime.now(_UTC)
     db.commit()
     db.refresh(run)
     return run
@@ -2013,6 +2018,46 @@ def delete_webhook(project_id: str, hook_id: str, db: DB, user: WriteUser) -> No
     db.commit()
 
 
+# ── Webhook Subscriptions ────────────────────────────────────────────────────
+# Webhook abonelikleri settings_data["webhook_subscriptions"] listesinde saklanır.
+# api_keys ile aynı pattern kullanılır (service.get_management_settings + update_management_user_settings).
+
+
+@router.get("/projects/{project_id}/webhook-subscriptions", response_model=list[WebhookSubscription])
+def list_webhook_subscriptions(project_id: str, db: DB, _user: ReadUser) -> list[WebhookSubscription]:
+    settings = service.management_settings(db, project_id).get("user_settings", {})
+    records = settings.get("webhook_subscriptions", []) if isinstance(settings, dict) else []
+    return [WebhookSubscription(**r) for r in records if isinstance(r, dict)]
+
+
+@router.post("/projects/{project_id}/webhook-subscriptions", response_model=WebhookSubscription, status_code=status.HTTP_201_CREATED)
+def create_webhook_subscription(
+    project_id: str,
+    payload: WebhookSubscriptionCreate,
+    db: DB,
+    _user: WriteUser,
+) -> WebhookSubscription:
+    settings = service.management_settings(db, project_id).get("user_settings", {})
+    records = settings.get("webhook_subscriptions", []) if isinstance(settings, dict) else []
+    new_sub = {
+        "id": str(uuid4()),
+        "url": payload.url,
+        "events": payload.events,
+        "secret": payload.secret,
+        "active": True,
+        "created_at": _datetime.now(_UTC).isoformat(),
+    }
+    service.update_management_user_settings(db, project_id, {"webhook_subscriptions": [new_sub, *records]})
+    return WebhookSubscription(**new_sub)
+
+
+@router.delete("/projects/{project_id}/webhook-subscriptions/{webhook_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_webhook_subscription(project_id: str, webhook_id: str, db: DB, _user: WriteUser) -> None:
+    settings = service.management_settings(db, project_id).get("user_settings", {})
+    records = [r for r in settings.get("webhook_subscriptions", []) if isinstance(r, dict) and r.get("id") != webhook_id]
+    service.update_management_user_settings(db, project_id, {"webhook_subscriptions": records})
+
+
 # ── Webhook Probe ─────────────────────────────────────────────────────────────
 
 
@@ -2033,3 +2078,90 @@ def webhook_probe(body: WebhookProbeRequest, _user: ReadUser) -> dict:
         raise HTTPException(status_code=504, detail="Webhook endpoint zaman aşımına uğradı") from exc
     except Exception as exc:
         raise HTTPException(status_code=502, detail=f"Webhook URL'e ulaşılamadı: {exc}") from exc
+
+
+# ── Özel Dashboard'lar ────────────────────────────────────────────────────────
+# Dashboard'lar settings_data["custom_dashboards"] listesinde saklanır.
+# Frontend useCustomDashboard hook'u bu endpoint'leri kullanır.
+
+
+class DashboardWidgetIn(BaseModel):
+    id: str
+    type: str
+    title: str
+    x: int = 0
+    y: int = 0
+    w: int = 2
+    h: int = 2
+    config: dict | None = None
+
+
+class DashboardIn(BaseModel):
+    name: str
+    widgets: list[DashboardWidgetIn] = []
+
+
+class DashboardOut(BaseModel):
+    id: str
+    name: str
+    widgets: list[dict]
+    created_at: str
+    updated_at: str
+
+
+def _now_iso() -> str:
+    return _datetime.now(_UTC).isoformat()
+
+
+@router.get("/projects/{project_id}/dashboards", response_model=list[DashboardOut])
+def list_dashboards(project_id: str, db: DB, _user: ReadUser) -> list[DashboardOut]:
+    proj = _get_mgmt_project(db, project_id)
+    items = (proj.settings_data or {}).get("custom_dashboards", [])
+    return [DashboardOut(**d) for d in items]
+
+
+@router.post("/projects/{project_id}/dashboards", response_model=DashboardOut, status_code=status.HTTP_201_CREATED)
+def create_dashboard(project_id: str, payload: DashboardIn, db: DB, user: WriteUser) -> DashboardOut:
+    proj = _get_mgmt_project(db, project_id)
+    settings = dict(proj.settings_data or {})
+    items: list[dict] = list(settings.get("custom_dashboards", []))
+    now = _now_iso()
+    new_dash: dict = {
+        "id": f"dash-{secrets.token_hex(6)}",
+        "name": payload.name,
+        "widgets": [w.model_dump() for w in payload.widgets],
+        "created_at": now,
+        "updated_at": now,
+    }
+    items.append(new_dash)
+    settings["custom_dashboards"] = items
+    proj.settings_data = settings
+    db.commit()
+    return DashboardOut(**new_dash)
+
+
+@router.put("/projects/{project_id}/dashboards/{dash_id}", response_model=DashboardOut)
+def update_dashboard(project_id: str, dash_id: str, payload: DashboardIn, db: DB, user: WriteUser) -> DashboardOut:
+    proj = _get_mgmt_project(db, project_id)
+    settings = dict(proj.settings_data or {})
+    items: list[dict] = list(settings.get("custom_dashboards", []))
+    target = next((d for d in items if d.get("id") == dash_id), None)
+    if not target:
+        raise HTTPException(status_code=404, detail="Dashboard bulunamadı")
+    target["name"] = payload.name
+    target["widgets"] = [w.model_dump() for w in payload.widgets]
+    target["updated_at"] = _now_iso()
+    settings["custom_dashboards"] = items
+    proj.settings_data = settings
+    db.commit()
+    return DashboardOut(**target)
+
+
+@router.delete("/projects/{project_id}/dashboards/{dash_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_dashboard(project_id: str, dash_id: str, db: DB, user: WriteUser) -> None:
+    proj = _get_mgmt_project(db, project_id)
+    settings = dict(proj.settings_data or {})
+    items = [d for d in settings.get("custom_dashboards", []) if d.get("id") != dash_id]
+    settings["custom_dashboards"] = items
+    proj.settings_data = settings
+    db.commit()

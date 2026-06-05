@@ -1,29 +1,50 @@
-from urllib.parse import quote
 import logging
 from typing import Annotated, Optional
+from urllib.parse import quote
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session, joinedload
 
-from app.deps import get_current_user, _user_permissions
-from app.core.rate_limit import has_rate_limit as _has_limiter, limiter
+from app.config import settings
+from app.core.rate_limit import has_rate_limit as _has_limiter
+from app.core.rate_limit import limiter
+from app.deps import _user_permissions, get_current_user
+from app.domains.audit.service import log_audit
 from app.domains.auth.schemas import (
-    LoginRequest, TokenResponse, UserMeResponse,
-    ProfileUpdateRequest, ProfileOut, PasswordChangeRequest,
-    ForgotPasswordRequest, RegisterRequest, RefreshRequest, ResetPasswordRequest,
-    UserListOut, UserCreateRequest, UserUpdateRequest,
-    MfaSetupResponse, MfaVerifyRequest, MfaStatusResponse, MfaDisableRequest,
-    MfaLoginRequest, LoginResponse,
+    ForgotPasswordRequest,
+    LoginRequest,
+    LoginResponse,
+    MfaDisableRequest,
+    MfaLoginRequest,
+    MfaSetupResponse,
+    MfaStatusResponse,
+    MfaVerifyRequest,
+    PasswordChangeRequest,
+    ProfileOut,
+    ProfileUpdateRequest,
+    RefreshRequest,
+    RegisterRequest,
+    ResetPasswordRequest,
+    TokenResponse,
+    UserCreateRequest,
+    UserListOut,
+    UserMeResponse,
+    UserUpdateRequest,
 )
 from app.domains.auth.service import (
-    create_access_token, verify_password, hash_password,
-    revoke_token, create_password_reset_token, verify_password_reset_token,
-    create_refresh_token, verify_refresh_token, revoke_refresh_token,
-    revoke_all_user_tokens, _DUMMY_HASH,
+    _DUMMY_HASH,
+    create_access_token,
+    create_password_reset_token,
+    create_refresh_token,
+    hash_password,
+    revoke_all_user_tokens,
+    revoke_refresh_token,
+    revoke_token,
+    verify_password,
+    verify_password_reset_token,
+    verify_refresh_token,
 )
-from app.domains.audit.service import log_audit
-from app.config import settings
 from app.infra.database import get_db
 from app.infra.models import User
 
@@ -45,6 +66,7 @@ def _limit(rate: str):
 # Simple in-memory rate limiter fallback (used when slowapi is not available)
 import time as _time
 from collections import defaultdict as _defaultdict
+
 _login_attempts: dict[str, list[float]] = {}
 _RATE_LIMIT_WINDOW = 300  # 5 minutes
 _RATE_LIMIT_MAX = 10  # max 10 attempts per IP per window
@@ -761,8 +783,10 @@ def mfa_setup(
     the user must confirm with POST /auth/mfa/verify.
     """
     from app.domains.auth.mfa_service import (
-        generate_totp_secret, totp_provisioning_uri,
-        generate_backup_codes, hash_backup_codes,
+        generate_backup_codes,
+        generate_totp_secret,
+        hash_backup_codes,
+        totp_provisioning_uri,
     )
 
     secret = generate_totp_secret()
@@ -857,7 +881,9 @@ def mfa_regenerate_backup_codes(
     Regenerate backup codes (invalidates old ones).  Requires a valid TOTP code.
     """
     from app.domains.auth.mfa_service import (
-        verify_totp, generate_backup_codes, hash_backup_codes,
+        generate_backup_codes,
+        hash_backup_codes,
+        verify_totp,
     )
 
     db_user = db.get(User, user.id)
@@ -891,13 +917,14 @@ def mfa_login(
     On success, issues the full access + refresh token pair.
     """
     import jwt as _jwt
-    from app.domains.auth.mfa_service import verify_totp, verify_backup_code
+
+    from app.domains.auth.mfa_service import verify_backup_code, verify_totp
 
     # ── Validate the MFA session token ────────────────────────────────────────
     try:
         payload = _jwt.decode(
             req.session_token,
-            settings.secret_key,
+            settings.jwt_secret,
             algorithms=["HS256"],
         )
     except _jwt.ExpiredSignatureError:

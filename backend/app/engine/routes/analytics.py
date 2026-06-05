@@ -12,9 +12,8 @@ Bu pattern her route file için takip edilir. Bir Python developer kopyala-yapı
 from __future__ import annotations
 
 import logging
-from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, HTTPException, Query, status
 from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
@@ -128,7 +127,7 @@ def generate_report(body: GenerateReportBody):
 
         # Pydantic modeli → engine dataclass'larına dönüşüm
         # (engine sözleşmesi değişince bu mapping güncellenecek)
-        from core.reporting_engine import TestRun, TestCase, TestStep  # type: ignore[import]
+        from core.reporting_engine import TestCase, TestRun, TestStep  # type: ignore[import]
 
         test_cases = [
             TestCase(

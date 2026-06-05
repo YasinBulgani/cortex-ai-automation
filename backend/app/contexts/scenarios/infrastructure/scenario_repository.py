@@ -13,9 +13,6 @@ from app.contexts.scenarios.domain.scenario import (
     Scenario,
     ScenarioId,
     ScenarioStatus,
-    ScenarioTitle,
-    ScenarioStep,
-    StepType,
 )
 
 

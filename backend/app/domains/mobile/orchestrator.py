@@ -22,8 +22,9 @@ import logging
 import random
 import threading
 import uuid
-from datetime import datetime, timezone
-from typing import AsyncIterator, Optional
+from collections.abc import AsyncIterator
+from datetime import datetime, timezone as _tz
+from typing import Optional
 
 from .appium_runner import AppiumRunner
 from .device_broker import get_broker
@@ -37,7 +38,8 @@ from .schemas import (
     Step,
     VisualVerifyRequest,
 )
-from .self_healing import HealRequest, suggest as heal_suggest
+from .self_healing import HealRequest
+from .self_healing import suggest as heal_suggest
 from .visual_verifier import verify as visual_verify
 
 _logger = logging.getLogger(__name__)
@@ -62,7 +64,7 @@ class SessionStore:
         mode: RunMode = "simulation",
     ) -> Session:
         sid = f"s_{uuid.uuid4().hex[:12]}"
-        now = datetime.now(timezone.utc)
+        now = datetime.now(_tz.utc)
         sess = Session(
             id=sid,
             device_id=device_id,
@@ -225,7 +227,7 @@ async def _run_single_session(
     store.update(
         session_id,
         status="passed" if passed else "failed",
-        finished_at=datetime.now(timezone.utc),
+        finished_at=datetime.now(_tz.utc),
         healed=healed_count,
     )
     broker.update_status(
@@ -257,7 +259,7 @@ async def _run_appium_session(
         store.update(
             session_id,
             status="failed",
-            finished_at=datetime.now(timezone.utc),
+            finished_at=datetime.now(_tz.utc),
             failure_category="device",
             failure_message=f"Cihaz bulunamadı: {device_id}",
         )
@@ -310,7 +312,8 @@ async def _run_appium_session(
 
         screenshot_by_step: dict[int, str] = {}
         screenshot_b64_by_step: dict[int, str] = {}
-        import base64, pathlib
+        import base64
+        import pathlib
         for artifact in result.artifacts:
             if artifact.kind == "screenshot" and artifact.step_seq is not None:
                 screenshot_by_step[artifact.step_seq] = artifact.path
@@ -366,7 +369,7 @@ async def _run_appium_session(
         store.update(
             session_id,
             status=final_status,
-            finished_at=datetime.now(timezone.utc),
+            finished_at=datetime.now(_tz.utc),
             failure_category=result.failure_category,
             failure_message=result.failure_message,
         )
@@ -386,7 +389,7 @@ async def _run_appium_session(
         store.update(
             session_id,
             status="failed",
-            finished_at=datetime.now(timezone.utc),
+            finished_at=datetime.now(_tz.utc),
             failure_category="infrastructure",
             failure_message=str(exc),
         )

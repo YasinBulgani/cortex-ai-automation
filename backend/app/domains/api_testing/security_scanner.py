@@ -21,7 +21,6 @@ OWASP API Top 10 (2023):
 import logging
 import re
 from typing import Any, Dict, List, Optional, Tuple
-from uuid import uuid4
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session

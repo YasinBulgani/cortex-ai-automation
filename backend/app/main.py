@@ -11,6 +11,7 @@ izole app örneği üretmek için de kullanılabilir.
 from __future__ import annotations
 
 from fastapi import FastAPI
+from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 
 from app.config import settings
 from app.core.http import (
@@ -65,6 +66,12 @@ def create_app() -> FastAPI:
     # i18n middleware (locale from ?lang / X-Locale / Accept-Language)
     from app.core.i18n import LocaleMiddleware
     app.add_middleware(LocaleMiddleware)
+
+    # ProxyHeadersMiddleware must be the outermost middleware so it rewrites
+    # client IP / protocol from trusted reverse-proxy headers before any other
+    # middleware (e.g. rate limiting, audit logging) reads request.client.
+    # In Starlette, the last add_middleware() call becomes the outermost layer.
+    app.add_middleware(ProxyHeadersMiddleware, trusted_hosts=["*"])
 
     register_probe_routes(app, has_rate_limit=_has_rate_limit)
     register_api_routers(app)

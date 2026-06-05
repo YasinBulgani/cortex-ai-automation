@@ -10,7 +10,7 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from app.contexts.projects.api.router import router, _projects_repo
+from app.contexts.projects.api.router import _projects_repo, router
 
 
 @pytest.fixture(autouse=True)

@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException, Path, Query
+from typing import Annotated
 
+from fastapi import APIRouter, Depends, HTTPException, Path
+
+from app.deps import _user_permissions, get_current_user
 from app.domains.onboarding.schemas import (
     OnboardingProgress,
     ProgressUpdateRequest,
@@ -13,8 +16,11 @@ from app.domains.onboarding.service import (
     compute_progress,
     progress_store,
 )
+from app.infra.models import User
 
 router = APIRouter(prefix="/onboarding", tags=["onboarding"])
+
+CurrentUser = Annotated[User, Depends(get_current_user)]
 
 
 @router.get(
@@ -22,6 +28,7 @@ router = APIRouter(prefix="/onboarding", tags=["onboarding"])
     summary="Onboarding adım kataloğu (sabit)",
 )
 def steps():
+    """Public endpoint — no auth required."""
     return {"total": len(DEFAULT_STEPS), "steps": [s.model_dump() for s in DEFAULT_STEPS]}
 
 
@@ -30,7 +37,10 @@ def steps():
     response_model=OnboardingProgress,
     summary="Proje için tamamlanma özeti",
 )
-def progress(project_id: str = Path(..., min_length=1, max_length=120)):
+def progress(
+    user: CurrentUser,
+    project_id: str = Path(..., min_length=1, max_length=120),
+):
     completed = progress_store.get(project_id)
     return compute_progress(project_id=project_id, completed=completed)
 
@@ -40,7 +50,7 @@ def progress(project_id: str = Path(..., min_length=1, max_length=120)):
     response_model=OnboardingProgress,
     summary="Tek bir adımın tamamlanma durumunu güncelle",
 )
-def update(req: ProgressUpdateRequest):
+def update(req: ProgressUpdateRequest, user: CurrentUser):
     # Adım ID doğrula — uydurma step_id kabul etme
     valid_ids = {s.id for s in DEFAULT_STEPS}
     if req.step_id not in valid_ids:
@@ -58,6 +68,11 @@ def update(req: ProgressUpdateRequest):
     "/progress/{project_id}",
     summary="Proje için onboarding state'i sıfırla (test/admin)",
 )
-def reset(project_id: str = Path(..., min_length=1, max_length=120)):
+def reset(
+    user: CurrentUser,
+    project_id: str = Path(..., min_length=1, max_length=120),
+):
+    if "admin.*" not in _user_permissions(user):
+        raise HTTPException(403, "Admin yetkisi gerekli")
     progress_store.reset(project_id)
     return {"ok": True, "project_id": project_id}

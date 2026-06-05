@@ -15,10 +15,10 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime
 from enum import Enum
 from typing import Protocol
-from uuid import UUID, uuid4
+from uuid import UUID
 
 from app.contexts._shared.kernel.events import DomainEvent
 
@@ -45,7 +45,7 @@ class OutboxEntry:
     error: str | None = None
 
     @classmethod
-    def from_event(cls, event: DomainEvent) -> "OutboxEntry":
+    def from_event(cls, event: DomainEvent) -> OutboxEntry:
         # Event'i serialize et (dataclass __dict__ uyarlı, datetime ISO)
         payload = {}
         for field_name in event.__dataclass_fields__:

@@ -84,9 +84,9 @@ def _dedupe_against_existing(
 
     # Embedding kontrolü — başarısızsa exact-match'e dayan
     try:
-        from app.domains.ai.gateway_client import gateway_embed
-
         import numpy as np  # type: ignore[import-untyped]
+
+        from app.domains.ai.gateway_client import gateway_embed
 
         data = gateway_embed(existing + unique)
         vectors = np.asarray(data["vectors"], dtype=np.float32)
@@ -226,8 +226,9 @@ def generate_aliases(
         diff = editor_service.compute_diff(before_raw, updated)
         # editor_service._record_proposal'e direkt çağırmak yerine doğrudan ekliyoruz
         # çünkü proposer_kind="ai" ve require_review akışına benziyor
-        from app.infra.models import DslEditProposal
         import uuid
+
+        from app.infra.models import DslEditProposal
 
         prop = DslEditProposal(
             id=str(uuid.uuid4()),

@@ -24,8 +24,8 @@ from typing import Any
 
 from sqlalchemy.orm import Session
 
-from app.domains.cicd.quality_gate import GateResult, QualityGate, build_gate_from_config
 from app.domains.cicd import jenkins_service as _jenkins_svc
+from app.domains.cicd.quality_gate import GateResult, QualityGate, build_gate_from_config
 
 
 def run_quality_gate(config: dict, summary: dict) -> GateResult:

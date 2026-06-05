@@ -18,8 +18,8 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+from collections.abc import AsyncIterator
 from pathlib import Path
-from typing import AsyncIterator
 
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import FileResponse, StreamingResponse
@@ -219,8 +219,9 @@ def list_farm_devices(
     Provider is determined by the DEVICE_FARM_PROVIDER env var:
     ``local`` (default), ``aws``, ``browserstack``, or ``saucelabs``.
     """
-    from .device_farm_adapters import get_device_farm
     from dataclasses import asdict
+
+    from .device_farm_adapters import get_device_farm
 
     farm = get_device_farm()
     devices = farm.list_devices(platform=platform, os_version=os_version)
@@ -237,8 +238,9 @@ def start_farm_session(
 
     Returns session details including the Appium endpoint URL (if applicable).
     """
-    from .device_farm_adapters import get_device_farm
     from dataclasses import asdict
+
+    from .device_farm_adapters import get_device_farm
 
     farm = get_device_farm()
     session = farm.start_session(device_id, app_path, capabilities)
@@ -247,8 +249,9 @@ def start_farm_session(
 
 @router.get("/farm/sessions/{session_id}", summary="Get farm session status")
 def get_farm_session(session_id: str) -> dict:
-    from .device_farm_adapters import get_device_farm
     from dataclasses import asdict
+
+    from .device_farm_adapters import get_device_farm
 
     farm = get_device_farm()
     session = farm.get_session(session_id)

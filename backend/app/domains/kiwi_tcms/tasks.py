@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timezone
+from datetime import datetime, timezone as _tz
 
 from app.domains.kiwi_tcms import service
 from app.domains.kiwi_tcms.models import KiwiSyncJob
@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 
 def _utcnow() -> datetime:
-    return datetime.now(timezone.utc)
+    return datetime.now(_tz.utc)
 
 
 def run_kiwi_sync_job(job_id: str) -> None:

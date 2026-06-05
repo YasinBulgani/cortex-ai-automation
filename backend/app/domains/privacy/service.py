@@ -1,7 +1,7 @@
 """DSAR export/delete service for AI workflow data."""
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime, timezone as _tz
 from pathlib import Path
 from typing import Any
 from uuid import UUID
@@ -30,7 +30,7 @@ def build_user_dsar_export(db: Session, *, user_id: str) -> dict[str, Any]:
     artifact_count = sum(len(item.get("artifacts", [])) for item in workflows)
     return {
         "user_id": user_id,
-        "generated_at": datetime.now(timezone.utc),
+        "generated_at": datetime.now(_tz.utc),
         "counts": {
             "workflows": len(workflows),
             "workflow_artifacts": artifact_count,

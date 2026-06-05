@@ -26,12 +26,10 @@ from __future__ import annotations
 
 from typing import List, Optional
 
-from .adapters import list_adapters
 from .loader import load_suites
 from .reporting import history_report, latest_report, write_reports
 from .runner import run_suite
 from .schemas import SuiteResult
-from .scorers import list_scorers
 
 
 def run_eval_suite(

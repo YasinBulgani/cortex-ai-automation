@@ -1,20 +1,21 @@
 """Browser Tool — Playwright wrapper."""
 from __future__ import annotations
 
-import asyncio
 import logging
-from contextlib import asynccontextmanager
-from typing import Any
 from urllib.parse import urlparse
 
 logger = logging.getLogger(__name__)
 
 try:
-    from playwright.async_api import async_playwright, Browser, BrowserContext, Page
+    from playwright.async_api import Browser, BrowserContext, Page, async_playwright
     PLAYWRIGHT_AVAILABLE = True
 except ImportError:
     PLAYWRIGHT_AVAILABLE = False
     async_playwright = None  # type: ignore
+    logger.warning(
+        "Opsiyonel bağımlılık 'playwright' yüklenemedi, tarayıcı aracı devre dışı. "
+        "pip install playwright ile ekleyin."
+    )
 
 
 class BrowserSecurityError(RuntimeError):
@@ -60,7 +61,7 @@ class BrowserSession:
         self._browser = None
         self._context = None
 
-    async def __aenter__(self) -> "BrowserSession":
+    async def __aenter__(self) -> BrowserSession:
         if not PLAYWRIGHT_AVAILABLE:
             raise RuntimeError("Playwright kurulu değil")
         self._pw = await async_playwright().start()

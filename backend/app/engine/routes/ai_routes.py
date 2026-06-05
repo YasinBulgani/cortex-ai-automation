@@ -13,14 +13,17 @@ En kritik 30 endpoint: generate, analyze, heal, suggest, nl-test, impact-analysi
 from __future__ import annotations
 
 import json
+import logging
 import shutil
 import subprocess
 import uuid
 from pathlib import Path
-from typing import Annotated, Any, Optional
+from typing import Any, Optional
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
+from fastapi import APIRouter, File, Form, HTTPException, UploadFile, status
 from pydantic import BaseModel, Field
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/ai", tags=["engine", "ai"])
 
@@ -67,30 +70,46 @@ def _parse_file_content(content: bytes, filename: str) -> str:
     if fname.endswith(".pdf"):
         try:
             import io
+
             import pypdf  # type: ignore[import]
             reader = pypdf.PdfReader(io.BytesIO(content))
             return "\n".join(page.extract_text() or "" for page in reader.pages)
         except ImportError:
+            logger.warning(
+                "Opsiyonel bağımlılık 'pypdf' yüklenemedi, pdfplumber deneniyor. "
+                "pip install pypdf ile ekleyin."
+            )
             try:
                 import io
+
                 import pdfplumber  # type: ignore[import]
                 with pdfplumber.open(io.BytesIO(content)) as pdf:
                     return "\n".join(p.extract_text() or "" for p in pdf.pages)
             except ImportError:
+                logger.warning(
+                    "Opsiyonel bağımlılık 'pdfplumber' yüklenemedi, PDF düz metin olarak okunacak. "
+                    "pip install pdfplumber ile ekleyin."
+                )
                 return content.decode("utf-8", errors="ignore")
 
     if fname.endswith(".docx"):
         try:
             import io
+
             import docx  # type: ignore[import]
             doc = docx.Document(io.BytesIO(content))
             return "\n".join(p.text for p in doc.paragraphs if p.text.strip())
         except ImportError:
+            logger.warning(
+                "Opsiyonel bağımlılık 'python-docx' yüklenemedi, DOCX düz metin olarak okunacak. "
+                "pip install python-docx ile ekleyin."
+            )
             return content.decode("utf-8", errors="ignore")
 
     if fname.endswith((".xlsx", ".xls")):
         try:
             import io
+
             import openpyxl  # type: ignore[import]
             wb = openpyxl.load_workbook(io.BytesIO(content), data_only=True)
             lines = []
@@ -101,6 +120,10 @@ def _parse_file_content(content: bytes, filename: str) -> str:
                         lines.append(line)
             return "\n".join(lines)
         except ImportError:
+            logger.warning(
+                "Opsiyonel bağımlılık 'openpyxl' yüklenemedi, Excel düz metin olarak okunacak. "
+                "pip install openpyxl ile ekleyin."
+            )
             return content.decode("utf-8", errors="ignore")
 
     return content.decode("utf-8", errors="ignore")

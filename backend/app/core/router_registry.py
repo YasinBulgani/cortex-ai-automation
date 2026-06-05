@@ -11,55 +11,66 @@ import logging
 
 from fastapi import FastAPI
 
-from fastapi import APIRouter, FastAPI
+logger = logging.getLogger(__name__)
+
+from fastapi import FastAPI
 
 from app.domains.accessibility.router import router as accessibility_router
 from app.domains.agents.router import router as agents_router
 from app.domains.agents.v2.router import router as agents_v2_router
 from app.domains.ai.router import router as ai_router
 from app.domains.ai.workflows_router import router as ai_workflows_router
-from app.domains.health.router import router as health_router
-from app.domains.ai_synthetic_data.router import router as synthetic_router
 from app.domains.ai_synthetic_data.platform_router import router as synthetic_platform_router
+from app.domains.ai_synthetic_data.router import router as synthetic_router
 from app.domains.api_testing.router import router as api_testing_router
 from app.domains.artifacts.router import router as artifacts_router
 from app.domains.audit.router import router as audit_router
 from app.domains.auth.router import router as auth_router
-from app.domains.billing.router import router as billing_router
 from app.domains.automation.router import router as automation_router
 from app.domains.automation_suite.router import router as automation_suite_router
+from app.domains.billing.router import router as billing_router
 from app.domains.catalog.router import router as catalog_router
 from app.domains.cicd.router import router as cicd_router
+from app.domains.collaboration.router import router as collaboration_router
+from app.domains.compliance.router import router as compliance_router
 from app.domains.coverup.router import router as coverup_router
+from app.domains.defects.router import router as defects_router
 from app.domains.dsl.edit_router import router as dsl_edit_router
 from app.domains.dsl.router import router as dsl_router
 from app.domains.evals.router import router as evals_router
+from app.domains.events.router import router as events_router
+from app.domains.git_fetch.router import router as git_fetch_router
+from app.domains.health.router import router as health_router
+from app.domains.ingestion.router import router as ingestion_router
 from app.domains.jobs.router import router as jobs_router
+from app.domains.kiwi_tcms.router import router as kiwi_tcms_router
+from app.domains.knowledge_base.router import router as knowledge_base_router
+from app.domains.marketplace.router import router as marketplace_router
 from app.domains.n8n.router import router as n8n_router
+from app.domains.nexus_repo.router import router as nexus_repo_router
 from app.domains.notifications.router import router as notifications_router
-from app.domains.organizations.router import router as organizations_router
-from app.domains.sso.router import router as sso_router
-from app.domains.collaboration.router import router as collaboration_router
 from app.domains.onboarding.router import router as onboarding_router
+from app.domains.organizations.router import router as organizations_router
+from app.domains.pilot.router import router as pilot_router
 from app.domains.playwright_mcp.router import router as playwright_mcp_router
 from app.domains.privacy.router import router as privacy_router
+from app.domains.products.router import router as products_router
 from app.domains.prompts.router import router as prompts_router
-from app.domains.git_fetch.router import router as git_fetch_router
 from app.domains.quality.router import router as quality_router
 from app.domains.rules.router import router as rules_router
-from app.domains.tspm.router import router as tspm_router
+from app.domains.sso.router import router as sso_router
 from app.domains.test_management.router import router as test_management_router
-from app.domains.kiwi_tcms.router import router as kiwi_tcms_router
-from app.domains.nexus_repo.router import router as nexus_repo_router
-from app.domains.products.router import router as products_router
-from app.domains.events.router import router as events_router
-from app.domains.marketplace.router import router as marketplace_router
+from app.domains.tspm.router import router as tspm_router
 from app.domains.visual.router import router as visual_router
-from app.domains.pilot.router import router as pilot_router
-from app.domains.defects.router import router as defects_router
-from app.domains.ingestion.router import router as ingestion_router
-from app.domains.knowledge_base.router import router as knowledge_base_router
-from app.domains.compliance.router import router as compliance_router
+
+# Jira entegrasyonu — /api/jira/* (kendi prefix'i var, /api/v1 altında değil)
+# domains/jira/router.py'den import edilir — engine/routes/__init__.py tetiklemez
+try:
+    from app.domains.jira.router import router as jira_router
+    _HAS_JIRA_ROUTER = True
+except Exception:
+    jira_router = None  # type: ignore[assignment]
+    _HAS_JIRA_ROUTER = False
 
 # New domain routers (rbac, email, pr_bot, navigation) — defensive imports so
 # the backend still starts if any individual module has a problem.
@@ -69,6 +80,7 @@ try:
 except ImportError:
     rbac_router = None  # type: ignore[assignment]
     _HAS_RBAC_ROUTER = False
+    logger.warning("Opsiyonel domain 'rbac' yüklenemedi, RBAC endpoint'leri devre dışı.")
 
 try:
     from app.domains.email.router import router as email_router
@@ -76,6 +88,7 @@ try:
 except ImportError:
     email_router = None  # type: ignore[assignment]
     _HAS_EMAIL_ROUTER = False
+    logger.warning("Opsiyonel domain 'email' yüklenemedi, e-posta endpoint'leri devre dışı.")
 
 try:
     from app.domains.pr_bot.router import router as pr_bot_router
@@ -83,6 +96,7 @@ try:
 except ImportError:
     pr_bot_router = None  # type: ignore[assignment]
     _HAS_PR_BOT_ROUTER = False
+    logger.warning("Opsiyonel domain 'pr_bot' yüklenemedi, PR bot endpoint'leri devre dışı.")
 
 try:
     from app.domains.navigation.router import router as navigation_router
@@ -90,6 +104,7 @@ try:
 except ImportError:
     navigation_router = None  # type: ignore[assignment]
     _HAS_NAVIGATION_ROUTER = False
+    logger.warning("Opsiyonel domain 'navigation' yüklenemedi, navigasyon endpoint'leri devre dışı.")
 
 # qa/ git-native test management — yeni domain (PR 41)
 try:
@@ -98,6 +113,7 @@ try:
 except ImportError:
     qa_router = None  # type: ignore[assignment]
     _HAS_QA_ROUTER = False
+    logger.warning("Opsiyonel domain 'qa' yüklenemedi, QA git-native endpoint'leri devre dışı.")
 
 # DDD bounded context routers (new architecture)
 try:
@@ -108,8 +124,7 @@ except ImportError:
     contexts_projects_router = None  # type: ignore[assignment]
     contexts_scenarios_router = None  # type: ignore[assignment]
     _HAS_CONTEXTS_ROUTERS = False
-
-logger = logging.getLogger(__name__)
+    logger.warning("Opsiyonel DDD context router'ları yüklenemedi, contexts endpoint'leri devre dışı.")
 
 # Mobile modülü commit 77f5303'te geldi; kaynak dosyaları git'e add edilmiş
 # olmayabilir. Defansif import — modül yoksa endpoint'ler kapalı, backend
@@ -120,6 +135,7 @@ try:
 except ImportError:
     mobile_router = None  # type: ignore[assignment]
     _HAS_MOBILE_ROUTER = False
+    logger.warning("Opsiyonel domain 'mobile' yüklenemedi, mobil endpoint'leri devre dışı.")
 
 _PREFIXED_ROUTERS = [
     auth_router,
@@ -224,3 +240,9 @@ def register_api_routers(app: FastAPI) -> None:
         app.include_router(contexts_scenarios_router, prefix="/api/v1")
     else:
         logger.warning("DDD context router'ları yüklenemedi; endpoint'ler devre dışı.")
+
+    # Jira entegrasyonu — prefix yok, router kendi /api/jira prefix'ini taşıyor
+    if _HAS_JIRA_ROUTER and jira_router is not None:
+        app.include_router(jira_router)
+    else:
+        logger.warning("jira_router yüklenemedi; Jira endpoint'leri devre dışı.")

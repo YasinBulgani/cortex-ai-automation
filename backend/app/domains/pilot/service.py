@@ -13,12 +13,14 @@ from __future__ import annotations
 
 import re
 import secrets
-from dataclasses import dataclass, field, asdict
-from datetime import datetime, timezone
+from dataclasses import asdict, dataclass, field
+from datetime import datetime, timezone as _tz
 from typing import Any, Dict, List, Literal, Optional
 
 try:
-    from app.core.event_bus import bus as _event_bus, DomainEvent as _DomainEvent, EventName as _EventName
+    from app.core.event_bus import DomainEvent as _DomainEvent
+    from app.core.event_bus import EventName as _EventName
+    from app.core.event_bus import bus as _event_bus
 except Exception:  # pragma: no cover
     _event_bus = None
     _DomainEvent = None  # type: ignore
@@ -77,7 +79,7 @@ class PilotTurn:
     id: str
     role: TurnRole
     text: str
-    ts: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    ts: str = field(default_factory=lambda: datetime.now(_tz.utc).isoformat())
     clarification: Optional[ClarificationQuestion] = None
     stage_update: Optional[dict] = None
 
@@ -98,8 +100,8 @@ class PilotSession:
     pending_clarification: Optional[ClarificationQuestion] = None
     stages: List[StagePlan] = field(default_factory=list)
     turns: List[PilotTurn] = field(default_factory=list)
-    created_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
-    updated_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    created_at: str = field(default_factory=lambda: datetime.now(_tz.utc).isoformat())
+    updated_at: str = field(default_factory=lambda: datetime.now(_tz.utc).isoformat())
 
     def to_dict(self) -> dict:
         return {
@@ -122,7 +124,7 @@ _SESSIONS: Dict[str, PilotSession] = {}
 
 
 def _now() -> str:
-    return datetime.now(timezone.utc).isoformat()
+    return datetime.now(_tz.utc).isoformat()
 
 
 def _new_id(prefix: str) -> str:

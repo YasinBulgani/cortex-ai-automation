@@ -21,17 +21,17 @@ import pytest
 
 try:
     from app.domains.ai.pii_redactor import (
-        redact,
-        redact_with_stats,
+        PH_CARD,
+        PH_EMAIL,
+        PH_IBAN,
+        PH_PHONE,
+        PH_TCKN,
+        RedactionResult,
         detect_pii_categories,
         has_pii,
+        redact,
         redact_messages,
-        RedactionResult,
-        PH_TCKN,
-        PH_IBAN,
-        PH_EMAIL,
-        PH_PHONE,
-        PH_CARD,
+        redact_with_stats,
     )
     _IMPORT_OK = True
 except ImportError:

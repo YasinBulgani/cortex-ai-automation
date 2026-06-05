@@ -11,9 +11,7 @@ Pipeline:
 Python 3.9 compatible (no PEP 604 unions, no from __future__ import annotations).
 """
 
-import json
 import logging
-import re
 import time
 from collections import Counter
 from typing import Any, Dict, List, Optional, Tuple

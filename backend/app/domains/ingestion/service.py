@@ -13,12 +13,13 @@ import re
 import secrets
 
 logger = logging.getLogger(__name__)
-from dataclasses import dataclass, field, asdict
-from datetime import datetime, timezone
+from dataclasses import asdict, dataclass, field
+from datetime import datetime, timezone as _tz
 from typing import Any, Dict, List, Optional
 
 try:
-    from app.core.event_bus import bus as _bus, DomainEvent as _DomainEvent
+    from app.core.event_bus import DomainEvent as _DomainEvent
+    from app.core.event_bus import bus as _bus
 except Exception:  # pragma: no cover
     _bus = None
     _DomainEvent = None  # type: ignore
@@ -44,7 +45,7 @@ class IngestedRequirement:
     title: str
     body: str
     acceptance_criteria: List[AcceptanceCriterion] = field(default_factory=list)
-    created_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    created_at: str = field(default_factory=lambda: datetime.now(_tz.utc).isoformat())
     extra: Dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> dict:

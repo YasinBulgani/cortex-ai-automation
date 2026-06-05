@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
 import uuid
+from datetime import datetime, timezone as _tz
 
 from .coverage_parser import CoverageParser
 from .gap_detector import GapDetector
@@ -16,9 +16,9 @@ from .schemas import (
     CoverageSummary,
     CoverageUploadRequest,
     FileCoverage,
+    GeneratedTest,
     GenerateTestRequest,
     GenerateTestResponse,
-    GeneratedTest,
     TrendResponse,
 )
 from .test_generator import CoverUpTestGenerator
@@ -45,7 +45,7 @@ def create_report(
         commit_sha=body.commit_sha,
         branch=body.branch,
         format=body.format,
-        created_at=datetime.now(timezone.utc).isoformat(),
+        created_at=datetime.now(_tz.utc).isoformat(),
         summary=CoverageSummary(**parsed["summary"]),
         files=files,
     )

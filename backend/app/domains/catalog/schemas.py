@@ -1,7 +1,6 @@
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Self
 
 from pydantic import BaseModel, Field, model_validator
-from typing_extensions import Self
 
 from app.domains.catalog.schema_v1 import parse_and_validate_snapshot
 

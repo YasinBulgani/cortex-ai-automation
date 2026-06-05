@@ -365,7 +365,7 @@ class StepResultUpdate(BaseModel):
     comment: Optional[str] = None
 
     @model_validator(mode="after")
-    def require_actual_result_for_failed_or_blocked(self) -> "StepResultUpdate":
+    def require_actual_result_for_failed_or_blocked(self) -> StepResultUpdate:
         if self.status in {"failed", "blocked"} and not (self.actual_result or "").strip():
             raise ValueError("Failed veya blocked adımda actual_result zorunlu.")
         return self
@@ -805,7 +805,7 @@ class MgmtCommentCreate(BaseModel):
     project_id: Optional[str] = None
 
     @model_validator(mode="after")
-    def _validate_entity_type(self) -> "MgmtCommentCreate":
+    def _validate_entity_type(self) -> MgmtCommentCreate:
         if self.entity_type not in ALLOWED_COMMENT_ENTITY_TYPES:
             raise ValueError(
                 f"entity_type must be one of {sorted(ALLOWED_COMMENT_ENTITY_TYPES)}"
@@ -907,7 +907,7 @@ class DesignFieldSpec(BaseModel):
     nullable: bool = False
 
     @model_validator(mode="after")
-    def _validate_type(self) -> "DesignFieldSpec":
+    def _validate_type(self) -> DesignFieldSpec:
         if self.data_type not in ALLOWED_DATA_TYPES:
             raise ValueError(f"data_type must be one of {sorted(ALLOWED_DATA_TYPES)}")
         return self
@@ -1142,6 +1142,23 @@ class SharedStepOut(BaseModel):
     created_by: Optional[str] = None
     created_at: datetime
     updated_at: datetime
+
+
+# ── Webhook Subscriptions ────────────────────────────────────────────────────
+
+class WebhookSubscription(BaseModel):
+    id: str  # uuid
+    url: str
+    events: list[str]  # ["run.completed", "case.failed", ...]
+    secret: Optional[str] = None
+    active: bool = True
+    created_at: str
+
+
+class WebhookSubscriptionCreate(BaseModel):
+    url: str
+    events: list[str]
+    secret: Optional[str] = None
 
 
 # ── Standup ───────────────────────────────────────────────────────────────────

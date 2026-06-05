@@ -14,6 +14,11 @@ from uuid import uuid4
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.domains.agents.banking_team.service_test_agent import ServiceTestAgent
+from app.domains.api_testing.feedback_loop import (
+    enrich_generation_prompt,
+    learn_from_execution,
+)
 from app.domains.api_testing.models import (
     ApiChain,
     ApiEndpoint,
@@ -22,14 +27,8 @@ from app.domains.api_testing.models import (
     ApiSpec,
     ApiTestCase,
 )
-from app.domains.api_testing.spec_parser import parse_spec, SpecAnalysis
-from app.domains.api_testing.environment import merge_variables, resolve_dict
-from app.domains.api_testing.request_executor import execute_request, ExecutionResult
-from app.domains.api_testing.feedback_loop import (
-    enrich_generation_prompt,
-    learn_from_execution,
-)
-from app.domains.agents.banking_team.service_test_agent import ServiceTestAgent
+from app.domains.api_testing.request_executor import execute_request
+from app.domains.api_testing.spec_parser import SpecAnalysis, parse_spec
 
 logger = logging.getLogger(__name__)
 

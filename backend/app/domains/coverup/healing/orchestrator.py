@@ -35,11 +35,10 @@ from app.infra.telemetry import set_span_attr, trace_span
 
 from .github_client import GitHubClient, GitHubError, PullRequestResult
 from .locator_healer import LocatorHealer
-from .patch_applier import apply_locator_swap, PatchResult
+from .patch_applier import PatchResult, apply_locator_swap
 from .schemas import (
     FailureEvent,
     HealingDecision,
-    HealingProposal,
     HealingRun,
 )
 
@@ -228,6 +227,7 @@ class HealingOrchestrator:
 
         delay = self._cfg.retry_delay_seconds
         last_error = None
+        last_status = "pr_failed"
 
         for attempt in range(1, self._cfg.max_retries + 1):
             try:
@@ -240,7 +240,8 @@ class HealingOrchestrator:
                 result = self._run_inner(event, run)
                 if result.status not in ("pr_failed", "patch_failed"):
                     return result  # başarılı
-                last_error = result.error
+                last_error = result.error_message
+                last_status = result.status
                 logger.warning("[healing] deneme %d başarısız: %s", attempt, last_error)
             except Exception as exc:
                 last_error = str(exc)
@@ -254,7 +255,7 @@ class HealingOrchestrator:
                 delay *= self._cfg.retry_backoff_multiplier
 
         run.mark_done(
-            "pr_failed",
+            last_status,
             error=f"[{self._cfg.max_retries} denemeden sonra başarısız] {last_error}",
         )
         return run
@@ -280,7 +281,6 @@ class HealingOrchestrator:
         try:
             from app.config import settings
             from app.services.notification_delivery import send_slack_notification, send_teams_notification
-            from app.services.email_service import send_email, EmailMessageData
 
             is_success = run.status in ("pr_opened", "done")
             color = "#36a64f" if is_success else "#ff0000"

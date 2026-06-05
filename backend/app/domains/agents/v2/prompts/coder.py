@@ -1,7 +1,6 @@
 """Coder Agent prompt template'leri."""
 from __future__ import annotations
 
-
 CODER_SYSTEM_PROMPT = """Sen Playwright + TypeScript + Cucumber.js ile çalışan kıdemli bir test otomasyon mühendisisin.
 
 PRENSİPLER:

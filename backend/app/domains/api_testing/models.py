@@ -8,7 +8,7 @@ Prefix: sd_apitest_ (syndata api testing)
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime, timezone as _tz
 from typing import Optional
 from uuid import uuid4
 
@@ -29,7 +29,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.infra.models import Base
 
 _uuid = lambda: str(uuid4())  # noqa: E731
-utcnow = lambda: datetime.now(timezone.utc)  # noqa: E731
+utcnow = lambda: datetime.now(_tz.utc)  # noqa: E731
 
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -113,7 +113,7 @@ class ApiSpec(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
 
     # Relationships
-    endpoints: Mapped[list["ApiEndpoint"]] = relationship(
+    endpoints: Mapped[list[ApiEndpoint]] = relationship(
         back_populates="spec", cascade="all, delete-orphan",
     )
 
@@ -176,8 +176,8 @@ class ApiEndpoint(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
     # Relationships
-    spec: Mapped["ApiSpec"] = relationship(back_populates="endpoints")
-    test_cases: Mapped[list["ApiTestCase"]] = relationship(
+    spec: Mapped[ApiSpec] = relationship(back_populates="endpoints")
+    test_cases: Mapped[list[ApiTestCase]] = relationship(
         back_populates="endpoint", cascade="all, delete-orphan",
     )
 
@@ -289,7 +289,7 @@ class ApiTestCase(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
 
     # Relationships
-    endpoint: Mapped[Optional["ApiEndpoint"]] = relationship(back_populates="test_cases")
+    endpoint: Mapped[Optional[ApiEndpoint]] = relationship(back_populates="test_cases")
 
     __table_args__ = (
         Index("idx_apitc_project", "project_id"),

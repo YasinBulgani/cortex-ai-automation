@@ -268,9 +268,10 @@ def _persist_violation(
     Tablo yoksa sessiz atla — migration henuz uygulanmamis olabilir.
     """
     try:
-        from app.domains.ai.llm_trace import _get_conn
-        from app.domains.ai.correlation import get_correlation_id
         import json
+
+        from app.domains.ai.correlation import get_correlation_id
+        from app.domains.ai.llm_trace import _get_conn
         conn = _get_conn()
         try:
             with conn.cursor() as cur:

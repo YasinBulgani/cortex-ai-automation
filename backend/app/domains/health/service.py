@@ -10,7 +10,8 @@ from __future__ import annotations
 import logging
 import os
 import time
-from typing import Callable, List, Tuple
+from collections.abc import Callable
+from typing import List, Tuple
 
 import httpx
 
@@ -47,6 +48,7 @@ def _timed(check: Callable[[], ComponentStatus]) -> ComponentStatus:
 def _check_database() -> ComponentStatus:
     try:
         from sqlalchemy import text
+
         from app.infra.database import engine
 
         with engine.connect() as conn:

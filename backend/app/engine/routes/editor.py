@@ -24,8 +24,9 @@ import shlex
 import shutil
 import subprocess
 import threading
+from collections.abc import Iterator
 from pathlib import Path
-from typing import Iterator, Mapping, Optional
+from typing import Optional
 
 from fastapi import APIRouter, HTTPException, Query, status
 from fastapi.responses import StreamingResponse

@@ -5,9 +5,9 @@ import asyncio
 import json
 import logging
 import uuid
+from collections.abc import AsyncIterator
 from datetime import datetime
 from pathlib import Path
-from typing import AsyncIterator
 
 from fastapi import (
     APIRouter,
@@ -26,11 +26,14 @@ from app.deps import get_current_user
 from app.infra.models import User
 
 from .api_schemas import (
-    RunAgentV2Request, RunAgentV2Response,
-    RunV2ListItem, RunV2ListResponse, RunV2Status,
+    RunAgentV2Request,
+    RunAgentV2Response,
+    RunV2ListItem,
+    RunV2ListResponse,
+    RunV2Status,
 )
-from .config import get_config
 from .budget_guard import clear_cancel, raise_if_cancelled, request_cancel
+from .config import get_config
 from .orchestrator import LANGGRAPH_AVAILABLE
 from .run_store import get_run_store
 from .state import AgentState
@@ -506,8 +509,15 @@ async def _execute_pipeline(run_id: str, initial_state: AgentState) -> None:
 async def _execute_manual(run_id: str, state: AgentState) -> AgentState:
     store = get_run_store()
     from .agents import (
-        analyst_node, explorer_node, locator_node, scenario_node,
-        coder_node, runner_node, healer_node, reviewer_node, reporter_node,
+        analyst_node,
+        coder_node,
+        explorer_node,
+        healer_node,
+        locator_node,
+        reporter_node,
+        reviewer_node,
+        runner_node,
+        scenario_node,
     )
 
     async def _step(name: str, fn, st: AgentState) -> AgentState:

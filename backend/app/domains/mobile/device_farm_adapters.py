@@ -281,9 +281,9 @@ class BrowserStackAdapter:
         os_version: Optional[str] = None,
     ) -> list[FarmDevice]:
         try:
-            import urllib.request
-            import json as _json
             import base64
+            import json as _json
+            import urllib.request
 
             token = base64.b64encode(f"{self._user}:{self._key}".encode()).decode()
             req = urllib.request.Request(
@@ -349,9 +349,9 @@ class BrowserStackAdapter:
 
     def get_session(self, session_id: str) -> FarmSession:
         try:
-            import urllib.request
-            import json as _json
             import base64
+            import json as _json
+            import urllib.request
 
             token = base64.b64encode(f"{self._user}:{self._key}".encode()).decode()
             req = urllib.request.Request(
@@ -381,9 +381,9 @@ class BrowserStackAdapter:
 
     def stop_session(self, session_id: str) -> None:
         try:
-            import urllib.request
-            import json as _json
             import base64
+            import json as _json
+            import urllib.request
 
             token = base64.b64encode(f"{self._user}:{self._key}".encode()).decode()
             data = _json.dumps({"status": "passed", "reason": "stopped by cortex"}).encode()
@@ -433,9 +433,9 @@ class SauceLabsAdapter:
         os_version: Optional[str] = None,
     ) -> list[FarmDevice]:
         try:
-            import urllib.request
-            import json as _json
             import base64
+            import json as _json
+            import urllib.request
 
             token = base64.b64encode(f"{self._user}:{self._key}".encode()).decode()
             req = urllib.request.Request(
@@ -495,9 +495,9 @@ class SauceLabsAdapter:
 
     def get_session(self, session_id: str) -> FarmSession:
         try:
-            import urllib.request
-            import json as _json
             import base64
+            import json as _json
+            import urllib.request
 
             token = base64.b64encode(f"{self._user}:{self._key}".encode()).decode()
             req = urllib.request.Request(
@@ -525,9 +525,9 @@ class SauceLabsAdapter:
 
     def stop_session(self, session_id: str) -> None:
         try:
-            import urllib.request
-            import json as _json
             import base64
+            import json as _json
+            import urllib.request
 
             token = base64.b64encode(f"{self._user}:{self._key}".encode()).decode()
             data = _json.dumps({"passed": False}).encode()

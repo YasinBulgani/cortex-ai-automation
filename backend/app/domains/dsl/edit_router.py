@@ -29,7 +29,6 @@ from sqlalchemy.orm import Session
 from app.deps import get_current_user, require_permission
 from app.domains.dsl import ai_assist, editor_service
 from app.domains.dsl.editor_service import ApplyResult, ConflictError, EditorError, NotFoundError
-from app.domains.dsl.schemas import DslAction
 from app.infra.database import get_db
 from app.infra.git_client import GitConfig
 from app.infra.models import DslCatalogAudit, DslEditProposal, User

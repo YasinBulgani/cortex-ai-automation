@@ -3,12 +3,15 @@ from __future__ import annotations
 import logging
 from typing import Annotated, Optional
 
-from fastapi import APIRouter, Depends, Response, WebSocket, WebSocketDisconnect, Query
+from fastapi import APIRouter, Depends, Query, Response, WebSocket, WebSocketDisconnect
 from pydantic import BaseModel, field_validator
 from sqlalchemy.orm import Session
 
 from app.deps import get_current_user, get_db
 from app.domains.auth.service import decode_token
+from app.domains.notifications import (
+    schemas as domain_schemas,  # noqa: F401 — schemas module created for type contract use
+)
 from app.domains.notifications.service import manager
 from app.infra.models import User
 
@@ -146,8 +149,10 @@ def get_notification_prefs(db: DB, current_user: CurrentUser):
 @router.put("/notifications/prefs", response_model=NotificationPrefsOut)
 def upsert_notification_prefs(body: NotificationPrefsIn, db: DB, current_user: CurrentUser):
     """Mevcut kullanıcının bildirim tercihlerini oluşturur veya günceller."""
-    from datetime import datetime, timezone
+    from datetime import datetime
+
     from fastapi import HTTPException
+
     from app.domains.notifications.models import NotificationPrefs
 
     prefs = db.get(NotificationPrefs, current_user.id)
@@ -160,7 +165,7 @@ def upsert_notification_prefs(body: NotificationPrefsIn, db: DB, current_user: C
     prefs.slack_webhook_url = body.slack_webhook_url
     prefs.digest_mode = body.digest_mode
     prefs.channels = body.channels
-    prefs.updated_at = datetime.now(timezone.utc)
+    prefs.updated_at = datetime.now(datetime.timezone.utc)
 
     try:
         db.commit()
@@ -188,8 +193,9 @@ class BulkSendRequest(BaseModel):
 @router.post("/notifications/bulk-send")
 def bulk_send_notifications(body: BulkSendRequest, db: DB, current_user: CurrentUser):
     """Admin: kullanici listesine bildirim gonder (her birinin tercihleri saygi gorur)."""
-    from app.deps import _user_permissions
     from fastapi import HTTPException
+
+    from app.deps import _user_permissions
     perms = _user_permissions(current_user)
     if "admin.*" not in perms:
         raise HTTPException(403, detail="Sadece admin")
@@ -206,8 +212,9 @@ def bulk_send_notifications(body: BulkSendRequest, db: DB, current_user: Current
 @router.post("/notifications/digest/run")
 def trigger_daily_digest(db: DB, current_user: CurrentUser, lookback_hours: int = Query(24, ge=1, le=168)):
     """Admin/cron: gunluk digest job'ini calistir."""
-    from app.deps import _user_permissions
     from fastapi import HTTPException
+
+    from app.deps import _user_permissions
     perms = _user_permissions(current_user)
     if "admin.*" not in perms:
         raise HTTPException(403, detail="Sadece admin")

@@ -7,8 +7,14 @@ from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.deps import get_current_user
-from app.infra.models import User
-
+from app.domains.ai_synthetic_data.advanced_generators import (
+    _HAS_SCIPY,
+    _HAS_SDV,
+    BankingDataGenerator,
+    CTGANGenerator,
+    DataQualityChecker,
+    KDEGenerator,
+)
 from app.domains.ai_synthetic_data.advanced_schemas import (
     BankingDatasetRequest,
     BankingDatasetResponse,
@@ -22,14 +28,7 @@ from app.domains.ai_synthetic_data.advanced_schemas import (
     QualityCheckRequest,
     QualityMetrics,
 )
-from app.domains.ai_synthetic_data.advanced_generators import (
-    BankingDataGenerator,
-    CTGANGenerator,
-    DataQualityChecker,
-    KDEGenerator,
-    _HAS_SDV,
-    _HAS_SCIPY,
-)
+from app.infra.models import User
 
 _logger = logging.getLogger(__name__)
 
@@ -236,16 +235,16 @@ def list_generators(
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 from app.domains.ai_synthetic_data.privacy_schemas import (
-    PrivatizeRequest,
-    PrivatizeResponse,
     KAnonymityRequest,
     KAnonymityResponse,
     LDiversityRequest,
     LDiversityResponse,
-    ReidentificationRequest,
-    ReidentificationResponse,
     PrivacyReportRequest,
     PrivacyReportResponse,
+    PrivatizeRequest,
+    PrivatizeResponse,
+    ReidentificationRequest,
+    ReidentificationResponse,
     SuggestConfigRequest,
     SuggestConfigResponse,
     TCKNValidateRequest,

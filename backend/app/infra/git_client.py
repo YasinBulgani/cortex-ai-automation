@@ -26,9 +26,10 @@ import os
 import re
 import shlex
 import subprocess
+from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterable, Optional, Sequence
+from typing import Optional
 
 import httpx
 
@@ -60,7 +61,7 @@ class GitConfig:
     gitea_repo: str = ""                   # "owner/repo"
 
     @classmethod
-    def from_env(cls, repo_path: Optional[Path] = None) -> "GitConfig":
+    def from_env(cls, repo_path: Optional[Path] = None) -> GitConfig:
         env = os.environ.get
         reviewers = [
             r.strip() for r in (env("DSL_GIT_REVIEWERS", "") or "").split(",") if r.strip()

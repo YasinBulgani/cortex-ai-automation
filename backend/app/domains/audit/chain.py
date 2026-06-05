@@ -9,7 +9,7 @@ Mimari:
     prev_hash'i eşleşmez → verify tamper'i yakalar.
 
 Canonical payload:
-    * ts (ISO 8601 UTC microseconds)
+    * ts (ISO 8601 _tz.utc microseconds)
     * tenant_id (normalize edilmiş string)
     * actor_user_id
     * action
@@ -29,9 +29,10 @@ import hashlib
 import json
 import logging
 import uuid
+from collections.abc import Sequence
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
-from typing import Any, Dict, Iterable, List, Optional, Sequence
+from datetime import datetime, timezone as _tz
+from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -60,11 +61,11 @@ class ChainEvent:
 
 
 def _iso_ts(ts: datetime) -> str:
-    """Zaman damgasını deterministik ISO 8601 UTC string'e çevir."""
+    """Zaman damgasını deterministik ISO 8601 _tz.utc string'e çevir."""
     if ts.tzinfo is None:
-        ts = ts.replace(tzinfo=timezone.utc)
+        ts = ts.replace(tzinfo=_tz.utc)
     else:
-        ts = ts.astimezone(timezone.utc)
+        ts = ts.astimezone(_tz.utc)
     # Microsecond içerir: "2026-04-19T21:30:45.123456+00:00"
     return ts.isoformat()
 
@@ -189,7 +190,7 @@ def append_event(
     """
     from app.domains.ai.llm_trace import _get_conn  # type: ignore
 
-    ev_ts = ts or datetime.now(timezone.utc)
+    ev_ts = ts or datetime.now(_tz.utc)
     ev = ChainEvent(
         ts=ev_ts,
         tenant_id=tenant_id,

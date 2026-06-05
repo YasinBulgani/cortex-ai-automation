@@ -17,10 +17,10 @@ from __future__ import annotations
 
 import json
 import logging
-from datetime import datetime, timezone
+from datetime import datetime, timezone as _tz
 from pathlib import Path
 
-from .base_agent import BaseAgent, AgentResult
+from .base_agent import AgentResult, BaseAgent
 
 logger = logging.getLogger(__name__)
 
@@ -154,7 +154,7 @@ class OutputWriterAgent(BaseAgent):
         try:
             summary = {
                 "run_id": run_id,
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": datetime.now(_tz.utc).isoformat(),
                 "written_files": written,
                 "scenario_count": len(scenarios),
                 "bdd_count": len(context.get("generated_code", {}).get("bdd_features", [])),

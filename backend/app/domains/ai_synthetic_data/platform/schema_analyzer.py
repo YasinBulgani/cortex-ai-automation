@@ -56,7 +56,7 @@ class SchemaAnalyzer:
             raise ValueError("Desteklenmeyen JSON yapısı. Array veya object bekleniyor.")
         return self._analyze_dataframe(df, filename, source_type="json")
 
-    def analyze_dataframe(self, df: "pd.DataFrame", table_name: str) -> dict:
+    def analyze_dataframe(self, df: pd.DataFrame, table_name: str) -> dict:
         """Hazır DataFrame için."""
         return self._analyze_dataframe(df, table_name, source_type="dataframe")
 

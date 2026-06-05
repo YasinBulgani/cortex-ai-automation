@@ -16,8 +16,7 @@ Tasarım kararları:
 from __future__ import annotations
 
 import logging
-from datetime import datetime
-from typing import List, Optional, Tuple
+from typing import List, Optional
 
 from .canary import should_canary
 from .schemas import (

@@ -86,7 +86,7 @@ class Project(AggregateRoot[ProjectId]):
         description: str = "",
         base_url: str = "",
         product_family: ProductFamily | None = None,
-    ) -> "Project":
+    ) -> Project:
         project = cls(
             id=ProjectId.new(),
             name=name,

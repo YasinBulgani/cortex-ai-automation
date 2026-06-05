@@ -3,6 +3,7 @@ Execution context — domain + application tests.
 """
 
 import uuid
+
 import pytest
 
 from app.contexts._shared.outbox import InMemoryOutboxRepository

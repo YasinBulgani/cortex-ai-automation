@@ -105,7 +105,7 @@ class AppiumClient:
         self._http = httpx.Client(timeout=timeout)
 
     # ── Context manager ───────────────────────────────────────
-    def __enter__(self) -> "AppiumClient":
+    def __enter__(self) -> AppiumClient:
         return self
 
     def __exit__(self, *exc) -> None:

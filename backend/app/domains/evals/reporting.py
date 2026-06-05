@@ -14,9 +14,10 @@ from __future__ import annotations
 import json
 import logging
 import os
-from datetime import datetime, timezone
+from collections.abc import Iterable
+from datetime import datetime, timezone as _tz
 from pathlib import Path
-from typing import Any, Iterable, List
+from typing import Any, List
 
 from .schemas import SuiteResult
 
@@ -46,7 +47,7 @@ def write_reports(
 ) -> Path:
     """Tüm suite sonuçlarını diske yaz. Çıkış: kök dizin path'i."""
     results_list: List[SuiteResult] = list(results)
-    ts_dir = (out_dir or _base_dir()) / _fmt_ts(datetime.now(timezone.utc))
+    ts_dir = (out_dir or _base_dir()) / _fmt_ts(datetime.now(_tz.utc))
     ts_dir.mkdir(parents=True, exist_ok=True)
 
     for res in results_list:
@@ -67,7 +68,7 @@ def write_reports(
     except OSError as exc:
         logger.warning("Eval HTML yazılamadı: %s", exc)
 
-    generated_at = datetime.now(timezone.utc)
+    generated_at = datetime.now(_tz.utc)
     markdown = _render_markdown(results_list, generated_at=generated_at)
     md_path = ts_dir / "summary.md"
     try:
@@ -226,7 +227,7 @@ def history_summary(
 
     generated_at = _parse_dt(str(latest.get("generated_at") or ""))
     if generated_at:
-        age_hours = (datetime.now(timezone.utc) - generated_at).total_seconds() / 3600
+        age_hours = (datetime.now(_tz.utc) - generated_at).total_seconds() / 3600
         if age_hours > stale_hours:
             alerts.append(
                 {
@@ -279,8 +280,8 @@ def _parse_dt(value: str) -> datetime | None:
     except ValueError:
         return None
     if parsed.tzinfo is None:
-        return parsed.replace(tzinfo=timezone.utc)
-    return parsed.astimezone(timezone.utc)
+        return parsed.replace(tzinfo=_tz.utc)
+    return parsed.astimezone(_tz.utc)
 
 
 def _suite_health(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -526,7 +527,7 @@ def _render_html(results: List[SuiteResult]) -> str:
     return (
         _HTML_HEAD
         + f"<h1>Eval Raporu {header_badge}</h1>"
-        + f"<p class='muted'>{datetime.now(timezone.utc).isoformat()}</p>"
+        + f"<p class='muted'>{datetime.now(_tz.utc).isoformat()}</p>"
         + sections
         + _HTML_TAIL
     )
@@ -571,7 +572,7 @@ def _render_markdown(
     *,
     generated_at: datetime | None = None,
 ) -> str:
-    generated_at_iso = (generated_at or datetime.now(timezone.utc)).isoformat()
+    generated_at_iso = (generated_at or datetime.now(_tz.utc)).isoformat()
     overall_passed = bool(results) and all(r.passed for r in results)
     total_cases = sum(len(r.cases) for r in results)
     passed_cases = sum(r.count_passed() for r in results)

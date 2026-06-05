@@ -13,7 +13,8 @@ Model: llama3.1:8b (karar tabanlı, hızlı)
 from __future__ import annotations
 
 from app.config import settings
-from .base_agent import BaseAgent, AgentResult
+
+from .base_agent import AgentResult, BaseAgent
 
 SYSTEM = """\
 Sen kıdemli bir Test Otomasyon Mimarısın. Türkçe yanıt ver.

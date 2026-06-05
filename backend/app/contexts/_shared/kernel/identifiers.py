@@ -8,7 +8,7 @@ Doğru: `def get_user(id: UserId)` — sadece UserId geçer, compile-time güven
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Generic, TypeVar
+from typing import TypeVar
 from uuid import UUID, uuid4
 
 T = TypeVar("T", bound="EntityId")

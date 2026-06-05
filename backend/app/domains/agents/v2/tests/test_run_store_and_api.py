@@ -2,13 +2,10 @@
 
 from __future__ import annotations
 
-from unittest.mock import patch
-
 import pytest
 from fastapi.testclient import TestClient
 
 from app.domains.agents.v2.run_store import RunStore, get_run_store
-
 
 # ═══════════════════════════════════════════════════════════════════════════
 # RunStore
@@ -89,6 +86,7 @@ def api_client(monkeypatch):
     monkeypatch.setenv("AGENTS_V2_RUN_STORE", "memory")
 
     from fastapi import FastAPI
+
     from app.domains.agents.v2.router import router as v2_router
 
     app = FastAPI()

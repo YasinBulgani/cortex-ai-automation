@@ -4,19 +4,18 @@ Project domain unit tests.
 
 import pytest
 
-from app.contexts.projects.domain.project import (
-    ProductFamily,
-    Project,
-    ProjectId,
-    ProjectName,
-    ProjectStatus,
-)
 from app.contexts.projects.domain.events import (
     ProjectArchived,
     ProjectCreated,
     ProjectProductFamilyAssigned,
     ProjectRenamed,
     ProjectRestored,
+)
+from app.contexts.projects.domain.project import (
+    ProductFamily,
+    Project,
+    ProjectName,
+    ProjectStatus,
 )
 
 

@@ -8,6 +8,7 @@ Domain layer Repository protocol'ünü kullanır, infrastructure implementasyonu
 from __future__ import annotations
 
 from typing import Generic, Protocol, TypeVar
+
 from .aggregate import AggregateRoot
 from .identifiers import EntityId
 

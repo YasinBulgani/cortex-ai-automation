@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import secrets
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone as _tz
 from typing import Optional
 
 from sqlalchemy import select
@@ -19,12 +19,11 @@ from app.infra.models import (
     User,
 )
 
-
 _INVITE_TOKEN_TTL = timedelta(days=7)
 
 
 def _now() -> datetime:
-    return datetime.now(timezone.utc)
+    return datetime.now(_tz.utc)
 
 
 def _hash_token(token: str) -> str:

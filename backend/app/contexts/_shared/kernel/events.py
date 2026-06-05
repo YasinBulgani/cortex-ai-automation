@@ -8,7 +8,7 @@ Events outbox pattern ile reliable delivery alır.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import datetime, timezone as _tz
 from uuid import UUID, uuid4
 
 
@@ -33,7 +33,7 @@ class DomainEvent:
 
     event_id: UUID = field(default_factory=uuid4)
     aggregate_id: UUID = field(default=None)  # type: ignore[assignment]
-    occurred_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    occurred_at: datetime = field(default_factory=lambda: datetime.now(_tz.utc))
     event_version: int = 1
     metadata: dict = field(default_factory=dict)
 

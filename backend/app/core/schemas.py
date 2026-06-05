@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import uuid
 from datetime import datetime
 from typing import Generic, List, Optional, TypeVar
 
@@ -56,7 +55,7 @@ class PagedResponse(OrmBase, Generic[T]):
     has_more: bool
 
     @classmethod
-    def build(cls, items: list, total: int, limit: int, offset: int) -> "PagedResponse[T]":
+    def build(cls, items: list, total: int, limit: int, offset: int) -> PagedResponse[T]:
         return cls(
             items=items,
             total=total,

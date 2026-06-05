@@ -10,15 +10,21 @@ Yol:
 
 from __future__ import annotations
 
-from fastapi import APIRouter
+from typing import Annotated
 
+from fastapi import APIRouter, Depends
+
+from app.deps import get_current_user
 from app.domains.accessibility.analyzer import accessibility_analyzer
 from app.domains.accessibility.schemas import (
     AnalyzeA11yRequest,
     AnalyzeA11yResponse,
 )
+from app.infra.models import User
 
 router = APIRouter(prefix="/accessibility", tags=["accessibility"])
+
+CurrentUser = Annotated[User, Depends(get_current_user)]
 
 
 @router.post(
@@ -27,7 +33,7 @@ router = APIRouter(prefix="/accessibility", tags=["accessibility"])
     summary="WCAG violation'ları Türkçe remediation'a çevir",
     response_description="ok=true + remediations veya ok=false + error",
 )
-def analyze(request: AnalyzeA11yRequest) -> AnalyzeA11yResponse:
+def analyze(request: AnalyzeA11yRequest, user: CurrentUser) -> AnalyzeA11yResponse:
     """axe-core / Pa11y / Lighthouse çıktısından violation listesi alır,
     AI Gateway üzerinden (vLLM/Ollama/Groq/Gemini fallback) Türkçe
     açıklama + somut fix önerisi döndürür.
@@ -46,7 +52,7 @@ def analyze(request: AnalyzeA11yRequest) -> AnalyzeA11yResponse:
     "/status",
     summary="A11y analyzer durumu (feature flag + telemetri)",
 )
-def status():
+def status(user: CurrentUser):
     """Frontend "AI ile açıklat" butonunu gösterip göstermemek için.
 
     enabled=false ise buton gizlenmeli veya disabled gösterilmeli.

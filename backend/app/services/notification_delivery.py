@@ -3,8 +3,10 @@ Neurex — Bildirim Delivery Servisi
 Slack, Microsoft Teams ve Web Push kanallarına bildirim gönderir.
 """
 from __future__ import annotations
+
 import logging
 from typing import Optional
+
 import httpx
 
 logger = logging.getLogger(__name__)

@@ -4,7 +4,7 @@ requirements, versions, schedules, test-data, execution-metrics, integrations, a
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timezone as _tz
 from typing import Any, Optional
 
 from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, String, Text
@@ -19,7 +19,7 @@ def _uuid() -> str:
 
 
 def utcnow() -> datetime:
-    return datetime.now(timezone.utc)
+    return datetime.now(_tz.utc)
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -52,19 +52,19 @@ class TspmProject(Base):
     test_data_sets: Mapped[list[TspmTestDataSet]] = relationship(back_populates="project", cascade="all, delete-orphan")
     members: Mapped[list[TspmProjectMember]] = relationship(back_populates="project", cascade="all, delete-orphan")
     n8n_workflows: Mapped[list[TspmN8nWorkflow]] = relationship(back_populates="project", cascade="all, delete-orphan")
-    automation_artifacts: Mapped[list["TspmAutomationArtifact"]] = relationship(
+    automation_artifacts: Mapped[list[TspmAutomationArtifact]] = relationship(
         back_populates="project",
         cascade="all, delete-orphan",
     )
-    autopilot_runs: Mapped[list["TspmAutopilotRun"]] = relationship(
+    autopilot_runs: Mapped[list[TspmAutopilotRun]] = relationship(
         back_populates="project",
         cascade="all, delete-orphan",
     )
-    step_phrases: Mapped[list["TspmStepPhrase"]] = relationship(
+    step_phrases: Mapped[list[TspmStepPhrase]] = relationship(
         back_populates="project",
         cascade="all, delete-orphan",
     )
-    excel_uploads: Mapped[list["TspmExcelUpload"]] = relationship(
+    excel_uploads: Mapped[list[TspmExcelUpload]] = relationship(
         back_populates="project",
         cascade="all, delete-orphan",
     )
@@ -511,7 +511,7 @@ class TspmAiBatch(Base):
     completed_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
 
     project: Mapped[TspmProject] = relationship()
-    test_cases: Mapped[list["TspmTestCase"]] = relationship(back_populates="batch", cascade="all, delete-orphan")
+    test_cases: Mapped[list[TspmTestCase]] = relationship(back_populates="batch", cascade="all, delete-orphan")
 
 
 class TspmTestCase(Base):
@@ -543,7 +543,7 @@ class TspmTestCase(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow, nullable=False)
 
-    batch: Mapped[Optional["TspmAiBatch"]] = relationship(back_populates="test_cases")
+    batch: Mapped[Optional[TspmAiBatch]] = relationship(back_populates="test_cases")
 
 
 class TspmAutomationArtifact(Base):
@@ -575,7 +575,7 @@ class TspmAutomationArtifact(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
 
     project: Mapped[TspmProject] = relationship(back_populates="automation_artifacts")
-    batch: Mapped[Optional["TspmAiBatch"]] = relationship()
+    batch: Mapped[Optional[TspmAiBatch]] = relationship()
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -612,7 +612,7 @@ class TspmExcelUpload(Base):
     created_at:  Mapped[datetime]      = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
 
     project:    Mapped[TspmProject]             = relationship(back_populates="excel_uploads")
-    parameters: Mapped[list["TspmStepParameter"]] = relationship(back_populates="excel_upload", cascade="all, delete-orphan")
+    parameters: Mapped[list[TspmStepParameter]] = relationship(back_populates="excel_upload", cascade="all, delete-orphan")
 
 
 class TspmStepParameter(Base):
@@ -657,7 +657,7 @@ class AiChatSession(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow, nullable=False)
 
-    messages: Mapped[list["AiChatMessage"]] = relationship(back_populates="session", cascade="all, delete-orphan", order_by="AiChatMessage.created_at")
+    messages: Mapped[list[AiChatMessage]] = relationship(back_populates="session", cascade="all, delete-orphan", order_by="AiChatMessage.created_at")
 
 
 class AiChatMessage(Base):

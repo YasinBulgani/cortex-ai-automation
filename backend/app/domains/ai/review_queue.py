@@ -19,12 +19,9 @@ Flag: ai.review.queue — default False (staging'de test sonrasi ac)
 
 from __future__ import annotations
 
-import json
 import logging
 import re
 import uuid
-from dataclasses import dataclass
-from datetime import datetime, timezone
 from typing import Any, Optional
 
 logger = logging.getLogger(__name__)
@@ -139,8 +136,8 @@ def enqueue(
 ) -> Optional[str]:
     """Review kuyruga ekle. ID doner, hata olursa None."""
     try:
-        from app.domains.ai.llm_trace import _get_conn
         from app.domains.ai.correlation import get_correlation_id
+        from app.domains.ai.llm_trace import _get_conn
         conn = _get_conn()
     except Exception:
         return None

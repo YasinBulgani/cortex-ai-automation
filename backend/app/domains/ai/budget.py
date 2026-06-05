@@ -24,7 +24,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime, timezone as _tz
 from typing import List, Optional
 
 from pydantic import BaseModel, Field, field_validator
@@ -74,7 +74,7 @@ class BudgetStatus:
 
 def _today_utc_bounds() -> tuple[datetime, datetime]:
     """[00:00 bugün UTC, 00:00 yarın UTC) aralığı."""
-    now = datetime.now(timezone.utc)
+    now = datetime.now(_tz.utc)
     start = now.replace(hour=0, minute=0, second=0, microsecond=0)
     # 24h eklemek için timedelta (import et)
     from datetime import timedelta

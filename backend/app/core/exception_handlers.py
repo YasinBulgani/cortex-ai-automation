@@ -189,6 +189,7 @@ def register_exception_handlers(app: FastAPI) -> None:
     ``create_app()`` içinde çağrılmalıdır.
     """
     from fastapi.exceptions import RequestValidationError
+
     from app.core.exceptions import RateLimitError
 
     app.add_exception_handler(HTTPException, http_exception_handler)

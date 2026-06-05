@@ -5,10 +5,9 @@ In-memory CRUD for articles. Production'da DB table + full-text search index.
 
 from __future__ import annotations
 
-import re
 import secrets
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import datetime, timezone as _tz
 from typing import Dict, List, Optional
 
 
@@ -21,8 +20,8 @@ class Article:
     category: str = "general"
     author_id: str = ""
     author_name: str = ""
-    created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
-    updated_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    created_at: datetime = field(default_factory=lambda: datetime.now(_tz.utc))
+    updated_at: datetime = field(default_factory=lambda: datetime.now(_tz.utc))
     view_count: int = 0
     helpful_count: int = 0
     unhelpful_count: int = 0
@@ -122,7 +121,7 @@ def update_article(
         article.tags = tags
     if category is not None:
         article.category = category
-    article.updated_at = datetime.now(timezone.utc)
+    article.updated_at = datetime.now(_tz.utc)
     return article
 
 

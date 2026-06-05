@@ -11,7 +11,7 @@ from __future__ import annotations
 import hmac
 import logging
 import os
-from datetime import datetime, timezone
+from datetime import datetime, timezone as _tz
 from typing import Annotated, Any
 
 import httpx
@@ -105,7 +105,7 @@ async def receive_n8n_callback(
     ex.output_data = body.get("data", body)
     ex.error = body.get("error") or body.get("errorMessage")
     if finished:
-        ex.finished_at = datetime.now(timezone.utc)
+        ex.finished_at = datetime.now(_tz.utc)
 
     db.commit()
     return {"ok": True, "execution_id": ex.id}

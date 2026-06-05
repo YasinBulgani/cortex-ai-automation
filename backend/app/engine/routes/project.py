@@ -102,8 +102,12 @@ def _load_project_metadata(project_path: Path) -> dict:
 def _get_db():
     from core.db import (  # type: ignore
         create_project as db_create_project,
-        get_projects as db_get_projects,
+    )
+    from core.db import (
         get_project as db_get_project,
+    )
+    from core.db import (
+        get_projects as db_get_projects,
     )
     return db_create_project, db_get_projects, db_get_project
 

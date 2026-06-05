@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from uuid import UUID
 
 from app.contexts.projects.domain.project import ProductFamily, Project, ProjectId
+
 from .create_project import ProjectRepository
 
 
@@ -32,7 +33,7 @@ class ProjectDTO:
     status: str
 
     @classmethod
-    def from_aggregate(cls, p: Project) -> "ProjectDTO":
+    def from_aggregate(cls, p: Project) -> ProjectDTO:
         return cls(
             id=str(p.id.value),
             name=str(p.name),

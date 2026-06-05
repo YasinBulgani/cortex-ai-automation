@@ -15,7 +15,7 @@ Metrikler:
 """
 
 import logging
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta, timezone as _tz
 from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
@@ -81,8 +81,8 @@ def get_llm_quality_metrics(
         }
     """
     try:
+
         from app.infra.database import SessionLocal
-        from sqlalchemy import text
 
         db = SessionLocal()
         try:
@@ -106,12 +106,13 @@ def _compute_metrics(
 ) -> Dict[str, Any]:
     """DB'den metrikleri hesapla."""
     from sqlalchemy import text
+
     from app.domains.ai.llm_trace import _normalize_phase, _normalize_task_type
 
     if not project_id:
         return _empty_metrics(days)
 
-    cutoff = datetime.now(timezone.utc) - timedelta(days=days)
+    cutoff = datetime.now(_tz.utc) - timedelta(days=days)
     cutoff_str = cutoff.isoformat()
 
     # Base filter
@@ -364,7 +365,7 @@ def _compute_metrics(
     return {
         "period": {
             "start": cutoff.strftime("%Y-%m-%d"),
-            "end": datetime.now(timezone.utc).strftime("%Y-%m-%d"),
+            "end": datetime.now(_tz.utc).strftime("%Y-%m-%d"),
             "days": days,
         },
         "overview": overview,
@@ -398,10 +399,10 @@ def _detect_regressions(
     try:
         where_parts = ["created_at >= :cutoff"]
         params_24: Dict[str, Any] = {
-            "cutoff": (datetime.now(timezone.utc) - timedelta(hours=24)).isoformat()
+            "cutoff": (datetime.now(_tz.utc) - timedelta(hours=24)).isoformat()
         }
         params_7d: Dict[str, Any] = {
-            "cutoff": (datetime.now(timezone.utc) - timedelta(days=7)).isoformat()
+            "cutoff": (datetime.now(_tz.utc) - timedelta(days=7)).isoformat()
         }
         if agent_filter:
             where_parts.append("agent_name = :agent")
@@ -563,7 +564,7 @@ def _generate_recommendations(
 
 def _empty_metrics(days: int) -> Dict[str, Any]:
     """Bos metrik sonucu (DB yoksa veya hata durumunda)."""
-    now = datetime.now(timezone.utc)
+    now = datetime.now(_tz.utc)
     return {
         "period": {
             "start": (now - timedelta(days=days)).strftime("%Y-%m-%d"),
@@ -622,7 +623,7 @@ def collect_finetune_pair(
                 "type": "finetune_pair",
                 "agent_name": agent_name,
                 "quality_score": str(quality_score or "manual"),
-                "collected_at": datetime.now(timezone.utc).isoformat(),
+                "collected_at": datetime.now(_tz.utc).isoformat(),
             },
             project_id=project_id,
         )

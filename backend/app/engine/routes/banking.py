@@ -21,11 +21,19 @@ import sqlite3 as _sqlite3
 from datetime import datetime
 from typing import Annotated, Any, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, Header, HTTPException, status
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
 router = APIRouter(prefix="/api/banking", tags=["engine", "banking"])
+
+
+# ─── Internal auth dependency ─────────────────────────────────────────────────
+
+def _require_internal_auth(x_internal_key: Annotated[str | None, Header()] = None) -> None:
+    expected = os.environ.get("ENGINE_INTERNAL_KEY", "")
+    if not x_internal_key or x_internal_key != expected:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized")
 
 _PROJECT_ROOT = os.path.dirname(
     os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
@@ -33,12 +41,48 @@ _PROJECT_ROOT = os.path.dirname(
 
 # ── Lazy import (banking paketi yüklü değilse graceful degradation) ──────────
 try:
-    from core.banking.generators.identity    import generate_tc_kimlik, validate_tc_kimlik, generate_vkn, validate_vkn, generate_tc_kimlik_batch
-    from core.banking.generators.account     import generate_tr_iban, validate_tr_iban, generate_swift, get_bank_list, TR_BANK_CODES
-    from core.banking.generators.card        import generate_card_number, luhn_check, generate_cvv, generate_card_expiry, mask_card_number
-    from core.banking.generators.transaction import generate_eft_reference, generate_fast_reference, generate_doviz_kuru, generate_transaction_date, generate_cek_numarasi, generate_aciklama, generate_merchant, DOVIZ_KURLAR
-    from core.banking.generators.credit      import generate_faiz_orani, generate_kredi_limiti, generate_risk_skoru, classify_segment, generate_aylik_gelir, SEGMENT_KURALLAR, FAIZ_SPREAD, TCMB_POLITIKA_FAIZ
-    from core.banking.factories.banking_factories import generate_banking_data, generate_relational_dataset, FACTORY_MAP
+    from core.banking.factories.banking_factories import FACTORY_MAP, generate_banking_data, generate_relational_dataset
+    from core.banking.generators.account import (
+        TR_BANK_CODES,
+        generate_swift,
+        generate_tr_iban,
+        get_bank_list,
+        validate_tr_iban,
+    )
+    from core.banking.generators.card import (
+        generate_card_expiry,
+        generate_card_number,
+        generate_cvv,
+        luhn_check,
+        mask_card_number,
+    )
+    from core.banking.generators.credit import (
+        FAIZ_SPREAD,
+        SEGMENT_KURALLAR,
+        TCMB_POLITIKA_FAIZ,
+        classify_segment,
+        generate_aylik_gelir,
+        generate_faiz_orani,
+        generate_kredi_limiti,
+        generate_risk_skoru,
+    )
+    from core.banking.generators.identity import (
+        generate_tc_kimlik,
+        generate_tc_kimlik_batch,
+        generate_vkn,
+        validate_tc_kimlik,
+        validate_vkn,
+    )
+    from core.banking.generators.transaction import (
+        DOVIZ_KURLAR,
+        generate_aciklama,
+        generate_cek_numarasi,
+        generate_doviz_kuru,
+        generate_eft_reference,
+        generate_fast_reference,
+        generate_merchant,
+        generate_transaction_date,
+    )
     BANKING_AVAILABLE = True
     _IMPORT_ERROR = ""
 except ImportError as e:
@@ -787,7 +831,7 @@ def db_insert(body: DbInsertRequest):
 
 
 @router.post("/db/query")
-def db_query(body: DbQueryRequest):
+def db_query(body: DbQueryRequest, _auth: Annotated[None, Depends(_require_internal_auth)]):
     """DB'de SELECT sorgusu çalıştır (sadece SELECT, güvenlik için)."""
     db_type = body.db_type
     conn_str = body.conn_str
@@ -806,7 +850,8 @@ def db_query(body: DbQueryRequest):
         conn = _sqlite3.connect(conn_str)
         conn.row_factory = _sqlite3.Row
         c = conn.cursor()
-        c.execute(f"{body.sql} LIMIT {body.limit}")
+        safe_sql = body.sql.strip().rstrip(";")
+        c.execute(f"SELECT * FROM ({safe_sql}) AS _q LIMIT ?", (min(body.limit, 1000),))
         rows = [dict(r) for r in c.fetchall()]
         cols = [d[0] for d in c.description] if c.description else []
         conn.close()

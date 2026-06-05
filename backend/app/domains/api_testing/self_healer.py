@@ -11,8 +11,8 @@ from __future__ import annotations
 import logging
 import re
 import time
-from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, List, Optional, Tuple
+from datetime import datetime, timedelta, timezone as _tz
+from typing import Any, Dict, List, Optional
 from uuid import uuid4
 
 from sqlalchemy import Integer, func, select
@@ -461,9 +461,9 @@ def get_healing_stats(
     days: int = 30,
 ) -> Dict[str, Any]:
     """Return aggregated healing statistics over *days*."""
-    from app.domains.api_testing.models import HealingLog, ApiTestCase
+    from app.domains.api_testing.models import ApiTestCase, HealingLog
 
-    cutoff = datetime.now(timezone.utc) - timedelta(days=days)
+    cutoff = datetime.now(_tz.utc) - timedelta(days=days)
 
     base_where = [
         HealingLog.project_id == project_id,

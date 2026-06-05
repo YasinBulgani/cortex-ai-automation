@@ -1,23 +1,20 @@
 """Scenario domain unit tests — state machine + business rules."""
 
-import pytest
 from uuid import uuid4
 
+import pytest
+
+from app.contexts.scenarios.domain.events import (
+    ScenarioCreated,
+    ScenarioStepAdded,
+    ScenarioStepRemoved,
+)
 from app.contexts.scenarios.domain.scenario import (
     Scenario,
     ScenarioStatus,
     ScenarioStep,
     ScenarioTitle,
     StepType,
-)
-from app.contexts.scenarios.domain.events import (
-    ScenarioApproved,
-    ScenarioArchived,
-    ScenarioCreated,
-    ScenarioPublished,
-    ScenarioRejected,
-    ScenarioStepAdded,
-    ScenarioStepRemoved,
 )
 
 

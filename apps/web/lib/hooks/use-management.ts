@@ -2119,3 +2119,31 @@ export function useDeleteApiKey(projectId: string) {
     onSuccess: () => qc.invalidateQueries({ queryKey: [...managementKeys.project(projectId), "api-keys"] }),
   });
 }
+
+// ── Webhook Subscriptions ────────────────────────────────────────────────────
+
+export function useWebhookSubscriptions(projectId: string | undefined) {
+  return useQuery({
+    queryKey: ["management", projectId, "webhook-subscriptions"],
+    queryFn: () => apiFetch<WebhookNotification[]>(`/api/v1/test-management/projects/${projectId!}/webhook-subscriptions`),
+    enabled: !!projectId,
+  });
+}
+
+export function useCreateWebhookSubscription(projectId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: { url: string; events: string[]; secret?: string }) =>
+      apiFetch(`/api/v1/test-management/projects/${projectId}/webhook-subscriptions`, { method: "POST", json: data }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["management", projectId, "webhook-subscriptions"] }),
+  });
+}
+
+export function useDeleteWebhookSubscription(projectId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (webhookId: string) =>
+      apiFetch(`/api/v1/test-management/projects/${projectId}/webhook-subscriptions/${webhookId}`, { method: "DELETE" }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["management", projectId, "webhook-subscriptions"] }),
+  });
+}

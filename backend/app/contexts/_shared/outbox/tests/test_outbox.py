@@ -1,16 +1,16 @@
 from __future__ import annotations
+
 """Outbox tests — in-memory mock repository ile."""
 
-import pytest
 from dataclasses import dataclass
 from uuid import UUID, uuid4
 
+import pytest
+
 from app.contexts._shared.kernel.events import DomainEvent
 from app.contexts._shared.outbox.outbox import (
-    EventBroker,
     OutboxEntry,
     OutboxRelay,
-    OutboxRepository,
     OutboxStatus,
 )
 

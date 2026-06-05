@@ -9,45 +9,52 @@ Mount via:
 
 from fastapi import FastAPI
 
-from .regression import router as regression_router
 from .ai_generation import router as ai_generation_router
 from .ai_healing import router as ai_healing_router
-from .visual import router as visual_router
-from .webhook import router as webhook_router
-from .lifecycle import router as lifecycle_router
 from .auth import router as auth_router
+from .lifecycle import router as lifecycle_router
+from .manual import router as manual_router
+from .regression import router as regression_router
 from .runner import router as runner_router
 from .scheduler import router as scheduler_router
-from .manual import router as manual_router
-from .mobile import router as mobile_router
-from .device_manager import router as device_manager_router
-from .analytics import router as analytics_router
-from .datasim         import router as datasim_router
-from .banking         import router as banking_router
-from .pipeline        import router as pipeline_router
-from .recorder        import router as recorder_router
-from .wizard          import router as wizard_router
-from .editor          import router as editor_router
-from .monkey          import router as monkey_router
-from .reporting       import router as reporting_router
-from .metrics         import router as metrics_router
-from .project         import router as project_router
-from .jira            import router as jira_router
-from .tm              import router as tm_router
-from .visual_ai       import router as visual_ai_router
-from .llm_agent       import router as llm_agent_router
-from .datasim_banking import router as datasim_banking_router
-from .accessibility   import router as accessibility_router
-from .ai_analysis     import router as ai_analysis_router
+from .visual import router as visual_router
+from .webhook import router as webhook_router
+
+try:
+    from .mobile import router as mobile_router
+    _HAS_MOBILE = True
+except Exception:
+    from fastapi import APIRouter as _APIRouter
+    mobile_router = _APIRouter()
+    _HAS_MOBILE = False
+from .accessibility import router as accessibility_router
+from .ai_analysis import router as ai_analysis_router
 from .ai_intelligence import router as ai_intelligence_router
-from .feature         import router as feature_router
-from .locators        import router as locators_router
-from .magic_test      import router as magic_test_router
-from .playback        import router as playback_router
-from .registry        import router as registry_router
-from .utility         import router as utility_router
-from .ai_routes       import router as ai_routes_router
-from .ai_openapi      import router as ai_openapi_router
+from .ai_openapi import router as ai_openapi_router
+from .ai_routes import router as ai_routes_router
+from .analytics import router as analytics_router
+from .banking import router as banking_router
+from .datasim import router as datasim_router
+from .datasim_banking import router as datasim_banking_router
+from .device_manager import router as device_manager_router
+from .editor import router as editor_router
+from .feature import router as feature_router
+from .jira import router as jira_router
+from .llm_agent import router as llm_agent_router
+from .locators import router as locators_router
+from .magic_test import router as magic_test_router
+from .metrics import router as metrics_router
+from .monkey import router as monkey_router
+from .pipeline import router as pipeline_router
+from .playback import router as playback_router
+from .project import router as project_router
+from .recorder import router as recorder_router
+from .registry import router as registry_router
+from .reporting import router as reporting_router
+from .tm import router as tm_router
+from .utility import router as utility_router
+from .visual_ai import router as visual_ai_router
+from .wizard import router as wizard_router
 
 # Migration progress:
 # ✅ regression            → port edildi

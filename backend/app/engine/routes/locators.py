@@ -12,9 +12,7 @@ Geçici in-memory store yeterli — gerçek DB sonra.
 """
 from __future__ import annotations
 
-from typing import Annotated
-
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
 
 router = APIRouter(prefix="/api/locators", tags=["engine", "locators"])
@@ -209,8 +207,8 @@ def api_discover_page(body: DiscoverRequest, store: LocatorStore = Depends(get_s
     try:
         import json as _json
 
-        from playwright.sync_api import sync_playwright  # type: ignore[import]
         from core.ai_engine import get_ai_engine  # type: ignore[import]
+        from playwright.sync_api import sync_playwright  # type: ignore[import]
 
         with sync_playwright() as p:
             browser = p.chromium.launch(headless=True)

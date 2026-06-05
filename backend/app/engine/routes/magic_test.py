@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 """
 Magic Test routes — Flask engine'den FastAPI'ye port edilmiştir.
 
@@ -17,11 +18,13 @@ Varsayılan page.goto timeout: 30 sn. AI çağrısı için toplam timeout: 120 s
 
 import json
 import logging
-from datetime import datetime, timezone
+from datetime import datetime
+_UTC = __import__("datetime").timezone.utc
+UTC = _UTC
 
 from fastapi import APIRouter, HTTPException, Query, status
-from fastapi.responses import StreamingResponse, PlainTextResponse
-from pydantic import BaseModel, Field, field_validator, AnyHttpUrl
+from fastapi.responses import PlainTextResponse, StreamingResponse
+from pydantic import BaseModel, Field, field_validator
 
 logger = logging.getLogger(__name__)
 
@@ -112,7 +115,8 @@ def generate_test_cases(body: GenerateTestCasesBody) -> dict:
     try:
         from core.ai_engine import get_ai_engine
         from core.page_inspector import PageInspector
-        from playwright.sync_api import sync_playwright, TimeoutError as PWTimeoutError
+        from playwright.sync_api import TimeoutError as PWTimeoutError
+        from playwright.sync_api import sync_playwright
 
         test_case_manager = _get_test_case_manager()
 
@@ -173,7 +177,7 @@ def generate_test_cases(body: GenerateTestCasesBody) -> dict:
                     "page_type": page_type,
                     "test_cases": generated_cases,
                     "total": len(generated_cases),
-                    "timestamp": datetime.now(tz=timezone.utc).isoformat(),
+                    "timestamp": datetime.now(tz=UTC).isoformat(),
                 }
             finally:
                 context.close()
@@ -253,7 +257,8 @@ def analyze_test_strategy(body: AnalyzeStrategyBody) -> dict:
     try:
         from core.ai_engine import get_ai_engine
         from core.page_inspector import PageInspector
-        from playwright.sync_api import sync_playwright, TimeoutError as PWTimeoutError
+        from playwright.sync_api import TimeoutError as PWTimeoutError
+        from playwright.sync_api import sync_playwright
 
         test_case_manager = _get_test_case_manager()
 
@@ -308,7 +313,7 @@ def analyze_test_strategy(body: AnalyzeStrategyBody) -> dict:
                     "status": "success",
                     "analysis_id": analysis_id,
                     "analysis": analysis,
-                    "timestamp": datetime.now(tz=timezone.utc).isoformat(),
+                    "timestamp": datetime.now(tz=UTC).isoformat(),
                 }
             finally:
                 context.close()

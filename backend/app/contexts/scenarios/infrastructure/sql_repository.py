@@ -14,8 +14,9 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 from uuid import UUID
 
-from sqlalchemy import Column, DateTime, String, Text, select
-from sqlalchemy.dialects.postgresql import JSONB, UUID as PG_UUID
+from sqlalchemy import Column, DateTime, String, select
+from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import declarative_base
 from sqlalchemy.sql import func
 
@@ -58,7 +59,7 @@ class ScenarioRow(Base):
     updated_at  = Column(DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now())
 
     @classmethod
-    def from_aggregate(cls, scenario: Scenario) -> "ScenarioRow":
+    def from_aggregate(cls, scenario: Scenario) -> ScenarioRow:
         return cls(
             id=scenario.id.value,
             project_id=scenario.project_id,
@@ -95,7 +96,7 @@ def _json_to_steps(data: list[dict[str, Any]]) -> list[ScenarioStep]:
 class SqlAlchemyScenarioRepository(ScenarioRepository):
     """ScenarioRepository PostgreSQL implementation (async)."""
 
-    def __init__(self, session: "AsyncSession"):
+    def __init__(self, session: AsyncSession):
         self.session = session
 
     async def get(self, scenario_id: ScenarioId) -> Scenario | None:

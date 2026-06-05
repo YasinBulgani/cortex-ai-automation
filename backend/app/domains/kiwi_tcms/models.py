@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timezone as _tz
 from typing import Any, Optional
 
 from sqlalchemy import Boolean, DateTime, ForeignKey, Index, Integer, String, Text, UniqueConstraint
@@ -19,7 +19,7 @@ def _uuid() -> str:
 
 
 def utcnow() -> datetime:
-    return datetime.now(timezone.utc)
+    return datetime.now(_tz.utc)
 
 
 class KiwiConnection(Base):
@@ -55,8 +55,8 @@ class KiwiConnection(Base):
         DateTime(timezone=True), default=utcnow, onupdate=utcnow, nullable=False
     )
 
-    jobs: Mapped[list["KiwiSyncJob"]] = relationship(back_populates="connection", cascade="all, delete-orphan")
-    id_maps: Mapped[list["KiwiIdMap"]] = relationship(back_populates="connection", cascade="all, delete-orphan")
+    jobs: Mapped[list[KiwiSyncJob]] = relationship(back_populates="connection", cascade="all, delete-orphan")
+    id_maps: Mapped[list[KiwiIdMap]] = relationship(back_populates="connection", cascade="all, delete-orphan")
 
 
 class KiwiSyncJob(Base):

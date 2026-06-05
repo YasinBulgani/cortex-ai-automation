@@ -11,7 +11,6 @@ from openpyxl.worksheet.worksheet import Worksheet
 
 from app.config import settings
 
-
 HEADER_FILL = PatternFill("solid", fgColor="1F2937")
 HEADER_FONT = Font(color="FFFFFF", bold=True)
 

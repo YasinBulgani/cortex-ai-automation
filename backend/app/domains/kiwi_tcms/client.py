@@ -56,7 +56,7 @@ class KiwiClient:
         self._rpc_id = 0
 
     # ── lifecycle ──────────────────────────────────────────────────────
-    async def __aenter__(self) -> "KiwiClient":
+    async def __aenter__(self) -> KiwiClient:
         self._client = httpx.AsyncClient(
             timeout=self._timeout, verify=self._verify_ssl, transport=self._transport
         )

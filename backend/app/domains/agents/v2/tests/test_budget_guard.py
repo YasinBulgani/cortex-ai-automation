@@ -17,7 +17,7 @@ from app.domains.agents.v2.budget_guard import (
     request_cancel,
 )
 from app.domains.agents.v2.config import get_config
-from app.domains.agents.v2.state import AgentState, create_initial_state
+from app.domains.agents.v2.state import create_initial_state
 
 
 def _state(**overrides):

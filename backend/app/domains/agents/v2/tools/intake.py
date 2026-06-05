@@ -6,7 +6,6 @@ import logging
 import os
 import re
 from pathlib import Path
-from typing import Any
 
 import httpx
 
@@ -31,7 +30,10 @@ def parse_pdf(path: str | Path) -> str:
                     chunks.append(f"--- Sayfa {i + 1} ---\n{txt}")
         return "\n\n".join(chunks)
     except ImportError:
-        pass
+        logger.warning(
+            "Opsiyonel bağımlılık 'pdfplumber' yüklenemedi, pypdf'e geçiliyor. "
+            "pip install pdfplumber ile ekleyin."
+        )
     try:
         from pypdf import PdfReader
         reader = PdfReader(str(path))

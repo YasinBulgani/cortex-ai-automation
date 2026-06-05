@@ -219,7 +219,7 @@ def _collect_rag_snippets(
     keywords: list[str],
     intent: str,
     top_k: int = 3,
-) -> list["ContextSnippet"]:
+) -> list[ContextSnippet]:
     """KnowledgeStore.retrieve_hybrid sonucunu ContextSnippet'e cevir."""
     from app.domains.ai.knowledge_store import KnowledgeStore
 

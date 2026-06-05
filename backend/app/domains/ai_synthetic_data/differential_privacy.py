@@ -7,11 +7,14 @@ for Turkish banking test data.
 """
 
 import hashlib
+import logging
 import math
 import random
 import re
 from collections import Counter
 from typing import Any, Dict, List, Optional, Tuple
+
+logger = logging.getLogger(__name__)
 
 try:
     import numpy as np
@@ -19,6 +22,10 @@ try:
 except ImportError:
     np = None  # type: ignore[assignment]
     _HAS_NUMPY = False
+    logger.warning(
+        "Opsiyonel bağımlılık 'numpy' yüklenemedi, diferansiyel gizlilik hesaplamaları "
+        "saf Python'a geri düşecek. pip install numpy ile ekleyin."
+    )
 
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

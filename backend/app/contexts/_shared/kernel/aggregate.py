@@ -8,6 +8,7 @@ Event collect eder, repository commit'inde event bus'a yayınlar.
 from __future__ import annotations
 
 from typing import Generic, TypeVar
+
 from .events import DomainEvent
 from .identifiers import EntityId
 

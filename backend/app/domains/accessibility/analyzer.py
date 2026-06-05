@@ -28,7 +28,7 @@ import os
 import re
 import threading
 import time
-from typing import Any, List, Optional
+from typing import Optional
 
 from app.domains.accessibility.schemas import (
     A11yRemediation,

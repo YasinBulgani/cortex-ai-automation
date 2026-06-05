@@ -24,7 +24,8 @@ from __future__ import annotations
 import json
 import logging
 import re
-from typing import Callable, List, Optional
+from collections.abc import Callable
+from typing import List, Optional
 
 from .schemas import FailureEvent, HealingProposal, LocatorKind
 

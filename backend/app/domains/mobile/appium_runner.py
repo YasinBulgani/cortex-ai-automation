@@ -6,8 +6,9 @@ olursa bunu failure olarak dondurur ve best-effort artifact toplamaya calisir.
 from __future__ import annotations
 
 import time
+from collections.abc import Callable
 from dataclasses import dataclass, field
-from typing import Callable, Optional
+from typing import Optional
 
 from .appium_client import AppiumCapabilities, AppiumClient, AppiumError
 from .artifact_store import MobileArtifactStore, get_artifact_store

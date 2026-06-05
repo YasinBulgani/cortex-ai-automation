@@ -2,7 +2,6 @@
 
 import logging
 import os
-import secrets
 from functools import lru_cache
 
 from pydantic import ValidationInfo, field_validator, model_validator
@@ -195,13 +194,6 @@ class Settings(BaseSettings):
     stripe_success_url: str = "http://localhost:3000/admin/billing?status=success"
     stripe_cancel_url: str = "http://localhost:3000/admin/billing?status=cancel"
     stripe_portal_return_url: str = "http://localhost:3000/admin/billing"
-
-    # ── Slack / Teams / Push bildirimleri ─────────────────────────────
-    # Incoming Webhook URL'leri boşken ilgili kanal sessizce devre dışı kalır.
-    slack_webhook_url: str = ""
-    teams_webhook_url: str = ""
-    # Web push (pywebpush) — Push-v2 hazır olduğunda etkinleştirilecek
-    push_notifications_enabled: bool = False
 
     # ── Nexus Repo modülü ─────────────────────────────────────────────
     # Varsayılan kapalı — etkinleştirmek için NEXUS_REPO_ENABLED=true

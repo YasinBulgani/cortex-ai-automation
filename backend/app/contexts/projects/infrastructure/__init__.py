@@ -11,8 +11,8 @@ inject edilir).
 """
 
 from .in_memory_repository import InMemoryProjectRepository
-from .sql_repository import SqlAlchemyProjectRepository, ProjectRow
 from .project_check_adapter import ProjectExistsCheckAdapter
+from .sql_repository import ProjectRow, SqlAlchemyProjectRepository
 
 __all__ = [
     "InMemoryProjectRepository",

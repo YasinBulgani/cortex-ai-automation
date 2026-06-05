@@ -16,8 +16,8 @@ from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from app.deps import get_current_user
-from app.domains.dsl import service as dsl_service
 from app.domains.dsl import feedback_service
+from app.domains.dsl import service as dsl_service
 from app.domains.dsl.schemas import (
     DslAction,
     DslActionListResponse,
@@ -90,7 +90,7 @@ class CategoryNodeOut(BaseModel):
     id: str
     label: str
     count: int
-    children: List["CategoryNodeOut"] = Field(default_factory=list)
+    children: List[CategoryNodeOut] = Field(default_factory=list)
 
 
 CategoryNodeOut.model_rebuild()

@@ -13,10 +13,14 @@ from .state import AgentState
 logger = logging.getLogger(__name__)
 
 try:
-    from langgraph.graph import StateGraph, END  # type: ignore
+    from langgraph.graph import END, StateGraph  # type: ignore
     LANGGRAPH_AVAILABLE = True
 except ImportError:
     LANGGRAPH_AVAILABLE = False
+    logger.warning(
+        "Opsiyonel bağımlılık 'langgraph' yüklenemedi, LangGraph orkestratörü devre dışı. "
+        "pip install langgraph ile ekleyin."
+    )
 
 
 def after_runner(state: AgentState) -> Literal["healer", "reviewer"]:
@@ -53,8 +57,15 @@ def build_graph():
         raise ImportError("pip install langgraph langchain-core")
 
     from .agents import (
-        analyst_node, explorer_node, locator_node, scenario_node,
-        coder_node, runner_node, healer_node, reviewer_node, reporter_node,
+        analyst_node,
+        coder_node,
+        explorer_node,
+        healer_node,
+        locator_node,
+        reporter_node,
+        reviewer_node,
+        runner_node,
+        scenario_node,
     )
 
     graph = StateGraph(AgentState)
@@ -106,6 +117,9 @@ async def run_pipeline(initial_state: AgentState) -> AgentState:
             final_state["status"] = "completed"
     except ImportError:
         # LangGraph yok — manual fallback
+        logger.warning(
+            "langgraph modülü yüklenemedi, manuel fallback executor'a geçiliyor."
+        )
         from .router import _execute_manual  # type: ignore
         final_state = await _execute_manual(run_id, initial_state)
     except asyncio.CancelledError:

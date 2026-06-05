@@ -5,16 +5,16 @@ from __future__ import annotations
 import logging
 from typing import Annotated
 
+import jwt
 from fastapi import APIRouter, Depends, Query, WebSocket, WebSocketDisconnect
 from sqlalchemy.orm import Session
-
-import jwt
 
 from app.deps import get_current_user
 from app.domains.auth.service import decode_token
 from app.infra.database import get_db
 from app.infra.models import User
 
+from . import schemas as domain_schemas  # noqa: F401 — schemas module created for type contract use
 from .mentions import extract_handles, parse_and_resolve
 from .presence import presence
 

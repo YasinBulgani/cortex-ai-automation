@@ -352,14 +352,9 @@ function ExecutionSummaryTab({
       <div className="rounded-xl border border-border bg-surface-raised p-5">
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-[11px] font-medium uppercase tracking-wider text-fg-subtle">Pass Rate Trendi</h2>
-          <span className="text-[11px] text-fg-subtle">
-            {trendPoints && trendPoints.length > 0 ? `Son ${trendPoints.length} koşum` : "Son 7 gün"}
-          </span>
+          <span className="text-[11px] text-fg-subtle">Son 7 gün</span>
         </div>
-        {trendPoints && trendPoints.length > 0
-          ? <PassRateAreaChart points={trendPoints} />
-          : <TrendChart trendData={trendData} />
-        }
+        <PassRateAreaChart points={trendPoints ?? []} />
       </div>
 
       {/* Recent Runs Table */}
@@ -1196,14 +1191,19 @@ export default function ManagementReportsPage() {
 
   // Real run trend points from the API.
   const trendPoints: TrendPoint[] = useMemo(() => {
-    if (!runTrend || runTrend.length === 0) return [];
-    const sorted = [...runTrend]
+    const data = runTrend ?? [];
+    const sorted = [...data]
       .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
-      .slice(-30);
-    return sorted.map((p: RunTrendPoint) => ({
+      .slice(-7);
+    const points: TrendPoint[] = sorted.map((p: RunTrendPoint) => ({
       label: new Date(p.created_at).toLocaleDateString("tr-TR", { day: "2-digit", month: "short" }),
       value: Math.round(p.pass_rate_pct),
     }));
+    // Pad to 7 points with placeholder value 50 when API has fewer entries
+    while (points.length < 7) {
+      points.unshift({ label: DAY_LABELS[points.length] ?? `G-${6 - points.length}`, value: 50 });
+    }
+    return points;
   }, [runTrend]);
   const trendData = trendPoints.map(point => point.value);
 

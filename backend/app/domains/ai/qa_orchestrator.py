@@ -20,8 +20,8 @@ Python 3.9 compatible.
 import json
 import logging
 import time
-from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional, Tuple
+from datetime import datetime, timezone as _tz
+from typing import Any, Dict, List, Optional
 from uuid import uuid4
 
 from sqlalchemy.orm import Session
@@ -37,7 +37,7 @@ _plan_store: Dict[str, Dict[str, Any]] = {}
 
 
 def _now_iso() -> str:
-    return datetime.now(timezone.utc).isoformat()
+    return datetime.now(_tz.utc).isoformat()
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -481,9 +481,10 @@ class QAOrchestrator:
         # Try to use ServiceTestAgent for AI-powered generation
         generated_count = 0
         try:
-            from app.domains.agents.banking_team.service_test_agent import ServiceTestAgent
-            from app.domains.api_testing.models import ApiEndpoint, ApiSpec
             from sqlalchemy import select
+
+            from app.domains.agents.banking_team.service_test_agent import ServiceTestAgent
+            from app.domains.api_testing.models import ApiEndpoint
 
             # Get endpoints from gaps
             endpoint_ids = [s.get("endpoint_id") for s in suggestions if s.get("endpoint_id")]
@@ -530,8 +531,9 @@ class QAOrchestrator:
 
         # Try to use execution engine if available
         try:
-            from app.domains.api_testing.models import ApiExecutionDetail
             from sqlalchemy import select
+
+            from app.domains.api_testing.models import ApiExecutionDetail
             details = (
                 self.db.execute(select(ApiExecutionDetail).where(ApiExecutionDetail.run_id == run_id))
                 .scalars().all()
@@ -551,8 +553,9 @@ class QAOrchestrator:
         """LLM analysis of test results."""
         # Gather recent execution data
         try:
-            from app.domains.api_testing.models import ApiExecutionDetail, ApiTestCase
             from sqlalchemy import select
+
+            from app.domains.api_testing.models import ApiExecutionDetail, ApiTestCase
 
             recent = (
                 self.db.execute(

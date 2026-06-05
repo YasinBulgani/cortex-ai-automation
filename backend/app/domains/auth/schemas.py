@@ -34,7 +34,7 @@ def _validate_strong_password(password: str) -> str:
 
 class LoginRequest(BaseModel):
     email: EmailStr
-    password: str = Field(min_length=1)
+    password: str = Field(min_length=1)  # Login'de kısıtlama yok — auth logic'e bırak
     remember_me: bool = False
 
 

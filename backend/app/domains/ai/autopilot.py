@@ -8,7 +8,7 @@ kontrollü şekilde uygular.
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone as _tz
 from typing import Any, Literal
 
 from sqlalchemy import func, select
@@ -139,7 +139,7 @@ class NexusAutopilot:
         recent_pass_rates = [metric.pass_rate for metric in recent_metrics if metric.total > 0]
         avg_pass_rate = sum(recent_pass_rates) / len(recent_pass_rates) if recent_pass_rates else 0.0
         failed_total = sum(metric.failed for metric in recent_metrics)
-        stale_after = datetime.now(timezone.utc) - timedelta(days=7)
+        stale_after = datetime.now(_tz.utc) - timedelta(days=7)
         latest_metric_at = latest_metric.executed_at if latest_metric else None
         stale_metrics = latest_metric_at is None or latest_metric_at < stale_after
 
@@ -153,7 +153,7 @@ class NexusAutopilot:
 
         return {
             "project_id": self.project_id,
-            "collected_at": datetime.now(timezone.utc).isoformat(),
+            "collected_at": datetime.now(_tz.utc).isoformat(),
             "scenario_count": int(scenario_count),
             "execution_count": int(execution_count),
             "latest_execution": {

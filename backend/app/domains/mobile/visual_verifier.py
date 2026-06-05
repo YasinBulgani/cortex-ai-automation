@@ -6,7 +6,6 @@ F2'de AI Gateway'in vision endpoint'i (Gemini 2 Flash / GPT-4o) entegre edilir.
 from __future__ import annotations
 
 import logging
-from typing import Optional
 
 from .schemas import VisualVerifyRequest, VisualVerifyResponse
 

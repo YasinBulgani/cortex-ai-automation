@@ -23,19 +23,19 @@ from sqlalchemy import delete, func, or_, select
 from sqlalchemy.orm import Session
 
 from app.deps import get_current_user
+from app.domains.ai_synthetic_data.platform import (
+    ColumnClassifier,
+    LearningEngine,
+    RuleEngine,
+    ScenarioManager,
+    SchemaAnalyzer,
+    SyntheticDetectedSchema,
+    SyntheticGenerationHistory,
+    SyntheticGenerationRule,
+    SyntheticProject,
+)
 from app.infra.database import get_db
 from app.infra.models import User
-from app.domains.ai_synthetic_data.platform import (
-    SchemaAnalyzer,
-    ColumnClassifier,
-    RuleEngine,
-    LearningEngine,
-    ScenarioManager,
-    SyntheticProject,
-    SyntheticDetectedSchema,
-    SyntheticGenerationRule,
-    SyntheticGenerationHistory,
-)
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/synthetic-platform", tags=["synthetic-platform"])

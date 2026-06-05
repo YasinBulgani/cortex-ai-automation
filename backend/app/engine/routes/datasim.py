@@ -17,9 +17,9 @@ import json
 import time
 import traceback
 from pathlib import Path
-from typing import Annotated, Any, Optional
+from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, HTTPException, status
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
@@ -689,6 +689,7 @@ def sqlite_learn(body: SqliteLearnRequest):
 
     def _stream():
         import sqlite3
+
         import pandas as pd
 
         try:

@@ -14,7 +14,7 @@ import json
 import logging
 import threading
 import time
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone as _tz
 from pathlib import Path
 from typing import Any
 
@@ -31,7 +31,7 @@ _run_lock = threading.Lock()
 
 
 def _utcnow() -> str:
-    return datetime.now(timezone.utc).isoformat()
+    return datetime.now(_tz.utc).isoformat()
 
 
 def _truncate_payload(payload: Any, limit: int = 600) -> str:
@@ -352,7 +352,7 @@ def start_ops_agent_loop() -> None:
         seconds=max(60, settings.ai_background_interval_seconds),
         kwargs={"trigger": "scheduled"},
         replace_existing=True,
-        next_run_time=datetime.now(timezone.utc)
+        next_run_time=datetime.now(_tz.utc)
         + timedelta(seconds=max(5, settings.ai_background_start_delay_seconds)),
     )
     ops_agent.enabled = True

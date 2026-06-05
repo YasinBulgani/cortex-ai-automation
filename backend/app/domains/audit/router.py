@@ -9,19 +9,18 @@ from __future__ import annotations
 import csv
 import io
 import json
-from datetime import datetime, timezone
+from datetime import datetime, timezone as _tz
 from typing import Annotated, Optional
 
-from fastapi import APIRouter, Depends, Query, Response
-from fastapi import HTTPException, status as http_status
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
+from fastapi import status as http_status
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.deps import get_current_user, _user_permissions
+from app.deps import _user_permissions, get_current_user
 from app.infra.database import get_db
 from app.infra.models import AuditEvent, User
-
 
 router = APIRouter(prefix="/audit", tags=["audit"])
 
@@ -185,7 +184,7 @@ def export_audit_json(
     events = list(db.scalars(stmt))
     enriched = _enrich(db, events)
 
-    export_ts = datetime.now(timezone.utc).isoformat()
+    export_ts = datetime.now(_tz.utc).isoformat()
     payload = {
         "meta": {
             "exported_at": export_ts,
@@ -250,7 +249,7 @@ def export_audit_csv(
             row["payload"] = json.dumps(row["payload"], ensure_ascii=False)
         writer.writerow({k: row.get(k, "") for k in fieldnames})
 
-    export_ts = datetime.now(timezone.utc).isoformat()
+    export_ts = datetime.now(_tz.utc).isoformat()
     filename = f"cortex_audit_{export_ts[:10]}.csv"
     return Response(
         content=buf.getvalue(),
@@ -302,7 +301,7 @@ def verify_audit_integrity(
         "verified": result.verified,
         "first_bad_seq": result.first_bad_seq,
         "errors": result.errors,
-        "checked_at": datetime.now(timezone.utc).isoformat(),
+        "checked_at": datetime.now(_tz.utc).isoformat(),
     }
 
 
@@ -318,7 +317,7 @@ def export_audit_summary(
     stmt = _build_query(db, date_from=date_from, date_to=date_to)
     count = len(list(db.scalars(stmt)))
     return AuditExportSummary(
-        exported_at=datetime.now(timezone.utc).isoformat(),
+        exported_at=datetime.now(_tz.utc).isoformat(),
         total_events=count,
         date_from=date_from,
         date_to=date_to,

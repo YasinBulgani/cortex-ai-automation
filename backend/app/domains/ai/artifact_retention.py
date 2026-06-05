@@ -1,9 +1,10 @@
 """Retention cleanup for AI workflow artifacts."""
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from collections.abc import Iterable
+from datetime import datetime, timedelta, timezone as _tz
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any
 
 from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
@@ -11,7 +12,6 @@ from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.infra.models import AgentV2Run, AgentV2RunArtifact
-
 
 TERMINAL_STATUSES = {"completed", "failed", "cancelled"}
 
@@ -38,7 +38,7 @@ def cleanup_workflow_artifacts(
         raise ValueError("retention_days must be greater than zero")
 
     statuses = terminal_statuses or TERMINAL_STATUSES
-    now = now or datetime.now(timezone.utc)
+    now = now or datetime.now(_tz.utc)
     cutoff = now - timedelta(days=retention_days)
     result: dict[str, Any] = {
         "dry_run": dry_run,
@@ -121,7 +121,7 @@ def _artifact_run_is_eligible(artifact: Any, cutoff: datetime, statuses: set[str
     if completed_at is None:
         return False
     if completed_at.tzinfo is None:
-        completed_at = completed_at.replace(tzinfo=timezone.utc)
+        completed_at = completed_at.replace(tzinfo=_tz.utc)
     return completed_at < cutoff
 
 

@@ -21,7 +21,6 @@ from app.domains.tspm.schemas import (
     RequirementOut,
     RequirementUpdate,
     ScenarioCreate,
-    ScenarioOut,
     ScenarioUpdate,
 )
 

@@ -139,8 +139,8 @@ def map_steps(body: MapStepsRequest):
 def feedback_insights():
     """Feedback loop insight'ları."""
     try:
-        from core.feedback_loop.collector import ResultCollector  # type: ignore[import]
         from core.feedback_loop.analyzer import PatternAnalyzer  # type: ignore[import]
+        from core.feedback_loop.collector import ResultCollector  # type: ignore[import]
 
         collector = ResultCollector()
         analyzer = PatternAnalyzer()

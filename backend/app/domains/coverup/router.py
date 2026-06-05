@@ -3,8 +3,6 @@
 from __future__ import annotations
 
 import logging
-import uuid
-from datetime import datetime, timezone
 from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -12,9 +10,9 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.deps import get_current_user
+from app.domains.tspm.models import TspmProject, TspmProjectMember
 from app.infra.database import get_db
 from app.infra.models import User
-from app.domains.tspm.models import TspmProject, TspmProjectMember
 
 from .repository import CoverageReportRepository
 from .schemas import (
@@ -25,16 +23,15 @@ from .schemas import (
     CoverageSummary,
     CoverageUploadRequest,
     FileCoverage,
+    GeneratedTest,
     GenerateTestRequest,
     GenerateTestResponse,
-    GeneratedTest,
     TrendResponse,
 )
 from .service import (
     analyze_report,
     build_trend_response,
     create_report,
-    generate_tests,
     get_report_or_404,
 )
 
@@ -84,8 +81,7 @@ def _parse_generic(raw: str) -> list[dict[str, Any]]:
     return []
 
 
-from .parsers import parse_cobertura, parse_istanbul, parse_nyc, _parse_lcov, _parse_coveragepy
-
+from .parsers import _parse_coveragepy, _parse_lcov, parse_cobertura, parse_istanbul, parse_nyc
 
 _PARSERS: dict[str, Any] = {
     "lcov": _parse_lcov,

@@ -22,14 +22,15 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.infra.database import SessionLocal
+
 from .models import (
+    NexusCase,
     NexusCrawlJob,
     NexusEndpoint,
     NexusFile,
     NexusLLMLog,
     NexusProject,
     NexusScenario,
-    NexusCase,
 )
 
 _log = logging.getLogger(__name__)

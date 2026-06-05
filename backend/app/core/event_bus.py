@@ -15,9 +15,10 @@ import logging
 import threading
 import uuid
 from collections import deque
+from collections.abc import Callable
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
-from typing import Any, Callable, Dict, List, Optional
+from datetime import datetime, timezone as _tz
+from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -27,7 +28,7 @@ class DomainEvent:
     name: str  # ör: "scenario.created", "execution.failed"
     payload: Dict[str, Any] = field(default_factory=dict)
     id: str = field(default_factory=lambda: "evt-" + uuid.uuid4().hex[:12])
-    ts: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    ts: str = field(default_factory=lambda: datetime.now(_tz.utc).isoformat())
     project_id: Optional[str] = None
     actor_id: Optional[str] = None
     correlation_id: Optional[str] = None

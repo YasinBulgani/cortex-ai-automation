@@ -12,6 +12,7 @@ Fallback: If no tenant claim → local dev tenant (all-zeros UUID).
 from __future__ import annotations
 
 import logging
+
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import Response
@@ -39,7 +40,8 @@ def extract_tenant_from_token(token: str | None) -> str:
     if not token:
         return _DEFAULT_TENANT
     try:
-        import base64, json
+        import base64
+        import json
         parts = token.split(".")
         if len(parts) != 3:
             return _DEFAULT_TENANT
@@ -83,4 +85,6 @@ class TenantMiddleware(BaseHTTPMiddleware):
 
 async def set_tenant_on_connect(dbapi_connection, tenant_id: str) -> None:
     """Execute SET LOCAL before any query in a request."""
-    await dbapi_connection.execute(f"SET LOCAL app.current_tenant = '{tenant_id}'")
+    # Validate UUID format before interpolation — defence-in-depth
+    safe_id = _safe_tenant_id(tenant_id)
+    await dbapi_connection.execute(f"SET LOCAL app.current_tenant = '{safe_id}'")

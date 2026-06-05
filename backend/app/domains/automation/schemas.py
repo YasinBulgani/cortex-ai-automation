@@ -11,7 +11,6 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
-
 AutomationKind = Literal["web", "mobile", "api", "llm", "regression"]
 AutomationStatus = Literal["queued", "running", "passed", "failed", "cancelled"]
 AutomationTrigger = Literal["manual", "schedule", "api", "retry", "llm"]

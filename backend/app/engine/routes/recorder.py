@@ -12,9 +12,9 @@ from __future__ import annotations
 import json
 import uuid
 from pathlib import Path
-from typing import Annotated, Any, Optional
+from typing import Any, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, HTTPException, Query, status
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 
@@ -207,7 +207,6 @@ def delete_session(session_file: str):
 def add_action(session_id: str, body: ActionBody):
     """Aktif oturuma aksiyon ekler."""
     try:
-        from core.test_recorder import RecordedAction  # type: ignore[import]
         recorder = _get_recorder(session_id)
         if not recorder:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Aktif oturum bulunamadı")

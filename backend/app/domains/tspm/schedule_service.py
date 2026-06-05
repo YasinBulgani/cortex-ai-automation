@@ -14,14 +14,13 @@ from app.domains.tspm.models import (
     TspmSchedule,
     utcnow,
 )
-from app.domains.tspm.schemas import ExecutionOut, ScheduleCreate, ScheduleUpdate
 from app.domains.tspm.scheduler import (
     _run_schedule_job,
     add_schedule_job,
     compute_next_run,
     remove_schedule_job,
 )
-
+from app.domains.tspm.schemas import ExecutionOut, ScheduleCreate, ScheduleUpdate
 
 logger = logging.getLogger(__name__)
 

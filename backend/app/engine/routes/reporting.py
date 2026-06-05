@@ -14,7 +14,7 @@ import logging
 from typing import Any, Optional
 
 from fastapi import APIRouter
-from fastapi.responses import JSONResponse, Response
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
@@ -101,7 +101,7 @@ def _get_analytics_engine():
 
 
 def _build_test_run(data: TestRunIn):
-    from core.python.reporting_engine import TestRun, TestCase, TestStep  # type: ignore
+    from core.python.reporting_engine import TestCase, TestRun, TestStep  # type: ignore
 
     test_cases = []
     for tc in data.test_cases:

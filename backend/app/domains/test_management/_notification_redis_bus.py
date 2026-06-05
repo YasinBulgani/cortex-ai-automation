@@ -17,7 +17,8 @@ import asyncio
 import json
 import logging
 import os
-from typing import Any, AsyncIterator, Optional
+from collections.abc import AsyncIterator
+from typing import Any, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -33,7 +34,7 @@ class RedisNotificationBus:
     a local ``asyncio.Queue`` fed by a background pubsub listener task.
     """
 
-    _singleton: "Optional[RedisNotificationBus]" = None
+    _singleton: Optional[RedisNotificationBus] = None
 
     def __init__(self, url: Optional[str] = None) -> None:
         from redis import asyncio as redis_asyncio  # type: ignore
@@ -50,7 +51,7 @@ class RedisNotificationBus:
         self._lock = asyncio.Lock()
 
     @classmethod
-    def instance(cls) -> "RedisNotificationBus":
+    def instance(cls) -> RedisNotificationBus:
         if cls._singleton is None:
             cls._singleton = cls()
         return cls._singleton

@@ -8,7 +8,7 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, List, Optional
 
-from app.core.event_bus import bus, DomainEvent
+from app.core.event_bus import DomainEvent, bus
 
 logger = logging.getLogger(__name__)
 

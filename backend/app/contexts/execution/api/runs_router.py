@@ -87,7 +87,7 @@ class RunResponse(BaseModel):
     step_results: list[StepResultResponse]
 
     @classmethod
-    def from_dto(cls, dto: RunDTO) -> "RunResponse":
+    def from_dto(cls, dto: RunDTO) -> RunResponse:
         return cls(
             id=dto.id,
             project_id=dto.project_id,

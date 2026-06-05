@@ -109,7 +109,7 @@ class Scenario(AggregateRoot[ScenarioId]):
 
     # ─── Factory ────────────────────────────────────────────────────
     @classmethod
-    def create(cls, project_id: UUID, title: ScenarioTitle) -> "Scenario":
+    def create(cls, project_id: UUID, title: ScenarioTitle) -> Scenario:
         s = cls(id=ScenarioId.new(), project_id=project_id, title=title)
         s._record_event(ScenarioCreated(
             aggregate_id=s.id.value,

@@ -49,7 +49,7 @@ class UserRow(Base):
     updated_at   = Column(DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now())
 
     @classmethod
-    def from_aggregate(cls, user: User) -> "UserRow":
+    def from_aggregate(cls, user: User) -> UserRow:
         return cls(
             id=user.id.value,
             email=str(user.email),
@@ -79,7 +79,7 @@ class UserRow(Base):
 class SqlAlchemyUserRepository(UserRepository):
     """UserRepository PostgreSQL implementation (async)."""
 
-    def __init__(self, session: "AsyncSession"):
+    def __init__(self, session: AsyncSession):
         self.session = session
 
     async def get(self, user_id: UserId) -> User | None:

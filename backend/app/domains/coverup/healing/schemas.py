@@ -10,11 +10,10 @@ Felsefe:
 """
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime, timezone as _tz
 from typing import List, Literal, Optional
 
 from pydantic import BaseModel, Field, field_validator
-
 
 Framework = Literal["playwright", "cypress", "selenium", "other"]
 LocatorKind = Literal["css", "xpath", "text", "role", "test-id", "other"]
@@ -59,7 +58,7 @@ class FailureEvent(BaseModel):
     screenshot_ref: Optional[str] = None
 
     # ── Meta ──────────────────────────────────────────────────────────────
-    occurred_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    occurred_at: datetime = Field(default_factory=lambda: datetime.now(_tz.utc))
     source: str = Field(
         default="engine", description="engine | ci | mcp | manual"
     )
@@ -139,10 +138,10 @@ class HealingRun(BaseModel):
         "disabled",
     ] = "queued"
     error_message: Optional[str] = None
-    started_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    started_at: datetime = Field(default_factory=lambda: datetime.now(_tz.utc))
     finished_at: Optional[datetime] = None
 
     def mark_done(self, status: str, *, error: Optional[str] = None) -> None:
         self.status = status  # type: ignore[assignment]
         self.error_message = error
-        self.finished_at = datetime.now(timezone.utc)
+        self.finished_at = datetime.now(_tz.utc)

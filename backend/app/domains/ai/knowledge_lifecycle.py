@@ -22,9 +22,8 @@ Hedef: Toplam kayıt sayısı hiçbir zaman 10,000'i geçmesin.
 
 from __future__ import annotations
 
-import json
 import logging
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone as _tz
 
 logger = logging.getLogger(__name__)
 
@@ -115,7 +114,7 @@ class KnowledgeLifecycleManager:
         """Her source türü için TTL süresi dolmuş kayıtları sil."""
         conn = self._get_conn()
         deleted = {}
-        now = datetime.now(timezone.utc)
+        now = datetime.now(_tz.utc)
 
         for source, ttl_days in SOURCE_TTL_DAYS.items():
             cutoff = now - timedelta(days=ttl_days)
@@ -172,7 +171,7 @@ class KnowledgeLifecycleManager:
         Bu sayede 20 eski insight → 1 özet'e sıkışır.
         """
         conn = self._get_conn()
-        cutoff = datetime.now(timezone.utc) - timedelta(days=days_old)
+        cutoff = datetime.now(_tz.utc) - timedelta(days=days_old)
         project_id, rows = self._load_summary_rows("insight", cutoff, batch_size)
 
         if len(rows) < 5:
@@ -234,7 +233,7 @@ class KnowledgeLifecycleManager:
     def summarize_old_chats(self, days_old: int = 30, batch_size: int = 30) -> int:
         """Eski chat_history kayıtlarını LLM ile özetle → sıkıştır."""
         conn = self._get_conn()
-        cutoff = datetime.now(timezone.utc) - timedelta(days=days_old)
+        cutoff = datetime.now(_tz.utc) - timedelta(days=days_old)
         project_id, rows = self._load_summary_rows("chat_history", cutoff, batch_size)
 
         if len(rows) < 5:

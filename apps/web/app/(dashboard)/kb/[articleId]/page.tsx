@@ -1,15 +1,24 @@
 "use client";
-
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
 import { useRouteParam } from "@/lib/use-route-param";
 import { useKnowledgeBase, type KbArticle } from "@/lib/useKnowledgeBase";
 
+function escapeHtmlEntities(str: string): string {
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 function renderMarkdown(md: string): string {
-  // Very minimal markdown — headings, bold, italic, code, lists, links
-  // Production: replace with `marked` or `react-markdown`
-  return md
+  // Escape the raw input first so injected HTML/script tags are neutralised,
+  // then apply markdown transforms that produce safe, known tags only.
+  const escaped = escapeHtmlEntities(md);
+  return escaped
     .replace(/^### (.*)$/gm, '<h3 class="mt-4 mb-2 text-base font-semibold">$1</h3>')
     .replace(/^## (.*)$/gm, '<h2 class="mt-5 mb-2 text-lg font-bold">$1</h2>')
     .replace(/^# (.*)$/gm, '<h1 class="mt-5 mb-3 text-xl font-bold">$1</h1>')
@@ -97,7 +106,14 @@ export default function ArticleDetailPage() {
 
           <div
             className="mt-6 prose prose-invert prose-sm max-w-none text-slate-300"
-            dangerouslySetInnerHTML={{ __html: renderMarkdown(article.body) }}
+            dangerouslySetInnerHTML={{ __html: (() => {
+              const raw = renderMarkdown(article.body);
+              if (typeof window === "undefined") return raw;
+              // eslint-disable-next-line @typescript-eslint/no-require-imports
+              const DOMPurify = (require("dompurify") as { default?: { sanitize: (s: string) => string }; sanitize?: (s: string) => string });
+              const purify = DOMPurify.default ?? DOMPurify;
+              return typeof purify.sanitize === "function" ? purify.sanitize(raw) : raw;
+            })() }}
             data-testid="kb-article-body"
           />
         </article>

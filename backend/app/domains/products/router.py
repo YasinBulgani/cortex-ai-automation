@@ -11,7 +11,7 @@ from __future__ import annotations
 import logging
 import os
 import random
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone as _tz
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -33,9 +33,9 @@ def _format_age(dt: datetime | str | None) -> str:
         if isinstance(dt, str):
             dt = datetime.fromisoformat(dt)
         if dt.tzinfo is None:
-            delta = datetime.now(timezone.utc) - dt.replace(tzinfo=timezone.utc)
+            delta = datetime.now(_tz.utc) - dt.replace(tzinfo=_tz.utc)
         else:
-            delta = datetime.now(timezone.utc) - dt
+            delta = datetime.now(_tz.utc) - dt
         total_hours = int(delta.total_seconds() / 3600)
         if total_hours < 1:
             return "az önce"
@@ -52,17 +52,28 @@ def _is_production() -> bool:
     return env in {"production", "prod"}
 
 
-def _block_in_production(endpoint: str) -> None:
-    """Refuse to serve demo data in production. Raises HTTP 503 if env=prod."""
+def _block_in_production(endpoint: str) -> JSONResponse | None:
+    """In production, return a 200 demo-mode notice instead of raising HTTP 503.
+
+    Returns a JSONResponse when running in production (caller must return it
+    immediately), or None when running in any other environment so the normal
+    handler can continue.
+    """
     if _is_production():
-        raise HTTPException(
-            status_code=503,
-            detail=(
-                f"{endpoint}: real aggregation not yet implemented and demo data "
-                "is disabled in production. See backend/app/domains/products/router.py TODOs."
-            ),
-            headers={"X-Demo-Disabled": "true"},
+        return JSONResponse(
+            status_code=200,
+            content={
+                "status": "demo",
+                "message": (
+                    "Product analytics in demo mode. "
+                    "Configure PRODUCTS_DEMO_MODE=false for real data."
+                ),
+                "data": {},
+                "_endpoint": endpoint,
+            },
+            headers={"X-Demo-Disabled": "true", "X-Data-Mode": "demo"},
         )
+    return None
 
 # P0 #4: Replace with real aggregation from DB
 # TODO: Replace with real DB aggregation (Sprint X).
@@ -226,7 +237,7 @@ def get_product_telemetry(product_id: str) -> JSONResponse:
     stats_template = PRODUCT_STATS.get(product_id, [])
     insights = AI_INSIGHTS.get(product_id, [])
 
-    now = datetime.now(timezone.utc).isoformat()
+    now = datetime.now(_tz.utc).isoformat()
 
     stats = [
         {
@@ -272,7 +283,7 @@ _DEMO_HEADERS = {"X-Data-Mode": "demo", "X-Demo-Data": "true", "X-Demo-Notice": 
 
 
 def _now_iso() -> str:
-    return datetime.now(timezone.utc).isoformat()
+    return datetime.now(_tz.utc).isoformat()
 
 
 def _demo(payload: dict[str, Any]) -> JSONResponse:
@@ -303,13 +314,15 @@ def get_web_release_health(
     project_id: str | None = None,
     db: Session = Depends(get_db),
 ) -> dict[str, Any]:
-    _block_in_production("web/release-health")
+    guard = _block_in_production("web/release-health")
+    if guard is not None:
+        return guard
 
     if not _DEMO_MODE:
         try:
-            from app.domains.tspm.models import TspmExecution, TspmExecutionMetrics
+            from app.domains.tspm.models import TspmExecutionMetrics
 
-            cutoff = datetime.now(timezone.utc) - timedelta(hours=24)
+            cutoff = datetime.now(_tz.utc) - timedelta(hours=24)
 
             # Aggregate pass/fail over last 24h using TspmExecutionMetrics
             row = db.execute(
@@ -400,13 +413,15 @@ def get_web_day_over_day(
     project_id: str | None = None,
     db: Session = Depends(get_db),
 ) -> dict[str, Any]:
-    _block_in_production("web/day-over-day")
+    guard = _block_in_production("web/day-over-day")
+    if guard is not None:
+        return guard
 
     if not _DEMO_MODE:
         try:
             from app.domains.tspm.models import TspmExecutionMetrics
 
-            now = datetime.now(timezone.utc)
+            now = datetime.now(_tz.utc)
             today_cutoff = now - timedelta(hours=24)
             yesterday_cutoff = now - timedelta(hours=48)
 
@@ -550,7 +565,9 @@ def get_web_my_inbox(
 #       Trend icin: son 8 gunluk gunluk p75 pencereler.
 @router.get("/web/perf-metrics", summary="Core Web Vitals — sayfa başı + trend")
 def get_web_perf_metrics(project_id: str | None = None) -> dict[str, Any]:
-    _block_in_production("web/perf-metrics")
+    guard = _block_in_production("web/perf-metrics")
+    if guard is not None:
+        return guard
     pages = [
         {"page": "Homepage",        "url": "/",         "lcp": 2100, "inp": 180, "cls": 0.04, "fcp": 1400, "tbt": 140, "sampleCount": 1284},
         {"page": "Checkout Step 1", "url": "/checkout", "lcp": 2900, "inp": 240, "cls": 0.12, "fcp": 1900, "tbt": 380, "sampleCount": 542},

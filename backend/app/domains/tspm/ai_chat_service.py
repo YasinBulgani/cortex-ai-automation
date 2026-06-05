@@ -16,8 +16,7 @@ from __future__ import annotations
 import json
 import logging
 import os
-import re
-from datetime import datetime, timezone
+from datetime import datetime, timezone as _tz
 from typing import Any, Optional
 
 logger = logging.getLogger("neurex.ai_chat")
@@ -265,7 +264,7 @@ def chat_with_ai(
                 "ai_provider": "gateway",
                 "fallback_used": False,
                 "session_id": sid,
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": datetime.now(_tz.utc).isoformat(),
             }
     except Exception as e:
         logger.warning(f"AI Gateway chat başarısız: {e}")
@@ -278,7 +277,7 @@ def chat_with_ai(
         "ai_provider": "fallback",
         "fallback_used": True,
         "session_id": sid,
-        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "timestamp": datetime.now(_tz.utc).isoformat(),
     }
 
 

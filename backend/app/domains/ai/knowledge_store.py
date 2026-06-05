@@ -27,7 +27,7 @@ import re
 import time
 from collections import OrderedDict
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime, timezone as _tz
 from typing import Any
 
 logger = logging.getLogger(__name__)
@@ -177,8 +177,8 @@ def _embed(text: str, max_retries: int = 2) -> list[float] | None:
     if cached is not None:
         return cached
 
-    import urllib.request
     import urllib.error
+    import urllib.request
 
     masked = mask_sensitive(text)
     truncated = masked[:4000]
@@ -551,7 +551,11 @@ class KnowledgeStore:
             where += " AND source = ANY(%s)"
             params.append(sources)
 
-        cur.execute(f"SELECT content, source, metadata, embedding FROM project_knowledge {where} LIMIT 200", params)  # nosec B608
+        query = (
+            "SELECT content, source, metadata, embedding "
+            f"FROM project_knowledge {where} LIMIT 200"
+        )
+        cur.execute(query, params)  # nosec B608 — where clause uses %s placeholders only
         rows = cur.fetchall()
 
         results = []
@@ -636,9 +640,9 @@ class KnowledgeStore:
                     # Recency decay
                     if created_at:
                         try:
-                            now = datetime.now(timezone.utc)
+                            now = datetime.now(_tz.utc)
                             if created_at.tzinfo is None:
-                                created_at = created_at.replace(tzinfo=timezone.utc)
+                                created_at = created_at.replace(tzinfo=_tz.utc)
                             age_days = (now - created_at).total_seconds() / 86400.0
                             decay = math.exp(-age_days / _RECENCY_HALF_LIFE_DAYS)
                             score *= (0.5 + 0.5 * decay)

@@ -8,7 +8,6 @@ from pydantic import BaseModel, Field
 
 from app.domains.agents.v2.api_schemas import RunAgentV2Request
 
-
 WorkflowStatusValue = Literal[
     "pending_approval",
     "queued",

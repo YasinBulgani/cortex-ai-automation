@@ -11,7 +11,6 @@ from app.domains.tspm.schemas import (
     AcceptSuggestedSetsRequest,
     AddScenariosRequest,
     FlowCreate,
-    FlowDetailOut,
     FlowGraphUpdate,
     RegressionSetCreate,
     RegressionSetDetailOut,

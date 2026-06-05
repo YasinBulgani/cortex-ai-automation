@@ -33,9 +33,9 @@ logger = logging.getLogger(__name__)
 # ── Graceful Playwright import ───────────────────────────────────────────────
 try:
     from .browser_manager import (
+        _PW_AVAILABLE,
         BrowserManager,
         PlaywrightNotInstalledError,
-        _PW_AVAILABLE,
     )
 
     _manager: Optional[BrowserManager] = None
@@ -100,7 +100,7 @@ async def create_session(body: BrowserSessionCreate, user: CurrentUser):
     """Yeni browser oturumu oluştur."""
     _require_playwright()
     try:
-        info = await manager.create_session(
+        info = await _get_manager().create_session(
             owner_user_id=str(user.id),
             headless=body.headless,
             viewport_width=body.viewport_width,

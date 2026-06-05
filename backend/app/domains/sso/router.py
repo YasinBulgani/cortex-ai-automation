@@ -5,17 +5,22 @@ Flow:
   2. Provider redirects back to /sso/{provider}/callback?code=...
   3. We exchange code for id_token, verify, find or create the user,
      issue our own session cookies (same as /auth/login).
+
+# TODO: SAML 2.0 desteği için python3-saml veya pysaml2 entegrasyonu gerekli.
+# Şu anki implementasyon OAuth 2.0 (Google, Azure AD) destekliyor.
+# SSO config management/settings API'sine kaydediliyor (usePatchManagementSetting).
 """
 
 from __future__ import annotations
 
 import logging
 import secrets
-from typing import Annotated, Optional
+from threading import RLock
+from typing import Annotated, Any, Dict, Optional
 from urllib.parse import urlencode
 
 import httpx
-from fastapi import APIRouter, Depends, HTTPException, Request, Response
+from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import RedirectResponse
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -34,9 +39,91 @@ from app.infra.models import User
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/sso", tags=["sso"])
 
-# In-memory state store (replace with Redis in prod for multi-instance)
 _STATE_TTL_SECONDS = 600
-_state_store: dict[str, dict] = {}
+
+
+class _StateStore:
+    """Thread-safe SSO state store.
+
+    Redis varsa state'ler orada saklanır (TTL=600s) — multi-instance
+    ortamlarında CSRF koruması için gereklidir. Redis yoksa in-memory
+    fallback kullanılır (tek instance için yeterli).
+    """
+
+    _KEY_PREFIX = "sso_state:"
+
+    def __init__(self) -> None:
+        self._lock = RLock()
+        self._store: Dict[str, Any] = {}
+        self._redis = self._try_redis()
+
+    @staticmethod
+    def _try_redis():
+        try:
+            import redis as _redis_lib
+            client = _redis_lib.from_url(
+                settings.redis_url,
+                decode_responses=True,
+                socket_connect_timeout=1,
+                socket_timeout=1,
+            )
+            client.ping()
+            logger.info("SSO: Redis state store bağlandı")
+            return client
+        except Exception as exc:
+            logger.warning("SSO: Redis yok, in-memory state store kullanılıyor (%s)", exc)
+            return None
+
+    def set(self, state_key: str, value: Any, ttl: int = _STATE_TTL_SECONDS) -> None:
+        import json as _json
+        if self._redis:
+            try:
+                self._redis.setex(
+                    f"{self._KEY_PREFIX}{state_key}",
+                    ttl,
+                    _json.dumps(value),
+                )
+                return
+            except Exception as exc:
+                logger.warning("SSO: Redis set hatası, in-memory fallback (%s)", exc)
+        with self._lock:
+            self._store[state_key] = value
+
+    def get(self, state_key: str) -> Optional[Any]:
+        import json as _json
+        if self._redis:
+            try:
+                raw = self._redis.get(f"{self._KEY_PREFIX}{state_key}")
+                if raw is not None:
+                    return _json.loads(raw)
+                return None
+            except Exception as exc:
+                logger.warning("SSO: Redis get hatası, in-memory fallback (%s)", exc)
+        with self._lock:
+            return self._store.get(state_key)
+
+    def __setitem__(self, key: str, value: dict) -> None:
+        self.set(key, value)
+
+    def pop(self, state_key: str, *args) -> Optional[Any]:
+        value = self.get(state_key)
+        if value is None and args:
+            return args[0]
+        self.delete(state_key)
+        return value
+
+    def delete(self, state_key: str) -> None:
+        if self._redis:
+            try:
+                self._redis.delete(f"{self._KEY_PREFIX}{state_key}")
+                return
+            except Exception as exc:
+                logger.warning("SSO: Redis delete hatası, in-memory fallback (%s)", exc)
+        with self._lock:
+            self._store.pop(state_key, None)
+
+
+_state_store = _StateStore()
 
 
 def _redirect_uri(provider: str) -> str:
@@ -87,7 +174,7 @@ def _email_domain_allowed(email: str) -> bool:
 def sso_login(provider: str):
     cfg = _provider_config(provider)
     state = secrets.token_urlsafe(24)
-    _state_store[state] = {"provider": provider}
+    _state_store.set(state, {"provider": provider})
     params = {
         "client_id": cfg["client_id"],
         "redirect_uri": _redirect_uri(provider),
@@ -111,9 +198,9 @@ def sso_callback(
 ):
     if error:
         raise HTTPException(400, detail=f"SSO hata: {error}")
-    if state not in _state_store:
+    if _state_store.get(state) is None:
         raise HTTPException(400, detail="Gecersiz state (CSRF korumasi)")
-    _state_store.pop(state, None)
+    _state_store.delete(state)
 
     cfg = _provider_config(provider)
 

@@ -15,8 +15,7 @@ Usage:
 
 from __future__ import annotations
 
-import json
-from datetime import datetime, timezone
+from datetime import datetime, timezone as _tz
 from typing import TYPE_CHECKING
 from uuid import UUID
 
@@ -26,11 +25,12 @@ from sqlalchemy import (
     Integer,
     String,
     Text,
+    func,
     select,
     update,
-    func,
 )
-from sqlalchemy.dialects.postgresql import JSONB, UUID as PG_UUID
+from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import declarative_base
 
 from .outbox import OutboxEntry, OutboxStatus
@@ -65,7 +65,7 @@ class OutboxRow(Base):
     error             = Column(Text, nullable=True)
 
     @classmethod
-    def from_entry(cls, entry: OutboxEntry) -> "OutboxRow":
+    def from_entry(cls, entry: OutboxEntry) -> OutboxRow:
         return cls(
             id=entry.id,
             event_type=entry.event_type,
@@ -97,7 +97,7 @@ class OutboxRow(Base):
 class SqlAlchemyOutboxRepository:
     """OutboxRepository protocol implementation — PostgreSQL via SQLAlchemy async."""
 
-    def __init__(self, session: "AsyncSession"):
+    def __init__(self, session: AsyncSession):
         self.session = session
 
     async def append(self, entry: OutboxEntry) -> None:
@@ -124,7 +124,7 @@ class SqlAlchemyOutboxRepository:
             .where(OutboxRow.id.in_(ids))
             .values(
                 status=OutboxStatus.PROCESSING.value,
-                last_attempted_at=datetime.now(timezone.utc),
+                last_attempted_at=datetime.now(_tz.utc),
             )
         )
 
@@ -141,7 +141,7 @@ class SqlAlchemyOutboxRepository:
         if row is None:
             return
         row.attempt_count += 1
-        row.last_attempted_at = datetime.now(timezone.utc)
+        row.last_attempted_at = datetime.now(_tz.utc)
         row.error = error
         row.status = (
             OutboxStatus.DEAD.value

@@ -7,7 +7,6 @@ Kurumsal, Dolandırıcılık).
 """
 from __future__ import annotations
 
-
 SCENARIOS: dict[str, dict] = {
     "default": {
         "name": "Varsayılan",

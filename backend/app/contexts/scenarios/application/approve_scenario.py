@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from app.contexts._shared.outbox import OutboxRepository, OutboxEntry
+from app.contexts._shared.outbox import OutboxEntry, OutboxRepository
 from app.contexts.scenarios.domain import ScenarioId
 
 from .repositories import ScenarioRepository

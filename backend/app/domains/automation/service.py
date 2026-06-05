@@ -5,7 +5,7 @@ HTTP-agnostic. Raises ValueError/KeyError instead of HTTPException.
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 from sqlalchemy.orm import Session
 

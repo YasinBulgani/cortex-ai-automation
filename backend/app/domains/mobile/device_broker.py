@@ -9,11 +9,11 @@ import asyncio
 import logging
 import threading
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timezone as _tz
 from typing import Optional
 
 from .appium_client import AppiumClient
-from .schemas import Device, DeviceCreate, DeviceStatus, PhysicalEnrollRequest
+from .schemas import Device, DeviceStatus, PhysicalEnrollRequest
 
 _logger = logging.getLogger(__name__)
 
@@ -65,7 +65,7 @@ class DeviceBroker:
                 battery=100,
                 cpu_pct=5,
                 ram_pct=30,
-                last_seen=datetime.now(timezone.utc),
+                last_seen=datetime.now(_tz.utc),
             )
 
     # ── CRUD ──────────────────────────────────────────────────
@@ -98,7 +98,7 @@ class DeviceBroker:
             battery=100,
             cpu_pct=5,
             ram_pct=30,
-            last_seen=datetime.now(timezone.utc),
+            last_seen=datetime.now(_tz.utc),
         )
         with self._lock:
             self._devices[dev_id] = device
@@ -119,7 +119,7 @@ class DeviceBroker:
             dev = self._devices.get(device_id)
             if not dev:
                 return None
-            updated = dev.model_copy(update={"status": status, **fields, "last_seen": datetime.now(timezone.utc)})
+            updated = dev.model_copy(update={"status": status, **fields, "last_seen": datetime.now(_tz.utc)})
             self._devices[device_id] = updated
             return updated
 

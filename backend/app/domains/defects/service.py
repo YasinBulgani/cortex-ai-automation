@@ -9,12 +9,13 @@ alanları + integration_service üzerinden gerçekleştirilebilir).
 from __future__ import annotations
 
 import secrets
-from dataclasses import dataclass, field, asdict
-from datetime import datetime, timezone
+from dataclasses import asdict, dataclass, field
+from datetime import datetime, timezone as _tz
 from typing import Any, Dict, List, Literal, Optional
 
 try:
-    from app.core.event_bus import bus as _bus, DomainEvent as _DomainEvent
+    from app.core.event_bus import DomainEvent as _DomainEvent
+    from app.core.event_bus import bus as _bus
 except Exception:  # pragma: no cover
     _bus = None
     _DomainEvent = None  # type: ignore
@@ -42,8 +43,8 @@ class DefectTicket:
     fix_commit: Optional[str] = None
     rerun_id: Optional[str] = None
     history: List[Dict[str, Any]] = field(default_factory=list)
-    created_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
-    updated_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    created_at: str = field(default_factory=lambda: datetime.now(_tz.utc).isoformat())
+    updated_at: str = field(default_factory=lambda: datetime.now(_tz.utc).isoformat())
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -52,12 +53,12 @@ class DefectTicket:
         self.history.append({
             "from": self.status,
             "to": new_status,
-            "ts": datetime.now(timezone.utc).isoformat(),
+            "ts": datetime.now(_tz.utc).isoformat(),
             "actor": actor,
             "note": note,
         })
         self.status = new_status
-        self.updated_at = datetime.now(timezone.utc).isoformat()
+        self.updated_at = datetime.now(_tz.utc).isoformat()
 
 
 _STORE: Dict[str, DefectTicket] = {}
@@ -107,11 +108,11 @@ def open_defect_from_execution(
         existing = _STORE.get(_SIGNATURE_INDEX[sig])
         if existing and existing.status not in ("closed", "verified"):
             existing.history.append({
-                "ts": datetime.now(timezone.utc).isoformat(),
+                "ts": datetime.now(_tz.utc).isoformat(),
                 "actor": "system",
                 "note": f"Tekrar tetiklendi (execution={execution_id})",
             })
-            existing.updated_at = datetime.now(timezone.utc).isoformat()
+            existing.updated_at = datetime.now(_tz.utc).isoformat()
             _publish("defect.recurred", existing)
             return existing
 

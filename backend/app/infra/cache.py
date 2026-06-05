@@ -70,8 +70,9 @@ def _local_delete(key: str) -> None:
 def _get_redis():
     """Redis bağlantısını tembel olarak oluştur; yoksa None döndür."""
     try:
-        from app.config import settings
         import redis as _redis  # noqa: PLC0415
+
+        from app.config import settings
 
         client = _redis.Redis.from_url(
             settings.redis_url,

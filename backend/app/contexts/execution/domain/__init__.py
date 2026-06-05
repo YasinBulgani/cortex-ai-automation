@@ -1,3 +1,3 @@
-from .test_run import TestRun, TestRunId, RunStatus
+from .test_run import RunStatus, TestRun, TestRunId
 
 __all__ = ["TestRun", "TestRunId", "RunStatus"]

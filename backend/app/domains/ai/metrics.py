@@ -33,6 +33,10 @@ try:
 except ImportError:
     _PROM_AVAILABLE = False
     Counter = Gauge = Histogram = None  # type: ignore
+    logger.warning(
+        "Opsiyonel bağımlılık 'prometheus_client' yüklenemedi, Prometheus metrikleri devre dışı. "
+        "pip install prometheus-client ile ekleyin."
+    )
 
 
 # ── Registry singleton ──────────────────────────────────────────────────

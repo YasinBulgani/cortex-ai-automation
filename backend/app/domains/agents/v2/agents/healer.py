@@ -1,17 +1,21 @@
 """Healer Agent — Kırık testi onar, auto-PR."""
 from __future__ import annotations
 
-import json
 import logging
 from datetime import datetime
 
 from ..prompts.healer import (
-    HEALER_CLASSIFY_SYSTEM_PROMPT, HEALER_FIX_SYSTEM_PROMPT,
-    build_healer_classify_user_prompt, build_healer_fix_user_prompt,
+    HEALER_CLASSIFY_SYSTEM_PROMPT,
+    HEALER_FIX_SYSTEM_PROMPT,
+    build_healer_classify_user_prompt,
+    build_healer_fix_user_prompt,
 )
 from ..prompts.registry import resolve_agent_system_prompt
 from ..schemas.heal import (
-    FailureCategory, FixHypothesis, HealingAttempt, HealingResult,
+    FailureCategory,
+    FixHypothesis,
+    HealingAttempt,
+    HealingResult,
 )
 from ..state import AgentState
 from ..tools.ai_gateway import ai_complete, parse_json_safe

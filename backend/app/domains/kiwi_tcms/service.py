@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from datetime import datetime, timezone
+from datetime import datetime, timezone as _tz
 from typing import Any, Optional
 
 from sqlalchemy import select
@@ -36,7 +36,7 @@ logger = logging.getLogger(__name__)
 
 
 def _utcnow() -> datetime:
-    return datetime.now(timezone.utc)
+    return datetime.now(_tz.utc)
 
 
 def _actor_id(user: Any | None) -> Optional[str]:

@@ -23,10 +23,10 @@ from __future__ import annotations
 
 import json
 import logging
-from typing import Any
 
 from app.config import settings
-from .base_agent import BaseAgent, AgentResult
+
+from .base_agent import AgentResult, BaseAgent
 
 logger = logging.getLogger(__name__)
 

@@ -13,10 +13,9 @@ import json
 import logging
 import os
 import smtplib
-from datetime import datetime, timezone
+from datetime import datetime, timezone as _tz
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -74,7 +73,7 @@ def _render_test_result(run_name: str, project: str, passed: int, failed: int,
     <div class="metric"><span>Başarısız</span><span class="metric-value" style="color:#dc2626">{failed}</span></div>
     <div class="metric"><span>Toplam</span><span class="metric-value">{total}</span></div>
     <div class="metric"><span>Süre</span><span class="metric-value">{duration_s:.1f}s</span></div>
-    <div class="metric"><span>Tarih</span><span class="metric-value">{datetime.now(timezone.utc).strftime('%d/%m/%Y %H:%M')} UTC</span></div>
+    <div class="metric"><span>Tarih</span><span class="metric-value">{datetime.now(_tz.utc).strftime('%d/%m/%Y %H:%M')} UTC</span></div>
     {btn_html}
   </div>
   <div class="footer">Neurex Test Intelligence Platform · Otomatik bildirim</div>
@@ -176,7 +175,8 @@ def notify_quality_gate(
 
 def notify_slack(webhook_url: str, *, project: str, run_name: str, passed: int, failed: int, duration_s: float) -> bool:
     """Slack Incoming Webhook üzerinden test sonucu bildirimi gönderir."""
-    import urllib.request, urllib.error
+    import urllib.error
+    import urllib.request
     total = passed + failed
     pct = round(passed / total * 100) if total else 0
     status_emoji = "✅" if failed == 0 else "❌"

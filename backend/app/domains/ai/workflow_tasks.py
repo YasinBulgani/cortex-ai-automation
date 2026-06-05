@@ -8,8 +8,8 @@ from typing import Any
 from rq import get_current_job
 
 from app.config import settings
-from app.domains.agents.v2.run_store import get_run_store
 from app.domains.agents.v2.router import _execute_pipeline
+from app.domains.agents.v2.run_store import get_run_store
 
 logger = logging.getLogger(__name__)
 

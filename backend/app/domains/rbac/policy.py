@@ -26,9 +26,10 @@ Kullanım:
 from __future__ import annotations
 
 import logging
+from collections.abc import Iterable
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
-from typing import Dict, Iterable, List, Optional, Protocol, Set, Tuple
+from datetime import datetime, timedelta, timezone as _tz
+from typing import Dict, List, Optional, Protocol, Set, Tuple
 
 logger = logging.getLogger(__name__)
 
@@ -268,7 +269,7 @@ def enforce_sod(
             ),
             conflicting=ActorAction(
                 action="", resource_type="", resource_id=None,
-                tenant_id=None, ts=datetime.now(timezone.utc),
+                tenant_id=None, ts=datetime.now(_tz.utc),
             ),
         )
 
@@ -276,7 +277,7 @@ def enforce_sod(
     if not rules:
         return  # Bu action için SoD kuralı tanımlı değil
 
-    now = now or datetime.now(timezone.utc)
+    now = now or datetime.now(_tz.utc)
     for rule in rules:
         since = now - timedelta(days=rule.window_days)
         # Scope'a göre filter ayarla

@@ -29,8 +29,9 @@ import tempfile
 import time
 import traceback
 import uuid
+from collections.abc import Iterator
 from datetime import datetime
-from typing import Any, Iterator, Optional
+from typing import Any, Optional
 
 from fastapi import APIRouter, HTTPException, status
 from fastapi.responses import FileResponse, StreamingResponse

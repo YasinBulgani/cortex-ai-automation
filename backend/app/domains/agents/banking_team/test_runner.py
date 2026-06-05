@@ -20,7 +20,7 @@ import logging
 import subprocess
 from pathlib import Path
 
-from .base_agent import BaseAgent, AgentResult
+from .base_agent import AgentResult, BaseAgent
 
 logger = logging.getLogger(__name__)
 

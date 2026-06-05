@@ -16,7 +16,7 @@ import json
 import logging
 import re
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timezone as _tz
 from typing import Any, Optional
 
 logger = logging.getLogger("neurex.ai_debug")
@@ -149,8 +149,8 @@ def build_allure_results(
             "name": r.get("title", "Unnamed Test"),
             "status": allure_status,
             "stage": "finished",
-            "start": r.get("start_ms", int(datetime.now(timezone.utc).timestamp() * 1000)),
-            "stop": r.get("stop_ms", int(datetime.now(timezone.utc).timestamp() * 1000)),
+            "start": r.get("start_ms", int(datetime.now(_tz.utc).timestamp() * 1000)),
+            "stop": r.get("stop_ms", int(datetime.now(_tz.utc).timestamp() * 1000)),
             "labels": labels,
             "links": [],
             "parameters": [],
@@ -174,7 +174,7 @@ def build_allure_environment(
         f"Project={project_name}",
         f"Base.URL={base_url}",
         f"Browser={browser}",
-        f"Generated.At={datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}",
+        f"Generated.At={datetime.now(_tz.utc).strftime('%Y-%m-%d %H:%M UTC')}",
         "Framework=Neurex",
     ]
     if extra:
@@ -281,7 +281,7 @@ def _rule_based_analysis(
     AI unavailable fallback: kural tabanlı hata sınıflandırması.
     RootCauseAnalyzer mantığını yeniden kullanır.
     """
-    from app.domains.tspm.reporting import RootCauseAnalyzer, TestStatus, TestResult, ErrorInfo
+    from app.domains.tspm.reporting import RootCauseAnalyzer
 
     _FLAKY_KEYWORDS = ("flaky", "intermittent", "sporadic", "sometimes", "random", "non-deterministic")
     _RACE_KEYWORDS = ("race condition", "concurrent", "deadlock", "double-spend", "double spend",
@@ -483,5 +483,5 @@ def run_debug_loop(
             "pass_rate": pass_rate,
             "health": debug_analysis.get("overall_health", "unknown"),
         },
-        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "generated_at": datetime.now(_tz.utc).isoformat(),
     }

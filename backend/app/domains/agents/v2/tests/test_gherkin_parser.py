@@ -2,15 +2,7 @@
 
 from __future__ import annotations
 
-import pytest
-
-from app.domains.agents.v2.schemas.scenario import (
-    GherkinFeature,
-    GherkinScenario,
-    GherkinStep,
-)
 from app.domains.agents.v2.tools.gherkin_parser import parse_gherkin_text
-
 
 TR_BASIC = """\
 # language: tr

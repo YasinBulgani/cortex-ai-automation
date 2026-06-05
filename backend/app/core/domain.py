@@ -15,7 +15,7 @@ yalnızca yeni domain'ler için tercih edilmeli.
 
 from __future__ import annotations
 
-from typing import Callable, Optional
+from typing import Optional
 
 from fastapi import APIRouter, Depends
 

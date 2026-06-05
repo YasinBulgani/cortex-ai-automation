@@ -7,7 +7,9 @@ retrying. Idempotency is enforced upstream via ProcessedWebhook insert.
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timezone
+from datetime import datetime
+_UTC = __import__("datetime").timezone.utc
+UTC = _UTC
 from typing import Any
 
 from sqlalchemy import select
@@ -36,7 +38,7 @@ def _ts(epoch: Any) -> datetime | None:
     if epoch is None:
         return None
     try:
-        return datetime.fromtimestamp(int(epoch), tz=timezone.utc)
+        return datetime.fromtimestamp(int(epoch), tz=UTC)
     except (TypeError, ValueError):
         return None
 

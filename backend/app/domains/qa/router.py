@@ -164,7 +164,7 @@ def ai_suggest(req: AISuggestRequest) -> AISuggestResponse:
     set olmalı; backend cwd repo kökü olmalı (so qa/ accessible).
     """
     import subprocess
-    from pathlib import Path
+
     from .service import QA_ROOT
 
     cmd = [
@@ -196,7 +196,6 @@ def ai_suggest(req: AISuggestRequest) -> AISuggestResponse:
     drafts: list[AISuggestDraft] = []
     draft_dir = QA_ROOT / "cases" / req.suite / "_draft"
     if draft_dir.exists():
-        import re as _re
         from . import service as _service
         for f in sorted(draft_dir.glob("DRAFT-TC-*.md"), reverse=True)[: req.max_cases]:
             try:

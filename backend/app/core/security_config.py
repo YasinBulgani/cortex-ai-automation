@@ -13,16 +13,16 @@ SECURITY_HEADERS = {
     "Referrer-Policy": "strict-origin-when-cross-origin",
     "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
     "Content-Security-Policy": (
-        "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'"
+        "default-src 'self'; script-src 'self' 'strict-dynamic'; style-src 'self'"
     ),
 }
 
 # Applied only when connection is over HTTPS
-HSTS_HEADER = "max-age=31536000; includeSubDomains"
+HSTS_HEADER = "max-age=31536000; includeSubDomains; preload"
 
 # Applied to API responses (non-HTML)
 API_CACHE_CONTROL = "no-store, no-cache, must-revalidate"
-API_CSP = "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'"
+API_CSP = "default-src 'none'; script-src 'none'; style-src 'none'"
 
 # ---------------------------------------------------------------------------
 # Content & Size Limits

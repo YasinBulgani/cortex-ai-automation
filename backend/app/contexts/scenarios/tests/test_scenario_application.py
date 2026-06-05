@@ -3,12 +3,19 @@ Scenarios context — application layer tests.
 """
 
 import uuid
+
 import pytest
 
 from app.contexts._shared.outbox import InMemoryOutboxRepository
 from app.contexts.scenarios.application.create_scenario import (
     CreateScenarioCommand,
     CreateScenarioHandler,
+)
+from app.contexts.scenarios.application.queries import (
+    GetScenarioHandler,
+    GetScenarioQuery,
+    ListScenariosHandler,
+    ListScenariosQuery,
 )
 from app.contexts.scenarios.application.scenario_workflow import (
     AddStepCommand,
@@ -23,12 +30,6 @@ from app.contexts.scenarios.application.scenario_workflow import (
     RejectScenarioHandler,
     SubmitForReviewCommand,
     SubmitForReviewHandler,
-)
-from app.contexts.scenarios.application.queries import (
-    GetScenarioHandler,
-    GetScenarioQuery,
-    ListScenariosHandler,
-    ListScenariosQuery,
 )
 from app.contexts.scenarios.domain.scenario import ScenarioStatus
 from app.contexts.scenarios.infrastructure.scenario_repository import (

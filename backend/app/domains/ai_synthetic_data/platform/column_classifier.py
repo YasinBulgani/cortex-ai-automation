@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import re
 
-
 # ─── Faker provider eşlemesi ─────────────────────────────────────────────────
 FAKER_MAPPING: dict[str, dict] = {
     "tc_kimlik":    {"provider": "random_number", "args": {"digits": 11, "fix_len": True}},

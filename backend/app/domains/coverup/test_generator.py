@@ -16,7 +16,7 @@ from pathlib import Path
 from typing import Any
 
 from app.config import settings
-from app.domains.agents.banking_team.base_agent import BaseAgent, AgentResult
+from app.domains.agents.banking_team.base_agent import AgentResult, BaseAgent
 
 logger = logging.getLogger(__name__)
 

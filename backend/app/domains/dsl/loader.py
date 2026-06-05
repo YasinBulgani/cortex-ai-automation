@@ -10,7 +10,7 @@ from __future__ import annotations
 import logging
 import threading
 from collections import Counter
-from datetime import datetime, timezone
+from datetime import datetime, timezone as _tz
 from pathlib import Path
 from typing import Dict, List, Optional
 
@@ -26,7 +26,7 @@ _CATALOG_DIR = _PROJECT_ROOT / "packages" / "dsl" / "catalog"
 
 
 def _iso_now() -> str:
-    return datetime.now(timezone.utc).isoformat(timespec="seconds")
+    return datetime.now(_tz.utc).isoformat(timespec="seconds")
 
 
 class CatalogCache:

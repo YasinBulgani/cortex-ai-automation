@@ -6,7 +6,6 @@ from typing import Any
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
-from .policy import SoDViolation, sod_http_detail
 from .service import (
     check_permission,
     enforce_segregation,
@@ -65,9 +64,10 @@ def enforce_sod_endpoint(body: EnforceSodRequest) -> dict[str, bool]:
     implementation, no past actions are checked (AuditStore returns empty).
     Wire a real AuditStore via dependency injection for production use.
     """
-    from .policy import ActorAction, AuditStore
-    from datetime import datetime, timezone
+    from datetime import datetime
     from typing import List, Optional, Tuple
+
+    from .policy import ActorAction
 
     class _NoopAuditStore:
         """Stub — always returns empty; replace with real impl via DI."""

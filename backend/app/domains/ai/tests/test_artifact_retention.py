@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
+_UTC = __import__("datetime").timezone.utc
+UTC = _UTC
 from types import SimpleNamespace
 
 from sqlalchemy.exc import SQLAlchemyError
@@ -41,7 +43,7 @@ def test_retention_dry_run_does_not_delete_files_or_rows(tmp_path, monkeypatch):
     old_file = root / "agents_v2" / "run-1" / "report.xlsx"
     old_file.parent.mkdir(parents=True)
     old_file.write_bytes(b"xlsx")
-    now = datetime(2026, 5, 17, tzinfo=timezone.utc)
+    now = datetime(2026, 5, 17, tzinfo=UTC)
     db = _FakeDb()
 
     monkeypatch.setattr(artifact_retention.settings, "artifacts_dir", str(root))
@@ -83,7 +85,7 @@ def test_retention_apply_deletes_only_old_terminal_artifacts_under_root(tmp_path
     running_file.write_bytes(b"running")
     outside_file = tmp_path / "outside.txt"
     outside_file.write_text("outside", encoding="utf-8")
-    now = datetime(2026, 5, 17, tzinfo=timezone.utc)
+    now = datetime(2026, 5, 17, tzinfo=UTC)
 
     old_artifact = _artifact(
         str(old_file),
@@ -141,7 +143,7 @@ def test_retention_apply_deletes_only_old_terminal_artifacts_under_root(tmp_path
 def test_retention_reports_missing_tables_without_mutation(tmp_path, monkeypatch):
     root = tmp_path / "artifacts"
     root.mkdir()
-    now = datetime(2026, 5, 17, tzinfo=timezone.utc)
+    now = datetime(2026, 5, 17, tzinfo=UTC)
     db = _BrokenDb()
 
     monkeypatch.setattr(artifact_retention.settings, "artifacts_dir", str(root))

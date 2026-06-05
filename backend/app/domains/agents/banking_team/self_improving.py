@@ -15,7 +15,8 @@ Model: qwen2.5:14b (meta-analiz için en güçlü model)
 from __future__ import annotations
 
 from app.config import settings
-from .base_agent import BaseAgent, AgentResult
+
+from .base_agent import AgentResult, BaseAgent
 
 SYSTEM = """\
 Sen bir AI QA Sistem Mimarısın ve sürekli öğrenme uzmanısın. Türkçe yanıt ver.

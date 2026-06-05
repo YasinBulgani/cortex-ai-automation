@@ -8,6 +8,7 @@ import re
 import string
 from typing import Any
 
+
 def parse_schema_from_ddl(body: dict) -> dict:
     ddl = (body.get("ddl") or "").strip()
     if not ddl:
@@ -363,9 +364,10 @@ def _expand_simple_regex(pattern: str) -> str:
 
 
 def _validate_supported_connection(conn_str: str, message: str) -> None:
+    from fastapi import HTTPException
     allowed = ("postgresql://", "postgresql+psycopg2://", "sqlite:///")
     if not any(conn_str.startswith(prefix) for prefix in allowed):
-        raise ValueError(message)
+        raise HTTPException(status_code=400, detail=message)
 
 
 def _rewrite_localhost_for_docker(conn_str: str) -> str:

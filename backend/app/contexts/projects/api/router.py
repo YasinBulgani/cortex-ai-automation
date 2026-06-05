@@ -27,11 +27,11 @@ from app.contexts.projects.application import (
     RenameProjectCommand,
     RenameProjectHandler,
 )
+from app.contexts.projects.application.create_project import ProjectAlreadyExistsError
 from app.contexts.projects.application.rename_project import (
     ProjectNameConflictError,
     ProjectNotFoundError,
 )
-from app.contexts.projects.application.create_project import ProjectAlreadyExistsError
 from app.contexts.projects.domain import ProductFamily, ProjectId, ProjectStatus
 from app.contexts.projects.infrastructure import InMemoryProjectRepository
 from app.deps import get_current_user

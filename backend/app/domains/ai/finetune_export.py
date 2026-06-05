@@ -67,8 +67,8 @@ def export_finetune_jsonl(
     out_dir = Path(output_dir) if output_dir else _DEFAULT_OUTPUT_DIR
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    from datetime import datetime, timezone
-    ts = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+    from datetime import datetime, timezone as _tz
+    ts = datetime.now(_tz.utc).strftime("%Y%m%d_%H%M%S")
     out_path = out_dir / f"finetune_{ts}.jsonl"
 
     pairs_judge = _collect_from_judge(min_judge_score, task_types, days)

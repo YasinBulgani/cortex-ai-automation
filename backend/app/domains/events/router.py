@@ -4,17 +4,24 @@ Read-only — production sistemleri debug ve audit için event history'yi açar.
 """
 from __future__ import annotations
 
-from typing import Optional
+from typing import Annotated, Optional
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 
-from app.core.event_bus import bus, DomainEvent
+from app.core.event_bus import DomainEvent, bus
+from app.deps import _user_permissions, get_current_user
+from app.infra.models import User
+
+from . import schemas as domain_schemas  # noqa: F401 — schemas module created for type contract use
 
 router = APIRouter(prefix="/events", tags=["events"])
+
+CurrentUser = Annotated[User, Depends(get_current_user)]
 
 
 @router.get("/history")
 def event_history(
+    user: CurrentUser,
     name: Optional[str] = Query(None, description="Tam isim veya 'scenario.*' wildcard"),
     project_id: Optional[str] = Query(None),
     limit: int = Query(100, ge=1, le=500),
@@ -24,16 +31,19 @@ def event_history(
 
 
 @router.get("/stats")
-def event_stats() -> dict:
+def event_stats(user: CurrentUser) -> dict:
     return bus.stats()
 
 
 @router.post("/publish-test")
 def publish_test_event(
+    user: CurrentUser,
     name: str = Query("test.ping"),
     project_id: Optional[str] = Query(None),
 ) -> dict:
     """Test helper — herhangi bir handler bağlıysa tetiklenir."""
+    if "admin.*" not in _user_permissions(user):
+        raise HTTPException(403, "Admin yetkisi gerekli")
     evt = DomainEvent(name=name, payload={"source": "test"}, project_id=project_id)
     called = bus.publish(evt)
     return {"event_id": evt.id, "handlers_called": called}

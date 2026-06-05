@@ -81,6 +81,27 @@ jobs:
         working-directory: apps/web
         run: npm test -- --passWithNoTests
 
+  contracts-check:
+    name: OpenAPI contracts up-to-date
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+      - uses: actions/setup-node@v4
+        with: { node-version: "20" }
+      - name: Install backend deps
+        run: pip install -r backend/requirements.txt --quiet
+      - name: Export OpenAPI schema
+        run: python backend/scripts/export_openapi.py -o /tmp/openapi.json
+      - name: Install node deps
+        run: npm ci
+      - name: Generate contracts
+        working-directory: packages/contracts
+        run: npx openapi-typescript /tmp/openapi.json -o ./src/openapi.d.ts
+      - name: Check for drift
+        run: git diff --exit-code packages/contracts/src/openapi.d.ts || (echo "contracts stale! npm run generate çalıştırın." && exit 1)
+
   build:
     name: Next.js build
     runs-on: ubuntu-latest

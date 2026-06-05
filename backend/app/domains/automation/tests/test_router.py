@@ -1,15 +1,15 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime, timezone as _tz
 from types import SimpleNamespace
 
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from app.deps import get_current_user
-from app.infra.database import get_db
 from app.domains.automation.brain import AutomationRunStore
 from app.domains.automation.router import router as automation_router
+from app.infra.database import get_db
 
 
 class _FakeUser:
@@ -130,7 +130,7 @@ def test_mobile_run_can_execute_farm_runner(monkeypatch) -> None:
             self.id = sid
             self.device_id = device_id
             self.status = "running"
-            self.started_at = datetime.now(timezone.utc)
+            self.started_at = datetime.now(_tz.utc)
             self.finished_at = None
             self.failure_message = None
 

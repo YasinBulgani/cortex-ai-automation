@@ -23,9 +23,8 @@ import re
 import string
 import time
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timezone as _tz
 from typing import Any, Dict, List, Optional
-
 
 # ── Built-in dinamik degiskenler ──────────────────────────────────────
 
@@ -58,7 +57,7 @@ _BUILTINS: Dict[str, Any] = {
     "$randomUUID": lambda: str(uuid.uuid4()),
     "$guid": lambda: str(uuid.uuid4()),
     "$timestamp": lambda: int(time.time()),
-    "$isoTimestamp": lambda: datetime.now(timezone.utc).isoformat(),
+    "$isoTimestamp": lambda: datetime.now(_tz.utc).isoformat(),
     "$randomIBAN": _random_iban,
     "$randomTCKN": _random_tckn,
     "$randomEmail": lambda: f"test_{random.randint(1000,9999)}@neurex.test",

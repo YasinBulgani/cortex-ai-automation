@@ -482,7 +482,7 @@ Respond ONLY with valid JSON (no markdown):
 
     # ── Koşu kaydı ve otomatik çalıştır ──────────────────────────────────────
     if body.auto_run:
-        from core.db import create_pipeline_run, complete_pipeline_run
+        from core.db import complete_pipeline_run, create_pipeline_run
         run_db_id = create_pipeline_run(
             project_id=body.project_id,
             test_id=body.test_id,

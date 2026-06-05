@@ -12,13 +12,13 @@ Auto-publishes:
 """
 from app.domains.defects.service import (
     DefectTicket,
-    open_defect_from_execution,
-    mark_fix_merged,
-    verify_and_close,
-    list_defects,
-    get_defect,
     clear,
+    get_defect,
     install_listeners,
+    list_defects,
+    mark_fix_merged,
+    open_defect_from_execution,
+    verify_and_close,
 )
 
 # Install event listeners on import so the loop wires automatically

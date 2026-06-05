@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import logging
 from collections import defaultdict
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone as _tz
 from typing import Optional
 
 from sqlalchemy import func, select
@@ -68,7 +68,7 @@ def feedback_bonus_for(
     if not action_ids or not query:
         return {}
 
-    since = datetime.now(timezone.utc) - timedelta(days=_LOOKBACK_DAYS)
+    since = datetime.now(_tz.utc) - timedelta(days=_LOOKBACK_DAYS)
 
     rows = db.execute(
         select(
@@ -101,7 +101,7 @@ def feedback_bonus_for(
 
 def feedback_stats_for_action(db: Session, action_id: str) -> dict:
     """Bir cümleciğin son 30 gündeki toplam 👍/👎 sayısı — UI'da gösterim için."""
-    since = datetime.now(timezone.utc) - timedelta(days=_LOOKBACK_DAYS)
+    since = datetime.now(_tz.utc) - timedelta(days=_LOOKBACK_DAYS)
     rows = db.execute(
         select(DslFeedback.vote, func.count(DslFeedback.id))
         .where(DslFeedback.action_id == action_id)

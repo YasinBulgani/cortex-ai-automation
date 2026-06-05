@@ -18,19 +18,17 @@ import logging
 import threading
 import uuid
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime, timezone as _tz
 from pathlib import Path
-from typing import Any, Iterable, Optional
-
-from sqlalchemy import select
-from sqlalchemy.orm import Session
+from typing import Any, Optional
 
 import jsonschema  # type: ignore[import-untyped]
+from sqlalchemy import select
+from sqlalchemy.orm import Session
 
 from app.domains.dsl import yaml_writer
 from app.domains.dsl.embedding_index import alias_index
 from app.domains.dsl.loader import catalog_cache
-from app.domains.dsl.schemas import DslAction
 from app.infra import git_client
 from app.infra.git_client import CommitResult, GitClientError, GitConfig
 from app.infra.models import DslCatalogAudit, DslEditProposal, User
@@ -388,7 +386,7 @@ def apply_edit(
     proposal.commit_sha = commit_result.sha or None
     proposal.pr_url = commit_result.pr_url
     proposal.reviewer_id = getattr(actor, "id", None)
-    proposal.reviewed_at = datetime.now(timezone.utc)
+    proposal.reviewed_at = datetime.now(_tz.utc)
     _record_audit(
         db,
         proposal=proposal,
@@ -490,7 +488,7 @@ def approve_proposal(
     prop.pr_url = commit_result.pr_url
     prop.reviewer_id = getattr(actor, "id", None)
     prop.reviewer_note = (note or "")[:2000] or None
-    prop.reviewed_at = datetime.now(timezone.utc)
+    prop.reviewed_at = datetime.now(_tz.utc)
     _record_audit(
         db,
         proposal=prop,
@@ -524,7 +522,7 @@ def reject_proposal(
     prop.status = "rejected"
     prop.reviewer_id = getattr(actor, "id", None)
     prop.reviewer_note = (note or "")[:2000] or None
-    prop.reviewed_at = datetime.now(timezone.utc)
+    prop.reviewed_at = datetime.now(_tz.utc)
     db.commit()
     db.refresh(prop)
     return prop

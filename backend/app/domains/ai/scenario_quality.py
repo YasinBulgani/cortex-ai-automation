@@ -28,7 +28,7 @@ from __future__ import annotations
 import json
 import logging
 import re
-from datetime import datetime, timezone
+from datetime import datetime, timezone as _tz
 from typing import Any
 
 logger = logging.getLogger(__name__)
@@ -328,4 +328,4 @@ def find_similar_scenarios(
 
 
 def now_utc() -> datetime:
-    return datetime.now(timezone.utc)
+    return datetime.now(_tz.utc)

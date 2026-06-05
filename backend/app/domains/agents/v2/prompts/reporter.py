@@ -1,7 +1,6 @@
 """Reporter Agent prompt."""
 from __future__ import annotations
 
-
 REPORTER_SYSTEM_PROMPT = """Sen bir QA raporlama uzmanısın. Pipeline çıktısından yönetim için PROFESYONEL Türkçe özet yazarsın.
 
 KURALLAR:

@@ -16,21 +16,21 @@ from __future__ import annotations
 import json
 import logging
 import os
+import queue
 import threading
 import time
-import queue
-from datetime import datetime, timezone
-from typing import Iterator
+from collections.abc import Iterator
+from datetime import datetime, timezone as _tz
 from uuid import uuid4
 
 import httpx
-from sqlalchemy.orm import Session
 from sqlalchemy import select
+from sqlalchemy.orm import Session
 from tenacity import (
     retry,
+    retry_if_exception_type,
     stop_after_attempt,
     wait_exponential,
-    retry_if_exception_type,
 )
 
 logger = logging.getLogger(__name__)
@@ -128,9 +128,7 @@ def _run_worker(
     """Background thread: test koşumunu yönetir."""
     db = _get_db_session()
     try:
-        from app.domains.tspm.models import (
-            TspmExecution, TspmExecutionResult, TspmScenario, TspmExecutionMetrics
-        )
+        from app.domains.tspm.models import TspmExecution, TspmExecutionResult, TspmScenario
 
         # 1. Execution kaydını al
         execution = db.get(TspmExecution, execution_id)
@@ -166,7 +164,7 @@ def _run_worker(
         execution.status = "running"
         db.commit()
 
-        start_time = datetime.now(timezone.utc)
+        start_time = datetime.now(_tz.utc)
         passed = 0
         failed = 0
         skipped = 0
@@ -267,7 +265,7 @@ def _run_worker(
             passed, failed, skipped = _simulate_run(scenario_list, results, db, q)
 
         # 8. Metrics kaydet
-        duration_s = (datetime.now(timezone.utc) - start_time).total_seconds()
+        duration_s = (datetime.now(_tz.utc) - start_time).total_seconds()
         pass_rate = (passed / total * 100) if total > 0 else 0.0
 
         _save_metrics(db, project_id, execution_id, total, passed, failed, skipped, duration_s)
@@ -418,8 +416,9 @@ def _update_result_status(
 ) -> None:
     """TspmExecutionResult kaydını güncelle."""
     try:
-        from app.domains.tspm.models import TspmExecutionResult
         from sqlalchemy import select
+
+        from app.domains.tspm.models import TspmExecutionResult
 
         if result_id:
             r = db.get(TspmExecutionResult, result_id)
@@ -455,8 +454,9 @@ def _save_metrics(
 ) -> None:
     """TspmExecutionMetrics kaydı oluştur veya güncelle."""
     try:
-        from app.domains.tspm.models import TspmExecutionMetrics
         from sqlalchemy import select
+
+        from app.domains.tspm.models import TspmExecutionMetrics
 
         existing = db.scalar(
             select(TspmExecutionMetrics).where(
@@ -554,8 +554,9 @@ def launch_mobile_run(
     Returns:
         {run_id, device_slugs, device_run_ids, execution_ids, stream_url}
     """
-    from app.domains.tspm.models import TspmExecution, TspmExecutionResult, TspmScenario
     from sqlalchemy import select as _select
+
+    from app.domains.tspm.models import TspmExecution, TspmExecutionResult, TspmScenario
 
     master_run_id = str(uuid4())
     master_q: queue.Queue = queue.Queue()
@@ -805,10 +806,11 @@ def _send_execution_notifications(
     """
     try:
         from sqlalchemy import select as _select
+
+        from app.domains.notifications.email_service import notify_slack, notify_test_complete
         from app.domains.notifications.models import NotificationPrefs
         from app.domains.tspm.models import TspmProjectMember
         from app.infra.models import User
-        from app.domains.notifications.email_service import notify_test_complete, notify_slack
 
         # Proje adını al (yoksa project_id kullan)
         try:

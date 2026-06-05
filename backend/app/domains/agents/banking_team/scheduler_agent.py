@@ -19,7 +19,6 @@ from __future__ import annotations
 
 import logging
 import uuid
-from datetime import datetime, timezone
 
 logger = logging.getLogger(__name__)
 
@@ -116,6 +115,7 @@ def trigger_now(cycles: int = 2) -> str:
     Pipeline'ı hemen başlatır, run_id döndürür.
     """
     import asyncio
+
     from app.domains.agents.banking_orchestrator import banking_pipeline, run_banking_team
 
     if banking_pipeline.running:

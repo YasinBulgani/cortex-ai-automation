@@ -21,7 +21,7 @@ import logging
 from collections import defaultdict
 from typing import Any, Dict, List, Optional
 
-from sqlalchemy import select, func
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.domains.ai.knowledge_store import KnowledgeStore

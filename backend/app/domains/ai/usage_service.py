@@ -16,8 +16,7 @@ hesaplanır.
 from __future__ import annotations
 
 import logging
-import threading
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone as _tz
 from typing import Any, Dict, List, Optional
 
 from app.infra.telemetry import set_span_attr, trace_span
@@ -239,7 +238,7 @@ def _persist_trace(
 
 
 def _today_utc_bounds() -> tuple[datetime, datetime]:
-    now = datetime.now(timezone.utc)
+    now = datetime.now(_tz.utc)
     start = now.replace(hour=0, minute=0, second=0, microsecond=0)
     return start, start + timedelta(days=1)
 
@@ -293,7 +292,7 @@ def get_tenant_usage(
 
     from .llm_trace import _get_conn  # type: ignore
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(_tz.utc)
     start = (now - timedelta(days=days - 1)).replace(
         hour=0, minute=0, second=0, microsecond=0
     )

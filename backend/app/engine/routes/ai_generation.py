@@ -11,10 +11,13 @@ Endpoint'ler:
   POST /api/ai/generate-test   — Doğal dil → test kodu
   POST /api/ai/generate-bdd    — Doğal dil → Gherkin feature
 """
-from typing import Annotated, Optional
+import logging
+from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel, Field
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/ai", tags=["engine", "ai-generation"])
 
@@ -72,7 +75,10 @@ def _check_feature(name: str) -> None:
                 detail=f"'{name}' özelliği ai_config.yaml'da devre dışı",
             )
     except ImportError:
-        pass  # Servis henüz taşınmadıysa feature flag kontrolünü atla
+        logger.warning(
+            "Opsiyonel bağımlılık 'services.is_feature_enabled' yüklenemedi, "
+            "feature flag kontrolü atlanıyor (ai_generation)."
+        )
 
 
 # ─── Routes ───────────────────────────────────────────────────────────────────

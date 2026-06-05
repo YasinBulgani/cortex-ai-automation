@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timezone as _tz
 from typing import Any, Optional
 
 from sqlalchemy import (
@@ -30,7 +30,7 @@ def _uuid() -> str:
 
 
 def utcnow() -> datetime:
-    return datetime.now(timezone.utc)
+    return datetime.now(_tz.utc)
 
 
 sd_user_roles = Table(
@@ -58,10 +58,10 @@ class Role(Base):
         UUID(as_uuid=False), primary_key=True, default=_uuid
     )
     name: Mapped[str] = mapped_column(String(64), unique=True, nullable=False)
-    users: Mapped[list["User"]] = relationship(
+    users: Mapped[list[User]] = relationship(
         "User", secondary=sd_user_roles, back_populates="roles"
     )
-    permissions: Mapped[list["RolePermission"]] = relationship(
+    permissions: Mapped[list[RolePermission]] = relationship(
         back_populates="role", cascade="all, delete-orphan"
     )
 
@@ -226,7 +226,7 @@ class RefreshToken(Base):
     )
     user_agent: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
 
-    user: Mapped["User"] = relationship(backref="refresh_tokens")
+    user: Mapped[User] = relationship(backref="refresh_tokens")
 
 
 class Dataset(Base):
@@ -271,7 +271,7 @@ class DatasetVersion(Base):
     )
 
     dataset: Mapped[Dataset] = relationship(back_populates="versions")
-    schema_snapshot: Mapped[Optional["SchemaSnapshot"]] = relationship(
+    schema_snapshot: Mapped[Optional[SchemaSnapshot]] = relationship(
         back_populates="dataset_version", uselist=False, cascade="all, delete-orphan"
     )
     generation_jobs: Mapped[list[GenerationJob]] = relationship(
@@ -452,13 +452,13 @@ class AgentV2Run(Base):
     started_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     completed_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
 
-    events: Mapped[list["AgentV2RunEvent"]] = relationship(
+    events: Mapped[list[AgentV2RunEvent]] = relationship(
         back_populates="run", cascade="all, delete-orphan"
     )
-    artifacts: Mapped[list["AgentV2RunArtifact"]] = relationship(
+    artifacts: Mapped[list[AgentV2RunArtifact]] = relationship(
         back_populates="run", cascade="all, delete-orphan"
     )
-    approvals: Mapped[list["AgentV2RunApproval"]] = relationship(
+    approvals: Mapped[list[AgentV2RunApproval]] = relationship(
         back_populates="run", cascade="all, delete-orphan"
     )
 
@@ -518,7 +518,7 @@ class AgentV2RunApproval(Base):
     note: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False, index=True)
 
-    run: Mapped["AgentV2Run"] = relationship(back_populates="approvals")
+    run: Mapped[AgentV2Run] = relationship(back_populates="approvals")
 
 
 class AutomationRun(Base):

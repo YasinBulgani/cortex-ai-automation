@@ -3,11 +3,11 @@
 #
 # Ön koşullar:
 #   kubectl apply -f namespace.yaml
-#   kubectl create secret generic testwright-ai-secrets \
+#   kubectl create secret generic neurex-secrets \
 #     --from-literal=jwt-secret=$(openssl rand -base64 64) \
 #     --from-literal=db-password=CHANGEME \
 #     --from-literal=engine-internal-key=$(openssl rand -hex 32) \
-#     -n testwright-ai
+#     -n neurex
 # ═══════════════════════════════════════════════════════════════════════════════
 
 ---
@@ -15,9 +15,9 @@
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: testwright-ai
+  name: neurex
   labels:
-    app.kubernetes.io/name: testwright-ai
+    app.kubernetes.io/name: neurex
     environment: production
 
 ---
@@ -25,17 +25,17 @@ metadata:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: testwright-ai-backend
-  namespace: testwright-ai
+  name: neurex-backend
+  namespace: neurex
   labels:
-    app: testwright-ai-backend
+    app: neurex-backend
     tier: backend
     version: "1.0"
 spec:
   replicas: 2
   selector:
     matchLabels:
-      app: testwright-ai-backend
+      app: neurex-backend
   strategy:
     type: RollingUpdate
     rollingUpdate:
@@ -44,7 +44,7 @@ spec:
   template:
     metadata:
       labels:
-        app: testwright-ai-backend
+        app: neurex-backend
         tier: backend
     spec:
       securityContext:
@@ -53,7 +53,7 @@ spec:
         fsGroup: 1000
       containers:
         - name: backend
-          image: ghcr.io/testwright-ai/testwright-ai-backend:latest
+          image: ghcr.io/neurex-ai/neurex-backend:latest
           imagePullPolicy: Always
           ports:
             - containerPort: 8000
@@ -62,22 +62,22 @@ spec:
             - name: DATABASE_URL
               valueFrom:
                 secretKeyRef:
-                  name: testwright-ai-secrets
+                  name: neurex-secrets
                   key: database-url
             - name: JWT_SECRET
               valueFrom:
                 secretKeyRef:
-                  name: testwright-ai-secrets
+                  name: neurex-secrets
                   key: jwt-secret
             - name: ENGINE_INTERNAL_KEY
               valueFrom:
                 secretKeyRef:
-                  name: testwright-ai-secrets
+                  name: neurex-secrets
                   key: engine-internal-key
             - name: REDIS_URL
-              value: "redis://testwright-ai-redis:6379/0"
+              value: "redis://neurex-redis:6379/0"
             - name: ENGINE_BASE_URL
-              value: "http://testwright-ai-engine:5001"
+              value: "http://neurex-engine:5001"
             - name: OTEL_EXPORTER_OTLP_ENDPOINT
               value: "http://neurex-otel-collector:4317"
             - name: OTEL_SERVICE_NAME
@@ -120,15 +120,98 @@ spec:
               drop: ["ALL"]
 
 ---
+# ── Worker Deployment ─────────────────────────────────────────────────────────
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: neurex-worker
+  namespace: neurex
+  labels:
+    app: neurex-worker
+    tier: worker
+    version: "1.0"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: neurex-worker
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: neurex-worker
+        tier: worker
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+      containers:
+        - name: worker
+          image: ghcr.io/neurex-ai/neurex-backend:latest
+          imagePullPolicy: Always
+          command: ["celery", "-A", "app.workers.celery_app", "worker", "--loglevel=info"]
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: neurex-secrets
+                  key: database-url
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: neurex-secrets
+                  key: jwt-secret
+            - name: ENGINE_INTERNAL_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: neurex-secrets
+                  key: engine-internal-key
+            - name: REDIS_URL
+              value: "redis://neurex-redis:6379/0"
+            - name: ENGINE_BASE_URL
+              value: "http://neurex-engine:5001"
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: "http://neurex-otel-collector:4317"
+            - name: OTEL_SERVICE_NAME
+              value: "neurex-worker"
+            - name: OTEL_RESOURCE_ATTRIBUTES
+              value: "deployment.environment=production"
+            - name: LOG_FORMAT
+              value: "json"
+            - name: CORS_ORIGINS
+              value: "https://bgtest.dev"
+            - name: DEBUG
+              value: "false"
+            - name: PROMETHEUS_ENABLED
+              value: "true"
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "256Mi"
+            limits:
+              cpu: "1000m"
+              memory: "1Gi"
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+            capabilities:
+              drop: ["ALL"]
+
+---
 # ── Backend Service ───────────────────────────────────────────────────────────
 apiVersion: v1
 kind: Service
 metadata:
-  name: testwright-ai-backend
-  namespace: testwright-ai
+  name: neurex-backend
+  namespace: neurex
 spec:
   selector:
-    app: testwright-ai-backend
+    app: neurex-backend
   ports:
     - port: 8000
       targetPort: 8000
@@ -139,27 +222,27 @@ spec:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: testwright-ai-engine
-  namespace: testwright-ai
+  name: neurex-engine
+  namespace: neurex
   labels:
-    app: testwright-ai-engine
+    app: neurex-engine
     tier: engine
 spec:
   replicas: 1   # Engine stateful (screenshot storage) — tek replika
   selector:
     matchLabels:
-      app: testwright-ai-engine
+      app: neurex-engine
   template:
     metadata:
       labels:
-        app: testwright-ai-engine
+        app: neurex-engine
     spec:
       securityContext:
         runAsNonRoot: true
         runAsUser: 1000
       containers:
         - name: engine
-          image: ghcr.io/testwright-ai/testwright-ai-engine:latest
+          image: ghcr.io/neurex-ai/neurex-engine:latest
           imagePullPolicy: Always
           ports:
             - containerPort: 5001
@@ -172,7 +255,7 @@ spec:
             - name: ENGINE_INTERNAL_KEY
               valueFrom:
                 secretKeyRef:
-                  name: testwright-ai-secrets
+                  name: neurex-secrets
                   key: engine-internal-key
             - name: OTEL_EXPORTER_OTLP_ENDPOINT
               value: "http://neurex-otel-collector:4317"
@@ -217,11 +300,11 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: testwright-ai-engine
-  namespace: testwright-ai
+  name: neurex-engine
+  namespace: neurex
 spec:
   selector:
-    app: testwright-ai-engine
+    app: neurex-engine
   ports:
     - port: 5001
       targetPort: 5001
@@ -231,16 +314,16 @@ spec:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: testwright-ai-web
-  namespace: testwright-ai
+  name: neurex-frontend
+  namespace: neurex
   labels:
-    app: testwright-ai-web
+    app: neurex-frontend
     tier: frontend
 spec:
   replicas: 2
   selector:
     matchLabels:
-      app: testwright-ai-web
+      app: neurex-frontend
   strategy:
     type: RollingUpdate
     rollingUpdate:
@@ -249,11 +332,11 @@ spec:
   template:
     metadata:
       labels:
-        app: testwright-ai-web
+        app: neurex-frontend
     spec:
       containers:
         - name: web
-          image: ghcr.io/testwright-ai/testwright-ai-web:latest
+          image: ghcr.io/neurex-ai/neurex-frontend:latest
           imagePullPolicy: Always
           ports:
             - containerPort: 3000
@@ -289,11 +372,11 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: testwright-ai-web
-  namespace: testwright-ai
+  name: neurex-frontend
+  namespace: neurex
 spec:
   selector:
-    app: testwright-ai-web
+    app: neurex-frontend
   ports:
     - port: 3000
       targetPort: 3000
@@ -303,16 +386,16 @@ spec:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: testwright-ai-gateway
-  namespace: testwright-ai
+  name: neurex-ai-gateway
+  namespace: neurex
   labels:
-    app: testwright-ai-gateway
+    app: neurex-ai-gateway
     tier: ai-gateway
 spec:
   replicas: 2
   selector:
     matchLabels:
-      app: testwright-ai-gateway
+      app: neurex-ai-gateway
   strategy:
     type: RollingUpdate
     rollingUpdate:
@@ -321,7 +404,7 @@ spec:
   template:
     metadata:
       labels:
-        app: testwright-ai-gateway
+        app: neurex-ai-gateway
         tier: ai-gateway
     spec:
       securityContext:
@@ -330,7 +413,7 @@ spec:
         fsGroup: 1000
       containers:
         - name: ai-gateway
-          image: ghcr.io/testwright-ai/testwright-ai-gateway:latest
+          image: ghcr.io/neurex-ai/neurex-ai-gateway:latest
           imagePullPolicy: Always
           ports:
             - containerPort: 8080
@@ -339,7 +422,7 @@ spec:
             - name: ENGINE_INTERNAL_KEY
               valueFrom:
                 secretKeyRef:
-                  name: testwright-ai-secrets
+                  name: neurex-secrets
                   key: engine-internal-key
             - name: OTEL_EXPORTER_OTLP_ENDPOINT
               value: "http://neurex-otel-collector:4317"
@@ -381,11 +464,11 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: testwright-ai-gateway
-  namespace: testwright-ai
+  name: neurex-ai-gateway
+  namespace: neurex
 spec:
   selector:
-    app: testwright-ai-gateway
+    app: neurex-ai-gateway
   ports:
     - port: 8080
       targetPort: 8080
@@ -396,8 +479,8 @@ spec:
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: testwright-ai-ingress
-  namespace: testwright-ai
+  name: neurex-ingress
+  namespace: neurex
   annotations:
     kubernetes.io/ingress.class: nginx
     cert-manager.io/cluster-issuer: letsencrypt-prod
@@ -409,7 +492,7 @@ spec:
     - hosts:
         - bgtest.dev
         - www.bgtest.dev
-      secretName: testwright-ai-tls
+      secretName: neurex-tls
   rules:
     - host: bgtest.dev
       http:
@@ -418,28 +501,28 @@ spec:
             pathType: Prefix
             backend:
               service:
-                name: testwright-ai-backend
+                name: neurex-backend
                 port:
                   number: 8000
           - path: /engine/
             pathType: Prefix
             backend:
               service:
-                name: testwright-ai-engine
+                name: neurex-engine
                 port:
                   number: 5001
           - path: /ai/
             pathType: Prefix
             backend:
               service:
-                name: testwright-ai-gateway
+                name: neurex-ai-gateway
                 port:
                   number: 8080
           - path: /
             pathType: Prefix
             backend:
               service:
-                name: testwright-ai-web
+                name: neurex-frontend
                 port:
                   number: 3000
 
@@ -448,13 +531,13 @@ spec:
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
-  name: testwright-ai-backend-hpa
-  namespace: testwright-ai
+  name: neurex-backend-hpa
+  namespace: neurex
 spec:
   scaleTargetRef:
     apiVersion: apps/v1
     kind: Deployment
-    name: testwright-ai-backend
+    name: neurex-backend
   minReplicas: 2
   maxReplicas: 6
   metrics:
@@ -476,13 +559,13 @@ spec:
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
-  name: testwright-ai-gateway-hpa
-  namespace: testwright-ai
+  name: neurex-ai-gateway-hpa
+  namespace: neurex
 spec:
   scaleTargetRef:
     apiVersion: apps/v1
     kind: Deployment
-    name: testwright-ai-gateway
+    name: neurex-ai-gateway
   minReplicas: 2
   maxReplicas: 8
   metrics:
@@ -505,7 +588,7 @@ apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: engine-data-pvc
-  namespace: testwright-ai
+  namespace: neurex
 spec:
   accessModes: [ReadWriteOnce]
   resources:
@@ -517,7 +600,7 @@ apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: engine-screenshots-pvc
-  namespace: testwright-ai
+  namespace: neurex
 spec:
   accessModes: [ReadWriteOnce]
   resources:

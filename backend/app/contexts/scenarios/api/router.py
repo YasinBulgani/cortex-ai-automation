@@ -19,7 +19,8 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, Field
 
-from app.contexts.projects.infrastructure import InMemoryProjectRepository
+# Import the singleton project repo so cross-context check shares the same store
+from app.contexts.projects.api.router import _projects_repo
 from app.contexts.projects.infrastructure.project_check_adapter import ProjectExistsCheckAdapter
 from app.contexts.scenarios.application import (
     ApproveScenarioCommand,
@@ -31,11 +32,8 @@ from app.contexts.scenarios.application import (
 )
 from app.contexts.scenarios.application.create_scenario import ProjectNotActiveError
 from app.contexts.scenarios.application.submit_for_review import ScenarioNotFoundError
-from app.contexts.scenarios.domain import ScenarioId, ScenarioStep, StepType
+from app.contexts.scenarios.domain import ScenarioId
 from app.contexts.scenarios.infrastructure import InMemoryScenarioRepository
-
-# Import the singleton project repo so cross-context check shares the same store
-from app.contexts.projects.api.router import _projects_repo
 from app.deps import get_current_user
 
 router = APIRouter(prefix="/contexts/scenarios", tags=["contexts-scenarios"])

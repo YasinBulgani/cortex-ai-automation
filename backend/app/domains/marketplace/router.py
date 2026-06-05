@@ -9,7 +9,6 @@ from app.deps import get_current_user
 from app.infra.models import User
 
 from .templates import (
-    Template,
     get_template,
     list_categories,
     list_templates,
@@ -45,7 +44,7 @@ def _list(
 @router.get("/templates/search")
 def _search(
     q: Annotated[str, Query(min_length=1, description="multi-token AND search")],
-    _: Annotated[User, Depends(get_current_user)] = None,  # type: ignore[assignment]
+    _: Annotated[User, Depends(get_current_user)],
 ) -> List[dict]:
     return [t.to_dict() for t in search(q)]
 

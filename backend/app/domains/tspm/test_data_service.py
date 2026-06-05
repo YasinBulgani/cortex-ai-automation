@@ -13,7 +13,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.domains.tspm.models import TspmTestDataSet
-from app.domains.tspm.schemas import TestDataSetCreate, TestDataSetOut, TestDataSetUpdate
+from app.domains.tspm.schemas import TestDataSetCreate, TestDataSetUpdate
 
 
 def create_test_data_for_project(

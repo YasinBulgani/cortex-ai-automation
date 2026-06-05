@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
-from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -35,21 +34,27 @@ def load_dsl_steps() -> list[dict]:
         return _CACHED_STEPS
     steps: list[dict] = []
     try:
-        import yaml
-        for yaml_file in catalog.glob("**/*.yaml"):
-            try:
-                data = yaml.safe_load(yaml_file.read_text(encoding="utf-8"))
-                if isinstance(data, dict):
-                    for key in ("steps", "entries", "items", "patterns"):
-                        items = data.get(key, [])
-                        if isinstance(items, list):
-                            steps.extend(items)
-                elif isinstance(data, list):
-                    steps.extend(data)
-            except Exception:
-                continue
+        import yaml  # noqa: F401 — import probe
     except ImportError:
-        pass
+        logger.warning(
+            "Opsiyonel bağımlılık 'pyyaml' yüklenemedi, DSL katalog yüklenemeyecek. "
+            "pip install pyyaml ile ekleyin."
+        )
+        _CACHED_STEPS = []
+        return _CACHED_STEPS
+    import yaml
+    for yaml_file in catalog.glob("**/*.yaml"):
+        try:
+            data = yaml.safe_load(yaml_file.read_text(encoding="utf-8"))
+            if isinstance(data, dict):
+                for key in ("steps", "entries", "items", "patterns"):
+                    items = data.get(key, [])
+                    if isinstance(items, list):
+                        steps.extend(items)
+            elif isinstance(data, list):
+                steps.extend(data)
+        except Exception:
+            continue
     _CACHED_STEPS = steps
     logger.info("DSL catalog yüklendi: %d step", len(steps))
     return steps

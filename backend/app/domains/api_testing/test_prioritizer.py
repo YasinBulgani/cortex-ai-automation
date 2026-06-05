@@ -19,8 +19,8 @@ Public API
 """
 
 import logging
-from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional, Tuple
+from datetime import datetime, timezone as _tz
+from typing import Any, Dict, List, Optional
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
@@ -114,7 +114,7 @@ def prioritize_tests(
             )
         ).all()
 
-        now = datetime.now(timezone.utc)
+        now = datetime.now(_tz.utc)
         results = []  # type: List[Dict[str, Any]]
 
         for tc, ep in rows:
@@ -131,7 +131,7 @@ def prioritize_tests(
             if tc.last_run_at is not None:
                 last_run = tc.last_run_at
                 if last_run.tzinfo is None:
-                    last_run = last_run.replace(tzinfo=timezone.utc)
+                    last_run = last_run.replace(tzinfo=_tz.utc)
                 delta = (now - last_run).total_seconds() / 86400.0
                 recency_score = min(delta / RECENCY_CAP_DAYS, 1.0)
             else:

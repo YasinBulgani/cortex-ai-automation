@@ -12,8 +12,9 @@ backend'in geri kalanı etkilenmez (``requirements.txt`` zaten pyyaml içerir).
 from __future__ import annotations
 
 import logging
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Dict, Iterable, List, Optional
+from typing import Dict, List, Optional
 
 from .schemas import Suite
 

@@ -6,9 +6,9 @@ yeni endpoint ek ayrıntı sağlar (tüm bağımlılıkların per-servis durumu 
 kötü durumdaki bileşen "overall" olarak raporlanır).
 """
 
-from app.domains.health.service import get_extended_health  # noqa: F401
 from app.domains.health.schemas import (  # noqa: F401
     ComponentStatus,
     ExtendedHealth,
     HealthLevel,
 )
+from app.domains.health.service import get_extended_health  # noqa: F401

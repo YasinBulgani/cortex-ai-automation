@@ -2,9 +2,6 @@
 
 from __future__ import annotations
 
-import asyncio
-from datetime import datetime, timedelta
-
 import pytest
 
 from app.domains.agents.v2.schemas.locator import (
@@ -15,26 +12,23 @@ from app.domains.agents.v2.schemas.locator import (
 )
 from app.domains.agents.v2.tools.locator import (
     LocatorPipeline,
-    score_locator,
     aggregate_score,
     escape_css,
     escape_text,
+    score_locator,
 )
 from app.domains.agents.v2.tools.locator.extraction import extract_from_html
 from app.domains.agents.v2.tools.locator.generation import (
-    strategy_testid,
-    strategy_role_name,
-    strategy_text,
     strategy_css_semantic,
     strategy_id_fallback,
-    generate_locators_for_element,
+    strategy_role_name,
+    strategy_testid,
+    strategy_text,
 )
 from app.domains.agents.v2.tools.locator.registry import (
     LocatorRegistry,
     url_pattern,
-    get_registry,
 )
-
 
 HTML_LOGIN = """
 <html><body>

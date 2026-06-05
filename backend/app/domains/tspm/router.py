@@ -5,38 +5,52 @@ faz3: ai test case generation + bulk review."""
 from __future__ import annotations
 
 import asyncio
+import ipaddress
 import json
 import logging
 import os
-import ipaddress
 import re
 import socket
-import uuid
-from collections import defaultdict
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone as _tz
 from enum import Enum
-from pathlib import Path
-from typing import Annotated, Optional
 
-from pydantic import BaseModel as _PydanticBase
+# MaviYaka Cucumber adım tanımları şablonu (proje standardı)
+MAVIYAKA_STEP_DEFS = """Given/When/Then adım kalıpları: Click, Type, Assert, Navigate, Wait, Select."""
+from pathlib import Path
+from typing import Annotated, Any, Optional, Union
 from urllib.parse import urlparse
 
 import httpx
 import jwt
 from fastapi import APIRouter, Depends, File, HTTPException, Query, Request, Response, UploadFile, status
 from fastapi.responses import FileResponse, StreamingResponse
+from pydantic import BaseModel as _PydanticBase
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.deps import get_current_user, get_optional_user, require_permission
-from app.domains.auth.service import decode_token
-from app.domains.tspm.scheduler import add_schedule_job, remove_schedule_job, compute_next_run, _run_schedule_job
+from app.domains.ai.context_builder import build_project_ai_context
+from app.domains.audit.service import log_audit
 from app.domains.auth.permissions import Permission
-from app.infra.database import get_db
-from app.infra.models import User
+from app.domains.auth.service import decode_token
+from app.domains.tspm import ai_chat_service as chat_svc
+from app.domains.tspm import ai_debug_service as debug_svc
+from app.domains.tspm import approval_service as approval_svc
+from app.domains.tspm import automation_gen_service as auto_gen
+from app.domains.tspm import binding_service as binding_svc
+from app.domains.tspm import execution_service as execution_svc
+from app.domains.tspm import flow_regression_service as flow_regression_svc
+from app.domains.tspm import import_service as import_svc
+from app.domains.tspm import integration_service as integration_svc
+from app.domains.tspm import project_service as project_svc
+from app.domains.tspm import scenario_service as scenario_svc
+from app.domains.tspm import schedule_service as schedule_svc
+from app.domains.tspm import test_case_service as tc_svc
+from app.domains.tspm import test_data_service as test_data_svc
+from app.domains.tspm import test_data_simulation_service as test_data_sim_svc
+from app.domains.tspm import test_runner_service as runner_svc
 from app.domains.tspm.models import (
-    TspmAiBatch,
     TspmApiCollection,
     TspmApiRequest,
     TspmApiTestRun,
@@ -45,27 +59,22 @@ from app.domains.tspm.models import (
     TspmExecution,
     TspmExecutionMetrics,
     TspmExecutionResult,
-    TspmFlow,
-    TspmImport,
     TspmIntegration,
-    TspmProject,
-    TspmProjectMember,
-    TspmRegressionSet,
-    TspmRequirement,
-    TspmScenario,
-    TspmScenarioDataBinding,
-    TspmScenarioRequirement,
-    TspmScenarioVersion,
-    TspmSchedule,
     TspmN8nExecution,
     TspmN8nWorkflow,
+    TspmProject,
+    TspmProjectMember,
+    TspmScenario,
+    TspmScenarioVersion,
     TspmTestCase,
-    TspmTestDataSet,
     utcnow,
 )
 from app.domains.tspm.schemas import (
     AcceptSuggestedSetsRequest,
     AddScenariosRequest,
+    AiBatchDetailOut,
+    AiBatchOut,
+    AllureExportResponse,
     ApiCollectionCreate,
     ApiCollectionDetailOut,
     ApiCollectionOut,
@@ -73,23 +82,25 @@ from app.domains.tspm.schemas import (
     ApiRequestOut,
     ApiRequestUpdate,
     ApiTestRunOut,
-    PostmanImportRequest,
-    PostmanImportResponse,
     ApprovalCreate,
     ApprovalOut,
     AutomationArtifactOut,
+    BddGeneratedScenario,
     BddGenerateRequest,
     BddGenerateResponse,
-    BddGeneratedScenario,
     BddSaveRequest,
     BulkBddRequest,
     BulkBddResponse,
     BulkDeleteRequest,
+    BulkReviewRequest,
+    ChatRequest,
+    ChatResponse,
     CoverageMatrixOut,
-    CoverageMatrixRow,
     DashboardStats,
     DataBindingCreate,
     DataBindingOut,
+    DebugAnalysisItem,
+    DebugAnalysisResponse,
     DecideRequest,
     EdgeCaseRequest,
     EdgeCaseResponse,
@@ -100,15 +111,21 @@ from app.domains.tspm.schemas import (
     ExecutionOut,
     ExecutionResultOut,
     ExecutionStatsOut,
+    ExecutionStatusUpdate,
     ExecutionTrendsOut,
     ExpandedScenarioOut,
-    ExpandedScenarioRow,
-    ExpandedStep,
     FlakyTestOut,
     FlowCreate,
     FlowDetailOut,
     FlowGraphUpdate,
     FlowOut,
+    GenerateAutomationRequest,
+    GenerateAutomationResponse,
+    GenerateTestCasesRequest,
+    GenerateTestCasesResponse,
+    GherkinResult,
+    GherkinValidateRequest,
+    GherkinValidateResponse,
     GlobalDashboardActivity,
     GlobalDashboardOut,
     GlobalDashboardProjectRow,
@@ -117,12 +134,19 @@ from app.domains.tspm.schemas import (
     IntegrationCreate,
     IntegrationOut,
     IntegrationUpdate,
+    JavaResult,
     LinkRequirementRequest,
+    MobileRunCreate,
+    MobileRunOut,
+    PlaywrightResult,
+    PostmanImportRequest,
+    PostmanImportResponse,
     ProjectCreate,
-    ProjectUpdate,
     ProjectMemberCreate,
     ProjectMemberOut,
     ProjectOut,
+    ProjectUpdate,
+    QuickAction,
     RecentProjectSummary,
     RegressionSetCreate,
     RegressionSetDetailOut,
@@ -132,8 +156,8 @@ from app.domains.tspm.schemas import (
     RequirementCreate,
     RequirementOut,
     RequirementUpdate,
-    ExecutionStatusUpdate,
     ResultStatusUpdate,
+    RunDebugRequest,
     ScenarioCreate,
     ScenarioOut,
     ScenarioUpdate,
@@ -142,60 +166,18 @@ from app.domains.tspm.schemas import (
     ScheduleCreate,
     ScheduleOut,
     ScheduleUpdate,
-    SyncResultOut,
-    AiBatchDetailOut,
-    AiBatchOut,
-    AllureExportRequest,
-    AllureExportResponse,
-    BulkReviewRequest,
-    ChatMessage,
-    ChatRequest,
-    ChatResponse,
-    ChatSessionOut,
-    DebugAnalysisItem,
-    DebugAnalysisResponse,
-    GenerateAutomationRequest,
-    QuickAction,
-    GenerateAutomationResponse,
-    GenerateTestCasesRequest,
-    GenerateTestCasesResponse,
-    GherkinValidateRequest,
-    GherkinValidateResponse,
-    GherkinResult,
-    JavaResult,
-    PlaywrightResult,
-    RunDebugRequest,
     StepLibraryResponse,
+    SyncResultOut,
     TestCaseOut,
     TestCaseReviewAction,
     TestCaseUpdate,
     TestDataSetCreate,
     TestDataSetOut,
     TestDataSetUpdate,
-    TrendDataPoint,
     WeeklyTrendPoint,
-    MobileRunCreate,
-    MobileRunOut,
 )
-from app.infra.models import AuditEvent
-from app.domains.audit.service import log_audit
-from app.domains.tspm import test_case_service as tc_svc
-from app.domains.tspm import automation_gen_service as auto_gen
-from app.domains.tspm import ai_debug_service as debug_svc
-from app.domains.tspm import ai_chat_service as chat_svc
-from app.domains.tspm import approval_service as approval_svc
-from app.domains.tspm import binding_service as binding_svc
-from app.domains.tspm import execution_service as execution_svc
-from app.domains.tspm import flow_regression_service as flow_regression_svc
-from app.domains.tspm import import_service as import_svc
-from app.domains.tspm import integration_service as integration_svc
-from app.domains.tspm import project_service as project_svc
-from app.domains.tspm import schedule_service as schedule_svc
-from app.domains.tspm import scenario_service as scenario_svc
-from app.domains.tspm import test_data_service as test_data_svc
-from app.domains.tspm import test_data_simulation_service as test_data_sim_svc
-from app.domains.tspm import test_runner_service as runner_svc
-from app.domains.ai.context_builder import build_project_ai_context
+from app.infra.database import get_db
+from app.infra.models import AuditEvent, User
 
 router = APIRouter(prefix="/tspm", tags=["tspm"])
 logger = logging.getLogger(__name__)
@@ -268,7 +250,7 @@ def _persist_generated_automation_artifacts(
     test_case_count: int,
     result: dict,
 ) -> list[AutomationArtifactOut]:
-    timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+    timestamp = datetime.now(_tz.utc).strftime("%Y%m%d_%H%M%S")
     out_dir = (
         Path(settings.artifacts_dir)
         / "tspm"
@@ -679,7 +661,7 @@ def touch_project(project_id: str, db: DB, user: CurrentUser):
     bu ucu çağırır. İsteğin kendisi izin gerektirmez — sadece üyelik.
     """
     project = _get_project(db, project_id, user)
-    project.last_opened_at = datetime.now(timezone.utc)
+    project.last_opened_at = datetime.now(_tz.utc)
     db.commit()
     db.refresh(project)
     return project
@@ -858,8 +840,9 @@ def global_dashboard(db: DB, user: CurrentUser):
     Performans: Sonuçlar kullanıcı bazında 30 saniye Redis/in-process cache'e alınır.
     Aktif koşular gibi anlık veriler için TTL kasıtlı kısa tutulmuştur.
     """
-    from app.infra.cache import cache_get, cache_set, make_key  # geç import — döngüsel import önlemi
     from sqlalchemy import case as sa_case
+
+    from app.infra.cache import cache_get, cache_set, make_key  # geç import — döngüsel import önlemi
 
     # ── Cache anahtarı: kullanıcı bazlı (admin vs üye farklı veri görür) ──
     _cache_key = make_key("dashboard", "global", str(user.id))
@@ -936,7 +919,7 @@ def global_dashboard(db: DB, user: CurrentUser):
     overall_rate = round(sum(m.pass_rate for m in all_metrics) / len(all_metrics), 1) if all_metrics else 0.0
 
     day_names = ["Pzt", "Sal", "Çar", "Per", "Cum", "Cmt", "Paz"]
-    now = datetime.now(timezone.utc)
+    now = datetime.now(_tz.utc)
 
     # ── Haftalık trend — tek sorgu ───────────────────────────────────────
     week_start = (now - timedelta(days=6)).replace(hour=0, minute=0, second=0, microsecond=0)
@@ -949,7 +932,7 @@ def global_dashboard(db: DB, user: CurrentUser):
     ))
     day_buckets: dict[int, tuple[int, int]] = {d: (0, 0) for d in range(7)}
     for m in weekly_metrics:
-        ts = m.executed_at.replace(tzinfo=timezone.utc) if m.executed_at.tzinfo is None else m.executed_at
+        ts = m.executed_at.replace(tzinfo=_tz.utc) if m.executed_at.tzinfo is None else m.executed_at
         days_ago = (now.date() - ts.date()).days
         if 0 <= days_ago <= 6:
             slot = 6 - days_ago
@@ -1016,7 +999,7 @@ def global_dashboard(db: DB, user: CurrentUser):
             }
 
     def _time_ago(dt: datetime) -> str:
-        diff = now - (dt.replace(tzinfo=timezone.utc) if dt.tzinfo is None else dt)
+        diff = now - (dt.replace(tzinfo=_tz.utc) if dt.tzinfo is None else dt)
         if diff.days > 0:
             return f"{diff.days} gün önce"
         if diff.seconds > 3600:
@@ -1146,9 +1129,9 @@ def _refresh_scenario_quality(db: Session, scenario: TspmScenario) -> dict[str, 
     commit hattı kesilmez. Döndürdüğü dict; API cevabına dönüştürülür.
     """
     from app.domains.ai.scenario_quality import (
-        score_scenario_with_llm,
         embed_scenario,
         now_utc,
+        score_scenario_with_llm,
     )
 
     result = score_scenario_with_llm(scenario.title, scenario.description, scenario.steps)
@@ -1198,7 +1181,7 @@ def find_similar_scenarios_endpoint(
     min_similarity: float = Query(0.75, ge=0.0, le=1.0),
 ):
     """Aynı proje içinde, hedef senaryoya en yakın N senaryoyu döndürür."""
-    from app.domains.ai.scenario_quality import find_similar_scenarios, embed_scenario
+    from app.domains.ai.scenario_quality import embed_scenario, find_similar_scenarios
 
     target = db.get(TspmScenario, scenario_id)
     if target is None or target.project_id != project_id:
@@ -3290,7 +3273,7 @@ def wizard_analyze(project_id: str, body: dict, db: DB, user: CurrentUser):
     başarısız olursa eski engine/backend AI yolu kullanılır.
     """
     import json as _json
-    from concurrent.futures import ThreadPoolExecutor, as_completed
+    from concurrent.futures import ThreadPoolExecutor
 
     _get_project(db, project_id, user)
     text = body.get("text", "")
@@ -3362,6 +3345,7 @@ def wizard_analyze(project_id: str, body: dict, db: DB, user: CurrentUser):
 
         # Manuel testler için test case üret
         import json as _json
+
         from app.domains.ai.gateway_client import gateway_complete
         manual_raw = gateway_complete(
             task_type="generate_test_cases",
@@ -3438,8 +3422,9 @@ def wizard_analyze(project_id: str, body: dict, db: DB, user: CurrentUser):
                 results["manual_tests"] = data.get("manual_tests", [])
         except Exception:
             try:
-                from app.domains.ai.service import call_llm
                 import json as _json
+
+                from app.domains.ai.service import call_llm
                 raw = call_llm(
                     "Sen QA mühendisisin. Dokümanlardan manuel test senaryosu üret.",
                     f"Doküman:\n{text}\n\nJSON liste döndür: [{{\"title\":\"...\", \"steps\":[{{\"action\":\"...\", \"expected\":\"...\"}}]}}]",
@@ -3504,6 +3489,7 @@ async def wizard_upload_document(
 
     # Dokümanı parse et — blocking I/O'yu event loop dışına taşı
     import asyncio
+
     from app.domains.tspm.document_parser import parse_document
     doc = await asyncio.to_thread(parse_document, data, filename, file.content_type)
 
@@ -3704,7 +3690,8 @@ def test_db_connection(project_id: str, body: dict, db: DB, user: CurrentUser):
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "connection_string gereklidir")
 
     try:
-        from sqlalchemy import create_engine, text, inspect as sa_inspect
+        from sqlalchemy import create_engine, text
+        from sqlalchemy import inspect as sa_inspect
 
         # psycopg2 yoksa asyncpg veya psycopg3 olabilir; driver prefix normalize et
         if connection_string.startswith("postgresql://") or connection_string.startswith("postgres://"):
@@ -3881,7 +3868,8 @@ def wizard_generate_automation(project_id: str, body: dict, db: DB, user: Curren
 
 def _write_generated_files(result: dict, project_id: str, project_name: str) -> None:
     """Üretilen feature ve .spec.ts dosyalarını e2e/ai-generated/ dizinine yazar."""
-    import pathlib, logging
+    import logging
+    import pathlib
     _log = logging.getLogger(__name__)
 
     # Proje kökünü bul (backend/app/domains/tspm/router.py → 4 üst)
@@ -4500,8 +4488,9 @@ def wizard_generate_neurex(project_id: str, body: dict, db: DB, user: CurrentUse
 
     # AI ile Neurex feature dosyaları üret
     try:
-        from app.domains.ai.service import call_llm
         import json as _json
+
+        from app.domains.ai.service import call_llm
 
         features_out = []
         test_data_map: dict[str, str] = {}
@@ -4667,8 +4656,9 @@ def wizard_match_manual_scenarios(project_id: str, body: dict, db: DB, user: Cur
     test_data_map: dict[str, str] = {}
 
     try:
-        from app.domains.ai.service import call_llm
         import json as _json
+
+        from app.domains.ai.service import call_llm
 
         for sc in scenarios:
             title = sc["title"]
@@ -5071,8 +5061,9 @@ def wizard_crawl_locators(project_id: str, body: dict, db: DB, user: CurrentUser
     if not engine_ok:
         # AI fallback: URL ve domain'e göre akıllı lokator öner
         try:
-            from app.domains.ai.service import call_llm
             import json as _json
+
+            from app.domains.ai.service import call_llm
             ai_raw = call_llm(
                 "Sen Neurex Selenium lokator uzmanısın. Yalnızca JSON döndür.",
                 f"""Hedef URL: {url}
@@ -5292,8 +5283,9 @@ def wizard_match_locators(project_id: str, body: dict, db: DB, user: CurrentUser
 
     # 1) AI ile semantik eşleştirme dene
     try:
-        from app.domains.ai.service import call_llm
         import json as _json
+
+        from app.domains.ai.service import call_llm
         system = (
             "Sen bir QA otomasyon asistanısın. Kullanıcı manuel test adımlarından "
             "UI element referanslarını çıkarır ve bunları Selenium/Playwright lokator "
@@ -5515,8 +5507,9 @@ def wizard_suggest_locator(project_id: str, body: dict, db: DB, user: CurrentUse
     domain: str = body.get("domain", "")
 
     try:
-        from app.domains.ai.service import call_llm
         import json as _json
+
+        from app.domains.ai.service import call_llm
         raw = call_llm(
             "Sen Neurex Selenium lokator uzmanısın. JSON döndür.",
             f""""{key}" isimli lokator için uygun Selenium lokator öner.
@@ -5816,8 +5809,11 @@ def global_search(q: str = Query("", min_length=1), db: DB = ..., user: CurrentU
 @router.get("/projects/{project_id}/executions/{run_id}/report")
 def get_execution_report(project_id: str, run_id: str, format: str = "html", db: DB = ..., user: CurrentUser = ...):
     """Bir test koşusu için HTML veya JSON raporu üretir ve indirilir."""
-    from fastapi.responses import HTMLResponse, StreamingResponse
-    import io, json as _json
+    import io
+    import json as _json
+
+    from fastapi.responses import StreamingResponse
+
     from app.domains.tspm.models import TspmExecution, TspmExecutionResult, TspmScenario
 
     ex = db.get(TspmExecution, run_id)
@@ -5894,13 +5890,16 @@ th{{background:#f9fafb;font-weight:600}}
 @router.get("/projects/{project_id}/report/summary")
 def get_project_summary_report(project_id: str, format: str = "html", days: int = 30, db: DB = ..., user: CurrentUser = ...):
     """Proje için özet HTML veya JSON raporu üretir (son N gün)."""
+    import io
+    import json as _json
+    from datetime import datetime, timedelta
+
     from fastapi.responses import StreamingResponse
-    from datetime import datetime, timezone, timedelta
-    import io, json as _json
+
     from app.domains.tspm.models import TspmExecution
 
     _get_project(db, project_id, user)
-    since = datetime.now(timezone.utc) - timedelta(days=days)
+    since = datetime.now(_tz.utc) - timedelta(days=days)
     execs = list(db.scalars(
         select(TspmExecution)
         .where(TspmExecution.project_id == project_id, TspmExecution.created_at >= since)
@@ -6037,8 +6036,8 @@ def trigger_workflow(project_id: str, workflow_id: str, body: dict, db: DB, user
         execution.status = "error"
         execution.error = str(e)
 
-    from datetime import datetime, timezone
-    execution.finished_at = datetime.now(timezone.utc)
+    from datetime import datetime
+    execution.finished_at = datetime.now(_tz.utc)
     w.last_triggered_at = execution.finished_at
     db.commit()
     return {"status": execution.status, "execution_id": execution.id}
@@ -6813,8 +6812,9 @@ def get_chat_quick_actions(
 # ══════════════════════════════════════════════════════════════════════════════
 
 from app.domains.tspm.schemas import (
-    RunExecutionRequest, RunExecutionResponse,
     ExecutionMetricsOut,
+    RunExecutionRequest,
+    RunExecutionResponse,
 )
 
 

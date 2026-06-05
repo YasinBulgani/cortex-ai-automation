@@ -2,14 +2,13 @@
 
 from __future__ import annotations
 
-import asyncio
-from contextlib import asynccontextmanager
 import logging
 import os
-from pathlib import Path
 import subprocess
 import threading
 import time
+from contextlib import asynccontextmanager
+from pathlib import Path
 from typing import Any, Optional, Tuple
 
 from fastapi import FastAPI
@@ -376,7 +375,10 @@ async def app_lifespan(_app: FastAPI):
         from neurex_telemetry.logging import configure_logging
         configure_logging(service="neurex-backend")
     except ImportError:
-        pass
+        logger.warning(
+            "Opsiyonel bağımlılık 'neurex_telemetry' yüklenemedi, gelişmiş loglama yapılandırması devre dışı. "
+            "pip install neurex-telemetry ile ekleyin."
+        )
     init_otel(service_name="neurex-backend")
 
     Path(settings.artifacts_dir).mkdir(parents=True, exist_ok=True)
@@ -391,7 +393,7 @@ async def app_lifespan(_app: FastAPI):
     _outbox_task = None
     try:
         import asyncio
-        from app.contexts._shared.outbox import OutboxRelay
+
         from app.infra.outbox_bootstrap import build_outbox_relay
         _relay = build_outbox_relay()
         if _relay is not None:

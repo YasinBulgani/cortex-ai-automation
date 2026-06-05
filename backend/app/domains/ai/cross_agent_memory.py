@@ -19,7 +19,7 @@ Kaynak tipleri:
 
 import json
 import logging
-from datetime import datetime, timezone
+from datetime import datetime, timezone as _tz
 from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
@@ -75,7 +75,7 @@ class CrossAgentMemory:
             "event_type": event_type,
             "data": data,
             "tags": tags or [],
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(_tz.utc).isoformat(),
             "run_id": cls._run_id,
             "project_id": project_id,
         }

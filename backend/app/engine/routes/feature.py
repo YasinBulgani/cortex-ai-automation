@@ -9,9 +9,8 @@ SONRA (FastAPI):
 """
 
 import shutil
-from pathlib import Path
 from datetime import datetime
-from typing import Annotated
+from pathlib import Path
 
 from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel, Field

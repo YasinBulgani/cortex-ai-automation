@@ -10,26 +10,25 @@ from __future__ import annotations
 
 import math
 from collections import defaultdict
-from dataclasses import dataclass, field
-from datetime import datetime, timedelta, timezone
+from dataclasses import dataclass
+from datetime import datetime, timedelta, timezone as _tz
 from typing import Any, Optional
 
-from sqlalchemy import func, select
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.domains.test_management.models import (
     TestCase,
     TestCycle,
+    TestManagementProject,
     TestRun,
     TestRunCase,
-    TestManagementProject,
 )
-
 
 # ── Yardımcı ─────────────────────────────────────────────────────────────────
 
 def _utcnow() -> datetime:
-    return datetime.now(timezone.utc)
+    return datetime.now(_tz.utc)
 
 
 SEVERITY_WEIGHT = {"critical": 1.0, "major": 0.7, "minor": 0.4, "trivial": 0.1}
@@ -142,7 +141,7 @@ def compute_case_risk_score(case: TestCase, failure_history: dict[str, Any]) -> 
     # Son failure'dan bu yana geçen gün — yakın = daha riskli
     recency = 0.0
     if case.last_failed_at:
-        days_ago = (_utcnow() - case.last_failed_at.replace(tzinfo=timezone.utc)).days
+        days_ago = (_utcnow() - case.last_failed_at.replace(tzinfo=_tz.utc)).days
         recency = max(0.0, 1.0 - days_ago / 30.0)  # 30 günde sıfırlanır
 
     risk = failure_rate * 0.40 + sev * 0.30 + recency * 0.20 + pri * 0.10
@@ -226,7 +225,7 @@ def _predict_eta(run: TestRun, run_cases: list[TestRunCase]) -> ETAPrediction:
 
     # Koşum başlangıcından bu yana geçen süre
     started_at = run.started_at or _utcnow()
-    elapsed_hours = max(0.001, (_utcnow() - started_at.replace(tzinfo=timezone.utc)).total_seconds() / 3600)
+    elapsed_hours = max(0.001, (_utcnow() - started_at.replace(tzinfo=_tz.utc)).total_seconds() / 3600)
 
     overall_velocity = len(completed) / elapsed_hours
 
@@ -234,7 +233,7 @@ def _predict_eta(run: TestRun, run_cases: list[TestRunCase]) -> ETAPrediction:
     one_hour_ago = _utcnow() - timedelta(hours=1)
     recent_completed = [
         rc for rc in completed
-        if rc.completed_at and rc.completed_at.replace(tzinfo=timezone.utc) >= one_hour_ago
+        if rc.completed_at and rc.completed_at.replace(tzinfo=_tz.utc) >= one_hour_ago
     ]
     recent_velocity = len(recent_completed) / 1.0  # son 1 saat
 
@@ -324,7 +323,7 @@ def _build_tester_profiles(run_cases: list[TestRunCase]) -> list[TesterProfile]:
         # Tester'ın çalışma penceresini bul
         started_times = [rc.started_at for rc in cases if rc.started_at]
         if started_times:
-            first_start = min(started_times).replace(tzinfo=timezone.utc)
+            first_start = min(started_times).replace(tzinfo=_tz.utc)
             elapsed = max(0.001, (_utcnow() - first_start).total_seconds() / 3600)
             velocity = len(completed) / elapsed
         else:
@@ -341,7 +340,7 @@ def _build_tester_profiles(run_cases: list[TestRunCase]) -> list[TesterProfile]:
         activity_times = [
             rc.completed_at for rc in completed if rc.completed_at
         ]
-        last_activity = max(activity_times).replace(tzinfo=timezone.utc) if activity_times else None
+        last_activity = max(activity_times).replace(tzinfo=_tz.utc) if activity_times else None
         inactive_minutes = (
             (_utcnow() - last_activity).total_seconds() / 60
             if last_activity else 999.0
@@ -406,7 +405,7 @@ def _detect_anomalies(
     # 1. Takılı case'ler (başladı ama bitmedi, uzun süredir)
     for rc in run_cases:
         if rc.status == "not_run" and rc.started_at:
-            elapsed_secs = (_utcnow() - rc.started_at.replace(tzinfo=timezone.utc)).total_seconds()
+            elapsed_secs = (_utcnow() - rc.started_at.replace(tzinfo=_tz.utc)).total_seconds()
             threshold = max(1800, avg_duration * 2)  # en az 30 dk veya 2× ortalama
             if elapsed_secs > threshold:
                 elapsed_min = int(elapsed_secs / 60)

@@ -16,8 +16,7 @@ controls_for_feature(feature) -> list[Control]
 """
 from __future__ import annotations
 
-from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Dict
 
 from app.domains.compliance.mapping import (
     Control,

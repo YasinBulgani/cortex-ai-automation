@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone as _tz
 from typing import Optional
 
 from sqlalchemy import func, select
@@ -98,7 +98,7 @@ def build_execution_history(
     test_type: Optional[str],
     status: Optional[str],
 ) -> ExecutionHistoryResponse:
-    from sqlalchemy import Date, case, cast
+    from sqlalchemy import case
 
     # TODO(SQLAlchemy2): complex grouped query with dynamic HAVING — manual review advised
     q = (
@@ -258,7 +258,7 @@ def build_execution_trends(
 ) -> TrendResponse:
     from sqlalchemy import Date, case, cast
 
-    cutoff = datetime.now(timezone.utc) - timedelta(days=days)
+    cutoff = datetime.now(_tz.utc) - timedelta(days=days)
 
     daily_q = db.execute(
         select(

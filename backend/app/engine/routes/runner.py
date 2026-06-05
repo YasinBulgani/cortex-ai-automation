@@ -23,7 +23,7 @@ import threading
 import time
 from datetime import datetime
 from pathlib import Path
-from typing import Annotated, Optional
+from typing import Optional
 
 from fastapi import APIRouter, HTTPException, status
 from fastapi.responses import StreamingResponse

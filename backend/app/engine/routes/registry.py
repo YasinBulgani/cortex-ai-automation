@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 """
 Registry routes — Flask engine'den FastAPI'ye port edilmiştir.
 
@@ -12,9 +13,9 @@ Locator Registry API: selector chain destekli locator yönetimi.
 """
 
 from pathlib import Path
-from typing import Annotated, Any
+from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel, Field
 
 router = APIRouter(prefix="/api/registry", tags=["engine", "registry"])
@@ -115,7 +116,7 @@ def get_entry(name: str):
 def create_entry(body: EntryCreate):
     """Yeni locator entry oluşturur veya mevcut olanı günceller."""
     try:
-        from core.locator_registry import SelectorChain, SelectorCandidate
+        from core.locator_registry import SelectorCandidate, SelectorChain
 
         reg = get_registry()
         chain = SelectorChain(

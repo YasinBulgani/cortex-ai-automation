@@ -13,16 +13,20 @@ logger = logging.getLogger(__name__)
 # ── Graceful import ──────────────────────────────────────────────────────────
 try:
     from playwright.async_api import (
-        async_playwright,
         Browser,
         BrowserContext,
         Page,
         Playwright,
+        async_playwright,
     )
 
     _PW_AVAILABLE = True
 except ImportError:
     _PW_AVAILABLE = False
+    logger.warning(
+        "Opsiyonel bağımlılık 'playwright' yüklenemedi, tarayıcı otomasyonu devre dışı. "
+        "pip install playwright ile ekleyin."
+    )
 
 _MAX_SESSIONS = 5
 _IDLE_TIMEOUT_SEC = 600  # 10 minutes
@@ -550,7 +554,7 @@ class BrowserManager:
         self, session_id: str, target_description: str
     ) -> list[dict[str, Any]]:
         """Find best selectors for a target element described in natural language."""
-        from .dom_analyzer import extract_page_object_hints, compute_selector_stability
+        from .dom_analyzer import compute_selector_stability, extract_page_object_hints
 
         async with self._lock:
             data = self._get_session_data(session_id)

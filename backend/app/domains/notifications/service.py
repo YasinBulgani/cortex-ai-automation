@@ -1,8 +1,7 @@
 from __future__ import annotations
 
-import json
 import logging
-from datetime import datetime, timezone
+from datetime import datetime, timezone as _tz
 
 from fastapi import WebSocket
 
@@ -32,7 +31,7 @@ class ConnectionManager:
         msg = WSMessage(
             type=event_type,
             payload=payload,
-            timestamp=datetime.now(timezone.utc).isoformat(),
+            timestamp=datetime.now(_tz.utc).isoformat(),
         )
         data = msg.model_dump_json()
         for ws in self.active_connections.get(user_id, []):
@@ -45,7 +44,7 @@ class ConnectionManager:
         msg = WSMessage(
             type=event_type,
             payload=payload,
-            timestamp=datetime.now(timezone.utc).isoformat(),
+            timestamp=datetime.now(_tz.utc).isoformat(),
         )
         data = msg.model_dump_json()
         for user_id, connections in self.active_connections.items():

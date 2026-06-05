@@ -17,10 +17,7 @@ from __future__ import annotations
 
 import json
 import logging
-import time
-from typing import Any, AsyncIterator
-
-from app.config import settings
+from collections.abc import AsyncIterator
 
 logger = logging.getLogger(__name__)
 
@@ -47,7 +44,9 @@ class StreamingLLMService:
             {"type": "error", "message": "..."} — Hata durumunda
         """
         from app.domains.ai.service import (
-            SYSTEM_PROMPT_SCENARIO_GEN, _get_rag_context_async, _parse_json_response,
+            SYSTEM_PROMPT_SCENARIO_GEN,
+            _get_rag_context_async,
+            _parse_json_response,
             async_stream_llm,
         )
 
@@ -101,7 +100,9 @@ class StreamingLLMService:
     ) -> AsyncIterator[dict]:
         """Test sonucu analizini stream et."""
         from app.domains.ai.service import (
-            SYSTEM_PROMPT_ANALYSIS, _get_rag_context_async, _parse_json_response,
+            SYSTEM_PROMPT_ANALYSIS,
+            _get_rag_context_async,
+            _parse_json_response,
             async_stream_llm,
         )
 
@@ -156,7 +157,9 @@ class StreamingLLMService:
     ) -> AsyncIterator[dict]:
         """Test verisi uretimini stream et."""
         from app.domains.ai.service import (
-            SYSTEM_PROMPT_TESTDATA, _parse_json_response, async_stream_llm,
+            SYSTEM_PROMPT_TESTDATA,
+            _parse_json_response,
+            async_stream_llm,
         )
 
         user_content = f"Aciklama: {description}\nIstenen satir sayisi: {row_count}"

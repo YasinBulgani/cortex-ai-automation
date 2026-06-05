@@ -6,7 +6,6 @@ Router'ın doğrudan browser_manager'a erişmesi yerine bu modül üzerinden
 from __future__ import annotations
 
 import logging
-from typing import Any
 
 logger = logging.getLogger(__name__)
 

@@ -7,8 +7,8 @@ kullan.
 
 from __future__ import annotations
 
-from app.contexts.identity.domain import Email, User, UserId
 from app.contexts.identity.application.register_user import UserRepository
+from app.contexts.identity.domain import Email, User, UserId
 
 
 class InMemoryUserRepository(UserRepository):

@@ -1,14 +1,13 @@
 """5-Katmanlı Locator Pipeline Orchestrator."""
 from __future__ import annotations
 
-import asyncio
 import logging
 import time
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Callable
 
-from ...schemas.locator import ElementCard, LocatorCandidate, LocatorSuggestion
+from ...schemas.locator import ElementCard, LocatorSuggestion
 from .extraction import extract_elements
 from .generation import generate_locators_for_element
 from .registry import LocatorRegistry, get_registry, url_pattern

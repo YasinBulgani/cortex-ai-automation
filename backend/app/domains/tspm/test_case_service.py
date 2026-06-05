@@ -9,13 +9,12 @@ import hashlib
 import json
 import logging
 import re
-from datetime import datetime, timezone
 from typing import Any, Optional
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.domains.ai.gateway_client import gateway_complete, gateway_is_available
+from app.domains.ai.gateway_client import gateway_complete
 from app.domains.tspm.models import TspmAiBatch, TspmScenario, TspmTestCase, utcnow
 from app.domains.tspm.schemas import (
     AiBatchOut,

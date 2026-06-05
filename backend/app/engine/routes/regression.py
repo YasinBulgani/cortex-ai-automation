@@ -10,7 +10,8 @@ SONRA (FastAPI):
 Bu pattern her route file için takip edilir. Bir Python developer kopyala-yapıştır + dönüştür yapar.
 """
 
-from typing import Annotated, Optional
+from typing import Annotated
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
 

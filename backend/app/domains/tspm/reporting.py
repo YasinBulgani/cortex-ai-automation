@@ -9,15 +9,13 @@ root-cause analiz servisi.
 
 from __future__ import annotations
 
-import json
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timezone as _tz
 from enum import Enum
 from pathlib import Path
 from typing import Any, Optional
 
 from pydantic import BaseModel, Field
-
 
 # ═══════════════════════════════════════════════════════════════════════
 # Enums
@@ -136,7 +134,7 @@ class EnvironmentInfo(BaseModel):
 
 
 class TimingInfo(BaseModel):
-    started_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    started_at: datetime = Field(default_factory=lambda: datetime.now(_tz.utc))
     finished_at: Optional[datetime] = None
     duration_seconds: float = 0.0
 
@@ -179,7 +177,7 @@ class ExecutionReport(BaseModel):
     execution_id: str = ""
     project_id: str = ""
     title: str = ""
-    generated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    generated_at: datetime = Field(default_factory=lambda: datetime.now(_tz.utc))
     environment: EnvironmentInfo = Field(default_factory=EnvironmentInfo)
     timing: TimingInfo = Field(default_factory=TimingInfo)
     summary: ReportSummary = Field(default_factory=ReportSummary)
@@ -200,7 +198,7 @@ class ReportBuilder:
         self._report = ExecutionReport(
             project_id=project_id,
             execution_id=execution_id,
-            title=title or f"Execution Report {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M')}",
+            title=title or f"Execution Report {datetime.now(_tz.utc).strftime('%Y-%m-%d %H:%M')}",
         )
         self._results: list[TestResult] = []
 

@@ -4,7 +4,7 @@ import hashlib
 import logging
 import os
 import secrets
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone as _tz
 from functools import lru_cache
 from typing import Optional
 
@@ -56,7 +56,7 @@ def _get_redis_client():
 
 
 def _utc_ts() -> int:
-    return int(datetime.now(timezone.utc).timestamp())
+    return int(datetime.now(_tz.utc).timestamp())
 
 
 def _prune_expired() -> None:
@@ -162,7 +162,7 @@ def create_access_token(
     `expires_minutes` verilirse o değer kullanılır (ör. "Beni hatırla" için uzun TTL);
     aksi hâlde `settings.access_token_expire_minutes` (standart 30 dk) geçerlidir.
     """
-    now = datetime.now(timezone.utc)
+    now = datetime.now(_tz.utc)
     ttl_minutes = expires_minutes if expires_minutes and expires_minutes > 0 else settings.access_token_expire_minutes
     exp = now + timedelta(minutes=ttl_minutes)
     payload = {
@@ -208,7 +208,7 @@ def revoke_token(token: str) -> None:
 
 def create_password_reset_token(user_id: str) -> str:
     """Şifre sifirlama token'i oluştur (15 dakika gecerli)."""
-    now = datetime.now(timezone.utc)
+    now = datetime.now(_tz.utc)
     exp = now + timedelta(minutes=settings.password_reset_token_expire_minutes)
     jti = secrets.token_hex(16)
     payload = {
@@ -255,7 +255,7 @@ def create_refresh_token(user_id: str, db, user_agent: str = "") -> str:
     from app.infra.models import RefreshToken
 
     jti = secrets.token_hex(16)
-    now = datetime.now(timezone.utc)
+    now = datetime.now(_tz.utc)
     exp = now + timedelta(days=settings.refresh_token_expire_days)
 
     payload = {
@@ -320,7 +320,7 @@ def verify_refresh_token(token: str, db) -> str:
             payload.get("sub"), jti, record.user_id,
         )
         raise ValueError("Refresh token iptal edilmis")
-    if record.expires_at.replace(tzinfo=timezone.utc) < datetime.now(timezone.utc):
+    if record.expires_at.replace(tzinfo=_tz.utc) < datetime.now(_tz.utc):
         raise ValueError("Refresh token süresi dolmus")
 
     # Hash dogrulama — eslesmeme olası token sahteciliği göstergesi
@@ -356,6 +356,7 @@ def revoke_refresh_token(token: str, db) -> None:
 def revoke_all_user_tokens(user_id: str, db) -> int:
     """Kullanicinin tüm refresh token'larini iptal et. Iptal edilen sayiyi dondur."""
     from sqlalchemy import update
+
     from app.infra.models import RefreshToken
 
     result = db.execute(

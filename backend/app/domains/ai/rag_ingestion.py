@@ -56,14 +56,15 @@ def _async(fn, *args, **kwargs) -> None:
 def ingest_tspm_execution(execution_id: str) -> None:
     """Test kosusu bittiginde cagrilir. Özet + failed result'lar RAG'a yazilir."""
     try:
-        from app.infra.database import SessionLocal
+        from sqlalchemy import select
+
         from app.domains.tspm.models import (
             TspmExecution,
             TspmExecutionMetrics,
             TspmExecutionResult,
             TspmScenario,
         )
-        from sqlalchemy import select
+        from app.infra.database import SessionLocal
     except Exception as exc:
         logger.debug("ingest_tspm_execution: import hatasi: %s", exc)
         return

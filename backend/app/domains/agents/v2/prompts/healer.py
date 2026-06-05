@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import json
 
-
 HEALER_CLASSIFY_SYSTEM_PROMPT = """Kırık bir testin bağlamına bakıp tek kelimeyle kategori söylersin.
 
 KATEGORİLER:

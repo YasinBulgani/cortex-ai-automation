@@ -12,15 +12,15 @@ import asyncio
 import logging
 import re
 import uuid
-from dataclasses import dataclass, field
-from datetime import datetime, timezone
+import dataclasses
+from dataclasses import dataclass, field, asdict as _dc_asdict
+from datetime import datetime, timezone as _tz
 from threading import RLock
 from typing import Any, Dict, List, Optional
 
 import httpx
 
 from app.config import settings
-from app.domains.dsl import service as dsl_service
 from app.domains.automation_suite.schemas import (
     Framework,
     RunStatus,
@@ -33,6 +33,7 @@ from app.domains.automation_suite.schemas import (
     SuiteRunResponse,
     SuiteRunStatus,
 )
+from app.domains.dsl import service as dsl_service
 
 logger = logging.getLogger(__name__)
 
@@ -78,36 +79,99 @@ class _RunRecord:
 
 
 class _RunRegistry:
-    """Thread-safe, in-memory koşum registry'si.
+    """Thread-safe koşum registry'si.
 
-    Prod için `AutomationRun` SQL tablosu ile replace edilmesi planlanır.
-    Şu anda pod restart'ında kayıp edilebilir — bu davranış kabul edilebilir
-    çünkü gerçek rapor `reports/` ve Allure altında kalır.
+    Redis varsa koşum kayıtları orada saklanır (TTL=24sa) — pod restart'larına
+    karşı dayanıklı. Redis yoksa in-memory fallback kullanılır.
+    Gerçek rapor yine de `reports/` ve Allure altında kalır.
     """
+
+    _REDIS_TTL = 86_400  # 24 saat
+    _KEY_PREFIX = "automation_run:"
 
     def __init__(self) -> None:
         self._lock = RLock()
         self._store: Dict[str, _RunRecord] = {}
+        self._redis = self._try_redis()
 
-    def create(
-        self,
-        *,
-        feature_path: Optional[str],
-        framework: Optional[Framework],
-    ) -> _RunRecord:
+    @staticmethod
+    def _try_redis():
+        try:
+            import redis as _redis_lib
+            client = _redis_lib.from_url(
+                settings.redis_url,
+                decode_responses=True,
+                socket_connect_timeout=1,
+                socket_timeout=1,
+            )
+            client.ping()
+            logger.info("AutomationSuite: Redis registry bağlandı")
+            return client
+        except Exception as exc:
+            logger.warning("AutomationSuite: Redis yok, in-memory fallback (%s)", exc)
+            return None
+
+    def _to_json(self, rec: _RunRecord) -> str:
+        import json as _json
+        d = _dc_asdict(rec)
+        # datetime → ISO string
+        for k in ("started_at", "completed_at"):
+            if d.get(k) is not None:
+                d[k] = d[k].isoformat()
+        return _json.dumps(d)
+
+    def _from_json(self, raw: str) -> Optional[_RunRecord]:
+        import json as _json
+        try:
+            d = _json.loads(raw)
+            for k in ("started_at", "completed_at"):
+                if d.get(k):
+                    d[k] = datetime.fromisoformat(d[k])
+            return _RunRecord(**d)
+        except Exception:
+            return None
+
+    def create(self, *, feature_path: Optional[str], framework: Optional[Framework]) -> _RunRecord:
         run_id = uuid.uuid4().hex[:16]
         rec = _RunRecord(
             run_id=run_id,
             status="queued",
-            started_at=datetime.now(timezone.utc),
+            started_at=datetime.now(_tz.utc),
             feature_path=feature_path,
             framework=framework,
         )
+        if self._redis:
+            try:
+                self._redis.setex(
+                    f"{self._KEY_PREFIX}{run_id}",
+                    self._REDIS_TTL,
+                    self._to_json(rec),
+                )
+                return rec
+            except Exception:
+                pass
         with self._lock:
             self._store[run_id] = rec
         return rec
 
     def update(self, run_id: str, **fields: Any) -> Optional[_RunRecord]:
+        if self._redis:
+            try:
+                raw = self._redis.get(f"{self._KEY_PREFIX}{run_id}")
+                if raw:
+                    rec = self._from_json(raw)
+                    if rec:
+                        for key, value in fields.items():
+                            if hasattr(rec, key):
+                                setattr(rec, key, value)
+                        self._redis.setex(
+                            f"{self._KEY_PREFIX}{run_id}",
+                            self._REDIS_TTL,
+                            self._to_json(rec),
+                        )
+                        return rec
+            except Exception:
+                pass
         with self._lock:
             rec = self._store.get(run_id)
             if rec is None:
@@ -118,16 +182,39 @@ class _RunRegistry:
             return rec
 
     def append_log(self, run_id: str, line: str) -> None:
+        if self._redis:
+            try:
+                raw = self._redis.get(f"{self._KEY_PREFIX}{run_id}")
+                if raw:
+                    rec = self._from_json(raw)
+                    if rec:
+                        rec.logs.append(line)
+                        if len(rec.logs) > 200:
+                            rec.logs = rec.logs[-200:]
+                        self._redis.setex(
+                            f"{self._KEY_PREFIX}{run_id}",
+                            self._REDIS_TTL,
+                            self._to_json(rec),
+                        )
+                        return
+            except Exception:
+                pass
         with self._lock:
             rec = self._store.get(run_id)
             if rec is None:
                 return
             rec.logs.append(line)
             if len(rec.logs) > 200:
-                # Yalnızca son 200 satırı tut
                 rec.logs = rec.logs[-200:]
 
     def get(self, run_id: str) -> Optional[_RunRecord]:
+        if self._redis:
+            try:
+                raw = self._redis.get(f"{self._KEY_PREFIX}{run_id}")
+                if raw:
+                    return self._from_json(raw)
+            except Exception:
+                pass
         with self._lock:
             return self._store.get(run_id)
 
@@ -287,7 +374,7 @@ async def _execute_run(run_id: str, req: SuiteRunRequest) -> None:
         _registry.update(
             run_id,
             status="error",
-            completed_at=datetime.now(timezone.utc),
+            completed_at=datetime.now(_tz.utc),
             error=f"HTTP {exc.response.status_code}: {exc.response.text[:200]}",
         )
         _registry.append_log(run_id, f"[{_now()}] HATA: {exc}")
@@ -296,7 +383,7 @@ async def _execute_run(run_id: str, req: SuiteRunRequest) -> None:
         _registry.update(
             run_id,
             status="error",
-            completed_at=datetime.now(timezone.utc),
+            completed_at=datetime.now(_tz.utc),
             error=f"Engine ulaşılamıyor: {exc}",
         )
         _registry.append_log(run_id, f"[{_now()}] Engine bağlantı hatası: {exc}")
@@ -312,7 +399,7 @@ async def _execute_run(run_id: str, req: SuiteRunRequest) -> None:
     _registry.update(
         run_id,
         status=final_status,
-        completed_at=datetime.now(timezone.utc),
+        completed_at=datetime.now(_tz.utc),
         passed=passed,
         failed=failed,
         report_url=report_url if isinstance(report_url, str) else None,
@@ -321,7 +408,7 @@ async def _execute_run(run_id: str, req: SuiteRunRequest) -> None:
 
 
 def _now() -> str:
-    return datetime.now(timezone.utc).strftime("%H:%M:%S")
+    return datetime.now(_tz.utc).strftime("%H:%M:%S")
 
 
 def get_run_status(run_id: str) -> Optional[SuiteRunStatus]:

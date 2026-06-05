@@ -7,11 +7,18 @@ from datetime import datetime
 from urllib.parse import urlparse
 
 from ..schemas.app_map import (
-    AppMap, ApiObservation, FormDescriptor, FormField, PageNode,
+    ApiObservation,
+    AppMap,
+    FormDescriptor,
+    FormField,
+    PageNode,
 )
 from ..state import AgentState
 from ..tools.browser import (
-    PLAYWRIGHT_AVAILABLE, BrowserSession, BrowserSecurityError, collect_links,
+    PLAYWRIGHT_AVAILABLE,
+    BrowserSecurityError,
+    BrowserSession,
+    collect_links,
 )
 from ..tools.locator.snapshot import snapshot_page
 from .base import BaseAgent

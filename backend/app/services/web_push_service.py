@@ -4,6 +4,7 @@ Web Push Notification Service — VAPID tabanlı tarayıcı push bildirimleri.
 Gereksinim: pip install pywebpush
 """
 from __future__ import annotations
+
 import json
 import logging
 from typing import Optional
@@ -36,7 +37,7 @@ class WebPushService:
             logger.debug("[push] VAPID key'ler tanımlı değil — atlandı")
             return False
         try:
-            from pywebpush import webpush, WebPushException  # type: ignore
+            from pywebpush import WebPushException, webpush  # type: ignore
             payload = json.dumps({
                 "title": title,
                 "body": body,

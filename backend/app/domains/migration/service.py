@@ -12,12 +12,8 @@ from pathlib import Path
 from typing import Dict, List, Optional
 
 from app.domains.migration.assistant import (
-    MigrationResult,
     SourceFramework,
     migrate_directory,
-    migrate_katalon,
-    migrate_selenium_java,
-    migrate_selenium_py,
     migrate_source,
 )
 

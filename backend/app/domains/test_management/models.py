@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timezone as _tz
 from typing import Any, Optional
 
 from sqlalchemy import JSON, Boolean, DateTime, ForeignKey, Index, Integer, String, Text, UniqueConstraint
@@ -18,7 +18,7 @@ def _uuid() -> str:
 
 
 def utcnow() -> datetime:
-    return datetime.now(timezone.utc)
+    return datetime.now(_tz.utc)
 
 
 DEFAULT_TENANT_ID = "00000000-0000-0000-0000-000000000001"
@@ -41,9 +41,9 @@ class TestManagementProject(Base):
     # Proje başına özelleştirilebilir ayarlar (default_priority, modules, tags, vb.)
     settings_data: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True, default=None)
 
-    suites: Mapped[list["TestSuite"]] = relationship(back_populates="project", cascade="all, delete-orphan")
-    cases: Mapped[list["TestCase"]] = relationship(back_populates="project", cascade="all, delete-orphan")
-    plans: Mapped[list["TestPlan"]] = relationship(back_populates="project", cascade="all, delete-orphan")
+    suites: Mapped[list[TestSuite]] = relationship(back_populates="project", cascade="all, delete-orphan")
+    cases: Mapped[list[TestCase]] = relationship(back_populates="project", cascade="all, delete-orphan")
+    plans: Mapped[list[TestPlan]] = relationship(back_populates="project", cascade="all, delete-orphan")
 
 
 class TestSuite(Base):
@@ -59,8 +59,8 @@ class TestSuite(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
 
     project: Mapped[TestManagementProject] = relationship(back_populates="suites")
-    folders: Mapped[list["TestFolder"]] = relationship(back_populates="suite", cascade="all, delete-orphan")
-    cases: Mapped[list["TestCase"]] = relationship(back_populates="suite")
+    folders: Mapped[list[TestFolder]] = relationship(back_populates="suite", cascade="all, delete-orphan")
+    cases: Mapped[list[TestCase]] = relationship(back_populates="suite")
 
 
 class TestFolder(Base):
@@ -76,7 +76,7 @@ class TestFolder(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
 
     suite: Mapped[TestSuite] = relationship(back_populates="folders")
-    cases: Mapped[list["TestCase"]] = relationship(back_populates="folder")
+    cases: Mapped[list[TestCase]] = relationship(back_populates="folder")
 
 
 class TestCase(Base):
@@ -112,6 +112,7 @@ class TestCase(Base):
     last_failed_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     last_run_id: Mapped[Optional[str]] = mapped_column(UUID(as_uuid=False), nullable=True)
     archived: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false", nullable=False)
+    parent_id: Mapped[Optional[str]] = mapped_column(UUID(as_uuid=False), ForeignKey("test_management_cases.id", ondelete="SET NULL"), nullable=True, index=True)
     created_by: Mapped[Optional[str]] = mapped_column(UUID(as_uuid=False), ForeignKey("sd_users.id", ondelete="SET NULL"), nullable=True)
     updated_by: Mapped[Optional[str]] = mapped_column(UUID(as_uuid=False), ForeignKey("sd_users.id", ondelete="SET NULL"), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
@@ -120,8 +121,25 @@ class TestCase(Base):
     project: Mapped[TestManagementProject] = relationship(back_populates="cases")
     suite: Mapped[Optional[TestSuite]] = relationship(back_populates="cases")
     folder: Mapped[Optional[TestFolder]] = relationship(back_populates="cases")
-    steps: Mapped[list["TestCaseStep"]] = relationship(back_populates="case", cascade="all, delete-orphan", order_by="TestCaseStep.step_no")
-    versions: Mapped[list["TestCaseVersion"]] = relationship(back_populates="case", cascade="all, delete-orphan")
+    steps: Mapped[list[TestCaseStep]] = relationship(back_populates="case", cascade="all, delete-orphan", order_by="TestCaseStep.step_no")
+    versions: Mapped[list[TestCaseVersion]] = relationship(back_populates="case", cascade="all, delete-orphan")
+    sub_cases: Mapped[list[TestCase]] = relationship("TestCase", foreign_keys="TestCase.parent_id", back_populates="parent_case", cascade="all, delete-orphan")
+    parent_case: Mapped[Optional[TestCase]] = relationship("TestCase", foreign_keys=[parent_id], back_populates="sub_cases", remote_side="TestCase.id")
+
+
+class TestCaseDependency(Base):
+    """TC-A, TC-B tamamlanmadan çalıştırılamaz."""
+    __tablename__ = "test_management_case_dependencies"
+    __table_args__ = (
+        UniqueConstraint("case_id", "depends_on_id", name="uq_tm_case_deps_case_dep"),
+    )
+
+    id: Mapped[str] = mapped_column(UUID(as_uuid=False), primary_key=True, default=_uuid)
+    case_id: Mapped[str] = mapped_column(UUID(as_uuid=False), ForeignKey("test_management_cases.id", ondelete="CASCADE"), nullable=False, index=True)
+    depends_on_id: Mapped[str] = mapped_column(UUID(as_uuid=False), ForeignKey("test_management_cases.id", ondelete="CASCADE"), nullable=False, index=True)
+    dep_type: Mapped[str] = mapped_column(String(32), default="blocks", server_default="blocks", nullable=False)
+    # dep_type: "blocks" (dep must pass first), "related" (informational)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
 
 
 class TestCaseStep(Base):
@@ -138,6 +156,24 @@ class TestCaseStep(Base):
     is_required: Mapped[bool] = mapped_column(Boolean, default=True, server_default="true", nullable=False)
 
     case: Mapped[TestCase] = relationship(back_populates="steps")
+
+
+class SharedStep(Base):
+    """Reusable step template that can be embedded in multiple test cases."""
+    __tablename__ = "test_management_shared_steps"
+
+    id: Mapped[str] = mapped_column(UUID(as_uuid=False), primary_key=True, default=_uuid)
+    project_id: Mapped[str] = mapped_column(UUID(as_uuid=False), ForeignKey("test_management_projects.id", ondelete="CASCADE"), nullable=False, index=True)
+    name: Mapped[str] = mapped_column(String(200), nullable=False)
+    description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    steps: Mapped[list[dict[str, Any]]] = mapped_column(JSONB, default=list, server_default="[]", nullable=False)
+    tags: Mapped[list[str]] = mapped_column(JSONB, default=list, server_default="[]", nullable=False)
+    usage_count: Mapped[int] = mapped_column(Integer, default=0, server_default="0", nullable=False)
+    created_by: Mapped[Optional[str]] = mapped_column(UUID(as_uuid=False), ForeignKey("sd_users.id", ondelete="SET NULL"), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow, nullable=False)
+
+    project: Mapped[TestManagementProject] = relationship()
 
 
 class TestCaseVersion(Base):
@@ -171,7 +207,7 @@ class TestPlan(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
 
     project: Mapped[TestManagementProject] = relationship(back_populates="plans")
-    cycles: Mapped[list["TestCycle"]] = relationship(back_populates="plan", cascade="all, delete-orphan")
+    cycles: Mapped[list[TestCycle]] = relationship(back_populates="plan", cascade="all, delete-orphan")
 
 
 class RegressionSet(Base):
@@ -189,7 +225,7 @@ class RegressionSet(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
 
     project: Mapped[TestManagementProject] = relationship()
-    cases: Mapped[list["RegressionSetCase"]] = relationship(back_populates="regression_set", cascade="all, delete-orphan")
+    cases: Mapped[list[RegressionSetCase]] = relationship(back_populates="regression_set", cascade="all, delete-orphan")
 
 
 class RegressionSetCase(Base):
@@ -227,7 +263,7 @@ class TestCycle(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
 
     plan: Mapped[TestPlan] = relationship(back_populates="cycles")
-    runs: Mapped[list["TestRun"]] = relationship(back_populates="cycle", cascade="all, delete-orphan")
+    runs: Mapped[list[TestRun]] = relationship(back_populates="cycle", cascade="all, delete-orphan")
 
 
 class TestRun(Base):
@@ -246,7 +282,7 @@ class TestRun(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
 
     cycle: Mapped[TestCycle] = relationship(back_populates="runs")
-    run_cases: Mapped[list["TestRunCase"]] = relationship(back_populates="run", cascade="all, delete-orphan")
+    run_cases: Mapped[list[TestRunCase]] = relationship(back_populates="run", cascade="all, delete-orphan")
 
 
 class TestRunCase(Base):
@@ -268,7 +304,7 @@ class TestRunCase(Base):
 
     run: Mapped[TestRun] = relationship(back_populates="run_cases")
     case: Mapped[TestCase] = relationship()
-    step_results: Mapped[list["TestRunStepResult"]] = relationship(back_populates="run_case", cascade="all, delete-orphan")
+    step_results: Mapped[list[TestRunStepResult]] = relationship(back_populates="run_case", cascade="all, delete-orphan")
 
 
 class TestRunStepResult(Base):
@@ -339,7 +375,7 @@ class Requirement(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow, nullable=False)
 
-    links: Mapped[list["RequirementLink"]] = relationship(back_populates="requirement")
+    links: Mapped[list[RequirementLink]] = relationship(back_populates="requirement")
 
 
 class RequirementLink(Base):
@@ -500,10 +536,10 @@ class MgmtDesignTechniqueRun(Base):
     )
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
 
-    fields: Mapped[list["MgmtDesignInputField"]] = relationship(
+    fields: Mapped[list[MgmtDesignInputField]] = relationship(
         back_populates="run", cascade="all, delete-orphan"
     )
-    partitions: Mapped[list["MgmtDesignPartition"]] = relationship(
+    partitions: Mapped[list[MgmtDesignPartition]] = relationship(
         back_populates="run", cascade="all, delete-orphan"
     )
 
@@ -529,7 +565,7 @@ class MgmtDesignInputField(Base):
     nullable: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false", nullable=False)
 
     run: Mapped[MgmtDesignTechniqueRun] = relationship(back_populates="fields")
-    partitions: Mapped[list["MgmtDesignPartition"]] = relationship(
+    partitions: Mapped[list[MgmtDesignPartition]] = relationship(
         back_populates="field", cascade="all, delete-orphan"
     )
 
@@ -582,7 +618,7 @@ class MgmtCaseParamSet(Base):
     )
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
 
-    rows: Mapped[list["MgmtCaseDataRow"]] = relationship(
+    rows: Mapped[list[MgmtCaseDataRow]] = relationship(
         back_populates="param_set", cascade="all, delete-orphan"
     )
 
@@ -625,7 +661,7 @@ class TestImportJob(Base):
     created_by: Mapped[Optional[str]] = mapped_column(UUID(as_uuid=False), ForeignKey("sd_users.id", ondelete="SET NULL"), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
 
-    rows: Mapped[list["TestImportJobRow"]] = relationship(back_populates="job", cascade="all, delete-orphan")
+    rows: Mapped[list[TestImportJobRow]] = relationship(back_populates="job", cascade="all, delete-orphan")
 
 
 class TestImportJobRow(Base):

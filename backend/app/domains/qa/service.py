@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import re
 import subprocess
-from datetime import datetime, timezone
+from datetime import datetime, timezone as _tz
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -28,7 +28,6 @@ from .models import (
     TestRunListItem,
 )
 
-
 # Repo kökünü bul: backend/app/domains/qa/service.py'den 5 yukarı çık
 _HERE = Path(__file__).resolve()
 REPO_ROOT = _HERE.parents[4]
@@ -42,7 +41,6 @@ def _load_yaml(path: Path) -> dict:
     döner. Pydantic `str` field'larında bu validation fail eder. Tüm
     date/datetime değerlerini ISO string'e çevirip döndürüyoruz.
     """
-    from datetime import date, datetime as _dt
     text = path.read_text(encoding="utf-8")
     data = yaml.safe_load(text) or {}
     return _stringify_dates(data)
@@ -50,7 +48,8 @@ def _load_yaml(path: Path) -> dict:
 
 def _stringify_dates(obj):
     """Date / datetime / time object'lerini ISO string'e dönüştür (recursive)."""
-    from datetime import date, datetime as _dt, time
+    from datetime import date, time
+    from datetime import datetime as _dt
     if isinstance(obj, dict):
         return {k: _stringify_dates(v) for k, v in obj.items()}
     if isinstance(obj, list):
@@ -206,7 +205,7 @@ def create_test_case(req: CreateTestCaseRequest) -> TestCase:
     slug = _slugify(req.title)
     file_path = suite_dir / f"{tc_id}-{slug}.md"
 
-    today = datetime.now(timezone.utc).date().isoformat()
+    today = datetime.now(_tz.utc).date().isoformat()
     fm = {
         "id": tc_id,
         "title": req.title,
@@ -247,7 +246,7 @@ def update_test_case(tc_id: str, updates: Dict[str, Any]) -> Optional[TestCase]:
         for k, v in updates.items():
             if v is not None:
                 fm[k] = v
-        fm["updated"] = datetime.now(timezone.utc).date().isoformat()
+        fm["updated"] = datetime.now(_tz.utc).date().isoformat()
         if new_body is not None:
             body = new_body
         tc_file.write_text(_serialize_frontmatter(fm) + body, encoding="utf-8")
@@ -292,7 +291,7 @@ def get_run(run_id: str) -> Optional[TestRun]:
 
 def create_run(plan: str, executor: str, environment: dict, results: List[dict]) -> TestRun:
     """run-record.mjs equivalent — yeni run YAML yarat."""
-    now = datetime.now(timezone.utc)
+    now = datetime.now(_tz.utc)
     yyyy, mm, dd = now.strftime("%Y"), now.strftime("%m"), now.strftime("%d")
     name = plan.upper().replace("TP-", "").replace(".", "-").replace("_", "-")
 
@@ -441,7 +440,7 @@ def health_score() -> HealthReport:
         if latest_started:
             try:
                 latest = datetime.fromisoformat(latest_started.replace("Z", "+00:00"))
-                days = (datetime.now(timezone.utc) - latest).total_seconds() / 86400
+                days = (datetime.now(_tz.utc) - latest).total_seconds() / 86400
                 if days < 1:
                     run_score = 15
                 elif days < 7:
@@ -500,7 +499,7 @@ def health_score() -> HealthReport:
             "open_defects": {"score": defect_score, "max": 10, "note": f"{open_defects} açık"},
         },
         stats={"test_cases": len(tcs), "requirements": len(reqs), "runs": len(runs)},
-        generated_at=datetime.now(timezone.utc).isoformat(),
+        generated_at=datetime.now(_tz.utc).isoformat(),
     )
 
 

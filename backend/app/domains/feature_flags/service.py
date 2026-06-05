@@ -35,8 +35,9 @@ import json
 import logging
 import threading
 import time
-from datetime import datetime, timezone
-from typing import Callable, Dict, List, Optional
+from collections.abc import Callable
+from datetime import datetime, timezone as _tz
+from typing import Dict, List, Optional
 
 from .schemas import FlagEvaluation, FlagOut, FlagUpdate, RolloutOut
 
@@ -101,7 +102,7 @@ class _FlagRecord:
         )
 
     @classmethod
-    def from_json(cls, key: str, raw: str) -> "_FlagRecord":
+    def from_json(cls, key: str, raw: str) -> _FlagRecord:
         data = json.loads(raw)
         return cls(
             key=key,
@@ -274,7 +275,7 @@ class FeatureFlagService:
             if update.allow_tenants is not None:
                 rec.allow_tenants = list(update.allow_tenants)
 
-            rec.updated_at = datetime.now(timezone.utc).isoformat()
+            rec.updated_at = datetime.now(_tz.utc).isoformat()
             rec.updated_by = actor
 
             self._memory[key] = rec

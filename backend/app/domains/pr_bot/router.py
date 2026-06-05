@@ -4,10 +4,15 @@ from __future__ import annotations
 import dataclasses
 import os
 from pathlib import Path
-from typing import Any, Optional
+from typing import Annotated, Any, Optional
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
+
+from app.deps import get_current_user
+from app.infra.models import User
+
+CurrentUser = Annotated[User, Depends(get_current_user)]
 
 from .service import PRSummary, build_pr_summary
 
@@ -43,7 +48,7 @@ def _llm_available() -> bool:
 
 
 @router.post("/analyze", summary="Analyse changed PR files and return a PR summary")
-def analyze(body: AnalyzeRequest) -> dict[str, Any]:
+def analyze(body: AnalyzeRequest, user: CurrentUser) -> dict[str, Any]:
     """Run TIA + coverage + eval summary for the given changed files.
 
     Returns a ``PRSummary`` serialised as a dict.
@@ -68,6 +73,6 @@ def analyze(body: AnalyzeRequest) -> dict[str, Any]:
 
 
 @router.get("/health", summary="PR bot health check")
-def health() -> dict[str, Any]:
+def health(user: CurrentUser) -> dict[str, Any]:
     """Return service liveness and whether an LLM backend is reachable."""
     return {"status": "ok", "llm_available": _llm_available()}

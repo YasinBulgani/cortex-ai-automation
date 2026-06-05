@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone as _tz
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
@@ -313,7 +313,7 @@ def build_execution_trends_for_project(
     *,
     days: int = 30,
 ) -> ExecutionTrendsOut:
-    since = datetime.now(timezone.utc) - timedelta(days=days)
+    since = datetime.now(_tz.utc) - timedelta(days=days)
     metrics = list(
         db.scalars(
             select(TspmExecutionMetrics)

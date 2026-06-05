@@ -21,14 +21,14 @@ Entegrasyon:
 
 from __future__ import annotations
 
-import json
 import logging
 import re
 import time
 from pathlib import Path
 
 from app.config import settings
-from .base_agent import BaseAgent, AgentResult
+
+from .base_agent import AgentResult, BaseAgent
 
 logger = logging.getLogger(__name__)
 
@@ -344,6 +344,7 @@ class AutoHealerAgent(BaseAgent):
         """Playwright MCP uzerinden healed selector'i gerçek browser'da dogrula."""
         try:
             import asyncio
+
             from app.domains.playwright_mcp.browser_manager import BrowserManager
 
             manager = BrowserManager()
@@ -434,6 +435,7 @@ class AutoHealerAgent(BaseAgent):
         """Playwright MCP'den canli DOM al."""
         try:
             import asyncio
+
             from app.domains.playwright_mcp.browser_manager import BrowserManager
 
             manager = BrowserManager()
@@ -465,6 +467,7 @@ class AutoHealerAgent(BaseAgent):
         """Playwright MCP ile ekran goruntusu al, dosya yolunu dondur."""
         try:
             import asyncio
+
             from app.domains.playwright_mcp.browser_manager import BrowserManager
 
             manager = BrowserManager()

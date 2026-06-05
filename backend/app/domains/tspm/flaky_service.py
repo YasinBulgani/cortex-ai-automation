@@ -26,9 +26,10 @@ from __future__ import annotations
 
 import logging
 import os
+from collections.abc import Sequence
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
-from typing import Any, List, Literal, Optional, Sequence, Tuple
+from datetime import datetime, timedelta, timezone as _tz
+from typing import Any, List, Literal, Optional
 
 from pydantic import BaseModel, Field
 
@@ -122,7 +123,7 @@ def decide_quarantine(
         currently_quarantined: önceki state — hysteresis için
         now: zaman kaynağı (test için injectable)
     """
-    now = now or datetime.now(timezone.utc)
+    now = now or datetime.now(_tz.utc)
     min_runs = _env_int("FLAKY_MIN_RUNS", 5)
     q_thr = _env_float("FLAKY_QUARANTINE_THRESHOLD", 0.35)
     unq_thr = _env_float("FLAKY_UNQUARANTINE_THRESHOLD", 0.15)
@@ -418,7 +419,7 @@ def is_quarantined(
     if not row.is_quarantined:
         return False
     # Süresi dolduysa de-quarantine; DB update bir sonraki refresh'te olur
-    if row.quarantined_until and row.quarantined_until < datetime.now(timezone.utc):
+    if row.quarantined_until and row.quarantined_until < datetime.now(_tz.utc):
         return False
     return True
 

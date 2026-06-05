@@ -3,19 +3,26 @@
 from __future__ import annotations
 
 from typing import Optional
+
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from .models import (
-    NexusProject, NexusCrawlJob, NexusScenario, NexusExport,
-    NexusEndpoint, NexusFile,
+    NexusCrawlJob,
+    NexusEndpoint,
+    NexusExport,
+    NexusFile,
+    NexusProject,
+    NexusScenario,
 )
 from .schemas import (
-    NexusProjectCreate, NexusProjectUpdate,
-    NexusScenarioCreate, NexusScenarioUpdate,
-    NexusExportCreate, NexusStatsOut,
+    NexusExportCreate,
+    NexusProjectCreate,
+    NexusProjectUpdate,
+    NexusScenarioCreate,
+    NexusScenarioUpdate,
+    NexusStatsOut,
 )
-
 
 # ── Project CRUD ──────────────────────────────────────────────────────────────
 

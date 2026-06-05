@@ -14,12 +14,12 @@ Business rules:
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from dataclasses import dataclass
+from datetime import datetime, timezone as _tz
 from enum import Enum
 from uuid import UUID
 
-from app.contexts._shared.kernel import AggregateRoot, EntityId, ValueObject
+from app.contexts._shared.kernel import AggregateRoot, EntityId
 
 from .events import (
     RunCancelled,
@@ -95,7 +95,7 @@ class TestRun(AggregateRoot[TestRunId]):
         project_id: UUID,
         scenario_id: UUID | None = None,
         trigger: RunTrigger = RunTrigger.MANUAL,
-    ) -> "TestRun":
+    ) -> TestRun:
         run = cls(
             id=TestRunId.new(),
             project_id=project_id,
@@ -117,7 +117,7 @@ class TestRun(AggregateRoot[TestRunId]):
         if self.status != RunStatus.QUEUED:
             raise ValueError(f"Sadece QUEUED run başlatılabilir, mevcut: {self.status.value}")
         self.status = RunStatus.RUNNING
-        self.started_at = datetime.now(timezone.utc)
+        self.started_at = datetime.now(_tz.utc)
 
     def record_step(
         self,
@@ -153,7 +153,7 @@ class TestRun(AggregateRoot[TestRunId]):
         if self.status != RunStatus.RUNNING:
             raise ValueError("Sadece RUNNING run tamamlanabilir")
         self.status = RunStatus.PASSED
-        self.finished_at = datetime.now(timezone.utc)
+        self.finished_at = datetime.now(_tz.utc)
         duration = self._elapsed_ms()
         passed = sum(1 for s in self.step_results if s.passed)
         failed = sum(1 for s in self.step_results if not s.passed)
@@ -169,7 +169,7 @@ class TestRun(AggregateRoot[TestRunId]):
         if self.status != RunStatus.RUNNING:
             raise ValueError("Sadece RUNNING run fail edilebilir")
         self.status = RunStatus.FAILED
-        self.finished_at = datetime.now(timezone.utc)
+        self.finished_at = datetime.now(_tz.utc)
         self._record_event(RunFailed(
             aggregate_id=self.id.value,
             error=error,
@@ -180,7 +180,7 @@ class TestRun(AggregateRoot[TestRunId]):
         if self.status in self._TERMINAL:
             return  # No-op for terminal states
         self.status = RunStatus.CANCELLED
-        self.finished_at = datetime.now(timezone.utc)
+        self.finished_at = datetime.now(_tz.utc)
         self._record_event(RunCancelled(
             aggregate_id=self.id.value,
             reason=reason,
@@ -201,5 +201,5 @@ class TestRun(AggregateRoot[TestRunId]):
     def _elapsed_ms(self) -> int:
         if self.started_at is None:
             return 0
-        end = self.finished_at or datetime.now(timezone.utc)
+        end = self.finished_at or datetime.now(_tz.utc)
         return int((end - self.started_at).total_seconds() * 1000)

@@ -9,7 +9,6 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from app.domains.marketplace.templates import (
-    Template,
     get_template,
     list_categories,
     list_templates,
