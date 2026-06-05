@@ -156,7 +156,7 @@ export default function CustomDashboardsPage() {
               📊 Özel Dashboard'lar
             </h1>
             <p className="text-xs text-slate-500 mt-0.5">
-              Kendi metriklerini ve widget'larını düzenle. localStorage'da saklanır.
+              Kendi metriklerini ve widget'larını düzenle. Backend ile senkronize edilir, offline cache korunur.
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">

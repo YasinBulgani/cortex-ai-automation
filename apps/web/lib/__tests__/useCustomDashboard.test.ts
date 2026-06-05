@@ -58,6 +58,7 @@ function mockFetchNotOk() {
 
 beforeEach(() => {
   localStorage.clear();
+  global.fetch = jest.fn();
   (global.fetch as jest.Mock).mockClear();
 });
 

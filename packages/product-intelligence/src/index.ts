@@ -11,7 +11,7 @@ export const manifest: ProductPackage["manifest"] = {
   routeKeys: [
     "project-overview",
     "requirements", "analysis", "sifir-bilgi", "wizard",
-    "ai-chat", "nl-test-gen", "qa-orchestrator", "ai-metrics",
+    "ai-chat", "llm-agent", "nl-test-gen", "qa-orchestrator", "ai-metrics",
   ],
 };
 

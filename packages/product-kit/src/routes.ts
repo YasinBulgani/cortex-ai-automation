@@ -66,6 +66,8 @@ export const ROUTE_CATALOG: RouteCatalogEntry[] = [
   { key: "analytics", path: "analytics", segment: "analytics", label: "Analitik", group: "Koşu & Gözlem" },
   { key: "test-history", path: "test-history", segment: "test-history", label: "Test Geçmişi", group: "Koşu & Gözlem" },
   { key: "debug-report", path: "debug-report", segment: "debug-report", label: "Debug Raporu", group: "Koşu & Gözlem" },
+  { key: "dashboards", path: "dashboards", segment: "dashboards", label: "Özel Dashboard", group: "Koşu & Gözlem" },
+  { key: "pipeline", path: "pipeline", segment: "pipeline", label: "Pipeline", group: "Koşu & Gözlem" },
 
   // Kalite
   { key: "visual", path: "visual", segment: "visual", label: "Görsel Regresyon", group: "Kalite" },
@@ -101,6 +103,7 @@ export const ROUTE_CATALOG: RouteCatalogEntry[] = [
 
   // AI
   { key: "ai-chat", path: "ai-chat", segment: "ai-chat", label: "AI Asistan", group: "AI" },
+  { key: "llm-agent", path: "llm-agent", segment: "llm-agent", label: "LLM Ajan", group: "AI" },
   { key: "nl-test-gen", path: "nl-test-gen", segment: "nl-test-gen", label: "NL Test Üretici", group: "AI" },
   { key: "qa-orchestrator", path: "qa-orchestrator", segment: "qa-orchestrator", label: "QA Orkestratör", group: "AI" },
   { key: "ai-metrics", path: "ai-metrics", segment: "ai-metrics", label: "LLM Metrikleri", group: "AI" },

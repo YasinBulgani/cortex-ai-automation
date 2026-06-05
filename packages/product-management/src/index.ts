@@ -23,6 +23,7 @@ export const manifest: ProductPackage["manifest"] = {
     "manual",
     "requirements",
     "reports",
+    "dashboards",
     "coverage",
     "integrations",
     "ai-chat",

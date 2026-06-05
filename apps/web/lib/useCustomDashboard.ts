@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { apiFetch } from "@/lib/api";
 
 export type WidgetType =
   | "pass-rate"
@@ -54,38 +55,61 @@ function writeStorage(items: Dashboard[]) {
   }
 }
 
-// Backend-first with localStorage fallback.
-// Tries to fetch dashboards from the backend API first; if unavailable or
-// the project has no server-side dashboards yet, falls back to localStorage
-// so existing user data is never lost.
+function normalizeDashboards(payload: unknown): Dashboard[] | null {
+  if (Array.isArray(payload)) return payload as Dashboard[];
+  if (
+    typeof payload === "object" &&
+    payload !== null &&
+    "dashboards" in payload &&
+    Array.isArray((payload as { dashboards?: unknown }).dashboards)
+  ) {
+    return (payload as { dashboards: Dashboard[] }).dashboards;
+  }
+  return null;
+}
+
+// Backend-first with localStorage fallback. Existing browser data stays as an
+// offline cache, but the shared apiFetch client keeps auth/refresh behavior
+// consistent with the rest of the frontend.
 async function fetchFromBackend(projectId: string): Promise<Dashboard[] | null> {
   try {
-    const res = await fetch(`${DASHBOARDS_API_BASE}?project_id=${projectId}`, {
-      credentials: "include",
-      headers: { "Content-Type": "application/json" },
-    });
-    if (!res.ok) return null; // backend unavailable or auth required → use localStorage
-    const data: Dashboard[] = await res.json();
-    return Array.isArray(data) ? data : null;
+    const data = await apiFetch<unknown>(
+      `${DASHBOARDS_API_BASE}?project_id=${encodeURIComponent(projectId)}`,
+    );
+    return normalizeDashboards(data);
   } catch {
-    return null; // network error → graceful fallback
+    return null;
   }
 }
 
 function newId(): string {
-  return `dash-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  return `dash-${crypto.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`}`;
 }
 
 function newWidgetId(): string {
-  return `w-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+  return `w-${crypto.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2, 6)}`}`;
+}
+
+async function saveToBackend(projectId: string, next: Dashboard[]) {
+  try {
+    await apiFetch<unknown>(
+      `${DASHBOARDS_API_BASE}?project_id=${encodeURIComponent(projectId)}`,
+      {
+        method: "PUT",
+        json: { dashboards: next },
+      },
+    );
+  } catch {
+    // Backend endpoint may not be enabled in all environments yet. The local
+    // cache above remains the durable fallback for the current browser.
+  }
 }
 
 /**
  * Hook for managing user-customised dashboards.
  *
- * Storage: backend-first (GET /api/v1/dashboards?project_id=...) with
- * localStorage fallback for offline use and when the backend is unavailable.
- * Mutations still write to localStorage; backend write-back is planned.
+ * Storage: backend-first with localStorage fallback for offline use and when
+ * the backend dashboard endpoint is unavailable.
  */
 export function useCustomDashboard(projectId: string) {
   const [dashboards, setDashboards] = useState<Dashboard[]>([]);
@@ -105,16 +129,18 @@ export function useCustomDashboard(projectId: string) {
         setDashboards(backendData);
         writeStorage(backendData); // sync to localStorage for offline use
         setActiveId((prev) => (prev === null ? backendData[0].id : prev));
-      } else if (local.length === 0) {
-        setDashboards([]); // both empty
       }
     });
   }, [projectId]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const persist = useCallback((next: Dashboard[]) => {
-    setDashboards(next);
-    writeStorage(next);
-  }, []);
+  const persist = useCallback(
+    (next: Dashboard[]) => {
+      setDashboards(next);
+      writeStorage(next);
+      void saveToBackend(projectId, next);
+    },
+    [projectId],
+  );
 
   const createDashboard = useCallback(
     (name: string) => {
@@ -125,41 +151,41 @@ export function useCustomDashboard(projectId: string) {
         createdAt: Date.now(),
         updatedAt: Date.now(),
       };
-      const next = [...readStorage(), dash];
+      const next = [...dashboards, dash];
       persist(next);
       setActiveId(dash.id);
       return dash;
     },
-    [persist],
+    [dashboards, persist],
   );
 
   const deleteDashboard = useCallback(
     (id: string) => {
-      const next = readStorage().filter((d) => d.id !== id);
+      const next = dashboards.filter((d) => d.id !== id);
       persist(next);
       if (activeId === id) {
         setActiveId(next.length > 0 ? next[0].id : null);
       }
     },
-    [activeId, persist],
+    [activeId, dashboards, persist],
   );
 
   const renameDashboard = useCallback(
     (id: string, name: string) => {
       persist(
-        readStorage().map((d) =>
+        dashboards.map((d) =>
           d.id === id ? { ...d, name, updatedAt: Date.now() } : d,
         ),
       );
     },
-    [persist],
+    [dashboards, persist],
   );
 
   const addWidget = useCallback(
     (dashId: string, widget: Omit<Widget, "id">) => {
       const w: Widget = { ...widget, id: newWidgetId() };
       persist(
-        readStorage().map((d) =>
+        dashboards.map((d) =>
           d.id === dashId
             ? { ...d, widgets: [...d.widgets, w], updatedAt: Date.now() }
             : d,
@@ -167,13 +193,13 @@ export function useCustomDashboard(projectId: string) {
       );
       return w;
     },
-    [persist],
+    [dashboards, persist],
   );
 
   const removeWidget = useCallback(
     (dashId: string, widgetId: string) => {
       persist(
-        readStorage().map((d) =>
+        dashboards.map((d) =>
           d.id === dashId
             ? {
                 ...d,
@@ -184,13 +210,13 @@ export function useCustomDashboard(projectId: string) {
         ),
       );
     },
-    [persist],
+    [dashboards, persist],
   );
 
   const updateWidget = useCallback(
     (dashId: string, widgetId: string, patch: Partial<Widget>) => {
       persist(
-        readStorage().map((d) =>
+        dashboards.map((d) =>
           d.id === dashId
             ? {
                 ...d,
@@ -203,7 +229,7 @@ export function useCustomDashboard(projectId: string) {
         ),
       );
     },
-    [persist],
+    [dashboards, persist],
   );
 
   const active = dashboards.find((d) => d.id === activeId) ?? null;
