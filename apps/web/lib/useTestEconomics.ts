@@ -10,6 +10,7 @@
  */
 
 import { useEffect, useState } from "react";
+import { apiFetch } from "@/lib/api";
 
 export type TestEconomicsRow = {
   test_id: string;
@@ -40,19 +41,15 @@ export function useTestEconomics(projectId: string) {
 
   useEffect(() => {
     setLoading(true);
-    fetch(`/api/v1/tspm/projects/${projectId}/economics`, {
-      credentials: "include",
-    })
-      .then((r) => {
-        if (!r.ok) throw new Error(`HTTP ${r.status}`);
-        return r.json();
-      })
+    apiFetch<{ summary?: TestEconomicsSummary; rows?: TestEconomicsRow[] }>(
+      `/api/v1/tspm/projects/${projectId}/economics`,
+    )
       .then((body) => {
-        setSummary(body.summary);
+        setSummary(body.summary ?? null);
         setRows(body.rows ?? []);
         setError(null);
       })
-      .catch((e: any) => setError(e?.message ?? "Bilinmeyen hata"))
+      .catch((e: unknown) => setError(e instanceof Error ? e.message : "Bilinmeyen hata"))
       .finally(() => setLoading(false));
   }, [projectId]);
 

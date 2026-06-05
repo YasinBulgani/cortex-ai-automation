@@ -8,6 +8,7 @@
  */
 
 import { useEffect, useState } from "react";
+import { apiFetch } from "@/lib/api";
 
 export type TraceabilityCell = {
   feature_id: string;
@@ -25,6 +26,49 @@ export type TraceabilityMatrix = {
   overall_coverage_pct: number;
 };
 
+type RequirementTraceabilityRow = {
+  requirement_id?: string | null;
+  requirement_key?: string;
+  title: string;
+  cases?: Array<{
+    last_run_status?: string | null;
+  }>;
+  coverage_pct?: number;
+};
+
+function isPassedStatus(status: string | null | undefined): boolean {
+  return ["passed", "pass", "success", "green"].includes((status ?? "").toLowerCase());
+}
+
+function isFailedStatus(status: string | null | undefined): boolean {
+  return ["failed", "fail", "error", "red"].includes((status ?? "").toLowerCase());
+}
+
+function isFlakyStatus(status: string | null | undefined): boolean {
+  return ["flaky", "unstable", "quarantined"].includes((status ?? "").toLowerCase());
+}
+
+function normalizeTraceability(rows: RequirementTraceabilityRow[]): TraceabilityMatrix {
+  const features = rows.map((row, index) => {
+    const cases = row.cases ?? [];
+    return {
+      feature_id: row.requirement_id ?? row.requirement_key ?? `requirement-${index}`,
+      feature_name: row.title,
+      test_count: cases.length,
+      passed_count: cases.filter((item) => isPassedStatus(item.last_run_status)).length,
+      failed_count: cases.filter((item) => isFailedStatus(item.last_run_status)).length,
+      flaky_count: cases.filter((item) => isFlakyStatus(item.last_run_status)).length,
+      coverage_pct: Number(row.coverage_pct ?? 0),
+    };
+  });
+  const totalCoverage = features.reduce((sum, item) => sum + item.coverage_pct, 0);
+  return {
+    features,
+    total_tests: features.reduce((sum, item) => sum + item.test_count, 0),
+    overall_coverage_pct: features.length > 0 ? Math.round(totalCoverage / features.length) : 0,
+  };
+}
+
 export function useTraceabilityMatrix(projectId: string) {
   const [data, setData] = useState<TraceabilityMatrix | null>(null);
   const [loading, setLoading] = useState(true);
@@ -32,18 +76,14 @@ export function useTraceabilityMatrix(projectId: string) {
 
   useEffect(() => {
     setLoading(true);
-    fetch(`/api/v1/tspm/projects/${projectId}/traceability`, {
-      credentials: "include",
-    })
-      .then((r) => {
-        if (!r.ok) throw new Error(`HTTP ${r.status}`);
-        return r.json();
-      })
+    apiFetch<RequirementTraceabilityRow[]>(
+      `/api/v1/test-management/projects/${projectId}/requirements/traceability`,
+    )
       .then((body) => {
-        setData(body);
+        setData(normalizeTraceability(body));
         setError(null);
       })
-      .catch((e: any) => setError(e?.message ?? "Bilinmeyen hata"))
+      .catch((e: unknown) => setError(e instanceof Error ? e.message : "Bilinmeyen hata"))
       .finally(() => setLoading(false));
   }, [projectId]);
 
