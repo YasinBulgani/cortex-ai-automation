@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo, useRef } from "react";
+import { useEffect, useState, useMemo, useRef, useCallback } from "react";
 import { useManagementStandup, useManagementRuns } from "@/lib/hooks/use-management";
 import { useManagementProjectId } from "@/lib/hooks/use-management-project-id";
 import { useRouteParam } from "@/lib/use-route-param";
@@ -472,8 +472,11 @@ function StackedBar({
 function VelocitySparkline({ velocityPerHour }: { velocityPerHour: number }) {
   const w = 220;
   const h = 90;
+  // Sıfıra bölünme koruması: velocity 0 ise grafik yerine mesaj göster
+  const hasData = velocityPerHour > 0;
   const multipliers = [0.5, 0.7, 0.6, 0.8, 0.9, 1.0, 1.1];
   const values = multipliers.map((m) => velocityPerHour * m);
+  // maxV en az 1 — sıfıra bölünme koruması
   const maxV = Math.max(...values, 1);
   const padX = 10;
   const padY = 10;
@@ -504,51 +507,57 @@ function VelocitySparkline({ velocityPerHour }: { velocityPerHour: number }) {
     <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-4">
       <div className="flex items-center justify-between mb-2">
         <span className="text-xs font-bold uppercase tracking-widest text-slate-400">HIZ</span>
-        <span className="text-lg font-black text-teal-400">
+        <span className={`text-lg font-black ${hasData ? "text-teal-400" : "text-slate-500"}`}>
           {velocityPerHour.toFixed(1)}{" "}
           <span className="text-xs font-medium text-slate-500">case/saat</span>
         </span>
       </div>
-      <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`}>
-        <defs>
-          <linearGradient id="sparkGrad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#14b8a6" stopOpacity="0.45" />
-            <stop offset="100%" stopColor="#14b8a6" stopOpacity="0.02" />
-          </linearGradient>
-          <filter id="glow">
-            <feGaussianBlur stdDeviation="2" result="blur" />
-            <feMerge>
-              <feMergeNode in="blur" />
-              <feMergeNode in="SourceGraphic" />
-            </feMerge>
-          </filter>
-        </defs>
-        <path d={areaPath} fill="url(#sparkGrad)" />
-        <polyline
-          points={polylineStr}
-          fill="none"
-          stroke="#14b8a6"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          filter="url(#glow)"
-        />
-        <circle cx={lx} cy={ly} r="5" fill="#14b8a6" opacity="0.4">
-          <animate
-            attributeName="r"
-            values="5;9;5"
-            dur="1.8s"
-            repeatCount="indefinite"
+      {!hasData ? (
+        <div className="flex items-center justify-center" style={{ width: w, height: h }}>
+          <span className="text-sm text-slate-600 font-medium">Henüz hız verisi yok</span>
+        </div>
+      ) : (
+        <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`}>
+          <defs>
+            <linearGradient id="sparkGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#14b8a6" stopOpacity="0.45" />
+              <stop offset="100%" stopColor="#14b8a6" stopOpacity="0.02" />
+            </linearGradient>
+            <filter id="glow">
+              <feGaussianBlur stdDeviation="2" result="blur" />
+              <feMerge>
+                <feMergeNode in="blur" />
+                <feMergeNode in="SourceGraphic" />
+              </feMerge>
+            </filter>
+          </defs>
+          <path d={areaPath} fill="url(#sparkGrad)" />
+          <polyline
+            points={polylineStr}
+            fill="none"
+            stroke="#14b8a6"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            filter="url(#glow)"
           />
-          <animate
-            attributeName="opacity"
-            values="0.4;0;0.4"
-            dur="1.8s"
-            repeatCount="indefinite"
-          />
-        </circle>
-        <circle cx={lx} cy={ly} r="4" fill="#14b8a6" />
-      </svg>
+          <circle cx={lx} cy={ly} r="5" fill="#14b8a6" opacity="0.4">
+            <animate
+              attributeName="r"
+              values="5;9;5"
+              dur="1.8s"
+              repeatCount="indefinite"
+            />
+            <animate
+              attributeName="opacity"
+              values="0.4;0;0.4"
+              dur="1.8s"
+              repeatCount="indefinite"
+            />
+          </circle>
+          <circle cx={lx} cy={ly} r="4" fill="#14b8a6" />
+        </svg>
+      )}
     </div>
   );
 }
@@ -562,6 +571,16 @@ function EtaDisplay({
   etaHours: number | null;
   predictedCompletion: string | null;
 }) {
+  // Geçmiş tarih kontrolü: predicted_completion geçmiş mi?
+  const isOverdue = useMemo(() => {
+    if (!predictedCompletion) return false;
+    try {
+      return new Date(predictedCompletion).getTime() < Date.now();
+    } catch {
+      return false;
+    }
+  }, [predictedCompletion]);
+
   const { borderColor, bgColor, pulse, textColor } = useMemo(() => {
     if (etaHours === null)
       return {
@@ -569,6 +588,14 @@ function EtaDisplay({
         bgColor: "bg-slate-900/30",
         pulse: "",
         textColor: "text-slate-400",
+      };
+    // Gecikmiş: eta <= 0 veya predicted_completion geçmiş
+    if (etaHours <= 0 || isOverdue)
+      return {
+        borderColor: "border-red-500",
+        bgColor: "bg-red-950/40",
+        pulse: "animate-pulse",
+        textColor: "text-red-400",
       };
     if (etaHours < 2)
       return {
@@ -590,7 +617,7 @@ function EtaDisplay({
       pulse: "",
       textColor: "text-emerald-400",
     };
-  }, [etaHours]);
+  }, [etaHours, isOverdue]);
 
   const completionTime = useMemo(() => {
     if (!predictedCompletion) return null;
@@ -611,8 +638,17 @@ function EtaDisplay({
       <p className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-1">ETA</p>
       {etaHours === null ? (
         <>
-          <p className={`text-2xl font-black ${textColor}`}>Belirsiz</p>
+          <p className={`text-2xl font-black ${textColor}`}>Bilinmiyor</p>
           <p className="text-xs text-slate-600 mt-0.5">Yeterli veri yok</p>
+        </>
+      ) : isOverdue || etaHours <= 0 ? (
+        <>
+          <p className={`text-2xl font-black ${textColor}`}>GECİKMİŞ</p>
+          {completionTime && (
+            <p className="text-xs text-red-500/80 mt-0.5">
+              Hedef: {completionTime} — geçti
+            </p>
+          )}
         </>
       ) : (
         <>
@@ -728,11 +764,28 @@ function PassRateRing({ rate }: { rate: number }) {
 
 // ─── AnomalyList ──────────────────────────────────────────────────────────────
 
+const ANOMALY_SEVERITY_ORDER: Record<string, number> = {
+  critical: 0,
+  warning: 1,
+  info: 2,
+};
+
 function AnomalyList({
   anomalies,
 }: {
   anomalies: { severity: string; title: string }[];
 }) {
+  // critical > warning > info sıralaması
+  const sorted = useMemo(
+    () =>
+      [...anomalies].sort((a, b) => {
+        const ao = ANOMALY_SEVERITY_ORDER[a.severity] ?? 99;
+        const bo = ANOMALY_SEVERITY_ORDER[b.severity] ?? 99;
+        return ao - bo;
+      }),
+    [anomalies]
+  );
+
   const borderColor = (severity: string) => {
     if (severity === "critical") return "border-red-500";
     if (severity === "warning") return "border-amber-500";
@@ -745,36 +798,51 @@ function AnomalyList({
     return "bg-blue-500";
   };
 
+  const severityLabel = (severity: string) => {
+    if (severity === "critical") return "KRİTİK";
+    if (severity === "warning") return "UYARI";
+    return "BİLGİ";
+  };
+
   return (
     <div className="rounded-xl border border-slate-800 bg-slate-900/60">
       <div className="flex items-center gap-2 border-b border-slate-800 px-4 py-3">
         <span className="text-xs font-bold uppercase tracking-widest text-slate-300">
           ANOMALİLER
         </span>
-        {anomalies.length > 0 && (
+        {sorted.length > 0 && (
           <span className="rounded-full bg-red-500/20 px-2 py-0.5 text-xs font-bold text-red-400">
-            {anomalies.length}
+            {sorted.length}
           </span>
         )}
       </div>
       <div className="max-h-48 overflow-y-auto">
-        {anomalies.length === 0 ? (
-          <div className="flex items-center justify-center py-6 text-sm font-semibold text-emerald-400">
-            ✓ Anomali yok
+        {sorted.length === 0 ? (
+          <div className="flex items-center justify-center gap-2 py-6 text-sm font-semibold text-emerald-400">
+            <span className="text-emerald-500">✓</span>
+            Anomali tespit edilmedi
           </div>
         ) : (
           <ul>
-            {anomalies.map((a, i) => (
+            {sorted.map((a, i) => (
               <li
                 key={i}
                 className={`flex items-center gap-3 border-l-4 px-4 py-3 ${borderColor(a.severity)} ${
-                  i < anomalies.length - 1 ? "border-b border-slate-800/60" : ""
+                  i < sorted.length - 1 ? "border-b border-slate-800/60" : ""
                 }`}
               >
                 <span
                   className={`h-2 w-2 shrink-0 rounded-full ${dotColor(a.severity)}`}
                 />
-                <span className="text-sm text-slate-200">{a.title}</span>
+                <div className="flex flex-col min-w-0">
+                  <span className="text-sm text-slate-200 truncate">{a.title}</span>
+                  <span className={`text-[10px] font-bold tracking-wider ${
+                    a.severity === "critical" ? "text-red-500" :
+                    a.severity === "warning" ? "text-amber-500" : "text-blue-400"
+                  }`}>
+                    {severityLabel(a.severity)}
+                  </span>
+                </div>
               </li>
             ))}
           </ul>
@@ -1051,6 +1119,10 @@ export default function StandupPage() {
 
   const [countdown, setCountdown] = useState(60);
   const [lastUpdateStr, setLastUpdateStr] = useState<string | null>(null);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  // standupQ refetch'i ref'te tut — interval closure'ında stale capture'ı önle
+  const refetchRef = useRef(standupQ.refetch);
+  useEffect(() => { refetchRef.current = standupQ.refetch; }, [standupQ.refetch]);
 
   useEffect(() => {
     if (!standupQ.isLoading && standupQ.data) {
@@ -1062,18 +1134,46 @@ export default function StandupPage() {
     }
   }, [standupQ.data, standupQ.isLoading]);
 
-  useEffect(() => {
-    const interval = setInterval(() => {
+  const startInterval = useCallback(() => {
+    if (intervalRef.current) clearInterval(intervalRef.current);
+    intervalRef.current = setInterval(() => {
       setCountdown((c) => {
         if (c <= 1) {
-          void standupQ.refetch().catch((err: unknown) => console.error("[Standup] Auto-refresh failed:", err));
+          void refetchRef.current().catch((err: unknown) =>
+            console.error("[Standup] Auto-refresh failed:", err)
+          );
           return 60;
         }
         return c - 1;
       });
     }, 1000);
-    return () => clearInterval(interval);
-  }, [standupQ]);
+  }, []);
+
+  // Otomatik yenileme: 60sn interval, tab inactive olunca durdur
+  useEffect(() => {
+    startInterval();
+
+    const handleVisibility = () => {
+      if (document.hidden) {
+        if (intervalRef.current) {
+          clearInterval(intervalRef.current);
+          intervalRef.current = null;
+        }
+      } else {
+        // Sekmeye dönünce hemen yenile + interval başlat
+        void refetchRef.current().catch(() => {});
+        setCountdown(60);
+        startInterval();
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibility);
+
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibility);
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+  }, [startInterval]);
 
   const handleRefresh = () => {
     void standupQ.refetch();
@@ -1094,7 +1194,38 @@ export default function StandupPage() {
   if (standupQ.isError) return <ErrorScreen onRetry={handleRefresh} />;
 
   return (
-    <div className="h-[calc(100vh-48px)] flex flex-col overflow-hidden bg-[#080c14] text-white">
+    <div data-standup-root className="h-[calc(100vh-48px)] flex flex-col overflow-hidden bg-[#080c14] text-white">
+      {/* Print-friendly global styles */}
+      <style>{`
+        @media print {
+          body { background: #fff !important; color: #000 !important; }
+          .no-print { display: none !important; }
+          /* Overflow kaldır, tam sayfa bas */
+          html, body { overflow: visible !important; height: auto !important; }
+          /* Ana container scrolldan çık */
+          [data-standup-root] {
+            height: auto !important;
+            overflow: visible !important;
+            background: #fff !important;
+            color: #000 !important;
+          }
+          /* Koyu arka planları temizle */
+          [data-standup-root] * {
+            background-color: transparent !important;
+            border-color: #ccc !important;
+            color: #000 !important;
+          }
+          /* Renk vurgularını koru */
+          [data-standup-root] svg text { fill: #000 !important; }
+          /* Grid-scroll kaldır */
+          [data-standup-grid] {
+            overflow: visible !important;
+            display: block !important;
+          }
+          /* BottomBar gizle */
+          [data-standup-bottombar] { display: none !important; }
+        }
+      `}</style>
       {/* PageHeader — fixed top */}
       <PageHeader
         runName={data?.run_name ?? "—"}
@@ -1107,7 +1238,7 @@ export default function StandupPage() {
       />
 
       {/* Main grid — flex-1, overflow-hidden */}
-      <div className="flex-1 grid grid-cols-12 gap-4 p-4 overflow-hidden">
+      <div data-standup-grid className="flex-1 grid grid-cols-12 gap-4 p-4 overflow-hidden">
         {/* Sol: col-span-3 — MetricCard dikey liste */}
         <div className="col-span-3 flex flex-col gap-3 overflow-hidden">
           <MetricCard
@@ -1199,11 +1330,13 @@ export default function StandupPage() {
       </div>
 
       {/* BottomBar — en alt */}
-      <BottomBar
-        lastUpdateStr={lastUpdateStr}
-        countdown={countdown}
-        onRefresh={handleRefresh}
-      />
+      <div data-standup-bottombar>
+        <BottomBar
+          lastUpdateStr={lastUpdateStr}
+          countdown={countdown}
+          onRefresh={handleRefresh}
+        />
+      </div>
     </div>
   );
 }

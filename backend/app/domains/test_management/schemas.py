@@ -1026,7 +1026,7 @@ class ExpandCaseResponse(BaseModel):
 # ── AI Test Üretimi ───────────────────────────────────────────────────────────
 
 class BulkUpdateCasesRequest(BaseModel):
-    case_ids: list[str] = Field(..., min_items=1)
+    case_ids: list[str] = Field(..., min_length=1)
     priority: Optional[str] = None
     type: Optional[str] = None
     status: Optional[str] = None

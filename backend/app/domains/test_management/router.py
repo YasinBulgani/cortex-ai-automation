@@ -1001,9 +1001,53 @@ def update_step_result(
     return service.update_step_result(db, project_id, run_case_id, step_no, payload, user)
 
 
+@router.get(
+    "/projects/{project_id}/run-cases/{run_case_id}/evidence",
+    response_model=list[EvidenceOut],
+    summary="List evidence files for a run case (without run_id in path)",
+)
+def list_evidence_by_run_case(
+    project_id: str,
+    run_case_id: str,
+    db: DB,
+    _user: ReadUser,
+) -> list[EvidenceOut]:
+    try:
+        return [EvidenceOut(**item) for item in service.list_evidence_by_run_case(db, project_id, run_case_id)]
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@router.get(
+    "/projects/{project_id}/cases/search",
+    response_model=list[TestCaseOut],
+    summary="Search test cases by title or case key (frontend search)",
+)
+def search_cases(
+    project_id: str,
+    db: DB,
+    _user: ReadUser,
+    q: str = Query(default="", description="Search query — matches title and case_key"),
+) -> list[TestCaseOut]:
+    return service.search_cases(db, project_id, q=q)
+
+
 @router.get("/projects/{project_id}/reports/dashboard-summary")
 def dashboard_summary(project_id: str, db: DB, _user: ReadUser) -> dict:
     return service.dashboard_summary(db, project_id)
+
+
+@router.get(
+    "/projects/{project_id}/stats/dashboard",
+    summary="Fast lightweight dashboard stats (summaryFast) — skips heavy pass-rate & coverage queries",
+)
+def stats_dashboard(project_id: str, db: DB, _user: ReadUser) -> dict:
+    """Lighter alternative to /reports/dashboard-summary.
+
+    Returns total_cases, active_runs, failed_cases, critical_defects, suite_count.
+    Use /reports/dashboard-summary for the full metric set (pass_rate, coverage, etc.).
+    """
+    return service.dashboard_summary_fast(db, project_id)
 
 
 @router.get("/projects/{project_id}/reports/execution-summary", response_model=ExecutionSummaryOut)
@@ -1997,6 +2041,17 @@ def delete_shared_step(project_id: str, step_id: str, db: DB, user: WriteUser) -
         service.delete_shared_step(db, project_id, step_id, user)
     except KeyError as e:
         raise HTTPException(status_code=404, detail=str(e)) from e
+
+
+@router.post("/projects/{project_id}/shared-steps/{step_id}/use", status_code=status.HTTP_204_NO_CONTENT)
+def increment_shared_step_usage(project_id: str, step_id: str, db: DB, _user: ReadUser) -> None:
+    """Increment usage counter when a shared step template is inserted into a case."""
+    try:
+        service.get_shared_step(db, project_id, step_id)  # verify ownership
+    except KeyError as e:
+        raise HTTPException(status_code=404, detail=str(e)) from e
+    service.increment_shared_step_usage(db, step_id)
+    db.commit()
 
 
 # ── SSO Konfigürasyonu ────────────────────────────────────────────────────────

@@ -162,6 +162,8 @@ export default function ManagementSettingsPage() {
   /* ── load: önce API'dan, fallback localStorage ── */
   useEffect(() => {
     if (!storageKey || loaded) return;
+    // API hâlâ yükleniyorsa bekle — erken fallback engellemek için
+    if (isLoading) return;
 
     // API'dan gelen user_settings varsa öncelikli kullan
     const apiSettings = (settings as { user_settings?: StoredSettings } | undefined)?.user_settings;
@@ -177,7 +179,7 @@ export default function ManagementSettingsPage() {
       return;
     }
 
-    // Fallback: localStorage
+    // Fallback: localStorage (sadece API boş döndüğünde)
     try {
       const raw = localStorage.getItem(storageKey);
       if (raw) {
@@ -194,7 +196,7 @@ export default function ManagementSettingsPage() {
       // ignore parse errors
     }
     setLoaded(true);
-  }, [storageKey, settings]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [storageKey, settings, isLoading]); // eslint-disable-line react-hooks/exhaustive-deps
 
   /* ── auto-save reactive fields (localStorage + API) ── */
   useEffect(() => {
@@ -810,9 +812,9 @@ export default function ManagementSettingsPage() {
 
             <div className="flex items-start justify-between gap-4">
               <div>
-                <p className="text-[13px] text-slate-300">Tüm Verileri Temizle</p>
+                <p className="text-[13px] text-slate-300">Ayarları Sıfırla</p>
                 <p className="mt-0.5 text-[11px] text-slate-500">
-                  Tüm case, run, plan ve defect verilerini siler. Bu işlem geri alınamaz.
+                  Tüm proje ayarlarını (modüller, etiketler, bildirimler, varsayılan değerler) fabrika ayarlarına döndürür. Bu işlem geri alınamaz.
                 </p>
               </div>
               <button
@@ -896,10 +898,10 @@ export default function ManagementSettingsPage() {
                     d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
                 </svg>
               </div>
-              <h3 className="text-[14px] font-semibold text-slate-200">Tüm Verileri Temizle</h3>
+              <h3 className="text-[14px] font-semibold text-slate-200">Ayarları Sıfırla</h3>
             </div>
             <p className="mb-6 text-[13px] text-slate-400">
-              Bu işlem tüm yerel ayarları, modülleri, etiketleri ve tercihlerinizi kalıcı olarak siler.
+              Bu işlem tüm proje ayarlarını (modüller, etiketler, bildirimler, varsayılan değerler) fabrika ayarlarına döndürür.
               Devam etmek istediğinizden emin misiniz?
             </p>
             <div className="flex gap-3 justify-end">

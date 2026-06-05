@@ -15,6 +15,9 @@ import {
   useManagementRequirements,
   useManagementRuns,
   useReleaseReport,
+  useReleaseSignoffs,
+  useCreateReleaseSignoff,
+  type ReleaseBlocker,
   type TestCase,
 } from "@/lib/hooks/use-management";
 import { cn } from "@/lib/utils";
@@ -348,6 +351,192 @@ function SetupTrackerWidget({
   );
 }
 
+// ─── Blockers Widget ──────────────────────────────────────────────────────────
+
+function BlockersWidget({ blockers, projectId }: { blockers: ReleaseBlocker[]; projectId: string }) {
+  if (!blockers.length) {
+    return (
+      <section className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-5 shadow-sm">
+        <h2 className="mb-2 text-[14px] font-semibold text-fg">Release Blocker'lar</h2>
+        <p className="text-[12px] text-emerald-400">Aktif blocker bulunmuyor — release hazir.</p>
+      </section>
+    );
+  }
+
+  return (
+    <section className="rounded-xl border border-red-500/20 bg-red-500/5 p-5 shadow-sm">
+      <div className="mb-4 flex items-center justify-between">
+        <h2 className="text-[14px] font-semibold text-fg">Release Blocker'lar</h2>
+        <span className="rounded-full bg-red-500/20 px-2 py-0.5 text-[11px] font-semibold text-red-400">
+          {blockers.length} blocker
+        </span>
+      </div>
+      <div className="space-y-2">
+        {blockers.map(b => (
+          <div key={b.label} className="rounded-lg border border-red-500/20 bg-surface-overlay px-3 py-2">
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-[12px] font-medium text-fg">{b.label}</p>
+              <span className="shrink-0 rounded bg-red-500/20 px-1.5 py-0.5 text-[10px] font-semibold text-red-400 tabular-nums">
+                {b.value}
+              </span>
+            </div>
+            {b.detail && <p className="mt-0.5 text-[11px] text-fg-subtle">{b.detail}</p>}
+          </div>
+        ))}
+      </div>
+      <div className="mt-3">
+        <Link
+          href={`/p/${projectId}/management/defects`}
+          className="text-[11px] text-brand hover:underline"
+        >
+          Defect listesine git →
+        </Link>
+      </div>
+    </section>
+  );
+}
+
+// ─── Release Signoff Widget ───────────────────────────────────────────────────
+
+function ReleaseSignoffWidget({
+  mpid,
+  projectId,
+  decision,
+}: {
+  mpid: string;
+  projectId: string;
+  decision: string;
+}) {
+  const signoffsQ = useReleaseSignoffs(mpid);
+  const createSignoff = useCreateReleaseSignoff(mpid);
+  const [showForm, setShowForm] = useState(false);
+  const [role, setRole] = useState("QA Lead");
+  const [comment, setComment] = useState("");
+  const [approvalDecision, setApprovalDecision] = useState<"approved" | "rejected">("approved");
+
+  const latestSignoff = (signoffsQ.data ?? []).sort(
+    (a, b) => Date.parse(b.created_at) - Date.parse(a.created_at),
+  )[0];
+
+  const decisionColor =
+    decision === "GO"
+      ? "text-emerald-400"
+      : decision === "NO_GO"
+      ? "text-red-400"
+      : "text-amber-400";
+
+  function handleSubmit() {
+    void createSignoff.mutateAsync({
+      release_name: undefined,
+      role,
+      decision: approvalDecision,
+      comment: comment.trim() || undefined,
+      report_snapshot: {},
+    }).then(() => {
+      setShowForm(false);
+      setComment("");
+    });
+  }
+
+  return (
+    <section className="rounded-xl border border-border bg-surface-raised p-5 shadow-sm">
+      <div className="mb-4 flex items-center justify-between">
+        <h2 className="text-[14px] font-semibold text-fg">Release Signoff</h2>
+        <span className={cn("text-[12px] font-semibold", decisionColor)}>
+          {decision === "GO" ? "GO" : decision === "NO_GO" ? "NO GO" : "Beklemede"}
+        </span>
+      </div>
+
+      {latestSignoff && (
+        <div className="mb-3 rounded-lg border border-border bg-surface-overlay px-3 py-2">
+          <p className="text-[12px] font-medium text-fg">
+            {latestSignoff.decision === "approved" ? "Onaylandi" : "Reddedildi"} —{" "}
+            {latestSignoff.role ?? "Bilinmeyen Rol"}
+          </p>
+          {latestSignoff.comment && (
+            <p className="mt-0.5 text-[11px] text-fg-muted">{latestSignoff.comment}</p>
+          )}
+          <p className="mt-0.5 text-[10px] text-fg-subtle tabular-nums">
+            {new Date(latestSignoff.signed_at).toLocaleDateString("tr-TR", {
+              day: "2-digit",
+              month: "short",
+              year: "numeric",
+            })}
+          </p>
+        </div>
+      )}
+
+      {!signoffsQ.data?.length && (
+        <p className="mb-3 text-[12px] text-fg-muted">Henuz onay verilmedi.</p>
+      )}
+
+      {!showForm ? (
+        <button
+          onClick={() => setShowForm(true)}
+          className="w-full rounded-lg bg-brand px-3 py-2 text-[12px] font-semibold text-brand-fg shadow-sm transition-colors hover:brightness-105"
+        >
+          Onayla / Reddet
+        </button>
+      ) : (
+        <div className="space-y-2">
+          <div className="flex gap-2">
+            <button
+              onClick={() => setApprovalDecision("approved")}
+              className={cn(
+                "flex-1 rounded-lg border px-2 py-1.5 text-[11px] font-semibold transition-colors",
+                approvalDecision === "approved"
+                  ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-400"
+                  : "border-border bg-surface-overlay text-fg-muted",
+              )}
+            >
+              Onayla
+            </button>
+            <button
+              onClick={() => setApprovalDecision("rejected")}
+              className={cn(
+                "flex-1 rounded-lg border px-2 py-1.5 text-[11px] font-semibold transition-colors",
+                approvalDecision === "rejected"
+                  ? "border-red-500/40 bg-red-500/10 text-red-400"
+                  : "border-border bg-surface-overlay text-fg-muted",
+              )}
+            >
+              Reddet
+            </button>
+          </div>
+          <input
+            value={role}
+            onChange={e => setRole(e.target.value)}
+            placeholder="Rol (QA Lead, PM, ...)"
+            className="w-full rounded-lg border border-border bg-surface-overlay px-3 py-1.5 text-[12px] text-fg placeholder:text-fg-subtle focus:outline-none focus:ring-1 focus:ring-brand"
+          />
+          <textarea
+            value={comment}
+            onChange={e => setComment(e.target.value)}
+            placeholder="Yorum (opsiyonel)"
+            rows={2}
+            className="w-full resize-none rounded-lg border border-border bg-surface-overlay px-3 py-1.5 text-[12px] text-fg placeholder:text-fg-subtle focus:outline-none focus:ring-1 focus:ring-brand"
+          />
+          <div className="flex gap-2">
+            <button
+              onClick={handleSubmit}
+              disabled={createSignoff.isPending}
+              className="flex-1 rounded-lg bg-brand px-3 py-1.5 text-[12px] font-semibold text-brand-fg disabled:opacity-50"
+            >
+              {createSignoff.isPending ? "Gonderiliyor..." : "Gonder"}
+            </button>
+            <button
+              onClick={() => setShowForm(false)}
+              className="rounded-lg border border-border bg-surface-overlay px-3 py-1.5 text-[12px] text-fg-muted"
+            >
+              Iptal
+            </button>
+          </div>
+        </div>
+      )}
+    </section>
+  );
+}
+
 export default function ManagementDashboardPage() {
   const router = useRouter();
   const rawProjectId = useRouteParam("projectId");
@@ -399,6 +588,7 @@ export default function ManagementDashboardPage() {
   const requirements = requirementsQ.data ?? [];
   const summary = summaryQ.data;
   const release = releaseQ.data;
+  const blockers = release?.blockers ?? [];
 
   // Use the fast aggregated endpoint when available, fall back to client-side computation
   const activeRuns = summaryFast.data?.active_runs ?? runs.filter(run => ["running", "in_progress", "active"].includes(run.status)).length;
@@ -524,6 +714,17 @@ export default function ManagementDashboardPage() {
             <StatCard label="Test kapsami" value={`${coveragePct}%`} note={`${requirements.length} requirement linki`} tone="info" href={`/p/${projectId}/management/requirements`} />
           </div>
 
+          <div className="grid gap-5 xl:grid-cols-2">
+            <BlockersWidget blockers={blockers} projectId={projectId} />
+            {mpid && (
+              <ReleaseSignoffWidget
+                mpid={mpid}
+                projectId={projectId}
+                decision={release?.decision ?? "PENDING"}
+              />
+            )}
+          </div>
+
           <div className="grid gap-5 xl:grid-cols-3">
             <section className="rounded-xl border border-border bg-surface-raised p-5 shadow-sm xl:col-span-2">
               <div className="mb-4 flex items-center justify-between">
@@ -566,6 +767,7 @@ export default function ManagementDashboardPage() {
                 { label: "▶ Run Başlat",      href: `/p/${projectId}/management/runs`,               color: "bg-blue-600 text-white hover:bg-blue-500"                   },
                 { label: "Regresyon Seti",    href: `/p/${projectId}/management/regression`,         color: "bg-purple-600 text-white hover:bg-purple-500"               },
                 { label: "Plan Oluştur",      href: `/p/${projectId}/management/plans`,              color: "border border-border bg-surface-overlay text-fg-muted hover:text-fg" },
+                { label: "Defect Ekle",       href: `/p/${projectId}/management/defects`,             color: "border border-border bg-surface-overlay text-fg-muted hover:text-fg" },
                 { label: "Import",            href: `/p/${projectId}/management/import-export`,      color: "border border-border bg-surface-overlay text-fg-muted hover:text-fg" },
                 { label: "Raporlar",          href: `/p/${projectId}/management/reports`,            color: "border border-border bg-surface-overlay text-fg-muted hover:text-fg" },
                 { label: "Standup",           href: `/p/${projectId}/management/standup`,            color: "border border-border bg-surface-overlay text-fg-muted hover:text-fg" },
@@ -629,6 +831,8 @@ export default function ManagementDashboardPage() {
                     </span>
                     <span className="flex-1 min-w-0 truncate text-[12px] text-fg-muted">{ev.action}</span>
                     <span className="shrink-0 text-[10px] text-fg-subtle tabular-nums">
+                      {new Date(ev.created_at).toLocaleDateString("tr-TR", { day: "2-digit", month: "short" })}
+                      {" "}
                       {new Date(ev.created_at).toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" })}
                     </span>
                   </div>

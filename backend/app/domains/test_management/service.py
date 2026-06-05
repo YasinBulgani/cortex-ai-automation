@@ -2549,3 +2549,76 @@ def get_plan_impact_summary(db: Session, project_id: str, plan_id: str) -> dict:
         "run_case_count": run_case_count,
         "evidence_count": evidence_count,
     }
+
+
+def search_cases(db: Session, project_id: str, q: str = "") -> list[TestCase]:
+    """Shortcut search wrapper used by the /cases/search endpoint.
+
+    Delegates to list_cases with the q filter — project_id is already
+    resolved inside list_cases.
+    """
+    return list_cases(db, project_id, q=q or None)
+
+
+def list_evidence_by_run_case(db: Session, project_id: str, run_case_id: str) -> list[dict[str, Any]]:
+    """Return evidence for a run-case without requiring run_id in the path.
+
+    Validates that the run-case belongs to the given project to prevent IDOR.
+    """
+    project_id = resolve_project_id(db, project_id)
+    run_case = db.get(TestRunCase, run_case_id)
+    if run_case is None or run_case.case.project_id != project_id:
+        raise KeyError("Run case bulunamadı")
+    return [
+        _evidence_out(evidence)
+        for evidence in db.scalars(
+            select(ExecutionEvidence)
+            .where(ExecutionEvidence.run_case_id == run_case_id)
+            .order_by(ExecutionEvidence.uploaded_at.desc())
+        ).all()
+    ]
+
+
+def dashboard_summary_fast(db: Session, project_id: str) -> dict[str, Any]:
+    """Lightweight dashboard stats — avoids the heavy execution_summary call.
+
+    Returns the same shape as dashboard_summary but skips pass-rate and
+    coverage calculations so the response is faster for initial page load.
+    The frontend can call /reports/dashboard-summary for the full dataset.
+    """
+    project_id = resolve_project_id(db, project_id)
+
+    total_cases = db.scalar(
+        select(func.count()).select_from(TestCase)
+        .where(TestCase.project_id == project_id, TestCase.archived.is_(False))
+    ) or 0
+
+    suite_count = db.scalar(
+        select(func.count()).select_from(TestSuite).where(TestSuite.project_id == project_id)
+    ) or 0
+
+    active_runs = db.scalar(
+        select(func.count()).select_from(TestRun)
+        .join(TestCycle, TestRun.cycle_id == TestCycle.id)
+        .where(TestCycle.project_id == project_id, TestRun.status.in_(["running", "in_progress"]))
+    ) or 0
+
+    failed_cases = db.scalar(
+        select(func.count()).select_from(TestCase)
+        .where(TestCase.project_id == project_id, TestCase.last_run_status == "failed", TestCase.archived.is_(False))
+    ) or 0
+
+    critical_defects = db.scalar(
+        select(func.count()).select_from(DefectLink)
+        .join(TestRunCase, DefectLink.run_case_id == TestRunCase.id)
+        .join(TestCase, TestRunCase.case_id == TestCase.id)
+        .where(TestCase.project_id == project_id, DefectLink.severity.in_(["critical", "blocker"]))
+    ) or 0
+
+    return {
+        "total_cases": total_cases,
+        "active_runs": active_runs,
+        "failed_cases": failed_cases,
+        "critical_defects": critical_defects,
+        "suite_count": suite_count,
+    }

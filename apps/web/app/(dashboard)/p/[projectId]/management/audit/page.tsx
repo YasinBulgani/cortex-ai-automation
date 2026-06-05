@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useManagementAuditEvents, type ManagementAuditEvent } from "@/lib/hooks/use-management";
 import { useManagementProjectId } from "@/lib/hooks/use-management-project-id";
 import { useRouteParam } from "@/lib/use-route-param";
@@ -59,6 +59,41 @@ function fmtTime(iso: string) {
   return d.toLocaleString("tr-TR", {
     day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit"
   });
+}
+
+function fmtDateISO(iso: string) {
+  return new Date(iso).toISOString().slice(0, 10);
+}
+
+function exportJSON(events: ManagementAuditEvent[]) {
+  const blob = new Blob([JSON.stringify(events, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `audit-log-${new Date().toISOString().slice(0, 10)}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function exportCSV(events: ManagementAuditEvent[]) {
+  const header = ["id", "action", "entity_type", "entity_id", "actor_id", "created_at", "payload"];
+  const rows = events.map(ev => [
+    ev.id,
+    ev.action,
+    ev.entity_type,
+    ev.entity_id ?? "",
+    ev.actor_id ?? "",
+    ev.created_at,
+    JSON.stringify(ev.payload ?? {}),
+  ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(","));
+  const csv = [header.join(","), ...rows].join("\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `audit-log-${new Date().toISOString().slice(0, 10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
 }
 
 function EventRow({ ev }: { ev: ManagementAuditEvent }) {
@@ -130,17 +165,40 @@ export default function ManagementAuditPage() {
   const [limit,        setLimit]        = useState(100);
   const [actionFilter, setActionFilter] = useState("");
   const [entityFilter, setEntityFilter] = useState("");
+  const [actorFilter,  setActorFilter]  = useState("");
+  const [dateFrom,     setDateFrom]     = useState("");
+  const [dateTo,       setDateTo]       = useState("");
 
   const { data: events, isLoading, isError, refetch } = useManagementAuditEvents(mpid || undefined, limit);
 
-  const filtered = (events ?? []).filter(ev => {
+  const filtered = useMemo(() => (events ?? []).filter(ev => {
     if (actionFilter && !ev.action.includes(actionFilter)) return false;
     if (entityFilter && ev.entity_type !== entityFilter) return false;
+    if (actorFilter && (ev.actor_id ?? "").slice(0, 8) !== actorFilter) return false;
+    if (dateFrom) {
+      const evDate = fmtDateISO(ev.created_at);
+      if (evDate < dateFrom) return false;
+    }
+    if (dateTo) {
+      const evDate = fmtDateISO(ev.created_at);
+      if (evDate > dateTo) return false;
+    }
     return true;
-  });
+  }), [events, actionFilter, entityFilter, actorFilter, dateFrom, dateTo]);
 
-  const entityTypes = [...new Set((events ?? []).map(e => e.entity_type))].sort();
-  const actionTypes = [...new Set((events ?? []).map(e => e.action))].sort();
+  const entityTypes = useMemo(() => [...new Set((events ?? []).map(e => e.entity_type))].sort(), [events]);
+  const actionTypes = useMemo(() => [...new Set((events ?? []).map(e => e.action))].sort(), [events]);
+  const actorIds    = useMemo(() => [...new Set((events ?? []).filter(e => e.actor_id).map(e => e.actor_id!.slice(0, 8)))].sort(), [events]);
+
+  const hasFilter = !!(actionFilter || entityFilter || actorFilter || dateFrom || dateTo);
+
+  function clearFilters() {
+    setActionFilter("");
+    setEntityFilter("");
+    setActorFilter("");
+    setDateFrom("");
+    setDateTo("");
+  }
 
   const SEL = "rounded-lg border border-border bg-surface-overlay px-2.5 py-1.5 text-[11px] text-fg-muted outline-none focus:border-brand transition-colors";
 
@@ -148,12 +206,37 @@ export default function ManagementAuditPage() {
     <div className="flex flex-col min-h-full bg-bg text-slate-200">
       {/* Header */}
       <div className="border-b border-border bg-surface-raised px-6 py-4">
-        <div className="flex items-center justify-between gap-4">
-          <div>
-            <h1 className="text-[15px] font-semibold text-fg">Denetim İzi</h1>
-            <p className="mt-0.5 text-[11px] text-fg-subtle">Proje üzerindeki tüm değişikliklerin kaydı</p>
+        <div className="flex flex-col gap-3">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <h1 className="text-[15px] font-semibold text-fg">Denetim İzi</h1>
+              <p className="mt-0.5 text-[11px] text-fg-subtle">Proje üzerindeki tüm değişikliklerin kaydı</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => filtered.length > 0 && exportJSON(filtered)}
+                disabled={filtered.length === 0}
+                className="rounded-lg border border-border bg-surface-overlay px-3 py-1.5 text-[11px] font-medium text-fg-muted hover:text-fg transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                JSON
+              </button>
+              <button
+                type="button"
+                onClick={() => filtered.length > 0 && exportCSV(filtered)}
+                disabled={filtered.length === 0}
+                className="rounded-lg border border-border bg-surface-overlay px-3 py-1.5 text-[11px] font-medium text-fg-muted hover:text-fg transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                CSV
+              </button>
+              <button type="button" onClick={() => refetch()}
+                className="rounded-lg border border-border bg-surface-overlay px-3 py-1.5 text-[11px] font-medium text-fg-muted hover:text-fg transition-colors">
+                ↺ Yenile
+              </button>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
+          {/* Filters row */}
+          <div className="flex flex-wrap items-center gap-2">
             <select value={actionFilter} onChange={e => setActionFilter(e.target.value)} className={SEL}>
               <option value="">Tüm İşlemler</option>
               {actionTypes.map(a => <option key={a} value={a}>{a}</option>)}
@@ -162,25 +245,43 @@ export default function ManagementAuditPage() {
               <option value="">Tüm Varlıklar</option>
               {entityTypes.map(t => <option key={t} value={t}>{t}</option>)}
             </select>
+            <select value={actorFilter} onChange={e => setActorFilter(e.target.value)} className={SEL}>
+              <option value="">Tüm Kullanıcılar</option>
+              {actorIds.map(id => <option key={id} value={id}>{id}…</option>)}
+            </select>
+            <input
+              type="date"
+              value={dateFrom}
+              onChange={e => setDateFrom(e.target.value)}
+              title="Başlangıç tarihi"
+              className={SEL}
+            />
+            <span className="text-[10px] text-fg-subtle">—</span>
+            <input
+              type="date"
+              value={dateTo}
+              onChange={e => setDateTo(e.target.value)}
+              title="Bitiş tarihi"
+              className={SEL}
+            />
             <select value={limit} onChange={e => setLimit(Number(e.target.value))} className={SEL}>
               {[50, 100, 200].map(n => <option key={n} value={n}>Son {n}</option>)}
             </select>
-            <button type="button" onClick={() => refetch()}
-              className="rounded-lg border border-border bg-surface-overlay px-3 py-1.5 text-[11px] font-medium text-fg-muted hover:text-fg transition-colors">
-              ↺ Yenile
-            </button>
           </div>
         </div>
       </div>
 
       {/* Stats bar */}
       {events && events.length > 0 && (
-        <div className="flex items-center gap-4 border-b border-border bg-surface-raised px-6 py-2 text-[11px] text-fg-subtle">
+        <div className="flex flex-wrap items-center gap-2 border-b border-border bg-surface-raised px-6 py-2 text-[11px] text-fg-subtle">
           <span className="text-fg-muted font-medium">{filtered.length} kayıt</span>
           {actionFilter && <span className="rounded-full border border-brand/20 bg-brand-soft px-2 py-0.5 text-[10px] text-brand">{actionFilter}</span>}
           {entityFilter && <span className="rounded-full border border-border bg-surface-overlay px-2 py-0.5 text-[10px] text-fg-muted">{entityFilter}</span>}
-          {(actionFilter || entityFilter) && (
-            <button type="button" onClick={() => { setActionFilter(""); setEntityFilter(""); }}
+          {actorFilter && <span className="rounded-full border border-border bg-surface-overlay px-2 py-0.5 text-[10px] text-fg-muted">Kullanıcı: {actorFilter}…</span>}
+          {dateFrom && <span className="rounded-full border border-border bg-surface-overlay px-2 py-0.5 text-[10px] text-fg-muted">{dateFrom} den</span>}
+          {dateTo && <span className="rounded-full border border-border bg-surface-overlay px-2 py-0.5 text-[10px] text-fg-muted">{dateTo} e</span>}
+          {hasFilter && (
+            <button type="button" onClick={clearFilters}
               className="text-[10px] text-fg-subtle hover:text-danger">Temizle</button>
           )}
         </div>

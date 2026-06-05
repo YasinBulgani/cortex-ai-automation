@@ -25,7 +25,6 @@ import {
   type TestCycle,
   type TestRun,
 } from "@/lib/hooks/use-management";
-import { useQueryClient } from "@tanstack/react-query";
 import { useManagementProjectId } from "@/lib/hooks/use-management-project-id";
 import { useRouteParam } from "@/lib/use-route-param";
 import { useToast } from "@/lib/useToast";
@@ -126,10 +125,11 @@ function PlanStartRunModal({
   cases: import("@/lib/hooks/use-management").TestCase[];
   suites: import("@/lib/hooks/use-management").TestSuite[];
   onClose: () => void;
-  onConfirm: (runName: string, caseIds: string[]) => void;
+  onConfirm: (runName: string, caseIds: string[], environment: string) => void;
   busy: boolean;
 }) {
   const [name, setName] = useState(`Koşum — ${cycle.name}`);
+  const [environment, setEnvironment] = useState(cycle.environment ?? "");
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<Set<string>>(() => {
     const active = cases.filter(c => !c.archived);
@@ -176,15 +176,28 @@ function PlanStartRunModal({
           </button>
         </div>
 
-        {/* Run name */}
-        <div className="px-5 pt-4 pb-2">
-          <label className="mb-1 block text-[11px] font-medium text-fg-muted">Koşum Adı *</label>
-          <input
-            autoFocus
-            value={name}
-            onChange={e => setName(e.target.value)}
-            className="w-full rounded-xl border border-border bg-surface-overlay px-3 py-2 text-[13px] text-fg placeholder:text-fg-subtle outline-none focus:border-brand focus:ring-2 focus:ring-brand/15"
-          />
+        {/* Run name + environment */}
+        <div className="px-5 pt-4 pb-2 space-y-3">
+          <div>
+            <label className="mb-1 block text-[11px] font-medium text-fg-muted">Koşum Adı *</label>
+            <input
+              autoFocus
+              value={name}
+              onChange={e => setName(e.target.value)}
+              maxLength={200}
+              className="w-full rounded-xl border border-border bg-surface-overlay px-3 py-2 text-[13px] text-fg placeholder:text-fg-subtle outline-none focus:border-brand focus:ring-2 focus:ring-brand/15"
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-[11px] font-medium text-fg-muted">Ortam (Opsiyonel)</label>
+            <input
+              value={environment}
+              onChange={e => setEnvironment(e.target.value)}
+              maxLength={100}
+              placeholder="prod / staging / dev"
+              className="w-full rounded-xl border border-border bg-surface-overlay px-3 py-2 text-[13px] text-fg placeholder:text-fg-subtle outline-none focus:border-brand focus:ring-2 focus:ring-brand/15"
+            />
+          </div>
         </div>
 
         {/* Search + header */}
@@ -296,7 +309,7 @@ function PlanStartRunModal({
             </button>
             <button type="button"
               disabled={busy || !name.trim() || selected.size === 0}
-              onClick={() => onConfirm(name.trim(), [...selected])}
+              onClick={() => onConfirm(name.trim(), [...selected], environment.trim())}
               className="rounded-xl bg-brand px-5 py-2 text-[13px] font-semibold text-brand-fg hover:brightness-105 disabled:opacity-40 transition-colors">
               {busy ? "Oluşturuluyor…" : "Koşumu Başlat"}
             </button>
@@ -819,7 +832,6 @@ export default function ManagementPlansPage() {
   const router    = useRouter();
   const projectId = useRouteParam("projectId");
   const mpid      = useManagementProjectId(projectId || undefined);
-  const qc        = useQueryClient();
   const toast     = useToast();
 
   const { data: plans, isLoading, isError: plansError, refetch: refetchPlans } = useManagementPlans(mpid || undefined);
@@ -931,7 +943,7 @@ export default function ManagementPlansPage() {
     }
   };
 
-  const handleStartRun = async (cycle: TestCycle, caseIds: string[], runName?: string) => {
+  const handleStartRun = async (cycle: TestCycle, caseIds: string[], runName?: string, environment?: string) => {
     setActiveCycleId(cycle.id);
     setRunCreatingFlag(true);
     setError(null);
@@ -940,12 +952,14 @@ export default function ManagementPlansPage() {
         cycle_id: cycle.id,
         name: runName?.trim() || `Koşum — ${cycle.name}`,
         case_ids: caseIds,
-        environment: cycle.environment ?? null,
+        environment: environment?.trim() || cycle.environment || null,
       });
       setRunCycleForModal(null);
+      setActiveCycleId("");
       router.push(`/p/${projectId}/management/runs/${run.id}/execute`);
     } catch {
       setError("Koşum başlatılamadı.");
+      setActiveCycleId("");
     } finally {
       setRunCreatingFlag(false);
     }
@@ -1056,6 +1070,7 @@ export default function ManagementPlansPage() {
                 onChange={e => setPlanName(e.target.value)}
                 placeholder="örn. Q3 Release Plan"
                 required
+                maxLength={200}
                 className="w-full rounded-lg border border-border bg-surface-overlay px-3 py-2 text-[13px] text-fg placeholder-slate-600 outline-none focus:border-teal-500/50"
               />
             </div>
@@ -1077,6 +1092,7 @@ export default function ManagementPlansPage() {
                 value={planRelease}
                 onChange={e => setPlanRelease(e.target.value)}
                 placeholder="v2.4.0"
+                maxLength={100}
                 className="w-full rounded-lg border border-border bg-surface-overlay px-3 py-2 text-[13px] text-fg placeholder-slate-600 outline-none focus:border-teal-500/50"
               />
             </div>
@@ -1110,15 +1126,15 @@ export default function ManagementPlansPage() {
                   onChange={e => setPlanScope(e.target.value)}
                   placeholder="Bu planın kapsamı ve hedefleri hakkında kısa bir açıklama…"
                   rows={2}
+                  maxLength={1000}
                   className="w-full resize-none rounded-lg border border-border bg-surface-overlay px-3 py-2 text-[13px] text-fg placeholder-slate-600 outline-none focus:border-teal-500/50"
                 />
               </div>
               <div className="flex flex-col justify-end">
                 <button type="button"
-                  disabled={isLoading || aiGenPlan.isPending}
-                  title="Plan oluşturulduktan sonra AI önerisi alabilirsiniz"
+                  disabled={isLoading || aiGenPlan.isPending || !planRelease.trim()}
+                  title={!planRelease.trim() ? "AI önerisi için önce Release adı girin" : "AI ile plan özeti oluştur"}
                   onClick={async () => {
-                    if (!planRelease.trim()) return;
                     const res = await aiGenPlan.mutateAsync({ release_name: planRelease.trim(), plan_type: planType });
                     if (!planName) setPlanName(res.name);
                     setPlanScope(res.scope_summary);
@@ -1199,7 +1215,7 @@ export default function ManagementPlansPage() {
           cases={repoQ.data?.cases ?? []}
           suites={repoQ.data?.suites ?? []}
           onClose={() => setRunCycleForModal(null)}
-          onConfirm={(runName, caseIds) => void handleStartRun(runCycleForModal, caseIds, runName)}
+          onConfirm={(runName, caseIds, environment) => void handleStartRun(runCycleForModal, caseIds, runName, environment)}
           busy={createRun.isPending || runCreatingFlag}
         />
       )}
@@ -1233,6 +1249,7 @@ export default function ManagementPlansPage() {
                     if (e.key === "Escape") { setAddCycleForPlan(null); setCycleName(""); }
                   }}
                   placeholder="örn. Sprint 5 Regression"
+                  maxLength={200}
                   className="w-full rounded-lg border border-border bg-surface-overlay px-3 py-2 text-[13px] text-fg placeholder-slate-600 outline-none focus:border-teal-500/50"
                 />
               </div>
@@ -1240,12 +1257,12 @@ export default function ManagementPlansPage() {
                 <div>
                   <label className="mb-1 block text-[11px] text-fg-muted">Ortam</label>
                   <input value={cycleEnv} onChange={e => setCycleEnv(e.target.value)}
-                    placeholder="prod / staging" className="w-full rounded-lg border border-border bg-surface-overlay px-3 py-2 text-[12px] text-fg placeholder-slate-600 outline-none focus:border-teal-500/50"/>
+                    placeholder="prod / staging" maxLength={100} className="w-full rounded-lg border border-border bg-surface-overlay px-3 py-2 text-[12px] text-fg placeholder-slate-600 outline-none focus:border-teal-500/50"/>
                 </div>
                 <div>
                   <label className="mb-1 block text-[11px] text-fg-muted">Build</label>
                   <input value={cycleBuild} onChange={e => setCycleBuild(e.target.value)}
-                    placeholder="v2.1.0" className="w-full rounded-lg border border-border bg-surface-overlay px-3 py-2 text-[12px] text-fg placeholder-slate-600 outline-none focus:border-teal-500/50"/>
+                    placeholder="v2.1.0" maxLength={100} className="w-full rounded-lg border border-border bg-surface-overlay px-3 py-2 text-[12px] text-fg placeholder-slate-600 outline-none focus:border-teal-500/50"/>
                 </div>
               </div>
               <div className="flex gap-2 pt-1">

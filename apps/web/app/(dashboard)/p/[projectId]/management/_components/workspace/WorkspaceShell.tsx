@@ -82,6 +82,8 @@ function CaseTable({
   const [unarchivedId, setUnarchivedId] = useState<string | null>(null);
   const [sortCol, setSortCol] = useState<string>("updated_at");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+  const [page,         setPage]         = useState(0);
+  const ITEMS_PER_PAGE = 100;
 
   const searchTimer = useRef<ReturnType<typeof setTimeout>>();
   const [debouncedSearch, setDebouncedSearch] = useState(search);
@@ -114,6 +116,12 @@ function CaseTable({
       return sortDir === "asc" ? va.localeCompare(vb) : vb.localeCompare(va);
     });
   }, [filtered, sortCol, sortDir]);
+
+  // Reset pagination when filters or sort change
+  useEffect(() => { setPage(0); }, [debouncedSearch, priority, type, status, sortCol, sortDir]);
+
+  const visibleCases = useMemo(() => sorted.slice(0, (page + 1) * ITEMS_PER_PAGE), [sorted, page]);
+  const hasMore = sorted.length > visibleCases.length;
 
   const activeFilterCount = [priority, type, status].filter(Boolean).length + (debouncedSearch ? 1 : 0);
 
@@ -247,7 +255,7 @@ function CaseTable({
               </tr>
             </thead>
             <tbody>
-              {sorted.map(tc => (
+              {visibleCases.map(tc => (
                 <CaseRow
                   key={tc.id} tc={tc}
                   selected={selId === tc.id}
@@ -259,6 +267,19 @@ function CaseTable({
                   cloning={cloningId === tc.id}
                 />
               ))}
+              {hasMore && (
+                <tr>
+                  <td colSpan={9} className="px-4 py-3 text-center">
+                    <button
+                      type="button"
+                      onClick={() => setPage(p => p + 1)}
+                      className="rounded-lg border border-border bg-surface-raised px-4 py-1.5 text-[12px] font-medium text-fg-subtle hover:border-brand hover:text-brand transition-colors"
+                    >
+                      Daha fazla yükle ({sorted.length - visibleCases.length} kalan)
+                    </button>
+                  </td>
+                </tr>
+              )}
               {/* ── Archived section ────────────────────────────────── */}
               {showArchived && archivedCases.length > 0 && (
                 <>

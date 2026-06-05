@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { cn } from "@/lib/utils";
-import { useSharedSteps, type SharedStepItem } from "@/lib/hooks/use-management";
+import { useSharedSteps, useIncrementSharedStepUsage, type SharedStepItem } from "@/lib/hooks/use-management";
 
 interface Props {
   projectId: string;
@@ -12,6 +12,7 @@ interface Props {
 
 export function SharedStepPicker({ projectId, onInsert, onClose }: Props) {
   const { data: templates = [], isLoading } = useSharedSteps(projectId || undefined);
+  const incrementUsage = useIncrementSharedStepUsage(projectId);
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<string | null>(null);
 
@@ -134,7 +135,11 @@ export function SharedStepPicker({ projectId, onInsert, onClose }: Props) {
                 <div className="border-t border-border p-4">
                   <button
                     type="button"
-                    onClick={() => { onInsert(selectedTemplate.steps); onClose(); }}
+                    onClick={() => {
+                      onInsert(selectedTemplate.steps);
+                      incrementUsage.mutate(selectedTemplate.id);
+                      onClose();
+                    }}
                     className="w-full rounded-xl bg-brand py-2.5 text-[13px] font-semibold text-brand-fg shadow-sm hover:brightness-105 transition-all"
                   >
                     {selectedTemplate.steps.length} Adımı Ekle →

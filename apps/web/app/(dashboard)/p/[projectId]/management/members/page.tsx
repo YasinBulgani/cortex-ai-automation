@@ -71,19 +71,26 @@ function MemberSkeleton() {
 
 interface InviteModalProps {
   projectId: string;
+  existingEmails: string[];
   onClose: () => void;
   onInvited: () => void;
 }
 
-function InviteModal({ projectId, onClose, onInvited }: InviteModalProps) {
+function InviteModal({ projectId, existingEmails, onClose, onInvited }: InviteModalProps) {
   const [email, setEmail]   = useState("");
   const [role, setRole]     = useState<MemberRole>("member");
   const [loading, setLoading] = useState(false);
   const [error, setError]   = useState<string | null>(null);
 
+  const isDuplicate = email.trim() !== "" && existingEmails.includes(email.trim().toLowerCase());
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!email.trim()) return;
+    if (isDuplicate) {
+      setError("Bu e-posta adresi zaten projeye üye.");
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
@@ -127,8 +134,17 @@ function InviteModal({ projectId, onClose, onInvited }: InviteModalProps) {
               required
               autoFocus
               placeholder="kullanici@sirket.com"
-              className="w-full rounded-xl border border-border bg-bg px-3 py-2 text-[13px] text-slate-200 placeholder-slate-600 outline-none focus:border-teal-500/50"
+              className={`w-full rounded-xl border bg-bg px-3 py-2 text-[13px] text-slate-200 placeholder-slate-600 outline-none transition-colors ${
+                isDuplicate
+                  ? "border-amber-500/50 focus:border-amber-500/70"
+                  : "border-border focus:border-teal-500/50"
+              }`}
             />
+            {isDuplicate && (
+              <p className="mt-1 text-[11px] text-amber-400">
+                Bu e-posta zaten projeye üye.
+              </p>
+            )}
           </div>
 
           <div>
@@ -158,7 +174,7 @@ function InviteModal({ projectId, onClose, onInvited }: InviteModalProps) {
             </button>
             <button
               type="submit"
-              disabled={loading || !email.trim()}
+              disabled={loading || !email.trim() || isDuplicate}
               className="rounded-xl bg-brand px-4 py-2 text-[12px] font-semibold text-brand-fg hover:brightness-105 disabled:opacity-50 transition-colors"
             >
               {loading ? "Gönderiliyor…" : "Davet Et"}
@@ -197,6 +213,12 @@ export default function ManagementMembersPage() {
         : "Üyeler yüklenemedi.")
     : null;
 
+  const existingEmails = members.map(m => m.email.toLowerCase());
+
+  // Son admin koruması: admin rolündeki tek kişi kaldırılamaz veya role değiştirilemez
+  const adminCount = members.filter(m => m.role === "admin").length;
+  const isLastAdmin = (m: ProjectMember) => m.role === "admin" && adminCount === 1;
+
   const roleChangeMut = useMutation({
     mutationFn: ({ userId, role }: { userId: string; role: MemberRole }) =>
       apiFetch(`/api/v1/organizations/projects/${projectId}/members/${userId}`, {
@@ -221,8 +243,9 @@ export default function ManagementMembersPage() {
     roleChangeMut.mutate({ userId, role: newRole });
   }
 
-  function handleRemove(userId: string) {
-    removeMut.mutate(userId);
+  function handleRemove(member: ProjectMember) {
+    if (isLastAdmin(member)) return;
+    removeMut.mutate(member.user_id);
   }
 
   const isCurrentUser = (m: ProjectMember) =>
@@ -291,9 +314,11 @@ export default function ManagementMembersPage() {
             /* ── Member rows ── */
             <ul className="divide-y divide-border">
               {members.map(member => {
-                const isSelf  = isCurrentUser(member);
-                const isOwner = member.role === "owner";
-                const canEdit = !isSelf && !isOwner;
+                const isSelf      = isCurrentUser(member);
+                const isOwner     = member.role === "owner";
+                const lastAdmin   = isLastAdmin(member);
+                const canEdit     = !isSelf && !isOwner;
+                const canRemove   = canEdit && !lastAdmin;
 
                 return (
                   <li
@@ -331,13 +356,14 @@ export default function ManagementMembersPage() {
                       <div className="relative shrink-0">
                         <button
                           type="button"
-                          disabled={roleChangeMut.isPending && roleChangeMut.variables?.userId === member.user_id}
+                          disabled={(lastAdmin) || (roleChangeMut.isPending && roleChangeMut.variables?.userId === member.user_id)}
+                          title={lastAdmin ? "Projede en az bir admin bulunmalı" : undefined}
                           onClick={() =>
                             setOpenRoleMenu(prev =>
                               prev === member.user_id ? null : member.user_id
                             )
                           }
-                          className="rounded-lg border border-border px-2.5 py-1 text-[11px] text-slate-400 hover:text-slate-200 hover:border-slate-500 transition-colors disabled:opacity-50"
+                          className="rounded-lg border border-border px-2.5 py-1 text-[11px] text-slate-400 hover:text-slate-200 hover:border-slate-500 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                         >
                           {roleChangeMut.isPending && roleChangeMut.variables?.userId === member.user_id ? "…" : "Rol Değiştir"}
                         </button>
@@ -373,9 +399,10 @@ export default function ManagementMembersPage() {
                     {canEdit && (
                       <button
                         type="button"
-                        disabled={removeMut.isPending && removeMut.variables === member.user_id}
-                        onClick={() => handleRemove(member.user_id)}
-                        className="shrink-0 rounded-lg px-2.5 py-1 text-[11px] text-slate-500 hover:text-red-400 hover:bg-red-500/10 transition-colors disabled:opacity-50"
+                        disabled={!canRemove || (removeMut.isPending && removeMut.variables === member.user_id)}
+                        onClick={() => handleRemove(member)}
+                        title={lastAdmin ? "Projede en az bir admin bulunmalı" : undefined}
+                        className="shrink-0 rounded-lg px-2.5 py-1 text-[11px] text-slate-500 hover:text-red-400 hover:bg-red-500/10 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                       >
                         {removeMut.isPending && removeMut.variables === member.user_id ? "…" : "Kaldır"}
                       </button>
@@ -392,6 +419,7 @@ export default function ManagementMembersPage() {
       {showInvite && projectId && (
         <InviteModal
           projectId={projectId}
+          existingEmails={existingEmails}
           onClose={() => setShowInvite(false)}
           onInvited={() =>
             qc.invalidateQueries({ queryKey: ["management", "members", projectId] })

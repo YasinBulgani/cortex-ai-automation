@@ -459,21 +459,22 @@ function RegressionReportTab({
   const displayRuns = filteredRuns.length > 0 ? filteredRuns : (runs ?? []);
 
   const getLastRunStatus = (_setId: string): string => {
-    if (!displayRuns.length) return "—";
-    // TODO: regression_set_id ile filtrele — şu anda run adı üzerinden tahmini eşleştirme yapılıyor.
-    // Doğru implementasyon: runs API'den regression_set_id alanı döndüğünde
-    // displayRuns.filter(r => r.regression_set_id === _setId) şeklinde kullanılmalı.
-    const relatedRuns = displayRuns.filter(r => r.name?.toLowerCase().includes("regress"));
-    if (!relatedRuns.length) return "—";
-    const lastRun = relatedRuns[0];
-    return lastRun.status ?? "—";
+    // Run'lar henüz regression_set_id alanı döndürmüyor; "—" gösteriliyor.
+    // Gerçek eşleştirme için backend'in runs API'sine regression_set_id eklenmesi gerekiyor.
+    void displayRuns; // suppress unused warning
+    return "—";
   };
 
   return (
     <div className="space-y-6">
       <div className="rounded-xl border border-border bg-surface-raised overflow-hidden">
         <div className="border-b border-border px-5 py-3 flex items-center justify-between">
-          <h2 className="text-[11px] font-medium uppercase tracking-wider text-fg-subtle">Regresyon Setleri</h2>
+          <div>
+            <h2 className="text-[11px] font-medium uppercase tracking-wider text-fg-subtle">Regresyon Setleri</h2>
+            <p className="mt-0.5 text-[10px] text-amber-400/70">
+              Son run durumu: backend regression_set_id alanı hazır olduğunda otomatik hesaplanacak.
+            </p>
+          </div>
           <span className="rounded-full border border-border bg-surface-overlay px-2 py-0.5 text-[10px] text-fg-subtle">{sets.length} set</span>
         </div>
         {regressionLoading ? (
@@ -883,10 +884,16 @@ function TesterPerformanceTab({
 
   const testerRows = useMemo(() => {
     if (!cases) return [];
+    // owner_id is a user UUID from the backend. No display name is available
+    // without a separate /users endpoint. We shorten UUIDs for readability.
+    const shortenId = (id: string) =>
+      id.length > 12 ? `…${id.slice(-8)}` : id;
+
     const map = new Map<string, { assigned: number; completed: number; passed: number }>();
 
     for (const tc of cases) {
-      const key = (tc.owner_id ?? "Atanmamış").trim() || "Atanmamış";
+      const rawKey = (tc.owner_id ?? "").trim();
+      const key = rawKey ? shortenId(rawKey) : "Atanmamış";
       const row = map.get(key) ?? { assigned: 0, completed: 0, passed: 0 };
       row.assigned += 1;
       if (["passed", "failed", "blocked"].includes(tc.last_run_status ?? "")) row.completed += 1;
@@ -894,10 +901,11 @@ function TesterPerformanceTab({
       map.set(key, row);
     }
 
-    // Add run-level tester info
+    // Add run-level tester info (assigned_to is a UUID when present)
     for (const run of displayRuns) {
-      const key = (run.assigned_to ?? "").trim();
-      if (!key) continue;
+      const rawKey = (run.assigned_to ?? "").trim();
+      if (!rawKey) continue;
+      const key = shortenId(rawKey);
       if (!map.has(key)) map.set(key, { assigned: 0, completed: 0, passed: 0 });
     }
 
@@ -906,7 +914,7 @@ function TesterPerformanceTab({
       assigned: data.assigned,
       completed: data.completed,
       passRate: data.completed > 0 ? Math.round((data.passed / data.completed) * 100) : 0,
-      active: displayRuns.some(r => r.status === "in_progress" && r.assigned_to === tester),
+      active: displayRuns.some(r => r.status === "in_progress" && r.assigned_to != null && r.assigned_to.endsWith(tester.replace("…", ""))),
     }));
   }, [cases, displayRuns]);
 
@@ -935,7 +943,12 @@ function TesterPerformanceTab({
     <div className="space-y-6">
       <div className="rounded-xl border border-border bg-surface-raised overflow-hidden">
         <div className="border-b border-border px-5 py-3 flex items-center justify-between">
-          <h2 className="text-[11px] font-medium uppercase tracking-wider text-fg-subtle">Tester Performansı</h2>
+          <div>
+            <h2 className="text-[11px] font-medium uppercase tracking-wider text-fg-subtle">Tester Performansı</h2>
+            <p className="mt-0.5 text-[10px] text-fg-subtle">
+              Case owner_id alanından türetildi — kullanıcı adları profil sayfasında görünür.
+            </p>
+          </div>
           <span className="text-[10px] text-fg-subtle">{sorted.length} tester</span>
         </div>
         {loading ? (
@@ -1244,10 +1257,7 @@ export default function ManagementReportsPage() {
       label: new Date(p.created_at).toLocaleDateString("tr-TR", { day: "2-digit", month: "short" }),
       value: Math.round(p.pass_rate_pct),
     }));
-    // Pad to 7 points with placeholder value 50 when API has fewer entries
-    while (points.length < 7) {
-      points.unshift({ label: DAY_LABELS[points.length] ?? `G-${6 - points.length}`, value: 50 });
-    }
+    // Pad to 7 points with value 0 when API has fewer entries (no fake data)
     return points;
   }, [runTrend]);
   const trendData = trendPoints.map(point => point.value);

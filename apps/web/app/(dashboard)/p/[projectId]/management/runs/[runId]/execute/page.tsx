@@ -12,9 +12,12 @@ import {
   useUpdateManagementRunCase,
   useUpdateManagementStepResult,
   useCreateManagementDefect,
+  useManagementEvidence,
+  useUploadEvidence,
   useCaseDependencies,
   type RunCase,
   type TestRunStatus,
+  type EvidenceFile,
 } from "@/lib/hooks/use-management";
 import { IntelligencePanel } from "../../../_components/IntelligencePanel";
 
@@ -103,11 +106,12 @@ function CaseListItem({ rc, isSelected, onClick, itemRef }: {
 
 // ─── Step Card ────────────────────────────────────────────────────────────────
 
-function StepCard({ step, result, onChange, projectId, runCaseId, runId }: {
+function StepCard({ step, result, onChange, projectId, runCaseId, runId, onDefectRequest }: {
   step: SnapshotStep;
   result: { status: TestRunStatus; actual_result: string } | undefined;
   onChange: (status: TestRunStatus, actual: string) => void;
   projectId: string; runCaseId: string; runId: string;
+  onDefectRequest?: () => void;
 }) {
   const updateStep  = useUpdateManagementStepResult(projectId, runCaseId, runId);
   const [actual, setActual] = useState(result?.actual_result ?? "");
@@ -146,6 +150,15 @@ function StepCard({ step, result, onChange, projectId, runCaseId, runId }: {
               {btn.label}
             </button>
           ))}
+          {currentStatus === "failed" && onDefectRequest && (
+            <button
+              type="button"
+              onClick={onDefectRequest}
+              className="flex items-center gap-1 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-1.5 text-xs text-red-400 hover:bg-red-500/20 transition-colors"
+            >
+              🐛 Defect Aç
+            </button>
+          )}
         </div>
       </div>
 
@@ -292,6 +305,62 @@ function QuickDefectModal({ mpid, caseTitle, caseKey, runCaseId, onClose }: {
           </div>
         </form>
       </div>
+    </div>
+  );
+}
+
+// ─── Evidence Section ─────────────────────────────────────────────────────────
+
+function EvidenceSection({ projectId, runId, runCaseId }: {
+  projectId: string; runId: string; runCaseId: string;
+}) {
+  const { data: files = [], isLoading } = useManagementEvidence(projectId, runId, runCaseId);
+  const upload = useUploadEvidence(projectId, runId, runCaseId);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const handleFiles = (fileList: FileList | null) => {
+    if (!fileList) return;
+    Array.from(fileList).forEach(f => { void upload.mutateAsync(f); });
+  };
+
+  return (
+    <div>
+      <div className="mb-1 flex items-center justify-between">
+        <p className="text-[10px] font-medium uppercase tracking-wide text-slate-500">Evidence</p>
+        <button
+          type="button"
+          onClick={() => inputRef.current?.click()}
+          disabled={upload.isPending}
+          className="flex items-center gap-1 rounded-lg border border-border px-2 py-1 text-[10px] text-slate-400 hover:text-slate-200 hover:bg-surface-overlay transition-colors disabled:opacity-40"
+        >
+          <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"/></svg>
+          {upload.isPending ? "Yükleniyor…" : "Dosya Ekle"}
+        </button>
+        <input
+          ref={inputRef}
+          type="file"
+          multiple
+          accept="image/*,video/*,.pdf,.txt,.log,.har,.json,.xml"
+          className="hidden"
+          onChange={e => handleFiles(e.target.files)}
+        />
+      </div>
+      {isLoading ? (
+        <div className="h-8 rounded-lg bg-surface-overlay animate-pulse"/>
+      ) : files.length === 0 ? (
+        <p className="text-[10px] text-slate-600 italic">Henüz evidence eklenmedi.</p>
+      ) : (
+        <div className="space-y-1">
+          {(files as EvidenceFile[]).map(f => (
+            <a key={f.id} href={f.url} target="_blank" rel="noreferrer"
+              className="flex items-center gap-2 rounded-lg border border-border bg-surface-raised px-2.5 py-1.5 text-[11px] text-slate-300 hover:text-teal-300 transition-colors truncate">
+              <svg className="h-3 w-3 shrink-0 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/></svg>
+              <span className="truncate">{f.filename}</span>
+              <span className="ml-auto shrink-0 text-[9px] text-slate-600">{f.content_type.split("/")[1] ?? f.content_type}</span>
+            </a>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -574,6 +643,7 @@ function ExecutionPanel({ rc, projectId, runId, onNext, onPrev, mpid }: {
                 projectId={projectId}
                 runCaseId={rc.id}
                 runId={runId}
+                onDefectRequest={() => setShowDefectModal(true)}
               />
             ))}
           </div>
@@ -586,6 +656,9 @@ function ExecutionPanel({ rc, projectId, runId, onNext, onPrev, mpid }: {
             placeholder="Koşum notları, gözlemler…"
             className="w-full rounded-xl border border-border bg-surface-raised px-3 py-2 text-xs text-white placeholder-slate-600 focus:border-border-strong focus:outline-none resize-none"/>
         </div>
+
+        {/* Evidence */}
+        <EvidenceSection projectId={projectId} runId={runId} runCaseId={rc.id} />
       </div>
 
       {/* Footer */}
@@ -621,8 +694,15 @@ function ExecutionPanel({ rc, projectId, runId, onNext, onPrev, mpid }: {
             >
               ← Önceki
             </button>
-            <button type="button" onClick={onNext}
-              className="flex items-center gap-1.5 rounded-xl bg-brand px-4 py-2 text-xs font-semibold text-white hover:brightness-105 transition-colors shadow-lg shadow-blue-900/20">
+            <button type="button"
+              disabled={saving || updateCase.isPending}
+              onClick={async () => {
+                if (notes !== (rc.execution_notes ?? "")) {
+                  await updateCase.mutateAsync({ runCaseId: rc.id, status: rc.status as TestRunStatus, execution_notes: notes || null }).catch(() => {});
+                }
+                onNext();
+              }}
+              className="flex items-center gap-1.5 rounded-xl bg-brand px-4 py-2 text-xs font-semibold text-white hover:brightness-105 transition-colors shadow-lg shadow-blue-900/20 disabled:opacity-40">
               <IcSave/> Kaydet & İleri
             </button>
           </div>

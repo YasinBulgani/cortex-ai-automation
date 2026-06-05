@@ -7,7 +7,10 @@ import { apiFetch } from "@/lib/api-client";
 export type ManagementStatus = "draft" | "active" | "archived";
 export type TestPriority = "P0" | "P1" | "P2" | "P3";
 export type TestCaseType = "manual" | "exploratory" | "regression" | "smoke" | "uat";
+/** Run-case level execution status (individual case result within a run). */
 export type TestRunStatus = "not_run" | "running" | "passed" | "failed" | "blocked" | "skipped";
+/** TestRun overall status (matches backend TestRun.status column defaults). */
+export type TestRunOverallStatus = "not_started" | "in_progress" | "completed" | "failed";
 
 export interface ManagementProject {
   id: string;
@@ -264,7 +267,7 @@ export interface TestRun {
   id: string;
   cycle_id: string;
   name: string;
-  status: string;
+  status: TestRunOverallStatus | string;
   source_type: string;
   source_ref?: string | null;
   scope_snapshot: Record<string, unknown>;
@@ -408,6 +411,9 @@ export interface WebhookNotification {
   id: string;
   url: string;
   events: string[];
+  secret?: string | null;
+  active?: boolean;
+  created_at?: string;
 }
 
 export interface CicdWebhookConfig {
@@ -764,6 +770,29 @@ export function useManagementEvidence(
       ),
     enabled: !!projectId && !!runId && !!runCaseId,
     staleTime: 15_000,
+  });
+}
+
+export function useUploadEvidence(
+  projectId: string | undefined,
+  runId: string | undefined,
+  runCaseId: string | undefined,
+) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (file: File) => {
+      const form = new FormData();
+      form.append("file", file);
+      return apiFetch<EvidenceFile>(
+        `${BASE(projectId!)}/runs/${runId!}/cases/${runCaseId!}/evidence`,
+        { method: "POST", body: form },
+      );
+    },
+    onSuccess: () => {
+      void qc.invalidateQueries({
+        queryKey: managementKeys.evidence(projectId, runId, runCaseId),
+      });
+    },
   });
 }
 
@@ -1934,6 +1963,15 @@ export function useDeleteSharedStep(projectId: string) {
   return useMutation({
     mutationFn: (stepId: string) =>
       apiFetch<void>(`${BASE(projectId)}/shared-steps/${stepId}`, { method: "DELETE" }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: [...managementKeys.project(projectId), "shared-steps"] }),
+  });
+}
+
+export function useIncrementSharedStepUsage(projectId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (stepId: string) =>
+      apiFetch<void>(`${BASE(projectId)}/shared-steps/${stepId}/use`, { method: "POST" }),
     onSuccess: () => qc.invalidateQueries({ queryKey: [...managementKeys.project(projectId), "shared-steps"] }),
   });
 }

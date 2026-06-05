@@ -486,6 +486,24 @@ export default function ManagementCaseDetailPage() {
                             onChange={e => updateStep(idx, "test_data", e.target.value)}
                             className="w-full rounded border border-border bg-white/[0.02] px-2 py-1.5 text-[11px] text-slate-400 placeholder-slate-600 outline-none focus:border-teal-500/50"
                           />
+                          <input
+                            placeholder="Notlar (opsiyonel)"
+                            value={step.notes}
+                            onChange={e => updateStep(idx, "notes", e.target.value)}
+                            className="w-full rounded border border-border bg-white/[0.02] px-2 py-1.5 text-[11px] text-slate-400 placeholder-slate-600 outline-none focus:border-teal-500/50"
+                          />
+                          <label className="flex items-center gap-2 text-[11px] text-slate-500 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={step.is_required}
+                              onChange={e => {
+                                setSteps(prev => prev.map((s, i) => i === idx ? { ...s, is_required: e.target.checked } : s));
+                                markDirty();
+                              }}
+                              className="rounded"
+                            />
+                            Zorunlu adım
+                          </label>
                         </div>
                       </div>
                     </SortableStepCard>

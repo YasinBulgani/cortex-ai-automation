@@ -326,10 +326,12 @@ export default function NewManagementCasePage({ params }: { params: { projectId:
             <textarea
               value={testData}
               onChange={(event) => setTestData(event.target.value)}
+              maxLength={2000}
               rows={3}
               className="w-full resize-none rounded-lg border border-border bg-bg px-3 py-2 text-sm text-white focus:border-teal-500/50 focus:outline-none"
               placeholder="Kullanıcı, rol, veri seti, fixture veya özel inputlar"
             />
+            <span className={`text-xs ${testData.length >= 1900 ? "text-amber-400" : "text-fg-subtle"}`}>{testData.length}/2000</span>
           </label>
           <label className="block space-y-1">
             <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Tags</span>
@@ -396,27 +398,23 @@ export default function NewManagementCasePage({ params }: { params: { projectId:
               </SortableContext>
             </DndContext>
           </div>
+          <div className="sticky bottom-0 z-10 border-t border-border bg-surface-base px-6 py-3 flex justify-end gap-2">
+            <button
+              type="button"
+              onClick={() => router.back()}
+              className="rounded-lg border border-border px-4 py-2 text-sm text-slate-300 hover:bg-surface-overlay"
+            >
+              İptal
+            </button>
+            <button
+              type="submit"
+              disabled={!title.trim() || createCase.isPending}
+              className="rounded-lg bg-teal-500 px-5 py-2 text-sm font-semibold text-slate-950 hover:bg-teal-400 disabled:opacity-40"
+            >
+              {createCase.isPending ? "Kaydediliyor..." : "Kaydet"}
+            </button>
+          </div>
         </form>
-        <div className="sticky bottom-0 z-10 border-t border-border bg-surface-base px-6 py-3 flex justify-end gap-2">
-          <button
-            type="button"
-            onClick={() => router.back()}
-            className="rounded-lg border border-border px-4 py-2 text-sm text-slate-300 hover:bg-surface-overlay"
-          >
-            İptal
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              const form = document.querySelector("form");
-              form?.requestSubmit();
-            }}
-            disabled={!title.trim() || createCase.isPending}
-            className="rounded-lg bg-teal-500 px-5 py-2 text-sm font-semibold text-slate-950 hover:bg-teal-400 disabled:opacity-40"
-          >
-            {createCase.isPending ? "Kaydediliyor..." : "Kaydet"}
-          </button>
-        </div>
       </section>
 
       {showStepPicker && mpid && (
