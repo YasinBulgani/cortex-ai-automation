@@ -11,15 +11,45 @@ try:
     from fastapi.testclient import TestClient
 
     from app.domains.events.router import router
+    from app.deps import get_current_user
+    from app.infra.models import User
 
     _IMPORT_OK = True
 except ImportError:
     _IMPORT_OK = False
 
 
+def _mock_user():
+    u = MagicMock(spec=User)
+    u.id = "test-user-id"
+    u.email = "test@example.com"
+    u.roles = []
+    return u
+
+
+def _mock_admin_user():
+    u = MagicMock(spec=User)
+    u.id = "admin-user-id"
+    u.email = "admin@example.com"
+    perm = MagicMock()
+    perm.permission = "admin.*"
+    role = MagicMock()
+    role.permissions = [perm]
+    u.roles = [role]
+    return u
+
+
 def _app() -> "TestClient":
     app = FastAPI()
     app.include_router(router)
+    app.dependency_overrides[get_current_user] = _mock_user
+    return TestClient(app, raise_server_exceptions=False)
+
+
+def _admin_app() -> "TestClient":
+    app = FastAPI()
+    app.include_router(router)
+    app.dependency_overrides[get_current_user] = _mock_admin_user
     return TestClient(app, raise_server_exceptions=False)
 
 
@@ -131,7 +161,7 @@ def test_get_event_stats_returns_dict() -> None:
 def test_publish_test_event_returns_200() -> None:
     if not _IMPORT_OK:
         return
-    client = _app()
+    client = _admin_app()
     with patch("app.domains.events.router.bus") as mock_bus, patch(
         "app.domains.events.router.DomainEvent"
     ) as MockEvt:
@@ -146,7 +176,7 @@ def test_publish_test_event_returns_200() -> None:
 def test_publish_test_event_response_shape() -> None:
     if not _IMPORT_OK:
         return
-    client = _app()
+    client = _admin_app()
     with patch("app.domains.events.router.bus") as mock_bus, patch(
         "app.domains.events.router.DomainEvent"
     ) as MockEvt:
@@ -164,7 +194,7 @@ def test_publish_test_event_default_name() -> None:
     """?name parametresi verilmezse default 'test.ping' kullanılmalı."""
     if not _IMPORT_OK:
         return
-    client = _app()
+    client = _admin_app()
     with patch("app.domains.events.router.bus") as mock_bus, patch(
         "app.domains.events.router.DomainEvent"
     ) as MockEvt:

@@ -168,9 +168,20 @@ class TestGenerateTestsWithAi:
         agent.safe_run.return_value = result
         return agent
 
-    def test_no_endpoints_returns_zero_generated(self):
+    def _make_db_with_eps(self, eps: list):
+        """Return a mock DB that returns `eps` from db.execute(...).scalars().all()."""
         db = _make_db()
-        db.query.return_value.filter.return_value.all.return_value = []
+        result_mock = MagicMock()
+        scalars_mock = MagicMock()
+        scalars_mock.all.return_value = eps
+        scalars_mock.first.return_value = eps[0] if eps else None
+        result_mock.scalars.return_value = scalars_mock
+        result_mock.rowcount = len(eps)
+        db.execute.return_value = result_mock
+        return db
+
+    def test_no_endpoints_returns_zero_generated(self):
+        db = self._make_db_with_eps([])
         with patch("app.domains.api_testing.service.ServiceTestAgent", return_value=self._mock_agent()):
             with patch.object(api_testing_service, "enrich_generation_prompt", return_value={}):
                 result = generate_tests_with_ai(db, PROJECT_ID, endpoint_ids=["nonexistent"])
@@ -178,8 +189,7 @@ class TestGenerateTestsWithAi:
 
     def test_ai_failure_returns_warning(self):
         ep = _make_endpoint_row()
-        db = _make_db()
-        db.query.return_value.filter.return_value.all.return_value = [ep]
+        db = self._make_db_with_eps([ep])
         failed_agent = self._mock_agent(success=False)
         with patch("app.domains.api_testing.service.ServiceTestAgent", return_value=failed_agent):
             with patch.object(api_testing_service, "enrich_generation_prompt", return_value={}):
@@ -189,8 +199,7 @@ class TestGenerateTestsWithAi:
                    for w in result["warnings"])
 
     def test_result_contains_mode_key(self):
-        db = _make_db()
-        db.query.return_value.filter.return_value.all.return_value = []
+        db = self._make_db_with_eps([])
         with patch("app.domains.api_testing.service.ServiceTestAgent", return_value=self._mock_agent()):
             with patch.object(api_testing_service, "enrich_generation_prompt", return_value={}):
                 result = generate_tests_with_ai(db, PROJECT_ID, mode="security_test")
@@ -198,17 +207,14 @@ class TestGenerateTestsWithAi:
 
     def test_spec_id_path_queries_endpoints(self):
         ep = _make_endpoint_row()
-        db = _make_db()
-        # Mock db.query(...).filter(...).all() to return our endpoint
-        db.query.return_value.filter.return_value.all.return_value = [ep]
+        db = self._make_db_with_eps([ep])
         with patch("app.domains.api_testing.service.ServiceTestAgent", return_value=self._mock_agent()):
             with patch.object(api_testing_service, "enrich_generation_prompt", return_value={}):
                 result = generate_tests_with_ai(db, PROJECT_ID, spec_id="spec-abc")
         assert "mode" in result
 
     def test_enrichment_failure_does_not_crash(self):
-        db = _make_db()
-        db.query.return_value.filter.return_value.all.return_value = []
+        db = self._make_db_with_eps([])
         with patch("app.domains.api_testing.service.ServiceTestAgent", return_value=self._mock_agent()):
             with patch.object(api_testing_service, "enrich_generation_prompt",
                               side_effect=Exception("Redis down")):
@@ -217,8 +223,7 @@ class TestGenerateTestsWithAi:
         assert isinstance(result, dict)
 
     def test_duration_ms_in_result(self):
-        db = _make_db()
-        db.query.return_value.filter.return_value.all.return_value = []
+        db = self._make_db_with_eps([])
         with patch("app.domains.api_testing.service.ServiceTestAgent", return_value=self._mock_agent()):
             with patch.object(api_testing_service, "enrich_generation_prompt", return_value={}):
                 result = generate_tests_with_ai(db, PROJECT_ID)

@@ -8,12 +8,14 @@ from __future__ import annotations
 import pytest
 
 try:
-    from unittest.mock import patch
+    from unittest.mock import MagicMock, patch
 
     from fastapi import FastAPI
     from fastapi.testclient import TestClient
 
     from app.domains.navigation.router import router as navigation_router
+    from app.deps import get_current_user
+    from app.infra.models import User
 
     _IMPORT_OK = True
 except Exception:
@@ -27,9 +29,18 @@ pytestmark = pytest.mark.skipif(not _IMPORT_OK, reason="import failed")
 # ---------------------------------------------------------------------------
 
 
+def _mock_user():
+    u = MagicMock(spec=User)
+    u.id = "user-1"
+    u.email = "test@example.com"
+    u.roles = []
+    return u
+
+
 def _app() -> TestClient:
     app = FastAPI()
     app.include_router(navigation_router, prefix="/api/v1")
+    app.dependency_overrides[get_current_user] = _mock_user
     return TestClient(app, raise_server_exceptions=False)
 
 
@@ -108,7 +119,7 @@ def test_get_bookmarks_returns_list() -> None:
 def test_get_bookmarks_empty_for_new_user() -> None:
     client = _app()
     with patch(f"{_SERVICE_MODULE}.get_user_bookmarks", return_value=[]):
-        r = client.get("/api/v1/navigation/bookmarks/new-user")
+        r = client.get("/api/v1/navigation/bookmarks/user-1")
     assert r.json() == []
 
 

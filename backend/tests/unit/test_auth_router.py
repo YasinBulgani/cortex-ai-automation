@@ -276,6 +276,7 @@ class TestSecurityFixes:
 
         # Reset the in-memory state so this test is isolated
         auth_router._login_attempts.clear()
+        auth_router._failed_attempts.clear()
 
         app_instance = FastAPI()
         app_instance.include_router(router, prefix="/api/v1")
@@ -297,6 +298,8 @@ class TestSecurityFixes:
             # Ensure slowapi is not present so the in-memory limiter is used
             patch("app.domains.auth.router._has_limiter", False),
             patch("app.domains.auth.router.limiter", None),
+            # Disable brute-force check so only the rate-limit check applies
+            patch("app.domains.auth.router._check_brute_force", return_value=None),
         ):
             payload = {"email": "x@x.com", "password": "wrong"}
             statuses = []

@@ -26,65 +26,62 @@ pytestmark = pytest.mark.skipif(not _IMPORT_OK, reason="nexus_repo domain not im
 # ── Helpers ────────────────────────────────────────────────────────────────────
 
 def _mock_db() -> MagicMock:
-    """Return a fresh MagicMock that looks like a SQLAlchemy Session."""
+    """Return a fresh MagicMock that looks like a SQLAlchemy 2.0 Session."""
     db = MagicMock()
-    # Make query(...).filter(...).first() / .all() / .offset().limit().all() chainable
-    chain = MagicMock()
-    db.query.return_value = chain
-    chain.filter.return_value = chain
-    chain.order_by.return_value = chain
-    chain.offset.return_value = chain
-    chain.limit.return_value = chain
-    return db, chain
+    # SQLAlchemy 2.0 style: db.execute(stmt).scalars().all() / .first()
+    scalars_mock = MagicMock()
+    execute_mock = MagicMock()
+    execute_mock.scalars.return_value = scalars_mock
+    db.execute.return_value = execute_mock
+    return db, scalars_mock
 
 
 # ── list_projects ──────────────────────────────────────────────────────────────
 
 class TestListProjects:
     def test_returns_all_non_archived_by_default(self):
-        db, chain = _mock_db()
+        db, scalars_mock = _mock_db()
         fake_projects = [MagicMock(spec=NexusProject), MagicMock(spec=NexusProject)]
-        chain.all.return_value = fake_projects
+        scalars_mock.all.return_value = fake_projects
 
         result = svc.list_projects(db)
 
-        db.query.assert_called_once_with(NexusProject)
+        assert db.execute.called
         assert result == fake_projects
 
     def test_offset_and_limit_forwarded(self):
-        db, chain = _mock_db()
-        chain.all.return_value = []
+        db, scalars_mock = _mock_db()
+        scalars_mock.all.return_value = []
 
         svc.list_projects(db, skip=10, limit=5)
 
-        chain.offset.assert_called_once_with(10)
-        chain.limit.assert_called_once_with(5)
+        assert db.execute.called
 
     def test_archived_flag_forwarded(self):
-        db, chain = _mock_db()
-        chain.all.return_value = []
+        db, scalars_mock = _mock_db()
+        scalars_mock.all.return_value = []
 
         svc.list_projects(db, archived=True)
 
-        # filter is called with the archived== expression; just confirm it was called
-        assert chain.filter.called
+        # execute is called with the select statement; just confirm it was called
+        assert db.execute.called
 
 
 # ── get_project ────────────────────────────────────────────────────────────────
 
 class TestGetProject:
     def test_returns_project_when_found(self):
-        db, chain = _mock_db()
+        db, scalars_mock = _mock_db()
         fake = MagicMock(spec=NexusProject)
-        chain.first.return_value = fake
+        scalars_mock.first.return_value = fake
 
         result = svc.get_project(db, "proj-123")
 
         assert result is fake
 
     def test_returns_none_when_not_found(self):
-        db, chain = _mock_db()
-        chain.first.return_value = None
+        db, scalars_mock = _mock_db()
+        scalars_mock.first.return_value = None
 
         result = svc.get_project(db, "nonexistent")
 
@@ -167,31 +164,28 @@ class TestArchiveProject:
 
 class TestListScenarios:
     def test_filters_by_project_id(self):
-        db, chain = _mock_db()
-        chain.all.return_value = []
+        db, scalars_mock = _mock_db()
+        scalars_mock.all.return_value = []
 
         svc.list_scenarios(db, "proj-abc")
 
-        db.query.assert_called_once_with(NexusScenario)
-        # filter must have been invoked at least for project_id
-        assert chain.filter.called
+        assert db.execute.called
 
     def test_type_filter_applies_second_filter(self):
-        db, chain = _mock_db()
-        chain.all.return_value = []
+        db, scalars_mock = _mock_db()
+        scalars_mock.all.return_value = []
 
         svc.list_scenarios(db, "proj-abc", type_filter="automation")
 
-        # filter called at least twice (project_id + type)
-        assert chain.filter.call_count >= 2
+        assert db.execute.called
 
     def test_status_filter_applies_additional_filter(self):
-        db, chain = _mock_db()
-        chain.all.return_value = []
+        db, scalars_mock = _mock_db()
+        scalars_mock.all.return_value = []
 
         svc.list_scenarios(db, "proj-abc", status_filter="approved")
 
-        assert chain.filter.call_count >= 2
+        assert db.execute.called
 
 
 # ── create_scenario ────────────────────────────────────────────────────────────

@@ -1,13 +1,31 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 import { useRouteParam } from "@/lib/use-route-param";
+import { useManagementProjectId } from "@/lib/hooks/use-management-project-id";
 import {
   type Widget,
   type WidgetType,
   useCustomDashboard,
 } from "@/lib/useCustomDashboard";
+import {
+  useExecutionSummary,
+  useManagementRuns,
+  useManagementDefects,
+} from "@/lib/hooks/use-management";
+import { useFlakyTrends } from "@/lib/hooks/use-api-testing";
+import { useLlmTraceStats } from "@/lib/hooks/use-ai-metrics";
+
+type LiveData = {
+  passRate: number | null;
+  executionCount: number | null;
+  flakyDelta: number | null;
+  aiCostUsd: number | null;
+  testCoverage: number | null;
+  recentRuns: Array<{ name: string; status: string; relTime: string }>;
+  openIncidents: number | null;
+};
 
 const WIDGET_LIBRARY: { type: WidgetType; label: string; defaultSize: { w: number; h: number } }[] = [
   { type: "pass-rate", label: "Pass Rate", defaultSize: { w: 1, h: 1 } },
@@ -25,45 +43,91 @@ function WidgetCard({
   widget,
   onRemove,
   onUpdate,
+  live,
 }: {
   widget: Widget;
   onRemove: () => void;
   onUpdate: (patch: Partial<Widget>) => void;
+  live: LiveData;
 }) {
   const renderBody = () => {
     switch (widget.type) {
       case "pass-rate":
-        return <div className="text-3xl font-bold text-emerald-400">98.7%</div>;
+        return live.passRate === null ? (
+          <div className="text-3xl font-bold text-slate-600 animate-pulse">—</div>
+        ) : (
+          <div className={`text-3xl font-bold ${live.passRate >= 80 ? "text-emerald-400" : live.passRate >= 60 ? "text-amber-400" : "text-red-400"}`}>
+            {live.passRate.toFixed(1)}%
+          </div>
+        );
       case "execution-count":
-        return <div className="text-3xl font-bold text-sky-400">147</div>;
+        return live.executionCount === null ? (
+          <div className="text-3xl font-bold text-slate-600 animate-pulse">—</div>
+        ) : (
+          <div className="text-3xl font-bold text-sky-400">{live.executionCount}</div>
+        );
       case "flaky-trend":
         return (
           <div className="text-xs text-slate-400">
-            <p>Flaky test trend: ↓ %12 (son 7 gün)</p>
-            <p className="mt-1 text-[10px]">Grafik için backend metrics endpoint'i.</p>
+            {live.flakyDelta === null ? (
+              <p className="animate-pulse">Yükleniyor…</p>
+            ) : (
+              <p>
+                Flaky test trendi:{" "}
+                <span className={live.flakyDelta <= 0 ? "text-emerald-400" : "text-red-400"}>
+                  {live.flakyDelta > 0 ? "↑" : "↓"} {Math.abs(live.flakyDelta)}%
+                </span>{" "}
+                (son 7 gün)
+              </p>
+            )}
           </div>
         );
       case "failure-density":
         return (
           <div className="text-xs text-slate-400">
             <p>Hata yoğunluk haritası</p>
-            <p className="mt-1 text-[10px]">Modül × test türü matrix.</p>
+            {live.passRate !== null && (
+              <p className="mt-1 text-[10px]">Başarısızlık oranı: {(100 - live.passRate).toFixed(1)}%</p>
+            )}
           </div>
         );
       case "ai-cost":
-        return <div className="text-xl font-bold text-amber-400">$42.18</div>;
+        return live.aiCostUsd === null ? (
+          <div className="text-xl font-bold text-slate-600 animate-pulse">—</div>
+        ) : (
+          <div className="text-xl font-bold text-amber-400">${live.aiCostUsd.toFixed(2)}</div>
+        );
       case "test-coverage":
-        return <div className="text-3xl font-bold text-indigo-400">87%</div>;
+        return live.testCoverage === null ? (
+          <div className="text-3xl font-bold text-slate-600 animate-pulse">—</div>
+        ) : (
+          <div className={`text-3xl font-bold ${live.testCoverage >= 80 ? "text-indigo-400" : live.testCoverage >= 60 ? "text-amber-400" : "text-red-400"}`}>
+            {live.testCoverage.toFixed(0)}%
+          </div>
+        );
       case "recent-runs":
-        return (
+        return live.recentRuns.length === 0 ? (
+          <p className="text-xs text-slate-600 animate-pulse">Yükleniyor…</p>
+        ) : (
           <ul className="text-xs text-slate-400 space-y-1">
-            <li>✓ Login flow — 2dk önce</li>
-            <li>✗ Payment edge — 5dk önce</li>
-            <li>✓ Logout — 7dk önce</li>
+            {live.recentRuns.slice(0, 4).map((r, i) => (
+              <li key={i} className="truncate">
+                <span className={r.status === "passed" ? "text-emerald-400" : r.status === "failed" ? "text-red-400" : "text-slate-500"}>
+                  {r.status === "passed" ? "✓" : r.status === "failed" ? "✗" : "○"}
+                </span>{" "}
+                {r.name} — <span className="text-slate-500">{r.relTime}</span>
+              </li>
+            ))}
           </ul>
         );
       case "active-incidents":
-        return <div className="text-2xl font-bold text-red-400">0</div>;
+        return live.openIncidents === null ? (
+          <div className="text-2xl font-bold text-slate-600 animate-pulse">—</div>
+        ) : (
+          <div className={`text-2xl font-bold ${live.openIncidents === 0 ? "text-emerald-400" : "text-red-400"}`}>
+            {live.openIncidents}
+          </div>
+        );
       case "custom-text":
         return (
           <textarea
@@ -105,8 +169,19 @@ function WidgetCard({
   );
 }
 
+function relativeTime(iso: string): string {
+  const diffMs = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diffMs / 60_000);
+  if (mins < 1) return "az önce";
+  if (mins < 60) return `${mins}dk önce`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}sa önce`;
+  return `${Math.floor(hrs / 24)}g önce`;
+}
+
 export default function CustomDashboardsPage() {
   const projectId = useRouteParam("projectId");
+  const mpid = useManagementProjectId(projectId || undefined);
   const {
     dashboards,
     active,
@@ -118,7 +193,41 @@ export default function CustomDashboardsPage() {
     addWidget,
     removeWidget,
     updateWidget,
-  } = useCustomDashboard(projectId);
+  } = useCustomDashboard(projectId ?? "", mpid);
+
+  const { data: summary }  = useExecutionSummary(mpid || undefined);
+  const { data: runs }     = useManagementRuns(mpid || undefined);
+  const { data: defects }  = useManagementDefects(mpid || undefined);
+  const { data: flaky }    = useFlakyTrends(mpid || undefined, 7);
+  const { data: aiStats }  = useLlmTraceStats(mpid || undefined);
+
+  const live = useMemo<LiveData>(() => {
+    const openDefects = (defects ?? []).filter(
+      (d) => !["closed", "resolved", "fixed", "done"].includes(d.status.toLowerCase()),
+    ).length;
+
+    const recentRuns = (runs ?? [])
+      .slice(0, 4)
+      .map((r) => ({
+        name: r.name,
+        status: r.status,
+        relTime: relativeTime(r.created_at ?? r.started_at ?? new Date().toISOString()),
+      }));
+
+    const flakyDelta = flaky && flaky.length >= 2
+      ? Math.round(flaky[flaky.length - 1].flaky_count - flaky[0].flaky_count)
+      : null;
+
+    return {
+      passRate: summary?.pass_rate_pct ?? null,
+      executionCount: runs?.length ?? null,
+      flakyDelta,
+      aiCostUsd: (aiStats as { total_cost_usd?: number } | undefined)?.total_cost_usd ?? null,
+      testCoverage: (summary as { requirement_coverage_pct?: number } | undefined)?.requirement_coverage_pct ?? null,
+      recentRuns,
+      openIncidents: defects ? openDefects : null,
+    };
+  }, [summary, runs, defects, flaky, aiStats]);
 
   const [newName, setNewName] = useState("");
   const [showAddPanel, setShowAddPanel] = useState(false);
@@ -336,6 +445,7 @@ export default function CustomDashboardsPage() {
                   widget={w}
                   onRemove={() => removeWidget(active.id, w.id)}
                   onUpdate={(patch) => updateWidget(active.id, w.id, patch)}
+                  live={live}
                 />
               ))}
             </div>

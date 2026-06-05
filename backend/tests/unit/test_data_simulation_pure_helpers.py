@@ -118,9 +118,9 @@ class TestValidateSupportedConnection:
             _validate_supported_connection("", "empty")
 
     def test_error_message_preserved(self):
-        with pytest.raises(ValueError) as exc_info:
+        with pytest.raises(HTTPException) as exc_info:
             _validate_supported_connection("redis://host/0", "Custom error message")
-        assert "Custom error message" in str(exc_info.value)
+        assert "Custom error message" in str(exc_info.value.detail)
 
     def test_case_sensitive_prefix(self):
         # "POSTGRESQL://" is not allowed (uppercase)

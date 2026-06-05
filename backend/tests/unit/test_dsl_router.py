@@ -20,9 +20,19 @@ from fastapi.testclient import TestClient
 
 try:
     from app.domains.dsl.router import router as dsl_router
+    from app.deps import get_current_user
+    from app.infra.models import User
     _IMPORT_OK = True
 except Exception:
     _IMPORT_OK = False
+
+
+def _mock_user():
+    u = MagicMock(spec=User)
+    u.id = "test-user-id"
+    u.email = "test@example.com"
+    u.roles = []
+    return u
 
 pytestmark = pytest.mark.skipif(not _IMPORT_OK, reason="dsl router import failed")
 
@@ -60,11 +70,13 @@ def _make_action_list_response(items: list | None = None) -> dict:
     return {"items": items, "total": len(items), "page": 1, "page_size": 50}
 
 
-def _make_search_response(hits: list | None = None) -> MagicMock:
-    resp = MagicMock()
-    resp.items = hits or []
-    resp.query = "test"
-    return resp
+def _make_search_response(hits: list | None = None) -> dict:
+    return {
+        "query": "test",
+        "total": len(hits or []),
+        "items": hits or [],
+        "mode": "lexical",
+    }
 
 
 def _make_stats() -> dict:
@@ -83,12 +95,18 @@ def _make_stats() -> dict:
 
 
 def _make_reload_response() -> dict:
-    return {"loaded": 42, "source": "disk", "duration_ms": 12}
+    return {
+        "status": "ok",
+        "total_before": 0,
+        "total_after": 42,
+        "loaded_at": "2026-01-01T00:00:00",
+    }
 
 
 @pytest.fixture
 def client():
     app = FastAPI()
+    app.dependency_overrides[get_current_user] = _mock_user
     app.include_router(dsl_router, prefix="/api/v1")
     db_mock = MagicMock()
 
@@ -207,4 +225,4 @@ class TestReloadCatalog:
         with patch("app.domains.dsl.router.dsl_service.reload_catalog",
                    return_value=_make_reload_response()):
             resp = client.post("/api/v1/dsl/reload")
-        assert resp.json()["loaded"] == 42
+        assert resp.json()["total_after"] == 42

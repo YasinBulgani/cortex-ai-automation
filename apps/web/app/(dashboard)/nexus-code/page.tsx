@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { nexusCodeStream, type NexusCodeInput } from "@/lib/ai-gateway";
+import { apiFetch } from "@/lib/api-client";
 // xlsx dinamik yükleme — dışa aktarma butonu tıklandığında ~1MB paket yüklenir,
 // sayfa ilk açıldığında değil. Bu sayfa yüklenme süresi önemli ölçüde iyileşir.
 
@@ -102,32 +103,16 @@ async function fetchBitbucketContent(
   username: string,
   appPassword: string
 ): Promise<string> {
-  const base = `https://api.bitbucket.org/2.0/repositories/${encodeURIComponent(workspace)}/${encodeURIComponent(repo)}`;
-  const srcPath = path ? `${branch}/${path}` : branch;
-  const url = `${base}/src/${srcPath}`;
-  const auth = btoa(`${username}:${appPassword}`);
-
-  const res = await fetch(url, {
-    headers: { Authorization: `Basic ${auth}` },
-  });
-
-  if (!res.ok) {
-    const text = await res.text().catch(() => "");
-    throw new Error(`Bitbucket API hatası (${res.status}): ${text.slice(0, 200)}`);
-  }
-
-  const contentType = res.headers.get("content-type") ?? "";
-  if (contentType.includes("application/json")) {
-    const json = await res.json() as { values?: Array<{ path: string; type: string }> };
-    if (json.values) {
-      const listing = json.values
-        .map((f) => `${f.type === "commit_directory" ? "📁" : "📄"} ${f.path}`)
-        .join("\n");
-      return `Repo: ${workspace}/${repo} (${branch})\nDizin: /${path || "kök"}\n\n${listing}`;
+  // Kimlik bilgileri backend proxy üzerinden gönderilir — tarayıcı network
+  // loglarında app_password hiçbir zaman görünmez.
+  const result = await apiFetch<{ type: string; content: string }>(
+    "/api/v1/nexus-repo/bitbucket/fetch",
+    {
+      method: "POST",
+      json: { workspace, repo, branch, path, username, app_password: appPassword },
     }
-  }
-
-  return res.text();
+  );
+  return result.content;
 }
 
 // ── History ──────────────────────────────────────────────────────────────────
@@ -361,6 +346,12 @@ export default function NexusCodePage() {
 
   return (
     <div className="flex min-h-screen flex-col bg-[radial-gradient(ellipse_at_top,#1e1b4b_0%,#020617_50%)] text-white">
+
+      {/* Analiz geçmişi bilgi notu */}
+      <div className="flex items-center gap-2 border-b border-slate-800/50 bg-slate-900/60 px-6 py-2 text-[11px] text-slate-400">
+        <svg className="h-3 w-3 shrink-0 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        Analiz geçmişi yalnızca bu tarayıcıya özeldir — diğer cihaz veya kullanıcılarda görünmez.
+      </div>
 
       {/* ── Hero Header ─────────────────────────────────────────── */}
       <div className="relative overflow-hidden border-b border-slate-800/70 bg-slate-950/60 px-6 py-8">

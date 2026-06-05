@@ -22,6 +22,7 @@ import {
 import { useProject } from "@/lib/useProject";
 import { SidebarProjectSwitcher } from "@/components/SidebarProjectSwitcher";
 import { PRODUCT_BRAND } from "@/lib/products/brand";
+import { ToastContainer } from "@/components/ToastContainer";
 
 // Lazy-loaded ağır bileşenler — ilk render'da bundle'a dahil edilmez
 const CommandPalette       = lazy(() => import("./CommandPalette").then(m => ({ default: m.CommandPalette })));
@@ -131,8 +132,9 @@ const GLOBAL_NAV = [
   {
     section: "ÇALIŞMA ALANLARI",
     items: [
-      { href: "/portfolio", label: "Portfolio", icon: <IconFolder /> },
-      { href: "/management", label: "Test Yönetimi", icon: <IconClipboardCheck /> },
+      { href: "/portfolio",   label: "Portfolio",               icon: <IconFolder /> },
+      { href: "/management",  label: "Test Yönetimi",           icon: <IconClipboardCheck /> },
+      { href: "/qa-reports",  label: "Çapraz Proje Raporu",     icon: <IconChart /> },
     ],
   },
   {
@@ -778,6 +780,7 @@ export function AppShell({
                       </div>
                       <Link href="/profile" className="block px-3 py-2 text-sm text-fg-muted hover:bg-surface-overlay transition-colors" onClick={() => setUserMenuOpen(false)} data-testid="user-menu-link-profile">Profil</Link>
                       <Link href="/settings/security" className="block px-3 py-2 text-sm text-fg-muted hover:bg-surface-overlay transition-colors" onClick={() => setUserMenuOpen(false)} data-testid="user-menu-link-security">🔐 Güvenlik (2FA)</Link>
+                      <Link href="/settings/integrations" className="block px-3 py-2 text-sm text-fg-muted hover:bg-surface-overlay transition-colors" onClick={() => setUserMenuOpen(false)} data-testid="user-menu-link-integrations">🔗 Entegrasyonlar</Link>
                       <Link href="/admin/users" className="flex items-center gap-2 px-3 py-2 text-sm text-fg-muted hover:bg-surface-overlay transition-colors" onClick={() => setUserMenuOpen(false)} data-testid="user-menu-link-admin"><IconUsers />Yönetim</Link>
                       <Link href="/ai-quality" className="block px-3 py-2 text-sm text-fg-muted hover:bg-surface-overlay transition-colors" onClick={() => setUserMenuOpen(false)} data-testid="user-menu-link-aiq">AI Kalite</Link>
                       <Link href="/ai-workflows" className="block px-3 py-2 text-sm text-fg-muted hover:bg-surface-overlay transition-colors" onClick={() => setUserMenuOpen(false)} data-testid="user-menu-link-ai-workflows">Workflow Health</Link>
@@ -824,6 +827,9 @@ export function AppShell({
       <Suspense fallback={null}>
         <OnboardingTour />
       </Suspense>
+
+      {/* Toast bildirimleri — global, sağ altta */}
+      <ToastContainer />
     </div>
     </AppErrorBoundary>
   );

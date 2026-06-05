@@ -20,8 +20,18 @@ except ImportError:
 def client():
     if not _HAS_DEPS:
         pytest.skip("visual router dependencies not available")
+    from unittest.mock import MagicMock
+    fake_user = MagicMock(id="test-user-id", email="test@example.com", roles=[])
     app = FastAPI()
+    app.dependency_overrides[get_current_user] = lambda: fake_user
+    app.dependency_overrides[get_db] = lambda: MagicMock()
     app.include_router(router)
+    # Override require_permission-created dependency functions found in route dependants
+    for route in app.routes:
+        if hasattr(route, "dependant"):
+            for dep in route.dependant.dependencies:
+                if callable(dep.call) and getattr(dep.call, "__qualname__", "").startswith("require_permission"):
+                    app.dependency_overrides[dep.call] = lambda: fake_user
     return TestClient(app, raise_server_exceptions=False)
 
 

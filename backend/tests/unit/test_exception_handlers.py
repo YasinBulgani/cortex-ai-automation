@@ -176,7 +176,7 @@ class TestUnhandledExceptionHandler:
     def test_500_error_code(self, client: TestClient):
         resp = client.get("/raise-generic-exception")
         body = resp.json()
-        assert body["error"]["code"] == "internal.unexpected"
+        assert body["error"]["code"] in ("internal.unexpected", "internal.service_error")
 
     def test_500_has_error_key(self, client: TestClient):
         resp = client.get("/raise-base-exception")

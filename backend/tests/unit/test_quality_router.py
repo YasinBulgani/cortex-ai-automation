@@ -8,6 +8,8 @@ from fastapi.testclient import TestClient
 
 try:
     from app.domains.quality.router import router as quality_router
+    from app.deps import get_current_user
+    from app.infra.models import User
     _IMPORT_OK = True
 except Exception:
     _IMPORT_OK = False
@@ -15,10 +17,19 @@ except Exception:
 pytestmark = pytest.mark.skipif(not _IMPORT_OK, reason="import failed")
 
 
+def _mock_user():
+    u = MagicMock(spec=User)
+    u.id = "test-user-id"
+    u.email = "test@example.com"
+    u.roles = []
+    return u
+
+
 @pytest.fixture
 def client():
     app = FastAPI()
     app.include_router(quality_router, prefix="/api/v1")
+    app.dependency_overrides[get_current_user] = _mock_user
     return TestClient(app, raise_server_exceptions=False)
 
 
@@ -68,7 +79,7 @@ def _make_quality_metrics():
 
 class TestQualityMetrics:
     def test_default_params_returns_200(self, client):
-        with patch("app.domains.quality.service.get_quality_metrics") as mock_svc:
+        with patch("app.domains.quality.router.get_quality_metrics") as mock_svc:
             from app.domains.quality.service import QualityMetrics, EvalSnapshotModel
             mock_svc.return_value = QualityMetrics(
                 latest_eval=EvalSnapshotModel(available=False),
@@ -79,7 +90,7 @@ class TestQualityMetrics:
         assert resp.status_code == 200
 
     def test_default_history_limit_is_10(self, client):
-        with patch("app.domains.quality.service.get_quality_metrics") as mock_svc:
+        with patch("app.domains.quality.router.get_quality_metrics") as mock_svc:
             from app.domains.quality.service import QualityMetrics, EvalSnapshotModel
             mock_svc.return_value = QualityMetrics(
                 latest_eval=EvalSnapshotModel(available=False),
@@ -90,7 +101,7 @@ class TestQualityMetrics:
         mock_svc.assert_called_once_with(history_limit=10)
 
     def test_custom_history_limit_passes_through(self, client):
-        with patch("app.domains.quality.service.get_quality_metrics") as mock_svc:
+        with patch("app.domains.quality.router.get_quality_metrics") as mock_svc:
             from app.domains.quality.service import QualityMetrics, EvalSnapshotModel
             mock_svc.return_value = QualityMetrics(
                 latest_eval=EvalSnapshotModel(available=False),
@@ -101,7 +112,7 @@ class TestQualityMetrics:
         mock_svc.assert_called_once_with(history_limit=25)
 
     def test_history_limit_min_boundary_1(self, client):
-        with patch("app.domains.quality.service.get_quality_metrics") as mock_svc:
+        with patch("app.domains.quality.router.get_quality_metrics") as mock_svc:
             from app.domains.quality.service import QualityMetrics, EvalSnapshotModel
             mock_svc.return_value = QualityMetrics(
                 latest_eval=EvalSnapshotModel(available=False),
@@ -112,7 +123,7 @@ class TestQualityMetrics:
         assert resp.status_code == 200
 
     def test_history_limit_max_boundary_50(self, client):
-        with patch("app.domains.quality.service.get_quality_metrics") as mock_svc:
+        with patch("app.domains.quality.router.get_quality_metrics") as mock_svc:
             from app.domains.quality.service import QualityMetrics, EvalSnapshotModel
             mock_svc.return_value = QualityMetrics(
                 latest_eval=EvalSnapshotModel(available=False),
@@ -135,7 +146,7 @@ class TestQualityMetrics:
         assert resp.status_code == 422
 
     def test_response_has_latest_eval_field(self, client):
-        with patch("app.domains.quality.service.get_quality_metrics") as mock_svc:
+        with patch("app.domains.quality.router.get_quality_metrics") as mock_svc:
             from app.domains.quality.service import QualityMetrics, EvalSnapshotModel
             mock_svc.return_value = QualityMetrics(
                 latest_eval=EvalSnapshotModel(available=False),
@@ -148,7 +159,7 @@ class TestQualityMetrics:
         assert "available" in data["latest_eval"]
 
     def test_response_has_history_field(self, client):
-        with patch("app.domains.quality.service.get_quality_metrics") as mock_svc:
+        with patch("app.domains.quality.router.get_quality_metrics") as mock_svc:
             from app.domains.quality.service import QualityMetrics, EvalSnapshotModel
             mock_svc.return_value = QualityMetrics(
                 latest_eval=EvalSnapshotModel(available=False),

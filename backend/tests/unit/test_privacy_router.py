@@ -66,32 +66,42 @@ def _delete_payload(user_id: str = "u-123", dry_run: bool = False) -> dict:
 @pytest.fixture
 def client_admin():
     """TestClient with an admin user override."""
+    from app.deps import get_current_user
+    from app.infra.database import get_db
+
     admin = _make_admin_user()
     db_mock = MagicMock()
 
     app = FastAPI()
+    app.dependency_overrides[get_current_user] = lambda: admin
+    app.dependency_overrides[get_db] = lambda: db_mock
     app.include_router(privacy_router, prefix="/api/v1")
 
-    with patch("app.deps.get_current_user", return_value=admin), \
-         patch("app.infra.database.get_db", return_value=db_mock), \
-         patch("app.domains.privacy.router._user_permissions",
+    with patch("app.domains.privacy.router._user_permissions",
                return_value={"privacy.manage"}):
         yield TestClient(app, raise_server_exceptions=False)
+
+    app.dependency_overrides.clear()
 
 
 @pytest.fixture
 def client_non_admin():
     """TestClient with a non-admin user override."""
+    from app.deps import get_current_user
+    from app.infra.database import get_db
+
     plain = _make_non_admin_user()
     db_mock = MagicMock()
 
     app = FastAPI()
+    app.dependency_overrides[get_current_user] = lambda: plain
+    app.dependency_overrides[get_db] = lambda: db_mock
     app.include_router(privacy_router, prefix="/api/v1")
 
-    with patch("app.deps.get_current_user", return_value=plain), \
-         patch("app.infra.database.get_db", return_value=db_mock), \
-         patch("app.domains.privacy.router._user_permissions", return_value=set()):
+    with patch("app.domains.privacy.router._user_permissions", return_value=set()):
         yield TestClient(app, raise_server_exceptions=False)
+
+    app.dependency_overrides.clear()
 
 
 # ---------------------------------------------------------------------------
@@ -188,15 +198,18 @@ class TestDeleteEndpoint:
 
     def test_delete_with_admin_star_permission_allowed(self):
         """admin.* wildcard permission should also grant access."""
+        from app.deps import get_current_user
+        from app.infra.database import get_db
+
         admin = _make_admin_user()
         db_mock = MagicMock()
 
         app = FastAPI()
+        app.dependency_overrides[get_current_user] = lambda: admin
+        app.dependency_overrides[get_db] = lambda: db_mock
         app.include_router(privacy_router, prefix="/api/v1")
 
-        with patch("app.deps.get_current_user", return_value=admin), \
-             patch("app.infra.database.get_db", return_value=db_mock), \
-             patch("app.domains.privacy.router._user_permissions", return_value={"admin.*"}), \
+        with patch("app.domains.privacy.router._user_permissions", return_value={"admin.*"}), \
              patch("app.domains.privacy.router.delete_user_ai_data",
                    return_value=_delete_payload("u-star")), \
              patch("app.domains.privacy.router.log_audit"):
@@ -206,4 +219,5 @@ class TestDeleteEndpoint:
                 json={"dry_run": False},
             )
 
+        app.dependency_overrides.clear()
         assert resp.status_code == 200

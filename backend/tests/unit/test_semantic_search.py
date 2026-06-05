@@ -114,6 +114,7 @@ class TestFindSimilarCases:
             _make_case("c3", "Checkout with credit card", "PAY-001"),
         ]
         db.query.return_value.filter.return_value.all.return_value = cases
+        db.execute.return_value.scalars.return_value.all.return_value = cases
         return db
 
     def test_returns_results_sorted_by_score(self, mock_db: MagicMock) -> None:

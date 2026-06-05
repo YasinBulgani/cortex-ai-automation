@@ -158,6 +158,7 @@ def test_full_flow_opens_ready_pr_when_confidence_high(
     t.push("POST", "/git/refs", 201, {})
     t.push("GET", "/contents/tests/login.spec.ts?ref=" + _branch_name_for(sample_event), 200, {"sha": "file-sha"})
     t.push("PUT", "/contents/tests/login.spec.ts", 200, {})
+    t.push("GET", "acme/proj", 200, {"full_name": "acme/proj"})
     t.push("POST", "/pulls", 201, {"number": 42, "html_url": "https://github.com/acme/proj/pull/42"})
 
     gh = GitHubClient(auth=TokenAuth("ghp_x"), owner="acme", repo="proj", transport=t)
@@ -195,6 +196,7 @@ def test_low_confidence_opens_draft_pr(
     t.push("POST", "/git/refs", 201, {})
     t.push("GET", "/contents/tests/login.spec.ts?ref=" + _branch_name_for(sample_event), 200, {"sha": "file-sha"})
     t.push("PUT", "/contents/tests/login.spec.ts", 200, {})
+    t.push("GET", "acme/proj", 200, {"full_name": "acme/proj"})
     t.push("POST", "/pulls", 201, {"number": 7, "html_url": "https://github.com/acme/proj/pull/7"})
 
     gh = GitHubClient(auth=TokenAuth("x"), owner="acme", repo="proj", transport=t)
@@ -264,7 +266,7 @@ def test_patch_failure_stops_before_pr(
         encoding="utf-8",
     )
     orch = HealingOrchestrator(
-        config=HealingConfig(repo_root=tmp_path),
+        config=HealingConfig(repo_root=tmp_path, max_retries=1),
         healer=_healer_with_proposal(confidence=0.95),
         github=None,
     )
@@ -282,7 +284,7 @@ def test_github_failure_reported(
     )
     gh = GitHubClient(auth=TokenAuth("x"), owner="acme", repo="proj", transport=t)
     orch = HealingOrchestrator(
-        config=HealingConfig(repo_root=tmp_path),
+        config=HealingConfig(repo_root=tmp_path, max_retries=1),
         healer=_healer_with_proposal(confidence=0.9),
         github=gh,
     )
@@ -316,7 +318,7 @@ def test_dry_run_without_github_after_patch(
     tmp_path: Path, sample_event: FailureEvent
 ) -> None:
     orch = HealingOrchestrator(
-        config=HealingConfig(repo_root=tmp_path),
+        config=HealingConfig(repo_root=tmp_path, max_retries=1),
         healer=_healer_with_proposal(confidence=0.9),
         github=None,
     )

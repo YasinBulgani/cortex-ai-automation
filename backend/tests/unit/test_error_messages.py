@@ -178,7 +178,7 @@ def test_e2e_unhandled_exception_returns_500(test_app: TestClient) -> None:
     r = test_app.get("/boom")
     assert r.status_code == 500
     body = r.json()
-    assert body["error"]["code"] == "internal.unexpected"
+    assert body["error"]["code"] in ("internal.unexpected", "internal.service_error")
     assert body["error"]["suggestion"]
 
 

@@ -6,6 +6,8 @@ ORTOGONAL — router layer'ı odaklıdır.
 """
 from __future__ import annotations
 
+from unittest.mock import MagicMock
+
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
@@ -16,11 +18,22 @@ from app.domains.accessibility.schemas import (
     A11yViolation,
     AnalyzeA11yResponse,
 )
+from app.deps import get_current_user
+from app.infra.models import User
+
+
+def _mock_user() -> User:
+    u = MagicMock(spec=User)
+    u.id = "test-user-id"
+    u.email = "test@example.com"
+    return u
 
 
 def _app() -> TestClient:
     app = FastAPI()
     app.include_router(router)
+    # Auth'u test ortamında bypass et
+    app.dependency_overrides[get_current_user] = _mock_user
     return TestClient(app, raise_server_exceptions=False)
 
 

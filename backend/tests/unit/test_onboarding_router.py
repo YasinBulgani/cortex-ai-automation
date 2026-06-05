@@ -18,11 +18,33 @@ from fastapi.testclient import TestClient
 
 try:
     from app.domains.onboarding.router import router as onboarding_router
+    from app.deps import get_current_user
+    from app.infra.models import User
     _IMPORT_OK = True
 except Exception:
     _IMPORT_OK = False
 
 pytestmark = pytest.mark.skipif(not _IMPORT_OK, reason="onboarding router import failed")
+
+
+def _mock_user():
+    u = MagicMock(spec=User)
+    u.id = "test-user-id"
+    u.email = "test@example.com"
+    u.roles = []
+    return u
+
+
+def _mock_admin_user():
+    u = MagicMock(spec=User)
+    u.id = "admin-user-id"
+    u.email = "admin@example.com"
+    perm = MagicMock()
+    perm.permission = "admin.*"
+    role = MagicMock()
+    role.permissions = [perm]
+    u.roles = [role]
+    return u
 
 
 # ---------------------------------------------------------------------------
@@ -57,6 +79,15 @@ def _make_step_dict(step_id: str = "create_project", order: int = 1) -> dict:
 def client():
     app = FastAPI()
     app.include_router(onboarding_router, prefix="/api/v1")
+    app.dependency_overrides[get_current_user] = _mock_user
+    return TestClient(app, raise_server_exceptions=False)
+
+
+@pytest.fixture
+def admin_client():
+    app = FastAPI()
+    app.include_router(onboarding_router, prefix="/api/v1")
+    app.dependency_overrides[get_current_user] = _mock_admin_user
     return TestClient(app, raise_server_exceptions=False)
 
 
@@ -161,17 +192,17 @@ class TestProgressUpdateEndpoint:
 # ---------------------------------------------------------------------------
 
 class TestProgressDeleteEndpoint:
-    def test_reset_returns_200(self, client):
+    def test_reset_returns_200(self, admin_client):
         with patch("app.domains.onboarding.router.progress_store") as ps:
-            resp = client.delete("/api/v1/onboarding/progress/proj-del")
+            resp = admin_client.delete("/api/v1/onboarding/progress/proj-del")
         assert resp.status_code == 200
 
-    def test_reset_returns_ok_true(self, client):
+    def test_reset_returns_ok_true(self, admin_client):
         with patch("app.domains.onboarding.router.progress_store"):
-            resp = client.delete("/api/v1/onboarding/progress/proj-del")
+            resp = admin_client.delete("/api/v1/onboarding/progress/proj-del")
         assert resp.json()["ok"] is True
 
-    def test_reset_calls_store_reset(self, client):
+    def test_reset_calls_store_reset(self, admin_client):
         with patch("app.domains.onboarding.router.progress_store") as ps:
-            client.delete("/api/v1/onboarding/progress/proj-reset-me")
+            admin_client.delete("/api/v1/onboarding/progress/proj-reset-me")
             ps.reset.assert_called_once_with("proj-reset-me")

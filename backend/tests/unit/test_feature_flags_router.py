@@ -21,10 +21,21 @@ try:
     from fastapi.testclient import TestClient
 
     from app.domains.feature_flags.router import router
+    from app.deps import get_current_user
+    from app.infra.models import User
 
     _IMPORT_OK = True
 except Exception:
     _IMPORT_OK = False
+
+
+def _mock_user_obj(id=1, email="admin@test.com", tenant_id="t1"):
+    u = MagicMock(spec=User)
+    u.id = id
+    u.email = email
+    u.tenant_id = tenant_id
+    u.roles = []
+    return u
 
 pytestmark = pytest.mark.skipif(not _IMPORT_OK, reason="import failed")
 
@@ -43,15 +54,15 @@ def _make_evaluation(key: str = "my-flag", enabled: bool = True) -> dict:
 
 def _build_client(mock_user: MagicMock | None = None) -> TestClient:
     """Return a TestClient with auth deps overridden."""
-    from app.deps import get_current_user, require_permission
+    from app.deps import require_permission
 
     if mock_user is None:
-        mock_user = MagicMock(id=1, email="admin@test.com", tenant_id="t1")
+        mock_user = _mock_user_obj()
 
     app = FastAPI()
-    app.include_router(router)
     app.dependency_overrides[get_current_user] = lambda: mock_user
     app.dependency_overrides[require_permission("admin.feature_flags")] = lambda: mock_user
+    app.include_router(router)
     return TestClient(app, raise_server_exceptions=False)
 
 

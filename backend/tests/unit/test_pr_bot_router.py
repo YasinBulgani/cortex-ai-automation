@@ -15,6 +15,8 @@ from fastapi.testclient import TestClient
 
 try:
     from app.domains.pr_bot.router import router as pr_bot_router, _llm_available, _summary_to_dict
+    from app.deps import get_current_user
+    from app.infra.models import User
     _IMPORT_OK = True
 except Exception:
     _IMPORT_OK = False
@@ -22,10 +24,19 @@ except Exception:
 pytestmark = pytest.mark.skipif(not _IMPORT_OK, reason="pr_bot router import failed")
 
 
+def _mock_user():
+    u = MagicMock(spec=User)
+    u.id = "test-user-id"
+    u.email = "test@example.com"
+    u.roles = []
+    return u
+
+
 @pytest.fixture
 def client():
     app = FastAPI()
     app.include_router(pr_bot_router, prefix="/api/v1")
+    app.dependency_overrides[get_current_user] = _mock_user
     return TestClient(app, raise_server_exceptions=False)
 
 

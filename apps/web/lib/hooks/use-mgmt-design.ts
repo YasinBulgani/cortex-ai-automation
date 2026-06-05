@@ -102,6 +102,14 @@ export interface ExpandCaseResponse {
   run_case_ids: string[];
 }
 
+export interface DesignTemplate {
+  id: string;
+  name: string;
+  technique: DesignTechnique;
+  fields: DesignFieldSpec[];
+  created_at: string;
+}
+
 // ── Keys & base ──────────────────────────────────────────────────────────────
 
 const BASE = "/api/v1/test-management";
@@ -261,5 +269,92 @@ export function useExpandCase(caseId: string) {
   return useMutation({
     mutationFn: () =>
       apiFetch<ExpandCaseResponse>(`${BASE}/cases/${caseId}/expand`, { method: "POST" }),
+  });
+}
+
+// ── Design Template hooks (backend-persisted, shared across team) ────────────
+
+const MGMT_BASE = (projectId: string) => `/api/v1/test-management/projects/${projectId}`;
+const TEMPLATES_KEY = "design_templates";
+
+export const designTemplateKeys = {
+  all: (projectId: string | undefined) => ["design-templates", projectId] as const,
+};
+
+/**
+ * Loads all saved design templates for a project from management settings.
+ * Templates are stored under user_settings.design_templates and shared
+ * across the team via the backend (not localStorage).
+ */
+export function useDesignTemplates(projectId: string | undefined) {
+  return useQuery({
+    queryKey: designTemplateKeys.all(projectId),
+    queryFn: async () => {
+      const settings = await apiFetch<{ user_settings?: Record<string, unknown> }>(
+        `${MGMT_BASE(projectId!)}/settings`
+      );
+      const raw = settings?.user_settings?.[TEMPLATES_KEY];
+      return (Array.isArray(raw) ? raw : []) as DesignTemplate[];
+    },
+    enabled: !!projectId,
+    staleTime: 60_000,
+  });
+}
+
+/**
+ * Saves (upserts) a design template to the management settings backend.
+ * Merges with existing templates so concurrent saves from teammates are safe.
+ */
+export function useSaveDesignTemplate(projectId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (template: Omit<DesignTemplate, "id" | "created_at">) => {
+      // Load current list first to merge
+      const settings = await apiFetch<{ user_settings?: Record<string, unknown> }>(
+        `${MGMT_BASE(projectId)}/settings`
+      );
+      const existing = (Array.isArray(settings?.user_settings?.[TEMPLATES_KEY])
+        ? (settings.user_settings![TEMPLATES_KEY] as DesignTemplate[])
+        : []);
+      const newTemplate: DesignTemplate = {
+        ...template,
+        id: crypto.randomUUID(),
+        created_at: new Date().toISOString(),
+      };
+      const updated = [...existing, newTemplate];
+      await apiFetch(`${MGMT_BASE(projectId)}/settings/user`, {
+        method: "PATCH",
+        json: { [TEMPLATES_KEY]: updated },
+      });
+      return newTemplate;
+    },
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: designTemplateKeys.all(projectId) });
+    },
+  });
+}
+
+/**
+ * Deletes a saved design template by id from the management settings backend.
+ */
+export function useDeleteDesignTemplate(projectId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (templateId: string) => {
+      const settings = await apiFetch<{ user_settings?: Record<string, unknown> }>(
+        `${MGMT_BASE(projectId)}/settings`
+      );
+      const existing = (Array.isArray(settings?.user_settings?.[TEMPLATES_KEY])
+        ? (settings.user_settings![TEMPLATES_KEY] as DesignTemplate[])
+        : []);
+      const updated = existing.filter((t) => t.id !== templateId);
+      await apiFetch(`${MGMT_BASE(projectId)}/settings/user`, {
+        method: "PATCH",
+        json: { [TEMPLATES_KEY]: updated },
+      });
+    },
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: designTemplateKeys.all(projectId) });
+    },
   });
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { apiFetch } from "@/lib/api";
+import { apiFetch } from "@/lib/api-client";
 
 export type WidgetType =
   | "pass-rate"
@@ -29,16 +29,17 @@ export type Dashboard = {
   id: string;
   name: string;
   widgets: Widget[];
-  createdAt: number;
-  updatedAt: number;
+  created_at: string;
+  updated_at: string;
 };
 
 const STORAGE_KEY = "neurex_dashboards_v1";
-const DASHBOARDS_API_BASE = "/api/v1/dashboards";
+const API_BASE = (mpid: string) =>
+  `/api/v1/test-management/projects/${mpid}/dashboards`;
 
-function readStorage(): Dashboard[] {
+function readStorage(projectId: string): Dashboard[] {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = localStorage.getItem(`${STORAGE_KEY}_${projectId}`);
     if (!raw) return [];
     const parsed = JSON.parse(raw);
     return Array.isArray(parsed) ? parsed : [];
@@ -47,197 +48,179 @@ function readStorage(): Dashboard[] {
   }
 }
 
-function writeStorage(items: Dashboard[]) {
+function writeStorage(projectId: string, items: Dashboard[]) {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+    localStorage.setItem(`${STORAGE_KEY}_${projectId}`, JSON.stringify(items));
   } catch {
-    /* ignore quota / unavailable */
+    /* ignore */
   }
 }
 
-function normalizeDashboards(payload: unknown): Dashboard[] | null {
-  if (Array.isArray(payload)) return payload as Dashboard[];
-  if (
-    typeof payload === "object" &&
-    payload !== null &&
-    "dashboards" in payload &&
-    Array.isArray((payload as { dashboards?: unknown }).dashboards)
-  ) {
-    return (payload as { dashboards: Dashboard[] }).dashboards;
-  }
-  return null;
+function nowIso() {
+  return new globalThis.Date().toISOString();
 }
 
-// Backend-first with localStorage fallback. Existing browser data stays as an
-// offline cache, but the shared apiFetch client keeps auth/refresh behavior
-// consistent with the rest of the frontend.
-async function fetchFromBackend(projectId: string): Promise<Dashboard[] | null> {
-  try {
-    const data = await apiFetch<unknown>(
-      `${DASHBOARDS_API_BASE}?project_id=${encodeURIComponent(projectId)}`,
-    );
-    return normalizeDashboards(data);
-  } catch {
-    return null;
-  }
+function newWidgetId() {
+  return `w-${Math.floor(Math.random() * 1e9).toString(36)}`;
 }
 
-function newId(): string {
-  return `dash-${crypto.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`}`;
-}
-
-function newWidgetId(): string {
-  return `w-${crypto.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2, 6)}`}`;
-}
-
-async function saveToBackend(projectId: string, next: Dashboard[]) {
-  try {
-    await apiFetch<unknown>(
-      `${DASHBOARDS_API_BASE}?project_id=${encodeURIComponent(projectId)}`,
-      {
-        method: "PUT",
-        json: { dashboards: next },
-      },
-    );
-  } catch {
-    // Backend endpoint may not be enabled in all environments yet. The local
-    // cache above remains the durable fallback for the current browser.
-  }
+function localId() {
+  return `dash-local-${Math.floor(Math.random() * 1e9).toString(36)}`;
 }
 
 /**
- * Hook for managing user-customised dashboards.
- *
- * Storage: backend-first with localStorage fallback for offline use and when
- * the backend dashboard endpoint is unavailable.
+ * Backend-first custom dashboard hook.
+ * Reads from and writes to test-management project settings_data.
+ * Falls back to localStorage when mpid is absent or backend unreachable.
  */
-export function useCustomDashboard(projectId: string) {
+export function useCustomDashboard(projectId: string, mpid?: string | null) {
   const [dashboards, setDashboards] = useState<Dashboard[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  // Initial load: localStorage first for instant paint, then backend overrides
   useEffect(() => {
-    const local = readStorage().filter((d) => d.id.startsWith("dash-"));
+    const local = readStorage(projectId);
     if (local.length > 0) {
       setDashboards(local);
-      setActiveId((prev) => (prev === null && local.length > 0 ? local[0].id : prev));
+      setActiveId((prev) => (prev === null ? (local[0]?.id ?? null) : prev));
     }
 
-    // Then try backend — if it responds, prefer its data (authoritative source)
-    fetchFromBackend(projectId).then((backendData) => {
-      if (backendData && backendData.length > 0) {
-        setDashboards(backendData);
-        writeStorage(backendData); // sync to localStorage for offline use
-        setActiveId((prev) => (prev === null ? backendData[0].id : prev));
-      }
-    });
-  }, [projectId]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (!mpid) {
+      setLoading(false);
+      return;
+    }
 
-  const persist = useCallback(
+    apiFetch<Dashboard[]>(API_BASE(mpid))
+      .then((data) => {
+        if (data && data.length > 0) {
+          setDashboards(data);
+          writeStorage(projectId, data);
+          setActiveId((prev) => (prev === null ? (data[0]?.id ?? null) : prev));
+        } else if (local.length === 0) {
+          setDashboards([]);
+        }
+      })
+      .catch(() => { /* keep localStorage */ })
+      .finally(() => setLoading(false));
+  }, [projectId, mpid]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const syncState = useCallback(
     (next: Dashboard[]) => {
       setDashboards(next);
-      writeStorage(next);
-      void saveToBackend(projectId, next);
+      writeStorage(projectId, next);
     },
     [projectId],
   );
 
   const createDashboard = useCallback(
-    (name: string) => {
-      const dash: Dashboard = {
-        id: newId(),
+    async (name: string): Promise<Dashboard> => {
+      if (mpid) {
+        try {
+          const created = await apiFetch<Dashboard>(API_BASE(mpid), {
+            method: "POST",
+            json: { name, widgets: [] },
+          });
+          syncState([...readStorage(projectId), created]);
+          setActiveId(created.id);
+          return created;
+        } catch { /* fall through */ }
+      }
+      const d: Dashboard = {
+        id: localId(),
         name,
         widgets: [],
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
+        created_at: nowIso(),
+        updated_at: nowIso(),
       };
-      const next = [...dashboards, dash];
-      persist(next);
-      setActiveId(dash.id);
-      return dash;
+      syncState([...readStorage(projectId), d]);
+      setActiveId(d.id);
+      return d;
     },
-    [dashboards, persist],
+    [projectId, mpid, syncState],
   );
 
   const deleteDashboard = useCallback(
-    (id: string) => {
-      const next = dashboards.filter((d) => d.id !== id);
-      persist(next);
-      if (activeId === id) {
-        setActiveId(next.length > 0 ? next[0].id : null);
+    async (id: string): Promise<void> => {
+      if (mpid) {
+        try { await apiFetch<void>(`${API_BASE(mpid)}/${id}`, { method: "DELETE" }); }
+        catch { /* fall through */ }
+      }
+      const next = readStorage(projectId).filter((d) => d.id !== id);
+      syncState(next);
+      setActiveId((prev) => {
+        if (prev !== id) return prev;
+        return next.length > 0 ? (next[0]?.id ?? null) : null;
+      });
+    },
+    [projectId, mpid, syncState],
+  );
+
+  const _pushUpdate = useCallback(
+    async (updated: Dashboard): Promise<void> => {
+      syncState(readStorage(projectId).map((d) => (d.id === updated.id ? updated : d)));
+      if (mpid) {
+        try {
+          await apiFetch<Dashboard>(`${API_BASE(mpid)}/${updated.id}`, {
+            method: "PUT",
+            json: { name: updated.name, widgets: updated.widgets },
+          });
+        } catch { /* localStorage already updated */ }
       }
     },
-    [activeId, dashboards, persist],
+    [projectId, mpid, syncState],
   );
 
   const renameDashboard = useCallback(
-    (id: string, name: string) => {
-      persist(
-        dashboards.map((d) =>
-          d.id === id ? { ...d, name, updatedAt: Date.now() } : d,
-        ),
-      );
+    async (id: string, name: string): Promise<void> => {
+      const cur = readStorage(projectId).find((d) => d.id === id);
+      if (cur) await _pushUpdate({ ...cur, name, updated_at: nowIso() });
     },
-    [dashboards, persist],
+    [projectId, _pushUpdate],
   );
 
   const addWidget = useCallback(
-    (dashId: string, widget: Omit<Widget, "id">) => {
+    async (dashId: string, widget: Omit<Widget, "id">): Promise<Widget> => {
       const w: Widget = { ...widget, id: newWidgetId() };
-      persist(
-        dashboards.map((d) =>
-          d.id === dashId
-            ? { ...d, widgets: [...d.widgets, w], updatedAt: Date.now() }
-            : d,
-        ),
-      );
+      const cur = readStorage(projectId).find((d) => d.id === dashId);
+      if (cur) await _pushUpdate({ ...cur, widgets: [...cur.widgets, w], updated_at: nowIso() });
       return w;
     },
-    [dashboards, persist],
+    [projectId, _pushUpdate],
   );
 
   const removeWidget = useCallback(
-    (dashId: string, widgetId: string) => {
-      persist(
-        dashboards.map((d) =>
-          d.id === dashId
-            ? {
-                ...d,
-                widgets: d.widgets.filter((w) => w.id !== widgetId),
-                updatedAt: Date.now(),
-              }
-            : d,
-        ),
-      );
+    async (dashId: string, widgetId: string): Promise<void> => {
+      const cur = readStorage(projectId).find((d) => d.id === dashId);
+      if (cur) {
+        await _pushUpdate({
+          ...cur,
+          widgets: cur.widgets.filter((w) => w.id !== widgetId),
+          updated_at: nowIso(),
+        });
+      }
     },
-    [dashboards, persist],
+    [projectId, _pushUpdate],
   );
 
   const updateWidget = useCallback(
-    (dashId: string, widgetId: string, patch: Partial<Widget>) => {
-      persist(
-        dashboards.map((d) =>
-          d.id === dashId
-            ? {
-                ...d,
-                widgets: d.widgets.map((w) =>
-                  w.id === widgetId ? { ...w, ...patch } : w,
-                ),
-                updatedAt: Date.now(),
-              }
-            : d,
-        ),
-      );
+    async (dashId: string, widgetId: string, patch: Partial<Widget>): Promise<void> => {
+      const cur = readStorage(projectId).find((d) => d.id === dashId);
+      if (cur) {
+        await _pushUpdate({
+          ...cur,
+          widgets: cur.widgets.map((w) => (w.id === widgetId ? { ...w, ...patch } : w)),
+          updated_at: nowIso(),
+        });
+      }
     },
-    [dashboards, persist],
+    [projectId, _pushUpdate],
   );
-
-  const active = dashboards.find((d) => d.id === activeId) ?? null;
 
   return {
     dashboards,
-    active,
+    active: dashboards.find((d) => d.id === activeId) ?? null,
     activeId,
+    loading,
     setActiveId,
     createDashboard,
     deleteDashboard,

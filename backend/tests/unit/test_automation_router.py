@@ -14,10 +14,20 @@ try:
     from fastapi.testclient import TestClient
 
     from app.domains.automation.router import router as automation_router
+    from app.deps import get_current_user
+    from app.infra.models import User
 
     _IMPORT_OK = True
 except Exception:
     _IMPORT_OK = False
+
+
+def _mock_user():
+    u = MagicMock(spec=User)
+    u.id = "test-user-id"
+    u.email = "test@example.com"
+    u.roles = []
+    return u
 
 pytestmark = pytest.mark.skipif(not _IMPORT_OK, reason="import failed")
 
@@ -29,6 +39,7 @@ pytestmark = pytest.mark.skipif(not _IMPORT_OK, reason="import failed")
 
 def _app() -> TestClient:
     app = FastAPI()
+    app.dependency_overrides[get_current_user] = _mock_user
     app.include_router(automation_router, prefix="/api/v1")
     return TestClient(app, raise_server_exceptions=False)
 
@@ -40,58 +51,33 @@ def _fake_user() -> MagicMock:
     return u
 
 
-def _fake_run(run_id: str = "run-001", status: str = "queued") -> MagicMock:
+def _fake_run(run_id: str = "run-001", status: str = "queued"):
     from datetime import datetime, timezone
+    from app.domains.automation.schemas import AutomationRunOut
 
-    r = MagicMock()
-    r.id = run_id
-    r.project_id = "proj-1"
-    r.kind = "web"
-    r.name = "Smoke Test"
-    r.status = status
-    r.trigger = "manual"
-    r.environment = None
-    r.device = None
-    r.target = "features/smoke.feature"
-    r.provenance = "fallback"
-    r.created_at = datetime.now(timezone.utc)
-    r.started_at = None
-    r.finished_at = None
-    r.duration_ms = None
-    r.artifacts = []
-    r.metrics = {}
-    r.next_action = None
-    r.error = None
-    r.retry_of = None
-    r.created_by = "test-user"
-    r.metadata = {}
-    # model_copy returns itself for simplicity
-    r.model_copy.return_value = r
-    # Make it json-serializable by providing model_dump
-    r.model_dump.return_value = {
-        "id": run_id,
-        "project_id": "proj-1",
-        "kind": "web",
-        "name": "Smoke Test",
-        "status": status,
-        "trigger": "manual",
-        "environment": None,
-        "device": None,
-        "target": "features/smoke.feature",
-        "provenance": "fallback",
-        "created_at": datetime.now(timezone.utc).isoformat(),
-        "started_at": None,
-        "finished_at": None,
-        "duration_ms": None,
-        "artifacts": [],
-        "metrics": {},
-        "next_action": None,
-        "error": None,
-        "retry_of": None,
-        "created_by": "test-user",
-        "metadata": {},
-    }
-    return r
+    return AutomationRunOut(
+        id=run_id,
+        project_id="proj-1",
+        kind="web",
+        name="Smoke Test",
+        status=status,
+        trigger="manual",
+        environment=None,
+        device=None,
+        target="features/smoke.feature",
+        provenance="fallback",
+        created_at=datetime.now(timezone.utc),
+        started_at=None,
+        finished_at=None,
+        duration_ms=None,
+        artifacts=[],
+        metrics={},
+        next_action=None,
+        error=None,
+        retry_of=None,
+        created_by="test-user",
+        metadata={},
+    )
 
 
 def _fake_capability() -> MagicMock:
@@ -220,9 +206,10 @@ def test_list_capabilities_empty() -> None:
 
 def test_list_runs_returns_200() -> None:
     client = _app()
+    run = _fake_run()
     mock_service = MagicMock()
     mock_run_list = MagicMock()
-    mock_run_list.items = [_fake_run()]
+    mock_run_list.items = [run]
     mock_run_list.total = 1
     mock_service.list_runs.return_value = mock_run_list
     mock_service.store.replace.side_effect = lambda x: x
@@ -230,7 +217,8 @@ def test_list_runs_returns_200() -> None:
     with patch("app.domains.automation.router.get_current_user", return_value=_fake_user()), \
          patch("app.domains.automation.router.get_db", return_value=MagicMock()), \
          patch("app.domains.automation.router.AutomationBrainService", return_value=mock_service), \
-         patch("app.domains.automation.router.SqlAlchemyAutomationRunStore", return_value=MagicMock()):
+         patch("app.domains.automation.router.SqlAlchemyAutomationRunStore", return_value=MagicMock()), \
+         patch("app.domains.automation.router._sync_external_run", side_effect=lambda _svc, r: r):
         r = client.get("/api/v1/automation/runs")
     assert r.status_code == 200
 

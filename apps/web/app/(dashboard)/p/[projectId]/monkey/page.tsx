@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouteParam } from "@/lib/use-route-param";
 import { aiComplete, aiStream } from "@/lib/ai-gateway";
-import { getToken, ensureValidToken } from "@/lib/api-client";
+import { apiFetch, getToken, ensureValidToken } from "@/lib/api-client";
 import { MonkeyConfigPanel } from "./components/MonkeyConfigPanel";
 import { MonkeySessionList } from "./components/MonkeySessionList";
 import { BugReportPanel } from "./components/BugReportPanel";
@@ -291,29 +291,14 @@ export default function MonkeyTestingPage() {
     setProbing(true);
     setProbeResult(null);
     try {
-      const token = getToken();
-      const headers: Record<string, string> = { "Content-Type": "application/json" };
-      if (token) headers["Authorization"] = `Bearer ${token}`;
-      const res = await fetch(
+      const data = await apiFetch<ProbeResponse>(
         `/api/v1/tspm/projects/${projectId}/monkey-testing/probe`,
         {
           method: "POST",
-          credentials: "include",
-          headers,
-          body: JSON.stringify({
-            url: config.targetUrl,
-            login_url: auth.login_url || "",
-          }),
+          json: { url: config.targetUrl, login_url: auth.login_url || "" },
         },
       );
-      if (!res.ok) {
-        setProbeResult({
-          target: { ok: false, error: "http", reason: `Probe başarısız: ${res.status}` },
-          login:  { ok: false, skipped: true, reason: "" },
-        });
-        return;
-      }
-      setProbeResult(await res.json() as ProbeResponse);
+      setProbeResult(data);
     } catch (err) {
       setProbeResult({
         target: { ok: false, error: "network", reason: err instanceof Error ? err.message : "Bilinmeyen hata" },
@@ -800,6 +785,12 @@ export default function MonkeyTestingPage() {
       {/* Banner */}
       <div className="rounded-lg border border-orange-400/20 bg-orange-500/5 px-4 py-2.5 text-xs text-orange-200/80">
         🐒 Monkey Testing — Headless Chromium ile gerçek tarayıcıda rastgele eylemler yapar, console+network hatalarını yakalar, AI ile test senaryosu ve Karate DSL üretir.
+      </div>
+
+      {/* Geçmiş notu */}
+      <div className="flex items-center gap-2 rounded-lg border border-slate-800/50 bg-slate-900/40 px-3 py-1.5 text-[11px] text-slate-500">
+        <svg className="h-3 w-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        Test koşumu geçmişi yalnızca bu tarayıcıya özeldir.
       </div>
 
       {/* History toggle */}

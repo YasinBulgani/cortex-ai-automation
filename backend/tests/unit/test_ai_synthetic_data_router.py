@@ -15,10 +15,20 @@ try:
     from fastapi.testclient import TestClient
 
     from app.domains.ai_synthetic_data.router import router as synthetic_router
+    from app.deps import get_current_user
+    from app.infra.models import User
 
     _IMPORT_OK = True
 except Exception:
     _IMPORT_OK = False
+
+
+def _mock_user():
+    u = MagicMock(spec=User)
+    u.id = "test-user-id"
+    u.email = "test@example.com"
+    u.roles = []
+    return u
 
 pytestmark = pytest.mark.skipif(not _IMPORT_OK, reason="import failed")
 
@@ -30,6 +40,7 @@ pytestmark = pytest.mark.skipif(not _IMPORT_OK, reason="import failed")
 
 def _app() -> TestClient:
     app = FastAPI()
+    app.dependency_overrides[get_current_user] = _mock_user
     app.include_router(synthetic_router, prefix="/api/v1")
     return TestClient(app, raise_server_exceptions=False)
 

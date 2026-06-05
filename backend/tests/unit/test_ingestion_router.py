@@ -13,15 +13,26 @@ try:
     from fastapi.testclient import TestClient
 
     from app.domains.ingestion.router import router
+    from app.deps import get_current_user
+    from app.infra.models import User
 
     _IMPORT_OK = True
 except ImportError:
     _IMPORT_OK = False
 
 
+def _mock_user():
+    u = MagicMock(spec=User)
+    u.id = "test-user-id"
+    u.email = "test@example.com"
+    u.roles = []
+    return u
+
+
 def _app() -> "TestClient":
     app = FastAPI()
     app.include_router(router)
+    app.dependency_overrides[get_current_user] = _mock_user
     return TestClient(app, raise_server_exceptions=False)
 
 

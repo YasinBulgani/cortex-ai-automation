@@ -68,22 +68,37 @@ def _make_test_case(id="tc-1", project_id=PROJECT_ID):
     tc = MagicMock()
     tc.id = id
     tc.project_id = project_id
-    tc.name = "GET /pets returns 200"
+    tc.title = "GET /pets returns 200"
     tc.description = "Verifies the list pets endpoint"
     tc.endpoint_id = None
+    tc.collection_id = None
     tc.test_type = "functional"
-    tc.method = "GET"
-    tc.url = "https://api.example.com/pets"
-    tc.headers = {}
-    tc.params = {}
-    tc.body = None
+    tc.request_method = "GET"
+    tc.request_path = "/pets"
+    tc.request_headers = {}
+    tc.request_params = {}
+    tc.request_body = None
     tc.assertions = []
-    tc.expected_schema = None
-    tc.environment_id = None
     tc.ai_generated = False
+    tc.ai_model = None
+    tc.ai_confidence = None
+    tc.ai_reasoning = None
     tc.review_status = "pending"
-    tc.priority = "medium"
+    tc.reviewer_note = None
+    tc.priority = "P2"
     tc.reviewer_id = None
+    tc.owasp_category = None
+    tc.regulation = None
+    tc.cwe_id = None
+    tc.pre_request_vars = None
+    tc.setup_chain = None
+    tc.last_run_status = None
+    tc.last_run_at = None
+    tc.run_count = 0
+    tc.pass_count = 0
+    tc.fail_count = 0
+    tc.quarantined = False
+    tc.quarantine_reason = None
     tc.created_at = "2026-05-27T10:00:00"
     tc.updated_at = "2026-05-27T10:00:00"
     return tc
@@ -140,7 +155,53 @@ def _make_db_session(
     db.scalar.return_value = 1  # project member count
     db.add = MagicMock()
     db.commit = MagicMock()
-    db.refresh = MagicMock(side_effect=lambda obj: obj)
+
+    def _refresh(obj):
+        # Simulate DB assigning id/timestamps and defaults after commit
+        if getattr(obj, "id", None) is None:
+            obj.id = "generated-id"
+        if getattr(obj, "created_at", None) is None:
+            obj.created_at = "2026-05-27T10:00:00"
+        if getattr(obj, "updated_at", None) is None:
+            obj.updated_at = "2026-05-27T10:00:00"
+        # Set model-level defaults that SQLAlchemy normally fills from DB
+        for attr, default in [
+            ("review_status", "pending"),
+            ("run_count", 0),
+            ("pass_count", 0),
+            ("fail_count", 0),
+            ("quarantined", False),
+            ("is_default", False),
+            ("ai_generated", False),
+        ]:
+            if getattr(obj, attr, None) is None:
+                try:
+                    setattr(obj, attr, default)
+                except Exception:
+                    pass
+        return obj
+
+    db.refresh = MagicMock(side_effect=_refresh)
+
+    # SQLAlchemy 2.0 style: db.execute(stmt).scalars().first() / .rowcount
+    _tc_for_execute = tc if tc else (tc_list[0] if tc_list else None)
+
+    def _execute_side_effect(stmt, *args, **kwargs):
+        result = MagicMock()
+        # Check if it's a DELETE statement by inspecting the stmt type
+        stmt_type = type(stmt).__name__.lower()
+        if "delete" in stmt_type:
+            result.rowcount = deleted
+            return result
+        # For SELECT statements
+        scalars_mock = MagicMock()
+        scalars_mock.first.return_value = _tc_for_execute
+        scalars_mock.all.return_value = tc_list
+        result.scalars.return_value = scalars_mock
+        result.rowcount = 0
+        return result
+
+    db.execute = MagicMock(side_effect=_execute_side_effect)
 
     return db
 
@@ -237,11 +298,11 @@ class TestCreateTestCase:
         db = _make_db_session(tc=tc, tc_list=[tc])
         client = client_factory(db)
         payload = {
-            "name": "GET /pets returns 200",
-            "method": "GET",
-            "url": "https://api.example.com/pets",
+            "title": "GET /pets returns 200",
+            "request_method": "GET",
+            "request_path": "/pets",
             "test_type": "functional",
-            "priority": "high",
+            "priority": "P2",
         }
         resp = client.post(f"{BASE}/test-cases", json=payload)
         assert resp.status_code == 201

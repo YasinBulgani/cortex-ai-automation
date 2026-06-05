@@ -26,6 +26,7 @@ def _fake_user(user_id: str = "user-1"):
 def _fake_db():
     """Return a mock SQLAlchemy session."""
     db = MagicMock()
+    db.get.return_value = None  # default: no prefs in DB
     return db
 
 
@@ -40,6 +41,8 @@ def _make_prefs_orm(
     prefs.notify_on_complete = notify_on_complete
     prefs.notify_on_failure = notify_on_failure
     prefs.slack_webhook_url = slack_webhook_url
+    prefs.digest_mode = "instant"
+    prefs.channels = "email,in_app"
     return prefs
 
 
@@ -64,13 +67,6 @@ def client():
 class TestGetNotificationPrefs:
     def test_get_prefs_returns_200_when_no_prefs_in_db(self, client):
         # When db.get returns None, router returns default prefs
-        with patch("app.domains.notifications.router.NotificationPrefs") as MockPrefs:
-            # The db.get is already a MagicMock; make it return None
-            client.app.dependency_overrides[
-                next(k for k in client.app.dependency_overrides if "get_db" in str(k))
-            ] = lambda: MagicMock(**{"get.return_value": None})
-            # Simpler approach: just call the endpoint with the existing fake_db
-            pass
         resp = client.get("/api/v1/notifications/prefs")
         assert resp.status_code == 200
 
@@ -117,8 +113,7 @@ class TestGetNotificationPrefs:
         app.include_router(notifications_router, prefix="/api/v1")
         c = TestClient(app, raise_server_exceptions=False)
 
-        with patch("app.domains.notifications.router.NotificationPrefs", MagicMock()):
-            resp = c.get("/api/v1/notifications/prefs")
+        resp = c.get("/api/v1/notifications/prefs")
         assert resp.status_code == 200
         data = resp.json()
         # When prefs exist, the values from DB should be returned
@@ -144,15 +139,14 @@ class TestUpsertNotificationPrefs:
         app.include_router(notifications_router, prefix="/api/v1")
         c = TestClient(app, raise_server_exceptions=False)
 
-        with patch("app.domains.notifications.router.NotificationPrefs", MagicMock()):
-            resp = c.put(
-                "/api/v1/notifications/prefs",
-                json={
-                    "notify_on_complete": True,
-                    "notify_on_failure": False,
-                    "slack_webhook_url": None,
-                },
-            )
+        resp = c.put(
+            "/api/v1/notifications/prefs",
+            json={
+                "notify_on_complete": True,
+                "notify_on_failure": False,
+                "slack_webhook_url": None,
+            },
+        )
         assert resp.status_code in (200, 500)
 
     def test_put_prefs_invalid_slack_url_returns_422(self, client):
@@ -168,27 +162,25 @@ class TestUpsertNotificationPrefs:
 
     def test_put_prefs_valid_slack_url_passes_validation(self, client):
         valid_url = "https://hooks.slack.com/services/T000/B000/xxxxxxxxxxxxxxxxxxxx"
-        with patch("app.domains.notifications.router.NotificationPrefs", MagicMock()):
-            resp = client.put(
-                "/api/v1/notifications/prefs",
-                json={
-                    "notify_on_complete": True,
-                    "notify_on_failure": True,
-                    "slack_webhook_url": valid_url,
-                },
-            )
+        resp = client.put(
+            "/api/v1/notifications/prefs",
+            json={
+                "notify_on_complete": True,
+                "notify_on_failure": True,
+                "slack_webhook_url": valid_url,
+            },
+        )
         # 422 means validation passed but DB commit failed (expected in unit test)
         # 200 means everything worked
         assert resp.status_code in (200, 422, 500)
 
     def test_put_prefs_null_slack_url_is_accepted(self, client):
-        with patch("app.domains.notifications.router.NotificationPrefs", MagicMock()):
-            resp = client.put(
-                "/api/v1/notifications/prefs",
-                json={
-                    "notify_on_complete": False,
-                    "notify_on_failure": False,
-                    "slack_webhook_url": None,
-                },
-            )
+        resp = client.put(
+            "/api/v1/notifications/prefs",
+            json={
+                "notify_on_complete": False,
+                "notify_on_failure": False,
+                "slack_webhook_url": None,
+            },
+        )
         assert resp.status_code in (200, 500)
