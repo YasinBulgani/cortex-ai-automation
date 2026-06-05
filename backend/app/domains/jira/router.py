@@ -42,7 +42,7 @@ OptionalUser = Annotated[Optional[User], Depends(get_optional_user)]
 class JiraConfigSave(BaseModel):
     url: str = Field(..., min_length=1)
     email: str = Field(..., min_length=1)
-    token: str = Field(..., min_length=1)
+    token: str = Field(default="")  # Boş bırakılırsa mevcut token korunur
     project_key: str = ""
 
 
@@ -192,17 +192,19 @@ def jira_get_config(db: DB, user: CurrentUser):
 def jira_save_config(body: JiraConfigSave, db: DB, user: CurrentUser):
     """Jira bağlantı ayarlarını DB'ye kaydeder (upsert)."""
     intg = _get_integration(db, user.tenant_id)
+    new_token = body.token.strip()
     if intg:
         intg.jira_url = body.url.strip().rstrip("/")
         intg.email = body.email.strip()
-        intg.api_token = body.token.strip()
+        if new_token:  # Boş token → mevcut token koru
+            intg.api_token = new_token
         intg.default_project_key = body.project_key.strip() or None
     else:
         intg = JiraIntegration(
             tenant_id=user.tenant_id,
             jira_url=body.url.strip().rstrip("/"),
             email=body.email.strip(),
-            api_token=body.token.strip(),
+            api_token=new_token,
             default_project_key=body.project_key.strip() or None,
         )
         db.add(intg)

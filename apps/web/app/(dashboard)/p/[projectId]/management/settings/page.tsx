@@ -342,9 +342,9 @@ export default function ManagementSettingsPage() {
       setNewKeyName("");
       setNewKeyDuration(365);
       setShowKeyModal(false);
-      // Mark as revealed=false after 60s so next render shows masked version
+      // Clear full key from memory after 60s — only masked version remains
       setTimeout(() => {
-        setApiKeys(prev => prev.map(k => k.id === newKey.id ? { ...k, revealed: false } : k));
+        setApiKeys(prev => prev.map(k => k.id === newKey.id ? { ...k, revealed: false, key: undefined } : k));
       }, 60_000);
     } catch (err) {
       setKeyError(err instanceof Error ? err.message : "Anahtar oluşturulamadı.");

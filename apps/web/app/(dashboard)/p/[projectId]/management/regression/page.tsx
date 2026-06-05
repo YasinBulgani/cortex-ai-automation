@@ -203,16 +203,16 @@ function SetStats({ cases }: { cases: RegressionSetCase[] }) {
 
 export default function ManagementRegressionPage() {
   const projectId = useRouteParam("projectId") ?? "";
-  const mpid      = useManagementProjectId(projectId || undefined) ?? "";
+  const mpid      = useManagementProjectId(projectId || undefined);
   const router    = useRouter();
 
   const { data: sets, isLoading, isError, refetch: refetchSets } = useRegressionSets(mpid || undefined);
-  const createSet  = useCreateRegressionSet(mpid);
-  const updateSet  = useUpdateRegressionSet(mpid);
-  const deleteSet  = useDeleteRegressionSet(mpid);
-  const addCases   = useAddCasesToRegressionSet(mpid);
-  const removeCase = useRemoveCaseFromRegressionSet(mpid);
-  const createRun  = useCreateManagementRun(mpid);
+  const createSet  = useCreateRegressionSet(mpid || "");
+  const updateSet  = useUpdateRegressionSet(mpid || "");
+  const deleteSet  = useDeleteRegressionSet(mpid || "");
+  const addCases   = useAddCasesToRegressionSet(mpid || "");
+  const removeCase = useRemoveCaseFromRegressionSet(mpid || "");
+  const createRun  = useCreateManagementRun(mpid || "");
   const cyclesQ    = useManagementCycles(mpid || undefined);
 
   const [selectedCycleId, setSelectedCycleId] = useState<string | null>(null);
@@ -231,6 +231,7 @@ export default function ManagementRegressionPage() {
   const [showRun,      setShowRun]      = useState(false);
   const [runName,      setRunName]      = useState("");
   const [launching,    setLaunching]    = useState(false);
+  const [launchError,  setLaunchError]  = useState<string | null>(null);
 
   const refreshAll = () => {
     void refetchSets();
@@ -271,11 +272,14 @@ export default function ManagementRegressionPage() {
     e.preventDefault();
     if (!selectedSet || !runName.trim()) return;
     const cid = selectedCycleId ?? (cyclesQ.data ?? [])[0]?.id;
-    if (!cid) return;
+    if (!cid) { setLaunchError("Bir döngü seçin"); return; }
+    setLaunchError(null);
     setLaunching(true);
     try {
       const run = await createRun.mutateAsync({ cycle_id: cid, name: runName.trim(), case_ids: selectedSet.cases.map(c => c.case_id) });
       router.push(`/p/${projectId}/management/runs/${run.id}/execute`);
+    } catch(e) {
+      setLaunchError(e instanceof Error ? e.message : "Hata");
     } finally { setLaunching(false); setShowRun(false); }
   };
 
@@ -454,7 +458,7 @@ export default function ManagementRegressionPage() {
                 <table className="w-full">
                   <thead className="sticky top-0 z-10 border-b border-border bg-surface-raised/90 backdrop-blur-sm">
                     <tr>
-                      {["Key","Başlık","Öncelik","Tür","Son Koşum","Risk",""].map(h => (
+                      {["Key","Başlık","Öncelik","Tür","Son Koşum","Risk Skoru",""].map(h => (
                         <th key={h} className={cn("px-4 py-2.5 text-left text-[9px] font-semibold uppercase tracking-widest text-fg-subtle", h==="" && "w-10")}>{h}</th>
                       ))}
                     </tr>
@@ -477,7 +481,7 @@ export default function ManagementRegressionPage() {
                             <span className="text-[10px] text-fg-muted">{c.last_run_status ?? "not_run"}</span>
                           </span>
                         </td>
-                        <td className="px-4 py-3"><span className="font-mono text-[10px] text-fg-subtle">{typeof c.risk_score==="number"?c.risk_score.toFixed(1):"0.0"}</span></td>
+                        <td className="px-4 py-3"><span className="font-mono text-[10px] text-fg-subtle">{typeof c.risk_score==="number"&&c.risk_score>0?c.risk_score.toFixed(2):"--"}</span></td>
                         <td className="w-10 px-2">
                           <button onClick={()=>removeCase.mutate({setId:selectedSet.id,caseId:c.case_id})} disabled={removeCase.isPending}
                             className="invisible group-hover:visible rounded-lg p-1.5 text-fg-subtle hover:bg-red-500/10 hover:text-red-400">
@@ -596,6 +600,9 @@ export default function ManagementRegressionPage() {
                   <input autoFocus value={runName} onChange={e=>setRunName(e.target.value)} required
                     className="w-full rounded-xl border border-border bg-surface-base px-3 py-2 text-[13px] text-fg outline-none focus:border-brand/50"/>
                 </div>
+                {launchError && (
+                  <p className="rounded-xl border border-red-500/20 bg-red-500/5 px-3 py-2 text-[11px] text-red-400">{launchError}</p>
+                )}
                 <div className="flex gap-2 pt-1">
                   <button type="button" onClick={()=>setShowRun(false)} className="rounded-xl border border-border px-4 py-2 text-[12px] text-fg-muted">İptal</button>
                   <button type="submit" disabled={!runName.trim()||launching}

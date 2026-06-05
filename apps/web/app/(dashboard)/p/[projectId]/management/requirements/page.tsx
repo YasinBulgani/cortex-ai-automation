@@ -856,10 +856,12 @@ export default function ManagementRequirementsPage() {
   const deleteCatalogItem = useDeleteManagementRequirement(mpid || "");
   const generateCases = useGenerateTestCases(mpid || "");
   const bulkCreateReqs = useBulkCreateRequirements(mpid || "");
+  const { data: casesData } = useManagementCases(mpid || undefined);
   const qc = useQueryClient();
   const [csvImportMsg, setCsvImportMsg] = useState<string | null>(null);
 
   const [genForReq, setGenForReq] = useState<string | null>(null);
+  const [genError, setGenError] = useState<string | null>(null);
   const [genResult, setGenResult] = useState<{
     req: Requirement;
     cases: import("@/lib/hooks/use-management").GeneratedCase[];
@@ -939,9 +941,10 @@ export default function ManagementRequirementsPage() {
         r.external_key?.toLowerCase().includes(q);
       const matchStatus = statusFilter === "all" || r.status === statusFilter;
       const matchPriority = priorityFilter === "all" || r.priority === priorityFilter;
-      return matchSearch && matchStatus && matchPriority;
+      const matchCoverage = coverageFilter === "all" || (r as any).coverage_status === coverageFilter;
+      return matchSearch && matchStatus && matchPriority && matchCoverage;
     });
-  }, [rows, search, statusFilter, priorityFilter]);
+  }, [rows, search, statusFilter, priorityFilter, coverageFilter]);
 
   const tracePageCount = Math.ceil(filteredRows.length / PAGE_SIZE);
   const pagedTraceRows = filteredRows.slice(tracePage * PAGE_SIZE, (tracePage + 1) * PAGE_SIZE);
@@ -1292,12 +1295,12 @@ export default function ManagementRequirementsPage() {
               <option key={p} value={p}>{p}</option>
             ))}
           </select>
-          {activeTab === "catalog" && (
-            <select
+          <select
               value={coverageFilter}
               onChange={(e) => {
                 const val = e.target.value;
                 setCoverageFilter(val);
+                setTracePage(0);
                 setCatalogPage(0);
                 updateUrl({ coverage: val });
               }}
@@ -1309,7 +1312,6 @@ export default function ManagementRequirementsPage() {
               <option value="not_covered">not_covered</option>
               <option value="out_of_scope">out_of_scope</option>
             </select>
-          )}
         </div>
       </div>
 
@@ -1598,6 +1600,7 @@ export default function ManagementRequirementsPage() {
                                 disabled={genForReq === req.id}
                                 onClick={async () => {
                                   setGenForReq(req.id);
+                                  setGenError(null);
                                   try {
                                     const res = await generateCases.mutateAsync({
                                       prompt: `${req.title}${req.description ? ": " + req.description : ""}`,
@@ -1605,6 +1608,10 @@ export default function ManagementRequirementsPage() {
                                       save: false,
                                     });
                                     setGenResult({ req, cases: res.cases });
+                                  } catch (err) {
+                                    const msg = err instanceof Error ? err.message : "Bilinmeyen hata";
+                                    setGenError(`Case üretilemedi: ${msg}`);
+                                    showToast(`Case üretilemedi: ${msg}`, true);
                                   } finally {
                                     setGenForReq(null);
                                   }
@@ -1713,64 +1720,52 @@ export default function ManagementRequirementsPage() {
         {/* ── Grid Matrix tab ── */}
         {activeTab === "matrix" && (
           <div className="flex-1 overflow-auto p-4">
-            {traceLoading ? (
-              <LoadingSkeleton />
-            ) : filteredRows.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-20 gap-3 text-center">
-                <p className="text-sm text-fg-muted">Gereksinim bulunamadı</p>
-              </div>
-            ) : (
-              <div className="overflow-auto rounded-xl border border-border">
-                <table className="border-collapse text-[11px]">
+            <div className="overflow-auto rounded-xl border border-border">
+              <p className="px-4 py-3 text-[11px] font-medium text-fg-subtle border-b border-border bg-surface-raised">
+                Gereksinim × Test Case Matris
+              </p>
+              {!catalogItems?.length || !rows?.length ? (
+                <div className="flex items-center justify-center py-12">
+                  <p className="text-sm text-fg-subtle">Gereksinim veya bağlantı bulunamadı</p>
+                </div>
+              ) : (
+                <table className="min-w-full text-xs">
                   <thead>
-                    <tr className="bg-surface-overlay">
-                      <th className="sticky left-0 z-10 bg-surface-overlay px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-wider text-fg-muted min-w-[180px] border-b border-r border-border">
+                    <tr className="bg-surface-raised">
+                      <th className="sticky left-0 bg-surface-raised px-4 py-2 text-left text-fg-subtle font-medium min-w-[180px]">
                         Gereksinim
                       </th>
-                      {/* Collect all unique cases across all rows */}
-                      {Array.from(new Map(
-                        filteredRows.flatMap(r => r.cases ?? []).map(c => [c.case_id, c])
-                      ).values()).slice(0, 30).map(c => (
-                        <th key={c.case_id}
-                          className="px-2 py-2 text-center border-b border-r border-border min-w-[80px] max-w-[100px]">
-                          <span className="block truncate font-mono text-[9px] text-fg-subtle" title={c.title}>
-                            {c.case_key ?? c.case_id.slice(0, 6)}
-                          </span>
+                      {(casesData && !Array.isArray(casesData) && (casesData as any).items
+                        ? (casesData as any).items
+                        : Array.isArray(casesData) ? casesData : []
+                      ).slice(0, 15).map((c: any) => (
+                        <th key={c.id} className="px-2 py-2 text-center text-fg-subtle font-mono text-[10px]">
+                          {c.case_key}
                         </th>
                       ))}
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredRows.map((row, ri) => {
-                      const allCases = Array.from(new Map(
-                        filteredRows.flatMap(r => r.cases ?? []).map(c => [c.case_id, c])
-                      ).values()).slice(0, 30);
-                      const coveredIds = new Set((row.cases ?? []).map(c => c.case_id));
+                    {catalogItems.map((req: Requirement, ri: number) => {
+                      // derive req links from traceability rows
+                      const traceRow = rows.find((r) => r.requirement_id === req.id || r.external_key === req.external_key);
+                      const linkedCaseIds = new Set((traceRow?.cases ?? []).map((c) => c.case_id));
+                      const caseList = (casesData && !Array.isArray(casesData) && (casesData as any).items
+                        ? (casesData as any).items
+                        : Array.isArray(casesData) ? casesData : []
+                      ).slice(0, 15);
                       return (
-                        <tr key={row.requirement_key ?? ri}
-                          className="hover:bg-surface-overlay/50 transition-colors">
-                          <td className="sticky left-0 z-10 bg-surface-raised border-b border-r border-border px-3 py-2 font-medium text-fg max-w-[180px]">
-                            <p className="truncate text-[11px]" title={row.title}>{row.title}</p>
-                            <p className="font-mono text-[9px] text-fg-subtle">{row.requirement_key}</p>
+                        <tr key={req.id} className={ri % 2 === 0 ? "bg-transparent" : "bg-white/[0.02]"}>
+                          <td className="sticky left-0 px-4 py-2 text-fg text-[11px] font-medium max-w-[180px] truncate bg-surface">
+                            {req.title}
                           </td>
-                          {allCases.map(c => {
-                            const caseData = (row.cases ?? []).find(rc => rc.case_id === c.case_id);
-                            const covered = coveredIds.has(c.case_id);
-                            const status = caseData?.last_run_status;
-                            const dot =
-                              status === "passed"  ? "bg-emerald-500"  :
-                              status === "failed"  ? "bg-red-500"      :
-                              status === "blocked" ? "bg-amber-500"    :
-                              covered              ? "bg-blue-400"     : null;
+                          {caseList.map((c: any) => {
+                            const linked = linkedCaseIds.has(c.id);
                             return (
-                              <td key={c.case_id}
-                                className="border-b border-r border-border px-2 py-2 text-center"
-                                title={covered ? `${c.case_key} — ${status ?? "kapsandı"}` : "Kapsanmadı"}>
-                                {dot ? (
-                                  <span className={`inline-block h-3 w-3 rounded-full ${dot}`} />
-                                ) : (
-                                  <span className="text-fg-disabled text-[10px]">—</span>
-                                )}
+                              <td key={c.id} className="px-2 py-2 text-center">
+                                {linked
+                                  ? <span className="text-emerald-400 font-bold">✓</span>
+                                  : <span className="text-border/40 text-[10px]">·</span>}
                               </td>
                             );
                           })}
@@ -1779,11 +1774,8 @@ export default function ManagementRequirementsPage() {
                     })}
                   </tbody>
                 </table>
-                <p className="px-3 py-2 text-[9px] text-fg-disabled">
-                  🟢 Geçti &nbsp; 🔴 Başarısız &nbsp; 🟡 Engellendi &nbsp; 🔵 Kapsandı &nbsp; — Kapsanmadı
-                </p>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         )}
 

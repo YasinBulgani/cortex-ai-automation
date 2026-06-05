@@ -91,6 +91,7 @@ interface DefectEditModalProps {
   mpid: string;
   onClose: () => void;
   onDeleted: (id: string) => void;
+  onAnalysisResult?: (defectId: string, result: string) => void;
 }
 
 interface DefectRowProps {
@@ -98,6 +99,7 @@ interface DefectRowProps {
   mpid: string;
   onClick: () => void;
   onDeleted: (id: string) => void;
+  analysisResult?: string;
 }
 
 interface CreateDefectModalProps {
@@ -395,10 +397,11 @@ function CreateDefectModal({ mpid, onClose, onDone }: CreateDefectModalProps) {
 
 // ─── Defect Edit Modal ────────────────────────────────────────────────────────
 
-function DefectEditModal({ defect, mpid, onClose, onDeleted }: DefectEditModalProps) {
+function DefectEditModal({ defect, mpid, onClose, onDeleted, onAnalysisResult }: DefectEditModalProps) {
   const update   = useUpdateManagementDefect(mpid);
   const del      = useDeleteManagementDefect(mpid);
   const analyze  = useAnalyzeDefectRootCause(mpid);
+  const toastCtx = useToast();
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
@@ -429,9 +432,13 @@ function DefectEditModal({ defect, mpid, onClose, onDeleted }: DefectEditModalPr
   };
 
   const handleDelete = async () => {
-    await del.mutateAsync(defect.id);
-    setShowConfirmDelete(false);
-    onDeleted(defect.id);
+    try {
+      await del.mutateAsync(defect.id);
+      setShowConfirmDelete(false);
+      onDeleted(defect.id);
+    } catch {
+      toastCtx.error("Defect silinirken bir hata oluştu.");
+    }
   };
 
   const inp = "w-full rounded-xl border border-border bg-surface-overlay px-3 py-2 text-[13px] text-fg placeholder-slate-600 outline-none focus:border-teal-500/40 transition-colors";
@@ -457,9 +464,10 @@ function DefectEditModal({ defect, mpid, onClose, onDeleted }: DefectEditModalPr
               <button
                 type="button"
                 onClick={() => setShowConfirmDelete(true)}
+                disabled={del.isPending}
                 aria-label="Defect'i sil"
                 title="Defect'i sil"
-                className="rounded-lg p-1.5 text-fg-subtle hover:bg-red-500/10 hover:text-red-400 transition-colors"
+                className="rounded-lg p-1.5 text-fg-subtle hover:bg-red-500/10 hover:text-red-400 disabled:opacity-40 transition-colors"
               >
                 <IcTrash/>
               </button>
@@ -542,9 +550,17 @@ function DefectEditModal({ defect, mpid, onClose, onDeleted }: DefectEditModalPr
                 <button type="button"
                   disabled={analyze.isPending}
                   onClick={async () => {
-                    const res = await analyze.mutateAsync({ defect_title: defect.title, defect_status: status });
-                    if (!rootCause) setRootCause(res.root_cause);
-                    setAiSuggestions(res.suggestions);
+                    try {
+                      const res = await analyze.mutateAsync({ defect_title: defect.title, defect_status: status });
+                      if (!rootCause) setRootCause(res.root_cause);
+                      setAiSuggestions(res.suggestions);
+                      const analysisText = res.root_cause || (res as unknown as Record<string, string>).analysis;
+                      if (analysisText && onAnalysisResult) {
+                        onAnalysisResult(defect.id, analysisText);
+                      }
+                    } catch {
+                      toastCtx.error("AI analiz sırasında bir hata oluştu.");
+                    }
                   }}
                   className="flex items-center gap-1 text-[10px] text-teal-400 hover:text-teal-300 disabled:opacity-40 transition-colors">
                   {analyze.isPending ? "Analiz ediliyor…" : "✦ AI Analiz"}
@@ -591,7 +607,7 @@ function DefectEditModal({ defect, mpid, onClose, onDeleted }: DefectEditModalPr
 
 // ─── Table Row ────────────────────────────────────────────────────────────────
 
-function DefectRow({ defect, mpid, onClick, onDeleted }: DefectRowProps) {
+function DefectRow({ defect, mpid, onClick, onDeleted, analysisResult }: DefectRowProps) {
   const del = useDeleteManagementDefect(mpid);
   const [showConfirmDelete, setShowConfirmDelete] = useState(false);
 
@@ -607,19 +623,19 @@ function DefectRow({ defect, mpid, onClick, onDeleted }: DefectRowProps) {
                :                                       "text-fg-muted";
 
   const handleDeleteConfirm = async () => {
-    onDeleted(defect.id); // optimistic removal first
-    setShowConfirmDelete(false);
     try {
       await del.mutateAsync(defect.id);
+      setShowConfirmDelete(false);
+      onDeleted(defect.id);
     } catch {
-      // rollback is handled by parent refetch
+      setShowConfirmDelete(false);
     }
   };
 
   return (
     <>
       <tr onClick={onClick}
-        className={cn("cursor-pointer border-b border-border hover:bg-surface-overlay transition-colors", blocker && "bg-red-500/3")}>
+        className={cn("cursor-pointer border-b border-border hover:bg-surface-overlay transition-colors", blocker && "bg-red-500/3", analysisResult && "border-b-0")}>
         {/* Severity dot */}
         <td className="w-8 px-3 py-3">
           <span className={cn("h-1.5 w-1.5 rounded-full inline-block", sevDot)}/>
@@ -681,13 +697,24 @@ function DefectRow({ defect, mpid, onClick, onDeleted }: DefectRowProps) {
             type="button"
             aria-label="Defect'i sil"
             title="Defect'i sil"
+            disabled={del.isPending}
             onClick={e => { e.stopPropagation(); setShowConfirmDelete(true); }}
-            className="rounded-lg p-1 text-fg-subtle hover:bg-red-500/10 hover:text-red-400 transition-colors"
+            className="rounded-lg p-1 text-fg-subtle hover:bg-red-500/10 hover:text-red-400 disabled:opacity-40 transition-colors"
           >
             <IcTrash/>
           </button>
         </td>
       </tr>
+      {analysisResult && (
+        <tr className="border-b border-border">
+          <td colSpan={10} className="px-3 pb-3 pt-0">
+            <div className="rounded-lg bg-surface-overlay border border-border p-3 text-xs text-fg-subtle">
+              <span className="text-brand font-medium">✦ AI Analiz: </span>
+              {analysisResult}
+            </div>
+          </td>
+        </tr>
+      )}
       {showConfirmDelete && (
         <ConfirmDeleteDialog
           onConfirm={handleDeleteConfirm}
@@ -707,9 +734,7 @@ export default function ManagementDefectsPage() {
   const toastCtx = useToast();
 
   const defectsQuery = useManagementDefects(mpid || undefined);
-  const [optimisticRemoved, setOptimisticRemoved] = useState<Set<string>>(new Set());
-  const serverRows = defectsQuery.data ?? [];
-  const rows = serverRows.filter(d => !optimisticRemoved.has(d.id));
+  const rows = defectsQuery.data ?? [];
   const loading = defectsQuery.isLoading;
 
   const searchParams = useSearchParams();
@@ -720,8 +745,9 @@ export default function ManagementDefectsPage() {
   const [severityF,    setSeverityF]    = useState(searchParams.get("severity") ?? "");
   const [statusF,      setStatusF]      = useState(searchParams.get("status") ?? "");
   const [priorityF,    setPriorityF]    = useState(searchParams.get("priority") ?? "");
-  const [editDefect,   setEditDefect]   = useState<DefectLink | null>(null);
-  const [showCreate,   setShowCreate]   = useState(false);
+  const [editDefect,      setEditDefect]      = useState<DefectLink | null>(null);
+  const [showCreate,      setShowCreate]      = useState(false);
+  const [analysisResults, setAnalysisResults] = useState<Record<string, string>>({});
   const [page,         setPage]         = useState(1);
   const [sortCol,      setSortCol]      = useState<string>("created_at");
   const [sortDir,      setSortDir]      = useState<"asc" | "desc">("desc");
@@ -936,11 +962,10 @@ export default function ManagementDefectsPage() {
                       defect={d}
                       mpid={mpid ?? ""}
                       onClick={() => setEditDefect(d)}
-                      onDeleted={(id: string) => {
-                        setOptimisticRemoved(prev => new Set([...prev, id]));
+                      onDeleted={(_id: string) => {
                         toastCtx.success("Defect silindi");
-                        void defectsQuery.refetch().then(() => setOptimisticRemoved(new Set()));
                       }}
+                      analysisResult={analysisResults[d.id]}
                     />
                   ))}
                 </tbody>
@@ -979,11 +1004,12 @@ export default function ManagementDefectsPage() {
             defect={editDefect}
             mpid={mpid}
             onClose={() => setEditDefect(null)}
-            onDeleted={(id: string) => {
-              setOptimisticRemoved(prev => new Set([...prev, id]));
+            onDeleted={(_id: string) => {
               setEditDefect(null);
               toastCtx.success("Defect silindi");
-              void defectsQuery.refetch().then(() => setOptimisticRemoved(new Set()));
+            }}
+            onAnalysisResult={(defectId, result) => {
+              setAnalysisResults(prev => ({ ...prev, [defectId]: result }));
             }}
           />
         )}

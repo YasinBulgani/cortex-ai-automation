@@ -96,7 +96,7 @@ function InviteModal({ projectId, existingEmails, onClose, onInvited }: InviteMo
     try {
       await apiFetch(`/api/v1/organizations/projects/${projectId}/members`, {
         method: "POST",
-        body: JSON.stringify({ email: email.trim(), role }),
+        json: { email: email.trim(), role },
       });
       onInvited();
       onClose();
@@ -223,7 +223,7 @@ export default function ManagementMembersPage() {
     mutationFn: ({ userId, role }: { userId: string; role: MemberRole }) =>
       apiFetch(`/api/v1/organizations/projects/${projectId}/members/${userId}`, {
         method: "PATCH",
-        body: JSON.stringify({ role }),
+        json: { role },
       }),
     onSuccess: () =>
       qc.invalidateQueries({ queryKey: ["management", "members", projectId] }),

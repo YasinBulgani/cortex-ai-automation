@@ -878,6 +878,21 @@ def list_cycles(db: Session, project_id: str, plan_id: str | None = None) -> lis
     return list(db.scalars(stmt).all())
 
 
+def _compute_risk_score(case_data: dict) -> float:
+    score = 0.0
+    # Son çalışma başarısız ise yüksek risk
+    last_status = case_data.get("last_run_status")
+    if last_status == "failed": score += 0.5
+    elif last_status == "blocked": score += 0.3
+    elif last_status is None: score += 0.2  # hiç test edilmemiş
+    # Yüksek öncelikli case
+    priority = case_data.get("priority", "P3")
+    if priority == "P0": score += 0.3
+    elif priority == "P1": score += 0.2
+    elif priority == "P2": score += 0.1
+    return round(min(score, 1.0), 2)
+
+
 def _regression_candidate(case: TestCase, requirement_case_ids: set[str], filters: RegressionSelectionFilter) -> RegressionCandidateOut:
     score = 0
     reasons: list[str] = []
@@ -962,7 +977,10 @@ def suggest_regression_candidates(db: Session, project_id: str, filters: Regress
         db.scalars(select(RequirementLink.case_id).where(RequirementLink.project_id == project_id)).all()
     )
     candidates = [_regression_candidate(case, requirement_case_ids, filters) for case in cases]
-    candidates.sort(key=lambda item: (-item.risk_score, item.case_key))
+    for candidate in candidates:
+        candidate_data = {"last_run_status": candidate.last_run_status, "priority": candidate.priority}
+        candidate.risk_score = _compute_risk_score(candidate_data)
+    candidates = sorted(candidates, key=lambda x: x.risk_score, reverse=True)
     return candidates[: filters.max_cases]
 
 
@@ -1205,19 +1223,20 @@ def get_run(db: Session, project_id: str, run_id: str) -> TestRun:
     return run
 
 
-def list_runs(db: Session, project_id: str, status_filter: str | None = None) -> list[TestRun]:
-    """Return all runs for a project, optionally filtered by status."""
+def list_runs(db: Session, project_id: str, limit: int = 50, offset: int = 0, cycle_id: Optional[str] = None, status_filter: str | None = None) -> list[TestRun]:
+    """Return runs for a project with pagination, optionally filtered by cycle or status."""
     project_id = resolve_project_id(db, project_id)
-    stmt = (
+    q = (
         select(TestRun)
         .join(TestCycle, TestRun.cycle_id == TestCycle.id)
         .join(TestPlan, TestCycle.plan_id == TestPlan.id)
         .where(TestPlan.project_id == project_id)
-        .order_by(TestRun.created_at.desc())
     )
+    if cycle_id:
+        q = q.where(TestRun.cycle_id == cycle_id)
     if status_filter:
-        stmt = stmt.where(TestRun.status == status_filter)
-    return db.execute(stmt).scalars().all()
+        q = q.where(TestRun.status == status_filter)
+    return list(db.scalars(q.order_by(TestRun.created_at.desc()).limit(limit).offset(offset)).all())
 
 
 def create_run(db: Session, project_id: str, payload: TestRunCreate, user: Any | None) -> TestRun:
@@ -2530,16 +2549,28 @@ def get_plan_impact_summary(db: Session, project_id: str, plan_id: str) -> dict:
         raise KeyError(f"Plan not found: {plan_id}")
 
     cycle_ids = [c.id for c in plan.cycles]
-    run_ids = []
-    run_case_count = 0
-    evidence_count = 0
+    run_ids: list[str] = []
+    run_case_ids: list[str] = []
 
     for cycle in plan.cycles:
         for run in cycle.runs:
             run_ids.append(run.id)
-            run_case_count += len(run.run_cases)
             for rc in run.run_cases:
-                evidence_count += len(rc.evidence_files) if hasattr(rc, 'evidence_files') else 0
+                run_case_ids.append(rc.id)
+
+    run_case_count = len(run_case_ids)
+
+    # Count evidence via SQL — TestRunCase has no evidence_files relationship
+    evidence_count = 0
+    if run_case_ids:
+        evidence_count = (
+            db.scalar(
+                select(func.count())
+                .select_from(ExecutionEvidence)
+                .where(ExecutionEvidence.run_case_id.in_(run_case_ids))
+            )
+            or 0
+        )
 
     return {
         "plan_id": plan_id,
@@ -2551,13 +2582,25 @@ def get_plan_impact_summary(db: Session, project_id: str, plan_id: str) -> dict:
     }
 
 
-def search_cases(db: Session, project_id: str, q: str = "") -> list[TestCase]:
-    """Shortcut search wrapper used by the /cases/search endpoint.
+def search_cases(db: Session, project_id: str, q: str = "", limit: int = 100) -> list[TestCase]:
+    """Search test cases by title or case_key within a project.
 
-    Delegates to list_cases with the q filter — project_id is already
-    resolved inside list_cases.
+    Returns up to `limit` active (non-archived) cases matching the query.
     """
-    return list_cases(db, project_id, q=q or None)
+    project_id = resolve_project_id(db, project_id)
+    stmt = select(TestCase).where(
+        TestCase.project_id == project_id,
+        TestCase.archived == False,  # noqa: E712
+    )
+    if q:
+        from sqlalchemy import or_
+        stmt = stmt.where(
+            or_(
+                TestCase.title.ilike(f"%{q}%"),
+                TestCase.case_key.ilike(f"%{q}%"),
+            )
+        )
+    return list(db.scalars(stmt.limit(limit)).all())
 
 
 def list_evidence_by_run_case(db: Session, project_id: str, run_case_id: str) -> list[dict[str, Any]]:

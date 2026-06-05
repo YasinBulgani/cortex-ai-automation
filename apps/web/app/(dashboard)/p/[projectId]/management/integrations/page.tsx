@@ -804,11 +804,12 @@ function JiraIntegrationPanel({ projectId: _projectId, mpid }: { projectId: stri
   const [saved, setSaved] = useState(false);
   const [jiraWarning, setJiraWarning] = useState<string | null>(null);
   const [savedProjectKey, setSavedProjectKey] = useState<string | null>(null);
+  const [isConfigured, setIsConfigured] = useState(false);
 
   // Kayıtlı config'i yükle
   useEffect(() => {
     if (!mpid) return;
-    apiFetch<{ url?: string; email?: string; project_key?: string }>(`/api/jira/config`)
+    apiFetch<{ configured?: boolean; url?: string; email?: string; project_key?: string }>(`/api/jira/config`)
       .then(data => {
         if (data.url) setUrl(data.url);
         if (data.email) setEmail(data.email);
@@ -816,20 +817,22 @@ function JiraIntegrationPanel({ projectId: _projectId, mpid }: { projectId: stri
           setProjectKey(data.project_key);
           setSavedProjectKey(data.project_key);
         }
+        setIsConfigured(!!data.configured);
       })
       .catch(() => {});
   }, [mpid]);
 
   const handleTest = async () => {
-    if (!url.trim() || !email.trim() || !token.trim()) return;
+    // Backend, DB'deki kayıtlı config ile test eder — token gerekmez
+    if (!url.trim() || !email.trim()) return;
     setStatus("testing"); setStatusMsg("");
     try {
-      const res = await apiFetch<{ ok: boolean; message?: string }>("/api/jira/test-connection", {
+      const res = await apiFetch<{ ok: boolean; user?: string; message?: string }>("/api/jira/test-connection", {
         method: "POST",
-        json: { url: url.trim(), email: email.trim(), token: token.trim() },
+        json: {},
       });
       setStatus(res.ok ? "ok" : "error");
-      setStatusMsg(res.message ?? (res.ok ? "Bağlantı başarılı!" : "Bağlantı başarısız."));
+      setStatusMsg(res.message ?? (res.ok ? `Bağlantı başarılı${res.user ? ` (${res.user})` : ""}!` : "Bağlantı başarısız."));
     } catch {
       setStatus("error"); setStatusMsg("Bağlantı kurulamadı.");
     }
@@ -847,9 +850,11 @@ function JiraIntegrationPanel({ projectId: _projectId, mpid }: { projectId: stri
     try {
       await apiFetch("/api/jira/config", {
         method: "POST",
-        json: { url: url.trim(), email: email.trim(), token: token.trim() || undefined, project_key: trimmedKey },
+        // token boşsa backend mevcut token'ı korur
+        json: { url: url.trim(), email: email.trim(), token: token.trim(), project_key: trimmedKey },
       });
       setSaved(true); setToken("");
+      setIsConfigured(true);
       setSavedProjectKey(trimmedKey || savedProjectKey);
       setTimeout(() => setSaved(false), 3000);
     } catch {
@@ -937,7 +942,7 @@ function JiraIntegrationPanel({ projectId: _projectId, mpid }: { projectId: stri
 
         <div className="flex items-center gap-2 pt-1">
           <button type="button" onClick={handleTest}
-            disabled={!url.trim() || !email.trim() || !token.trim() || status === "testing"}
+            disabled={(!isConfigured && !token.trim()) || !url.trim() || !email.trim() || status === "testing"}
             className="rounded-xl border border-border px-4 py-2 text-[12px] font-medium text-fg-muted transition-colors hover:bg-surface-overlay hover:text-fg disabled:opacity-40">
             {status === "testing" ? "Test ediliyor…" : "Bağlantıyı Test Et"}
           </button>

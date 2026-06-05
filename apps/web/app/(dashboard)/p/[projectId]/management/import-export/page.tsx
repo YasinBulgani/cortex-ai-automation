@@ -281,6 +281,26 @@ async function readFileWithEncoding(file: File): Promise<string> {
 
 // ── CSV parse helper ──────────────────────────────────────────────────────────
 
+function parseCSVLine(line: string): string[] {
+  const result: string[] = []
+  let cur = ""
+  let inQ = false
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i]
+    if (inQ) {
+      if (ch === '"' && line[i+1] === '"') { cur += '"'; i++ }
+      else if (ch === '"') { inQ = false }
+      else { cur += ch }
+    } else {
+      if (ch === '"') { inQ = true }
+      else if (ch === ',') { result.push(cur); cur = "" }
+      else { cur += ch }
+    }
+  }
+  result.push(cur)
+  return result.map(s => s.trim())
+}
+
 function parseCsvRows(text: string): Record<string, unknown>[] {
   const lines = text.trim().split("\n");
   if (lines.length === 0) {
@@ -289,9 +309,9 @@ function parseCsvRows(text: string): Record<string, unknown>[] {
   if (lines.length < 2) {
     throw new Error("Dosya yalnızca başlık satırı içeriyor — veri satırı bulunamadı");
   }
-  const headers = lines[0].split(",").map((h) => h.trim().replace(/^"|"$/g, ""));
+  const headers = parseCSVLine(lines[0]);
   return lines.slice(1).map((line) => {
-    const vals = line.split(",").map((v) => v.trim().replace(/^"|"$/g, ""));
+    const vals = parseCSVLine(line);
     const row: Record<string, unknown> = {};
     headers.forEach((h, i) => { row[h] = vals[i] ?? ""; });
     return row;
@@ -448,6 +468,7 @@ export default function ManagementImportExportPage() {
   const [dragOver, setDragOver] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [exportFormat, setExportFormat] = useState<"csv" | "json">("csv");
   const [importError, setImportError] = useState<string | null>(null);
   const [exportError, setExportError] = useState<string | null>(null);
   const [fileError, setFileError] = useState<string | null>(null);
@@ -624,13 +645,38 @@ export default function ManagementImportExportPage() {
     setExportError(null);
     try {
       const data = await exportManagementRepository(mpid);
-      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = `management-repository-${mpid}.json`;
-      link.click();
-      URL.revokeObjectURL(url);
+
+      if (exportFormat === "json") {
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `management-repository-${mpid}.json`;
+        link.click();
+        URL.revokeObjectURL(url);
+      } else {
+        // csv — RFC4180 export from cases array
+        const cases: Record<string, unknown>[] = Array.isArray((data as { cases?: unknown }).cases)
+          ? (data as { cases: Record<string, unknown>[] }).cases
+          : (Array.isArray(data) ? (data as Record<string, unknown>[]) : []);
+        const headers = TEMPLATE_COLUMNS;
+        const escape = (v: unknown): string => {
+          const s = v === null || v === undefined ? "" : Array.isArray(v) ? (v as unknown[]).join(";") : String(v);
+          return s.includes(",") || s.includes('"') || s.includes("\n")
+            ? `"${s.replace(/"/g, '""')}"` : s;
+        };
+        const rows = [
+          headers.join(","),
+          ...cases.map(c => headers.map(h => escape(c[h])).join(",")),
+        ].join("\r\n");
+        const blob = new Blob(["﻿" + rows], { type: "text/csv;charset=utf-8" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `management-repository-${mpid}.csv`;
+        link.click();
+        URL.revokeObjectURL(url);
+      }
     } catch (err) {
       const message = err instanceof Error ? err.message : "Repository export başarısız.";
       console.error("[import-export] export failed:", err);
@@ -639,6 +685,14 @@ export default function ManagementImportExportPage() {
       setExporting(false);
     }
   };
+
+  if (!mpid) {
+    return (
+      <div className="flex items-center justify-center min-h-[300px]">
+        <div className="h-7 w-7 animate-spin rounded-full border-2 border-brand border-t-transparent" />
+      </div>
+    );
+  }
 
   if (selectedJobId) {
     return (
@@ -701,18 +755,34 @@ export default function ManagementImportExportPage() {
         <section className="rounded-xl border border-border bg-surface-raised p-5">
           <div className="flex h-full flex-col justify-between gap-4">
             <p className="text-sm text-slate-400">
-              Repository snapshot JSON olarak indirilir; import preview ve mapping ayarları backend job akışında kalır.
+              Repository snapshot seçilen formatta indirilir; import preview ve mapping ayarları backend job akışında kalır.
             </p>
             {exportError && (
               <p className="text-xs text-red-400">{exportError}</p>
             )}
-            <button
-              onClick={handleExport}
-              disabled={exporting || !mpid}
-              className="rounded-lg border border-teal-500/30 bg-teal-500/10 px-4 py-2 text-sm font-semibold text-teal-200 hover:bg-brand-soft disabled:opacity-40"
-            >
-              {exporting ? "Export hazırlanıyor…" : "Repository Export"}
-            </button>
+            <div className="flex items-center gap-2 flex-wrap">
+              {(["csv", "json"] as const).map(fmt => (
+                <button
+                  key={fmt}
+                  type="button"
+                  onClick={() => setExportFormat(fmt)}
+                  className={`px-3 py-1.5 rounded-lg text-xs border transition-colors ${
+                    exportFormat === fmt
+                      ? "border-teal-500/60 bg-teal-500/10 text-teal-300"
+                      : "border-border text-slate-500 hover:text-slate-300"
+                  }`}
+                >
+                  {fmt.toUpperCase()}
+                </button>
+              ))}
+              <button
+                onClick={handleExport}
+                disabled={exporting || !mpid}
+                className="rounded-lg border border-teal-500/30 bg-teal-500/10 px-4 py-1.5 text-sm font-semibold text-teal-200 hover:bg-brand-soft disabled:opacity-40 transition-colors"
+              >
+                {exporting ? "İndiriliyor…" : "Dışa Aktar"}
+              </button>
+            </div>
           </div>
         </section>
       </div>
@@ -1007,8 +1077,25 @@ export default function ManagementImportExportPage() {
             </div>
           )}
           {importsQuery.isLoading ? (
-            <div className="flex h-16 items-center justify-center">
-              <div className="h-5 w-5 animate-spin rounded-full border-2 border-border border-t-teal-400" />
+            <div className="space-y-2 py-2">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <div key={i} className="flex items-center gap-3 rounded-lg border border-border bg-bg px-3 py-2.5"
+                  style={{ opacity: Math.max(0.3, 1 - i * 0.25) }}>
+                  <div className="h-3 w-32 animate-pulse rounded bg-surface-overlay"/>
+                  <div className="h-5 w-16 animate-pulse rounded-full bg-surface-overlay"/>
+                  <div className="ml-auto h-3 w-12 animate-pulse rounded bg-surface-overlay"/>
+                </div>
+              ))}
+            </div>
+          ) : importsQuery.isError ? (
+            <div className="flex flex-col items-center gap-3 py-8 text-center">
+              <p className="text-xs text-red-400">Import job&apos;ları yüklenemedi.</p>
+              <button
+                onClick={() => void importsQuery.refetch()}
+                className="text-xs text-teal-400 hover:underline"
+              >
+                Tekrar dene
+              </button>
             </div>
           ) : jobs.length === 0 ? (
             <p className="py-4 text-center text-sm text-slate-500">Henüz import job yok.</p>

@@ -267,8 +267,10 @@ export default function SharedStepsPage() {
     try {
       if (editing) {
         await update.mutateAsync({ id: editing.id, ...data });
+        toast.success("Şablon güncellendi");
       } else {
         await create.mutateAsync(data);
+        toast.success("Şablon oluşturuldu");
       }
       setShowModal(false);
       setEditing(null);
@@ -285,6 +287,7 @@ export default function SharedStepsPage() {
     setDeletingId(id);
     try {
       await del.mutateAsync(id);
+      toast.success("Şablon silindi");
     } catch (err: unknown) {
       console.error("[SharedSteps] Delete failed:", err);
       toast.error("Adım şablonu silinemedi");
