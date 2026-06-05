@@ -4,6 +4,10 @@ import { useState, useEffect } from "react";
 import { useRouteParam } from "@/lib/use-route-param";
 import { cn } from "@/lib/utils";
 import {
+  useManagementSettingValue,
+  usePatchManagementSetting,
+} from "@/lib/hooks/use-management";
+import {
   type DesignDataType,
   type DesignFieldSpec,
   type GeneratedCaseDraft,
@@ -64,6 +68,15 @@ export function DesignTechniqueShell({
 }: DesignTechniqueShellProps) {
   const projectId = useRouteParam("projectId") ?? "";
   const templateKey = `${technique.toLowerCase()}_field_templates`;
+  const { data: allTemplates } = useManagementSettingValue<Record<string, FieldTemplate[]>>(
+    projectId || undefined,
+    "design_templates",
+    {},
+  );
+  const saveTemplatesSetting = usePatchManagementSetting<Record<string, FieldTemplate[]>>(
+    projectId,
+    "design_templates",
+  );
 
   const [fields, setFields] = useState<DesignFieldSpec[]>([emptyField()]);
   const [context, setContext] = useState("");
@@ -75,19 +88,13 @@ export function DesignTechniqueShell({
   const recentRuns = (historyQ.data ?? []).slice(0, 5);
 
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem(templateKey);
-      if (raw) setTemplates(JSON.parse(raw) as FieldTemplate[]);
-    } catch {
-      // ignore
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [templateKey]);
+    setTemplates(allTemplates[templateKey] ?? []);
+  }, [allTemplates, templateKey]);
 
   const update = (i: number, patch: Partial<DesignFieldSpec>) =>
     setFields(f => f.map((x, idx) => (idx === i ? { ...x, ...patch } : x)));
 
-  const saveTemplate = () => {
+  const saveTemplate = async () => {
     const name = templateName.trim() || `Sablon ${new Date().toLocaleDateString("tr-TR")}`;
     const newTemplate: FieldTemplate = {
       name,
@@ -96,7 +103,7 @@ export function DesignTechniqueShell({
     };
     const updated = [newTemplate, ...templates].slice(0, 10);
     setTemplates(updated);
-    localStorage.setItem(templateKey, JSON.stringify(updated));
+    await saveTemplatesSetting.mutateAsync({ ...allTemplates, [templateKey]: updated });
     setTemplateName("");
     setShowTemplateSave(false);
   };
@@ -105,10 +112,10 @@ export function DesignTechniqueShell({
     setFields(JSON.parse(JSON.stringify(t.fields)) as DesignFieldSpec[]);
   };
 
-  const deleteTemplate = (idx: number) => {
+  const deleteTemplate = async (idx: number) => {
     const updated = templates.filter((_, i) => i !== idx);
     setTemplates(updated);
-    localStorage.setItem(templateKey, JSON.stringify(updated));
+    await saveTemplatesSetting.mutateAsync({ ...allTemplates, [templateKey]: updated });
   };
 
   const cases: GeneratedCaseDraft[] = result?.generated_cases ?? [];
@@ -268,7 +275,7 @@ export function DesignTechniqueShell({
               type="button"
               onClick={() => onRun(fields, context)}
               disabled={fields.some(f => !f.name.trim()) || isRunning}
-              className="flex-1 rounded-xl bg-teal-600 py-2.5 text-[13px] font-medium text-white hover:bg-teal-700 disabled:opacity-40 transition-colors"
+              className="flex-1 rounded-xl bg-brand py-2.5 text-[13px] font-medium text-white hover:brightness-105 disabled:opacity-40 transition-colors"
             >
               {runLabel}
             </button>

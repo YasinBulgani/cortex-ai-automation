@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
+import { apiFetch } from "@/lib/api-client";
 import { useManagementProjectId } from "@/lib/hooks/use-management-project-id";
 import { useRouteParam } from "@/lib/use-route-param";
 
@@ -106,7 +107,7 @@ function CaseCard({ c, projectId }: { c: MyCase; projectId: string }) {
           {c.status === "not_run" && (
             <Link
               href={`/p/${projectId}/management/runs/${c.run_id}/execute`}
-              className="rounded-lg bg-teal-600 hover:bg-teal-700 px-3 py-1.5 text-xs font-semibold text-white transition-colors"
+              className="rounded-lg bg-brand hover:brightness-105 px-3 py-1.5 text-xs font-semibold text-white transition-colors"
             >
               Başlat →
             </Link>
@@ -130,17 +131,20 @@ export default function TesterHomePage() {
   const mpid      = useManagementProjectId(projectId || undefined);
   const [cases, setCases] = useState<MyCase[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<"all" | "not_run" | "failed" | "passed">("all");
 
   const fetchCases = useCallback(async () => {
     const pid = mpid || projectId;
     if (!pid) { setLoading(false); return; }
+    setError(null);
     try {
-      const res = await fetch(
+      const data = await apiFetch<MyCase[]>(
         `/api/v1/test-management/projects/${pid}/my-cases`,
-        { credentials: "include" }
       );
-      if (res.ok) setCases(await res.json());
+      setCases(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Görevler yüklenirken bir hata oluştu.");
     } finally {
       setLoading(false);
     }
@@ -204,7 +208,7 @@ export default function TesterHomePage() {
             </div>
             <Link
               href={`/p/${projectId}/management/runs/${nextCase.run_id}/execute`}
-              className="shrink-0 rounded-xl bg-teal-600 hover:bg-teal-700 px-5 py-2.5 text-sm font-bold text-white transition-colors"
+              className="shrink-0 rounded-xl bg-brand hover:brightness-105 px-5 py-2.5 text-sm font-bold text-white transition-colors"
             >
               Başlat →
             </Link>
@@ -223,7 +227,7 @@ export default function TesterHomePage() {
             onClick={() => setFilter(f)}
             className={`rounded-full px-4 py-1.5 text-xs font-medium transition-colors ${
               filter === f
-                ? "bg-teal-600 text-white"
+                ? "bg-brand text-white"
                 : "bg-surface-overlay text-slate-400 hover:bg-slate-700"
             }`}
           >
@@ -236,6 +240,15 @@ export default function TesterHomePage() {
           </button>
         ))}
       </div>
+
+      {/* Hata mesajı */}
+      {error && (
+        <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400 flex items-center gap-2">
+          <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"/></svg>
+          {error}
+          <button onClick={fetchCases} className="ml-auto text-xs underline hover:no-underline">Tekrar Dene</button>
+        </div>
+      )}
 
       {/* Case listesi */}
       {loading ? (

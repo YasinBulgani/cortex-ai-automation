@@ -146,6 +146,7 @@ class TestCaseOut(BaseModel):
     project_id: str
     suite_id: Optional[str] = None
     folder_id: Optional[str] = None
+    parent_id: Optional[str] = None
     case_key: str
     title: str
     objective: Optional[str] = ""
@@ -168,6 +169,7 @@ class TestCaseOut(BaseModel):
     created_at: datetime
     updated_at: datetime
     steps: list[TestCaseStepOut] = Field(default_factory=list)
+    sub_case_count: int = 0
 
 
 class TestCaseVersionOut(BaseModel):
@@ -197,6 +199,13 @@ class TestPlanCreate(BaseModel):
     scope_summary: Optional[str] = None
 
 
+class TestPlanUpdate(BaseModel):
+    name: Optional[str] = Field(default=None, min_length=1, max_length=300)
+    status: Optional[str] = None
+    release_name: Optional[str] = None
+    scope_summary: Optional[str] = None
+
+
 class TestPlanOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -216,6 +225,13 @@ class TestCycleCreate(BaseModel):
     name: str = Field(..., min_length=1, max_length=200)
     environment: Optional[str] = None
     build_version: Optional[str] = None
+
+
+class TestCycleUpdate(BaseModel):
+    name: Optional[str] = Field(default=None, min_length=1, max_length=200)
+    environment: Optional[str] = None
+    build_version: Optional[str] = None
+    status: Optional[str] = None
 
 
 class TestCycleOut(BaseModel):
@@ -329,6 +345,18 @@ class TestRunCreate(BaseModel):
     environment: Optional[str] = None
     started_at: Optional[datetime] = None
     completed_at: Optional[datetime] = None
+
+
+class TestRunUpdate(BaseModel):
+    name: Optional[str] = Field(default=None, min_length=1, max_length=300)
+    status: Optional[str] = None
+    environment: Optional[str] = None
+
+
+class RequirementLinkUpdate(BaseModel):
+    coverage_status: Optional[str] = None
+    title_snapshot: Optional[str] = Field(default=None, min_length=1, max_length=500)
+    url: Optional[str] = None
 
 
 class StepResultUpdate(BaseModel):
@@ -709,6 +737,52 @@ class ManagementUserSettingsUpdate(BaseModel):
     tags: Optional[list[str]] = None
     notifications: Optional[dict[str, bool]] = None
     roles: Optional[list[dict[str, Any]]] = None
+    sso_config: Optional[dict[str, Any]] = None
+    webhook_notifications: Optional[list[dict[str, Any]]] = None
+    cicd_webhook: Optional[dict[str, Any]] = None
+    api_keys: Optional[list[dict[str, Any]]] = None
+    design_templates: Optional[dict[str, list[dict[str, Any]]]] = None
+
+
+class WebhookTestRequest(BaseModel):
+    url: str = Field(..., min_length=1, max_length=2048)
+    secret: Optional[str] = Field(default=None, max_length=512)
+    payload: dict[str, Any] = Field(default_factory=dict)
+
+
+class WebhookTestResponse(BaseModel):
+    ok: bool
+    status_code: Optional[int] = None
+    message: str
+
+
+class SsoTestRequest(BaseModel):
+    entity_id: str = Field(..., min_length=1, max_length=512)
+    sso_url: str = Field(..., min_length=1, max_length=2048)
+
+
+class SsoTestResponse(BaseModel):
+    ok: bool
+    status_code: Optional[int] = None
+    message: str
+
+
+class ProjectApiKeyCreate(BaseModel):
+    name: str = Field(..., min_length=1, max_length=120)
+    expires_at: Optional[datetime] = None
+
+
+class ProjectApiKeyOut(BaseModel):
+    id: str
+    name: str
+    masked_key: str
+    created_at: datetime
+    expires_at: Optional[datetime] = None
+    revoked_at: Optional[datetime] = None
+
+
+class ProjectApiKeyCreated(ProjectApiKeyOut):
+    key: str
 
 
 # ── M-50 Threaded Comments ───────────────────────────────────────────────────
@@ -1031,6 +1105,45 @@ class TestCaseImproveResponse(BaseModel):
     suggestions: list[str] = Field(default_factory=list)
 
 
+# ── Shared Steps ──────────────────────────────────────────────────────────────
+
+class SharedStepItem(BaseModel):
+    step_no: int
+    action: str = Field(..., min_length=1)
+    expected_result: str = ""
+    notes: Optional[str] = None
+    is_required: bool = True
+
+
+class SharedStepCreate(BaseModel):
+    name: str = Field(..., min_length=1, max_length=200)
+    description: Optional[str] = None
+    steps: list[SharedStepItem] = Field(default_factory=list)
+    tags: list[str] = Field(default_factory=list)
+
+
+class SharedStepUpdate(BaseModel):
+    name: Optional[str] = Field(default=None, min_length=1, max_length=200)
+    description: Optional[str] = None
+    steps: Optional[list[SharedStepItem]] = None
+    tags: Optional[list[str]] = None
+
+
+class SharedStepOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    project_id: str
+    name: str
+    description: Optional[str] = None
+    steps: list[dict[str, Any]]
+    tags: list[str]
+    usage_count: int
+    created_by: Optional[str] = None
+    created_at: datetime
+    updated_at: datetime
+
+
 # ── Standup ───────────────────────────────────────────────────────────────────
 
 class QualityScanResult(BaseModel):
@@ -1064,6 +1177,22 @@ class DefectRootCauseResponse(BaseModel):
 class StandupAnomaly(BaseModel):
     severity: str
     title: str
+
+
+class CaseDependencyCreate(BaseModel):
+    depends_on_id: str
+    dep_type: str = "blocks"
+
+
+class CaseDependencyOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: str
+    case_id: str
+    depends_on_id: str
+    dep_type: str
+    depends_on_key: str = ""   # populated from join
+    depends_on_title: str = ""
+    created_at: datetime
 
 
 class StandupOut(BaseModel):

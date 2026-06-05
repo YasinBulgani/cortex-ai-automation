@@ -5,40 +5,59 @@ Manual QA operation endpoints under /api/v1/test-management/*.
 
 from __future__ import annotations
 
-from typing import Annotated, Optional
+import hashlib
+import secrets
+from datetime import UTC
+from typing import Annotated, cast
+from urllib.parse import urlparse
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+import httpx
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
 from fastapi.responses import StreamingResponse
+from pydantic import BaseModel
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.deps import require_permission
-from app.domains.test_management import comments_service, design_service, service, intelligence_service
-from fastapi import File, UploadFile
-
+from app.domains.test_management import comments_service, design_service, intelligence_service, service
 from app.domains.test_management.intelligence_schemas import (
-    RunIntelligenceReportOut,
-    ETAPredictionOut,
-    TesterProfileOut,
     AnomalyOut,
     CaseRiskScoreOut,
+    ETAPredictionOut,
     ReleaseReadinessPredictionOut,
+    RunIntelligenceReportOut,
     TesterPerformanceOut,
+    TesterProfileOut,
 )
 from app.domains.test_management.schemas import (
     ALLOWED_COMMENT_ENTITY_TYPES,
     ALLOWED_TECHNIQUES,
     AuditEventOut,
+    BulkUpdateCasesRequest,
+    BulkUpdateCasesResponse,
     BvaRunCreate,
     CaseDataGenerateRequest,
     CaseDataRowIn,
     CaseDataRowOut,
+    CaseDependencyCreate,
+    CaseDependencyOut,
     CaseParamSetCreate,
     CaseParamSetOut,
+    DefectLinkCreate,
+    DefectLinkOut,
+    DefectLinkUpdate,
+    DefectRootCauseRequest,
+    DefectRootCauseResponse,
     DesignRunOut,
     EqRunCreate,
+    EvidenceOut,
+    ExecutionSummaryOut,
     ExpandCaseResponse,
-    PromoteCasesRequest,
-    PromoteCasesResponse,
+    ImportJobDetailOut,
+    ManagementProjectCreate,
+    ManagementProjectOut,
+    ManagementSettingsOut,
+    ManagementUserSettingsUpdate,
     MgmtCommentCreate,
     MgmtCommentOut,
     MgmtCommentReact,
@@ -46,17 +65,12 @@ from app.domains.test_management.schemas import (
     MgmtNotificationCreate,
     MgmtNotificationOut,
     NotificationUnreadCount,
-    DefectLinkCreate,
-    DefectLinkOut,
-    DefectLinkUpdate,
-    EvidenceOut,
-    ExecutionSummaryOut,
-    ImportJobDetailOut,
-    ImportJobRowOut,
-    ManagementProjectCreate,
-    ManagementProjectOut,
-    ManagementSettingsOut,
-    ManagementUserSettingsUpdate,
+    ProjectApiKeyCreate,
+    ProjectApiKeyCreated,
+    ProjectApiKeyOut,
+    PromoteCasesRequest,
+    PromoteCasesResponse,
+    QualityScanResponse,
     RegressionCandidateOut,
     RegressionSelectionFilter,
     RegressionSetAddCases,
@@ -70,45 +84,51 @@ from app.domains.test_management.schemas import (
     RequirementCreate,
     RequirementLinkCreate,
     RequirementLinkOut,
+    RequirementLinkUpdate,
     RequirementOut,
     RunCaseOut,
     RunCaseUpdate,
     RunDetailOut,
+    SharedStepCreate,
+    SharedStepOut,
+    SharedStepUpdate,
     SimilarCaseQuery,
     SimilarCaseResult,
+    SsoTestRequest,
+    SsoTestResponse,
+    StandupOut,
     StepResultUpdate,
+    TestCaseCloneRequest,
     TestCaseCreate,
+    TestCaseGenerateRequest,
+    TestCaseGenerateResponse,
+    TestCaseImproveRequest,
+    TestCaseImproveResponse,
     TestCaseOut,
     TestCaseUpdate,
     TestCaseVersionOut,
     TestCycleCreate,
     TestCycleOut,
+    TestCycleUpdate,
     TestFolderCreate,
     TestFolderOut,
     TestFolderUpdate,
     TestImportJobCreate,
     TestImportJobOut,
-    TestPlanCreate,
-    TestPlanOut,
-    TestRunCreate,
-    TestRunOut,
-    StandupOut,
-    TestCaseCloneRequest,
-    BulkUpdateCasesRequest,
-    BulkUpdateCasesResponse,
-    QualityScanResponse,
-    DefectRootCauseRequest,
-    DefectRootCauseResponse,
-    TestCaseImproveRequest,
-    TestCaseImproveResponse,
     TestPlanAIGenerateRequest,
     TestPlanAIGenerateResponse,
-    TestCaseGenerateRequest,
-    TestCaseGenerateResponse,
+    TestPlanCreate,
+    TestPlanOut,
+    TestPlanUpdate,
+    TestRunCreate,
+    TestRunOut,
+    TestRunUpdate,
     TestSuiteCreate,
     TestSuiteOut,
     TestSuiteUpdate,
     TraceabilityRow,
+    WebhookTestRequest,
+    WebhookTestResponse,
 )
 from app.infra.database import get_db
 from app.infra.models import User
@@ -157,7 +177,7 @@ def ensure_project_for_tspm(tspm_project_id: str, db: DB, user: WriteUser) -> Ma
 
 @router.get("/projects/{project_id}/settings", response_model=ManagementSettingsOut)
 def get_settings(project_id: str, db: DB, _user: ReadUser) -> ManagementSettingsOut:
-    return service.management_settings(db, project_id)  # type: ignore[return-value]
+    return cast(ManagementSettingsOut, service.management_settings(db, project_id))
 
 
 @router.patch("/projects/{project_id}/settings/user", response_model=dict)
@@ -170,6 +190,130 @@ def update_user_settings(
     """Kullanıcı tarafından özelleştirilebilen proje ayarlarını güncelle."""
     updates = payload.model_dump(exclude_none=True)
     return service.update_management_user_settings(db, project_id, updates)
+
+
+def _api_key_public(record: dict) -> ProjectApiKeyOut:
+    return ProjectApiKeyOut(
+        id=record["id"],
+        name=record["name"],
+        masked_key=record["masked_key"],
+        created_at=record["created_at"],
+        expires_at=record.get("expires_at"),
+        revoked_at=record.get("revoked_at"),
+    )
+
+
+@router.get("/projects/{project_id}/api-keys", response_model=list[ProjectApiKeyOut])
+def list_project_api_keys(project_id: str, db: DB, _user: ReadUser) -> list[ProjectApiKeyOut]:
+    settings = service.management_settings(db, project_id).get("user_settings", {})
+    records = settings.get("api_keys", []) if isinstance(settings, dict) else []
+    return [_api_key_public(record) for record in records if isinstance(record, dict)]
+
+
+@router.post("/projects/{project_id}/api-keys", response_model=ProjectApiKeyCreated, status_code=status.HTTP_201_CREATED)
+def create_project_api_key(
+    project_id: str,
+    payload: ProjectApiKeyCreate,
+    db: DB,
+    _user: WriteUser,
+) -> ProjectApiKeyCreated:
+    raw_key = f"sk-live-{secrets.token_urlsafe(32)}"
+    created_at = service.utcnow()
+    record = {
+        "id": secrets.token_hex(16),
+        "name": payload.name.strip(),
+        "masked_key": f"{raw_key[:10]}...{raw_key[-4:]}",
+        "key_hash": hashlib.sha256(raw_key.encode("utf-8")).hexdigest(),
+        "created_at": created_at.isoformat(),
+        "expires_at": payload.expires_at.isoformat() if payload.expires_at else None,
+        "revoked_at": None,
+    }
+    settings = service.management_settings(db, project_id).get("user_settings", {})
+    records = settings.get("api_keys", []) if isinstance(settings, dict) else []
+    service.update_management_user_settings(db, project_id, {"api_keys": [record, *records]})
+    return ProjectApiKeyCreated(**_api_key_public(record).model_dump(), key=raw_key)
+
+
+@router.delete("/projects/{project_id}/api-keys/{key_id}", status_code=status.HTTP_204_NO_CONTENT)
+def revoke_project_api_key(project_id: str, key_id: str, db: DB, _user: WriteUser) -> None:
+    settings = service.management_settings(db, project_id).get("user_settings", {})
+    records = settings.get("api_keys", []) if isinstance(settings, dict) else []
+    updated = []
+    found = False
+    for record in records:
+        if isinstance(record, dict) and record.get("id") == key_id:
+            record = {**record, "revoked_at": service.utcnow().isoformat()}
+            found = True
+        updated.append(record)
+    if not found:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "API anahtarı bulunamadı")
+    service.update_management_user_settings(db, project_id, {"api_keys": updated})
+
+
+@router.post("/projects/{project_id}/webhook-test", response_model=WebhookTestResponse)
+def test_outbound_webhook(
+    project_id: str,
+    payload: WebhookTestRequest,
+    _db: DB,
+    _user: WriteUser,
+) -> WebhookTestResponse:
+    """Send a short server-side test payload to an outbound webhook target."""
+    parsed = urlparse(payload.url)
+    if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Geçerli bir HTTP(S) webhook URL'i girin")
+
+    headers = {"Content-Type": "application/json"}
+    if payload.secret:
+        headers["X-Webhook-Secret"] = payload.secret
+
+    body = {
+        "event": "run.completed",
+        "project_id": project_id,
+        "run_id": "test-run-id",
+        "status": "passed",
+        "pass_rate": 87.5,
+        **payload.payload,
+    }
+    try:
+        response = httpx.post(payload.url, headers=headers, json=body, timeout=8.0)
+    except httpx.HTTPError as exc:
+        return WebhookTestResponse(ok=False, message=f"Webhook isteği gönderilemedi: {exc}")
+
+    return WebhookTestResponse(
+        ok=200 <= response.status_code < 300,
+        status_code=response.status_code,
+        message="Webhook testi başarılı." if 200 <= response.status_code < 300 else "Webhook hedefi hata döndürdü.",
+    )
+
+
+@router.post("/projects/{project_id}/sso-test", response_model=SsoTestResponse)
+def test_sso_endpoint(
+    project_id: str,
+    payload: SsoTestRequest,
+    _db: DB,
+    _user: WriteUser,
+) -> SsoTestResponse:
+    """Probe a SAML SSO URL from the backend so browser CORS does not affect the result."""
+    parsed = urlparse(payload.sso_url)
+    if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Geçerli bir HTTP(S) SSO URL'i girin")
+
+    try:
+        response = httpx.head(payload.sso_url, timeout=8.0, follow_redirects=True)
+        if response.status_code in {405, 501}:
+            response = httpx.get(payload.sso_url, timeout=8.0, follow_redirects=True)
+    except httpx.HTTPError as exc:
+        return SsoTestResponse(ok=False, message=f"SSO URL yoklanamadı: {exc}")
+
+    return SsoTestResponse(
+        ok=response.status_code < 500,
+        status_code=response.status_code,
+        message=(
+            "SSO endpoint'e backend üzerinden ulaşıldı."
+            if response.status_code < 500
+            else "SSO hedefi sunucu hatası döndürdü."
+        ),
+    )
 
 
 @router.get("/projects/{project_id}/audit-events", response_model=list[AuditEventOut])
@@ -243,7 +387,7 @@ def list_cases(
     project_id: str,
     db: DB,
     _user: ReadUser,
-    q: Optional[str] = Query(default=None),
+    q: str | None = Query(default=None),
     include_archived: bool = False,
 ) -> list[TestCaseOut]:
     return service.list_cases(db, project_id, q=q, include_archived=include_archived)
@@ -262,6 +406,60 @@ def get_case(project_id: str, case_id: str, db: DB, _user: ReadUser) -> TestCase
 @router.get("/projects/{project_id}/cases/{case_id}/versions", response_model=list[TestCaseVersionOut])
 def list_case_versions(project_id: str, case_id: str, db: DB, _user: ReadUser) -> list[TestCaseVersionOut]:
     return service.list_case_versions(db, project_id, case_id)
+
+
+@router.get("/projects/{project_id}/cases/{case_id}/sub-cases", response_model=list[TestCaseOut])
+def list_sub_cases(project_id: str, case_id: str, db: DB, _user: ReadUser) -> list[TestCaseOut]:
+    """Return all direct sub-cases of the given parent case."""
+    try:
+        return cast(list[TestCaseOut], service.list_sub_cases(db, project_id, case_id))
+    except KeyError as e:
+        raise HTTPException(status_code=404, detail=str(e)) from e
+
+
+@router.post(
+    "/projects/{project_id}/cases/{case_id}/sub-cases",
+    response_model=TestCaseOut,
+    status_code=status.HTTP_201_CREATED,
+)
+def create_sub_case(
+    project_id: str,
+    case_id: str,
+    payload: TestCaseCreate,
+    db: DB,
+    user: WriteUser,
+) -> TestCaseOut:
+    """Create a sub-case under the given parent case."""
+    try:
+        return cast(TestCaseOut, service.create_sub_case(db, project_id, case_id, payload, user))
+    except KeyError as e:
+        raise HTTPException(status_code=404, detail=str(e)) from e
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
+
+
+@router.get("/projects/{project_id}/cases/{case_id}/dependencies", response_model=list[CaseDependencyOut])
+def list_case_dependencies(project_id: str, case_id: str, db: DB, _user: ReadUser) -> list[CaseDependencyOut]:
+    try:
+        return cast(list[CaseDependencyOut], service.list_case_dependencies(db, project_id, case_id))
+    except KeyError as e:
+        raise HTTPException(status_code=404, detail=str(e)) from e
+
+
+@router.post("/projects/{project_id}/cases/{case_id}/dependencies", response_model=CaseDependencyOut, status_code=201)
+def add_case_dependency(project_id: str, case_id: str, payload: CaseDependencyCreate, db: DB, user: WriteUser) -> CaseDependencyOut:
+    try:
+        return cast(CaseDependencyOut, service.add_case_dependency(db, project_id, case_id, payload, user))
+    except (KeyError, ValueError) as e:
+        raise HTTPException(status_code=400 if isinstance(e, ValueError) else 404, detail=str(e)) from e
+
+
+@router.delete("/projects/{project_id}/cases/{case_id}/dependencies/{dep_id}", status_code=204)
+def remove_case_dependency(project_id: str, case_id: str, dep_id: str, db: DB, user: WriteUser) -> None:
+    try:
+        service.remove_case_dependency(db, project_id, case_id, dep_id, user)
+    except KeyError as e:
+        raise HTTPException(status_code=404, detail=str(e)) from e
 
 
 @router.patch("/projects/{project_id}/cases/{case_id}", response_model=TestCaseOut)
@@ -388,8 +586,9 @@ def bulk_update_cases(project_id: str, payload: BulkUpdateCasesRequest, db: DB, 
     summary="Test koşumunun canlı ilerleme durumunu döner",
 )
 def run_progress(project_id: str, run_id: str, db: DB, _user: ReadUser) -> dict:
+    from sqlalchemy import select as _sel
+
     from app.domains.test_management.models import TestRunCase as TRC
-    from sqlalchemy import select as _sel, func as _func
     pid = service.resolve_project_id(db, project_id)
     run_cases = list(db.scalars(_sel(TRC).where(TRC.run_id == run_id)).all())
     total = len(run_cases)
@@ -420,15 +619,16 @@ def run_progress(project_id: str, run_id: str, db: DB, _user: ReadUser) -> dict:
     summary="Koşumu manuel olarak tamamlandı olarak işaretle",
 )
 def complete_run(project_id: str, run_id: str, db: DB, user: WriteUser) -> TestRunOut:
-    from app.domains.test_management.models import TestRun as TR
     from sqlalchemy import select as _sel
+
+    from app.domains.test_management.models import TestRun as TR
     pid = service.resolve_project_id(db, project_id)
     run = db.scalar(_sel(TR).where(TR.id == run_id))
     if not run:
         raise HTTPException(status_code=404, detail="Run bulunamadı")
     run.status = "completed"
-    from datetime import datetime, timezone as _tz
-    run.completed_at = run.completed_at or datetime.now(_tz.utc)
+    from datetime import datetime
+    run.completed_at = run.completed_at or datetime.now(UTC)
     db.commit()
     db.refresh(run)
     return run
@@ -501,7 +701,7 @@ def get_standup(
     project_id: str,
     db: DB,
     _user: ReadUser,
-    run_id: Optional[str] = Query(default=None),
+    run_id: str | None = Query(default=None),
 ) -> StandupOut:
     try:
         return service.get_standup(db, project_id, run_id)
@@ -531,16 +731,20 @@ def list_plans(project_id: str, db: DB, _user: ReadUser) -> list[TestPlanOut]:
     return service.list_plans(db, project_id)
 
 
+@router.patch("/projects/{project_id}/plans/{plan_id}", response_model=TestPlanOut)
+def update_plan(project_id: str, plan_id: str, payload: TestPlanUpdate, db: DB, user: WriteUser) -> TestPlanOut:
+    try:
+        return service.update_plan(db, project_id, plan_id, payload, user)
+    except KeyError as e:
+        raise HTTPException(status_code=404, detail=str(e)) from e
+
+
 @router.delete("/projects/{project_id}/plans/{plan_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_plan(project_id: str, plan_id: str, db: DB, user: WriteUser) -> None:
-    from app.domains.test_management.models import TestPlan
-    from sqlalchemy import select as _sel
-    pid = service.resolve_project_id(db, project_id)
-    plan = db.scalar(_sel(TestPlan).where(TestPlan.id == plan_id, TestPlan.project_id == pid))
-    if not plan:
-        raise HTTPException(status_code=404, detail="Plan bulunamadı")
-    db.delete(plan)
-    db.commit()
+    try:
+        service.delete_plan(db, project_id, plan_id, user)
+    except KeyError as e:
+        raise HTTPException(status_code=404, detail=str(e)) from e
 
 
 @router.get("/projects/{project_id}/cycles", response_model=list[TestCycleOut])
@@ -548,7 +752,7 @@ def list_cycles(
     project_id: str,
     db: DB,
     _user: ReadUser,
-    plan_id: Optional[str] = Query(default=None),
+    plan_id: str | None = Query(default=None),
 ) -> list[TestCycleOut]:
     return service.list_cycles(db, project_id, plan_id=plan_id)
 
@@ -556,6 +760,22 @@ def list_cycles(
 @router.post("/projects/{project_id}/cycles", response_model=TestCycleOut, status_code=status.HTTP_201_CREATED)
 def create_cycle(project_id: str, payload: TestCycleCreate, db: DB, user: WriteUser) -> TestCycleOut:
     return service.create_cycle(db, project_id, payload, user)
+
+
+@router.patch("/projects/{project_id}/cycles/{cycle_id}", response_model=TestCycleOut)
+def update_cycle(project_id: str, cycle_id: str, payload: TestCycleUpdate, db: DB, user: WriteUser) -> TestCycleOut:
+    try:
+        return service.update_cycle(db, project_id, cycle_id, payload, user)
+    except KeyError as e:
+        raise HTTPException(status_code=404, detail=str(e)) from e
+
+
+@router.delete("/projects/{project_id}/cycles/{cycle_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_cycle(project_id: str, cycle_id: str, db: DB, user: WriteUser) -> None:
+    try:
+        service.delete_cycle(db, project_id, cycle_id, user)
+    except KeyError as e:
+        raise HTTPException(status_code=404, detail=str(e)) from e
 
 
 @router.post("/projects/{project_id}/regression/suggest", response_model=list[RegressionCandidateOut])
@@ -570,7 +790,7 @@ def suggest_regression_candidates(
 
 @router.get("/projects/{project_id}/regression/sets", response_model=list[RegressionSetOut])
 def list_regression_sets(project_id: str, db: DB, _user: ReadUser) -> list[RegressionSetOut]:
-    return service.list_regression_sets(db, project_id)  # type: ignore[return-value]
+    return cast(list[RegressionSetOut], service.list_regression_sets(db, project_id))
 
 
 @router.post(
@@ -584,7 +804,7 @@ def create_regression_set(
     db: DB,
     user: WriteUser,
 ) -> RegressionSetOut:
-    return service.create_regression_set(db, project_id, payload, user)  # type: ignore[return-value]
+    return cast(RegressionSetOut, service.create_regression_set(db, project_id, payload, user))
 
 
 @router.patch(
@@ -598,7 +818,7 @@ def update_regression_set(
     db: DB,
     user: WriteUser,
 ) -> RegressionSetOut:
-    return service.update_regression_set(db, project_id, set_id, payload, user)  # type: ignore[return-value]
+    return cast(RegressionSetOut, service.update_regression_set(db, project_id, set_id, payload, user))
 
 
 @router.post(
@@ -612,7 +832,7 @@ def add_cases_to_regression_set(
     db: DB,
     user: WriteUser,
 ) -> RegressionSetOut:
-    return service.add_cases_to_regression_set(db, project_id, set_id, payload.case_ids, user)  # type: ignore[return-value]
+    return cast(RegressionSetOut, service.add_cases_to_regression_set(db, project_id, set_id, payload.case_ids, user))
 
 
 @router.delete(
@@ -626,7 +846,7 @@ def remove_case_from_regression_set(
     db: DB,
     user: WriteUser,
 ) -> RegressionSetOut:
-    return service.remove_case_from_regression_set(db, project_id, set_id, case_id, user)  # type: ignore[return-value]
+    return cast(RegressionSetOut, service.remove_case_from_regression_set(db, project_id, set_id, case_id, user))
 
 
 @router.delete(
@@ -647,7 +867,7 @@ def list_runs(
     project_id: str,
     db: DB,
     _user: ReadUser,
-    status: Optional[str] = Query(default=None, description="Filter by run status"),
+    status: str | None = Query(default=None, description="Filter by run status"),
 ) -> list[TestRunOut]:
     return service.list_runs(db, project_id, status_filter=status)
 
@@ -655,6 +875,22 @@ def list_runs(
 @router.post("/projects/{project_id}/runs", response_model=TestRunOut, status_code=status.HTTP_201_CREATED)
 def create_run(project_id: str, payload: TestRunCreate, db: DB, user: WriteUser) -> TestRunOut:
     return service.create_run(db, project_id, payload, user)
+
+
+@router.patch("/projects/{project_id}/runs/{run_id}", response_model=TestRunOut)
+def update_run(project_id: str, run_id: str, payload: TestRunUpdate, db: DB, user: WriteUser) -> TestRunOut:
+    try:
+        return service.update_run(db, project_id, run_id, payload, user)
+    except KeyError as e:
+        raise HTTPException(status_code=404, detail=str(e)) from e
+
+
+@router.delete("/projects/{project_id}/runs/{run_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_run(project_id: str, run_id: str, db: DB, user: WriteUser) -> None:
+    try:
+        service.delete_run(db, project_id, run_id, user)
+    except KeyError as e:
+        raise HTTPException(status_code=404, detail=str(e)) from e
 
 
 @router.get("/projects/{project_id}/runs/{run_id}", response_model=RunDetailOut)
@@ -723,7 +959,7 @@ def create_release_signoff(
 @router.get("/projects/{project_id}/requirements/traceability", response_model=list[TraceabilityRow])
 def requirement_traceability(project_id: str, db: DB, _user: ReadUser) -> list[TraceabilityRow]:
     """Return the requirements ↔ test-case traceability matrix."""
-    return service.requirement_traceability(db, project_id)  # type: ignore[return-value]
+    return cast(list[TraceabilityRow], service.requirement_traceability(db, project_id))
 
 
 @router.get("/projects/{project_id}/requirements/catalog", response_model=list[RequirementOut])
@@ -770,7 +1006,7 @@ def list_requirement_links(
     project_id: str,
     db: DB,
     _user: ReadUser,
-    case_id: Optional[str] = Query(default=None),
+    case_id: str | None = Query(default=None),
 ) -> list[RequirementLinkOut]:
     return service.list_requirement_links(db, project_id, case_id=case_id)
 
@@ -787,6 +1023,28 @@ def create_requirement_link(
     user: WriteUser,
 ) -> RequirementLinkOut:
     return service.create_requirement_link(db, project_id, payload, user)
+
+
+@router.patch("/projects/{project_id}/requirements/{req_id}", response_model=RequirementLinkOut)
+def update_requirement_link(
+    project_id: str,
+    req_id: str,
+    payload: RequirementLinkUpdate,
+    db: DB,
+    user: WriteUser,
+) -> RequirementLinkOut:
+    try:
+        return service.update_requirement_link(db, project_id, req_id, payload, user)
+    except KeyError as e:
+        raise HTTPException(status_code=404, detail=str(e)) from e
+
+
+@router.delete("/projects/{project_id}/requirements/{req_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_requirement_link(project_id: str, req_id: str, db: DB, user: WriteUser) -> None:
+    try:
+        service.delete_requirement_link(db, project_id, req_id, user)
+    except KeyError as e:
+        raise HTTPException(status_code=404, detail=str(e)) from e
 
 
 @router.get("/projects/{project_id}/defects", response_model=list[DefectLinkOut])
@@ -814,6 +1072,14 @@ def update_defect_link(
     return service.update_defect_link(db, project_id, defect_id, payload, user)
 
 
+@router.delete("/projects/{project_id}/defects/{defect_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_defect_link(project_id: str, defect_id: str, db: DB, user: WriteUser) -> None:
+    try:
+        service.delete_defect_link(db, project_id, defect_id, user)
+    except KeyError as e:
+        raise HTTPException(status_code=404, detail=str(e)) from e
+
+
 @router.post(
     "/projects/{project_id}/defects/analyze-root-cause",
     response_model=DefectRootCauseResponse,
@@ -826,8 +1092,9 @@ def analyze_defect_root_cause(
     user: WriteUser,
 ) -> DefectRootCauseResponse:
     try:
-        from app.domains.ai import service as ai_svc
         import json as _json
+
+        from app.domains.ai import service as ai_svc
         prompt = (
             f"Defect: {payload.defect_title}\n"
             f"Durum: {payload.defect_status or 'open'}\n"
@@ -1093,7 +1360,7 @@ def list_notifications(
     user: ReadUser,
     unread_only: bool = Query(default=False),
     include_archived: bool = Query(default=False),
-    project_id: Optional[str] = Query(default=None),
+    project_id: str | None = Query(default=None),
     limit: int = Query(default=50, ge=1, le=200),
 ) -> list[MgmtNotificationOut]:
     tenant_id = _require_tenant(user)
@@ -1292,9 +1559,9 @@ def design_create_eq(payload: EqRunCreate, db: DB, user: WriteUser) -> DesignRun
 def design_list_runs(
     db: DB,
     user: ReadUser,
-    technique: Optional[str] = Query(default=None),
-    requirement_id: Optional[str] = Query(default=None),
-    project_id: Optional[str] = Query(default=None),
+    technique: str | None = Query(default=None),
+    requirement_id: str | None = Query(default=None),
+    project_id: str | None = Query(default=None),
     limit: int = Query(default=100, ge=1, le=500),
 ) -> list[DesignRunOut]:
     tenant_id = _require_tenant(user)
@@ -1493,6 +1760,7 @@ def run_intelligence(project_id: str, run_id: str, db: DB, _user: ReadUser) -> R
 )
 def run_eta(project_id: str, run_id: str, db: DB, _user: ReadUser) -> ETAPredictionOut:
     from sqlalchemy import select as _select
+
     from app.domains.test_management.models import TestRun, TestRunCase
 
     run = db.execute(_select(TestRun).where(TestRun.id == run_id)).scalar_one_or_none()
@@ -1514,6 +1782,7 @@ def run_eta(project_id: str, run_id: str, db: DB, _user: ReadUser) -> ETAPredict
 )
 def run_anomalies(project_id: str, run_id: str, db: DB, _user: ReadUser) -> list[AnomalyOut]:
     from sqlalchemy import select as _select
+
     from app.domains.test_management.models import TestRun, TestRunCase
 
     run = db.execute(_select(TestRun).where(TestRun.id == run_id)).scalar_one_or_none()
@@ -1537,6 +1806,7 @@ def run_anomalies(project_id: str, run_id: str, db: DB, _user: ReadUser) -> list
 )
 def run_risk_queue(project_id: str, run_id: str, db: DB, _user: ReadUser) -> list[CaseRiskScoreOut]:
     from sqlalchemy import select as _select
+
     from app.domains.test_management.models import TestRunCase
 
     run_cases = db.execute(
@@ -1575,7 +1845,8 @@ def tester_performance(project_id: str, user_id: str, db: DB, _user: ReadUser) -
 )
 def my_assigned_cases(project_id: str, db: DB, user: ReadUser) -> list[dict]:
     from sqlalchemy import select as _sel
-    from app.domains.test_management.models import TestRun, TestRunCase, TestCycle
+
+    from app.domains.test_management.models import TestCycle, TestRun, TestRunCase
 
     rows = db.execute(
         _sel(TestRunCase, TestRun)
@@ -1607,3 +1878,158 @@ def my_assigned_cases(project_id: str, db: DB, user: ReadUser) -> list[dict]:
             "completed_steps": len(rc.step_results),
         })
     return result
+
+
+# ── Shared Steps ──────────────────────────────────────────────────────────────
+
+@router.get("/projects/{project_id}/shared-steps", response_model=list[SharedStepOut])
+def list_shared_steps(project_id: str, db: DB, _user: ReadUser) -> list[SharedStepOut]:
+    return cast(list[SharedStepOut], service.list_shared_steps(db, project_id))
+
+
+@router.post(
+    "/projects/{project_id}/shared-steps",
+    response_model=SharedStepOut,
+    status_code=status.HTTP_201_CREATED,
+)
+def create_shared_step(project_id: str, payload: SharedStepCreate, db: DB, user: WriteUser) -> SharedStepOut:
+    return cast(SharedStepOut, service.create_shared_step(db, project_id, payload, user))
+
+
+@router.get("/projects/{project_id}/shared-steps/{step_id}", response_model=SharedStepOut)
+def get_shared_step(project_id: str, step_id: str, db: DB, _user: ReadUser) -> SharedStepOut:
+    try:
+        return cast(SharedStepOut, service.get_shared_step(db, project_id, step_id))
+    except KeyError as e:
+        raise HTTPException(status_code=404, detail=str(e)) from e
+
+
+@router.patch("/projects/{project_id}/shared-steps/{step_id}", response_model=SharedStepOut)
+def update_shared_step(project_id: str, step_id: str, payload: SharedStepUpdate, db: DB, user: WriteUser) -> SharedStepOut:
+    try:
+        return cast(SharedStepOut, service.update_shared_step(db, project_id, step_id, payload, user))
+    except KeyError as e:
+        raise HTTPException(status_code=404, detail=str(e)) from e
+
+
+@router.delete("/projects/{project_id}/shared-steps/{step_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_shared_step(project_id: str, step_id: str, db: DB, user: WriteUser) -> None:
+    try:
+        service.delete_shared_step(db, project_id, step_id, user)
+    except KeyError as e:
+        raise HTTPException(status_code=404, detail=str(e)) from e
+
+
+# ── SSO Konfigürasyonu ────────────────────────────────────────────────────────
+# SSO/SAML yapılandırması settings_data JSON sütununda saklanır.
+
+class SsoConfigIn(BaseModel):
+    enabled: bool = False
+    entity_id: str = ""
+    sso_url: str = ""
+    cert: str = ""
+    provider: str = ""
+
+
+class SsoConfigOut(BaseModel):
+    enabled: bool = False
+    entity_id: str = ""
+    sso_url: str = ""
+    provider: str = ""
+
+
+def _get_mgmt_project(db: Session, project_id: str):
+    from app.domains.test_management.models import TestManagementProject as TMP
+    pid = service.resolve_project_id(db, project_id)
+    proj = db.scalars(select(TMP).where(TMP.id == pid)).first()
+    if not proj:
+        raise HTTPException(status_code=404, detail="Management project not found")
+    return proj
+
+
+@router.get("/projects/{project_id}/sso-config", response_model=SsoConfigOut)
+def get_sso_config(project_id: str, db: DB, _user: ReadUser) -> SsoConfigOut:
+    proj = _get_mgmt_project(db, project_id)
+    cfg = (proj.settings_data or {}).get("sso_config", {})
+    return SsoConfigOut(**cfg) if cfg else SsoConfigOut()
+
+
+@router.put("/projects/{project_id}/sso-config", response_model=SsoConfigOut)
+def save_sso_config(project_id: str, payload: SsoConfigIn, db: DB, user: WriteUser) -> SsoConfigOut:
+    proj = _get_mgmt_project(db, project_id)
+    settings = dict(proj.settings_data or {})
+    settings["sso_config"] = payload.model_dump()
+    proj.settings_data = settings
+    db.commit()
+    return SsoConfigOut(**{k: v for k, v in payload.model_dump().items() if k != "cert"})
+
+
+# ── Webhook Bildirimleri ──────────────────────────────────────────────────────
+# Webhook abonelikleri settings_data["webhook_notifications"] listesinde saklanır.
+
+
+class WebhookNotifIn(BaseModel):
+    name: str
+    url: str
+    events: list[str] = []
+    active: bool = True
+
+
+class WebhookNotifOut(BaseModel):
+    id: str
+    name: str
+    url: str
+    events: list[str]
+    active: bool
+
+
+@router.get("/projects/{project_id}/webhook-notifications", response_model=list[WebhookNotifOut])
+def list_webhooks(project_id: str, db: DB, _user: ReadUser) -> list[WebhookNotifOut]:
+    proj = _get_mgmt_project(db, project_id)
+    hooks = (proj.settings_data or {}).get("webhook_notifications", [])
+    return [WebhookNotifOut(**h) for h in hooks]
+
+
+@router.post("/projects/{project_id}/webhook-notifications", response_model=WebhookNotifOut, status_code=status.HTTP_201_CREATED)
+def create_webhook(project_id: str, payload: WebhookNotifIn, db: DB, user: WriteUser) -> WebhookNotifOut:
+    proj = _get_mgmt_project(db, project_id)
+    settings = dict(proj.settings_data or {})
+    hooks: list[dict] = list(settings.get("webhook_notifications", []))
+    new_hook = {"id": secrets.token_hex(8), **payload.model_dump()}
+    hooks.append(new_hook)
+    settings["webhook_notifications"] = hooks
+    proj.settings_data = settings
+    db.commit()
+    return WebhookNotifOut(**new_hook)
+
+
+@router.delete("/projects/{project_id}/webhook-notifications/{hook_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_webhook(project_id: str, hook_id: str, db: DB, user: WriteUser) -> None:
+    proj = _get_mgmt_project(db, project_id)
+    settings = dict(proj.settings_data or {})
+    hooks = [h for h in settings.get("webhook_notifications", []) if h.get("id") != hook_id]
+    settings["webhook_notifications"] = hooks
+    proj.settings_data = settings
+    db.commit()
+
+
+# ── Webhook Probe ─────────────────────────────────────────────────────────────
+
+
+class WebhookProbeRequest(BaseModel):
+    url: str
+    events: list[str] = []
+
+
+@router.post("/webhook-probe", response_model=dict)
+def webhook_probe(body: WebhookProbeRequest, _user: ReadUser) -> dict:
+    """Webhook URL'ini backend tarafından test eder (CORS sorununu önler)."""
+    import httpx as _httpx
+    payload = {"event": body.events[0] if body.events else "test", "test": True}
+    try:
+        resp = _httpx.post(body.url, json=payload, timeout=8.0)
+        return {"status": resp.status_code, "ok": resp.is_success}
+    except _httpx.TimeoutException as exc:
+        raise HTTPException(status_code=504, detail="Webhook endpoint zaman aşımına uğradı") from exc
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"Webhook URL'e ulaşılamadı: {exc}") from exc

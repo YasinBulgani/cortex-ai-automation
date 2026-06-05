@@ -58,6 +58,7 @@ export interface TestCase {
   project_id: string;
   suite_id?: string | null;
   folder_id?: string | null;
+  parent_id?: string | null;
   case_key: string;
   title: string;
   objective?: string | null;
@@ -392,6 +393,42 @@ export interface ManagementSettings {
     cases_with_custom_fields: number;
     evidence_count: number;
   };
+  user_settings?: Record<string, unknown>;
+}
+
+export interface ProjectSsoConfig {
+  enabled: boolean;
+  entityId: string;
+  ssoUrl: string;
+  cert: string;
+}
+
+export interface WebhookNotification {
+  id: string;
+  url: string;
+  events: string[];
+}
+
+export interface CicdWebhookConfig {
+  webhookUrl: string;
+  secret?: string;
+  provider: string;
+}
+
+export interface ProjectApiKey {
+  id: string;
+  name: string;
+  key?: string;
+  maskedKey: string;
+  createdAt: string;
+  expiresAt: string | null;
+  revealed: boolean;
+}
+
+export interface DesignFieldTemplate {
+  name: string;
+  fields: Record<string, unknown>[];
+  savedAt: string;
 }
 
 export interface ManagementAuditEvent {
@@ -641,6 +678,27 @@ export function useUpdateManagementUserSettings(projectId: string) {
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: managementKeys.settings(projectId) });
     },
+  });
+}
+
+function settingsValue<T>(settings: ManagementSettings | undefined, key: string, fallback: T): T {
+  const value = settings?.user_settings?.[key];
+  return value == null ? fallback : (value as T);
+}
+
+export function useManagementSettingValue<T>(projectId: string | undefined, key: string, fallback: T) {
+  const query = useManagementSettings(projectId);
+  return {
+    ...query,
+    data: settingsValue<T>(query.data, key, fallback),
+    rawSettings: query.data,
+  };
+}
+
+export function usePatchManagementSetting<T>(projectId: string, key: string) {
+  const updateSettings = useUpdateManagementUserSettings(projectId);
+  return useMutation({
+    mutationFn: (value: T) => updateSettings.mutateAsync({ [key]: value }),
   });
 }
 
@@ -1815,5 +1873,246 @@ export function useManagementDashboardSummary(projectId: string | undefined) {
     queryFn: () => apiFetch<DashboardSummary>(`${BASE(projectId!)}/reports/dashboard-summary`),
     enabled: !!projectId,
     staleTime: 2 * 60_000,
+  });
+}
+
+// ── Shared Steps ──────────────────────────────────────────────────────────────
+
+export interface SharedStepItem {
+  step_no: number;
+  action: string;
+  expected_result: string;
+  notes?: string;
+  is_required: boolean;
+}
+
+export interface SharedStep {
+  id: string;
+  project_id: string;
+  name: string;
+  description?: string;
+  steps: SharedStepItem[];
+  tags: string[];
+  usage_count: number;
+  created_by?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export function useSharedSteps(projectId: string | undefined) {
+  return useQuery({
+    queryKey: [...managementKeys.project(projectId), "shared-steps"],
+    queryFn: () => apiFetch<SharedStep[]>(`${BASE(projectId!)}/shared-steps`),
+    enabled: !!projectId,
+    staleTime: 60_000,
+  });
+}
+
+export function useCreateSharedStep(projectId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: { name: string; description?: string; steps: SharedStepItem[]; tags?: string[] }) =>
+      apiFetch<SharedStep>(`${BASE(projectId)}/shared-steps`, { method: "POST", json: payload }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: [...managementKeys.project(projectId), "shared-steps"] }),
+  });
+}
+
+export function useUpdateSharedStep(projectId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, ...payload }: Partial<{ name: string; description: string; steps: SharedStepItem[]; tags: string[] }> & { id: string }) =>
+      apiFetch<SharedStep>(`${BASE(projectId)}/shared-steps/${id}`, { method: "PATCH", json: payload }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: [...managementKeys.project(projectId), "shared-steps"] }),
+  });
+}
+
+export function useDeleteSharedStep(projectId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (stepId: string) =>
+      apiFetch<void>(`${BASE(projectId)}/shared-steps/${stepId}`, { method: "DELETE" }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: [...managementKeys.project(projectId), "shared-steps"] }),
+  });
+}
+
+// ── Sub-Cases ─────────────────────────────────────────────────────────────────
+
+export function useSubCases(projectId: string | undefined, caseId: string | undefined) {
+  return useQuery({
+    queryKey: [...managementKeys.project(projectId), "cases", caseId, "sub-cases"],
+    queryFn: () => apiFetch<TestCase[]>(`${BASE(projectId!)}/cases/${caseId!}/sub-cases`),
+    enabled: !!projectId && !!caseId,
+    staleTime: 30_000,
+  });
+}
+
+export function useCreateSubCase(projectId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ parentId, ...payload }: { parentId: string } & Partial<{
+      title: string; priority: string; type: string; status: string; suite_id: string | null;
+    }>) =>
+      apiFetch<TestCase>(`${BASE(projectId)}/cases/${parentId}/sub-cases`, {
+        method: "POST",
+        json: { title: payload.title ?? "Alt Test Senaryosu", priority: payload.priority ?? "P2", type: payload.type ?? "manual", status: payload.status ?? "draft", steps: [] },
+      }),
+    onSuccess: (_data, vars) => {
+      void qc.invalidateQueries({ queryKey: [...managementKeys.project(projectId), "cases", vars.parentId, "sub-cases"] });
+      void qc.invalidateQueries({ queryKey: [...managementKeys.project(projectId), "cases"] });
+    },
+  });
+}
+
+// ── Case Dependencies ─────────────────────────────────────────────────────────
+
+export interface CaseDependency {
+  id: string;
+  case_id: string;
+  depends_on_id: string;
+  dep_type: string;
+  depends_on_key: string;
+  depends_on_title: string;
+  created_at: string;
+}
+
+export function useCaseDependencies(projectId?: string, caseId?: string) {
+  return useQuery({
+    queryKey: [...managementKeys.project(projectId), "cases", caseId, "dependencies"],
+    queryFn: () => apiFetch<CaseDependency[]>(`${BASE(projectId!)}/cases/${caseId!}/dependencies`),
+    enabled: !!projectId && !!caseId,
+    staleTime: 30_000,
+  });
+}
+
+export function useAddCaseDependency(projectId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ caseId, depends_on_id, dep_type = "blocks" }: { caseId: string; depends_on_id: string; dep_type?: string }) =>
+      apiFetch<CaseDependency>(`${BASE(projectId)}/cases/${caseId}/dependencies`, {
+        method: "POST",
+        json: { depends_on_id, dep_type },
+      }),
+    onSuccess: (_d, v) =>
+      qc.invalidateQueries({ queryKey: [...managementKeys.project(projectId), "cases", v.caseId, "dependencies"] }),
+  });
+}
+
+export function useRemoveCaseDependency(projectId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ caseId, depId }: { caseId: string; depId: string }) =>
+      apiFetch<void>(`${BASE(projectId)}/cases/${caseId}/dependencies/${depId}`, { method: "DELETE" }),
+    onSuccess: (_d, v) =>
+      qc.invalidateQueries({ queryKey: [...managementKeys.project(projectId), "cases", v.caseId, "dependencies"] }),
+  });
+}
+
+// ── SSO Konfigürasyonu ──────────────────────────────────────────────────────
+
+export interface SsoConfig {
+  enabled: boolean;
+  entity_id: string;
+  sso_url: string;
+  cert: string;
+  provider: string;
+}
+
+export interface SsoConfigOut {
+  enabled: boolean;
+  entity_id: string;
+  sso_url: string;
+  provider: string;
+}
+
+export function useSsoConfig(projectId: string | undefined) {
+  return useQuery({
+    queryKey: [...managementKeys.project(projectId), "sso-config"],
+    queryFn: () => apiFetch<SsoConfigOut>(`${BASE(projectId!)}/sso-config`),
+    enabled: !!projectId,
+  });
+}
+
+export function useSaveSsoConfig(projectId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: SsoConfig) =>
+      apiFetch<SsoConfigOut>(`${BASE(projectId)}/sso-config`, { method: "PUT", json: payload }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: [...managementKeys.project(projectId), "sso-config"] }),
+  });
+}
+
+// ── Webhook Bildirimleri ────────────────────────────────────────────────────
+
+export interface WebhookNotif {
+  id: string;
+  name: string;
+  url: string;
+  events: string[];
+  active: boolean;
+}
+
+export function useWebhookNotifications(projectId: string | undefined) {
+  return useQuery({
+    queryKey: [...managementKeys.project(projectId), "webhook-notifications"],
+    queryFn: () => apiFetch<WebhookNotif[]>(`${BASE(projectId!)}/webhook-notifications`),
+    enabled: !!projectId,
+  });
+}
+
+export function useCreateWebhookNotification(projectId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: Omit<WebhookNotif, "id">) =>
+      apiFetch<WebhookNotif>(`${BASE(projectId)}/webhook-notifications`, { method: "POST", json: payload }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: [...managementKeys.project(projectId), "webhook-notifications"] }),
+  });
+}
+
+export function useDeleteWebhookNotification(projectId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (hookId: string) =>
+      apiFetch<void>(`${BASE(projectId)}/webhook-notifications/${hookId}`, { method: "DELETE" }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: [...managementKeys.project(projectId), "webhook-notifications"] }),
+  });
+}
+
+// ── API Key Yönetimi ────────────────────────────────────────────────────────
+
+export interface ApiKeyOut {
+  id: string;
+  name: string;
+  prefix: string;
+  created_at: string;
+  last_used_at?: string | null;
+}
+
+export interface ApiKeyCreated extends ApiKeyOut {
+  key: string;
+}
+
+export function useApiKeys(projectId: string | undefined) {
+  return useQuery({
+    queryKey: [...managementKeys.project(projectId), "api-keys"],
+    queryFn: () => apiFetch<ApiKeyOut[]>(`${BASE(projectId!)}/api-keys`),
+    enabled: !!projectId,
+  });
+}
+
+export function useCreateApiKey(projectId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (name: string) =>
+      apiFetch<ApiKeyCreated>(`${BASE(projectId)}/api-keys`, { method: "POST", json: { name } }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: [...managementKeys.project(projectId), "api-keys"] }),
+  });
+}
+
+export function useDeleteApiKey(projectId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (keyId: string) =>
+      apiFetch<void>(`${BASE(projectId)}/api-keys/${keyId}`, { method: "DELETE" }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: [...managementKeys.project(projectId), "api-keys"] }),
   });
 }

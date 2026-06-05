@@ -4,6 +4,8 @@ import { useState, useEffect } from "react";
 import { useManagementSettings, useUpdateManagementUserSettings } from "@/lib/hooks/use-management";
 import { useManagementProjectId } from "@/lib/hooks/use-management-project-id";
 import { useRouteParam } from "@/lib/use-route-param";
+import { apiFetch } from "@/lib/api-client";
+import { RoleGuard } from "../_components/RoleGuard";
 
 /* ─────────────────────────── constants ─────────────────────────── */
 
@@ -12,17 +14,32 @@ const TABS = [
   { id: "modules",     label: "Modüller & Etiketler" },
   { id: "roles",       label: "Roller & İzinler"   },
   { id: "notifs",      label: "Bildirimler"         },
+  { id: "apikeys",     label: "API Anahtarları"    },
   { id: "danger",      label: "Tehlike Bölgesi"    },
 ] as const;
 type TabId = (typeof TABS)[number]["id"];
 
 const NOTIFICATION_TYPES = [
-  { key: "run_completed",   label: "Run tamamlandı"       },
-  { key: "run_failed",      label: "Run başarısız"         },
-  { key: "defect_created",  label: "Yeni defect eklendi"   },
-  { key: "case_updated",    label: "Case güncellendi"      },
-  { key: "plan_created",    label: "Yeni plan oluşturuldu" },
-  { key: "report_ready",    label: "Rapor hazır"           },
+  // Koşumlar
+  { key: "run_started",        label: "Test Koşumu Başladı",    group: "Koşumlar",        desc: "Bir test koşumu başlatıldığında bildir" },
+  { key: "run_completed",      label: "Test Koşumu Tamamlandı", group: "Koşumlar",        desc: "Koşum başarıyla tamamlandığında bildir" },
+  { key: "run_failed",         label: "Koşum Başarısız",        group: "Koşumlar",        desc: "Koşum hatayla sona erdiğinde bildir" },
+  // Case'ler
+  { key: "case_assigned",      label: "Case Atandı",            group: "Case'ler",        desc: "Size yeni bir test case atandığında bildir" },
+  // Defectler
+  { key: "defect_opened",      label: "Yeni Defect Açıldı",     group: "Defectler",       desc: "Projede yeni bir defect oluşturulduğunda bildir" },
+  { key: "defect_resolved",    label: "Defect Çözüldü",         group: "Defectler",       desc: "Bir defect çözüme kavuşturulduğunda bildir" },
+  { key: "defect_blocker",     label: "Blocker Defect",         group: "Defectler",       desc: "Blocker seviyesinde defect açıldığında hemen bildir" },
+  // Sürümler
+  { key: "release_signoff",    label: "Sürüm Onayı İstendi",   group: "Sürümler",        desc: "Bir sürüm için onayınız istendiğinde bildir" },
+  // Regresyon
+  { key: "regression_ready",   label: "Regresyon Seti Hazır",   group: "Regresyon",       desc: "Regresyon test seti çalıştırılmaya hazır olduğunda bildir" },
+  // Gereksinimler
+  { key: "requirement_stale",  label: "Gereksinim Güncellendi", group: "Gereksinimler",   desc: "Bağlı bir gereksinim değiştiğinde bildir" },
+  { key: "coverage_dropped",   label: "Kapsam Düştü",           group: "Gereksinimler",   desc: "Test kapsamı belirlenen eşiğin altına düştüğünde bildir" },
+  // Genel
+  { key: "standup_reminder",   label: "Stand-up Hatırlatması",  group: "Genel",           desc: "Günlük stand-up toplantısından önce hatırlatma gönder" },
+  { key: "weekly_report",      label: "Haftalık Özet",          group: "Genel",           desc: "Her hafta özet rapor e-postası gönder" },
 ];
 
 const ROLES_TABLE = [
@@ -30,6 +47,26 @@ const ROLES_TABLE = [
   { role: "Test Lead", repository: "✓", runs: "✓", plans: "✓", reports: "✓",         settings: "—" },
   { role: "Tester",    repository: "✓", runs: "✓", plans: "—", reports: "Görüntüle", settings: "—" },
   { role: "Viewer",    repository: "Görüntüle", runs: "Görüntüle", plans: "—", reports: "Görüntüle", settings: "—" },
+];
+
+/* ─────────────────────────── API Key types ─────────────────────────── */
+
+interface ApiKey {
+  id: string;
+  name: string;
+  key?: string;
+  maskedKey: string;
+  createdAt: string;
+  expiresAt: string | null; // ISO string or null = unlimited
+  revokedAt?: string | null;
+  revealed: boolean; // show full key only at creation time
+}
+
+const API_KEY_DURATIONS: { label: string; days: number | null }[] = [
+  { label: "30 gün",    days: 30   },
+  { label: "90 gün",    days: 90   },
+  { label: "1 yıl",     days: 365  },
+  { label: "Sınırsız",  days: null },
 ];
 
 const KEY_FORMAT_OPTIONS = [
@@ -91,6 +128,14 @@ export default function ManagementSettingsPage() {
   const [confirmReset, setConfirmReset]       = useState(false);
   const [saveToast, setSaveToast]             = useState(false);
   const [loaded, setLoaded]                   = useState(false);
+
+  // API Keys state
+  const [apiKeys, setApiKeys]                 = useState<ApiKey[]>([]);
+  const [showKeyModal, setShowKeyModal]       = useState(false);
+  const [newKeyName, setNewKeyName]           = useState("");
+  const [newKeyDuration, setNewKeyDuration]   = useState<number | null>(365);
+  const [copyToast, setCopyToast]             = useState<string | null>(null);
+  const [keysLoading, setKeysLoading]         = useState(false);
 
   const storageKey = mpid ? `mgmt-settings-${mpid}` : null;
 
@@ -166,6 +211,31 @@ export default function ManagementSettingsPage() {
     if (mpid) void updateSettings.mutateAsync({ tags });
   }, [tags]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  useEffect(() => {
+    if (!mpid) return;
+    setKeysLoading(true);
+    apiFetch<Array<{
+      id: string;
+      name: string;
+      masked_key: string;
+      created_at: string;
+      expires_at: string | null;
+      revoked_at?: string | null;
+    }>>(`/api/v1/test-management/projects/${mpid}/api-keys`)
+      .then(keys => {
+        setApiKeys(keys.map(k => ({
+          id: k.id,
+          name: k.name,
+          maskedKey: k.masked_key,
+          createdAt: k.created_at,
+          expiresAt: k.expires_at,
+          revokedAt: k.revoked_at ?? null,
+          revealed: false,
+        })));
+      })
+      .finally(() => setKeysLoading(false));
+  }, [mpid]);
+
   /* ── actions ── */
   async function handleSaveGeneral() {
     persistAll({ defaultPriority, defaultType, caseKeyPrefix, caseKeyFormat });
@@ -224,6 +294,58 @@ export default function ManagementSettingsPage() {
       });
     }
     setConfirmReset(false);
+  }
+
+  /* ── API key actions ── */
+  async function handleCreateApiKey() {
+    const name = newKeyName.trim();
+    if (!name || !mpid) return;
+    const expiresAt = newKeyDuration
+      ? new Date(Date.now() + newKeyDuration * 24 * 60 * 60 * 1000).toISOString()
+      : null;
+    const created = await apiFetch<{
+      id: string;
+      name: string;
+      key: string;
+      masked_key: string;
+      created_at: string;
+      expires_at: string | null;
+    }>(`/api/v1/test-management/projects/${mpid}/api-keys`, {
+      method: "POST",
+      json: { name, expires_at: expiresAt },
+    });
+    const newKey: ApiKey = {
+      id: created.id,
+      name: created.name,
+      key: created.key,
+      maskedKey: created.masked_key,
+      createdAt: created.created_at,
+      expiresAt: created.expires_at,
+      revealed: true,
+    };
+    setApiKeys(prev => [newKey, ...prev]);
+    setNewKeyName("");
+    setNewKeyDuration(365);
+    setShowKeyModal(false);
+    // Mark as revealed=false after 60s so next render shows masked version
+    setTimeout(() => {
+      setApiKeys(prev => prev.map(k => k.id === newKey.id ? { ...k, revealed: false } : k));
+    }, 60_000);
+  }
+
+  function handleCopyKey(key: string | undefined, id: string) {
+    if (!key) return;
+    navigator.clipboard.writeText(key).then(() => {
+      setCopyToast(id);
+      setTimeout(() => setCopyToast(null), 2000);
+    });
+  }
+
+  async function handleRevokeKey(id: string) {
+    if (!window.confirm("Bu API anahtarını iptal etmek istediğinizden emin misiniz?")) return;
+    if (!mpid) return;
+    await apiFetch<void>(`/api/v1/test-management/projects/${mpid}/api-keys/${id}`, { method: "DELETE" });
+    setApiKeys(prev => prev.map(k => k.id === id ? { ...k, revokedAt: new Date().toISOString(), revealed: false, key: undefined } : k));
   }
 
   /* ── preview key ── */
@@ -368,12 +490,14 @@ export default function ManagementSettingsPage() {
               </div>
 
               <div className="mt-4 flex items-center gap-3">
-                <button
-                  onClick={handleSaveGeneral}
-                  className="rounded-xl bg-teal-600 px-4 py-1.5 text-[12px] font-medium text-white hover:bg-teal-700 transition-colors"
-                >
-                  Kaydet
-                </button>
+                <RoleGuard minRole="admin" projectId={projectId ?? undefined}>
+                  <button
+                    onClick={handleSaveGeneral}
+                    className="rounded-xl bg-brand px-4 py-1.5 text-[12px] font-semibold text-brand-fg transition-colors hover:brightness-105"
+                  >
+                    Kaydet
+                  </button>
+                </RoleGuard>
                 {saveToast && (
                   <span className="text-[12px] text-teal-400 animate-pulse">Kaydedildi ✓</span>
                 )}
@@ -401,7 +525,7 @@ export default function ManagementSettingsPage() {
                 />
                 <button
                   onClick={addModule}
-                  className="rounded-xl bg-teal-600 px-3 py-1.5 text-[12px] font-medium text-white hover:bg-teal-700 transition-colors"
+                  className="rounded-xl bg-brand px-3 py-1.5 text-[12px] font-semibold text-brand-fg transition-colors hover:brightness-105"
                 >
                   Ekle
                 </button>
@@ -440,7 +564,7 @@ export default function ManagementSettingsPage() {
                 />
                 <button
                   onClick={addTag}
-                  className="rounded-xl bg-teal-600 px-3 py-1.5 text-[12px] font-medium text-white hover:bg-teal-700 transition-colors"
+                  className="rounded-xl bg-brand px-3 py-1.5 text-[12px] font-semibold text-brand-fg transition-colors hover:brightness-105"
                 >
                   Ekle
                 </button>
@@ -510,39 +634,123 @@ export default function ManagementSettingsPage() {
         )}
 
         {/* ══════════════ BİLDİRİMLER ══════════════ */}
-        {activeTab === "notifs" && (
-          <section className="rounded-xl border border-border bg-surface-raised p-5">
-            <h2 className="mb-1 text-[11px] font-medium uppercase tracking-wider text-slate-500">Bildirimler</h2>
-            <p className="mb-4 text-[11px] text-slate-600">Değişiklikler otomatik kaydedilir.</p>
-            <div className="space-y-1">
-              {NOTIFICATION_TYPES.map(({ key, label }) => {
-                const active = !!notifications[key];
-                return (
-                  <button
-                    key={key}
-                    type="button"
-                    onClick={() => toggleNotif(key)}
-                    className="w-full flex items-center justify-between rounded-lg px-3 py-2.5 hover:bg-white/[0.04] transition-colors text-left"
-                  >
-                    <span className="text-[13px] text-slate-300">{label}</span>
-                    {/* toggle pill */}
-                    <div
-                      className={[
-                        "relative h-5 w-9 rounded-full transition-colors shrink-0",
-                        active ? "bg-teal-600" : "bg-white/[0.10]",
-                      ].join(" ")}
-                    >
-                      <span
-                        className={[
-                          "absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform",
-                          active ? "translate-x-4" : "translate-x-0.5",
-                        ].join(" ")}
-                      />
+        {activeTab === "notifs" && (() => {
+          // group by group field, preserving insertion order
+          const groups: Record<string, typeof NOTIFICATION_TYPES> = {};
+          for (const n of NOTIFICATION_TYPES) {
+            if (!groups[n.group]) groups[n.group] = [];
+            groups[n.group].push(n);
+          }
+          return (
+            <section className="rounded-xl border border-border bg-surface-raised p-5">
+              <h2 className="mb-1 text-[11px] font-medium uppercase tracking-wider text-slate-500">Bildirimler</h2>
+              <p className="mb-4 text-[11px] text-slate-600">Değişiklikler otomatik kaydedilir.</p>
+              <div className="space-y-5">
+                {Object.entries(groups).map(([groupName, items]) => (
+                  <div key={groupName}>
+                    <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-slate-500 px-3">{groupName}</p>
+                    <div className="space-y-0.5">
+                      {items.map(({ key, label, desc }) => {
+                        const active = !!notifications[key];
+                        return (
+                          <button
+                            key={key}
+                            type="button"
+                            onClick={() => toggleNotif(key)}
+                            className="w-full flex items-center justify-between rounded-lg px-3 py-2.5 hover:bg-white/[0.04] transition-colors text-left gap-4"
+                          >
+                            <div className="flex-1 min-w-0">
+                              <span className="block text-[13px] text-slate-300">{label}</span>
+                              <span className="block text-[11px] text-slate-600 mt-0.5">{desc}</span>
+                            </div>
+                            {/* toggle pill */}
+                            <div
+                              className={[
+                                "relative h-5 w-9 rounded-full transition-colors shrink-0",
+                                active ? "bg-brand" : "bg-white/[0.10]",
+                              ].join(" ")}
+                            >
+                              <span
+                                className={[
+                                  "absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform",
+                                  active ? "translate-x-4" : "translate-x-0.5",
+                                ].join(" ")}
+                              />
+                            </div>
+                          </button>
+                        );
+                      })}
                     </div>
-                  </button>
-                );
-              })}
+                  </div>
+                ))}
+              </div>
+            </section>
+          );
+        })()}
+
+        {/* ══════════════ API ANAHTARLARI ══════════════ */}
+        {activeTab === "apikeys" && (
+          <section className="rounded-xl border border-border bg-surface-raised p-5">
+            <div className="mb-4 flex items-center justify-between">
+              <div>
+                <h2 className="text-[11px] font-medium uppercase tracking-wider text-slate-500">API Anahtarları</h2>
+                <p className="mt-1 text-[11px] text-slate-600">Tam anahtar yalnız oluşturulduğu anda gösterilir.</p>
+              </div>
+              <button
+                onClick={() => setShowKeyModal(true)}
+                disabled={!mpid || keysLoading}
+                className="rounded-xl bg-brand px-3 py-1.5 text-[12px] font-semibold text-brand-fg transition-colors hover:brightness-105"
+              >
+                + Yeni Anahtar Oluştur
+              </button>
             </div>
+
+            {keysLoading ? (
+              <p className="py-6 text-center text-[12px] text-slate-600">Anahtarlar yükleniyor…</p>
+            ) : apiKeys.length === 0 ? (
+              <p className="py-6 text-center text-[12px] text-slate-600">Henüz API anahtarı oluşturulmadı.</p>
+            ) : (
+              <ul className="space-y-2">
+                {apiKeys.map(k => {
+                  const isExpired = k.expiresAt ? new Date(k.expiresAt) < new Date() : false;
+                  const isRevoked = !!k.revokedAt;
+                  const expiresLabel = k.expiresAt
+                    ? `${new Date(k.expiresAt).toLocaleDateString("tr-TR", { day: "2-digit", month: "short", year: "numeric" })}'e kadar`
+                    : "Sınırsız";
+                  const displayKey = k.revealed && k.key ? k.key : k.maskedKey;
+                  return (
+                    <li
+                      key={k.id}
+                      className={`flex items-center gap-3 rounded-lg border px-4 py-3 ${
+                        isExpired || isRevoked ? "border-red-500/20 bg-red-500/5 opacity-60" : "border-border bg-white/[0.02]"
+                      }`}
+                    >
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[12px] font-medium text-slate-300 truncate">{k.name}</p>
+                        <p className="mt-0.5 font-mono text-[11px] text-slate-500 truncate">{displayKey}</p>
+                      </div>
+                      <span className={`shrink-0 text-[10px] ${isExpired || isRevoked ? "text-red-400" : "text-slate-500"}`}>
+                        {isRevoked ? "İptal edildi" : isExpired ? "Süresi doldu" : expiresLabel}
+                      </span>
+                      <button
+                        onClick={() => handleCopyKey(k.key, k.id)}
+                        disabled={!k.key || isRevoked}
+                        className="shrink-0 rounded-md border border-border px-2 py-1 text-[11px] text-slate-400 transition-colors hover:text-slate-200"
+                      >
+                        {copyToast === k.id ? "Kopyalandı ✓" : "Kopyala"}
+                      </button>
+                      <button
+                        onClick={() => handleRevokeKey(k.id)}
+                        disabled={isRevoked}
+                        className="shrink-0 text-[11px] text-slate-600 transition-colors hover:text-red-400"
+                      >
+                        İptal
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
           </section>
         )}
 
@@ -568,6 +776,62 @@ export default function ManagementSettingsPage() {
           </section>
         )}
       </div>
+
+      {/* ══════════════ API KEY MODAL ══════════════ */}
+      {showKeyModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="w-full max-w-sm rounded-2xl border border-border bg-surface-raised p-6 shadow-2xl">
+            <h3 className="mb-4 text-[14px] font-semibold text-slate-200">Yeni API Anahtarı</h3>
+            <div className="space-y-4">
+              <div>
+                <label className="mb-1 block text-[11px] text-slate-500">Anahtar Adı</label>
+                <input
+                  type="text"
+                  value={newKeyName}
+                  onChange={e => setNewKeyName(e.target.value)}
+                  placeholder="ör. CI/CD Pipeline"
+                  className="w-full rounded-xl border border-border bg-bg px-3 py-2 text-[13px] text-slate-200 placeholder-slate-600 outline-none focus:border-teal-500/50"
+                  autoFocus
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-[11px] text-slate-500">Süre</label>
+                <div className="flex gap-2 flex-wrap">
+                  {API_KEY_DURATIONS.map(opt => (
+                    <button
+                      key={opt.label}
+                      type="button"
+                      onClick={() => setNewKeyDuration(opt.days)}
+                      className={`rounded-lg border px-3 py-1.5 text-[11px] font-medium transition-colors ${
+                        newKeyDuration === opt.days
+                          ? "border-teal-500/50 bg-teal-500/10 text-teal-400"
+                          : "border-border text-slate-400 hover:text-slate-200"
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+            <div className="mt-6 flex gap-3 justify-end">
+              <button
+                onClick={() => { setShowKeyModal(false); setNewKeyName(""); }}
+                className="rounded-xl border border-border px-4 py-2 text-[12px] text-slate-400 hover:text-slate-200 transition-colors"
+              >
+                İptal
+              </button>
+              <button
+                onClick={handleCreateApiKey}
+                disabled={!newKeyName.trim()}
+                className="rounded-xl bg-brand px-4 py-2 text-[12px] font-semibold text-brand-fg transition-colors hover:brightness-105 disabled:opacity-40"
+              >
+                Oluştur
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ══════════════ ONAY MODAL ══════════════ */}
       {confirmReset && (

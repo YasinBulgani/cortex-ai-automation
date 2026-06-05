@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import Link from "next/link";
 import {
   useExecutionSummary,
@@ -10,24 +10,30 @@ import {
   useRegressionSets,
   useReleaseSignoffs,
   useCreateReleaseSignoff,
+  useManagementRunTrend,
+  useManagementCases,
   type TestRun,
   type ReleaseChecklistItem,
   type ReleaseSignoff,
   type RegressionSet,
   type DefectLink,
+  type RunTrendPoint,
 } from "@/lib/hooks/use-management";
 import { useManagementProjectId } from "@/lib/hooks/use-management-project-id";
 import { useRouteParam } from "@/lib/use-route-param";
+import { PageErrorBoundary } from "../_components/PageErrorBoundary";
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
-type ReportTab = "execution" | "regression" | "defects" | "release";
+type ReportTab = "execution" | "regression" | "defects" | "release" | "tester" | "coverage";
 
 const REPORT_TABS: { id: ReportTab; label: string }[] = [
   { id: "execution",  label: "Yürütme Özeti"      },
   { id: "regression", label: "Regresyon Raporu"   },
   { id: "defects",    label: "Defekt Özeti"        },
   { id: "release",    label: "Sürüm Hazırlığı"    },
+  { id: "tester",     label: "Tester Performansı" },
+  { id: "coverage",   label: "Modül Kapsamı"      },
 ];
 
 const RUN_STATUS_DOT: Record<string, string> = {
@@ -97,42 +103,141 @@ function ErrorState({ msg = "Veri yüklenemedi — lütfen sayfayı yenileyin" }
   );
 }
 
-// ─── Trend Chart ─────────────────────────────────────────────────────────────
+// ─── Pass Rate Area Chart ─────────────────────────────────────────────────────
 
-function TrendChart({ trendData }: { trendData: number[] }) {
-  const max = Math.max(...trendData, 1);
-  const chartHeight = 60;
-  const barWidth = 28;
-  const gap = 8;
-  const totalBars = trendData.length;
-  const svgWidth = totalBars * (barWidth + gap) - gap;
+interface TrendPoint { label: string; value: number; }
+
+function PassRateAreaChart({ points }: { points: TrendPoint[] }) {
+  const [tooltip, setTooltip] = useState<{ x: number; y: number; point: TrendPoint } | null>(null);
+
+  const W = 480;
+  const H = 100;
+  const PAD_L = 32;
+  const PAD_R = 12;
+  const PAD_T = 12;
+  const PAD_B = 24;
+  const chartW = W - PAD_L - PAD_R;
+  const chartH = H - PAD_T - PAD_B;
+
+  const maxVal = Math.max(...points.map(p => p.value), 100);
+  const minVal = 0;
+
+  const toX = useCallback((i: number) =>
+    PAD_L + (points.length > 1 ? (i / (points.length - 1)) * chartW : chartW / 2),
+    [chartW, points.length],
+  );
+  const toY = useCallback((v: number) =>
+    PAD_T + chartH - ((v - minVal) / (maxVal - minVal)) * chartH,
+    [chartH, maxVal, minVal],
+  );
+
+  const pathD = points.map((p, i) => `${i === 0 ? "M" : "L"} ${toX(i).toFixed(1)} ${toY(p.value).toFixed(1)}`).join(" ");
+  const areaD = points.length > 0
+    ? `${pathD} L ${toX(points.length - 1).toFixed(1)} ${(PAD_T + chartH).toFixed(1)} L ${toX(0).toFixed(1)} ${(PAD_T + chartH).toFixed(1)} Z`
+    : "";
+
+  const yTicks = [0, 25, 50, 75, 100];
+
+  if (points.length === 0) {
+    return <p className="py-6 text-center text-[12px] text-fg-muted">Trend verisi bulunamadı</p>;
+  }
 
   return (
-    <div className="w-full overflow-x-auto">
+    <div className="relative w-full select-none">
       <svg
-        viewBox={`0 0 ${svgWidth} ${chartHeight + 32}`}
-        style={{ width: "100%", height: "80px" }}
+        viewBox={`0 0 ${W} ${H}`}
         preserveAspectRatio="xMidYMid meet"
+        className="w-full overflow-visible"
+        style={{ height: "120px" }}
+        onMouseLeave={() => setTooltip(null)}
       >
-        {trendData.map((val, i) => {
-          const barH = Math.max((val / max) * chartHeight, 4);
-          const x = i * (barWidth + gap);
-          const y = chartHeight - barH;
-          const isLast = i === trendData.length - 1;
+        <defs>
+          <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#10b981" stopOpacity="0.35" />
+            <stop offset="100%" stopColor="#10b981" stopOpacity="0.03" />
+          </linearGradient>
+        </defs>
+
+        {/* Y grid lines */}
+        {yTicks.map(tick => {
+          const y = toY(tick);
           return (
-            <g key={i}>
-              <rect x={x} y={y} width={barWidth} height={barH} rx={3}
-                className={isLast ? "fill-emerald-400" : "fill-emerald-600/60"} />
-              <text x={x + barWidth / 2} y={y - 3} textAnchor="middle" fontSize="7"
-                className="fill-slate-400">{val}%</text>
-              <text x={x + barWidth / 2} y={chartHeight + 12} textAnchor="middle" fontSize="7"
-                className="fill-slate-500">{DAY_LABELS[i] ?? `G-${totalBars - 1 - i}`}</text>
+            <g key={tick}>
+              <line x1={PAD_L} y1={y} x2={W - PAD_R} y2={y}
+                stroke="rgba(255,255,255,0.06)" strokeWidth="1" />
+              <text x={PAD_L - 4} y={y + 3} textAnchor="end" fontSize="7" fill="rgba(148,163,184,0.6)">{tick}</text>
+            </g>
+          );
+        })}
+
+        {/* Area fill */}
+        {areaD && <path d={areaD} fill="url(#areaGrad)" />}
+
+        {/* Line */}
+        {pathD && (
+          <path d={pathD} fill="none" stroke="#10b981" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
+        )}
+
+        {/* X-axis labels + hover targets */}
+        {points.map((p, i) => {
+          const x = toX(i);
+          const y = toY(p.value);
+          const showLabel = points.length <= 10 || i % Math.ceil(points.length / 8) === 0 || i === points.length - 1;
+          return (
+            <g key={i}
+              onMouseEnter={() => setTooltip({ x, y, point: p })}
+            >
+              {/* Invisible wide hit target */}
+              <rect
+                x={x - (chartW / (points.length * 2))}
+                y={PAD_T}
+                width={chartW / points.length}
+                height={chartH}
+                fill="transparent"
+              />
+              {/* Dot */}
+              <circle cx={x} cy={y} r={tooltip?.point === p ? 4 : 2.5}
+                fill={tooltip?.point === p ? "#10b981" : "#059669"}
+                stroke={tooltip?.point === p ? "rgba(16,185,129,0.4)" : "none"}
+                strokeWidth={tooltip?.point === p ? 4 : 0}
+              />
+              {/* X label */}
+              {showLabel && (
+                <text x={x} y={PAD_T + chartH + 14} textAnchor="middle" fontSize="7" fill="rgba(148,163,184,0.7)">
+                  {p.label}
+                </text>
+              )}
             </g>
           );
         })}
       </svg>
+
+      {/* Tooltip */}
+      {tooltip && (
+        <div
+          className="pointer-events-none absolute z-10 rounded-lg border border-emerald-500/30 bg-surface-raised px-2.5 py-1.5 shadow-elevated"
+          style={{
+            left: `${(tooltip.x / W) * 100}%`,
+            top: `${(tooltip.y / H) * 100}%`,
+            transform: "translate(-50%, -120%)",
+          }}
+        >
+          <p className="text-[11px] font-semibold text-emerald-400">{tooltip.point.value}%</p>
+          <p className="text-[9px] text-fg-subtle">{tooltip.point.label}</p>
+        </div>
+      )}
     </div>
   );
+}
+
+// ─── Legacy bar chart (kept for fallback) ────────────────────────────────────
+
+function TrendChart({ trendData }: { trendData: number[] }) {
+  const points: TrendPoint[] = trendData.map((val, i) => ({
+    label: DAY_LABELS[i] ?? `G-${trendData.length - 1 - i}`,
+    value: val,
+  }));
+  return <PassRateAreaChart points={points} />;
 }
 
 // ─── Pass/Fail/Blocked/NotRun Bar Chart ───────────────────────────────────────
@@ -199,13 +304,14 @@ function ChecklistRow({ item }: { item: ReleaseChecklistItem }) {
 // ─── Execution Summary Tab ────────────────────────────────────────────────────
 
 function ExecutionSummaryTab({
-  summary, runs, filteredRuns, sumLoading, sumError, runsLoading, runsError, projectId, trendData,
+  summary, runs, filteredRuns, sumLoading, sumError, runsLoading, runsError, projectId, trendData, trendPoints,
 }: {
   summary: any; runs: TestRun[] | undefined; filteredRuns: TestRun[];
   sumLoading: boolean; sumError: boolean;
   runsLoading: boolean; runsError: boolean;
   projectId: string | null;
   trendData: number[];
+  trendPoints?: TrendPoint[];
 }) {
   const passed  = summary?.passed  ?? 0;
   const failed  = summary?.failed  ?? 0;
@@ -243,9 +349,14 @@ function ExecutionSummaryTab({
       <div className="rounded-xl border border-border bg-surface-raised p-5">
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-[11px] font-medium uppercase tracking-wider text-fg-subtle">Pass Rate Trendi</h2>
-          <span className="text-[11px] text-fg-subtle">Son 7 gün</span>
+          <span className="text-[11px] text-fg-subtle">
+            {trendPoints && trendPoints.length > 0 ? `Son ${trendPoints.length} koşum` : "Son 7 gün"}
+          </span>
         </div>
-        <TrendChart trendData={trendData} />
+        {trendPoints && trendPoints.length > 0
+          ? <PassRateAreaChart points={trendPoints} />
+          : <TrendChart trendData={trendData} />
+        }
       </div>
 
       {/* Recent Runs Table */}
@@ -271,9 +382,10 @@ function ExecutionSummaryTab({
             <tbody>
               {recentRuns.map((run: TestRun) => {
                 const dot = RUN_STATUS_DOT[run.status] ?? "bg-slate-600";
-                const runPassed  = (run as any).passed  ?? 0;
-                const runFailed  = (run as any).failed  ?? 0;
-                const runBlocked = (run as any).blocked ?? 0;
+                const snap = run.scope_snapshot as { passed?: number; failed?: number; blocked?: number };
+                const runPassed  = snap?.passed  ?? 0;
+                const runFailed  = snap?.failed  ?? 0;
+                const runBlocked = snap?.blocked ?? 0;
                 const runTotal   = runPassed + runFailed + runBlocked;
                 return (
                   <tr key={run.id} className="border-b border-border hover:bg-white/[0.04] transition-colors">
@@ -337,7 +449,7 @@ function RegressionReportTab({
 
   const getLastRunStatus = (setId: string): string => {
     if (!runs) return "—";
-    const relatedRuns = (runs as any[]).filter(r => r.regression_set_id === setId || r.name?.toLowerCase().includes("regress"));
+    const relatedRuns = (runs ?? []).filter(r => r.name?.toLowerCase().includes("regress"));
     if (!relatedRuns.length) return "—";
     return relatedRuns[0].status;
   };
@@ -380,7 +492,7 @@ function RegressionReportTab({
                       </div>
                     </td>
                     <td className="px-4 py-3">
-                      <span className="text-[13px] text-fg-muted">{(set as any).case_count ?? (set as any).cases?.length ?? "—"}</span>
+                      <span className="text-[13px] text-fg-muted">{set.cases.length}</span>
                     </td>
                     <td className="px-4 py-3">
                       <span className={`text-[12px] font-medium ${statusColor}`}>{lastStatus}</span>
@@ -404,7 +516,7 @@ function RegressionReportTab({
       {sets.length > 0 && (
         <div className="grid grid-cols-3 gap-3">
           <KpiCard label="Toplam Set" value={sets.length} sub="tanımlı regresyon seti" />
-          <KpiCard label="Toplam Case" value={(sets as any[]).reduce((acc, s) => acc + ((s as any).case_count ?? (s as any).cases?.length ?? 0), 0)} sub="regresyon kapsamı" />
+          <KpiCard label="Toplam Case" value={sets.reduce((acc, s) => acc + s.cases.length, 0)} sub="regresyon kapsamı" />
           <KpiCard label="Son Run" value={(runs ?? []).filter(r => r.status === "in_progress").length > 0 ? "Aktif" : "Tamamlandı"} sub="run durumu" />
         </div>
       )}
@@ -701,6 +813,302 @@ function ReleaseReadinessTab({
   );
 }
 
+// ─── Tester Performance Tab ──────────────────────────────────────────────────
+
+type SortKey = "assigned" | "completed" | "passRate";
+type SortDir = "asc" | "desc";
+
+function TesterPerformanceTab({
+  cases,
+  runs,
+  loading,
+}: {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  cases: any[] | undefined;
+  runs: TestRun[] | undefined;
+  loading: boolean;
+}) {
+  const [sortKey, setSortKey] = useState<SortKey>("assigned");
+  const [sortDir, setSortDir] = useState<SortDir>("desc");
+
+  const testerRows = useMemo(() => {
+    if (!cases) return [];
+    const map = new Map<string, { assigned: number; completed: number; passed: number }>();
+
+    for (const tc of cases) {
+      const key = (tc.owner_id ?? tc.assigned_to ?? "Atanmamış").trim() || "Atanmamış";
+      const row = map.get(key) ?? { assigned: 0, completed: 0, passed: 0 };
+      row.assigned += 1;
+      if (["passed", "failed", "blocked"].includes(tc.last_run_status ?? "")) row.completed += 1;
+      if (tc.last_run_status === "passed") row.passed += 1;
+      map.set(key, row);
+    }
+
+    // Add run-level tester info
+    if (runs) {
+      for (const run of runs) {
+        const key = (run.assigned_to ?? "").trim();
+        if (!key) continue;
+        const row = map.get(key) ?? { assigned: 0, completed: 0, passed: 0 };
+        if (!map.has(key)) map.set(key, row);
+      }
+    }
+
+    return [...map.entries()].map(([tester, data]) => ({
+      tester,
+      assigned: data.assigned,
+      completed: data.completed,
+      passRate: data.completed > 0 ? Math.round((data.passed / data.completed) * 100) : 0,
+      active: (runs ?? []).some(r => r.status === "in_progress" && r.assigned_to === tester),
+    }));
+  }, [cases, runs]);
+
+  const sorted = useMemo(() => {
+    return [...testerRows].sort((a, b) => {
+      const diff = a[sortKey] - b[sortKey];
+      return sortDir === "asc" ? diff : -diff;
+    });
+  }, [testerRows, sortKey, sortDir]);
+
+  function toggleSort(key: SortKey) {
+    if (sortKey === key) {
+      setSortDir(d => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortKey(key);
+      setSortDir("desc");
+    }
+  }
+
+  const arrow = (key: SortKey) => {
+    if (sortKey !== key) return <span className="text-fg-subtle">↕</span>;
+    return <span className="text-emerald-400">{sortDir === "asc" ? "↑" : "↓"}</span>;
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="rounded-xl border border-border bg-surface-raised overflow-hidden">
+        <div className="border-b border-border px-5 py-3 flex items-center justify-between">
+          <h2 className="text-[11px] font-medium uppercase tracking-wider text-fg-subtle">Tester Performansı</h2>
+          <span className="text-[10px] text-fg-subtle">{sorted.length} tester</span>
+        </div>
+        {loading ? (
+          <div className="p-6"><SkeletonRows /></div>
+        ) : sorted.length === 0 ? (
+          <p className="px-5 py-6 text-[13px] text-fg-subtle">Case veya tester ataması bulunamadı.</p>
+        ) : (
+          <table className="w-full border-collapse">
+            <thead>
+              <tr className="border-b border-border">
+                <th className="px-4 py-2 text-left text-[10px] font-medium uppercase tracking-wider text-fg-subtle">Tester</th>
+                <th
+                  className="px-4 py-2 text-left text-[10px] font-medium uppercase tracking-wider text-fg-subtle cursor-pointer select-none"
+                  onClick={() => toggleSort("assigned")}
+                >
+                  Atanan {arrow("assigned")}
+                </th>
+                <th
+                  className="px-4 py-2 text-left text-[10px] font-medium uppercase tracking-wider text-fg-subtle cursor-pointer select-none"
+                  onClick={() => toggleSort("completed")}
+                >
+                  Tamamlanan {arrow("completed")}
+                </th>
+                <th
+                  className="px-4 py-2 text-left text-[10px] font-medium uppercase tracking-wider text-fg-subtle cursor-pointer select-none"
+                  onClick={() => toggleSort("passRate")}
+                >
+                  Geçme % {arrow("passRate")}
+                </th>
+                <th className="px-4 py-2 text-left text-[10px] font-medium uppercase tracking-wider text-fg-subtle">Aktif</th>
+              </tr>
+            </thead>
+            <tbody>
+              {sorted.map(row => (
+                <tr key={row.tester} className="border-b border-border hover:bg-white/[0.04] transition-colors">
+                  <td className="px-4 py-3 text-[13px] text-fg">{row.tester}</td>
+                  <td className="px-4 py-3 text-[13px] text-fg-muted">{row.assigned}</td>
+                  <td className="px-4 py-3 text-[13px] text-fg-muted">{row.completed}</td>
+                  <td className="px-4 py-3">
+                    <span className={`text-[12px] font-semibold ${
+                      row.passRate >= 80 ? "text-emerald-400" :
+                      row.passRate >= 50 ? "text-amber-400" : "text-red-400"
+                    }`}>{row.passRate}%</span>
+                  </td>
+                  <td className="px-4 py-3">
+                    <span className={`inline-block h-2 w-2 rounded-full ${row.active ? "bg-emerald-500 animate-pulse" : "bg-slate-600"}`} />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+
+      {sorted.length > 0 && (
+        <div className="grid grid-cols-3 gap-3">
+          <KpiCard label="Toplam Tester" value={sorted.length} sub="case atanmış" />
+          <KpiCard
+            label="Ort. Pass Rate"
+            value={`${Math.round(sorted.reduce((s, r) => s + r.passRate, 0) / sorted.length)}%`}
+            sub="tüm testerlar"
+          />
+          <KpiCard
+            label="Aktif Tester"
+            value={sorted.filter(r => r.active).length}
+            sub="şu anda çalışıyor"
+          />
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Module Coverage Tab ──────────────────────────────────────────────────────
+
+function ModuleCoverageTab({
+  cases,
+  loading,
+}: {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  cases: any[] | undefined;
+  loading: boolean;
+}) {
+  const suiteRows = useMemo(() => {
+    if (!cases) return [];
+    const map = new Map<string, { total: number; passed: number; failed: number; blocked: number }>();
+    for (const tc of cases) {
+      const key = (tc.custom_fields?.component ?? tc.custom_fields?.module ?? tc.suite_id ?? "Genel").trim() || "Genel";
+      const row = map.get(key) ?? { total: 0, passed: 0, failed: 0, blocked: 0 };
+      row.total += 1;
+      if (tc.last_run_status === "passed")  row.passed  += 1;
+      if (tc.last_run_status === "failed")  row.failed  += 1;
+      if (tc.last_run_status === "blocked") row.blocked += 1;
+      map.set(key, row);
+    }
+    return [...map.entries()]
+      .map(([suite, data]) => ({
+        suite,
+        total: data.total,
+        passed: data.passed,
+        failed: data.failed,
+        blocked: data.blocked,
+        passRate: data.total > 0 ? Math.round((data.passed / data.total) * 100) : 0,
+        coverage: data.total > 0 ? Math.round(((data.passed + data.failed + data.blocked) / data.total) * 100) : 0,
+      }))
+      .sort((a, b) => b.total - a.total);
+  }, [cases]);
+
+  const maxTotal = Math.max(...suiteRows.map(r => r.total), 1);
+
+  const W = 400;
+  const ROW_H = 32;
+  const PAD_L = 120;
+  const PAD_R = 60;
+  const chartW = W - PAD_L - PAD_R;
+  const H = Math.max(suiteRows.length * ROW_H + 20, 60);
+
+  return (
+    <div className="space-y-6">
+      <div className="rounded-xl border border-border bg-surface-raised p-5">
+        <h2 className="mb-4 text-[11px] font-medium uppercase tracking-wider text-fg-subtle">Suite / Modül Bazlı Kapsam</h2>
+        {loading ? (
+          <SkeletonRows />
+        ) : suiteRows.length === 0 ? (
+          <p className="text-[13px] text-fg-subtle">Case bulunamadı.</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <svg
+              viewBox={`0 0 ${W} ${H}`}
+              className="w-full"
+              style={{ height: `${H}px`, maxHeight: "480px" }}
+            >
+              {suiteRows.map((row, i) => {
+                const y = i * ROW_H + 10;
+                const barW = (row.total / maxTotal) * chartW;
+                const passW = row.total > 0 ? (row.passed / row.total) * barW : 0;
+                const failW = row.total > 0 ? (row.failed / row.total) * barW : 0;
+                const blockW = row.total > 0 ? (row.blocked / row.total) * barW : 0;
+                const label = row.suite.length > 16 ? row.suite.slice(0, 14) + "…" : row.suite;
+                return (
+                  <g key={row.suite}>
+                    <text
+                      x={PAD_L - 6}
+                      y={y + ROW_H / 2 + 4}
+                      textAnchor="end"
+                      fontSize="10"
+                      fill="rgba(148,163,184,0.8)"
+                    >
+                      {label}
+                    </text>
+                    {/* background bar */}
+                    <rect x={PAD_L} y={y + 4} width={barW} height={ROW_H - 12} rx="3" fill="rgba(255,255,255,0.05)" />
+                    {/* passed */}
+                    <rect x={PAD_L} y={y + 4} width={passW} height={ROW_H - 12} rx="3" fill="#10b981" opacity="0.8" />
+                    {/* failed */}
+                    <rect x={PAD_L + passW} y={y + 4} width={failW} height={ROW_H - 12} rx="3" fill="#ef4444" opacity="0.8" />
+                    {/* blocked */}
+                    <rect x={PAD_L + passW + failW} y={y + 4} width={blockW} height={ROW_H - 12} rx="3" fill="#f59e0b" opacity="0.8" />
+                    {/* pass rate label */}
+                    <text
+                      x={PAD_L + barW + 8}
+                      y={y + ROW_H / 2 + 4}
+                      fontSize="10"
+                      fill={row.passRate >= 80 ? "#34d399" : row.passRate >= 50 ? "#fbbf24" : "#f87171"}
+                    >
+                      {row.passRate}%
+                    </text>
+                  </g>
+                );
+              })}
+            </svg>
+
+            {/* Legend */}
+            <div className="mt-3 flex items-center gap-4 text-[10px] text-fg-subtle">
+              <span className="flex items-center gap-1.5"><span className="inline-block h-2 w-3 rounded-sm bg-emerald-500" />Geçti</span>
+              <span className="flex items-center gap-1.5"><span className="inline-block h-2 w-3 rounded-sm bg-red-500" />Başarısız</span>
+              <span className="flex items-center gap-1.5"><span className="inline-block h-2 w-3 rounded-sm bg-amber-500" />Engellendi</span>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Table */}
+      {suiteRows.length > 0 && (
+        <div className="rounded-xl border border-border bg-surface-raised overflow-hidden">
+          <div className="border-b border-border px-5 py-3">
+            <h2 className="text-[11px] font-medium uppercase tracking-wider text-fg-subtle">Kapsam Detayı</h2>
+          </div>
+          <table className="w-full border-collapse">
+            <thead>
+              <tr className="border-b border-border">
+                {["Suite / Modül", "Toplam", "Geçti", "Başarısız", "Kapsam %", "Pass %"].map((h, i) => (
+                  <th key={i} className="px-4 py-2 text-left text-[10px] font-medium uppercase tracking-wider text-fg-subtle">{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {suiteRows.map(row => (
+                <tr key={row.suite} className="border-b border-border hover:bg-white/[0.04] transition-colors">
+                  <td className="px-4 py-3 text-[13px] text-fg">{row.suite}</td>
+                  <td className="px-4 py-3 text-[13px] text-fg-muted">{row.total}</td>
+                  <td className="px-4 py-3 text-[12px] text-emerald-400">{row.passed}</td>
+                  <td className="px-4 py-3 text-[12px] text-red-400">{row.failed}</td>
+                  <td className="px-4 py-3 text-[12px] text-fg-muted">{row.coverage}%</td>
+                  <td className="px-4 py-3">
+                    <span className={`text-[12px] font-semibold ${
+                      row.passRate >= 80 ? "text-emerald-400" :
+                      row.passRate >= 50 ? "text-amber-400" : "text-red-400"
+                    }`}>{row.passRate}%</span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function ManagementReportsPage() {
@@ -719,6 +1127,8 @@ export default function ManagementReportsPage() {
   const { data: regressionSets, isLoading: regressionLoading, isError: regressionError } = useRegressionSets(mpid || undefined);
   const { data: signoffs }                                                                 = useReleaseSignoffs(mpid || undefined);
   const createSignoff                                                                     = useCreateReleaseSignoff(mpid || "");
+  const { data: runTrend }                                                                = useManagementRunTrend(mpid || undefined);
+  const { data: casesData, isLoading: casesLoading }                                      = useManagementCases(mpid || undefined);
 
   const passRate    = summary?.pass_rate_pct ?? 0;
   const totalCases  = summary?.total ?? 0;
@@ -732,7 +1142,7 @@ export default function ManagementReportsPage() {
     const cutoffMs = dateRange * 24 * 60 * 60 * 1000;
     return runs.filter(r => {
       // Date filter: use created_at or started_at if available
-      const dateField = (r as any).created_at || r.started_at;
+      const dateField = r.created_at || r.started_at;
       if (dateField) {
         const age = now - new Date(dateField).getTime();
         if (age > cutoffMs) return false;
@@ -741,7 +1151,7 @@ export default function ManagementReportsPage() {
       if (moduleFilter && !r.name.toLowerCase().includes(moduleFilter.toLowerCase())) return false;
       // Platform filter: match against platform field if exists
       if (platformFilter) {
-        const platform = ((r as any).platform ?? "").toLowerCase();
+        const platform = (r.environment ?? "").toLowerCase();
         if (platform && !platform.includes(platformFilter.toLowerCase())) return false;
       }
       return true;
@@ -749,7 +1159,19 @@ export default function ManagementReportsPage() {
   }, [runs, dateRange, moduleFilter, platformFilter]);
 
   const checklist: ReleaseChecklistItem[] = release?.checklist ?? [];
-  const trendData = [62, 68, 71, 65, 74, 78, Math.round(passRate)];
+
+  // Real run trend points from the API.
+  const trendPoints: TrendPoint[] = useMemo(() => {
+    if (!runTrend || runTrend.length === 0) return [];
+    const sorted = [...runTrend]
+      .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+      .slice(-30);
+    return sorted.map((p: RunTrendPoint) => ({
+      label: new Date(p.created_at).toLocaleDateString("tr-TR", { day: "2-digit", month: "short" }),
+      value: Math.round(p.pass_rate_pct),
+    }));
+  }, [runTrend]);
+  const trendData = trendPoints.map(point => point.value);
 
   function handleCSVExport() {
     const passed  = summary?.passed  ?? 0;
@@ -773,9 +1195,18 @@ export default function ManagementReportsPage() {
   }
 
   return (
+    <PageErrorBoundary>
     <div className="min-h-[calc(100vh-88px)] bg-bg text-fg">
+      {/* Print CSS */}
+      <style>{`
+        @media print {
+          .no-print { display: none !important; }
+          body { background: white !important; color: black !important; }
+        }
+      `}</style>
+
       {/* Header */}
-      <div className="border-b border-border bg-surface-raised px-6 py-4">
+      <div className="no-print border-b border-border bg-surface-raised px-6 py-4">
         <div className="flex items-center justify-between gap-4">
           <h1 className="text-[13px] font-semibold text-fg">Raporlar</h1>
           <div className="flex items-center gap-2">
@@ -795,7 +1226,7 @@ export default function ManagementReportsPage() {
               <svg className="h-3 w-3" viewBox="0 0 16 16" fill="none">
                 <path d="M4 6V2h8v4M4 12H2a1 1 0 01-1-1V7a1 1 0 011-1h12a1 1 0 011 1v4a1 1 0 01-1 1h-2m-8 0v3h8v-3H4z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
-              Yazdır
+              PDF İndir
             </button>
           </div>
         </div>
@@ -885,6 +1316,7 @@ export default function ManagementReportsPage() {
             runsError={runsError}
             projectId={projectId}
             trendData={trendData}
+            trendPoints={trendPoints}
           />
         )}
 
@@ -912,7 +1344,23 @@ export default function ManagementReportsPage() {
             createSignoff={createSignoff}
           />
         )}
+
+        {activeTab === "tester" && (
+          <TesterPerformanceTab
+            cases={casesData}
+            runs={runs}
+            loading={casesLoading || runsLoading}
+          />
+        )}
+
+        {activeTab === "coverage" && (
+          <ModuleCoverageTab
+            cases={casesData}
+            loading={casesLoading}
+          />
+        )}
       </div>
     </div>
+    </PageErrorBoundary>
   );
 }

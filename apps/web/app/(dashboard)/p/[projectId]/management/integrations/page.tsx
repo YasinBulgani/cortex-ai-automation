@@ -2,16 +2,22 @@
 
 import { useEffect, useState } from "react";
 import {
+  useManagementSettingValue,
+  usePatchManagementSetting,
   useKiwiConnection,
   useSaveKiwiConnection,
   useTestKiwiConnection,
   useKiwiPreview,
   useStartKiwiSync,
   useKiwiSyncJobs,
+  type CicdWebhookConfig,
   type KiwiProduct,
+  type ProjectSsoConfig,
+  type WebhookNotification,
 } from "@/lib/hooks/use-management";
 import { useManagementProjectId } from "@/lib/hooks/use-management-project-id";
 import { useRouteParam } from "@/lib/use-route-param";
+import { apiFetch } from "@/lib/api";
 
 const ENTITY_LABELS: Record<string, string> = {
   suites: "Suite",
@@ -26,9 +32,12 @@ const STATUS_BADGE: Record<string, string> = {
   unconfigured: "bg-white/[0.06] text-slate-400",
 };
 
+type IntegrationTab = "kiwi" | "jira" | "cicd" | "sso" | "webhooks";
+
 export default function ManagementIntegrationsPage() {
   const projectId = useRouteParam("projectId");
   const mpid = useManagementProjectId(projectId || undefined);
+  const [activeTab, setActiveTab] = useState<IntegrationTab>("kiwi");
 
   const { data: connection, isLoading } = useKiwiConnection(mpid || undefined);
   const saveConn = useSaveKiwiConnection(mpid || "");
@@ -89,13 +98,50 @@ export default function ManagementIntegrationsPage() {
   };
 
   return (
-    <div className="min-h-[calc(100vh-88px)] bg-bg text-slate-200">
+    <div className="min-h-[calc(100vh-88px)] bg-bg text-fg">
+      {/* Header */}
       <div className="border-b border-border bg-surface-raised px-6 py-4">
-        <h1 className="text-[13px] font-semibold text-slate-200">Entegrasyonlar</h1>
-        <p className="mt-0.5 text-[11px] text-slate-500">Kiwi TCMS&apos;ten test verisi içe aktarımı</p>
+        <h1 className="text-[13px] font-semibold text-fg">Entegrasyonlar</h1>
+        <p className="mt-0.5 text-[11px] text-fg-subtle">Dış araçlarla bağlantı ve senkronizasyon</p>
+      </div>
+
+      {/* Tab bar */}
+      <div className="flex border-b border-border bg-surface-raised px-6">
+        {([
+          { id: "kiwi", label: "Kiwi TCMS" },
+          { id: "jira", label: "Jira" },
+          { id: "cicd", label: "CI/CD Webhook" },
+          { id: "sso", label: "SSO / SAML" },
+          { id: "webhooks", label: "Webhook Bildirimleri" },
+        ] as { id: IntegrationTab; label: string }[]).map(tab => (
+          <button
+            key={tab.id}
+            type="button"
+            onClick={() => setActiveTab(tab.id)}
+            className={`flex items-center gap-1.5 border-b-2 px-4 py-3 text-[12px] font-medium transition-colors ${
+              activeTab === tab.id
+                ? "border-brand text-brand"
+                : "border-transparent text-fg-subtle hover:text-fg"
+            }`}
+          >
+            {tab.label}
+            {tab.id === "jira" && (
+              <span className="rounded-full bg-brand/15 px-1.5 py-0.5 text-[9px] font-bold text-brand">YENİ</span>
+            )}
+          </button>
+        ))}
       </div>
 
       <div className="mx-auto max-w-2xl p-6 space-y-6">
+        {activeTab === "sso" ? (
+          <SsoPanel projectId={mpid ?? projectId ?? ""} />
+        ) : activeTab === "webhooks" ? (
+          <WebhookNotificationsPanel projectId={mpid ?? projectId ?? ""} />
+        ) : activeTab === "jira" ? (
+          <JiraIntegrationPanel projectId={projectId ?? ""} mpid={mpid ?? ""} />
+        ) : activeTab === "cicd" ? (
+          <CiCdWebhookPanel projectId={projectId ?? ""} mpid={mpid ?? ""} />
+        ) : (<>
         {/* ── Bağlantı ── */}
         <section className="rounded-xl border border-border bg-surface-raised p-5">
           <div className="mb-4 flex items-center justify-between">
@@ -153,7 +199,7 @@ export default function ManagementIntegrationsPage() {
                 <button
                   onClick={handleSave}
                   disabled={!canSave || saveConn.isPending}
-                  className="rounded-lg bg-teal-600 px-4 py-2 text-[13px] font-semibold text-white transition hover:bg-teal-500 disabled:opacity-40"
+                  className="rounded-lg bg-brand px-4 py-2 text-[13px] font-semibold text-white transition hover:bg-teal-500 disabled:opacity-40"
                 >
                   {saveConn.isPending ? "Kaydediliyor…" : "Kaydet"}
                 </button>
@@ -220,7 +266,7 @@ export default function ManagementIntegrationsPage() {
                 <button
                   onClick={() => startSync.mutate({ dry_run: dryRun })}
                   disabled={startSync.isPending}
-                  className="ml-auto rounded-lg bg-teal-600 px-4 py-2 text-[13px] font-semibold text-white transition hover:bg-teal-500 disabled:opacity-40"
+                  className="ml-auto rounded-lg bg-brand px-4 py-2 text-[13px] font-semibold text-white transition hover:bg-teal-500 disabled:opacity-40"
                 >
                   {startSync.isPending ? "Başlatılıyor…" : "Senkronu başlat"}
                 </button>
@@ -266,7 +312,874 @@ export default function ManagementIntegrationsPage() {
             </div>
           )}
         </section>
+        </>)}
       </div>
+    </div>
+  );
+}
+
+// ─── SSO / SAML Panel ────────────────────────────────────────────────────────
+
+const DEFAULT_SSO_CONFIG: ProjectSsoConfig = { enabled: false, entityId: "", ssoUrl: "", cert: "" };
+
+function SsoPanel({ projectId }: { projectId: string }) {
+  const { data: savedConfig, isLoading } = useManagementSettingValue<ProjectSsoConfig>(
+    projectId || undefined,
+    "sso_config",
+    DEFAULT_SSO_CONFIG,
+  );
+  const saveSso = usePatchManagementSetting<ProjectSsoConfig>(projectId, "sso_config");
+  const [config, setConfig] = useState<ProjectSsoConfig>(DEFAULT_SSO_CONFIG);
+  const [toast, setToast] = useState<{ type: "ok" | "error"; msg: string } | null>(null);
+  const [testing, setTesting] = useState(false);
+
+  useEffect(() => {
+    setConfig(savedConfig);
+  }, [savedConfig]);
+
+  const showToast = (type: "ok" | "error", msg: string) => {
+    setToast({ type, msg });
+    setTimeout(() => setToast(null), 3500);
+  };
+
+  const handleSave = async () => {
+    try {
+      await saveSso.mutateAsync(config);
+      showToast("ok", "SSO yapılandırması kaydedildi.");
+    } catch {
+      showToast("error", "Kaydedilemedi.");
+    }
+  };
+
+  const handleTest = async () => {
+    if (!config.entityId || !config.ssoUrl) {
+      showToast("error", "Entity ID ve SSO URL zorunludur.");
+      return;
+    }
+    setTesting(true);
+    try {
+      const res = await apiFetch<{ ok: boolean; status_code?: number; message: string }>(
+        `/api/v1/test-management/projects/${projectId}/sso-test`,
+        {
+          method: "POST",
+          json: { entity_id: config.entityId, sso_url: config.ssoUrl },
+        },
+      );
+      showToast(res.ok ? "ok" : "error", res.message);
+    } catch {
+      showToast("error", "SSO URL'e ulaşılamadı — URL'i ve ağ erişimini kontrol edin.");
+    } finally {
+      setTesting(false);
+    }
+  };
+
+  const inp = "w-full rounded-xl border border-border bg-surface-overlay px-3 py-2 text-[13px] text-fg placeholder:text-fg-subtle outline-none focus:border-brand focus:ring-2 focus:ring-brand/15";
+
+  const SSO_PROVIDERS = ["Okta", "Azure AD", "Auth0", "Google Workspace"];
+
+  return (
+    <div className="space-y-5">
+      {/* Toast */}
+      {toast && (
+        <div className={`flex items-center gap-2 rounded-xl border px-4 py-3 text-[12px] ${
+          toast.type === "ok"
+            ? "border-emerald-500/30 bg-emerald-500/8 text-emerald-400"
+            : "border-danger/30 bg-danger-subtle text-danger"
+        }`}>
+          {toast.type === "ok" ? "✓" : "✗"} {toast.msg}
+        </div>
+      )}
+
+      <section className="rounded-xl border border-border bg-surface-raised p-5 space-y-5">
+        {/* Header */}
+        <div className="flex items-center justify-between pb-3 border-b border-border">
+          <div>
+            <h3 className="text-[13px] font-semibold text-fg">SSO / SAML Yapılandırması</h3>
+            <p className="mt-0.5 text-[11px] text-fg-subtle">Tek oturum açma ile kurumsal kimlik doğrulama</p>
+          </div>
+          {/* Toggle */}
+          <button
+            type="button"
+            onClick={() => setConfig(c => ({ ...c, enabled: !c.enabled }))}
+            disabled={isLoading || saveSso.isPending}
+            className={`relative inline-flex h-6 w-11 shrink-0 rounded-full border-2 border-transparent transition-colors ${
+              config.enabled ? "bg-brand" : "bg-surface-overlay border-border"
+            }`}
+            role="switch"
+            aria-checked={config.enabled}
+          >
+            <span
+              className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${
+                config.enabled ? "translate-x-5" : "translate-x-0"
+              }`}
+            />
+          </button>
+        </div>
+
+        {/* Fields */}
+        <div className={`space-y-4 transition-opacity ${config.enabled ? "opacity-100" : "opacity-50 pointer-events-none"}`}>
+          <div>
+            <label className="mb-1 block text-[11px] font-medium text-fg-muted">Entity ID</label>
+            <input
+              value={config.entityId}
+              onChange={e => setConfig(c => ({ ...c, entityId: e.target.value }))}
+              placeholder="https://yourcompany.com/saml/entity"
+              className={inp}
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-[11px] font-medium text-fg-muted">SSO URL</label>
+            <input
+              value={config.ssoUrl}
+              onChange={e => setConfig(c => ({ ...c, ssoUrl: e.target.value }))}
+              placeholder="https://yourcompany.okta.com/app/saml/sso"
+              className={inp}
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-[11px] font-medium text-fg-muted">X.509 Sertifikası</label>
+            <textarea
+              value={config.cert}
+              onChange={e => setConfig(c => ({ ...c, cert: e.target.value }))}
+              placeholder="-----BEGIN CERTIFICATE-----&#10;MIICpDCCAYwCCQD...&#10;-----END CERTIFICATE-----"
+              rows={5}
+              className={`${inp} resize-none font-mono text-[11px]`}
+            />
+          </div>
+
+          <div className="flex items-center gap-2 pt-1">
+            <button
+              type="button"
+              onClick={handleTest}
+              disabled={testing}
+              className="rounded-xl border border-border px-4 py-2 text-[12px] font-medium text-fg-muted transition-colors hover:bg-surface-overlay hover:text-fg disabled:opacity-40"
+            >
+              {testing ? "Test ediliyor…" : "Test Et"}
+            </button>
+            <button
+              type="button"
+              onClick={handleSave}
+              disabled={saveSso.isPending}
+              className="rounded-xl bg-brand px-5 py-2 text-[12px] font-semibold text-brand-fg transition-colors hover:brightness-105"
+            >
+              {saveSso.isPending ? "Kaydediliyor…" : "Kaydet"}
+            </button>
+          </div>
+        </div>
+      </section>
+
+      {/* Provider badges */}
+      <section className="rounded-xl border border-border bg-surface-raised p-5">
+        <h3 className="mb-3 text-[11px] font-semibold uppercase tracking-widest text-fg-subtle">Desteklenen Sağlayıcılar</h3>
+        <div className="flex flex-wrap gap-2">
+          {SSO_PROVIDERS.map(p => (
+            <span
+              key={p}
+              className="rounded-lg border border-border bg-surface-overlay px-3 py-1.5 text-[12px] font-medium text-fg-muted"
+            >
+              {p}
+            </span>
+          ))}
+        </div>
+      </section>
+    </div>
+  );
+}
+
+// ─── Webhook Notifications Panel ──────────────────────────────────────────────
+
+type WebhookEvent =
+  | "run.completed"
+  | "run.failed"
+  | "defect.created"
+  | "defect.blocker"
+  | "case.failed"
+  | "release.signoff";
+
+const WEBHOOK_EVENTS: { id: WebhookEvent; label: string }[] = [
+  { id: "run.completed",   label: "Koşum tamamlandı" },
+  { id: "run.failed",      label: "Koşum başarısız" },
+  { id: "defect.created",  label: "Defekt oluşturuldu" },
+  { id: "defect.blocker",  label: "Blocker defekt" },
+  { id: "case.failed",     label: "Case başarısız" },
+  { id: "release.signoff", label: "Release onayı" },
+];
+
+type WebhookEntry = WebhookNotification & { events: WebhookEvent[] };
+
+function WebhookNotificationsPanel({ projectId }: { projectId: string }) {
+  const { data: savedWebhooks, isLoading } = useManagementSettingValue<WebhookEntry[]>(
+    projectId || undefined,
+    "webhook_notifications",
+    [],
+  );
+  const saveWebhooks = usePatchManagementSetting<WebhookEntry[]>(projectId, "webhook_notifications");
+  const [webhooks, setWebhooks] = useState<WebhookEntry[]>([]);
+  const [showModal, setShowModal] = useState(false);
+  const [toast, setToast] = useState<{ type: "ok" | "error"; msg: string } | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+
+  useEffect(() => {
+    setWebhooks(savedWebhooks);
+  }, [savedWebhooks]);
+
+  const persist = async (list: WebhookEntry[]) => {
+    setWebhooks(list);
+    await saveWebhooks.mutateAsync(list);
+  };
+
+  const showToast = (type: "ok" | "error", msg: string) => {
+    setToast({ type, msg });
+    setTimeout(() => setToast(null), 3500);
+  };
+
+  const handleDelete = async (id: string) => {
+    try {
+      await persist(webhooks.filter(w => w.id !== id));
+      setConfirmDelete(null);
+      showToast("ok", "Webhook silindi.");
+    } catch {
+      showToast("error", "Webhook silinemedi.");
+    }
+  };
+
+  const handleTest = async (w: WebhookEntry) => {
+    try {
+      const res = await apiFetch<{ ok: boolean; status_code?: number; message: string }>(
+        `/api/v1/test-management/projects/${projectId}/webhook-test`,
+        {
+        method: "POST",
+          json: {
+            url: w.url,
+            payload: {
+              event: w.events[0] ?? "run.completed",
+              configured_events: w.events,
+              timestamp: new Date().toISOString(),
+            },
+          },
+        },
+      );
+      if (res.ok) {
+        showToast("ok", `Test gönderildi → ${w.url.slice(0, 40)}…`);
+      } else {
+        showToast("error", res.status_code ? `Webhook yanıt vermedi (${res.status_code})` : res.message);
+      }
+    } catch {
+      showToast("error", "Webhook URL'e ulaşılamadı.");
+    }
+  };
+
+  const handleAdd = async (entry: Omit<WebhookEntry, "id">) => {
+    const newList = [...webhooks, { ...entry, id: crypto.randomUUID() }];
+    try {
+      await persist(newList);
+      setShowModal(false);
+      showToast("ok", "Webhook eklendi.");
+    } catch {
+      showToast("error", "Webhook kaydedilemedi.");
+    }
+  };
+
+  return (
+    <div className="space-y-5">
+      {/* Toast */}
+      {toast && (
+        <div className={`flex items-center gap-2 rounded-xl border px-4 py-3 text-[12px] ${
+          toast.type === "ok"
+            ? "border-emerald-500/30 bg-emerald-500/8 text-emerald-400"
+            : "border-danger/30 bg-danger-subtle text-danger"
+        }`}>
+          {toast.type === "ok" ? "✓" : "✗"} {toast.msg}
+        </div>
+      )}
+
+      <section className="rounded-xl border border-border bg-surface-raised p-5 space-y-4">
+        <div className="flex items-center justify-between pb-3 border-b border-border">
+          <div>
+            <h3 className="text-[13px] font-semibold text-fg">Webhook Bildirimleri</h3>
+            <p className="mt-0.5 text-[11px] text-fg-subtle">Olaylar gerçekleştiğinde dış sistemlere bildirim gönder</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowModal(true)}
+            disabled={isLoading || saveWebhooks.isPending}
+            className="flex items-center gap-1.5 rounded-xl bg-brand px-3 py-1.5 text-[12px] font-semibold text-brand-fg transition-colors hover:brightness-105"
+          >
+            <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 5v14M5 12h14"/>
+            </svg>
+            Yeni Webhook
+          </button>
+        </div>
+
+        {/* Webhook list */}
+        {webhooks.length === 0 ? (
+          <div className="flex flex-col items-center justify-center gap-2 py-8 text-center text-fg-subtle">
+            <svg className="h-8 w-8 text-fg-disabled" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/>
+            </svg>
+            <p className="text-[13px]">Henüz webhook eklenmedi</p>
+            <p className="text-[11px] text-fg-disabled">Yeni Webhook butonuna tıklayın</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {webhooks.map(w => (
+              <div key={w.id} className="flex items-start gap-3 rounded-xl border border-border bg-surface-overlay px-4 py-3">
+                <div className="flex-1 min-w-0 space-y-1">
+                  <p className="truncate font-mono text-[12px] text-fg">{w.url}</p>
+                  <div className="flex flex-wrap gap-1">
+                    {w.events.map(e => (
+                      <span key={e} className="rounded bg-brand/10 px-1.5 py-0.5 text-[10px] font-medium text-brand">
+                        {e}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+                <div className="flex items-center gap-1 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => handleTest(w)}
+                    disabled={saveWebhooks.isPending}
+                    className="rounded-lg border border-border px-2.5 py-1 text-[11px] text-fg-muted transition-colors hover:bg-surface-raised hover:text-fg"
+                  >
+                    Test
+                  </button>
+                  {confirmDelete === w.id ? (
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => handleDelete(w.id)}
+                        className="rounded-lg border border-danger/30 bg-danger-subtle px-2.5 py-1 text-[11px] text-danger transition-colors hover:bg-danger/15"
+                      >
+                        Sil
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setConfirmDelete(null)}
+                        className="rounded-lg border border-border px-2.5 py-1 text-[11px] text-fg-muted transition-colors hover:bg-surface-raised"
+                      >
+                        İptal
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setConfirmDelete(w.id)}
+                      className="rounded-lg border border-border px-2.5 py-1 text-[11px] text-fg-muted transition-colors hover:border-danger/30 hover:bg-danger-subtle hover:text-danger"
+                    >
+                      Sil
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+
+      {/* Add Webhook Modal */}
+      {showModal && (
+        <AddWebhookModal
+          onClose={() => setShowModal(false)}
+          onAdd={handleAdd}
+        />
+      )}
+    </div>
+  );
+}
+
+// ─── Add Webhook Modal ────────────────────────────────────────────────────────
+
+function AddWebhookModal({
+  onClose,
+  onAdd,
+}: {
+  onClose: () => void;
+  onAdd: (_entry: Omit<WebhookEntry, "id">) => void | Promise<void>;
+}) {
+  const [url, setUrl] = useState("");
+  const [selectedEvents, setSelectedEvents] = useState<Set<WebhookEvent>>(new Set());
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    document.addEventListener("keydown", handler);
+    return () => document.removeEventListener("keydown", handler);
+  }, [onClose]);
+
+  const toggleEvent = (ev: WebhookEvent) => {
+    setSelectedEvents(prev => {
+      const next = new Set(prev);
+      if (next.has(ev)) next.delete(ev);
+      else next.add(ev);
+      return next;
+    });
+  };
+
+  const handleAdd = () => {
+    if (!url.trim()) { setError("URL zorunludur."); return; }
+    try { new URL(url.trim()); } catch { setError("Geçerli bir URL giriniz."); return; }
+    if (selectedEvents.size === 0) { setError("En az bir olay seçmelisiniz."); return; }
+    void onAdd({ url: url.trim(), events: Array.from(selectedEvents) });
+  };
+
+  const inp = "w-full rounded-xl border border-border bg-surface-overlay px-3 py-2 text-[13px] text-fg placeholder:text-fg-subtle outline-none focus:border-brand focus:ring-2 focus:ring-brand/15";
+
+  return (
+    <div
+      className="fixed inset-0 z-[300] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-md rounded-2xl border border-border bg-surface-raised shadow-2xl overflow-hidden"
+        onClick={e => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between border-b border-border px-5 py-4">
+          <h3 className="text-[14px] font-semibold text-fg">Yeni Webhook Ekle</h3>
+          <button type="button" onClick={onClose}
+            className="rounded-lg p-1.5 text-fg-subtle hover:bg-surface-overlay hover:text-fg transition-colors">
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="space-y-4 p-5">
+          {error && (
+            <p className="rounded-xl border border-danger/30 bg-danger-subtle px-3 py-2 text-[12px] text-danger">
+              {error}
+            </p>
+          )}
+          <div>
+            <label className="mb-1 block text-[11px] font-medium text-fg-muted">Webhook URL *</label>
+            <input
+              value={url}
+              onChange={e => { setUrl(e.target.value); setError(""); }}
+              placeholder="https://hooks.slack.com/services/..."
+              className={inp}
+              autoFocus
+            />
+          </div>
+
+          <div>
+            <label className="mb-2 block text-[11px] font-medium text-fg-muted">Olaylar *</label>
+            <div className="space-y-2">
+              {WEBHOOK_EVENTS.map(ev => (
+                <label key={ev.id} className="flex items-center gap-3 cursor-pointer rounded-lg p-2 hover:bg-surface-overlay transition-colors">
+                  <input
+                    type="checkbox"
+                    checked={selectedEvents.has(ev.id)}
+                    onChange={() => toggleEvent(ev.id)}
+                    className="h-3.5 w-3.5 rounded border-border accent-brand"
+                  />
+                  <span className="text-[12px] text-fg">{ev.label}</span>
+                  <span className="ml-auto rounded bg-surface-overlay px-1.5 py-0.5 font-mono text-[10px] text-fg-disabled">{ev.id}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="flex items-center justify-end gap-2 border-t border-border px-5 py-4">
+          <button type="button" onClick={onClose}
+            className="rounded-xl border border-border px-4 py-2 text-[12px] font-medium text-fg-muted transition-colors hover:bg-surface-overlay hover:text-fg">
+            İptal
+          </button>
+          <button type="button" onClick={handleAdd}
+            className="rounded-xl bg-brand px-5 py-2 text-[12px] font-semibold text-brand-fg transition-colors hover:brightness-105">
+            Ekle
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── JIRA Integration Panel ───────────────────────────────────────────────────
+
+function JiraIntegrationPanel({ projectId: _projectId, mpid }: { projectId: string; mpid: string }) {
+  const [url, setUrl] = useState("");
+  const [email, setEmail] = useState("");
+  const [token, setToken] = useState("");
+  const [projectKey, setProjectKey] = useState("");
+  const [status, setStatus] = useState<"idle" | "testing" | "ok" | "error">("idle");
+  const [statusMsg, setStatusMsg] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  // Kayıtlı config'i yükle
+  useEffect(() => {
+    if (!mpid) return;
+    apiFetch<{ url?: string; email?: string; project_key?: string }>(`/api/jira/config`)
+      .then(data => {
+        if (data.url) setUrl(data.url);
+        if (data.email) setEmail(data.email);
+        if (data.project_key) setProjectKey(data.project_key);
+      })
+      .catch(() => {});
+  }, [mpid]);
+
+  const handleTest = async () => {
+    if (!url.trim() || !email.trim() || !token.trim()) return;
+    setStatus("testing"); setStatusMsg("");
+    try {
+      const res = await apiFetch<{ ok: boolean; message?: string }>("/api/jira/test-connection", {
+        method: "POST",
+        json: { url: url.trim(), email: email.trim(), token: token.trim() },
+      });
+      setStatus(res.ok ? "ok" : "error");
+      setStatusMsg(res.message ?? (res.ok ? "Bağlantı başarılı!" : "Bağlantı başarısız."));
+    } catch {
+      setStatus("error"); setStatusMsg("Bağlantı kurulamadı.");
+    }
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      await apiFetch("/api/jira/config", {
+        method: "POST",
+        json: { url: url.trim(), email: email.trim(), token: token.trim() || undefined, project_key: projectKey.trim() },
+      });
+      setSaved(true); setToken("");
+      setTimeout(() => setSaved(false), 3000);
+    } catch {
+      setStatusMsg("Kaydedilemedi.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const inp = "w-full rounded-xl border border-border bg-surface-overlay px-3 py-2 text-[13px] text-fg placeholder:text-fg-subtle outline-none focus:border-brand focus:ring-2 focus:ring-brand/15";
+
+  return (
+    <div className="space-y-5">
+      {/* Status banner */}
+      {status !== "idle" && (
+        <div className={`flex items-center gap-2 rounded-xl border px-4 py-3 text-[12px] ${
+          status === "ok" ? "border-emerald-500/30 bg-emerald-500/8 text-emerald-400" :
+          status === "error" ? "border-danger/30 bg-danger-subtle text-danger" :
+          "border-border bg-surface-overlay text-fg-muted"
+        }`}>
+          {status === "testing" && (
+            <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M21 12a9 9 0 11-6.219-8.56"/>
+            </svg>
+          )}
+          {statusMsg || (status === "testing" ? "Test ediliyor…" : "")}
+        </div>
+      )}
+
+      {/* Jira bağlantı formu */}
+      <section className="rounded-xl border border-border bg-surface-raised p-5 space-y-4">
+        <div className="flex items-center gap-3 pb-2 border-b border-border">
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-surface-overlay">
+            <svg className="h-5 w-5 text-blue-400" viewBox="0 0 32 32" fill="currentColor">
+              <path d="M15.996 0C7.163 0 0 7.163 0 15.996 0 24.83 7.163 32 15.996 32 24.83 32 32 24.83 32 15.996 32 7.163 24.83 0 15.996 0zm7.594 18.408l-7.594 7.594-7.594-7.594 7.594-7.594 7.594 7.594z"/>
+            </svg>
+          </div>
+          <div>
+            <p className="text-[13px] font-semibold text-fg">Jira Bağlantısı</p>
+            <p className="text-[11px] text-fg-subtle">Atlassian Jira Cloud veya Server</p>
+          </div>
+          {saved && (
+            <span className="ml-auto rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] text-emerald-400">
+              ✓ Kaydedildi
+            </span>
+          )}
+        </div>
+
+        <div>
+          <label className="mb-1 block text-[11px] font-medium text-fg-muted">Jira URL *</label>
+          <input value={url} onChange={e => setUrl(e.target.value)}
+            placeholder="https://yourcompany.atlassian.net"
+            className={inp} />
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="mb-1 block text-[11px] font-medium text-fg-muted">E-posta *</label>
+            <input value={email} onChange={e => setEmail(e.target.value)}
+              placeholder="you@company.com" type="email" className={inp} />
+          </div>
+          <div>
+            <label className="mb-1 block text-[11px] font-medium text-fg-muted">API Token *</label>
+            <input value={token} onChange={e => setToken(e.target.value)}
+              placeholder={url ? "Yeni token girin" : "Token giriniz"}
+              type="password" className={inp} />
+          </div>
+        </div>
+        <div>
+          <label className="mb-1 block text-[11px] font-medium text-fg-muted">Varsayılan Proje Anahtarı</label>
+          <input value={projectKey} onChange={e => setProjectKey(e.target.value)}
+            placeholder="örn. BUG veya QA" className={inp} />
+          <p className="mt-1 text-[11px] text-fg-subtle">Defektleri Jira'ya aktarırken kullanılır.</p>
+        </div>
+
+        <div className="flex items-center gap-2 pt-1">
+          <button type="button" onClick={handleTest}
+            disabled={!url.trim() || !email.trim() || !token.trim() || status === "testing"}
+            className="rounded-xl border border-border px-4 py-2 text-[12px] font-medium text-fg-muted transition-colors hover:bg-surface-overlay hover:text-fg disabled:opacity-40">
+            {status === "testing" ? "Test ediliyor…" : "Bağlantıyı Test Et"}
+          </button>
+          <button type="button" onClick={handleSave}
+            disabled={saving || !url.trim() || !email.trim()}
+            className="rounded-xl bg-brand px-5 py-2 text-[12px] font-semibold text-brand-fg transition-colors hover:brightness-105 disabled:opacity-40">
+            {saving ? "Kaydediliyor…" : "Kaydet"}
+          </button>
+        </div>
+      </section>
+
+      {/* Özellikler */}
+      <section className="rounded-xl border border-border bg-surface-raised p-5">
+        <h3 className="mb-3 text-[11px] font-semibold uppercase tracking-widest text-fg-subtle">Desteklenen İşlemler</h3>
+        <div className="grid gap-2 sm:grid-cols-2">
+          {[
+            { icon: "🐛", title: "Defekt → Jira Issue", desc: "Koşum sırasında defekt bağlayınca otomatik Jira issue açılır." },
+            { icon: "🔗", title: "Issue Bağlama", desc: "Mevcut Jira issue'larını test case'lerinize link edin." },
+            { icon: "🔄", title: "Run Sonuçları Senkronizasyonu", desc: "Test koşumu sonuçlarını Jira'daki ilgili issue'lara yansıtın." },
+            { icon: "📋", title: "Issue'dan Case Oluştur", desc: "Jira issue'larından otomatik test case taslakları üretin." },
+          ].map(f => (
+            <div key={f.icon} className="flex gap-3 rounded-lg border border-border bg-surface-overlay p-3">
+              <span className="text-lg">{f.icon}</span>
+              <div>
+                <p className="text-[12px] font-medium text-fg">{f.title}</p>
+                <p className="text-[11px] text-fg-subtle">{f.desc}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+    </div>
+  );
+}
+
+// ─── CI/CD Webhook Panel ─────────────────────────────────────────────────────────
+
+function CiCdWebhookPanel({ projectId, mpid }: { projectId: string; mpid: string }) {
+  const settingsProjectId = mpid || projectId;
+  const { data: savedConfig } = useManagementSettingValue<CicdWebhookConfig>(
+    settingsProjectId || undefined,
+    "cicd_webhook",
+    { webhookUrl: "", secret: "", provider: "github" },
+  );
+  const saveCicd = usePatchManagementSetting<CicdWebhookConfig>(settingsProjectId, "cicd_webhook");
+  const [webhookUrl, setWebhookUrl] = useState("");
+  const [secret, setSecret] = useState("");
+  const [provider, setProvider] = useState("github");
+  const [copied, setCopied] = useState(false);
+  const [testStatus, setTestStatus] = useState<"idle" | "sending" | "ok" | "error">("idle");
+  const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    setWebhookUrl(savedConfig.webhookUrl ?? "");
+    setSecret(savedConfig.secret ?? "");
+    setProvider(savedConfig.provider ?? "github");
+  }, [savedConfig]);
+
+  // Webhook URL'i hesapla (bu projeye gelen hook endpoint'i)
+  const inboundUrl = typeof window !== "undefined"
+    ? `${window.location.origin}/api/v1/test-management/projects/${projectId}/webhook`
+    : "";
+
+  const copyInboundUrl = () => {
+    navigator.clipboard.writeText(inboundUrl).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }).catch(() => {});
+  };
+
+  const testWebhook = async () => {
+    if (!webhookUrl.trim()) return;
+    setTestStatus("sending");
+    try {
+      const res = await apiFetch<{ ok: boolean; status_code?: number; message: string }>(
+        `/api/v1/test-management/projects/${settingsProjectId}/webhook-test`,
+        {
+        method: "POST",
+          json: {
+            url: webhookUrl.trim(),
+            secret: secret.trim() || undefined,
+            payload: {
+              provider,
+              timestamp: new Date().toISOString(),
+            },
+          },
+        },
+      );
+      setTestStatus(res.ok ? "ok" : "error");
+    } catch {
+      setTestStatus("error");
+    }
+    setTimeout(() => setTestStatus("idle"), 4000);
+  };
+
+  const saveWebhook = async () => {
+    await saveCicd.mutateAsync({
+      webhookUrl: webhookUrl.trim(),
+      secret: secret.trim() || undefined,
+      provider,
+    });
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2500);
+  };
+
+  const inp = "w-full rounded-xl border border-border bg-surface-overlay px-3 py-2 text-[13px] text-fg placeholder:text-fg-subtle outline-none focus:border-brand focus:ring-2 focus:ring-brand/15";
+  const codeStyle = "w-full rounded-xl border border-border bg-surface-overlay px-3 py-2 font-mono text-[11px] text-fg-muted break-all";
+
+  return (
+    <div className="space-y-5">
+      {/* Gelen Webhook — CI/CD sistemi bu URL'i çağırır */}
+      <section className="rounded-xl border border-border bg-surface-raised p-5 space-y-4">
+        <div className="pb-2 border-b border-border">
+          <h3 className="text-[13px] font-semibold text-fg">Gelen Webhook (CI/CD → Neurex)</h3>
+          <p className="mt-0.5 text-[11px] text-fg-subtle">
+            CI pipeline'ınız tamamlandığında bu URL'e POST isteği gönderin.
+          </p>
+        </div>
+
+        <div>
+          <label className="mb-1 block text-[11px] font-medium text-fg-muted">Webhook Endpoint</label>
+          <div className="flex items-center gap-2">
+            <div className={codeStyle}>{inboundUrl || "URL yükleniyor…"}</div>
+            <button type="button" onClick={copyInboundUrl}
+              className="shrink-0 rounded-xl border border-border px-3 py-2 text-[12px] text-fg-muted transition-colors hover:bg-surface-overlay hover:text-fg">
+              {copied ? "✓ Kopyalandı" : "Kopyala"}
+            </button>
+          </div>
+        </div>
+
+        <div>
+          <label className="mb-1 block text-[11px] font-medium text-fg-muted">Webhook Secret (opsiyonel)</label>
+          <input value={secret} onChange={e => setSecret(e.target.value)}
+            type="password" placeholder="İmza doğrulaması için gizli anahtar"
+            className={inp} />
+          <p className="mt-1 text-[11px] text-fg-subtle">X-Webhook-Secret başlığıyla gönderilir.</p>
+        </div>
+
+        {/* Örnek payload */}
+        <details className="group">
+          <summary className="cursor-pointer text-[11px] text-brand hover:text-brand-secondary">
+            Örnek payload göster ▸
+          </summary>
+          <pre className="mt-2 overflow-x-auto rounded-xl border border-border bg-surface-overlay p-3 text-[10px] text-fg-muted">
+{`{
+  "event": "run.completed",
+  "project_id": "${projectId}",
+  "run_id": "abc123",
+  "branch": "main",
+  "commit_sha": "a1b2c3d4",
+  "status": "passed",
+  "pass_rate": 87.5,
+  "failed_count": 2,
+  "timestamp": "2026-06-04T20:00:00Z"
+}`}
+          </pre>
+        </details>
+      </section>
+
+      {/* Giden Webhook — Neurex → CI/CD sistemi çağırır */}
+      <section className="rounded-xl border border-border bg-surface-raised p-5 space-y-4">
+        <div className="pb-2 border-b border-border">
+          <h3 className="text-[13px] font-semibold text-fg">Giden Webhook (Neurex → CI/CD)</h3>
+          <p className="mt-0.5 text-[11px] text-fg-subtle">
+            Run tamamlandığında veya release gate karşılandığında çağrılacak URL.
+          </p>
+        </div>
+
+        <div>
+          <label className="mb-1 block text-[11px] font-medium text-fg-muted">Hedef URL</label>
+          <input value={webhookUrl} onChange={e => setWebhookUrl(e.target.value)}
+            placeholder="https://hooks.example.com/neurex-webhook"
+            className={inp} />
+        </div>
+
+        <div>
+          <label className="mb-1 block text-[11px] font-medium text-fg-muted">Platform</label>
+          <select value={provider} onChange={e => setProvider(e.target.value)} className={inp}>
+            <option value="github">GitHub Actions</option>
+            <option value="gitlab">GitLab CI</option>
+            <option value="jenkins">Jenkins</option>
+            <option value="azure">Azure DevOps</option>
+            <option value="custom">Özel</option>
+          </select>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <button type="button" onClick={testWebhook}
+            disabled={!settingsProjectId || !webhookUrl.trim() || testStatus === "sending"}
+            className="rounded-xl border border-border px-4 py-2 text-[12px] font-medium text-fg-muted transition-colors hover:bg-surface-overlay hover:text-fg disabled:opacity-40">
+            {testStatus === "sending" ? "Gönderiliyor…" : testStatus === "ok" ? "✓ Başarılı" : testStatus === "error" ? "✗ Hata" : "Test Gönder"}
+          </button>
+          <button type="button" onClick={saveWebhook}
+            disabled={!settingsProjectId || !webhookUrl.trim() || saveCicd.isPending}
+            className="rounded-xl bg-brand px-5 py-2 text-[12px] font-semibold text-brand-fg transition-colors hover:brightness-105 disabled:opacity-40">
+            {saveCicd.isPending ? "Kaydediliyor…" : saved ? "Kaydedildi ✓" : "Webhook Kaydet"}
+          </button>
+        </div>
+      </section>
+
+      {/* Platform kılavuzu */}
+      <section className="rounded-xl border border-border bg-surface-raised p-5">
+        <h3 className="mb-3 text-[11px] font-semibold uppercase tracking-widest text-fg-subtle">
+          {provider === "github" ? "GitHub Actions" : provider === "gitlab" ? "GitLab CI" : provider === "jenkins" ? "Jenkins" : provider === "azure" ? "Azure DevOps" : "Özel"} Entegrasyon Kılavuzu
+        </h3>
+        <div className="rounded-xl border border-border bg-surface-overlay p-3">
+          {provider === "github" && (
+            <pre className="overflow-x-auto text-[10px] text-fg-muted whitespace-pre-wrap">
+{`# .github/workflows/test-report.yml
+- name: Neurex'e bildir
+  if: always()
+  run: |
+    curl -X POST "${inboundUrl}" \\
+      -H "Content-Type: application/json" \\
+      -H "X-Webhook-Secret: \${{ secrets.NEUREX_SECRET }}" \\
+      -d '{
+        "event": "run.completed",
+        "branch": "\${{ github.ref_name }}",
+        "commit_sha": "\${{ github.sha }}",
+        "status": "\${{ job.status }}"
+      }'`}
+            </pre>
+          )}
+          {provider === "gitlab" && (
+            <pre className="overflow-x-auto text-[10px] text-fg-muted whitespace-pre-wrap">
+{`# .gitlab-ci.yml
+notify_neurex:
+  stage: .post
+  script:
+    - curl -X POST "${inboundUrl}"
+      -H "X-Webhook-Secret: $NEUREX_SECRET"
+      -d "{\\"event\\":\\"run.completed\\",\\"status\\":\\"$CI_JOB_STATUS\\"}"`}
+            </pre>
+          )}
+          {provider === "jenkins" && (
+            <pre className="overflow-x-auto text-[10px] text-fg-muted whitespace-pre-wrap">
+{`// Jenkinsfile
+post {
+  always {
+    httpRequest(
+      url: "${inboundUrl}",
+      httpMode: "POST",
+      requestBody: """{"event":"run.completed","status":"\${currentBuild.result}"}""",
+      customHeaders: [[name: "X-Webhook-Secret", value: NEUREX_SECRET]]
+    )
+  }
+}`}
+            </pre>
+          )}
+          {(provider === "azure" || provider === "custom") && (
+            <pre className="overflow-x-auto text-[10px] text-fg-muted whitespace-pre-wrap">
+{`curl -X POST "${inboundUrl}" \\
+  -H "Content-Type: application/json" \\
+  -H "X-Webhook-Secret: YOUR_SECRET" \\
+  -d '{"event":"run.completed","status":"passed"}'`}
+            </pre>
+          )}
+        </div>
+      </section>
     </div>
   );
 }
