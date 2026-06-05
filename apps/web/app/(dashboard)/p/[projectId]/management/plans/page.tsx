@@ -33,6 +33,35 @@ import { PageErrorBoundary } from "../_components/PageErrorBoundary";
 // ── Types ─────────────────────────────────────────────────────────────────────
 type PlanType = "release" | "regression" | "sprint" | "smoke" | "uat";
 
+// ── i18n ──────────────────────────────────────────────────────────────────────
+const STATUS_TR: Record<string, string> = {
+  passed:       "Geçti",
+  failed:       "Başarısız",
+  blocked:      "Engellendi",
+  skipped:      "Atlandı",
+  not_run:      "Çalıştırılmadı",
+  in_progress:  "Devam Ediyor",
+  running:      "Çalışıyor",
+  completed:    "Tamamlandı",
+  not_started:  "Başlamadı",
+  draft:        "Taslak",
+  active:       "Aktif",
+  archived:     "Arşivlendi",
+};
+
+const PLAN_TYPE_TR: Record<string, string> = {
+  release:    "Release",
+  regression: "Regresyon",
+  sprint:     "Sprint",
+  smoke:      "Smoke",
+  uat:        "UAT",
+};
+
+function trStatus(value: string | undefined | null, fallback?: string): string {
+  if (!value) return fallback ?? "";
+  return STATUS_TR[value] ?? fallback ?? value;
+}
+
 // ── Constants ─────────────────────────────────────────────────────────────────
 const PLAN_TYPE_BADGE: Record<string, string> = {
   release:    "bg-teal-500/15 text-teal-400 border-teal-500/20",
@@ -71,10 +100,10 @@ function RunProgress({ passed, failed, blocked, notRun }: {
       </div>
       {/* Counts */}
       <div className="flex items-center gap-2.5 text-[11px] tabular-nums">
-        {passed  > 0 && <span className="text-emerald-400">{passed} <span className="text-fg-subtle">ok</span></span>}
-        {failed  > 0 && <span className="text-red-400">{failed} <span className="text-fg-subtle">fail</span></span>}
-        {blocked > 0 && <span className="text-amber-400">{blocked} <span className="text-fg-subtle">blk</span></span>}
-        {notRun  > 0 && <span className="text-fg-subtle">{notRun} left</span>}
+        {passed  > 0 && <span className="text-emerald-400">{passed} <span className="text-fg-subtle">geçti</span></span>}
+        {failed  > 0 && <span className="text-red-400">{failed} <span className="text-fg-subtle">başarısız</span></span>}
+        {blocked > 0 && <span className="text-amber-400">{blocked} <span className="text-fg-subtle">engel</span></span>}
+        {notRun  > 0 && <span className="text-fg-subtle">{notRun} kaldı</span>}
         <span className="text-fg-muted font-medium">{pct}%</span>
       </div>
     </div>
@@ -409,7 +438,7 @@ function RunRow({
             run.status === "completed"   ? "border-emerald-500/20 text-emerald-400" :
                                            "border-border text-fg-muted",
           )}>
-            {run.status === "in_progress" ? "Devam" : run.status === "completed" ? "Tamam" : "Run"}
+            {trStatus(run.status, "Bekliyor")}
           </span>
         </Link>
       )}
@@ -548,7 +577,7 @@ function CycleRow({
           cycle.status === "active"    ? "border-blue-500/20    bg-blue-500/10    text-blue-400"    :
                                          "border-border         bg-surface-overlay text-fg-muted",
         )}>
-          {cycle.status}
+          {trStatus(cycle.status)}
         </span>
 
         {/* Cycle rename button */}
@@ -740,7 +769,7 @@ function PlanRow({
             <p className="text-[13px] font-semibold text-fg truncate">{plan.name}</p>
           )}
           <span className={cn("shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-medium", typeCls)}>
-            {plan.plan_type}
+            {PLAN_TYPE_TR[plan.plan_type] ?? plan.plan_type}
           </span>
           {plan.release_name && (
             <span className="shrink-0 rounded bg-surface-overlay px-2 py-0.5 text-[10px] text-fg-muted">{plan.release_name}</span>

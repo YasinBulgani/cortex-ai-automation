@@ -86,6 +86,8 @@ function CaseListItem({ rc, isSelected, onClick, itemRef }: {
 
   return (
     <button ref={itemRef} type="button" onClick={onClick}
+      aria-current={isSelected ? "true" : undefined}
+      aria-label={`${caseInfo.title ?? rc.case_id}${caseInfo.case_key ? ` (${caseInfo.case_key})` : ""} — ${STATUS_LABEL[rc.status] ?? rc.status}`}
       className={cn(
         "flex w-full items-start gap-2 rounded-lg px-3 py-2 text-left transition-all",
         isSelected ? "bg-teal-500/10 border border-teal-500/20" : "hover:bg-surface-overlay border border-transparent",
@@ -143,6 +145,8 @@ function StepCard({ step, result, onChange, projectId, runCaseId, runId, onDefec
             <button key={btn.key} type="button"
               onClick={() => save(btn.key)}
               disabled={updateStep.isPending}
+              aria-label={`Adım ${step.step_no}: ${btn.label} olarak işaretle`}
+              aria-pressed={currentStatus === btn.key}
               className={cn(
                 "rounded-lg border px-2 py-1 text-[10px] font-medium transition-colors disabled:opacity-40",
                 currentStatus === btn.key ? btn.activeCls : btn.cls,
@@ -179,6 +183,7 @@ function StepCard({ step, result, onChange, projectId, runCaseId, runId, onDefec
           onChange={e => { setActual(e.target.value); onChange(currentStatus, e.target.value); }}
           onBlur={() => { if (actual !== (result?.actual_result ?? "")) save(currentStatus); }}
           rows={2}
+          aria-label={`Adım ${step.step_no} gerçekleşen sonuç`}
           placeholder="Gerçekleşen sonucu girin…"
           className="w-full rounded-lg border border-border bg-surface-raised px-3 py-2 text-xs text-white placeholder-slate-600 focus:border-border-strong focus:outline-none resize-none"/>
       </div>
@@ -259,40 +264,45 @@ function QuickDefectModal({ mpid, caseTitle, caseKey, runCaseId, onClose }: {
   const sel = "w-full rounded-xl border border-border bg-white/[0.04] px-3 py-2 text-[13px] text-slate-200 outline-none focus:border-teal-500/40";
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
-      <div className="w-full max-w-lg rounded-xl border border-border bg-[#0d1117] shadow-2xl overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" aria-hidden="true">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="defect-modal-title"
+        className="w-full max-w-lg rounded-xl border border-border bg-[#0d1117] shadow-2xl overflow-hidden"
+      >
         <div className="flex items-center justify-between border-b border-border px-5 py-4">
-          <h2 className="text-[14px] font-semibold text-slate-200">Defect Oluştur</h2>
-          <button onClick={onClose} className="rounded-lg p-1.5 text-slate-600 hover:text-slate-300">
+          <h2 id="defect-modal-title" className="text-[14px] font-semibold text-slate-200">Defect Oluştur</h2>
+          <button onClick={onClose} aria-label="Defect modalını kapat" className="rounded-lg p-1.5 text-slate-600 hover:text-slate-300">
             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
           </button>
         </div>
         <form onSubmit={submit} className="p-5 space-y-4">
           <div>
-            <label className="mb-1 block text-[10px] uppercase tracking-widest text-slate-600">Başlık *</label>
-            <input value={title} onChange={e => setTitle(e.target.value)} required className={inp} />
+            <label htmlFor="defect-title" className="mb-1 block text-[10px] uppercase tracking-widest text-slate-600">Başlık *</label>
+            <input id="defect-title" value={title} onChange={e => setTitle(e.target.value)} required aria-required="true" className={inp} />
           </div>
           <div>
-            <label className="mb-1 block text-[10px] uppercase tracking-widest text-slate-600">Jira/External Key</label>
-            <input value={extKey} onChange={e => setExtKey(e.target.value)} placeholder="JIRA-123" className={inp} />
+            <label htmlFor="defect-ext-key" className="mb-1 block text-[10px] uppercase tracking-widest text-slate-600">Jira/External Key</label>
+            <input id="defect-ext-key" value={extKey} onChange={e => setExtKey(e.target.value)} placeholder="JIRA-123" className={inp} />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="mb-1 block text-[10px] uppercase tracking-widest text-slate-600">Severity</label>
-              <select value={severity} onChange={e => setSeverity(e.target.value)} className={sel}>
+              <label htmlFor="defect-severity" className="mb-1 block text-[10px] uppercase tracking-widest text-slate-600">Severity</label>
+              <select id="defect-severity" value={severity} onChange={e => setSeverity(e.target.value)} className={sel}>
                 {["blocker","critical","major","minor","trivial"].map(v => <option key={v} value={v}>{v}</option>)}
               </select>
             </div>
             <div>
-              <label className="mb-1 block text-[10px] uppercase tracking-widest text-slate-600">Priority</label>
-              <select value={priority} onChange={e => setPriority(e.target.value)} className={sel}>
+              <label htmlFor="defect-priority" className="mb-1 block text-[10px] uppercase tracking-widest text-slate-600">Priority</label>
+              <select id="defect-priority" value={priority} onChange={e => setPriority(e.target.value)} className={sel}>
                 {["P0","P1","P2","P3"].map(v => <option key={v} value={v}>{v}</option>)}
               </select>
             </div>
           </div>
           <div>
-            <label className="mb-1 block text-[10px] uppercase tracking-widest text-slate-600">Root Cause / Açıklama</label>
-            <textarea value={rootCause} onChange={e => setRootCause(e.target.value)} rows={3} placeholder="Hata detayları, root cause…"
+            <label htmlFor="defect-root-cause" className="mb-1 block text-[10px] uppercase tracking-widest text-slate-600">Root Cause / Açıklama</label>
+            <textarea id="defect-root-cause" value={rootCause} onChange={e => setRootCause(e.target.value)} rows={3} placeholder="Hata detayları, root cause…"
               className={cn(inp, "resize-none")} />
           </div>
           <div className="flex items-center justify-between pt-1">
@@ -512,10 +522,17 @@ function ExecutionPanel({ rc, projectId, runId, onNext, onPrev, mpid }: {
         {/* Progress bar */}
         {steps.length > 0 && (
           <div className="mt-2 flex items-center gap-3">
-            <div className="flex-1 h-1 rounded-full bg-surface-overlay overflow-hidden">
+            <div
+              role="progressbar"
+              aria-valuenow={progress}
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-label={`Adım ilerleme: ${passedCount}/${steps.length}`}
+              className="flex-1 h-1 rounded-full bg-surface-overlay overflow-hidden"
+            >
               <div className="h-full rounded-full bg-teal-500/70 transition-all duration-300" style={{ width: `${progress}%` }}/>
             </div>
-            <span className="text-[10px] text-slate-500 tabular-nums">{passedCount}/{steps.length} adım</span>
+            <span className="text-[10px] text-slate-500 tabular-nums" aria-hidden="true">{passedCount}/{steps.length} adım</span>
           </div>
         )}
       </div>
@@ -530,13 +547,15 @@ function ExecutionPanel({ rc, projectId, runId, onNext, onPrev, mpid }: {
               onClick={() => handleCaseStatus(btn.key)}
               disabled={updateCase.isPending}
               title={`${btn.label} (${btn.shortcut})`}
+              aria-label={`${btn.label} olarak işaretle (kısayol: ${btn.shortcut})`}
+              aria-pressed={rc.status === btn.key}
               className={cn(
                 "flex items-center gap-1.5 rounded-lg border px-4 py-2 text-[13px] font-semibold transition-all duration-150 disabled:opacity-40",
                 rc.status === btn.key ? btn.activeCls : btn.idleCls,
               )}
             >
               {btn.label}
-              <kbd className="hidden sm:inline-flex h-4 w-4 items-center justify-center rounded bg-white/10 text-[9px] font-mono opacity-60">
+              <kbd className="hidden sm:inline-flex h-4 w-4 items-center justify-center rounded bg-white/10 text-[9px] font-mono opacity-60" aria-hidden="true">
                 {btn.shortcut}
               </kbd>
             </button>
@@ -570,12 +589,16 @@ function ExecutionPanel({ rc, projectId, runId, onNext, onPrev, mpid }: {
         <div
           className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center"
           onClick={() => setShowShortcuts(false)}
+          aria-hidden="true"
         >
           <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="shortcuts-dialog-title"
             className="bg-surface-raised rounded-xl p-6 max-w-sm w-full border border-border"
             onClick={e => e.stopPropagation()}
           >
-            <h2 className="text-sm font-semibold mb-4">Klavye Kısayolları</h2>
+            <h2 id="shortcuts-dialog-title" className="text-sm font-semibold mb-4">Klavye Kısayolları</h2>
             <table className="w-full text-xs text-fg-subtle">
               <tbody>
                 {([
@@ -651,8 +674,9 @@ function ExecutionPanel({ rc, projectId, runId, onNext, onPrev, mpid }: {
 
         {/* Notes */}
         <div>
-          <label className="mb-1 block text-[10px] font-medium uppercase tracking-wide text-slate-500">Notlar</label>
-          <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={3}
+          <label htmlFor="execution-notes" className="mb-1 block text-[10px] font-medium uppercase tracking-wide text-slate-500">Notlar</label>
+          <textarea id="execution-notes" value={notes} onChange={e => setNotes(e.target.value)} rows={3}
+            aria-label="Koşum notları ve gözlemler"
             placeholder="Koşum notları, gözlemler…"
             className="w-full rounded-xl border border-border bg-surface-raised px-3 py-2 text-xs text-white placeholder-slate-600 focus:border-border-strong focus:outline-none resize-none"/>
         </div>
@@ -824,7 +848,14 @@ export default function ManagementRunExecutePage() {
                   {progress?.progress_pct ?? pct}%
                 </span>
               </div>
-              <div className="h-1 rounded-full bg-surface-overlay overflow-hidden">
+              <div
+                role="progressbar"
+                aria-valuenow={progress?.progress_pct ?? pct}
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-label={`Koşum ilerleme: ${progress?.progress_pct ?? pct}%`}
+                className="h-1 rounded-full bg-surface-overlay overflow-hidden"
+              >
                 <div className="h-full rounded-full bg-emerald-500/70 transition-all duration-500"
                   style={{ width: `${progress?.progress_pct ?? pct}%` }}/>
               </div>

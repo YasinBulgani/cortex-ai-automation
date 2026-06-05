@@ -36,8 +36,8 @@ function SortableStepCard({ id, children }: { id: string; children: React.ReactN
   return (
     <div ref={setNodeRef} style={style} {...attributes}>
       <div className="flex items-start gap-2">
-        <button {...listeners} className="mt-2 cursor-grab text-slate-500 hover:text-slate-300 p-1" title="Sürükle" type="button">
-          ⠿
+        <button {...listeners} className="mt-2 cursor-grab text-slate-500 hover:text-slate-300 p-1" title="Sürükle" aria-label="Adımı sürükle" type="button">
+          <span aria-hidden="true">⠿</span>
         </button>
         <div className="flex-1">{children}</div>
       </div>
@@ -186,25 +186,30 @@ export default function NewManagementCasePage({ params }: { params: { projectId:
       <section className="rounded-xl border border-border bg-surface-raised p-5">
         <form onSubmit={submit} className="space-y-5">
           {formError ? (
-            <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-200">
+            <div role="alert" id="form-error-msg" className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-200">
               {formError}
             </div>
           ) : null}
           <div className="grid gap-4 md:grid-cols-2">
-            <label className="space-y-1">
+            <label className="space-y-1" htmlFor="case-title">
               <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                Title<span className="text-red-400 ml-0.5">*</span>
+                Title<span className="text-red-400 ml-0.5" aria-hidden="true">*</span>
               </span>
               <input
+                id="case-title"
                 value={title}
                 onChange={(event) => setTitle(event.target.value)}
                 maxLength={500}
+                required
+                aria-required="true"
+                aria-describedby={errors.title ? "title-error" : formError ? "form-error-msg" : undefined}
+                aria-invalid={errors.title ? "true" : undefined}
                 className="w-full rounded-lg border border-border bg-bg px-3 py-2 text-sm text-white focus:border-teal-500/50 focus:outline-none"
                 placeholder="Login valid credentials"
               />
               <div className="flex items-center justify-between mt-1">
-                {errors.title ? <p className="text-[12px] text-red-400">Başlık zorunludur.</p> : <span />}
-                <span className={`text-xs ${title.length >= 480 ? "text-amber-400" : "text-fg-subtle"}`}>{title.length}/500</span>
+                {errors.title ? <p id="title-error" role="alert" className="text-[12px] text-red-400">Başlık zorunludur.</p> : <span />}
+                <span className={`text-xs ${title.length >= 480 ? "text-amber-400" : "text-fg-subtle"}`} aria-live="polite">{title.length}/500</span>
               </div>
             </label>
             <div className="grid grid-cols-2 gap-3">
@@ -372,16 +377,16 @@ export default function NewManagementCasePage({ params }: { params: { projectId:
                     <div className="grid gap-3 rounded-lg border border-border bg-bg p-3 md:grid-cols-[2rem_1fr_1fr_auto]">
                       <div className="pt-2 text-center font-mono text-xs text-slate-500">{index + 1}</div>
                       <div className="space-y-2">
-                        <textarea value={step.action} onChange={(event) => updateStep(index, { action: event.target.value })} rows={2} className="w-full resize-none rounded-lg border border-border bg-surface-raised px-3 py-2 text-sm text-white focus:border-teal-500/50 focus:outline-none" placeholder="Action" />
-                        <input value={step.test_data} onChange={(event) => updateStep(index, { test_data: event.target.value })} className="w-full rounded-lg border border-border bg-surface-raised px-3 py-2 text-xs text-white focus:border-teal-500/50 focus:outline-none" placeholder="Step test data" />
+                        <textarea value={step.action} onChange={(event) => updateStep(index, { action: event.target.value })} rows={2} aria-label={`Adım ${index + 1} — action`} className="w-full resize-none rounded-lg border border-border bg-surface-raised px-3 py-2 text-sm text-white focus:border-teal-500/50 focus:outline-none" placeholder="Action" />
+                        <input value={step.test_data} onChange={(event) => updateStep(index, { test_data: event.target.value })} aria-label={`Adım ${index + 1} — test data`} className="w-full rounded-lg border border-border bg-surface-raised px-3 py-2 text-xs text-white focus:border-teal-500/50 focus:outline-none" placeholder="Step test data" />
                       </div>
                       <div className="space-y-2">
-                        <textarea value={step.expected_result} onChange={(event) => updateStep(index, { expected_result: event.target.value })} rows={2} className="w-full resize-none rounded-lg border border-border bg-surface-raised px-3 py-2 text-sm text-white focus:border-teal-500/50 focus:outline-none" placeholder="Expected result / validation" />
-                        <input value={step.notes} onChange={(event) => updateStep(index, { notes: event.target.value })} className="w-full rounded-lg border border-border bg-surface-raised px-3 py-2 text-xs text-white focus:border-teal-500/50 focus:outline-none" placeholder="Notes" />
+                        <textarea value={step.expected_result} onChange={(event) => updateStep(index, { expected_result: event.target.value })} rows={2} aria-label={`Adım ${index + 1} — expected result`} className="w-full resize-none rounded-lg border border-border bg-surface-raised px-3 py-2 text-sm text-white focus:border-teal-500/50 focus:outline-none" placeholder="Expected result / validation" />
+                        <input value={step.notes} onChange={(event) => updateStep(index, { notes: event.target.value })} aria-label={`Adım ${index + 1} — notlar`} className="w-full rounded-lg border border-border bg-surface-raised px-3 py-2 text-xs text-white focus:border-teal-500/50 focus:outline-none" placeholder="Notes" />
                       </div>
                       <div className="space-y-2">
                         <label className="flex items-center gap-2 text-xs text-slate-400">
-                          <input type="checkbox" checked={step.is_required} onChange={(event) => updateStep(index, { is_required: event.target.checked })} />
+                          <input type="checkbox" checked={step.is_required} onChange={(event) => updateStep(index, { is_required: event.target.checked })} aria-label={`Adım ${index + 1} zorunlu mu`} />
                           Required
                         </label>
                         <button

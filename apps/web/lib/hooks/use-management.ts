@@ -547,6 +547,7 @@ export const managementKeys = {
   imports: (projectId: string | undefined) => [...managementKeys.project(projectId), "imports"] as const,
   settings: (projectId: string | undefined) => [...managementKeys.project(projectId), "settings"] as const,
   audit: (projectId: string | undefined) => [...managementKeys.project(projectId), "audit"] as const,
+  myCases: (projectId: string | undefined) => [...managementKeys.project(projectId), "my-cases"] as const,
 };
 
 export function useManagementProjects() {
@@ -1766,7 +1767,37 @@ export function useManagementStandup(projectId: string | undefined, runId?: stri
     },
     enabled: !!projectId,
     staleTime: 30_000,
-    refetchInterval: 60_000,
+    // refetchInterval burada yok — standup sayfası tab-visibility-aware
+    // manual interval ile yönetiyor (daha kontrollü davranış).
+  });
+}
+
+// ── Tester: My Assigned Cases ─────────────────────────────────────────────────
+
+export interface MyTesterCase {
+  run_case_id: string;
+  run_id: string;
+  run_name: string;
+  run_status: string;
+  case_id: string;
+  case_key: string | null;
+  title: string | null;
+  status: string;
+  priority: string;
+  started_at: string | null;
+  completed_at: string | null;
+  duration_seconds: number | null;
+  step_count: number;
+  completed_steps: number;
+}
+
+export function useMyTesterCases(projectId: string | undefined) {
+  return useQuery({
+    queryKey: managementKeys.myCases(projectId),
+    queryFn: () => apiFetch<MyTesterCase[]>(`${BASE(projectId!)}/my-cases`),
+    enabled: !!projectId,
+    staleTime: 30_000,
+    retry: 2,
   });
 }
 

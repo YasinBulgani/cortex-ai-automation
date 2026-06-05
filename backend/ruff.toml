@@ -2,8 +2,13 @@ line-length = 120
 target-version = "py312"
 
 [lint]
-select = ["E", "F", "W", "I"]
-ignore = ["E501"]
+select = ["E", "F", "W", "I", "B", "C4", "UP", "SIM"]
+ignore = ["E501", "B008"]
+
+[lint.per-file-ignores]
+"**/routers/**" = ["B008"]
+"**/routes/**" = ["B008"]
+"**/api/**" = ["B008"]
 
 [lint.isort]
 known-first-party = ["app"]

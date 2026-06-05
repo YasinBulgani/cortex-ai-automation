@@ -83,7 +83,7 @@ function CaseTable({
   const [sortCol, setSortCol] = useState<string>("updated_at");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [page,         setPage]         = useState(0);
-  const ITEMS_PER_PAGE = 100;
+  const ITEMS_PER_PAGE = 50;
 
   const searchTimer = useRef<ReturnType<typeof setTimeout>>();
   const [debouncedSearch, setDebouncedSearch] = useState(search);
@@ -310,7 +310,11 @@ function CaseTable({
       {/* ── Footer ──────────────────────────────────────────────────────────── */}
       <div className="flex items-center justify-between border-t border-border bg-surface-raised px-4 py-2">
         <span className="text-[10px] text-fg-muted">
-          {hasFilter ? `${filtered.length} / ${nodeCases.length} senaryo` : `${nodeCases.length} senaryo`}
+          {hasFilter
+            ? `${visibleCases.length} / ${filtered.length} senaryo (toplam: ${nodeCases.length})`
+            : visibleCases.length < nodeCases.length
+              ? `${visibleCases.length} / ${nodeCases.length} senaryo gösteriliyor`
+              : `${nodeCases.length} senaryo`}
           {archivedCases.length > 0 && (
             <span className="ml-2 text-fg-subtle">· {archivedCases.length} arşivde</span>
           )}

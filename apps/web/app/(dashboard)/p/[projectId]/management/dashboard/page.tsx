@@ -64,6 +64,45 @@ function asText(value: unknown, fallback = "Tanimsiz") {
   return typeof value === "string" && value.trim() ? value : fallback;
 }
 
+const STATUS_TR: Record<string, string> = {
+  // test result statuses
+  passed:        "Geçti",
+  failed:        "Başarısız",
+  blocked:       "Engellendi",
+  skipped:       "Atlandı",
+  not_run:       "Çalıştırılmadı",
+  // run / plan / cycle statuses
+  in_progress:   "Devam Ediyor",
+  running:       "Çalışıyor",
+  completed:     "Tamamlandı",
+  not_started:   "Başlamadı",
+  draft:         "Taslak",
+  active:        "Aktif",
+  archived:      "Arşivlendi",
+  // release decision
+  GO:            "GO",
+  NO_GO:         "NO GO",
+  PENDING:       "Beklemede",
+  // priority
+  P0:            "P0 — Kritik",
+  P1:            "P1 — Yüksek",
+  P2:            "P2 — Orta",
+  P3:            "P3 — Düşük",
+  // test type
+  manual:        "Manuel",
+  automated:     "Otomatik",
+  exploratory:   "Keşif",
+  // checklist item status
+  ok:            "Tamam",
+  warning:       "Uyarı",
+  error:         "Hata",
+};
+
+function tr(value: string | undefined | null, fallback?: string): string {
+  if (!value) return fallback ?? "";
+  return STATUS_TR[value] ?? fallback ?? value;
+}
+
 function StatCard({ label, value, note, tone = "neutral", href }: {
   label: string;
   value: string | number;
@@ -443,7 +482,7 @@ function ReleaseSignoffWidget({
       <div className="mb-4 flex items-center justify-between">
         <h2 className="text-[14px] font-semibold text-fg">Release Signoff</h2>
         <span className={cn("text-[12px] font-semibold", decisionColor)}>
-          {decision === "GO" ? "GO" : decision === "NO_GO" ? "NO GO" : "Beklemede"}
+          {tr(decision, "Beklemede")}
         </span>
       </div>
 
@@ -705,11 +744,11 @@ export default function ManagementDashboardPage() {
 
           <div className="grid grid-cols-2 gap-3 md:grid-cols-2 xl:grid-cols-4">
             <StatCard label="Toplam manuel case" value={totalCases} note={`${suiteCount} suite, ${folderCount} klasor`} href={`/p/${projectId}/management/repository`} />
-            <StatCard label="Aktif test run" value={activeRuns} note={`${runs.length} toplam run`} tone="info" href={`/p/${projectId}/management/runs`} />
-            <StatCard label="Pass rate" value={`${summaryFast.data?.pass_rate_pct ?? summary?.pass_rate_pct ?? release?.pass_rate_pct ?? 0}%`} note={`${summary?.passed ?? 0} passed`} tone="success" href={`/p/${projectId}/management/reports`} />
-            <StatCard label="Failed case" value={failedCases} note="Acil triage bekleyen case" tone="danger" href={`/p/${projectId}/management/repository`} />
-            <StatCard label="Blocked case" value={blockedCases} note="Ortam veya veri engeli" tone="warning" href={`/p/${projectId}/management/repository`} />
-            <StatCard label="Not run case" value={notRunCases} note="Kapsama alinmis ama kosulmamis" href={`/p/${projectId}/management/repository`} />
+            <StatCard label="Aktif koşum" value={activeRuns} note={`${runs.length} toplam koşum`} tone="info" href={`/p/${projectId}/management/runs`} />
+            <StatCard label="Geçme oranı" value={`${summaryFast.data?.pass_rate_pct ?? summary?.pass_rate_pct ?? release?.pass_rate_pct ?? 0}%`} note={`${summary?.passed ?? 0} geçti`} tone="success" href={`/p/${projectId}/management/reports`} />
+            <StatCard label="Başarısız case" value={failedCases} note="Acil triage bekleyen case" tone="danger" href={`/p/${projectId}/management/repository`} />
+            <StatCard label="Engellenen case" value={blockedCases} note="Ortam veya veri engeli" tone="warning" href={`/p/${projectId}/management/repository`} />
+            <StatCard label="Çalıştırılmayan case" value={notRunCases} note="Kapsama alınmış ama çalıştırılmamış" href={`/p/${projectId}/management/repository`} />
             <StatCard label="Kritik defect" value={criticalDefects} note={`${defects.length} toplam defect`} tone={criticalDefects ? "danger" : "success"} href={`/p/${projectId}/management/defects`} />
             <StatCard label="Test kapsami" value={`${coveragePct}%`} note={`${requirements.length} requirement linki`} tone="info" href={`/p/${projectId}/management/requirements`} />
           </div>
@@ -730,26 +769,26 @@ export default function ManagementDashboardPage() {
               <div className="mb-4 flex items-center justify-between">
                 <h2 className="text-[14px] font-semibold text-fg">Regresyon ve release hazirligi</h2>
                 <span className="rounded-full border border-border bg-surface-overlay px-2 py-1 text-[11px] text-fg-muted">
-                  {release?.decision ?? "Beklemede"}
+                  {tr(release?.decision, "Beklemede")}
                 </span>
               </div>
               <div className="grid gap-4 md:grid-cols-3">
-                <MiniBar label="Run progress" value={summary?.progress_pct ?? release?.progress_pct ?? 0} max={100} tone="bg-blue-500" />
-                <MiniBar label="Pass rate" value={summary?.pass_rate_pct ?? release?.pass_rate_pct ?? 0} max={100} tone="bg-emerald-500" />
-                <MiniBar label="Requirement coverage" value={coveragePct} max={100} tone="bg-teal-500" />
+                <MiniBar label="Koşum ilerlemesi" value={summary?.progress_pct ?? release?.progress_pct ?? 0} max={100} tone="bg-blue-500" />
+                <MiniBar label="Geçme oranı" value={summary?.pass_rate_pct ?? release?.pass_rate_pct ?? 0} max={100} tone="bg-emerald-500" />
+                <MiniBar label="Gereksinim kapsamı" value={coveragePct} max={100} tone="bg-teal-500" />
               </div>
               <div className="mt-5 grid gap-2 md:grid-cols-2">
                 {(release?.checklist ?? []).slice(0, 4).map(item => (
                   <div key={item.label} className="rounded-lg border border-border bg-surface-overlay px-3 py-2">
                     <p className="text-[12px] font-medium text-fg">{item.label}</p>
-                    <p className="text-[11px] text-fg-subtle">{item.metric} · {item.status}</p>
+                    <p className="text-[11px] text-fg-subtle">{item.metric} · {tr(item.status, item.status)}</p>
                   </div>
                 ))}
               </div>
             </section>
 
             <section className="rounded-xl border border-border bg-surface-raised p-5 shadow-sm">
-              <h2 className="mb-4 text-[14px] font-semibold text-fg">Tester workload</h2>
+              <h2 className="mb-4 text-[14px] font-semibold text-fg">Test uzmanı iş yükü</h2>
               <div className="space-y-3">
                 {workload.length ? workload.map(([owner, count]) => (
                   <MiniBar key={owner} label={owner} value={count} max={cases.length} tone="bg-violet-500" />
@@ -787,7 +826,7 @@ export default function ManagementDashboardPage() {
                 {latestRuns.length ? latestRuns.map(run => (
                   <Link key={run.id} href={`/p/${projectId}/management/runs/${run.id}/execute`} className="block rounded-lg border border-border bg-surface-overlay px-3 py-2 hover:border-brand/30">
                     <p className="truncate text-[12px] font-medium text-fg">{run.name}</p>
-                    <p className="mt-0.5 text-[11px] text-fg-subtle">{run.status} · {run.environment ?? "ortam yok"}</p>
+                    <p className="mt-0.5 text-[11px] text-fg-subtle">{tr(run.status)} · {run.environment ?? "ortam yok"}</p>
                   </Link>
                 )) : <p className="py-8 text-center text-[12px] text-fg-muted">Henüz test run bulunmuyor</p>}
               </div>
@@ -799,7 +838,7 @@ export default function ManagementDashboardPage() {
                 {latestCases.length ? latestCases.map(tc => (
                   <Link key={tc.id} href={`/p/${projectId}/management/cases/${tc.id}`} className="block rounded-lg border border-border bg-surface-overlay px-3 py-2 hover:border-brand/30">
                     <p className="truncate text-[12px] font-medium text-fg">{tc.case_key} · {tc.title}</p>
-                    <p className="mt-0.5 text-[11px] text-fg-subtle">{tc.priority} · {tc.type} · {tc.status}</p>
+                    <p className="mt-0.5 text-[11px] text-fg-subtle">{tr(tc.priority)} · {tr(tc.type)} · {tr(tc.status)}</p>
                   </Link>
                 )) : <p className="py-8 text-center text-[12px] text-fg-muted">Repository uzerinden case ekleyin</p>}
               </div>

@@ -140,6 +140,7 @@ export default function ManagementSettingsPage() {
   const [keyError, setKeyError]               = useState<string | null>(null);
   const [revokeError, setRevokeError]         = useState<string | null>(null);
   const [confirmRevokeId, setConfirmRevokeId] = useState<string | null>(null);
+  const [createdKey, setCreatedKey]           = useState<ApiKey | null>(null); // one-time reveal
 
   const storageKey = mpid ? `mgmt-settings-${mpid}` : null;
 
@@ -296,15 +297,19 @@ export default function ManagementSettingsPage() {
     setTags([]);
     // Backend'deki ayarları da sıfırla
     if (mpid) {
-      await updateSettings.mutateAsync({
-        default_priority: DEFAULT_STORED.defaultPriority,
-        default_type: DEFAULT_STORED.defaultType,
-        case_key_prefix: DEFAULT_STORED.caseKeyPrefix,
-        case_key_format: DEFAULT_STORED.caseKeyFormat,
-        notifications: {},
-        modules: [],
-        tags: [],
-      });
+      try {
+        await updateSettings.mutateAsync({
+          default_priority: DEFAULT_STORED.defaultPriority,
+          default_type: DEFAULT_STORED.defaultType,
+          case_key_prefix: DEFAULT_STORED.caseKeyPrefix,
+          case_key_format: DEFAULT_STORED.caseKeyFormat,
+          notifications: {},
+          modules: [],
+          tags: [],
+        });
+      } catch {
+        // Backend sıfırlama başarısız olsa da local state temizlendi
+      }
     }
     setConfirmReset(false);
   }
@@ -342,10 +347,8 @@ export default function ManagementSettingsPage() {
       setNewKeyName("");
       setNewKeyDuration(365);
       setShowKeyModal(false);
-      // Clear full key from memory after 60s — only masked version remains
-      setTimeout(() => {
-        setApiKeys(prev => prev.map(k => k.id === newKey.id ? { ...k, revealed: false, key: undefined } : k));
-      }, 60_000);
+      // Show one-time reveal modal — key is cleared from state after user dismisses
+      setCreatedKey(newKey);
     } catch (err) {
       setKeyError(err instanceof Error ? err.message : "Anahtar oluşturulamadı.");
     }
@@ -881,6 +884,58 @@ export default function ManagementSettingsPage() {
                 className="rounded-xl bg-brand px-4 py-2 text-[12px] font-semibold text-brand-fg transition-colors hover:brightness-105 disabled:opacity-40"
               >
                 Oluştur
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ══════════════ API KEY ONE-TIME REVEAL MODAL ══════════════ */}
+      {createdKey && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-2xl border border-teal-500/30 bg-surface-raised p-6 shadow-2xl">
+            <div className="mb-3 flex items-center gap-3">
+              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-teal-500/10">
+                <svg className="h-5 w-5 text-teal-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                </svg>
+              </div>
+              <h3 className="text-[14px] font-semibold text-slate-200">API Anahtarı Oluşturuldu</h3>
+            </div>
+            <p className="mb-3 text-[12px] text-amber-400/90 bg-amber-500/10 border border-amber-500/20 rounded-lg px-3 py-2">
+              Bu anahtar yalnizca bir kez goruntulenir. Simdi kopyalamazsiniz bir daha erisemezsiniz.
+            </p>
+            <p className="mb-1 text-[11px] text-slate-500">Anahtar: <span className="text-slate-300">{createdKey.name}</span></p>
+            <div className="flex items-center gap-2 mt-2">
+              <code className="flex-1 break-all rounded-lg border border-border bg-white/[0.04] px-3 py-2 font-mono text-[12px] text-teal-300 select-all">
+                {createdKey.key}
+              </code>
+              <button
+                onClick={() => {
+                  if (createdKey.key) {
+                    navigator.clipboard.writeText(createdKey.key).then(() => {
+                      setCopyToast(createdKey.id);
+                      setTimeout(() => setCopyToast(null), 2000);
+                    });
+                  }
+                }}
+                className="shrink-0 rounded-lg border border-border px-3 py-2 text-[12px] text-slate-400 hover:text-slate-200 transition-colors"
+              >
+                {copyToast === createdKey.id ? "Kopyalandi ✓" : "Kopyala"}
+              </button>
+            </div>
+            <div className="mt-6 flex justify-end">
+              <button
+                onClick={() => {
+                  // Clear full key from state — only masked key remains
+                  setApiKeys(prev => prev.map(k =>
+                    k.id === createdKey.id ? { ...k, revealed: false, key: undefined } : k
+                  ));
+                  setCreatedKey(null);
+                }}
+                className="rounded-xl bg-brand px-4 py-2 text-[12px] font-semibold text-brand-fg transition-colors hover:brightness-105"
+              >
+                Kopyaladim, kapat
               </button>
             </div>
           </div>

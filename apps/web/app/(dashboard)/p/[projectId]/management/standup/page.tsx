@@ -1188,7 +1188,8 @@ export default function StandupPage() {
   const passed = data?.passed ?? data?.completed_cases ?? 0;
   const failed = data?.failed ?? 0;
   const blocked = data?.blocked ?? 0;
-  const notRun = Math.max(0, total - passed - failed - blocked);
+  // data.not_run backend'den geliyor — yoksa hesapla
+  const notRun = data?.not_run ?? Math.max(0, total - passed - failed - blocked);
 
   if (standupQ.isLoading) return <LoadingScreen />;
   if (standupQ.isError) return <ErrorScreen onRetry={handleRefresh} />;

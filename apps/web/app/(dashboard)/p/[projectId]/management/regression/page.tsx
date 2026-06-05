@@ -534,7 +534,7 @@ export default function ManagementRegressionPage() {
 
       {/* Modals */}
       {showPicker && selectedSet && (
-        <CasePickerModal mpid={mpid} existingCaseIds={existingIds}
+        <CasePickerModal mpid={mpid ?? ""} existingCaseIds={existingIds}
           onAdd={async (ids) => { await addCases.mutateAsync({setId:selectedSet.id,caseIds:ids}); }}
           onClose={()=>setShowPicker(false)}/>
       )}

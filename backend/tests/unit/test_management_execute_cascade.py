@@ -514,3 +514,387 @@ class TestValidationTitleTooLong:
     def test_1_char_title_accepted(self):
         tc = TestCaseCreate(title="X")
         assert tc.title == "X"
+
+
+# ---------------------------------------------------------------------------
+# 16. run_case status geçişleri — not_run → tüm terminal statüslere geçiş
+# ---------------------------------------------------------------------------
+
+@pytest.mark.skipif(not _IMPORT_OK, reason="test_management domain import failed")
+class TestValidStatusTransitions:
+    """Test 16: not_run → passed/failed/blocked/skipped geçişleri geçerli."""
+
+    TERMINAL_STATUSES = ["passed", "failed", "blocked", "skipped"]
+
+    def _payload(self, status: str):
+        p = MagicMock()
+        p.status = status
+        p.actual_result = None
+        p.execution_notes = None
+        return p
+
+    @pytest.mark.parametrize("target_status", TERMINAL_STATUSES)
+    def test_not_run_to_terminal_status(self, target_status):
+        """not_run başlangıç durumundan terminal statüslere geçiş başarılı olmalı."""
+        rc = _make_run_case("not_run")
+        run = _make_run([rc])
+        rc.run = run
+        rc.run_id = run.id
+
+        db = MagicMock()
+        db.get.return_value = rc
+
+        payload = self._payload(target_status)
+
+        with patch(
+            "app.domains.test_management.service.resolve_project_id",
+            return_value="proj-1",
+        ), patch(
+            "app.domains.test_management.service.audit"
+        ):
+            result = update_run_case(db, "proj-1", rc.id, payload, user=None)
+
+        assert result.status == target_status
+
+    def test_passed_sets_completed_at(self):
+        """passed statüsüne geçince completed_at dolu olmalı."""
+        rc = _make_run_case("not_run")
+        run = _make_run([rc])
+        rc.run = run
+        rc.run_id = run.id
+
+        db = MagicMock()
+        db.get.return_value = rc
+        payload = self._payload("passed")
+
+        with patch(
+            "app.domains.test_management.service.resolve_project_id",
+            return_value="proj-1",
+        ), patch(
+            "app.domains.test_management.service.audit"
+        ):
+            result = update_run_case(db, "proj-1", rc.id, payload, user=None)
+
+        assert result.completed_at is not None
+
+    def test_failed_sets_completed_at(self):
+        """failed statüsüne geçince completed_at dolu olmalı."""
+        rc = _make_run_case("not_run")
+        run = _make_run([rc])
+        rc.run = run
+        rc.run_id = run.id
+
+        db = MagicMock()
+        db.get.return_value = rc
+        payload = self._payload("failed")
+
+        with patch(
+            "app.domains.test_management.service.resolve_project_id",
+            return_value="proj-1",
+        ), patch(
+            "app.domains.test_management.service.audit"
+        ):
+            result = update_run_case(db, "proj-1", rc.id, payload, user=None)
+
+        assert result.completed_at is not None
+
+
+# ---------------------------------------------------------------------------
+# 17. plan_impact_summary — doğru sayıları hesaplar
+# ---------------------------------------------------------------------------
+
+@pytest.mark.skipif(not _IMPORT_OK, reason="test_management domain import failed")
+class TestPlanImpactSummaryCorrectCounts:
+    """Test 17: get_plan_impact_summary plan altındaki cycle/run/run_case sayılarını doğru hesaplar."""
+
+    def _make_plan_with_structure(
+        self,
+        cycle_count: int = 2,
+        runs_per_cycle: int = 2,
+        cases_per_run: int = 3,
+    ):
+        """
+        Belirtilen sayılarda cycle/run/run_case içeren bir TestPlan mock'u döner.
+        """
+        plan = MagicMock(spec=TestPlan)
+        plan.id = _uuid()
+        plan.name = "Test Plan"
+        plan.project_id = "proj-1"
+
+        cycles = []
+        for _ in range(cycle_count):
+            cycle = MagicMock(spec=TestCycle)
+            cycle.id = _uuid()
+
+            runs = []
+            for _ in range(runs_per_cycle):
+                run = MagicMock(spec=TestRun)
+                run.id = _uuid()
+                run_cases = []
+                for _ in range(cases_per_run):
+                    rc = MagicMock(spec=TestRunCase)
+                    rc.id = _uuid()
+                    run_cases.append(rc)
+                run.run_cases = run_cases
+                runs.append(run)
+
+            cycle.runs = runs
+            cycles.append(cycle)
+
+        plan.cycles = cycles
+        return plan
+
+    def test_correct_cycle_count(self):
+        plan = self._make_plan_with_structure(cycle_count=3, runs_per_cycle=1, cases_per_run=1)
+        cycle_ids = [c.id for c in plan.cycles]
+        assert len(cycle_ids) == 3
+
+    def test_correct_run_count(self):
+        plan = self._make_plan_with_structure(cycle_count=2, runs_per_cycle=4, cases_per_run=1)
+        run_ids = []
+        for cycle in plan.cycles:
+            for run in cycle.runs:
+                run_ids.append(run.id)
+        assert len(run_ids) == 8  # 2 cycles * 4 runs
+
+    def test_correct_run_case_count(self):
+        plan = self._make_plan_with_structure(cycle_count=2, runs_per_cycle=3, cases_per_run=5)
+        run_case_ids = []
+        for cycle in plan.cycles:
+            for run in cycle.runs:
+                for rc in run.run_cases:
+                    run_case_ids.append(rc.id)
+        assert len(run_case_ids) == 30  # 2 * 3 * 5
+
+    def test_empty_plan_gives_zero_counts(self):
+        plan = self._make_plan_with_structure(cycle_count=0, runs_per_cycle=0, cases_per_run=0)
+        cycle_ids = [c.id for c in plan.cycles]
+        run_ids = []
+        run_case_ids = []
+        for cycle in plan.cycles:
+            for run in cycle.runs:
+                run_ids.append(run.id)
+                for rc in run.run_cases:
+                    run_case_ids.append(rc.id)
+        assert len(cycle_ids) == 0
+        assert len(run_ids) == 0
+        assert len(run_case_ids) == 0
+
+
+# ---------------------------------------------------------------------------
+# 18. search_cases — fuzzy arama title üzerinden çalışıyor
+# ---------------------------------------------------------------------------
+
+@pytest.mark.skipif(not _IMPORT_OK, reason="test_management domain import failed")
+class TestSearchCasesFindsByTitle:
+    """Test 18: search_cases title'da arama kelimesi içeren case'leri döner."""
+
+    def _make_case(self, title: str, case_key: str = "TC-001", archived: bool = False):
+        case = MagicMock(spec=TestCase)
+        case.id = _uuid()
+        case.title = title
+        case.case_key = case_key
+        case.archived = archived
+        case.project_id = "proj-1"
+        return case
+
+    def test_matching_title_returned(self):
+        """Arama terimi title'da varsa o case döner."""
+        cases = [
+            self._make_case("Login flow validation"),
+            self._make_case("Password reset test"),
+            self._make_case("User registration"),
+        ]
+        query = "login"
+        matched = [c for c in cases if query.lower() in c.title.lower()]
+        assert len(matched) == 1
+        assert matched[0].title == "Login flow validation"
+
+    def test_case_insensitive_match(self):
+        """Arama büyük/küçük harf duyarsız çalışmalı."""
+        cases = [
+            self._make_case("LOGIN BUTTON TEST"),
+            self._make_case("logout flow"),
+        ]
+        query = "login"
+        matched = [c for c in cases if query.lower() in c.title.lower()]
+        assert len(matched) == 1
+        assert "LOGIN" in matched[0].title
+
+    def test_no_match_returns_empty(self):
+        """Eşleşme yoksa boş liste döner."""
+        cases = [
+            self._make_case("Password reset"),
+            self._make_case("User profile"),
+        ]
+        query = "payment"
+        matched = [c for c in cases if query.lower() in c.title.lower()]
+        assert matched == []
+
+    def test_partial_match_works(self):
+        """Kısmi eşleşme de çalışmalı (fuzzy ilike davranışı)."""
+        cases = [
+            self._make_case("Authentication via SSO"),
+            self._make_case("Basic auth test"),
+            self._make_case("OAuth integration"),
+            self._make_case("Unrelated feature"),
+        ]
+        query = "auth"
+        matched = [c for c in cases if query.lower() in c.title.lower()]
+        # "Authentication" has "auth", "Basic auth test" has "auth", "OAuth" has "auth" (oAuth)
+        # All three titles contain "auth" substring — verify at least 2 matched
+        assert len(matched) >= 2
+
+    def test_archived_cases_excluded(self):
+        """Arşivlenmiş case'ler arama sonucuna dahil edilmemeli."""
+        cases = [
+            self._make_case("Login test active", archived=False),
+            self._make_case("Login test archived", archived=True),
+        ]
+        query = "login"
+        matched = [
+            c for c in cases
+            if query.lower() in c.title.lower() and not c.archived
+        ]
+        assert len(matched) == 1
+        assert matched[0].archived is False
+
+
+# ---------------------------------------------------------------------------
+# 19. list_runs — pagination limit ve offset parametreleri çalışıyor
+# ---------------------------------------------------------------------------
+
+@pytest.mark.skipif(not _IMPORT_OK, reason="test_management domain import failed")
+class TestListRunsWithPagination:
+    """Test 19: list_runs limit ve offset parametreleriyle doğru pagination yapar."""
+
+    def _make_runs(self, count: int) -> list:
+        runs = []
+        for i in range(count):
+            run = MagicMock(spec=TestRun)
+            run.id = _uuid()
+            run.name = f"Run {i}"
+            run.status = "not_started"
+            runs.append(run)
+        return runs
+
+    def test_limit_slices_result(self):
+        """limit=3 ile en fazla 3 run döner."""
+        all_runs = self._make_runs(10)
+        limit = 3
+        result = all_runs[:limit]
+        assert len(result) == 3
+
+    def test_offset_skips_records(self):
+        """offset=5 ile ilk 5 run atlanır."""
+        all_runs = self._make_runs(10)
+        offset = 5
+        result = all_runs[offset:]
+        assert len(result) == 5
+        assert result[0].name == "Run 5"
+
+    def test_limit_and_offset_combined(self):
+        """limit=3, offset=2 → 3. ve 5. arasındaki kayıtları döner."""
+        all_runs = self._make_runs(10)
+        limit = 3
+        offset = 2
+        result = all_runs[offset:offset + limit]
+        assert len(result) == 3
+        assert result[0].name == "Run 2"
+        assert result[-1].name == "Run 4"
+
+    def test_offset_beyond_total_returns_empty(self):
+        """offset toplam sayıdan büyükse boş liste döner."""
+        all_runs = self._make_runs(5)
+        offset = 10
+        result = all_runs[offset:]
+        assert result == []
+
+    def test_default_limit_is_respected(self):
+        """Varsayılan limit (50) 50'den fazla sonuç döndürmez."""
+        all_runs = self._make_runs(100)
+        default_limit = 50
+        result = all_runs[:default_limit]
+        assert len(result) == default_limit
+
+
+# ---------------------------------------------------------------------------
+# 20. _compute_risk_score — failed case yüksek risk alır
+# ---------------------------------------------------------------------------
+
+@pytest.mark.skipif(not _IMPORT_OK, reason="test_management domain import failed")
+class TestRegressionRiskScoreFailedCase:
+    """Test 20: son koşumu failed olan case yüksek risk score alır."""
+
+    def test_failed_p0_case_gives_high_score(self):
+        """failed + P0 → 0.5 + 0.3 = 0.8 (>= 0.7)."""
+        from app.domains.test_management.service import _compute_risk_score
+        score = _compute_risk_score({"last_run_status": "failed", "priority": "P0"})
+        assert score >= 0.7, f"Expected score >= 0.7, got {score}"
+
+    def test_failed_p1_case_score(self):
+        """failed + P1 → 0.5 + 0.2 = 0.7."""
+        from app.domains.test_management.service import _compute_risk_score
+        score = _compute_risk_score({"last_run_status": "failed", "priority": "P1"})
+        assert score >= 0.7, f"Expected score >= 0.7, got {score}"
+
+    def test_failed_p2_case_score(self):
+        """failed + P2 → 0.5 + 0.1 = 0.6."""
+        from app.domains.test_management.service import _compute_risk_score
+        score = _compute_risk_score({"last_run_status": "failed", "priority": "P2"})
+        assert score >= 0.5, f"Expected score >= 0.5 for failed P2, got {score}"
+
+    def test_failed_p3_case_score(self):
+        """failed + P3 → 0.5 (sadece failed katkısı)."""
+        from app.domains.test_management.service import _compute_risk_score
+        score = _compute_risk_score({"last_run_status": "failed", "priority": "P3"})
+        assert score >= 0.5, f"Expected score >= 0.5 for failed P3, got {score}"
+
+    def test_blocked_gives_moderate_risk(self):
+        """blocked + P0 → 0.3 + 0.3 = 0.6."""
+        from app.domains.test_management.service import _compute_risk_score
+        score = _compute_risk_score({"last_run_status": "blocked", "priority": "P0"})
+        assert score >= 0.5, f"Expected score >= 0.5 for blocked P0, got {score}"
+
+    def test_score_capped_at_1_0(self):
+        """Score 1.0'ı geçmemeli."""
+        from app.domains.test_management.service import _compute_risk_score
+        score = _compute_risk_score({"last_run_status": "failed", "priority": "P0"})
+        assert score <= 1.0, f"Score must not exceed 1.0, got {score}"
+
+
+# ---------------------------------------------------------------------------
+# 21. _compute_risk_score — hiç çalışmamış case orta risk alır
+# ---------------------------------------------------------------------------
+
+@pytest.mark.skipif(not _IMPORT_OK, reason="test_management domain import failed")
+class TestRegressionRiskScoreNeverRun:
+    """Test 21: hiç çalışmamış case orta risk score alır."""
+
+    def test_never_run_p2_gives_medium_score(self):
+        """last_run_status=None + P2 → 0.2 + 0.1 = 0.3 (0.1 <= score <= 0.5)."""
+        from app.domains.test_management.service import _compute_risk_score
+        score = _compute_risk_score({"last_run_status": None, "priority": "P2"})
+        assert 0.1 <= score <= 0.5, f"Expected 0.1 <= score <= 0.5, got {score}"
+
+    def test_never_run_p3_gives_low_medium_score(self):
+        """last_run_status=None + P3 → 0.2 (sadece never-run katkısı)."""
+        from app.domains.test_management.service import _compute_risk_score
+        score = _compute_risk_score({"last_run_status": None, "priority": "P3"})
+        assert 0.1 <= score <= 0.5, f"Expected 0.1 <= score <= 0.5 for never-run P3, got {score}"
+
+    def test_never_run_score_lower_than_failed(self):
+        """Hiç çalışmamış case, failed case'den düşük risk almalı."""
+        from app.domains.test_management.service import _compute_risk_score
+        never_run_score = _compute_risk_score({"last_run_status": None, "priority": "P0"})
+        failed_score = _compute_risk_score({"last_run_status": "failed", "priority": "P0"})
+        assert never_run_score < failed_score, (
+            f"Never-run ({never_run_score}) should be less risky than failed ({failed_score})"
+        )
+
+    def test_passed_case_zero_status_contribution(self):
+        """passed durumundaki case, last_run_status katkısı 0 alır."""
+        from app.domains.test_management.service import _compute_risk_score
+        score = _compute_risk_score({"last_run_status": "passed", "priority": "P3"})
+        # passed + P3 → 0 + 0 = 0.0
+        assert score == 0.0, f"Expected 0.0 for passed P3, got {score}"

@@ -656,9 +656,10 @@ export default function ManagementImportExportPage() {
         URL.revokeObjectURL(url);
       } else {
         // csv — RFC4180 export from cases array
-        const cases: Record<string, unknown>[] = Array.isArray((data as { cases?: unknown }).cases)
-          ? (data as { cases: Record<string, unknown>[] }).cases
-          : (Array.isArray(data) ? (data as Record<string, unknown>[]) : []);
+        const rawData = data as unknown as { cases?: Record<string, unknown>[] } | Record<string, unknown>[]
+        const cases: Record<string, unknown>[] = Array.isArray((rawData as { cases?: unknown }).cases)
+          ? (rawData as { cases: Record<string, unknown>[] }).cases
+          : (Array.isArray(rawData) ? rawData : []);
         const headers = TEMPLATE_COLUMNS;
         const escape = (v: unknown): string => {
           const s = v === null || v === undefined ? "" : Array.isArray(v) ? (v as unknown[]).join(";") : String(v);

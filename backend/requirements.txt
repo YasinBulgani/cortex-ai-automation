@@ -49,3 +49,9 @@ numpy>=1.26.0,<3.0                         # embedding_index.py module-level imp
 # AI_MODEL_RERANKER_ENABLED=false ise bu paket gerekmez; kurulu değilse
 # reranker pass-through yapar. Production'da rerank açılacaksa yorum kaldırın.
 # sentence-transformers>=3.0,<4.0
+
+# Jira entegrasyonu — /api/jira/* endpoint'leri için
+jira>=3.8,<4.0
+
+# Testing — coverage reporting
+pytest-cov>=4.1.0

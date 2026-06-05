@@ -1,27 +1,10 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
-import { apiFetch } from "@/lib/api-client";
+import { useState } from "react";
+import { useMyTesterCases, type MyTesterCase } from "@/lib/hooks/use-management";
 import { useManagementProjectId } from "@/lib/hooks/use-management-project-id";
 import { useRouteParam } from "@/lib/use-route-param";
-
-type MyCase = {
-  run_case_id: string;
-  run_id: string;
-  run_name: string;
-  run_status: string;
-  case_id: string;
-  case_key: string | null;
-  title: string | null;
-  status: string;
-  priority: string;
-  started_at: string | null;
-  completed_at: string | null;
-  duration_seconds: number | null;
-  step_count: number;
-  completed_steps: number;
-};
 
 const STATUS_CONFIG: Record<string, { label: string; dot: string; badge: string }> = {
   not_run:  { label: "Bekliyor",   dot: "bg-slate-500",   badge: "bg-slate-700 text-slate-300" },
@@ -44,7 +27,7 @@ function formatDuration(s: number | null) {
   return `${Math.floor(s / 60)}dk ${s % 60}sn`;
 }
 
-function CaseCard({ c, projectId }: { c: MyCase; projectId: string }) {
+function CaseCard({ c, projectId }: { c: MyTesterCase; projectId: string }) {
   const cfg = STATUS_CONFIG[c.status] ?? STATUS_CONFIG.not_run;
   const pct = c.step_count > 0 ? Math.round((c.completed_steps / c.step_count) * 100) : 0;
 
@@ -129,30 +112,9 @@ function CaseCard({ c, projectId }: { c: MyCase; projectId: string }) {
 export default function TesterHomePage() {
   const projectId = useRouteParam("projectId") ?? "";
   const mpid      = useManagementProjectId(projectId || undefined);
-  const [cases, setCases] = useState<MyCase[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<"all" | "not_run" | "failed" | "passed">("all");
 
-  const fetchCases = useCallback(async () => {
-    const pid = mpid || projectId;
-    if (!pid) { setLoading(false); return; }
-    setLoading(true);
-    try {
-      const data = await apiFetch<MyCase[]>(
-        `/api/v1/test-management/projects/${pid}/my-cases`,
-      );
-      setCases(data);
-      setError(null);
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Veriler yüklenemedi";
-      setError(msg);
-    } finally {
-      setLoading(false);
-    }
-  }, [mpid, projectId]);
-
-  useEffect(() => { fetchCases(); }, [fetchCases]);
+  const { data: cases = [], isLoading, isError, refetch } = useMyTesterCases(mpid || undefined);
 
   const filtered = filter === "all" ? cases : cases.filter((c) => c.status === filter);
   const pending  = cases.filter((c) => c.status === "not_run").length;
@@ -165,17 +127,17 @@ export default function TesterHomePage() {
   return (
     <div className="min-h-full bg-bg px-5 py-5 space-y-5">
       {/* Hata durumunda belirgin hata kartı */}
-      {error && (
+      {isError && (
         <div className="rounded-xl border border-red-500/40 bg-red-500/10 p-6 flex flex-col items-center gap-4 text-center">
           <svg className="h-10 w-10 text-red-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"/>
           </svg>
           <div>
             <p className="text-base font-semibold text-red-300">Veriler yüklenemedi</p>
-            <p className="text-sm text-red-400/80 mt-1">{error}</p>
+            <p className="text-sm text-red-400/80 mt-1">Görevler alınırken bir hata oluştu.</p>
           </div>
           <button
-            onClick={() => void fetchCases()}
+            onClick={() => void refetch()}
             className="rounded-lg bg-red-500 hover:bg-red-400 px-5 py-2 text-sm font-semibold text-white transition-colors"
           >
             Tekrar Dene
@@ -184,16 +146,16 @@ export default function TesterHomePage() {
       )}
 
       {/* Özet istatistikler — sadece hata yokken göster */}
-      {!error && (
+      {!isError && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {[
-            { label: "Toplam", value: cases.length, color: "text-white" },
-            { label: "Bekliyor", value: pending, color: "text-amber-400" },
-            { label: "Tamamlandı", value: done, color: "text-emerald-400" },
-            { label: "Başarısız", value: failed, color: "text-red-400" },
+            { label: "Toplam",      value: cases.length, color: "text-white" },
+            { label: "Bekliyor",    value: pending,      color: "text-amber-400" },
+            { label: "Tamamlandı", value: done,          color: "text-emerald-400" },
+            { label: "Başarısız",  value: failed,        color: "text-red-400" },
           ].map((stat) => (
             <div key={stat.label} className="rounded-xl border border-border bg-surface-raised p-4 text-center">
-              <p className={`text-2xl font-bold ${stat.color}`}>{loading ? "…" : stat.value}</p>
+              <p className={`text-2xl font-bold ${stat.color}`}>{isLoading ? "…" : stat.value}</p>
               <p className="text-xs text-slate-500 mt-1">{stat.label}</p>
             </div>
           ))}
@@ -201,7 +163,7 @@ export default function TesterHomePage() {
       )}
 
       {/* Genel ilerleme çubuğu */}
-      {!loading && cases.length > 0 && (
+      {!isLoading && cases.length > 0 && (
         <div className="rounded-xl border border-border bg-surface-raised p-4 space-y-2">
           <div className="flex justify-between text-sm">
             <span className="text-slate-300 font-medium">Bugünkü İlerleme</span>
@@ -218,7 +180,7 @@ export default function TesterHomePage() {
       )}
 
       {/* Sonraki case — büyük aksiyon kartı */}
-      {!loading && nextCase && (
+      {!isLoading && nextCase && (
         <div className="rounded-xl border border-teal-500/40 bg-teal-500/10 p-5 space-y-3">
           <p className="text-xs font-semibold text-teal-400 uppercase tracking-wide">⚡ Sıradaki Görev</p>
           <div className="flex items-center justify-between gap-4">
@@ -265,12 +227,12 @@ export default function TesterHomePage() {
       </div>
 
       {/* Case listesi */}
-      {loading ? (
+      {isLoading ? (
         <div className="flex items-center justify-center py-16 text-slate-500 text-sm">
           <span className="w-5 h-5 border-2 border-teal-500 border-t-transparent rounded-full animate-spin mr-3" />
           Görevler yükleniyor…
         </div>
-      ) : filtered.length === 0 ? (
+      ) : !isError && filtered.length === 0 ? (
         <div className="rounded-xl border border-border bg-surface-raised py-16 text-center">
           <p className="text-4xl mb-3">✅</p>
           <p className="text-slate-300 font-medium">
