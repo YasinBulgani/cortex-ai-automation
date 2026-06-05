@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { apiFetch } from "@/lib/api";
 
 export type KbArticle = {
   id: string;
@@ -29,7 +30,6 @@ const KB_API_BASE = "/api/v1/kb";
 // Backend-first with localStorage fallback.
 // Now that /api/v1/kb router is registered (2026-05-24), initial load
 // fetches from the backend and syncs to localStorage for offline use.
-// Mutations still write to localStorage; backend sync is planned.
 
 function loadFromStorage(): KbArticle[] {
   try {
@@ -52,20 +52,24 @@ function saveToStorage(items: KbArticle[]) {
 
 async function fetchFromBackend(): Promise<KbArticle[] | null> {
   try {
-    const res = await fetch(`${KB_API_BASE}/articles`, {
-      credentials: "include",
-      headers: { "Content-Type": "application/json" },
-    });
-    if (!res.ok) return null; // backend unavailable or auth required → use localStorage
-    const data: KbArticle[] = await res.json();
-    return Array.isArray(data) ? data : null;
+    const data = await apiFetch<unknown>(`${KB_API_BASE}/articles`);
+    if (Array.isArray(data)) return data as KbArticle[];
+    if (
+      typeof data === "object" &&
+      data !== null &&
+      "articles" in data &&
+      Array.isArray((data as { articles?: unknown }).articles)
+    ) {
+      return (data as { articles: KbArticle[] }).articles;
+    }
+    return null;
   } catch {
-    return null; // network error → graceful fallback
+    return null;
   }
 }
 
 function makeId(): string {
-  return `a-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  return `a-${globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`}`;
 }
 
 function nowIso(): string {
@@ -85,8 +89,6 @@ export function useKnowledgeBase() {
       if (backendData && backendData.length > 0) {
         setArticles(backendData);
         saveToStorage(backendData); // sync to localStorage for offline use
-      } else if (local.length === 0) {
-        setArticles([]); // both empty
       }
     });
   }, []);
@@ -119,44 +121,39 @@ export function useKnowledgeBase() {
         helpful_count: 0,
         unhelpful_count: 0,
       };
-      const all = loadFromStorage();
-      persist([article, ...all]);
+      persist([article, ...articles]);
       return article;
     },
-    [persist],
+    [articles, persist],
   );
 
   const update = useCallback(
     (id: string, patch: Partial<Pick<KbArticle, "title" | "body" | "tags" | "category">>) => {
-      const all = loadFromStorage();
-      const next = all.map((a) =>
+      const next = articles.map((a) =>
         a.id === id ? { ...a, ...patch, updated_at: nowIso() } : a,
       );
       persist(next);
       return next.find((a) => a.id === id) ?? null;
     },
-    [persist],
+    [articles, persist],
   );
 
   const remove = useCallback(
     (id: string) => {
-      const all = loadFromStorage();
-      persist(all.filter((a) => a.id !== id));
+      persist(articles.filter((a) => a.id !== id));
     },
-    [persist],
+    [articles, persist],
   );
 
   const incrementView = useCallback((id: string) => {
-    const all = loadFromStorage();
-    const next = all.map((a) =>
+    const next = articles.map((a) =>
       a.id === id ? { ...a, view_count: a.view_count + 1 } : a,
     );
     persist(next);
-  }, [persist]);
+  }, [articles, persist]);
 
   const vote = useCallback((id: string, helpful: boolean) => {
-    const all = loadFromStorage();
-    const next = all.map((a) =>
+    const next = articles.map((a) =>
       a.id === id
         ? {
             ...a,
@@ -166,7 +163,7 @@ export function useKnowledgeBase() {
         : a,
     );
     persist(next);
-  }, [persist]);
+  }, [articles, persist]);
 
   const list = useCallback(
     (filter: ListFilter = {}) => {

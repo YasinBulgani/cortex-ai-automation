@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
+import { ApiError, apiFetch } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 // TAB_GROUPS ve activeGroup artık render için kullanılmıyor;
@@ -118,52 +119,51 @@ export default function ProjectLayout({
     const timeoutId = window.setTimeout(() => controller.abort(), 6000);
     (async () => {
       try {
-        const res = await fetch(`/api/v1/tspm/projects/${projectId}`, {
-          credentials: "include",
+        await apiFetch<unknown>(`/api/v1/tspm/projects/${projectId}`, {
           signal: controller.signal,
         });
         window.clearTimeout(timeoutId);
-        if (res.ok) {
-          setProjectState("valid");
-          return;
-        }
+        setProjectState("valid");
+        return;
+      } catch (err) {
+        window.clearTimeout(timeoutId);
+        // AbortError: ya timeout ya da projectId değişimi — state güncelleme
+        if (err instanceof Error && err.name === "AbortError") return;
         // Development fallback: the default seed project may not exist in TSPM
         // yet while Management can still bootstrap its own workspace.
         if (
           process.env.NODE_ENV === "development" &&
           projectId === "00000000-0000-0000-0000-000000000001" &&
-          (res.status === 404 || res.status === 500)
+          err instanceof ApiError &&
+          (err.status === 404 || err.status === 500)
         ) {
           setProjectState("valid");
           return;
         }
-        if (res.status === 401) {
+        if (err instanceof ApiError && err.status === 401) {
           setProjectState("auth-error");
           setProjectErrorDetail("Oturum süresi dolmuş.");
-        } else if (res.status === 403) {
+        } else if (err instanceof ApiError && err.status === 403) {
           setProjectState("invalid");
           setProjectErrorDetail("Bu projeye erişim yetkiniz yok.");
-        } else if (res.status === 404) {
+        } else if (err instanceof ApiError && err.status === 404) {
           setProjectState("invalid");
           setProjectErrorDetail("Bu proje silinmiş veya başka bir hesapta tanımlı.");
           try { localStorage.removeItem("bgts_active_project"); } catch { /* ignore */ }
-        } else {
+        } else if (err instanceof ApiError) {
           setProjectState("invalid");
-          setProjectErrorDetail(`Backend hatası: ${res.status}`);
+          setProjectErrorDetail(`Backend hatası: ${err.status}`);
+        } else {
+          if (
+            process.env.NODE_ENV === "development" &&
+            projectId === "00000000-0000-0000-0000-000000000001"
+          ) {
+            setProjectState("valid");
+            return;
+          }
+          setProjectState("invalid");
+          setProjectErrorDetail("Bağlantı hatası");
         }
-      } catch (err) {
-        window.clearTimeout(timeoutId);
-        // AbortError: ya timeout ya da projectId değişimi — state güncelleme
-        if (err instanceof Error && err.name === "AbortError") return;
-        if (
-          process.env.NODE_ENV === "development" &&
-          projectId === "00000000-0000-0000-0000-000000000001"
-        ) {
-          setProjectState("valid");
-          return;
-        }
-        setProjectState("invalid");
-        setProjectErrorDetail("Bağlantı hatası");
       }
     })();
     return () => {

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { apiFetch } from "@/lib/api";
 
 export type ChecklistItemId =
   | "create_project"
@@ -133,15 +134,19 @@ function writeCompleted(items: Set<ChecklistItemId>) {
 // falls back to localStorage so existing progress is never lost.
 async function fetchCompletedFromBackend(): Promise<ChecklistItemId[] | null> {
   try {
-    const res = await fetch(`${CHECKLIST_API_BASE}/progress`, {
-      credentials: "include",
-      headers: { "Content-Type": "application/json" },
-    });
-    if (!res.ok) return null; // backend unavailable or auth required → use localStorage
-    const data: ChecklistItemId[] = await res.json();
-    return Array.isArray(data) ? data : null;
+    const data = await apiFetch<unknown>(`${CHECKLIST_API_BASE}/progress`);
+    if (Array.isArray(data)) return data as ChecklistItemId[];
+    if (
+      typeof data === "object" &&
+      data !== null &&
+      "completed" in data &&
+      Array.isArray((data as { completed?: unknown }).completed)
+    ) {
+      return (data as { completed: ChecklistItemId[] }).completed;
+    }
+    return null;
   } catch {
-    return null; // network error → graceful fallback
+    return null;
   }
 }
 
@@ -166,8 +171,6 @@ export function useLearningChecklist() {
         const backendSet = new Set<ChecklistItemId>(backendData);
         setCompleted(backendSet);
         writeCompleted(backendSet); // sync to localStorage for offline use
-      } else if (local.size === 0) {
-        setCompleted(new Set()); // both empty
       }
     });
   }, []);

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { apiFetch } from "@/lib/api";
 
 export type NotificationLevel = "info" | "success" | "warning" | "error";
 
@@ -46,15 +47,19 @@ function writeStorage(items: Notification[]) {
 // falls back to localStorage so existing notifications are never lost.
 async function fetchFromBackend(): Promise<Notification[] | null> {
   try {
-    const res = await fetch(`${NOTIFICATIONS_API_BASE}`, {
-      credentials: "include",
-      headers: { "Content-Type": "application/json" },
-    });
-    if (!res.ok) return null; // backend unavailable or auth required → use localStorage
-    const data: Notification[] = await res.json();
-    return Array.isArray(data) ? data : null;
+    const data = await apiFetch<unknown>(NOTIFICATIONS_API_BASE);
+    if (Array.isArray(data)) return data as Notification[];
+    if (
+      typeof data === "object" &&
+      data !== null &&
+      "notifications" in data &&
+      Array.isArray((data as { notifications?: unknown }).notifications)
+    ) {
+      return (data as { notifications: Notification[] }).notifications;
+    }
+    return null;
   } catch {
-    return null; // network error → graceful fallback
+    return null;
   }
 }
 
@@ -63,7 +68,6 @@ async function fetchFromBackend(): Promise<Notification[] | null> {
  *
  * Storage: backend-first (GET /api/v1/notifications) with localStorage
  * fallback for offline use and when the backend is unavailable.
- * Mutations still write to localStorage; backend write-back is planned.
  *
  * Cross-tab sync: storage event listener — başka tab notification eklerse
  * bu tab da görür.
@@ -82,8 +86,6 @@ export function useNotifications() {
       if (backendData && backendData.length > 0) {
         setItems(backendData);
         writeStorage(backendData); // sync to localStorage for offline use
-      } else if (local.length === 0) {
-        setItems([]); // both empty
       }
     });
 
@@ -106,32 +108,32 @@ export function useNotifications() {
     (n: Omit<Notification, "id" | "timestamp" | "read">) => {
       const notification: Notification = {
         ...n,
-        id: `n-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        id: `n-${globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`}`,
         timestamp: Date.now(),
         read: false,
       };
-      persist([notification, ...readStorage()]);
+      persist([notification, ...items]);
       return notification;
     },
-    [persist],
+    [items, persist],
   );
 
   const markRead = useCallback(
     (id: string) => {
-      persist(readStorage().map((n) => (n.id === id ? { ...n, read: true } : n)));
+      persist(items.map((n) => (n.id === id ? { ...n, read: true } : n)));
     },
-    [persist],
+    [items, persist],
   );
 
   const markAllRead = useCallback(() => {
-    persist(readStorage().map((n) => ({ ...n, read: true })));
-  }, [persist]);
+    persist(items.map((n) => ({ ...n, read: true })));
+  }, [items, persist]);
 
   const remove = useCallback(
     (id: string) => {
-      persist(readStorage().filter((n) => n.id !== id));
+      persist(items.filter((n) => n.id !== id));
     },
-    [persist],
+    [items, persist],
   );
 
   const clear = useCallback(() => {
