@@ -20,6 +20,7 @@ import {
 import { useManagementProjectId } from "@/lib/hooks/use-management-project-id";
 import { useRouteParam } from "@/lib/use-route-param";
 import { apiFetch } from "@/lib/api-client";
+import { PageErrorBoundary } from "../_components/PageErrorBoundary";
 
 // ── Constants ──────────────────────────────────────────────────────────────────
 
@@ -68,7 +69,7 @@ const EXTERNAL_SOURCES = ["jira", "confluence", "notion", "github", "linear", "m
 
 const PAGE_SIZE = 20;
 
-type ViewTab = "traceability" | "catalog";
+type ViewTab = "traceability" | "catalog" | "matrix";
 
 // ── Edit fields ────────────────────────────────────────────────────────────────
 
@@ -542,11 +543,11 @@ function CatalogDetailPanel({
             label={req.status}
             colorClass={STATUS_COLORS[req.status] ?? "text-fg-muted border-border bg-surface-overlay"}
           />
-          {(req as unknown as { coverage_status?: string }).coverage_status && (
+          {req.coverage_status && (
             <Badge
-              label={(req as unknown as { coverage_status: string }).coverage_status}
+              label={req.coverage_status}
               colorClass={
-                COVERAGE_COLORS[(req as unknown as { coverage_status: string }).coverage_status] ??
+                COVERAGE_COLORS[req.coverage_status] ??
                 "text-fg-muted border-border bg-surface-overlay"
               }
             />
@@ -646,8 +647,7 @@ function EditRequirementModal({
     module: req.tags[0] ?? "",
     priority: req.priority,
     status: req.status,
-    coverage_status:
-      (req as unknown as { coverage_status?: string }).coverage_status ?? "not_covered",
+    coverage_status: req.coverage_status ?? "not_covered",
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -674,6 +674,8 @@ function EditRequirementModal({
       );
       void qc.invalidateQueries({ queryKey: ["management", mpid, "requirementCatalog"] });
       void qc.invalidateQueries({ queryKey: ["management", mpid, "requirements"] });
+      void qc.invalidateQueries({ queryKey: ["management", mpid, "traceability"] });
+      void qc.invalidateQueries({ queryKey: ["management", mpid] });
       onSaved();
     } catch {
       setError("Gereksinim güncellenemedi. Tekrar deneyin.");
@@ -899,8 +901,10 @@ export default function ManagementRequirementsPage() {
   const [fields, setFields] = useState<NewReqFields>(EMPTY_FIELDS);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
   const [toastError, setToastError] = useState(false);
+  const [modalError, setModalError] = useState<string | null>(null);
   const [editReq, setEditReq] = useState<Requirement | null>(null);
   const [deletingReqId, setDeletingReqId] = useState<string | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   // ── Derived data ───────────────────────────────────────────────────────────
   const rows = traceRows ?? [];
@@ -911,20 +915,16 @@ export default function ManagementRequirementsPage() {
   const notCoveredCount = rows.filter((r) => r.coverage_pct === 0).length;
 
   const catCovered = catalogItems.filter(
-    (r: Requirement) => (r as unknown as { coverage_status?: string }).coverage_status === "covered"
+    (r: Requirement) => r.coverage_status === "covered"
   ).length;
   const catPartial = catalogItems.filter(
-    (r: Requirement) =>
-      (r as unknown as { coverage_status?: string }).coverage_status === "partially_covered"
+    (r: Requirement) => r.coverage_status === "partially_covered"
   ).length;
   const catNotCovered = catalogItems.filter(
-    (r: Requirement) =>
-      (r as unknown as { coverage_status?: string }).coverage_status === "not_covered" ||
-      !(r as unknown as { coverage_status?: string }).coverage_status
+    (r: Requirement) => r.coverage_status === "not_covered" || !r.coverage_status
   ).length;
   const catOutOfScope = catalogItems.filter(
-    (r: Requirement) =>
-      (r as unknown as { coverage_status?: string }).coverage_status === "out_of_scope"
+    (r: Requirement) => r.coverage_status === "out_of_scope"
   ).length;
 
   const totalForDonut = catCovered + catPartial + catNotCovered + catOutOfScope;
@@ -956,7 +956,7 @@ export default function ManagementRequirementsPage() {
         r.description?.toLowerCase().includes(q);
       const matchStatus = statusFilter === "all" || r.status === statusFilter;
       const matchPriority = priorityFilter === "all" || r.priority === priorityFilter;
-      const rCoverage = (r as unknown as { coverage_status?: string }).coverage_status ?? "";
+      const rCoverage = r.coverage_status ?? "";
       const matchCoverage = coverageFilter === "all" || rCoverage === coverageFilter;
       return matchSearch && matchStatus && matchPriority && matchCoverage;
     });
@@ -979,11 +979,13 @@ export default function ManagementRequirementsPage() {
   function handleCloseModal() {
     setShowModal(false);
     setFields(EMPTY_FIELDS);
+    setModalError(null);
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!fields.external_key.trim() || !fields.title.trim()) return;
+    setModalError(null);
     try {
       await createCatalogItem.mutateAsync({
         external_key: fields.external_key.trim(),
@@ -997,8 +999,7 @@ export default function ManagementRequirementsPage() {
       showToast("Gereksinim oluşturuldu.");
       handleCloseModal();
     } catch {
-      showToast("Gereksinim kaydedilemedi. Tekrar deneyin.", true);
-      handleCloseModal();
+      setModalError("Gereksinim kaydedilemedi. Tekrar deneyin.");
     }
   }
 
@@ -1013,7 +1014,11 @@ export default function ManagementRequirementsPage() {
   }
 
   async function handleDeleteRequirement(req: Requirement) {
-    if (!window.confirm(`"${req.title}" silinsin mi?`)) return;
+    if (confirmDeleteId !== req.id) {
+      setConfirmDeleteId(req.id);
+      return;
+    }
+    setConfirmDeleteId(null);
     setDeletingReqId(req.id);
     // Optimistic update
     const prevCatalog = qc.getQueryData<Requirement[]>(["management", mpid, "requirementCatalog"]);
@@ -1050,6 +1055,7 @@ export default function ManagementRequirementsPage() {
 
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
+    <PageErrorBoundary>
     <div className="min-h-[calc(100vh-88px)] bg-surface-base text-fg flex flex-col">
       {/* ── Header ── */}
       <div className="border-b border-border bg-surface-raised px-6 py-4 space-y-4 shrink-0">
@@ -1059,7 +1065,7 @@ export default function ManagementRequirementsPage() {
           <div className="flex items-center gap-3">
             {/* Tab switcher */}
             <div className="flex items-center gap-1 rounded-md border border-border p-0.5">
-              {(["traceability", "catalog"] as const).map((tab) => (
+              {(["traceability", "catalog", "matrix"] as const).map((tab) => (
                 <button
                   key={tab}
                   onClick={() => {
@@ -1075,7 +1081,7 @@ export default function ManagementRequirementsPage() {
                       : "text-fg-subtle hover:text-fg-muted",
                   ].join(" ")}
                 >
-                  {tab === "traceability" ? "Traceability Matrix" : "Gereksinim Kataloğu"}
+                  {tab === "traceability" ? "Liste" : tab === "catalog" ? "Katalog" : "Grid Matrix"}
                 </button>
               ))}
             </div>
@@ -1627,27 +1633,47 @@ export default function ManagementRequirementsPage() {
                                   />
                                 </svg>
                               </button>
-                              <button
-                                type="button"
-                                disabled={deletingReqId === req.id}
-                                onClick={() => handleDeleteRequirement(req)}
-                                className="rounded p-1 text-fg-subtle hover:bg-red-500/10 hover:text-red-400 transition-colors disabled:opacity-40"
-                                title="Sil"
-                              >
-                                <svg
-                                  className="h-3.5 w-3.5"
-                                  fill="none"
-                                  viewBox="0 0 24 24"
-                                  stroke="currentColor"
-                                  strokeWidth={2}
+                              {confirmDeleteId === req.id ? (
+                                <div className="flex items-center gap-1">
+                                  <button
+                                    type="button"
+                                    disabled={deletingReqId === req.id}
+                                    onClick={() => handleDeleteRequirement(req)}
+                                    className="rounded border border-red-500/40 bg-red-500/10 px-2 py-0.5 text-[10px] text-red-400 hover:bg-red-500/20 transition-colors disabled:opacity-40 whitespace-nowrap"
+                                  >
+                                    Onayla
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => setConfirmDeleteId(null)}
+                                    className="rounded border border-border px-2 py-0.5 text-[10px] text-fg-muted hover:bg-white/[0.06] transition-colors whitespace-nowrap"
+                                  >
+                                    İptal
+                                  </button>
+                                </div>
+                              ) : (
+                                <button
+                                  type="button"
+                                  disabled={deletingReqId === req.id}
+                                  onClick={() => handleDeleteRequirement(req)}
+                                  className="rounded p-1 text-fg-subtle hover:bg-red-500/10 hover:text-red-400 transition-colors disabled:opacity-40"
+                                  title="Sil"
                                 >
-                                  <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                                  />
-                                </svg>
-                              </button>
+                                  <svg
+                                    className="h-3.5 w-3.5"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    stroke="currentColor"
+                                    strokeWidth={2}
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                                    />
+                                  </svg>
+                                </button>
+                              )}
                             </div>
                           </td>
                         </tr>
@@ -1683,6 +1709,83 @@ export default function ManagementRequirementsPage() {
               </>
             ))}
         </div>
+
+        {/* ── Grid Matrix tab ── */}
+        {activeTab === "matrix" && (
+          <div className="flex-1 overflow-auto p-4">
+            {traceLoading ? (
+              <LoadingSkeleton />
+            ) : filteredRows.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-20 gap-3 text-center">
+                <p className="text-sm text-fg-muted">Gereksinim bulunamadı</p>
+              </div>
+            ) : (
+              <div className="overflow-auto rounded-xl border border-border">
+                <table className="border-collapse text-[11px]">
+                  <thead>
+                    <tr className="bg-surface-overlay">
+                      <th className="sticky left-0 z-10 bg-surface-overlay px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-wider text-fg-muted min-w-[180px] border-b border-r border-border">
+                        Gereksinim
+                      </th>
+                      {/* Collect all unique cases across all rows */}
+                      {Array.from(new Map(
+                        filteredRows.flatMap(r => r.cases ?? []).map(c => [c.case_id, c])
+                      ).values()).slice(0, 30).map(c => (
+                        <th key={c.case_id}
+                          className="px-2 py-2 text-center border-b border-r border-border min-w-[80px] max-w-[100px]">
+                          <span className="block truncate font-mono text-[9px] text-fg-subtle" title={c.title}>
+                            {c.case_key ?? c.case_id.slice(0, 6)}
+                          </span>
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredRows.map((row, ri) => {
+                      const allCases = Array.from(new Map(
+                        filteredRows.flatMap(r => r.cases ?? []).map(c => [c.case_id, c])
+                      ).values()).slice(0, 30);
+                      const coveredIds = new Set((row.cases ?? []).map(c => c.case_id));
+                      return (
+                        <tr key={row.requirement_key ?? ri}
+                          className="hover:bg-surface-overlay/50 transition-colors">
+                          <td className="sticky left-0 z-10 bg-surface-raised border-b border-r border-border px-3 py-2 font-medium text-fg max-w-[180px]">
+                            <p className="truncate text-[11px]" title={row.title}>{row.title}</p>
+                            <p className="font-mono text-[9px] text-fg-subtle">{row.requirement_key}</p>
+                          </td>
+                          {allCases.map(c => {
+                            const caseData = (row.cases ?? []).find(rc => rc.case_id === c.case_id);
+                            const covered = coveredIds.has(c.case_id);
+                            const status = caseData?.last_run_status;
+                            const dot =
+                              status === "passed"  ? "bg-emerald-500"  :
+                              status === "failed"  ? "bg-red-500"      :
+                              status === "blocked" ? "bg-amber-500"    :
+                              covered              ? "bg-blue-400"     : null;
+                            return (
+                              <td key={c.case_id}
+                                className="border-b border-r border-border px-2 py-2 text-center"
+                                title={covered ? `${c.case_key} — ${status ?? "kapsandı"}` : "Kapsanmadı"}>
+                                {dot ? (
+                                  <span className={`inline-block h-3 w-3 rounded-full ${dot}`} />
+                                ) : (
+                                  <span className="text-fg-disabled text-[10px]">—</span>
+                                )}
+                              </td>
+                            );
+                          })}
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+                <p className="px-3 py-2 text-[9px] text-fg-disabled">
+                  🟢 Geçti &nbsp; 🔴 Başarısız &nbsp; 🟡 Engellendi &nbsp; 🔵 Kapsandı &nbsp; — Kapsanmadı
+                </p>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Catalog detail side panel */}
         {activeTab === "catalog" && selectedReq && (
@@ -1854,6 +1957,9 @@ export default function ManagementRequirementsPage() {
                       <option value="out_of_scope">out_of_scope</option>
                     </select>
                   </div>
+                  {modalError && (
+                    <p className="text-[11px] text-red-400">{modalError}</p>
+                  )}
                 </div>
 
                 <div className="flex items-center justify-end gap-2 border-t border-border px-6 py-4 shrink-0">
@@ -1995,5 +2101,6 @@ export default function ManagementRequirementsPage() {
         </div>
       )}
     </div>
+    </PageErrorBoundary>
   );
 }

@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useCallback } from "react";
 import Link from "next/link";
+import { type UseMutationResult } from "@tanstack/react-query";
 import {
   useExecutionSummary,
   useReleaseReport,
@@ -12,12 +13,14 @@ import {
   useCreateReleaseSignoff,
   useManagementRunTrend,
   useManagementCases,
+  type TestCase,
   type TestRun,
   type ReleaseChecklistItem,
   type ReleaseSignoff,
   type RegressionSet,
   type DefectLink,
   type RunTrendPoint,
+  type ExecutionSummary,
 } from "@/lib/hooks/use-management";
 import { useManagementProjectId } from "@/lib/hooks/use-management-project-id";
 import { useRouteParam } from "@/lib/use-route-param";
@@ -306,7 +309,7 @@ function ChecklistRow({ item }: { item: ReleaseChecklistItem }) {
 function ExecutionSummaryTab({
   summary, runs, filteredRuns, sumLoading, sumError, runsLoading, runsError, projectId, trendData, trendPoints,
 }: {
-  summary: any; runs: TestRun[] | undefined; filteredRuns: TestRun[];
+  summary: ExecutionSummary | undefined; runs: TestRun[] | undefined; filteredRuns: TestRun[];
   sumLoading: boolean; sumError: boolean;
   runsLoading: boolean; runsError: boolean;
   projectId: string | null;
@@ -447,11 +450,15 @@ function RegressionReportTab({
 }) {
   const sets = regressionSets ?? [];
 
-  const getLastRunStatus = (setId: string): string => {
+  const getLastRunStatus = (_setId: string): string => {
     if (!runs) return "—";
-    const relatedRuns = (runs ?? []).filter(r => r.name?.toLowerCase().includes("regress"));
+    // TODO: regression_set_id ile filtrele — şu anda run adı üzerinden tahmini eşleştirme yapılıyor.
+    // Doğru implementasyon: runs API'den regression_set_id alanı döndüğünde
+    // runs.filter(r => r.regression_set_id === _setId) şeklinde kullanılmalı.
+    const relatedRuns = runs.filter(r => r.name?.toLowerCase().includes("regress"));
     if (!relatedRuns.length) return "—";
-    return relatedRuns[0].status;
+    const lastRun = relatedRuns[0];
+    return lastRun.status ?? "—";
   };
 
   return (
@@ -664,7 +671,17 @@ function ReleaseReadinessTab({
   passRate: number;
   openDefects: number;
   signoffs: ReleaseSignoff[] | undefined;
-  createSignoff: any;
+  createSignoff: UseMutationResult<
+    ReleaseSignoff,
+    Error,
+    {
+      release_name?: string | null;
+      role?: string | null;
+      decision: string;
+      comment?: string | null;
+      report_snapshot?: Record<string, unknown>;
+    }
+  >;
 }) {
   const [signoffRole,     setSignoffRole]     = useState("QA Lead");
   const [signoffComment,  setSignoffComment]  = useState("");
@@ -823,8 +840,7 @@ function TesterPerformanceTab({
   runs,
   loading,
 }: {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  cases: any[] | undefined;
+  cases: TestCase[] | undefined;
   runs: TestRun[] | undefined;
   loading: boolean;
 }) {
@@ -836,7 +852,7 @@ function TesterPerformanceTab({
     const map = new Map<string, { assigned: number; completed: number; passed: number }>();
 
     for (const tc of cases) {
-      const key = (tc.owner_id ?? tc.assigned_to ?? "Atanmamış").trim() || "Atanmamış";
+      const key = (tc.owner_id ?? "Atanmamış").trim() || "Atanmamış";
       const row = map.get(key) ?? { assigned: 0, completed: 0, passed: 0 };
       row.assigned += 1;
       if (["passed", "failed", "blocked"].includes(tc.last_run_status ?? "")) row.completed += 1;
@@ -968,15 +984,19 @@ function ModuleCoverageTab({
   cases,
   loading,
 }: {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  cases: any[] | undefined;
+  cases: TestCase[] | undefined;
   loading: boolean;
 }) {
   const suiteRows = useMemo(() => {
     if (!cases) return [];
     const map = new Map<string, { total: number; passed: number; failed: number; blocked: number }>();
     for (const tc of cases) {
-      const key = (tc.custom_fields?.component ?? tc.custom_fields?.module ?? tc.suite_id ?? "Genel").trim() || "Genel";
+      const cf = tc.custom_fields;
+      const rawKey = (typeof cf?.component === "string" ? cf.component : null)
+        ?? (typeof cf?.module === "string" ? cf.module : null)
+        ?? tc.suite_id
+        ?? "Genel";
+      const key = rawKey.trim() || "Genel";
       const row = map.get(key) ?? { total: 0, passed: 0, failed: 0, blocked: 0 };
       row.total += 1;
       if (tc.last_run_status === "passed")  row.passed  += 1;
@@ -1130,6 +1150,20 @@ export default function ManagementReportsPage() {
   const { data: runTrend }                                                                = useManagementRunTrend(mpid || undefined);
   const { data: casesData, isLoading: casesLoading }                                      = useManagementCases(mpid || undefined);
 
+  // Derive unique module names dynamically from cases data
+  const moduleOptions = useMemo(() =>
+    [...new Set(
+      (casesData ?? [])
+        .map((c: TestCase) => {
+          const cf = c.custom_fields;
+          const mod = cf?.module ?? cf?.component;
+          return typeof mod === "string" ? mod : null;
+        })
+        .filter((m): m is string => m !== null && m.length > 0)
+    )],
+    [casesData],
+  );
+
   const passRate    = summary?.pass_rate_pct ?? 0;
   const totalCases  = summary?.total ?? 0;
   const openDefects = (defects ?? []).filter(d => !["closed", "resolved", "fixed", "done"].includes(d.status.toLowerCase())).length;
@@ -1255,10 +1289,9 @@ export default function ManagementReportsPage() {
           <select value={moduleFilter} onChange={e => setModuleFilter(e.target.value)}
             className="rounded-lg border border-border bg-bg px-3 py-1.5 text-[11px] text-fg-muted focus:outline-none focus:ring-1 focus:ring-emerald-600/50">
             <option value="">Tüm Modüller</option>
-            <option value="auth">Auth</option>
-            <option value="payment">Payment</option>
-            <option value="dashboard">Dashboard</option>
-            <option value="api">API</option>
+            {moduleOptions.map(mod => (
+              <option key={mod} value={mod}>{mod}</option>
+            ))}
           </select>
 
           <select value={platformFilter} onChange={e => setPlatformFilter(e.target.value)}

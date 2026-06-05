@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useRouteParam } from "@/lib/use-route-param";
 import { cn } from "@/lib/utils";
 import {
@@ -22,6 +23,7 @@ const INP = "w-full rounded-lg border border-border bg-white/[0.03] px-3 py-2 te
 
 export default function BvaPage() {
   const projectId = useRouteParam("projectId") ?? "";
+  const qc = useQueryClient();
   const [fields, setFields]   = useState<DesignFieldSpec[]>([emptyField()]);
   const [context, setContext] = useState("");
   const [promoted, setPromoted] = useState<Set<number>>(new Set());
@@ -44,7 +46,10 @@ export default function BvaPage() {
 
   const promote = (indexes: number[]) => {
     promoteMut.mutate({ case_indexes: indexes }, {
-      onSuccess: () => setPromoted(p => new Set([...p, ...indexes])),
+      onSuccess: () => {
+        setPromoted(p => new Set([...p, ...indexes]));
+        void qc.invalidateQueries({ queryKey: ["management", projectId] });
+      },
     });
   };
 
@@ -143,9 +148,14 @@ export default function BvaPage() {
 
           <button type="button" onClick={submit}
             disabled={fields.some(f => !f.name.trim()) || runMut.isPending}
-            className="w-full rounded-xl bg-teal-600 py-2.5 text-[13px] font-medium text-white hover:bg-teal-700 disabled:opacity-40 transition-colors">
+            className="w-full rounded-xl bg-brand py-2.5 text-[13px] font-medium text-white hover:brightness-105 disabled:opacity-40 transition-colors">
             {runMut.isPending ? "Üretiliyor…" : "BVA Çalıştır"}
           </button>
+          {runMut.isError && (
+            <p className="mt-2 text-xs text-red-400">
+              Hata: {runMut.error instanceof Error ? runMut.error.message : "Çalıştırılamadı"}
+            </p>
+          )}
         </div>
 
         {/* Results */}

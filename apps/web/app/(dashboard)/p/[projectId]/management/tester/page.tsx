@@ -137,14 +137,16 @@ export default function TesterHomePage() {
   const fetchCases = useCallback(async () => {
     const pid = mpid || projectId;
     if (!pid) { setLoading(false); return; }
-    setError(null);
+    setLoading(true);
     try {
       const data = await apiFetch<MyCase[]>(
         `/api/v1/test-management/projects/${pid}/my-cases`,
       );
       setCases(data);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Görevler yüklenirken bir hata oluştu.");
+      setError(null);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Veriler yüklenemedi";
+      setError(msg);
     } finally {
       setLoading(false);
     }
@@ -162,20 +164,41 @@ export default function TesterHomePage() {
 
   return (
     <div className="min-h-full bg-bg px-5 py-5 space-y-5">
-      {/* Özet istatistikler */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {[
-          { label: "Toplam", value: cases.length, color: "text-white" },
-          { label: "Bekliyor", value: pending, color: "text-amber-400" },
-          { label: "Tamamlandı", value: done, color: "text-emerald-400" },
-          { label: "Başarısız", value: failed, color: "text-red-400" },
-        ].map((stat) => (
-          <div key={stat.label} className="rounded-xl border border-border bg-surface-raised p-4 text-center">
-            <p className={`text-2xl font-bold ${stat.color}`}>{loading ? "…" : stat.value}</p>
-            <p className="text-xs text-slate-500 mt-1">{stat.label}</p>
+      {/* Hata durumunda belirgin hata kartı */}
+      {error && (
+        <div className="rounded-xl border border-red-500/40 bg-red-500/10 p-6 flex flex-col items-center gap-4 text-center">
+          <svg className="h-10 w-10 text-red-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"/>
+          </svg>
+          <div>
+            <p className="text-base font-semibold text-red-300">Veriler yüklenemedi</p>
+            <p className="text-sm text-red-400/80 mt-1">{error}</p>
           </div>
-        ))}
-      </div>
+          <button
+            onClick={() => void fetchCases()}
+            className="rounded-lg bg-red-500 hover:bg-red-400 px-5 py-2 text-sm font-semibold text-white transition-colors"
+          >
+            Tekrar Dene
+          </button>
+        </div>
+      )}
+
+      {/* Özet istatistikler — sadece hata yokken göster */}
+      {!error && (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {[
+            { label: "Toplam", value: cases.length, color: "text-white" },
+            { label: "Bekliyor", value: pending, color: "text-amber-400" },
+            { label: "Tamamlandı", value: done, color: "text-emerald-400" },
+            { label: "Başarısız", value: failed, color: "text-red-400" },
+          ].map((stat) => (
+            <div key={stat.label} className="rounded-xl border border-border bg-surface-raised p-4 text-center">
+              <p className={`text-2xl font-bold ${stat.color}`}>{loading ? "…" : stat.value}</p>
+              <p className="text-xs text-slate-500 mt-1">{stat.label}</p>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Genel ilerleme çubuğu */}
       {!loading && cases.length > 0 && (
@@ -240,15 +263,6 @@ export default function TesterHomePage() {
           </button>
         ))}
       </div>
-
-      {/* Hata mesajı */}
-      {error && (
-        <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400 flex items-center gap-2">
-          <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"/></svg>
-          {error}
-          <button onClick={fetchCases} className="ml-auto text-xs underline hover:no-underline">Tekrar Dene</button>
-        </div>
-      )}
 
       {/* Case listesi */}
       {loading ? (

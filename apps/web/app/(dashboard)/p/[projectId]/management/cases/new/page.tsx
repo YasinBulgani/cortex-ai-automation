@@ -6,6 +6,8 @@ import { useState } from "react";
 type FormErrors = { title?: boolean };
 
 import { useCreateManagementCase, useManagementRepository } from "@/lib/hooks/use-management";
+import { useManagementProjectId } from "@/lib/hooks/use-management-project-id";
+import { SharedStepPicker } from "../../_components/SharedStepPicker";
 
 
 type DraftStep = {
@@ -19,7 +21,9 @@ type DraftStep = {
 export default function NewManagementCasePage({ params }: { params: { projectId: string } }) {
   const router = useRouter();
   const createCase = useCreateManagementCase(params.projectId);
-  const repository = useManagementRepository(params.projectId);
+  const mpid = useManagementProjectId(params.projectId || undefined);
+  const repository = useManagementRepository(mpid || undefined);
+  const [showStepPicker, setShowStepPicker] = useState(false);
   const [title, setTitle] = useState("");
   const [suiteId, setSuiteId] = useState("");
   const [folderId, setFolderId] = useState("");
@@ -43,6 +47,17 @@ export default function NewManagementCasePage({ params }: { params: { projectId:
 
   const addStep = () => {
     setSteps((current) => [...current, { action: "", expected_result: "", test_data: "", notes: "", is_required: true }]);
+  };
+
+  const insertSharedSteps = (sharedItems: import("@/lib/hooks/use-management").SharedStepItem[]) => {
+    const newSteps: DraftStep[] = sharedItems.map(s => ({
+      action: s.action,
+      expected_result: s.expected_result ?? "",
+      test_data: "",
+      notes: s.notes ?? "",
+      is_required: s.is_required,
+    }));
+    setSteps(curr => [...curr.filter(s => s.action || s.expected_result), ...newSteps]);
   };
 
   const updateStep = (index: number, patch: Partial<DraftStep>) => {
@@ -80,27 +95,31 @@ export default function NewManagementCasePage({ params }: { params: { projectId:
       return;
     }
 
-    const created = await createCase.mutateAsync({
-      title: title.trim(),
-      suite_id: suiteId || null,
-      folder_id: folderId || null,
-      priority,
-      severity,
-      type,
-      automation_status: automationStatus,
-      objective: objective.trim(),
-      preconditions: preconditions.trim(),
-      test_data: testData.trim() ? { value: testData.trim() } : {},
-      status,
-      tags: tags.split(",").map((tag) => tag.trim()).filter(Boolean),
-      custom_fields: {
-        component: component.trim(),
-        platform: platform.trim(),
-        risk_area: riskArea.trim(),
-      },
-      steps: cleanSteps,
-    });
-    router.push(`/p/${params.projectId}/management/cases/${created.id}`);
+    try {
+      const created = await createCase.mutateAsync({
+        title: title.trim(),
+        suite_id: suiteId || null,
+        folder_id: folderId || null,
+        priority,
+        severity,
+        type,
+        automation_status: automationStatus,
+        objective: objective.trim(),
+        preconditions: preconditions.trim(),
+        test_data: testData.trim() ? { value: testData.trim() } : {},
+        status,
+        tags: tags.split(",").map((tag) => tag.trim()).filter(Boolean),
+        custom_fields: {
+          component: component.trim(),
+          platform: platform.trim(),
+          risk_area: riskArea.trim(),
+        },
+        steps: cleanSteps,
+      });
+      router.push(`/p/${params.projectId}/management/cases/${created.id}`);
+    } catch {
+      setFormError("Kaydetme başarısız. Lütfen tekrar deneyin.");
+    }
   };
 
   return (
@@ -257,13 +276,25 @@ export default function NewManagementCasePage({ params }: { params: { projectId:
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <h2 className="text-sm font-semibold text-white">Steps</h2>
-              <button
-                type="button"
-                onClick={addStep}
-                className="rounded-lg border border-border px-3 py-1.5 text-xs text-slate-300 hover:bg-surface-overlay"
-              >
-                Add Step
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowStepPicker(true)}
+                  className="flex items-center gap-1.5 rounded-lg border border-brand/30 px-3 py-1.5 text-xs text-brand hover:bg-brand-soft transition-colors"
+                >
+                  <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                  </svg>
+                  Şablondan Ekle
+                </button>
+                <button
+                  type="button"
+                  onClick={addStep}
+                  className="rounded-lg border border-border px-3 py-1.5 text-xs text-slate-300 hover:bg-surface-overlay"
+                >
+                  Adım Ekle
+                </button>
+              </div>
             </div>
             {steps.map((step, index) => (
               <div key={index} className="grid gap-3 rounded-lg border border-border bg-bg p-3 md:grid-cols-[2rem_1fr_1fr_auto]">
@@ -314,6 +345,14 @@ export default function NewManagementCasePage({ params }: { params: { projectId:
           </button>
         </div>
       </section>
+
+      {showStepPicker && mpid && (
+        <SharedStepPicker
+          projectId={mpid}
+          onInsert={insertSharedSteps}
+          onClose={() => setShowStepPicker(false)}
+        />
+      )}
     </div>
   );
 }

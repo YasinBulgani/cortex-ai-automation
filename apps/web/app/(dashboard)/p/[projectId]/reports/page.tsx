@@ -17,7 +17,7 @@ import {
 } from "@/components/nexus";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PageFeedbackWidget } from "@/components/PageFeedbackWidget";
-import { apiFetch, engineFetch, getToken } from "@/lib/api";
+import { apiFetch, engineFetch, getToken, API_BASE } from "@/lib/api-client";
 import {
   isRealProvenance,
   normalizeProvenance,
@@ -26,8 +26,6 @@ import {
   type ProvenanceKind,
 } from "@/lib/provenance";
 import { useRouteParam } from "@/lib/use-route-param";
-
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE?.replace(/\/$/, "") || "http://127.0.0.1:8000";
 
 type Execution = { id: string; name: string; status: string; created_at: string };
 type PipelineRun = {
@@ -58,23 +56,35 @@ async function downloadCsvSummary(projectId: string) {
   }
 }
 
-async function downloadReport(projectId: string, runId: string | null, format: "html" | "json", days?: number) {
+async function downloadReport(
+  projectId: string,
+  runId: string | null,
+  format: "html" | "json",
+  days?: number,
+  onError?: (msg: string) => void,
+) {
   const url = runId
     ? `${API_BASE}/api/v1/tspm/projects/${projectId}/executions/${runId}/report?format=${format}`
     : `${API_BASE}/api/v1/tspm/projects/${projectId}/report/summary?format=${format}&days=${days ?? 30}`;
-  const res = await fetch(url, { headers: { Authorization: `Bearer ${getToken() ?? ""}` } });
-  if (!res.ok) {
-    alert("Rapor indirilemedi");
-    return;
+  try {
+    const res = await fetch(url, { headers: { Authorization: `Bearer ${getToken() ?? ""}` } });
+    if (!res.ok) {
+      const msg = `Rapor indirilemedi (${res.status})`;
+      onError ? onError(msg) : alert(msg);
+      return;
+    }
+    const blob = await res.blob();
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    const contentDisposition = res.headers.get("Content-Disposition") ?? "";
+    const match = contentDisposition.match(/filename="([^"]+)"/);
+    link.download = match ? match[1] : `rapor.${format}`;
+    link.click();
+    URL.revokeObjectURL(link.href);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "Rapor indirilemedi";
+    onError ? onError(msg) : alert(msg);
   }
-  const blob = await res.blob();
-  const link = document.createElement("a");
-  link.href = URL.createObjectURL(blob);
-  const contentDisposition = res.headers.get("Content-Disposition") ?? "";
-  const match = contentDisposition.match(/filename="([^"]+)"/);
-  link.download = match ? match[1] : `rapor.${format}`;
-  link.click();
-  URL.revokeObjectURL(link.href);
 }
 
 function ReportTypeIcon({ type }: { type: "html" | "json" | "csv" | "allure" }) {
@@ -106,6 +116,7 @@ function getReadinessTone(rate: number): "emerald" | "amber" | "red" | "slate" {
 export default function ReportsPage() {
   const projectId = useRouteParam("projectId");
   const [summaryDays, setSummaryDays] = useState<SummaryDays>("30");
+  const [downloadError, setDownloadError] = useState<string | null>(null);
 
   const { data: executions = [], isLoading: loading } = useQuery<Execution[]>({
     queryKey: ["executions", "list", projectId],
@@ -191,6 +202,20 @@ export default function ReportsPage() {
           </ToolbarActions>
         }
       />
+
+      {downloadError && (
+        <div className="flex items-center justify-between gap-3 rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+          <span>{downloadError}</span>
+          <button
+            type="button"
+            onClick={() => setDownloadError(null)}
+            className="shrink-0 text-red-400 hover:text-red-200"
+            aria-label="Kapat"
+          >
+            ✕
+          </button>
+        </div>
+      )}
 
       <FlowGuideCard projectId={projectId} stage="observe" />
 
@@ -290,13 +315,13 @@ export default function ReportsPage() {
         <div className="grid gap-4 lg:grid-cols-[1fr,0.8fr]">
           <div className="flex flex-wrap gap-2">
             <button
-              onClick={() => downloadReport(projectId, null, "html", Number(summaryDays))}
+              onClick={() => { setDownloadError(null); void downloadReport(projectId, null, "html", Number(summaryDays), setDownloadError); }}
               className="flex items-center gap-1.5 rounded-xl border border-blue-500/20 bg-blue-500/10 px-4 py-3 text-xs font-semibold text-blue-200 transition-all hover:border-blue-400/40"
             >
               🌐 Son {summaryDays}g HTML
             </button>
             <button
-              onClick={() => downloadReport(projectId, null, "json", Number(summaryDays))}
+              onClick={() => { setDownloadError(null); void downloadReport(projectId, null, "json", Number(summaryDays), setDownloadError); }}
               className="flex items-center gap-1.5 rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-xs font-semibold text-amber-200 transition-all hover:border-amber-400/40"
             >
               <span>{"{ }"}</span> Son {summaryDays}g JSON
@@ -364,13 +389,13 @@ export default function ReportsPage() {
                       <td className="px-4 py-3 text-right">
                         <div className="flex items-center justify-end gap-1">
                           <button
-                            onClick={() => downloadReport(projectId, execution.id, "html")}
+                            onClick={() => { setDownloadError(null); void downloadReport(projectId, execution.id, "html", undefined, setDownloadError); }}
                             className="rounded-lg px-2 py-1 text-xs text-blue-400 transition-colors hover:bg-blue-500/10"
                           >
                             HTML ↓
                           </button>
                           <button
-                            onClick={() => downloadReport(projectId, execution.id, "json")}
+                            onClick={() => { setDownloadError(null); void downloadReport(projectId, execution.id, "json", undefined, setDownloadError); }}
                             className="rounded-lg px-2 py-1 text-xs text-amber-400 transition-colors hover:bg-amber-500/10"
                           >
                             JSON ↓

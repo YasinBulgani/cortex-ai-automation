@@ -1,15 +1,21 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import { RoleGuard } from "../_components/RoleGuard";
 import {
   useManagementPlans,
   useCreateManagementPlan,
+  useUpdateManagementPlan,
   useDeleteManagementPlan,
   useManagementCycles,
+  useUpdateManagementCycle,
+  useDeleteManagementCycle,
   useManagementRuns,
+  useUpdateManagementRun,
+  useDeleteManagementRun,
   useCreateManagementRun,
   useCreateManagementCycle,
   useAIGeneratePlan,
@@ -21,6 +27,8 @@ import {
 import { useQueryClient } from "@tanstack/react-query";
 import { useManagementProjectId } from "@/lib/hooks/use-management-project-id";
 import { useRouteParam } from "@/lib/use-route-param";
+import { useToast } from "@/lib/useToast";
+import { PageErrorBoundary } from "../_components/PageErrorBoundary";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 type PlanType = "release" | "regression" | "sprint" | "smoke" | "uat";
@@ -298,76 +306,258 @@ function PlanStartRunModal({
   );
 }
 
+// ── Pencil / Trash inline icons ───────────────────────────────────────────────
+function IcPencil({ className }: { className?: string }) {
+  return (
+    <svg className={cn("h-3 w-3", className)} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/>
+    </svg>
+  );
+}
+
+// ── Run row (with inline rename + delete confirm) ─────────────────────────────
+function RunRow({
+  run, projectId, onUpdate, onDelete,
+}: {
+  run: TestRun;
+  projectId: string;
+  onUpdate: (id: string, name: string) => Promise<void>;
+  onDelete: (id: string) => Promise<void>;
+}) {
+  const [renaming,   setRenaming]   = useState(false);
+  const [renameVal,  setRenameVal]  = useState(run.name);
+  const [saving,     setSaving]     = useState(false);
+  const [confirmDel, setConfirmDel] = useState(false);
+  const [deleting,   setDeleting]   = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const commitRename = async () => {
+    const trimmed = renameVal.trim();
+    if (!trimmed || trimmed === run.name) { setRenaming(false); setRenameVal(run.name); return; }
+    setSaving(true);
+    try {
+      await onUpdate(run.id, trimmed);
+    } finally {
+      setSaving(false);
+      setRenaming(false);
+    }
+  };
+
+  const confirmDelete = async () => {
+    setDeleting(true);
+    try {
+      await onDelete(run.id);
+    } finally {
+      setDeleting(false);
+      setConfirmDel(false);
+    }
+  };
+
+  return (
+    <div className="group flex items-center gap-2 border-b border-border/30 px-6 py-1.5 last:border-0 hover:bg-white/[0.015] transition-colors">
+      {/* Run link / inline input */}
+      {renaming ? (
+        <form
+          className="flex flex-1 items-center gap-1.5"
+          onSubmit={async e => { e.preventDefault(); await commitRename(); }}
+        >
+          <input
+            ref={inputRef}
+            autoFocus
+            value={renameVal}
+            onChange={e => setRenameVal(e.target.value)}
+            onBlur={commitRename}
+            onKeyDown={e => { if (e.key === "Escape") { setRenaming(false); setRenameVal(run.name); } }}
+            className="min-w-[140px] flex-1 rounded-md border border-brand bg-surface-overlay px-2 py-0.5 text-[12px] text-fg outline-none ring-1 ring-brand/20"
+          />
+          <button type="submit" disabled={saving || !renameVal.trim()}
+            className="rounded px-1.5 py-0.5 text-[10px] font-semibold text-brand disabled:opacity-40">
+            {saving ? "…" : "✓"}
+          </button>
+          <button type="button" onClick={() => { setRenaming(false); setRenameVal(run.name); }}
+            className="rounded px-1 py-0.5 text-[10px] text-fg-subtle hover:text-fg">✕</button>
+        </form>
+      ) : (
+        <Link
+          href={`/p/${projectId}/management/runs/${run.id}/execute`}
+          className={cn(
+            "flex flex-1 items-center gap-1.5 text-[11px] transition-colors hover:text-fg min-w-0 truncate",
+            run.status === "in_progress" ? "text-blue-400" :
+            run.status === "completed"   ? "text-emerald-400" : "text-fg-muted",
+          )}
+          title={run.name}
+        >
+          <IcPlay />
+          <span className="truncate">{run.name}</span>
+          <span className={cn("shrink-0 rounded-full border px-1.5 py-px text-[9px]",
+            run.status === "in_progress" ? "border-blue-500/20 text-blue-400" :
+            run.status === "completed"   ? "border-emerald-500/20 text-emerald-400" :
+                                           "border-border text-fg-muted",
+          )}>
+            {run.status === "in_progress" ? "Devam" : run.status === "completed" ? "Tamam" : "Run"}
+          </span>
+        </Link>
+      )}
+
+      {/* Action buttons — only visible on hover */}
+      {!renaming && !confirmDel && (
+        <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+          <button
+            type="button"
+            title="Yeniden Adlandır"
+            onClick={e => { e.stopPropagation(); setRenaming(true); }}
+            className="rounded p-1 text-fg-subtle hover:bg-surface-overlay hover:text-fg transition-colors"
+          >
+            <IcPencil />
+          </button>
+          <button
+            type="button"
+            title="Koşumu Sil"
+            onClick={e => { e.stopPropagation(); setConfirmDel(true); }}
+            className="rounded p-1 text-fg-subtle hover:bg-red-500/10 hover:text-red-400 transition-colors"
+          >
+            <IcTrash />
+          </button>
+        </div>
+      )}
+
+      {/* Inline delete confirm */}
+      {confirmDel && (
+        <div className="flex items-center gap-1.5 ml-auto">
+          <span className="text-[10px] text-fg-muted">Koşumu sil?</span>
+          <button type="button" onClick={confirmDelete} disabled={deleting}
+            className="rounded bg-red-600 px-2 py-0.5 text-[10px] text-white hover:bg-red-500 disabled:opacity-40 transition-colors">
+            {deleting ? "…" : "Evet"}
+          </button>
+          <button type="button" onClick={() => setConfirmDel(false)}
+            className="rounded border border-border px-2 py-0.5 text-[10px] text-fg-muted hover:text-fg transition-colors">
+            Hayır
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Cycle / Run row ───────────────────────────────────────────────────────────
 function CycleRow({
-  cycle, runs, projectId, onStartRun, loading,
+  cycle, runs, projectId, onStartRun, loading, onUpdateCycle, onUpdateRun, onDeleteRun,
 }: {
   cycle: TestCycle;
   runs: TestRun[];
   projectId: string;
   onStartRun: (cycle: TestCycle) => void;
   loading: boolean;
+  onUpdateCycle: (id: string, name: string) => Promise<void>;
+  onUpdateRun: (id: string, name: string) => Promise<void>;
+  onDeleteRun: (id: string) => Promise<void>;
 }) {
-  // Aggregate mock stats — in real use, runs would expose case counts
   const total   = runs.reduce((n, r) => n + ((r.scope_snapshot as { case_ids?: string[] })?.case_ids?.length ?? 0), 0);
   const running = runs.some(r => r.status === "in_progress");
 
-  return (
-    <div className="flex items-center gap-3 border-b border-border/50 px-5 py-2.5 last:border-0 hover:bg-white/[0.02] transition-colors">
-      {/* Status dot */}
-      <span className={cn("h-1.5 w-1.5 shrink-0 rounded-full",
-        running           ? "bg-blue-400 animate-pulse" :
-        cycle.status === "completed" ? "bg-emerald-500" : "bg-slate-600",
-      )} />
+  // Cycle inline rename state
+  const [renamingCycle,  setRenamingCycle]  = useState(false);
+  const [cycleRenameVal, setCycleRenameVal] = useState(cycle.name);
+  const [cycleSaving,    setCycleSaving]    = useState(false);
 
-      {/* Name */}
-      <div className="flex-1 min-w-0">
-        <p className="truncate text-[13px] text-fg">{cycle.name}</p>
-        <p className="text-[11px] text-fg-subtle">
-          {cycle.environment ? `${cycle.environment} · ` : ""}{cycle.build_version ?? ""}{total > 0 ? ` · ${total} case` : ""}
-        </p>
+  const commitCycleRename = async () => {
+    const trimmed = cycleRenameVal.trim();
+    if (!trimmed || trimmed === cycle.name) { setRenamingCycle(false); setCycleRenameVal(cycle.name); return; }
+    setCycleSaving(true);
+    try {
+      await onUpdateCycle(cycle.id, trimmed);
+    } finally {
+      setCycleSaving(false);
+      setRenamingCycle(false);
+    }
+  };
+
+  return (
+    <div className="border-b border-border/50 last:border-0">
+      {/* Cycle header row */}
+      <div className="flex items-center gap-3 px-5 py-2.5 hover:bg-white/[0.02] transition-colors">
+        {/* Status dot */}
+        <span className={cn("h-1.5 w-1.5 shrink-0 rounded-full",
+          running                       ? "bg-blue-400 animate-pulse" :
+          cycle.status === "completed"  ? "bg-emerald-500" : "bg-slate-600",
+        )} />
+
+        {/* Name / inline rename */}
+        <div className="flex-1 min-w-0">
+          {renamingCycle ? (
+            <form
+              className="flex items-center gap-1.5"
+              onSubmit={async e => { e.preventDefault(); await commitCycleRename(); }}
+            >
+              <input
+                autoFocus
+                value={cycleRenameVal}
+                onChange={e => setCycleRenameVal(e.target.value)}
+                onBlur={commitCycleRename}
+                onKeyDown={e => { if (e.key === "Escape") { setRenamingCycle(false); setCycleRenameVal(cycle.name); } }}
+                className="min-w-[160px] rounded-md border border-brand bg-surface-overlay px-2 py-0.5 text-[13px] font-medium text-fg outline-none ring-1 ring-brand/20"
+              />
+              <button type="submit" disabled={cycleSaving || !cycleRenameVal.trim()}
+                className="rounded px-1.5 py-0.5 text-[11px] font-semibold text-brand disabled:opacity-40">
+                {cycleSaving ? "…" : "✓"}
+              </button>
+              <button type="button" onClick={() => { setRenamingCycle(false); setCycleRenameVal(cycle.name); }}
+                className="rounded px-1 py-0.5 text-[11px] text-fg-subtle hover:text-fg">✕</button>
+            </form>
+          ) : (
+            <p className="truncate text-[13px] text-fg">{cycle.name}</p>
+          )}
+          <p className="text-[11px] text-fg-subtle">
+            {cycle.environment ? `${cycle.environment} · ` : ""}{cycle.build_version ?? ""}{total > 0 ? ` · ${total} case` : ""}
+          </p>
+        </div>
+
+        {/* Status pill */}
+        <span className={cn("rounded-full border px-2 py-0.5 text-[10px] shrink-0",
+          cycle.status === "completed" ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-400" :
+          cycle.status === "active"    ? "border-blue-500/20    bg-blue-500/10    text-blue-400"    :
+                                         "border-border         bg-surface-overlay text-fg-muted",
+        )}>
+          {cycle.status}
+        </span>
+
+        {/* Cycle rename button */}
+        {!renamingCycle && (
+          <button
+            type="button"
+            title="Cycle Adını Değiştir"
+            onClick={() => setRenamingCycle(true)}
+            className="shrink-0 rounded-md p-1.5 text-fg-subtle hover:bg-surface-overlay hover:text-fg transition-colors"
+          >
+            <IcPencil />
+          </button>
+        )}
+
+        {/* Start run */}
+        <button
+          onClick={() => onStartRun(cycle)}
+          disabled={loading}
+          title="Run Başlat"
+          className="shrink-0 flex items-center gap-1.5 rounded-lg border border-teal-500/25 px-3 py-1.5 text-[11px] font-medium text-teal-400 hover:bg-teal-500/10 hover:border-teal-500/40 disabled:opacity-40 transition-colors"
+        >
+          <IcPlay /> Run
+        </button>
       </div>
 
-      {/* Runs */}
+      {/* Run rows */}
       {runs.length > 0 && (
-        <div className="hidden sm:flex items-center gap-2">
+        <div className="bg-white/[0.01]">
           {runs.map(run => (
-            <Link key={run.id} href={`/p/${projectId}/management/runs/${run.id}/execute`}
-              className={cn(
-                "flex items-center gap-1 rounded border px-2 py-0.5 text-[10px] transition-colors hover:bg-surface-overlay",
-                run.status === "in_progress"
-                  ? "border-blue-500/20 text-blue-400"
-                  : run.status === "completed"
-                    ? "border-emerald-500/20 text-emerald-400"
-                    : "border-border text-fg-muted",
-              )}
-              title={run.name}
-            >
-              <IcPlay />
-              <span>{run.status === "in_progress" ? "Devam" : run.status === "completed" ? "Tamam" : "Run"}</span>
-            </Link>
+            <RunRow
+              key={run.id}
+              run={run}
+              projectId={projectId}
+              onUpdate={onUpdateRun}
+              onDelete={onDeleteRun}
+            />
           ))}
         </div>
       )}
-
-      {/* Status pill */}
-      <span className={cn("rounded-full border px-2 py-0.5 text-[10px] shrink-0",
-        cycle.status === "completed" ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-400" :
-        cycle.status === "active"    ? "border-blue-500/20    bg-blue-500/10    text-blue-400"    :
-                                       "border-border         bg-surface-overlay text-fg-muted",
-      )}>
-        {cycle.status}
-      </span>
-
-      {/* Start run */}
-      <button
-        onClick={() => onStartRun(cycle)}
-        disabled={loading}
-        title="Run Başlat"
-        className="shrink-0 flex items-center gap-1.5 rounded-lg border border-teal-500/25 px-3 py-1.5 text-[11px] font-medium text-teal-400 hover:bg-teal-500/10 hover:border-teal-500/40 disabled:opacity-40 transition-colors"
-      >
-        <IcPlay /> Run
-      </button>
     </div>
   );
 }
@@ -402,18 +592,25 @@ function DeletePlanModal({ plan, onConfirm, onClose, loading }: {
 // ── Plan row ──────────────────────────────────────────────────────────────────
 function PlanRow({
   plan, cycles, runs, projectId, onStartRun, runCreating,
-  onAddCycle, onDelete,
+  onAddCycle, onDelete, onRenamePlan, onUpdateCycle, onUpdateRun, onDeleteRun,
 }: {
   plan: TestPlan;
   cycles: TestCycle[];
   runs: TestRun[];
   projectId: string;
-  onStartRun: (cycle: TestCycle) => void;  // triggers modal
+  onStartRun: (cycle: TestCycle) => void;
   runCreating: boolean;
   onAddCycle: (planId: string) => void;
   onDelete: (plan: TestPlan) => void;
+  onRenamePlan: (plan: TestPlan, newName: string) => Promise<void>;
+  onUpdateCycle: (id: string, name: string) => Promise<void>;
+  onUpdateRun: (id: string, name: string) => Promise<void>;
+  onDeleteRun: (id: string) => Promise<void>;
 }) {
   const [open, setOpen] = useState(false);
+  const [renaming, setRenaming] = useState(false);
+  const [renameVal, setRenameVal] = useState(plan.name);
+  const [renameSaving, setRenameSaving] = useState(false);
 
   // Aggregate run stats for inline progress bar
   const allRunCases = runs.flatMap(r => {
@@ -438,7 +635,22 @@ function PlanRow({
         <IcChevron open={open} />
 
         <div className="flex flex-1 min-w-0 items-center gap-3 flex-wrap">
-          <p className="text-[13px] font-semibold text-fg truncate">{plan.name}</p>
+          {renaming ? (
+            <form onSubmit={async e => { e.preventDefault(); setRenameSaving(true); await onRenamePlan(plan, renameVal); setRenaming(false); setRenameSaving(false); }}
+              onClick={e => e.stopPropagation()} className="flex items-center gap-1.5">
+              <input autoFocus value={renameVal} onChange={e => setRenameVal(e.target.value)}
+                onKeyDown={e => { if (e.key === "Escape") { setRenaming(false); setRenameVal(plan.name); } }}
+                className="rounded-lg border border-brand bg-surface-overlay px-2 py-0.5 text-[13px] font-semibold text-fg outline-none ring-2 ring-brand/20 min-w-[180px]" />
+              <button type="submit" disabled={renameSaving || !renameVal.trim()}
+                className="rounded-md bg-brand px-2 py-0.5 text-[11px] font-semibold text-brand-fg disabled:opacity-40">
+                {renameSaving ? "…" : "Kaydet"}
+              </button>
+              <button type="button" onClick={() => { setRenaming(false); setRenameVal(plan.name); }}
+                className="text-[11px] text-fg-subtle hover:text-fg">İptal</button>
+            </form>
+          ) : (
+            <p className="text-[13px] font-semibold text-fg truncate">{plan.name}</p>
+          )}
           <span className={cn("shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-medium", typeCls)}>
             {plan.plan_type}
           </span>
@@ -456,8 +668,18 @@ function PlanRow({
         </div>
 
         {/* Meta */}
-        <span className="shrink-0 text-[11px] text-fg-subtle">{fmtDate(plan.created_at)}</span>
-        <span className="shrink-0 text-[11px] text-fg-subtle">{cycles.length} cycle</span>
+        <span className="hidden md:inline shrink-0 text-[11px] text-fg-subtle">{fmtDate(plan.created_at)}</span>
+        <span className="hidden sm:inline shrink-0 text-[11px] text-fg-subtle">{cycles.length} cycle</span>
+        <button
+          type="button"
+          onClick={e => { e.stopPropagation(); setRenaming(v => !v); setRenameVal(plan.name); }}
+          className="shrink-0 rounded-md p-1.5 text-fg-subtle hover:bg-surface-overlay hover:text-fg transition-colors"
+          title="Planı Yeniden Adlandır"
+        >
+          <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/>
+          </svg>
+        </button>
         <button
           type="button"
           onClick={e => { e.stopPropagation(); onDelete(plan); }}
@@ -493,6 +715,9 @@ function PlanRow({
                   projectId={projectId}
                   onStartRun={onStartRun}
                   loading={runCreating}
+                  onUpdateCycle={onUpdateCycle}
+                  onUpdateRun={onUpdateRun}
+                  onDeleteRun={onDeleteRun}
                 />
               );
             })
@@ -518,14 +743,20 @@ export default function ManagementPlansPage() {
   const projectId = useRouteParam("projectId");
   const mpid      = useManagementProjectId(projectId || undefined);
   const qc        = useQueryClient();
+  const toast     = useToast();
 
   const { data: plans, isLoading, isError: plansError, refetch: refetchPlans } = useManagementPlans(mpid || undefined);
   const { data: allCycles }        = useManagementCycles(mpid || undefined);
   const { data: allRuns }          = useManagementRuns(mpid || undefined);
   const createPlan   = useCreateManagementPlan(mpid || "");
+  const updatePlan   = useUpdateManagementPlan(mpid || "");
   const deletePlan   = useDeleteManagementPlan(mpid || "");
   const createRun    = useCreateManagementRun(mpid || "");
+  const updateRun    = useUpdateManagementRun(mpid || "");
+  const deleteRun    = useDeleteManagementRun(mpid || "");
   const createCycle  = useCreateManagementCycle(mpid || "");
+  const updateCycle  = useUpdateManagementCycle(mpid || "");
+  const deleteCycle  = useDeleteManagementCycle(mpid || "");
   const aiGenPlan    = useAIGeneratePlan(mpid || "");
   const repoQ        = useManagementRepository(mpid || undefined);
   const suites       = repoQ.data?.suites ?? [];
@@ -551,6 +782,43 @@ export default function ManagementPlansPage() {
   const [cycleCreating,   setCycleCreating]    = useState(false);
   const [error,           setError]            = useState<string | null>(null);
 
+  const handleRenamePlan = async (plan: TestPlan, newName: string) => {
+    if (!newName.trim() || newName === plan.name) return;
+    try {
+      await updatePlan.mutateAsync({ id: plan.id, name: newName.trim() });
+    } catch (err: unknown) {
+      console.error("[Plans] Rename failed:", err);
+      toast.error("Plan adı değiştirilemedi");
+    }
+  };
+
+  const handleUpdateCycle = async (id: string, name: string) => {
+    try {
+      await updateCycle.mutateAsync({ id, name: name.trim() });
+      toast.success("Cycle yeniden adlandırıldı");
+    } catch {
+      toast.error("Cycle adı değiştirilemedi");
+    }
+  };
+
+  const handleUpdateRun = async (id: string, name: string) => {
+    try {
+      await updateRun.mutateAsync({ id, name: name.trim() });
+      toast.success("Koşum yeniden adlandırıldı");
+    } catch {
+      toast.error("Koşum adı değiştirilemedi");
+    }
+  };
+
+  const handleDeleteRun = async (id: string) => {
+    try {
+      await deleteRun.mutateAsync(id);
+      toast.success("Koşum silindi");
+    } catch {
+      toast.error("Koşum silinemedi");
+    }
+  };
+
   const handleCreatePlan = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!planName.trim()) return;
@@ -567,8 +835,10 @@ export default function ManagementPlansPage() {
         scope_summary: suiteScope,
       });
       setPlanName(""); setPlanRelease(""); setPlanScope(""); setSelectedSuiteIds([]); setShowPlanForm(false);
+      toast.success("Plan oluşturuldu");
     } catch {
       setError("Plan oluşturulamadı.");
+      toast.error("Plan oluşturulamadı");
     } finally {
       setCreating(false);
     }
@@ -634,13 +904,14 @@ export default function ManagementPlansPage() {
   };
 
   return (
+    <PageErrorBoundary>
     <div className="min-h-[calc(100vh-88px)] bg-bg text-fg">
 
       {/* ── Header ─────────────────────────────────────────────────────────── */}
       <div className="flex items-center justify-between border-b border-border bg-surface-raised px-6 py-4">
         <div>
           <h1 className="text-[13px] font-semibold text-fg">Test Planları</h1>
-          <p className="mt-0.5 text-[11px] text-fg-muted">
+          <p className="mt-0.5 hidden text-[11px] text-fg-muted sm:block">
             {(plans ?? []).length} plan · {(allCycles ?? []).length} cycle · {(allRuns ?? []).length} run
           </p>
         </div>
@@ -657,12 +928,14 @@ export default function ManagementPlansPage() {
             </div>
           ))}
         </div>
-        <button
-          onClick={() => setShowPlanForm(v => !v)}
-          className="flex items-center gap-1.5 rounded-lg bg-brand px-3 py-1.5 text-[12px] font-medium text-brand-fg hover:brightness-105 transition-colors"
-        >
-          <IcPlus /> {showPlanForm ? "İptal" : "Yeni Plan"}
-        </button>
+        <RoleGuard minRole="member" projectId={projectId ?? undefined}>
+          <button
+            onClick={() => setShowPlanForm(v => !v)}
+            className="flex items-center gap-1.5 rounded-lg bg-brand px-3 py-1.5 text-[12px] font-medium text-brand-fg hover:brightness-105 transition-colors"
+          >
+            <IcPlus /> {showPlanForm ? "İptal" : "Yeni Plan"}
+          </button>
+        </RoleGuard>
       </div>
 
       {/* ── Error banner ──────────────────────────────────────────────────── */}
@@ -752,7 +1025,7 @@ export default function ManagementPlansPage() {
                     if (!planName) setPlanName(res.name);
                     setPlanScope(res.scope_summary);
                   }}
-                  className="flex items-center gap-1.5 rounded-lg border border-teal-500/30 bg-teal-500/10 px-3 py-2 text-[11px] font-medium text-teal-400 hover:bg-teal-500/20 disabled:opacity-40 transition-colors whitespace-nowrap">
+                  className="flex items-center gap-1.5 rounded-lg border border-teal-500/30 bg-teal-500/10 px-3 py-2 text-[11px] font-medium text-teal-400 hover:bg-brand-soft disabled:opacity-40 transition-colors whitespace-nowrap">
                   {aiGenPlan.isPending ? "AI üretiyor…" : "✦ AI Öner"}
                 </button>
               </div>
@@ -809,6 +1082,10 @@ export default function ManagementPlansPage() {
                 runCreating={(createRun.isPending || runCreatingFlag) && activeCycleId !== ""}
                 onAddCycle={id => { setAddCycleForPlan(id); }}
                 onDelete={setDeletingPlan}
+                onRenamePlan={handleRenamePlan}
+                onUpdateCycle={handleUpdateCycle}
+                onUpdateRun={handleUpdateRun}
+                onDeleteRun={handleDeleteRun}
               />
             );
           })
@@ -889,5 +1166,6 @@ export default function ManagementPlansPage() {
         </div>
       )}
     </div>
+    </PageErrorBoundary>
   );
 }

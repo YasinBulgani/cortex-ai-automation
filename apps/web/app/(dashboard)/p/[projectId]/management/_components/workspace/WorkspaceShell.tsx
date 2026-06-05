@@ -2,12 +2,10 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { cn } from "@/lib/utils";
 import {
   DndContext, DragOverlay, PointerSensor, KeyboardSensor,
   useSensor, useSensors, closestCenter,
-  useDraggable,
   type DragStartEvent, type DragEndEvent,
 } from "@dnd-kit/core";
 import { arrayMove, sortableKeyboardCoordinates } from "@dnd-kit/sortable";
@@ -32,7 +30,9 @@ import { NewCaseModal } from "./NewCaseModal";
 import { RunList } from "./RunList";
 import { RunDetailPane } from "./RunDetailPane";
 import { NewRunModal } from "./NewRunModal";
-import { type WsNode, R_DOT, P_DOT, TYPE_COLOR, AUTO_DOT, RUN_STATUS_DOT, RUN_STATUS_LABEL } from "./shared";
+import { type WsNode } from "./shared";
+import { CaseRow, ArchivedCaseRow } from "./CaseRow";
+import { RunTabHeader, type RunFilters } from "./RunTabHeader";
 
 type DragData =
   | { kind: "case"; caseId: string }
@@ -40,204 +40,13 @@ type DragData =
   | { kind: "folder"; folderId: string; suiteId: string; parentId: string | null }
   | { kind: "allDrop" };
 
-// ─── Minimal Icons ────────────────────────────────────────────────────────────
+// ─── Local Icons (used only in CaseTable) ─────────────────────────────────────
 
 function IcCheck() {
   return <svg className="h-2.5 w-2.5" fill="none" viewBox="0 0 10 10" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M1.5 5l2.5 2.5 4.5-4.5" /></svg>;
 }
 function IcSearch() {
   return <svg className="h-3.5 w-3.5 shrink-0 text-fg-subtle" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>;
-}
-function IcGrip() {
-  return <svg className="h-3.5 w-3.5" fill="currentColor" viewBox="0 0 16 16"><circle cx="5" cy="4" r="1.2" /><circle cx="11" cy="4" r="1.2" /><circle cx="5" cy="8" r="1.2" /><circle cx="11" cy="8" r="1.2" /><circle cx="5" cy="12" r="1.2" /><circle cx="11" cy="12" r="1.2" /></svg>;
-}
-function IcEdit() {
-  return <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>;
-}
-
-// ─── Case Row ─────────────────────────────────────────────────────────────────
-
-function IcCopy() {
-  return <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>;
-}
-
-function CaseRow({
-  tc, selected, onSelect, checked, onCheck, projectId, onClone, cloning,
-}: {
-  tc: TestCase; selected: boolean; onSelect: () => void;
-  checked: boolean; onCheck: (e: React.MouseEvent) => void; projectId: string;
-  onClone: () => void; cloning: boolean;
-}) {
-  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
-    id: `case:${tc.id}`,
-    data: { kind: "case", caseId: tc.id },
-  });
-  const rd  = tc.last_run_status ? (R_DOT[tc.last_run_status] ?? null) : null;
-  const ad  = AUTO_DOT[tc.automation_status] ?? AUTO_DOT.not_automated;
-
-  return (
-    <tr
-      ref={setNodeRef}
-      onClick={onSelect}
-      className={cn(
-        "group border-b border-border/40 cursor-pointer select-none",
-        isDragging  && "opacity-30",
-        selected    && "bg-brand-soft",
-        !selected   && "hover:bg-surface-overlay",
-      )}
-    >
-      {/* Grip */}
-      <td className="hidden w-5 pl-1.5 sm:table-cell">
-        <button type="button" {...attributes} {...listeners}
-          className="invisible group-hover:visible cursor-grab active:cursor-grabbing touch-none text-fg-subtle hover:text-fg p-0.5">
-          <IcGrip />
-        </button>
-      </td>
-
-      {/* Checkbox */}
-      <td className="w-8 px-2">
-        <button type="button" onClick={onCheck}
-          className={cn("flex h-4 w-4 items-center justify-center rounded border transition-colors",
-            checked ? "border-brand bg-brand text-brand-fg" : "border-border-strong bg-surface-raised hover:border-brand")}>
-          {checked && <IcCheck />}
-        </button>
-      </td>
-
-      {/* ID — TestRail-style colored badge */}
-      <td className="w-24 px-3 py-2.5">
-        <Link
-          href={`/p/${projectId}/management/cases/${tc.id}`}
-          onClick={e => e.stopPropagation()}
-          className="inline-flex items-center rounded-md border border-brand/20 bg-brand-soft px-1.5 py-0.5 font-mono text-[10px] font-semibold text-brand transition-colors hover:border-brand/35 hover:bg-surface-accent"
-        >
-          {tc.case_key}
-        </Link>
-      </td>
-
-      {/* Title */}
-      <td className="px-3 py-2.5">
-        <div className="flex items-center gap-2">
-          <span className={cn("h-1.5 w-1.5 shrink-0 rounded-full", ad.dot)} title={ad.label} />
-          <span className="text-[13px] text-fg line-clamp-1 transition-colors">
-            {tc.title}
-          </span>
-        </div>
-        {tc.tags && tc.tags.length > 0 && (
-          <div className="mt-1 flex gap-1">
-            {tc.tags.slice(0, 3).map(t => (
-              <span key={t} className="rounded bg-surface-accent px-1.5 py-0.5 text-[10px] text-fg-subtle">{t}</span>
-            ))}
-          </div>
-        )}
-      </td>
-
-      {/* Priority */}
-      <td className="w-14 px-3 py-2.5">
-        <div className="flex items-center gap-1.5">
-          <span className={cn("h-1.5 w-1.5 rounded-full", P_DOT[tc.priority] ?? P_DOT.P3)} />
-          <span className="text-[11px] text-fg-subtle font-mono">{tc.priority}</span>
-        </div>
-      </td>
-
-      {/* Type */}
-      <td className="hidden w-24 px-3 py-2.5 lg:table-cell">
-        <span className={cn("rounded-md px-1.5 py-0.5 text-[10px]",
-          TYPE_COLOR[tc.type] ?? "bg-slate-500/15 text-fg-subtle")}>
-          {tc.type}
-        </span>
-      </td>
-
-      {/* Last Run */}
-      <td className="hidden w-24 px-3 py-2.5 md:table-cell">
-        {rd ? (
-          <div className="flex items-center gap-1.5">
-            <span className={cn("h-1.5 w-1.5 rounded-full", rd.dot)} />
-            <span className="text-[11px] text-fg-subtle">{rd.label}</span>
-          </div>
-        ) : (
-          <span className="text-[11px] text-fg-subtle">—</span>
-        )}
-      </td>
-
-      {/* Steps */}
-      <td className="hidden w-12 px-3 py-2.5 text-[11px] text-fg-subtle tabular-nums xl:table-cell">
-        {tc.steps?.length ?? 0}
-      </td>
-
-      {/* Row actions: Clone + Edit */}
-      <td className="w-16 px-2">
-        <div className="invisible group-hover:visible flex items-center gap-0.5">
-          <button
-            type="button"
-            onClick={e => { e.stopPropagation(); onClone(); }}
-            disabled={cloning}
-            title="Klonla"
-            className="inline-flex rounded p-1 text-fg-subtle hover:bg-surface-overlay hover:text-brand transition-all disabled:opacity-40"
-          >
-            <IcCopy />
-          </button>
-          <Link href={`/p/${projectId}/management/cases/${tc.id}`}
-            onClick={e => e.stopPropagation()}
-            className="inline-flex rounded p-1 text-fg-subtle hover:bg-surface-overlay hover:text-fg transition-all">
-            <IcEdit />
-          </Link>
-        </div>
-      </td>
-    </tr>
-  );
-}
-
-// ─── Archived Case Row ────────────────────────────────────────────────────────
-
-function ArchivedCaseRow({
-  tc, checked, onCheck, projectId, onUnarchive, unarchiving,
-}: {
-  tc: TestCase; checked: boolean; onCheck: (e: React.MouseEvent) => void; projectId: string;
-  onUnarchive: () => void; unarchiving: boolean;
-}) {
-  const ad = AUTO_DOT[tc.automation_status] ?? AUTO_DOT.not_automated;
-  return (
-    <tr className="group border-b border-border/30 select-none opacity-60 hover:opacity-90 hover:bg-surface-overlay transition-opacity">
-      <td className="hidden w-5 sm:table-cell" />
-      <td className="w-8 px-2">
-        <button type="button" onClick={onCheck}
-          className={cn("flex h-4 w-4 items-center justify-center rounded border transition-colors",
-            checked ? "border-brand bg-brand text-brand-fg" : "border-border-strong bg-surface-raised hover:border-brand")}>
-          {checked && <IcCheck />}
-        </button>
-      </td>
-      <td className="w-24 px-3 py-2.5">
-        <Link
-          href={`/p/${projectId}/management/cases/${tc.id}`}
-          onClick={e => e.stopPropagation()}
-          className="inline-flex items-center rounded-md border border-border/40 bg-surface-overlay px-1.5 py-0.5 font-mono text-[10px] font-semibold text-fg-muted transition-colors hover:border-border"
-        >
-          {tc.case_key}
-        </Link>
-      </td>
-      <td className="px-3 py-2.5">
-        <div className="flex items-center gap-2">
-          <span className={cn("h-1.5 w-1.5 shrink-0 rounded-full opacity-50", ad.dot)} title={ad.label} />
-          <span className="text-[13px] text-fg-muted line-clamp-1 line-through">{tc.title}</span>
-        </div>
-      </td>
-      <td className="w-14 px-3 py-2.5"><span className="text-[11px] text-fg-subtle font-mono">{tc.priority}</span></td>
-      <td className="hidden w-24 px-3 py-2.5 lg:table-cell" />
-      <td className="hidden w-24 px-3 py-2.5 md:table-cell" />
-      <td className="hidden w-12 px-3 py-2.5 xl:table-cell" />
-      <td className="w-16 px-2">
-        <button
-          type="button"
-          onClick={e => { e.stopPropagation(); onUnarchive(); }}
-          disabled={unarchiving}
-          title="Geri Yükle"
-          className="invisible group-hover:visible rounded border border-emerald-500/25 px-2 py-0.5 text-[10px] font-medium text-emerald-400 hover:bg-emerald-500/10 disabled:opacity-40 transition-colors whitespace-nowrap"
-        >
-          {unarchiving ? "…" : "Geri Yükle"}
-        </button>
-      </td>
-    </tr>
-  );
 }
 
 // ─── Case Table (ultra-clean TestRail style) ──────────────────────────────────
@@ -276,6 +85,8 @@ function CaseTable({
   const [cloneProgress, setCloneProgress] = useState<{ done: number; total: number } | null>(null);
   const [sortCol, setSortCol] = useState<string>("updated_at");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+  const [tagInput, setTagInput] = useState("");
+  const [showTagInput, setShowTagInput] = useState(false);
 
   const searchTimer = useRef<ReturnType<typeof setTimeout>>();
   const [debouncedSearch, setDebouncedSearch] = useState(search);
@@ -451,7 +262,16 @@ function CaseTable({
       {/* ── Bulk action bar ─────────────────────────────────────────────────── */}
       {checked.size > 0 && (
         <div className="flex flex-wrap items-center gap-2 border-b border-brand/20 bg-brand-soft px-4 py-2">
-          <span className="text-[11px] font-semibold text-brand">{checked.size} seçili</span>
+          {/* Counter + select all */}
+          <span className="text-[11px] font-semibold text-brand">
+            {checked.size} senaryo seçili
+          </span>
+          <button type="button"
+            onClick={() => onToggleAll(nodeCases.map(c => c.id))}
+            className="rounded border border-brand/25 px-1.5 py-0.5 text-[10px] text-brand hover:bg-brand/10 transition-colors">
+            Tümünü Seç
+          </button>
+          <span className="text-[10px] text-fg-disabled">|</span>
           <button type="button" onClick={onCreateRun} disabled={busy}
             className="rounded-md border border-brand/25 bg-surface-raised px-2.5 py-1 text-[11px] font-medium text-brand transition-colors hover:bg-surface-overlay disabled:opacity-40">
             ▶ Run Oluştur
@@ -467,8 +287,8 @@ function CaseTable({
             onClearChecked();
             e.target.value = "";
           }}
-            className="rounded border border-border bg-surface-raised px-2 py-1 text-[11px] text-fg-muted disabled:opacity-40 outline-none">
-            <option value="">Öncelik →</option>
+            className="rounded border border-border bg-surface-raised px-2 py-1 text-[11px] text-fg-muted disabled:opacity-40 outline-none cursor-pointer">
+            <option value="">Öncelik Değiştir →</option>
             {["P0","P1","P2","P3"].map(p => <option key={p} value={p}>{p}</option>)}
           </select>
           {/* Bulk move: suite picker */}
@@ -482,8 +302,8 @@ function CaseTable({
             onClearChecked();
             e.target.value = "";
           }}
-            className="rounded border border-border bg-surface-raised px-2 py-1 text-[11px] text-fg-muted disabled:opacity-40 outline-none">
-            <option value="">Taşı →</option>
+            className="rounded border border-border bg-surface-raised px-2 py-1 text-[11px] text-fg-muted disabled:opacity-40 outline-none cursor-pointer">
+            <option value="">Suite/Folder Taşı →</option>
             {suites.map(s => (
               <optgroup key={s.id} label={s.name}>
                 <option value={`${s.id}|`}>{s.name} (kök)</option>
@@ -493,6 +313,41 @@ function CaseTable({
               </optgroup>
             ))}
           </select>
+          {/* Etiket Ekle */}
+          {showTagInput ? (
+            <form
+              className="flex items-center gap-1"
+              onSubmit={async e => {
+                e.preventDefault();
+                const newTags = tagInput.split(",").map(t => t.trim()).filter(Boolean);
+                if (!newTags.length) { setShowTagInput(false); return; }
+                await onBulkUpdate({ case_ids: [...checked], tags_add: newTags });
+                setTagInput("");
+                setShowTagInput(false);
+                onClearChecked();
+              }}
+            >
+              <input
+                autoFocus
+                value={tagInput}
+                onChange={e => setTagInput(e.target.value)}
+                placeholder="tag1, tag2"
+                className="rounded border border-brand/30 bg-surface-raised px-2 py-1 text-[11px] text-fg outline-none focus:border-brand w-32"
+                onKeyDown={e => { if (e.key === "Escape") { setShowTagInput(false); setTagInput(""); } }}
+              />
+              <button type="submit" disabled={busy}
+                className="rounded border border-brand/30 bg-brand/10 px-2 py-1 text-[11px] text-brand hover:bg-brand/20 disabled:opacity-40 transition-colors">
+                Ekle
+              </button>
+              <button type="button" onClick={() => { setShowTagInput(false); setTagInput(""); }}
+                className="text-[11px] text-fg-subtle hover:text-fg px-1">✕</button>
+            </form>
+          ) : (
+            <button type="button" onClick={() => setShowTagInput(true)} disabled={busy}
+              className="rounded border border-border px-2.5 py-1 text-[11px] text-fg-muted hover:text-fg disabled:opacity-40 transition-colors">
+              🏷 Etiket Ekle
+            </button>
+          )}
           {/* Bulk Clone */}
           <button
             type="button"
@@ -517,8 +372,8 @@ function CaseTable({
             className="rounded border border-red-500/20 px-2.5 py-1 text-[11px] text-red-400 hover:bg-red-500/10 disabled:opacity-40 transition-colors">
             Arşivle
           </button>
-          <button type="button" onClick={onClearChecked}
-            className="ml-auto text-[11px] text-fg-subtle hover:text-fg-muted">Seçimi Temizle</button>
+          <button type="button" onClick={() => { onClearChecked(); setShowTagInput(false); setTagInput(""); }}
+            className="ml-auto text-[11px] text-fg-subtle hover:text-fg-muted">Temizle</button>
         </div>
       )}
 
@@ -646,17 +501,103 @@ function CaseTable({
   );
 }
 
-// ─── Run Tab mini header ──────────────────────────────────────────────────────
+// ─── Run Timeline ─────────────────────────────────────────────────────────────
 
-function RunTabHeader({ onNewRun }: { onNewRun: () => void }) {
+const STATUS_COLORS: Record<string, string> = {
+  completed:   "bg-emerald-500",
+  passed:      "bg-emerald-500",
+  failed:      "bg-red-500",
+  in_progress: "bg-blue-500",
+  not_started: "bg-slate-500",
+};
+
+const STATUS_LABEL_SHORT: Record<string, string> = {
+  completed:   "pass",
+  passed:      "pass",
+  failed:      "fail",
+  in_progress: "active",
+  not_started: "pending",
+};
+
+function fmtTimelineDate(iso: string): string {
+  return new Date(iso).toLocaleDateString("tr-TR", { day: "2-digit", month: "short" });
+}
+
+function RunTimeline({
+  runs,
+  selectedRunId,
+  onSelect,
+}: {
+  runs: Array<{ id: string; name: string; status: string; created_at: string }>;
+  selectedRunId: string | null;
+  onSelect: (id: string) => void;
+}) {
+  const sorted = useMemo(
+    () => [...runs]
+      .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+      .slice(-10),
+    [runs],
+  );
+
+  if (sorted.length === 0) return null;
+
   return (
-    <div className="flex items-center gap-2 border-b border-border bg-surface-raised px-4 py-3 shadow-xs">
-      <span className="text-[14px] font-semibold text-fg">Test Koşumları</span>
-      <div className="flex-1" />
-      <button type="button" onClick={onNewRun}
-        className="rounded-lg bg-brand px-3 py-1.5 text-[12px] font-semibold text-brand-fg shadow-sm transition-colors hover:brightness-105">
-        + Yeni Koşum
-      </button>
+    <div className="border-b border-border bg-surface-raised px-4 py-3 overflow-x-auto">
+      <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-fg-subtle">
+        Son Run Geçmişi
+      </p>
+      <div className="flex items-end gap-0 min-w-max">
+        {sorted.map((run, idx) => {
+          const status = run.status || "not_started";
+          const dotColor = STATUS_COLORS[status] ?? "bg-slate-500";
+          const shortLabel = STATUS_LABEL_SHORT[status] ?? status;
+          const isActive = status === "in_progress";
+          const isSelected = selectedRunId === run.id;
+
+          return (
+            <div key={run.id} className="flex items-center">
+              {/* Node */}
+              <button
+                type="button"
+                onClick={() => onSelect(run.id)}
+                className="flex flex-col items-center gap-1 group"
+                title={run.name}
+              >
+                {/* Date */}
+                <span className={cn(
+                  "text-[9px] tabular-nums transition-colors",
+                  isSelected ? "text-brand font-semibold" : "text-fg-disabled group-hover:text-fg-subtle",
+                )}>
+                  {fmtTimelineDate(run.created_at)}
+                </span>
+                {/* Dot */}
+                <div className={cn(
+                  "relative flex h-5 w-5 items-center justify-center rounded-full border-2 transition-all",
+                  isSelected
+                    ? "border-brand scale-125 shadow-sm shadow-brand/30"
+                    : "border-border group-hover:scale-110",
+                  dotColor,
+                )}>
+                  {isActive && (
+                    <span className="absolute inset-0 rounded-full animate-ping opacity-40" style={{ backgroundColor: "rgb(59 130 246)" }} />
+                  )}
+                </div>
+                {/* Status label */}
+                <span className={cn(
+                  "text-[9px] font-medium transition-colors max-w-[52px] truncate text-center",
+                  isSelected ? "text-brand" : "text-fg-disabled group-hover:text-fg-subtle",
+                )}>
+                  {shortLabel}
+                </span>
+              </button>
+              {/* Connector line */}
+              {idx < sorted.length - 1 && (
+                <div className="h-px w-6 flex-none bg-border mx-0.5 mb-3" />
+              )}
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -706,6 +647,7 @@ export function WorkspaceShell({
   const [busy,           setBusy]           = useState(false);
   const [dragKind,       setDragKind]       = useState<DragKind>(null);
   const [draggingCaseId, setDraggingCaseId] = useState<string | null>(null);
+  const [runFilters,     setRunFilters]     = useState<RunFilters>({ search: "", status: "", dateRange: "" });
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -735,6 +677,29 @@ export function WorkspaceShell({
   const draggingCase   = draggingCaseId ? active.find(c => c.id === draggingCaseId) : null;
   const checkedIds     = useMemo(() => [...checked], [checked]);
   const activeRunCount = runs.filter(r => r.status === "in_progress").length;
+
+  const filteredRuns = useMemo(() => {
+    let r = runs;
+    const q = runFilters.search.trim().toLowerCase();
+    if (q) r = r.filter(run => run.name.toLowerCase().includes(q));
+    if (runFilters.status) r = r.filter(run => (run.status || "not_started") === runFilters.status);
+    if (runFilters.dateRange) {
+      const now = Date.now();
+      const cutoff: Record<string, number> = {
+        today: 1,
+        week:  7,
+        month: 30,
+      };
+      const days = cutoff[runFilters.dateRange] ?? 0;
+      const ms   = days * 24 * 60 * 60 * 1000;
+      r = r.filter(run => {
+        const dateStr = (run as unknown as Record<string, unknown>).created_at as string | undefined ?? run.started_at;
+        if (!dateStr) return true;
+        return now - new Date(dateStr).getTime() <= ms;
+      });
+    }
+    return r;
+  }, [runs, runFilters]);
 
   const onDragStart = (e: DragStartEvent) => {
     const d = e.active.data.current as DragData | undefined;
@@ -786,22 +751,32 @@ export function WorkspaceShell({
   const onArchiveMany = async () => {
     if (!checkedIds.length) return;
     setBusy(true);
-    try { for (const id of checkedIds) await archiveMut.mutateAsync(id); setChecked(new Set()); }
-    finally { setBusy(false); }
+    try {
+      await Promise.all([...checkedIds].map(id => archiveMut.mutateAsync(id)));
+      setChecked(new Set());
+    } catch (err: unknown) {
+      console.error("[WorkspaceShell] Bulk operation partial failure:", err);
+    } finally { setBusy(false); }
   };
 
   const onUnarchiveMany = async () => {
     const archivedChecked = checkedIds.filter(id => archived.some(c => c.id === id));
     if (!archivedChecked.length) return;
     setBusy(true);
-    try { for (const id of archivedChecked) await unarchiveMut.mutateAsync(id); setChecked(new Set()); }
-    finally { setBusy(false); }
+    try {
+      await Promise.all([...archivedChecked].map(id => unarchiveMut.mutateAsync(id)));
+      setChecked(new Set());
+    } catch (err: unknown) {
+      console.error("[WorkspaceShell] Bulk operation partial failure:", err);
+    } finally { setBusy(false); }
   };
 
   const onBulkClone = async (caseIds: string[]) => {
     setBusy(true);
     try {
-      for (const id of caseIds) await cloneMut.mutateAsync({ caseId: id });
+      await Promise.all([...caseIds].map(id => cloneMut.mutateAsync({ caseId: id })));
+    } catch (err: unknown) {
+      console.error("[WorkspaceShell] Bulk operation partial failure:", err);
     } finally { setBusy(false); }
   };
 
@@ -989,13 +964,29 @@ export function WorkspaceShell({
         </DndContext>
       ) : (
         <div className="flex flex-1 min-h-0 flex-col">
-          <RunTabHeader onNewRun={openNewRun} />
+          <RunTabHeader
+            onNewRun={openNewRun}
+            filters={runFilters}
+            onFiltersChange={setRunFilters}
+            totalCount={runs.length}
+            filteredCount={filteredRuns.length}
+          />
+          <RunTimeline
+            runs={runs}
+            selectedRunId={selectedRunId}
+            onSelect={setSelectedRunId}
+          />
           <div className="flex flex-1 min-h-0">
             <aside className="hidden w-[224px] flex-none overflow-hidden border-r border-border bg-surface-raised md:block">
               <RunList
                 pid={mpid || ""} selectedRunId={selectedRunId}
                 onSelect={setSelectedRunId}
                 onNewRun={openNewRun}
+                filteredRunIds={
+                  (runFilters.search || runFilters.status || runFilters.dateRange)
+                    ? new Set(filteredRuns.map(r => r.id))
+                    : undefined
+                }
               />
             </aside>
             <RunDetailPane pid={mpid || ""} projectId={projectId} runId={selectedRunId} />

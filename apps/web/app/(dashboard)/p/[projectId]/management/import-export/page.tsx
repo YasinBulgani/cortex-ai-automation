@@ -9,6 +9,8 @@ import {
   useCommitImportJob,
   exportManagementRepository,
 } from "@/lib/hooks/use-management";
+import { useManagementProjectId } from "@/lib/hooks/use-management-project-id";
+import { useRouteParam } from "@/lib/use-route-param";
 
 type ColumnKey =
   | "case_key"
@@ -247,7 +249,7 @@ function ImportJobDetailPanel({
           <button
             onClick={handleCommit}
             disabled={committing || readyRows === 0}
-            className="rounded-lg bg-teal-600 px-5 py-2 text-sm font-semibold text-white transition hover:bg-teal-500 disabled:opacity-40"
+            className="rounded-lg bg-brand px-5 py-2 text-sm font-semibold text-white transition hover:bg-teal-500 disabled:opacity-40"
           >
             {committing ? "Commit ediliyor…" : `${readyRows} satırı Commit Et`}
           </button>
@@ -414,19 +416,18 @@ function getRowStatus(
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 
-export default function ManagementImportExportPage({
-  params,
-}: {
-  params: { projectId: string };
-}) {
-  const { projectId } = params;
-  const importsQuery = useManagementImports(projectId);
-  const createJob    = useCreateManagementImportJob(projectId);
+export default function ManagementImportExportPage() {
+  const projectId = useRouteParam("projectId");
+  const mpid      = useManagementProjectId(projectId || undefined);
+  const importsQuery = useManagementImports(mpid || undefined);
+  const createJob    = useCreateManagementImportJob(mpid || "");
 
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [importError, setImportError] = useState<string | null>(null);
+  const [exportError, setExportError] = useState<string | null>(null);
   const [stagedImport, setStagedImport] = useState<StagedImport | null>(null);
   const [columnMapping, setColumnMapping] = useState<Record<string, ColumnKey>>({});
   const [updateExisting, setUpdateExisting] = useState(true);
@@ -504,21 +505,28 @@ export default function ManagementImportExportPage({
 
   const handleCreateImportJob = async () => {
     if (!stagedImport) return;
-    await createJob.mutateAsync({
-      filename: stagedImport.filename,
-      rows: mappedRows,
-      mapping: {
-        columns: columnMapping,
-        source_headers: stagedImport.headers,
-        options: {
-          update_existing: updateExisting,
-          conflict_mode: conflictMode,
-          dry_run_first: true,
+    setImportError(null);
+    try {
+      await createJob.mutateAsync({
+        filename: stagedImport.filename,
+        rows: mappedRows,
+        mapping: {
+          columns: columnMapping,
+          source_headers: stagedImport.headers,
+          options: {
+            update_existing: updateExisting,
+            conflict_mode: conflictMode,
+            dry_run_first: true,
+          },
         },
-      },
-    });
-    setStagedImport(null);
-    setColumnMapping({});
+      });
+      setStagedImport(null);
+      setColumnMapping({});
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Import job oluşturulamadı.";
+      console.error("[import-export] createJob failed:", err);
+      setImportError(message);
+    }
   };
 
   const handleTemplateDownload = () => {
@@ -561,16 +569,22 @@ export default function ManagementImportExportPage({
   };
 
   const handleExport = async () => {
+    if (!mpid) return;
     setExporting(true);
+    setExportError(null);
     try {
-      const data = await exportManagementRepository(projectId);
+      const data = await exportManagementRepository(mpid);
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.download = `management-repository-${projectId}.json`;
+      link.download = `management-repository-${mpid}.json`;
       link.click();
       URL.revokeObjectURL(url);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Repository export başarısız.";
+      console.error("[import-export] export failed:", err);
+      setExportError(message);
     } finally {
       setExporting(false);
     }
@@ -581,7 +595,7 @@ export default function ManagementImportExportPage({
     <div className="min-h-full bg-bg px-5 py-5 space-y-5">
         <ImportJobDetailPanel
           jobId={selectedJobId}
-          projectId={projectId}
+          projectId={mpid || ""}
           onClose={() => setSelectedJobId(null)}
         />
       </div>
@@ -639,10 +653,13 @@ export default function ManagementImportExportPage({
             <p className="text-sm text-slate-400">
               Repository snapshot JSON olarak indirilir; import preview ve mapping ayarları backend job akışında kalır.
             </p>
+            {exportError && (
+              <p className="text-xs text-red-400">{exportError}</p>
+            )}
             <button
               onClick={handleExport}
-              disabled={exporting}
-              className="rounded-lg border border-teal-500/30 bg-teal-500/10 px-4 py-2 text-sm font-semibold text-teal-200 hover:bg-teal-500/20 disabled:opacity-40"
+              disabled={exporting || !mpid}
+              className="rounded-lg border border-teal-500/30 bg-teal-500/10 px-4 py-2 text-sm font-semibold text-teal-200 hover:bg-brand-soft disabled:opacity-40"
             >
               {exporting ? "Export hazırlanıyor…" : "Repository Export"}
             </button>
@@ -892,11 +909,17 @@ export default function ManagementImportExportPage({
                 </table>
               </div>
 
+              {importError && (
+                <div className="rounded-lg border border-red-500/20 bg-red-500/5 px-3 py-2 text-xs text-red-300">
+                  {importError}
+                </div>
+              )}
+
               <div className="flex flex-wrap items-center justify-end gap-3">
                 <button
                   onClick={handleCreateImportJob}
                   disabled={createJob.isPending || hasBlockingValidation || mappedRows.length === 0}
-                  className="rounded-lg bg-teal-600 px-5 py-2 text-sm font-semibold text-white transition hover:bg-teal-500 disabled:opacity-40"
+                  className="rounded-lg bg-brand px-5 py-2 text-sm font-semibold text-white transition hover:bg-teal-500 disabled:opacity-40"
                 >
                   {createJob.isPending ? "Job oluşturuluyor…" : "Import Job Oluştur"}
                 </button>

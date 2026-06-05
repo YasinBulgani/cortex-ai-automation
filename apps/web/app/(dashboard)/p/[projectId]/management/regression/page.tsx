@@ -206,7 +206,7 @@ export default function ManagementRegressionPage() {
   const mpid      = useManagementProjectId(projectId || undefined) ?? "";
   const router    = useRouter();
 
-  const { data: sets, isLoading, isError } = useRegressionSets(mpid || undefined);
+  const { data: sets, isLoading, isError, refetch: refetchSets } = useRegressionSets(mpid || undefined);
   const createSet  = useCreateRegressionSet(mpid);
   const updateSet  = useUpdateRegressionSet(mpid);
   const deleteSet  = useDeleteRegressionSet(mpid);
@@ -215,6 +215,7 @@ export default function ManagementRegressionPage() {
   const createRun  = useCreateManagementRun(mpid);
   const cyclesQ    = useManagementCycles(mpid || undefined);
 
+  const [selectedCycleId, setSelectedCycleId] = useState<string | null>(null);
   const [selectedId,   setSelectedId]   = useState<string | null>(null);
   const [showNew,      setShowNew]      = useState(false);
   const [newName,      setNewName]      = useState("");
@@ -230,6 +231,11 @@ export default function ManagementRegressionPage() {
   const [showRun,      setShowRun]      = useState(false);
   const [runName,      setRunName]      = useState("");
   const [launching,    setLaunching]    = useState(false);
+
+  const refreshAll = () => {
+    void refetchSets();
+    void cyclesQ.refetch();
+  };
 
   const filtered    = useMemo(() => (sets ?? []).filter(s => !search || s.name.toLowerCase().includes(search.toLowerCase())), [sets, search]);
   const selectedSet = useMemo(() => (sets ?? []).find(s => s.id === selectedId) ?? null, [sets, selectedId]);
@@ -264,7 +270,7 @@ export default function ManagementRegressionPage() {
   const doLaunchRun = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedSet || !runName.trim()) return;
-    const cid = (cyclesQ.data ?? [])[0]?.id;
+    const cid = selectedCycleId ?? (cyclesQ.data ?? [])[0]?.id;
     if (!cid) return;
     setLaunching(true);
     try {
@@ -492,7 +498,7 @@ export default function ManagementRegressionPage() {
           <div className="flex flex-1 flex-col items-center justify-center gap-3 text-center">
             <p className="text-[13px] text-red-400">Regresyon setleri yüklenemedi.</p>
             <button
-              onClick={() => window.location.reload()}
+              onClick={() => refreshAll()}
               className="text-[12px] text-brand hover:underline"
             >
               Tekrar dene
@@ -551,7 +557,11 @@ export default function ManagementRegressionPage() {
           <div className="relative z-10 w-full max-w-md rounded-2xl border border-border bg-surface-raised p-6 shadow-2xl">
             <h3 className="text-[14px] font-semibold text-fg">Run Başlat</h3>
             <p className="mt-1 text-[12px] text-fg-muted">{selectedSet.cases.length} case · <span className="font-semibold text-fg">{selectedSet.name}</span></p>
-            {!(cyclesQ.data??[]).length ? (
+            {cyclesQ.isLoading ? (
+              <div className="mt-4 space-y-2">
+                {Array.from({length:2}).map((_,i) => <div key={i} className="h-8 rounded-xl bg-surface-overlay animate-pulse"/>)}
+              </div>
+            ) : !(cyclesQ.data??[]).length ? (
               <div className="mt-4 space-y-3">
                 <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-4">
                   <p className="text-[12px] text-amber-400">
@@ -567,6 +577,20 @@ export default function ManagementRegressionPage() {
               </div>
             ) : (
               <form onSubmit={doLaunchRun} className="mt-4 space-y-3">
+                {(cyclesQ.data??[]).length > 1 && (
+                  <div>
+                    <label className="mb-1.5 block text-[11px] uppercase tracking-widest text-fg-subtle">Cycle</label>
+                    <select
+                      value={selectedCycleId ?? (cyclesQ.data??[])[0]?.id ?? ""}
+                      onChange={e => setSelectedCycleId(e.target.value)}
+                      className="w-full rounded-xl border border-border bg-surface-base px-3 py-2 text-[13px] text-fg outline-none focus:border-brand/50"
+                    >
+                      {(cyclesQ.data??[]).map(c => (
+                        <option key={c.id} value={c.id}>{c.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
                 <div>
                   <label className="mb-1.5 block text-[11px] uppercase tracking-widest text-fg-subtle">Run Adı</label>
                   <input autoFocus value={runName} onChange={e=>setRunName(e.target.value)} required

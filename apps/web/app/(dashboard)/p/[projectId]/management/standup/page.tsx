@@ -1066,7 +1066,7 @@ export default function StandupPage() {
     const interval = setInterval(() => {
       setCountdown((c) => {
         if (c <= 1) {
-          void standupQ.refetch();
+          void standupQ.refetch().catch((err: unknown) => console.error("[Standup] Auto-refresh failed:", err));
           return 60;
         }
         return c - 1;
@@ -1080,7 +1080,7 @@ export default function StandupPage() {
     setCountdown(60);
   };
 
-  const data = standupQ.data as StandupData | undefined;
+  const data = standupQ.data;
   const health = data?.summary_health ?? "at_risk";
   const cfg = HEALTH_CONFIG[health];
 

@@ -29,6 +29,7 @@ interface KebabMenuProps {
 
 function KebabMenu({ run, pid, onRenameStart, onDeleted }: KebabMenuProps) {
   const [open, setOpen] = useState(false);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const updateRun = useUpdateManagementRun(pid);
   const deleteRun = useDeleteManagementRun(pid);
@@ -63,14 +64,18 @@ function KebabMenu({ run, pid, onRenameStart, onDeleted }: KebabMenuProps) {
   );
 
   const handleDelete = useCallback(
-    (e: React.MouseEvent) => {
+    async (e: React.MouseEvent) => {
       e.stopPropagation();
+      if (confirmDeleteId !== run.id) {
+        setConfirmDeleteId(run.id);
+        return;
+      }
+      setConfirmDeleteId(null);
       setOpen(false);
-      const ok = window.confirm(`"${run.name}" adlı run silinecek. Emin misiniz?`);
-      if (!ok) return;
-      deleteRun.mutate(run.id, { onSuccess: () => { onDeleted?.(); } });
+      await deleteRun.mutateAsync(run.id);
+      onDeleted?.();
     },
-    [run, deleteRun, onDeleted],
+    [run.id, confirmDeleteId, deleteRun, onDeleted],
   );
 
   return (
@@ -105,13 +110,33 @@ function KebabMenu({ run, pid, onRenameStart, onDeleted }: KebabMenuProps) {
             Yeniden Adlandır
           </button>
           <div className="my-1 border-t border-border-subtle" />
-          <button
-            type="button"
-            onClick={handleDelete}
-            className="flex w-full items-center gap-2 px-3 py-1.5 text-[12px] text-red-400 hover:bg-red-500/10"
-          >
-            Sil
-          </button>
+          {confirmDeleteId === run.id ? (
+            <div className="flex items-center gap-1 px-3 py-1.5">
+              <span className="flex-1 text-[11px] text-red-400">Emin misin?</span>
+              <button
+                type="button"
+                onClick={handleDelete}
+                className="rounded px-2 py-0.5 text-[11px] font-semibold text-red-400 hover:bg-red-500/10"
+              >
+                Evet
+              </button>
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(null); }}
+                className="rounded px-2 py-0.5 text-[11px] text-fg-muted hover:bg-surface-overlay"
+              >
+                Hayır
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={handleDelete}
+              className="flex w-full items-center gap-2 px-3 py-1.5 text-[12px] text-red-400 hover:bg-red-500/10"
+            >
+              Sil
+            </button>
+          )}
         </div>
       )}
     </div>
@@ -202,15 +227,21 @@ export function RunList({
   onSelect,
   onNewRun,
   onDeleted,
+  filteredRunIds,
 }: {
   pid: string;
   selectedRunId: string | null;
   onSelect: (id: string) => void;
   onNewRun: () => void;
   onDeleted?: () => void;
+  filteredRunIds?: Set<string>;
 }) {
   const { data: runs, isLoading } = useManagementRuns(pid || undefined);
-  const all = useMemo(() => runs ?? [], [runs]);
+  const allRaw = useMemo(() => runs ?? [], [runs]);
+  const all = useMemo(
+    () => filteredRunIds ? allRaw.filter(r => filteredRunIds.has(r.id)) : allRaw,
+    [allRaw, filteredRunIds],
+  );
 
   const groups = useMemo(() => {
     const active = all.filter(r => r.status === "in_progress");
@@ -279,7 +310,11 @@ export function RunList({
         )}
       </div>
 
-      <div className="border-t border-border px-4 py-2 text-[10px] text-fg-subtle">{all.length} run</div>
+      <div className="border-t border-border px-4 py-2 text-[10px] text-fg-subtle">
+        {filteredRunIds && filteredRunIds.size !== allRaw.length
+          ? `${all.length} / ${allRaw.length} run`
+          : `${all.length} run`}
+      </div>
     </div>
   );
 }

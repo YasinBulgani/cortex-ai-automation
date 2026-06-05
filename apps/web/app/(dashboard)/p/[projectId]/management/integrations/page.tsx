@@ -17,7 +17,7 @@ import {
 } from "@/lib/hooks/use-management";
 import { useManagementProjectId } from "@/lib/hooks/use-management-project-id";
 import { useRouteParam } from "@/lib/use-route-param";
-import { apiFetch } from "@/lib/api";
+import { apiFetch } from "@/lib/api-client";
 
 const ENTITY_LABELS: Record<string, string> = {
   suites: "Suite",

@@ -136,6 +136,10 @@ export default function ManagementSettingsPage() {
   const [newKeyDuration, setNewKeyDuration]   = useState<number | null>(365);
   const [copyToast, setCopyToast]             = useState<string | null>(null);
   const [keysLoading, setKeysLoading]         = useState(false);
+  const [saveError, setSaveError]             = useState<string | null>(null);
+  const [keyError, setKeyError]               = useState<string | null>(null);
+  const [revokeError, setRevokeError]         = useState<string | null>(null);
+  const [confirmRevokeId, setConfirmRevokeId] = useState<string | null>(null);
 
   const storageKey = mpid ? `mgmt-settings-${mpid}` : null;
 
@@ -239,17 +243,24 @@ export default function ManagementSettingsPage() {
   /* ── actions ── */
   async function handleSaveGeneral() {
     persistAll({ defaultPriority, defaultType, caseKeyPrefix, caseKeyFormat });
-    // Backend'e de kaydet
+    setSaveError(null);
     if (mpid) {
-      await updateSettings.mutateAsync({
-        default_priority: defaultPriority,
-        default_type: defaultType,
-        case_key_prefix: caseKeyPrefix,
-        case_key_format: caseKeyFormat,
-      });
+      try {
+        await updateSettings.mutateAsync({
+          default_priority: defaultPriority,
+          default_type: defaultType,
+          case_key_prefix: caseKeyPrefix,
+          case_key_format: caseKeyFormat,
+        });
+        setSaveToast(true);
+        setTimeout(() => setSaveToast(false), 2500);
+      } catch (err) {
+        setSaveError(err instanceof Error ? err.message : "Kaydetme başarısız oldu.");
+      }
+    } else {
+      setSaveToast(true);
+      setTimeout(() => setSaveToast(false), 2500);
     }
-    setSaveToast(true);
-    setTimeout(() => setSaveToast(false), 2500);
   }
 
   const toggleNotif = (key: string) =>
@@ -300,37 +311,42 @@ export default function ManagementSettingsPage() {
   async function handleCreateApiKey() {
     const name = newKeyName.trim();
     if (!name || !mpid) return;
+    setKeyError(null);
     const expiresAt = newKeyDuration
       ? new Date(Date.now() + newKeyDuration * 24 * 60 * 60 * 1000).toISOString()
       : null;
-    const created = await apiFetch<{
-      id: string;
-      name: string;
-      key: string;
-      masked_key: string;
-      created_at: string;
-      expires_at: string | null;
-    }>(`/api/v1/test-management/projects/${mpid}/api-keys`, {
-      method: "POST",
-      json: { name, expires_at: expiresAt },
-    });
-    const newKey: ApiKey = {
-      id: created.id,
-      name: created.name,
-      key: created.key,
-      maskedKey: created.masked_key,
-      createdAt: created.created_at,
-      expiresAt: created.expires_at,
-      revealed: true,
-    };
-    setApiKeys(prev => [newKey, ...prev]);
-    setNewKeyName("");
-    setNewKeyDuration(365);
-    setShowKeyModal(false);
-    // Mark as revealed=false after 60s so next render shows masked version
-    setTimeout(() => {
-      setApiKeys(prev => prev.map(k => k.id === newKey.id ? { ...k, revealed: false } : k));
-    }, 60_000);
+    try {
+      const created = await apiFetch<{
+        id: string;
+        name: string;
+        key: string;
+        masked_key: string;
+        created_at: string;
+        expires_at: string | null;
+      }>(`/api/v1/test-management/projects/${mpid}/api-keys`, {
+        method: "POST",
+        json: { name, expires_at: expiresAt },
+      });
+      const newKey: ApiKey = {
+        id: created.id,
+        name: created.name,
+        key: created.key,
+        maskedKey: created.masked_key,
+        createdAt: created.created_at,
+        expiresAt: created.expires_at,
+        revealed: true,
+      };
+      setApiKeys(prev => [newKey, ...prev]);
+      setNewKeyName("");
+      setNewKeyDuration(365);
+      setShowKeyModal(false);
+      // Mark as revealed=false after 60s so next render shows masked version
+      setTimeout(() => {
+        setApiKeys(prev => prev.map(k => k.id === newKey.id ? { ...k, revealed: false } : k));
+      }, 60_000);
+    } catch (err) {
+      setKeyError(err instanceof Error ? err.message : "Anahtar oluşturulamadı.");
+    }
   }
 
   function handleCopyKey(key: string | undefined, id: string) {
@@ -342,10 +358,19 @@ export default function ManagementSettingsPage() {
   }
 
   async function handleRevokeKey(id: string) {
-    if (!window.confirm("Bu API anahtarını iptal etmek istediğinizden emin misiniz?")) return;
+    if (confirmRevokeId !== id) {
+      setConfirmRevokeId(id);
+      return;
+    }
+    setConfirmRevokeId(null);
     if (!mpid) return;
-    await apiFetch<void>(`/api/v1/test-management/projects/${mpid}/api-keys/${id}`, { method: "DELETE" });
-    setApiKeys(prev => prev.map(k => k.id === id ? { ...k, revokedAt: new Date().toISOString(), revealed: false, key: undefined } : k));
+    setRevokeError(null);
+    try {
+      await apiFetch<void>(`/api/v1/test-management/projects/${mpid}/api-keys/${id}`, { method: "DELETE" });
+      setApiKeys(prev => prev.map(k => k.id === id ? { ...k, revokedAt: new Date().toISOString(), revealed: false, key: undefined } : k));
+    } catch (err) {
+      setRevokeError(err instanceof Error ? err.message : "Anahtar iptal edilemedi.");
+    }
   }
 
   /* ── preview key ── */
@@ -500,6 +525,9 @@ export default function ManagementSettingsPage() {
                 </RoleGuard>
                 {saveToast && (
                   <span className="text-[12px] text-teal-400 animate-pulse">Kaydedildi ✓</span>
+                )}
+                {saveError && (
+                  <span className="text-[12px] text-red-400">{saveError}</span>
                 )}
               </div>
               <p className="mt-3 text-[10px] text-slate-600">Bu değerler yeni case oluştururken varsayılan olarak atanır.</p>
@@ -705,6 +733,9 @@ export default function ManagementSettingsPage() {
               </button>
             </div>
 
+            {revokeError && (
+              <p className="mb-3 text-[12px] text-red-400">{revokeError}</p>
+            )}
             {keysLoading ? (
               <p className="py-6 text-center text-[12px] text-slate-600">Anahtarlar yükleniyor…</p>
             ) : apiKeys.length === 0 ? (
@@ -718,6 +749,7 @@ export default function ManagementSettingsPage() {
                     ? `${new Date(k.expiresAt).toLocaleDateString("tr-TR", { day: "2-digit", month: "short", year: "numeric" })}'e kadar`
                     : "Sınırsız";
                   const displayKey = k.revealed && k.key ? k.key : k.maskedKey;
+                  const pendingRevoke = confirmRevokeId === k.id;
                   return (
                     <li
                       key={k.id}
@@ -739,13 +771,30 @@ export default function ManagementSettingsPage() {
                       >
                         {copyToast === k.id ? "Kopyalandı ✓" : "Kopyala"}
                       </button>
-                      <button
-                        onClick={() => handleRevokeKey(k.id)}
-                        disabled={isRevoked}
-                        className="shrink-0 text-[11px] text-slate-600 transition-colors hover:text-red-400"
-                      >
-                        İptal
-                      </button>
+                      {pendingRevoke ? (
+                        <>
+                          <button
+                            onClick={() => handleRevokeKey(k.id)}
+                            className="shrink-0 rounded-md border border-red-500/40 px-2 py-1 text-[11px] font-medium text-red-400 transition-colors hover:bg-red-500/10"
+                          >
+                            Onayla
+                          </button>
+                          <button
+                            onClick={() => setConfirmRevokeId(null)}
+                            className="shrink-0 text-[11px] text-slate-500 transition-colors hover:text-slate-300"
+                          >
+                            Vazgec
+                          </button>
+                        </>
+                      ) : (
+                        <button
+                          onClick={() => handleRevokeKey(k.id)}
+                          disabled={isRevoked}
+                          className="shrink-0 text-[11px] text-slate-600 transition-colors hover:text-red-400"
+                        >
+                          İptal
+                        </button>
+                      )}
                     </li>
                   );
                 })}
@@ -814,9 +863,12 @@ export default function ManagementSettingsPage() {
                 </div>
               </div>
             </div>
+            {keyError && (
+              <p className="mt-3 text-[12px] text-red-400">{keyError}</p>
+            )}
             <div className="mt-6 flex gap-3 justify-end">
               <button
-                onClick={() => { setShowKeyModal(false); setNewKeyName(""); }}
+                onClick={() => { setShowKeyModal(false); setNewKeyName(""); setKeyError(null); }}
                 className="rounded-xl border border-border px-4 py-2 text-[12px] text-slate-400 hover:text-slate-200 transition-colors"
               >
                 İptal

@@ -15,7 +15,7 @@ import {
   ToolbarActions,
 } from "@/components/nexus";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ENGINE_BASE } from "@/lib/api";
+import { ENGINE_BASE, engineFetch } from "@/lib/api";
 import { normalizeProvenance, provenanceBadgeClass, provenanceLabel, type ProvenanceKind } from "@/lib/provenance";
 
 type LogLine = { type: string; text?: string; healed_count?: number };
@@ -132,11 +132,10 @@ export default function RunsPage() {
 
   const { data: runsData, isLoading: loading, error: runsError } = useQuery({
     queryKey: runsQK(projectId ?? ""),
-    queryFn: async () => {
-      const r = await fetch(`${ENGINE_BASE}/api/pipeline/manual-to-automation/runs?project_id=${projectId}&limit=50`);
-      if (!r.ok) throw new Error(`Sunucu hatası: ${r.status}`);
-      return r.json() as Promise<{ runs: Run[] }>;
-    },
+    queryFn: () =>
+      engineFetch<{ runs: Run[] }>(
+        `/api/pipeline/manual-to-automation/runs?project_id=${projectId}&limit=50`,
+      ),
     enabled: !!projectId,
     staleTime: 15 * 1000,
     gcTime: 5 * 60 * 1000,
@@ -158,13 +157,10 @@ export default function RunsPage() {
     setLiveStatus("running");
 
     try {
-      const res = await fetch(`${ENGINE_BASE}/api/run`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ feature: featurePath.trim(), browser }),
-      });
-      if (!res.ok) throw new Error(`Test başlatılamadı: ${res.status}`);
-      const data = await res.json();
+      const data = await engineFetch<{ run_id: string }>(
+        "/api/run",
+        { method: "POST", json: { feature: featurePath.trim(), browser } },
+      );
       const id: string = data.run_id;
       setRunId(id);
 
@@ -194,17 +190,17 @@ export default function RunsPage() {
     setAnalyzing(true);
     setAnalysis(null);
     try {
-      const res = await fetch(`${ENGINE_BASE}/api/ai/analyze-failure`, {
+      const data = await engineFetch<FailureAnalysis>("/api/ai/analyze-failure", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+        json: {
           test_title: run.test_title,
           feature_path: run.feature_path,
           status: run.status,
-        }),
+        },
       });
-      if (!res.ok) throw new Error(`Analiz başarısız: ${res.status}`);
-      setAnalysis(await res.json());
+      setAnalysis(data);
+    } catch (e) {
+      setLogs(prev => [...prev, { type: "error", text: `AI analiz hatası: ${e instanceof Error ? e.message : "Bağlantı kurulamadı"}` }]);
     } finally { setAnalyzing(false); }
   }
 

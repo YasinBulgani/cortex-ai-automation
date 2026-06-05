@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
 import {
   useManagementCycles,
@@ -10,6 +10,7 @@ import {
   useCreateManagementCycle,
   useCreateManagementRun,
   type TestCase,
+  type TestCycle,
   type TestSuite,
 } from "@/lib/hooks/use-management";
 import { P_DOT, IcClose, IcSearch } from "./shared";
@@ -32,19 +33,53 @@ export function NewRunModal({ pid, cases: casesProp, suites: suitesProp, initial
   const allCases: TestCase[] = casesProp ?? repo?.cases ?? [];
   const suites: TestSuite[] = suitesProp ?? repo?.suites ?? [];
 
-  const [name, setName] = useState("");
+  const [name,        setName]        = useState("");
   const [environment, setEnvironment] = useState("");
-  const [search, setSearch] = useState("");
-  const [selected, setSelected] = useState<Set<string>>(() => new Set(initialCaseIds));
-  const [err, setErr] = useState("");
-  const [busy, setBusy] = useState(false);
+  const [cycleId,     setCycleId]     = useState<string>("");
+  const [search,      setSearch]      = useState("");
+  const [priorityF,   setPriorityF]   = useState("");
+  const [lastRunF,    setLastRunF]    = useState("");
+  const [selected,    setSelected]    = useState<Set<string>>(() => new Set(initialCaseIds));
+  const [err,         setErr]         = useState("");
+  const [busy,        setBusy]        = useState(false);
+  const modalRef = useRef<HTMLDivElement>(null);
+
+  // Pre-select cycle when data loads
+  useEffect(() => {
+    if (cycles && cycles.length > 0 && !cycleId) setCycleId(cycles[0].id);
+  }, [cycles, cycleId]);
+
+  useEffect(() => {
+    const el = modalRef.current;
+    if (!el) return;
+    const focusable = el.querySelectorAll<HTMLElement>(
+      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+    );
+    const first = focusable[0];
+    const last  = focusable[focusable.length - 1];
+    first?.focus();
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") { onClose(); return; }
+      if (e.key !== "Tab") return;
+      if (e.shiftKey) {
+        if (document.activeElement === first) { e.preventDefault(); last?.focus(); }
+      } else {
+        if (document.activeElement === last)  { e.preventDefault(); first?.focus(); }
+      }
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [onClose]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    const active = allCases.filter(c => !c.archived);
-    if (!q) return active;
-    return active.filter(c => c.title.toLowerCase().includes(q) || c.case_key.toLowerCase().includes(q));
-  }, [allCases, search]);
+    let r = allCases.filter(c => !c.archived);
+    if (q) r = r.filter(c => c.title.toLowerCase().includes(q) || c.case_key.toLowerCase().includes(q));
+    if (priorityF) r = r.filter(c => c.priority === priorityF);
+    if (lastRunF === "not_run") r = r.filter(c => !c.last_run_status || c.last_run_status === "not_run");
+    else if (lastRunF) r = r.filter(c => c.last_run_status === lastRunF);
+    return r;
+  }, [allCases, search, priorityF, lastRunF]);
 
   const bySuite = useMemo(() => {
     const map = new Map<string, TestCase[]>();
@@ -60,6 +95,7 @@ export function NewRunModal({ pid, cases: casesProp, suites: suitesProp, initial
   const toggle = (id: string) => setSelected(p => { const n = new Set(p); n.has(id) ? n.delete(id) : n.add(id); return n; });
 
   async function ensureCycleId(): Promise<string> {
+    if (cycleId) return cycleId;
     if (cycles && cycles.length > 0) return cycles[0].id;
     let planId = plans && plans.length > 0 ? plans[0].id : undefined;
     if (!planId) {
@@ -77,7 +113,8 @@ export function NewRunModal({ pid, cases: casesProp, suites: suitesProp, initial
   const save = async () => {
     if (!name.trim()) { setErr("Run adı zorunlu."); return; }
     if (selected.size === 0) { setErr("En az bir senaryo seçin."); return; }
-    setErr(""); setBusy(true);
+    setErr("");
+    setBusy(true);
     try {
       const cycleId = await ensureCycleId();
       const run = await createRun.mutateAsync({
@@ -89,6 +126,7 @@ export function NewRunModal({ pid, cases: casesProp, suites: suitesProp, initial
       onDone(run.id);
     } catch {
       setErr("Run oluşturulamadı.");
+    } finally {
       setBusy(false);
     }
   };
@@ -97,29 +135,77 @@ export function NewRunModal({ pid, cases: casesProp, suites: suitesProp, initial
 
   return (
     <div className="fixed inset-0 z-modal flex items-start justify-center overflow-y-auto p-8 bg-black/60 backdrop-blur-sm">
-      <div className="relative flex max-h-[85vh] w-full max-w-xl flex-col rounded-xl border border-border bg-surface-raised shadow-2xl">
+      <div
+        ref={modalRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="new-run-modal-title"
+        className="relative flex max-h-[85vh] w-full max-w-xl flex-col rounded-xl border border-border bg-surface-raised shadow-2xl">
         <div className="flex items-center justify-between border-b border-border px-6 py-4">
-          <h2 className="text-[15px] font-semibold text-fg">Yeni Test Run</h2>
+          <h2 id="new-run-modal-title" className="text-[15px] font-semibold text-fg">Yeni Test Run</h2>
           <button type="button" onClick={onClose} className="rounded-lg p-1.5 text-fg-subtle transition-colors hover:bg-surface-overlay hover:text-fg"><IcClose /></button>
         </div>
 
         <div className="space-y-3 px-6 py-4">
           <div className="grid grid-cols-2 gap-2">
-            <input autoFocus value={name} onChange={e => setName(e.target.value)} placeholder="Run adı * (örn. Sprint 24 Smoke)" className={inp} />
-            <input value={environment} onChange={e => setEnvironment(e.target.value)} placeholder="Ortam (staging/prod)" className={inp} />
+            <div>
+              <label htmlFor="new-run-name" className="sr-only">Run adı</label>
+              <input id="new-run-name" autoFocus value={name} onChange={e => setName(e.target.value)} placeholder="Run adı * (örn. Sprint 24 Smoke)" className={inp} />
+            </div>
+            <div>
+              <label htmlFor="new-run-env" className="sr-only">Ortam</label>
+              <input id="new-run-env" value={environment} onChange={e => setEnvironment(e.target.value)} placeholder="Ortam (staging/prod)" className={inp} />
+            </div>
           </div>
+
+          {/* Cycle seçimi */}
+          {cycles && cycles.length > 0 && (
+            <div>
+              <label htmlFor="new-run-cycle" className="mb-1 block text-[10px] font-semibold uppercase tracking-widest text-fg-subtle">Test Cycle</label>
+              <select id="new-run-cycle" value={cycleId} onChange={e => setCycleId(e.target.value)}
+                className="w-full rounded-xl border border-border bg-surface-raised px-3 py-2 text-[13px] text-fg outline-none transition-colors focus:border-brand focus:ring-2 focus:ring-brand/15">
+                {(cycles as TestCycle[]).map(c => (
+                  <option key={c.id} value={c.id}>{c.name}{c.environment ? ` — ${c.environment}` : ""}</option>
+                ))}
+              </select>
+            </div>
+          )}
 
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-semibold uppercase tracking-widest text-fg-subtle">Senaryolar</span>
-            <span className="text-[11px] font-medium text-brand">{selected.size} seçili</span>
+            <span className="text-[11px] font-medium text-brand">{selected.size} seçili / {filtered.length} görünür</span>
           </div>
 
-          <div className="flex items-center gap-2 rounded-xl border border-border bg-surface-raised px-2.5 py-1.5 shadow-xs transition-colors focus-within:border-brand focus-within:ring-2 focus-within:ring-brand/15">
-            <IcSearch />
-            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Senaryo ara…"
-              className="flex-1 bg-transparent text-[12px] text-fg placeholder:text-fg-subtle outline-none" />
-            <button type="button" onClick={() => setSelected(new Set(filtered.map(c => c.id)))} className="text-[11px] text-fg-muted hover:text-fg">Tümünü Seç</button>
-            <button type="button" onClick={() => setSelected(new Set())} className="text-[11px] text-fg-subtle hover:text-fg-muted">Hiçbiri</button>
+          {/* Filters */}
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="flex items-center gap-2 flex-1 min-w-0 rounded-xl border border-border bg-surface-raised px-2.5 py-1.5 shadow-xs transition-colors focus-within:border-brand focus-within:ring-2 focus-within:ring-brand/15">
+              <IcSearch />
+              <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Senaryo ara…"
+                className="min-w-0 flex-1 bg-transparent text-[12px] text-fg placeholder:text-fg-subtle outline-none" />
+            </div>
+            <div className="flex items-center gap-1">
+              {["","P0","P1","P2","P3"].map(p => (
+                <button key={p} type="button" onClick={() => setPriorityF(p)}
+                  className={cn("rounded-lg px-2 py-1 text-[10px] font-medium transition-colors",
+                    priorityF === p ? "bg-brand text-brand-fg" : "bg-surface-overlay text-fg-muted hover:text-fg")}>
+                  {p || "Hepsi"}
+                </button>
+              ))}
+            </div>
+            <div className="flex items-center gap-1">
+              {[["","Tümü"],["not_run","Koşulmadı"],["failed","Başarısız"],["passed","Geçti"]].map(([v, label]) => (
+                <button key={v} type="button" onClick={() => setLastRunF(v)}
+                  className={cn("rounded-lg px-2 py-1 text-[10px] font-medium transition-colors",
+                    lastRunF === v ? "bg-brand text-brand-fg" : "bg-surface-overlay text-fg-muted hover:text-fg")}>
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-3">
+            <button type="button" onClick={() => setSelected(new Set(filtered.map(c => c.id)))} className="text-[11px] text-fg-muted hover:text-fg transition-colors">Görünenleri Seç</button>
+            <button type="button" onClick={() => setSelected(new Set())} className="text-[11px] text-fg-subtle hover:text-fg-muted transition-colors">Hiçbiri</button>
           </div>
         </div>
 

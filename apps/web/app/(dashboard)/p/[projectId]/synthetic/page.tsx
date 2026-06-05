@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { apiFetch, ENGINE_BASE } from "@/lib/api";
+import { apiFetch, engineFetch } from "@/lib/api";
 import {
   PageHeader,
   SectionCard,
@@ -29,8 +29,7 @@ export default function SyntheticPage() {
   const [result, setResult] = useState<{ csv?: string; columns?: string[]; rows?: number; name?: string } | null>(null);
 
   useEffect(() => {
-    fetch(`${ENGINE_BASE}/api/datasim/datasets`)
-      .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
+    engineFetch<Dataset[]>("/api/datasim/datasets")
       .then(d => { setDatasets(Array.isArray(d) ? d : []); setLoadingCatalog(false); })
       .catch(() => setLoadingCatalog(false));
   }, []);
@@ -41,13 +40,10 @@ export default function SyntheticPage() {
     setError(null);
     setResult(null);
     try {
-      const res = await fetch(`${ENGINE_BASE}/api/datasim/datasets/load`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: selectedId, sample_rows: sampleRows }),
-      });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
+      const data = await engineFetch<{ csv?: string; columns?: string[]; rows?: number; name?: string; error?: string }>(
+        "/api/datasim/datasets/load",
+        { method: "POST", json: { id: selectedId, sample_rows: sampleRows } },
+      );
       if (data.error) setError(data.error);
       else setResult(data);
     } catch (e) {

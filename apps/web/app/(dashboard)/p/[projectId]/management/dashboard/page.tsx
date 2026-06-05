@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo } from "react";
+import { useMemo, useEffect, useCallback, useState } from "react";
 import { useRouteParam } from "@/lib/use-route-param";
 import { useManagementProjectId } from "@/lib/hooks/use-management-project-id";
 import {
@@ -9,6 +9,7 @@ import {
   useManagementAuditEvents,
   useManagementDefects,
   useManagementDashboardSummary,
+  useManagementPlans,
   useManagementRepository,
   useManagementRequirements,
   useManagementRuns,
@@ -18,15 +19,53 @@ import {
 import { cn } from "@/lib/utils";
 import { QuickSetupWizard } from "../_components/QuickSetupWizard";
 
+const REFETCH_INTERVAL = 30_000; // ms
+
+function AutoRefreshBadge() {
+  const [countdown, setCountdown] = useState(30);
+  const [pulsing, setPulsing] = useState(false);
+
+  useEffect(() => {
+    setCountdown(30);
+    const interval = setInterval(() => {
+      setCountdown(prev => {
+        if (prev <= 1) {
+          // Trigger pulse animation briefly
+          setPulsing(true);
+          setTimeout(() => setPulsing(false), 600);
+          return 30;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <div className="flex items-center gap-1.5 rounded-full border border-border bg-surface-raised px-2.5 py-1 text-[10px] text-fg-muted">
+      <span
+        className={cn(
+          "h-1.5 w-1.5 rounded-full bg-emerald-400 transition-all",
+          pulsing ? "scale-125 opacity-100" : "animate-pulse opacity-70",
+        )}
+      />
+      <span>
+        {countdown === 30 ? "30s otomatik yenileniyor" : `${countdown}s sonra yenilenir`}
+      </span>
+    </div>
+  );
+}
+
 function asText(value: unknown, fallback = "Tanimsiz") {
   return typeof value === "string" && value.trim() ? value : fallback;
 }
 
-function StatCard({ label, value, note, tone = "neutral" }: {
+function StatCard({ label, value, note, tone = "neutral", href }: {
   label: string;
   value: string | number;
   note: string;
   tone?: "neutral" | "success" | "warning" | "danger" | "info";
+  href?: string;
 }) {
   const toneClass = {
     neutral: "border-border bg-surface-raised",
@@ -36,11 +75,127 @@ function StatCard({ label, value, note, tone = "neutral" }: {
     info: "border-blue-500/20 bg-blue-500/5",
   }[tone];
 
-  return (
-    <section className={cn("rounded-xl border p-4 shadow-sm", toneClass)}>
+  const inner = (
+    <>
       <p className="text-[10px] font-semibold uppercase tracking-widest text-fg-subtle">{label}</p>
       <p className="mt-2 text-2xl font-semibold tracking-normal text-fg">{value}</p>
       <p className="mt-1 text-[11px] text-fg-muted">{note}</p>
+    </>
+  );
+
+  if (href) {
+    return (
+      <Link href={href} className={cn("block rounded-xl border p-4 shadow-sm transition-colors hover:border-brand/40 hover:brightness-105", toneClass)}>
+        {inner}
+      </Link>
+    );
+  }
+  return <section className={cn("rounded-xl border p-4 shadow-sm", toneClass)}>{inner}</section>;
+}
+
+// ─── Project Health Widget ────────────────────────────────────────────────────
+
+interface HealthCriteria {
+  label: string;
+  passed: boolean;
+  note: string;
+}
+
+function ProjectHealthWidget({
+  passRatePct,
+  coveragePct,
+  criticalDefects,
+  activeRuns,
+}: {
+  passRatePct: number;
+  coveragePct: number;
+  criticalDefects: number;
+  activeRuns: number;
+}) {
+  const criteria: HealthCriteria[] = [
+    {
+      label: "Test Geçme Oranı",
+      passed: passRatePct >= 85,
+      note: passRatePct >= 85 ? `${passRatePct}% (hedef 85%)` : `${passRatePct}% (hedef 85%)`,
+    },
+    {
+      label: "Kapsam",
+      passed: coveragePct >= 70,
+      note: coveragePct >= 70 ? `${coveragePct}% ✓` : `${coveragePct}% (hedef 70%)`,
+    },
+    {
+      label: "Kritik Defect",
+      passed: criticalDefects === 0,
+      note: criticalDefects === 0 ? "Kritik defect yok" : `${criticalDefects} kritik defect`,
+    },
+    {
+      label: "Aktif Koşum",
+      passed: activeRuns > 0,
+      note: activeRuns > 0 ? `${activeRuns} aktif koşum var` : "Aktif koşum yok",
+    },
+  ];
+
+  const score = criteria.filter(c => c.passed).length * 25;
+  const barColor =
+    score >= 76 ? "bg-emerald-500" :
+    score >= 51 ? "bg-amber-500"   : "bg-red-500";
+  const scoreColor =
+    score >= 76 ? "text-emerald-400" :
+    score >= 51 ? "text-amber-400"   : "text-red-400";
+  const labelColor =
+    score >= 76 ? "Mükemmel" :
+    score >= 51 ? "Orta"     : "Kritik";
+  const filledBlocks = Math.round(score / 10);
+
+  return (
+    <section className="rounded-xl border border-border bg-surface-raised p-5 shadow-sm">
+      <div className="mb-4 flex items-center justify-between">
+        <h2 className="text-[14px] font-semibold text-fg">Proje Sağlığı</h2>
+        <span className={cn("text-[11px] font-semibold", scoreColor)}>{labelColor}</span>
+      </div>
+
+      {/* Score bar */}
+      <div className="mb-4 flex items-center gap-3">
+        <div className="flex gap-0.5">
+          {Array.from({ length: 10 }).map((_, i) => (
+            <div
+              key={i}
+              className={cn(
+                "h-2.5 w-5 rounded-sm transition-colors",
+                i < filledBlocks ? barColor : "bg-surface-accent",
+              )}
+            />
+          ))}
+        </div>
+        <span className={cn("text-[13px] font-bold tabular-nums", scoreColor)}>
+          {score}/100
+        </span>
+      </div>
+
+      {/* Criteria grid */}
+      <div className="grid gap-2 sm:grid-cols-2">
+        {criteria.map(c => (
+          <div
+            key={c.label}
+            className={cn(
+              "flex items-center gap-2.5 rounded-lg border px-3 py-2",
+              c.passed
+                ? "border-emerald-500/20 bg-emerald-500/5"
+                : "border-red-500/20 bg-red-500/5",
+            )}
+          >
+            <span className={cn("flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-[9px] font-bold",
+              c.passed ? "bg-emerald-500/20 text-emerald-400" : "bg-red-500/20 text-red-400"
+            )}>
+              {c.passed ? "✓" : "✗"}
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="text-[11px] font-medium text-fg">{c.label}</p>
+              <p className={cn("text-[10px]", c.passed ? "text-emerald-400/80" : "text-red-400/80")}>{c.note}</p>
+            </div>
+          </div>
+        ))}
+      </div>
     </section>
   );
 }
@@ -86,6 +241,112 @@ function EmptyState({ projectId }: { projectId: string }) {
   );
 }
 
+// ─── Setup Tracker Widget ─────────────────────────────────────────────────────
+
+interface SetupCriterion {
+  label: string;
+  done: boolean;
+  href: string;
+}
+
+function SetupTrackerWidget({
+  projectId,
+  totalCases,
+  plansCount,
+  runsCount,
+  hasCompletedRun,
+  requirementsCount,
+}: {
+  projectId: string;
+  totalCases: number;
+  plansCount: number;
+  runsCount: number;
+  hasCompletedRun: boolean;
+  requirementsCount: number;
+}) {
+  const criteria: SetupCriterion[] = [
+    {
+      label: "İlk test senaryosu oluşturuldu",
+      done: totalCases > 0,
+      href: `/p/${projectId}/management/cases/new`,
+    },
+    {
+      label: "İlk test planı var",
+      done: plansCount > 0,
+      href: `/p/${projectId}/management/plans`,
+    },
+    {
+      label: "İlk test koşumu çalıştırıldı",
+      done: runsCount > 0 && hasCompletedRun,
+      href: `/p/${projectId}/management/runs`,
+    },
+    {
+      label: "Gereksinim bağlantısı eklendi",
+      done: requirementsCount > 0,
+      href: `/p/${projectId}/management/requirements`,
+    },
+  ];
+
+  const doneCount = criteria.filter(c => c.done).length;
+  const pct = Math.round((doneCount / criteria.length) * 100);
+  const allDone = doneCount === criteria.length;
+
+  if (allDone) {
+    return (
+      <section className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-5 shadow-sm">
+        <div className="flex items-center gap-3">
+          <span className="text-xl">🎉</span>
+          <div>
+            <p className="text-[14px] font-semibold text-emerald-400">Hazırsınız!</p>
+            <p className="text-[12px] text-fg-muted">Tüm kurulum adımları tamamlandı.</p>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  return (
+    <section className="rounded-xl border border-border bg-surface-raised p-5 shadow-sm">
+      <div className="mb-3 flex items-center justify-between">
+        <h2 className="text-[14px] font-semibold text-fg">Kurulum Durumu</h2>
+        <span className="text-[12px] font-semibold text-fg-muted">{pct}% Tamamlandı</span>
+      </div>
+
+      {/* Progress bar */}
+      <div className="mb-4 h-1.5 w-full overflow-hidden rounded-full bg-surface-overlay">
+        <div
+          className="h-full rounded-full bg-emerald-500 transition-all duration-700"
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+
+      <div className="space-y-2">
+        {criteria.map(c => (
+          <div key={c.label} className="flex items-center gap-3">
+            <span
+              className={cn(
+                "flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold",
+                c.done
+                  ? "bg-emerald-500/20 text-emerald-400"
+                  : "bg-surface-overlay text-fg-subtle",
+              )}
+            >
+              {c.done ? "✓" : "○"}
+            </span>
+            {c.done ? (
+              <span className="text-[12px] text-fg-muted line-through">{c.label}</span>
+            ) : (
+              <Link href={c.href} className="text-[12px] text-fg hover:text-brand transition-colors">
+                {c.label}
+              </Link>
+            )}
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 export default function ManagementDashboardPage() {
   const projectId = useRouteParam("projectId") ?? "";
   const mpid = useManagementProjectId(projectId || undefined);
@@ -99,6 +360,26 @@ export default function ManagementDashboardPage() {
   const requirementsQ = useManagementRequirements(mpid || undefined);
   const releaseQ = useReleaseReport(mpid || undefined);
   const auditQ = useManagementAuditEvents(mpid || undefined, 10);
+  const plansQ = useManagementPlans(mpid || undefined);
+
+  const refreshAll = useCallback(() => {
+    void summaryFast.refetch().catch(console.error);
+    void repoQ.refetch().catch(console.error);
+    void runsQ.refetch().catch(console.error);
+    void summaryQ.refetch().catch(console.error);
+    void defectsQ.refetch().catch(console.error);
+    void requirementsQ.refetch().catch(console.error);
+    void releaseQ.refetch().catch(console.error);
+    void auditQ.refetch().catch(console.error);
+    void plansQ.refetch().catch(console.error);
+  }, [summaryFast, repoQ, runsQ, summaryQ, defectsQ, requirementsQ, releaseQ, auditQ, plansQ]);
+
+  // Auto-refetch every 30s
+  useEffect(() => {
+    if (!mpid) return;
+    const id = setInterval(refreshAll, REFETCH_INTERVAL);
+    return () => clearInterval(id);
+  }, [mpid, refreshAll]);
 
   const cases = useMemo(() => (repoQ.data?.cases ?? []).filter(tc => !tc.archived), [repoQ.data]);
   const runs = runsQ.data ?? [];
@@ -156,7 +437,8 @@ export default function ManagementDashboardPage() {
           <h1 className="mt-1 text-[20px] font-semibold tracking-normal text-fg">Dashboard</h1>
           <p className="mt-1 text-[12px] text-fg-muted">Manuel test kapsamı, run sagligi, defect riski ve release hazirligi.</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2">
+          <AutoRefreshBadge />
           <Link href={`/p/${projectId}/management/repository`} className="rounded-lg border border-border bg-surface-raised px-3 py-2 text-[12px] font-semibold text-fg-muted hover:text-fg">
             Repository
           </Link>
@@ -167,22 +449,39 @@ export default function ManagementDashboardPage() {
       </div>
 
       {isLoading ? (
-        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-2 xl:grid-cols-4">
           {Array.from({ length: 8 }).map((_, i) => <div key={i} className="h-28 animate-pulse rounded-xl border border-border bg-surface-raised" />)}
         </div>
       ) : !hasData ? (
         <QuickSetupWizard projectId={projectId} mpid={mpid ?? projectId} />
       ) : (
         <>
-          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-            <StatCard label="Toplam manuel case" value={totalCases} note={`${suiteCount} suite, ${folderCount} klasor`} />
-            <StatCard label="Aktif test run" value={activeRuns} note={`${runs.length} toplam run`} tone="info" />
-            <StatCard label="Pass rate" value={`${summaryFast.data?.pass_rate_pct ?? summary?.pass_rate_pct ?? release?.pass_rate_pct ?? 0}%`} note={`${summary?.passed ?? 0} passed`} tone="success" />
-            <StatCard label="Failed case" value={failedCases} note="Acil triage bekleyen case" tone="danger" />
-            <StatCard label="Blocked case" value={blockedCases} note="Ortam veya veri engeli" tone="warning" />
-            <StatCard label="Not run case" value={notRunCases} note="Kapsama alinmis ama kosulmamis" />
-            <StatCard label="Kritik defect" value={criticalDefects} note={`${defects.length} toplam defect`} tone={criticalDefects ? "danger" : "success"} />
-            <StatCard label="Test kapsami" value={`${coveragePct}%`} note={`${requirements.length} requirement linki`} tone="info" />
+          <div className="grid gap-5 xl:grid-cols-2">
+            <ProjectHealthWidget
+              passRatePct={summaryFast.data?.pass_rate_pct ?? summary?.pass_rate_pct ?? release?.pass_rate_pct ?? 0}
+              coveragePct={coveragePct}
+              criticalDefects={criticalDefects}
+              activeRuns={activeRuns}
+            />
+            <SetupTrackerWidget
+              projectId={projectId}
+              totalCases={totalCases}
+              plansCount={plansQ.data?.length ?? 0}
+              runsCount={runs.length}
+              hasCompletedRun={runs.some(r => r.status === "completed")}
+              requirementsCount={requirements.length}
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-2 xl:grid-cols-4">
+            <StatCard label="Toplam manuel case" value={totalCases} note={`${suiteCount} suite, ${folderCount} klasor`} href={`/p/${projectId}/management/repository`} />
+            <StatCard label="Aktif test run" value={activeRuns} note={`${runs.length} toplam run`} tone="info" href={`/p/${projectId}/management/runs`} />
+            <StatCard label="Pass rate" value={`${summaryFast.data?.pass_rate_pct ?? summary?.pass_rate_pct ?? release?.pass_rate_pct ?? 0}%`} note={`${summary?.passed ?? 0} passed`} tone="success" href={`/p/${projectId}/management/reports`} />
+            <StatCard label="Failed case" value={failedCases} note="Acil triage bekleyen case" tone="danger" href={`/p/${projectId}/management/repository`} />
+            <StatCard label="Blocked case" value={blockedCases} note="Ortam veya veri engeli" tone="warning" href={`/p/${projectId}/management/repository`} />
+            <StatCard label="Not run case" value={notRunCases} note="Kapsama alinmis ama kosulmamis" href={`/p/${projectId}/management/repository`} />
+            <StatCard label="Kritik defect" value={criticalDefects} note={`${defects.length} toplam defect`} tone={criticalDefects ? "danger" : "success"} href={`/p/${projectId}/management/defects`} />
+            <StatCard label="Test kapsami" value={`${coveragePct}%`} note={`${requirements.length} requirement linki`} tone="info" href={`/p/${projectId}/management/requirements`} />
           </div>
 
           <div className="grid gap-5 xl:grid-cols-3">

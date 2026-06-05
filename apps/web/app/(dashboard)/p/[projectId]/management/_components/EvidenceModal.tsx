@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface EvidenceModalProps {
   projectId: string;
@@ -22,6 +23,7 @@ export function EvidenceModal({
   caseTitle,
   onClose,
 }: EvidenceModalProps) {
+  const qc = useQueryClient();
   const [files, setFiles] = useState<File[]>([]);
   const [previews, setPreviews] = useState<FileEntry[]>([]);
   const [note, setNote] = useState("");
@@ -30,6 +32,29 @@ export function EvidenceModal({
   const [error, setError] = useState("");
   const [dragOver, setDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const modalRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = modalRef.current;
+    if (!el) return;
+    const focusable = el.querySelectorAll<HTMLElement>(
+      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+    );
+    const first = focusable[0];
+    const last  = focusable[focusable.length - 1];
+    first?.focus();
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") { onClose(false); return; }
+      if (e.key !== "Tab") return;
+      if (e.shiftKey) {
+        if (document.activeElement === first) { e.preventDefault(); last?.focus(); }
+      } else {
+        if (document.activeElement === last)  { e.preventDefault(); first?.focus(); }
+      }
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [onClose]);
 
   // Ekrana yapıştırılan screenshot'ı yakala (Ctrl+V)
   useEffect(() => {
@@ -113,6 +138,9 @@ export function EvidenceModal({
         if (res.ok) count++;
       }
       setUploadedCount(count);
+      if (count > 0) {
+        qc.invalidateQueries({ queryKey: ["management"] });
+      }
       setTimeout(() => onClose(count > 0), 800);
     } catch {
       setError("Yükleme başarısız. Tekrar deneyin.");
@@ -127,12 +155,17 @@ export function EvidenceModal({
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
       onClick={(e) => e.target === e.currentTarget && onClose(false)}
     >
-      <div className="w-full max-w-lg rounded-xl border border-red-500/30 bg-surface-raised shadow-2xl overflow-hidden">
+      <div
+        ref={modalRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="evidence-modal-title"
+        className="w-full max-w-lg rounded-xl border border-red-500/30 bg-surface-raised shadow-2xl overflow-hidden">
         {/* Başlık */}
         <div className="bg-red-500/10 border-b border-red-500/20 px-5 py-4">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <p className="text-sm font-bold text-red-400">🚨 FAIL — Evidence Gerekli</p>
+              <p id="evidence-modal-title" className="text-sm font-bold text-red-400">🚨 FAIL — Evidence Gerekli</p>
               <p className="text-xs text-slate-400 mt-0.5">
                 {caseKey && <span className="font-mono mr-2 text-slate-500">{caseKey}</span>}
                 {caseTitle}
@@ -201,8 +234,9 @@ export function EvidenceModal({
 
           {/* Not alanı */}
           <div>
-            <label className="text-xs text-slate-400 mb-1 block">Gözlem Notu (opsiyonel)</label>
+            <label htmlFor="evidence-note" className="text-xs text-slate-400 mb-1 block">Gözlem Notu (opsiyonel)</label>
             <textarea
+              id="evidence-note"
               value={note}
               onChange={(e) => setNote(e.target.value)}
               placeholder="Hatanın nasıl oluştuğunu kısaca açıkla…"

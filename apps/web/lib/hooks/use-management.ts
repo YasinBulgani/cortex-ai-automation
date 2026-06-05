@@ -177,6 +177,7 @@ export interface Requirement {
   description?: string | null;
   priority: string;
   status: string;
+  coverage_status?: string;
   owner_id?: string | null;
   url?: string | null;
   source_updated_at?: string | null;
@@ -1715,6 +1716,8 @@ export interface StandupData {
   pass_rate: number;
   blocked: number;
   failed: number;
+  passed: number;
+  not_run: number;
   velocity_per_hour: number;
   anomalies: StandupAnomaly[];
   run_name: string;

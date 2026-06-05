@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
+import { apiFetch } from "@/lib/api-client";
 
 interface SimilarCase {
   case_id: string;
@@ -32,20 +33,17 @@ export function AISimilaritySearch({ projectId, onSelectCase }: AISimilaritySear
     setError("");
     setSearched(false);
     try {
-      const res = await fetch(
+      const data = await apiFetch<SimilarCase[] | { results: SimilarCase[] }>(
         `/api/v1/test-management/projects/${projectId}/cases/search-similar`,
         {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
-          body: JSON.stringify({ query: query.trim(), limit: 10 }),
+          json: { query: query.trim(), limit: 10 },
         }
       );
-      if (!res.ok) throw new Error(`${res.status}`);
-      const data = await res.json();
       setResults(Array.isArray(data) ? data : data.results ?? []);
       setSearched(true);
-    } catch {
+    } catch (err: unknown) {
+      console.error("[AISimilaritySearch]", err);
       setError("Arama başarısız. Backend bağlantısını kontrol edin.");
     } finally {
       setLoading(false);

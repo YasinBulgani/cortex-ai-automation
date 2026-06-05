@@ -77,6 +77,7 @@ export function ParameterizedCasesPanel({ caseId }: { caseId: string }) {
 function SchemaEditor({ caseId }: { caseId: string }) {
   const createParamSet = useCreateParamSet(caseId);
   const [fields, setFields] = useState<FieldRow[]>([{ name: "", type: "string", required: true }]);
+  const [saveErr, setSaveErr] = useState<string | null>(null);
   const valid = fields.every((f) => f.name.trim().length > 0) && fields.length > 0;
 
   const update = (idx: number, patch: Partial<FieldRow>) => {
@@ -137,13 +138,21 @@ function SchemaEditor({ caseId }: { caseId: string }) {
           type="button"
           disabled={!valid || createParamSet.isPending}
           onClick={async () => {
-            await createParamSet.mutateAsync({ fields });
-            setFields([{ name: "", type: "string", required: true }]);
+            setSaveErr(null);
+            try {
+              await createParamSet.mutateAsync({ fields });
+              setFields([{ name: "", type: "string", required: true }]);
+            } catch {
+              setSaveErr("Schema kaydedilemedi. Lütfen tekrar deneyin.");
+            }
           }}
           className="rounded bg-cyan-500 px-3 py-1 text-xs font-semibold text-slate-950 hover:bg-cyan-400 disabled:opacity-40"
         >
           {createParamSet.isPending ? "Kaydediliyor..." : "Schema kaydet"}
         </button>
+        {saveErr && (
+          <p className="w-full text-xs text-red-400">{saveErr}</p>
+        )}
       </div>
     </div>
   );
@@ -280,7 +289,7 @@ function ExpandRow({ caseId }: { caseId: string }) {
         type="button"
         disabled={expand.isPending}
         onClick={() => expand.mutateAsync()}
-        className="rounded bg-teal-600 px-3 py-2 text-sm font-semibold text-white hover:bg-teal-700 disabled:opacity-40"
+        className="rounded bg-brand px-3 py-2 text-sm font-semibold text-white hover:brightness-105 disabled:opacity-40"
       >
         {expand.isPending
           ? "Çalışıyor..."
