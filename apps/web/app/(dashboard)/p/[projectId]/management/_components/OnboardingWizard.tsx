@@ -65,16 +65,16 @@ export function OnboardingWizard({ projectId, onCreateWorkspace, isCreating }: O
                 onClick={() => setActiveStep(step.id)}
                 className={`w-7 h-7 rounded-full text-xs font-bold flex items-center justify-center transition-all ${
                   activeStep === step.id
-                    ? "bg-teal-600 text-white scale-110"
+                    ? "bg-brand text-white scale-110"
                     : activeStep > step.id
-                    ? "bg-teal-600 text-white"
+                    ? "bg-brand text-white"
                     : "bg-slate-700 text-slate-400"
                 }`}
               >
                 {activeStep > step.id ? "✓" : step.id}
               </button>
               {i < STEPS.length - 1 && (
-                <div className={`flex-1 h-0.5 rounded ${activeStep > step.id ? "bg-teal-600" : "bg-slate-700"}`} />
+                <div className={`flex-1 h-0.5 rounded ${activeStep > step.id ? "bg-brand" : "bg-slate-700"}`} />
               )}
             </div>
           ))}
@@ -107,7 +107,7 @@ export function OnboardingWizard({ projectId, onCreateWorkspace, isCreating }: O
                 <button
                   onClick={() => { onCreateWorkspace(); setActiveStep(2); }}
                   disabled={isCreating}
-                  className="flex items-center gap-2 rounded-xl bg-teal-600 hover:bg-teal-700 disabled:opacity-50 px-5 py-2.5 text-sm font-bold text-white transition-colors"
+                  className="flex items-center gap-2 rounded-xl bg-brand hover:brightness-105 disabled:opacity-50 px-5 py-2.5 text-sm font-bold text-white transition-colors"
                 >
                   {isCreating && (
                     <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -119,7 +119,7 @@ export function OnboardingWizard({ projectId, onCreateWorkspace, isCreating }: O
               <div className="flex items-center gap-3">
                 <Link
                   href={`/p/${projectId}/${ACTION_HREF[step.action]}`}
-                  className="rounded-xl bg-teal-600 hover:bg-teal-700 px-5 py-2.5 text-sm font-bold text-white transition-colors"
+                  className="rounded-xl bg-brand hover:brightness-105 px-5 py-2.5 text-sm font-bold text-white transition-colors"
                 >
                   {step.title} →
                 </Link>

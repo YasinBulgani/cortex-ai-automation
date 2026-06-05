@@ -291,7 +291,7 @@ class TestRunCase(Base):
 
     id: Mapped[str] = mapped_column(UUID(as_uuid=False), primary_key=True, default=_uuid)
     run_id: Mapped[str] = mapped_column(UUID(as_uuid=False), ForeignKey("test_management_runs.id", ondelete="CASCADE"), nullable=False, index=True)
-    case_id: Mapped[str] = mapped_column(UUID(as_uuid=False), ForeignKey("test_management_cases.id", ondelete="CASCADE"), nullable=False, index=True)
+    case_id: Mapped[Optional[str]] = mapped_column(UUID(as_uuid=False), ForeignKey("test_management_cases.id", ondelete="SET NULL"), nullable=True, index=True)
     case_version_no: Mapped[int] = mapped_column(Integer, nullable=False)
     case_snapshot: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict, server_default="{}", nullable=False)
     assigned_to: Mapped[Optional[str]] = mapped_column(UUID(as_uuid=False), ForeignKey("sd_users.id", ondelete="SET NULL"), nullable=True)

@@ -1,10 +1,53 @@
 "use client";
 
-import { useEffect, useState, useRef, useMemo } from "react";
+import React, { useEffect, useState, useRef, useMemo } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { useProjects } from "@/lib/hooks";
+import { useKeyboardShortcuts } from "@/lib/useKeyboardShortcuts";
+import { useI18n } from "@/lib/i18n";
+import { useManagementProjectId } from "@/lib/hooks/use-management-project-id";
+import { GlobalSearch } from "./_components/GlobalSearch";
+
+// ─── Management Error Boundary ───────────────────────────────────────────────
+
+class ManagementErrorBoundary extends React.Component<
+  { children: React.ReactNode },
+  { hasError: boolean; error: Error | null }
+> {
+  constructor(props: { children: React.ReactNode }) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error };
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="flex min-h-[400px] flex-col items-center justify-center gap-4 p-8 text-center">
+          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-danger-subtle">
+            <svg className="h-6 w-6 text-danger" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"/>
+            </svg>
+          </div>
+          <div>
+            <h3 className="text-[14px] font-semibold text-fg">Sayfa Yüklenemedi</h3>
+            <p className="mt-1 text-[12px] text-fg-subtle">{this.state.error?.message ?? "Beklenmeyen bir hata oluştu."}</p>
+          </div>
+          <button
+            onClick={() => this.setState({ hasError: false, error: null })}
+            className="rounded-xl border border-border px-4 py-2 text-[12px] text-fg-muted transition-colors hover:bg-surface-overlay hover:text-fg"
+          >
+            Tekrar Dene
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
 
@@ -115,10 +158,35 @@ function IcUser() {
     </svg>
   );
 }
+function IcUsers() {
+  return (
+    <svg className="h-[15px] w-[15px] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
+      <circle cx="9" cy="7" r="4"/>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M23 21v-2a4 4 0 00-3-3.87"/>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M16 3.13a4 4 0 010 7.75"/>
+    </svg>
+  );
+}
 function IcPulse() {
   return (
     <svg className="h-[15px] w-[15px] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
       <polyline strokeLinecap="round" strokeLinejoin="round" points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+    </svg>
+  );
+}
+function IcCopy() {
+  return (
+    <svg className="h-[15px] w-[15px] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+    </svg>
+  );
+}
+
+function IcCode() {
+  return (
+    <svg className="h-[15px] w-[15px] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/>
     </svg>
   );
 }
@@ -152,14 +220,17 @@ const NAV_GROUPS: NavGroup[] = [
   {
     label: "Test Tasarımı",
     items: [
-      { label: "BVA",                    segment: "management/design/bva",  Icon: IcGrid },
-      { label: "Eşdeğerlik Bölümü",      segment: "management/design/eq",   Icon: IcGrid },
-      { label: "Karar Tablosu",          segment: "management/design/dt",   Icon: IcGrid },
+      { label: "BVA",                    segment: "management/design/bva",        Icon: IcGrid },
+      { label: "Eşdeğerlik Bölümü",      segment: "management/design/eq",        Icon: IcGrid },
+      { label: "Karar Tablosu",          segment: "management/design/dt",        Icon: IcGrid },
+      { label: "BDD/Gherkin",            segment: "management/design/gherkin",   Icon: IcCode },
+      { label: "Paylaşılan Adımlar",     segment: "management/shared-steps",    Icon: IcCopy },
     ],
   },
 ];
 
 const NAV_UTILITY: NavItem[] = [
+  { label: "Üyeler",          segment: "management/members",       Icon: IcUsers  },
   { label: "İçe/Dışa Aktar",  segment: "management/import-export", Icon: IcUpload },
   { label: "Entegrasyonlar",  segment: "management/integrations",  Icon: IcLink   },
   { label: "Denetim İzi",     segment: "management/audit",         Icon: IcPulse  },
@@ -262,6 +333,114 @@ function ProjectPicker({ projectId }: { projectId: string }) {
   );
 }
 
+// ─── Shortcuts Modal ─────────────────────────────────────────────────────────
+
+type ShortcutEntry = { key: string; description: string };
+type ShortcutGroup = { label: string; entries: ShortcutEntry[] };
+
+const SHORTCUT_GROUPS: ShortcutGroup[] = [
+  {
+    label: "Navigasyon",
+    entries: [
+      { key: "G D",     description: "Dashboard'a git" },
+      { key: "G R",     description: "Test Deposu'na git" },
+      { key: "G P",     description: "Planlar'a git" },
+      { key: "G U",     description: "Test Koşuları'na git" },
+      { key: "G E",     description: "Regresyon'a git" },
+      { key: "G Q",     description: "Gereksinimler'e git" },
+      { key: "G F",     description: "Defektler'e git" },
+      { key: "G T",     description: "Raporlar'a git" },
+      { key: "G S",     description: "Stand-up'a git" },
+      { key: "G I",     description: "Ayarlar'a git" },
+    ],
+  },
+  {
+    label: "Case İşlemleri",
+    entries: [
+      { key: "Tıkla",   description: "Case seç / detay aç" },
+      { key: "Sağ Tık", description: "Context menu aç" },
+      { key: "Esc",     description: "Seçimi / modalı kapat" },
+    ],
+  },
+  {
+    label: "Genel",
+    entries: [
+      { key: "⌘⇧L",    description: "Dil değiştir (TR/EN)" },
+      { key: "?",       description: "Kısayol yardım paneli" },
+      { key: "Esc",     description: "Açık panelleri kapat" },
+    ],
+  },
+];
+
+function ShortcutsModal({ onClose }: { onClose: () => void }) {
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", handler);
+    return () => document.removeEventListener("keydown", handler);
+  }, [onClose]);
+
+  return (
+    <div
+      className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-2xl rounded-2xl border border-border bg-surface-raised shadow-2xl overflow-hidden"
+        onClick={e => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between border-b border-border px-6 py-4">
+          <div>
+            <h2 className="text-[15px] font-semibold text-fg">Klavye Kısayolları</h2>
+            <p className="mt-0.5 text-[11px] text-fg-muted">Tüm Management modülü kısayolları</p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Kapat"
+            className="rounded-lg p-1.5 text-fg-subtle hover:bg-surface-overlay hover:text-fg transition-colors"
+          >
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+          </button>
+        </div>
+
+        {/* Content — groups in 2-column grid */}
+        <div className="grid gap-6 p-6 sm:grid-cols-2">
+          {SHORTCUT_GROUPS.map(group => (
+            <div key={group.label}>
+              <p className="mb-3 text-[9px] font-bold uppercase tracking-widest text-fg-subtle">
+                {group.label}
+              </p>
+              <div className="space-y-2">
+                {group.entries.map(entry => (
+                  <div key={entry.key} className="flex items-center justify-between gap-4">
+                    <span className="text-[12px] text-fg-muted">{entry.description}</span>
+                    <kbd className="shrink-0 rounded-md border border-border bg-surface-overlay px-2 py-0.5 font-mono text-[10px] text-fg-subtle shadow-xs">
+                      {entry.key}
+                    </kbd>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Footer hint */}
+        <div className="border-t border-border bg-surface-overlay px-6 py-3 text-center">
+          <p className="text-[10px] text-fg-subtle">
+            <kbd className="rounded border border-border bg-surface-raised px-1.5 py-0.5 font-mono text-[9px]">Esc</kbd>
+            {" "}veya dışarıya tıklayarak kapatın
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Layout ───────────────────────────────────────────────────────────────────
 
 export default function ManagementLayout({
@@ -274,10 +453,14 @@ export default function ManagementLayout({
   const { projectId } = params;
   const pathname = usePathname() ?? "";
   const router   = useRouter();
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarOpen,    setSidebarOpen]    = useState(false);
+  const [showShortcuts,  setShowShortcuts]  = useState(false);
+  const [showSearch,     setShowSearch]     = useState(false);
+  const mpid = useManagementProjectId(projectId);
 
   const isRoot      = pathname === `/p/${projectId}/management`;
   const hideSidebar = HIDE_SIDEBAR_PATTERNS.some(p => pathname.includes(p));
+  const { locale, setLocale } = useI18n();
 
   const currentLabel = useMemo(() => {
     const allItems = [...NAV_GROUPS.flatMap(g => g.items), ...NAV_UTILITY];
@@ -289,6 +472,23 @@ export default function ManagementLayout({
       router.replace(`/p/${projectId}/management/dashboard`);
     }
   }, [isRoot, projectId, router]);
+
+  // ── Keyboard shortcuts (chord navigation) ──────────────────────────────────
+  useKeyboardShortcuts(useMemo(() => [
+    { combo: "g d", description: "Dashboard'a git", handler: () => router.push(`/p/${projectId}/management/dashboard`) },
+    { combo: "g r", description: "Test Deposu'na git", handler: () => router.push(`/p/${projectId}/management/repository`) },
+    { combo: "g p", description: "Planlar'a git", handler: () => router.push(`/p/${projectId}/management/plans`) },
+    { combo: "g u", description: "Test Koşuları'na git", handler: () => router.push(`/p/${projectId}/management/runs`) },
+    { combo: "g e", description: "Regresyon'a git", handler: () => router.push(`/p/${projectId}/management/regression`) },
+    { combo: "g q", description: "Gereksinimler'e git", handler: () => router.push(`/p/${projectId}/management/requirements`) },
+    { combo: "g f", description: "Defektler'e git", handler: () => router.push(`/p/${projectId}/management/defects`) },
+    { combo: "g t", description: "Raporlar'a git", handler: () => router.push(`/p/${projectId}/management/reports`) },
+    { combo: "g s", description: "Stand-up'a git", handler: () => router.push(`/p/${projectId}/management/standup`) },
+    { combo: "g i", description: "Ayarlar'a git", handler: () => router.push(`/p/${projectId}/management/settings`) },
+    { combo: "mod+shift+l", description: "Dil değiştir (TR/EN)", handler: () => setLocale(locale === "tr" ? "en" : "tr") },
+    { combo: "?", description: "Kısayol yardım paneli", handler: () => setShowShortcuts(true) },
+    { combo: "mod+k", description: "Global Arama", handler: () => setShowSearch(true) },
+  ], [projectId, router, locale, setLocale, setShowShortcuts, setShowSearch]));
 
   if (isRoot) {
     return (
@@ -323,6 +523,24 @@ export default function ManagementLayout({
 
         {/* Project Picker */}
         <ProjectPicker projectId={projectId} />
+
+        {/* Global Search trigger */}
+        <div className="px-2 py-2 border-b border-border">
+          <button
+            type="button"
+            onClick={() => setShowSearch(true)}
+            className="flex w-full items-center gap-2 rounded-lg border border-border bg-surface-overlay px-3 py-2 text-[12px] text-fg-subtle transition-colors hover:border-brand/40 hover:bg-surface-overlay hover:text-fg"
+          >
+            <svg className="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <circle cx="11" cy="11" r="8"/>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35"/>
+            </svg>
+            <span className="flex-1 text-left">Ara…</span>
+            <kbd className="rounded border border-border/50 bg-surface-raised px-1.5 py-0.5 font-mono text-[9px] text-fg-disabled">
+              ⌘K
+            </kbd>
+          </button>
+        </div>
 
         {/* Primary nav — grouped */}
         <nav className="flex-1 overflow-y-auto p-2">
@@ -373,20 +591,51 @@ export default function ManagementLayout({
               </Link>
             );
           })}
+
+          {/* Language toggle */}
+          <button
+            type="button"
+            onClick={() => setLocale(locale === "tr" ? "en" : "tr")}
+            title="Dil değiştir (⌘⇧L)"
+            className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] font-medium text-fg-muted transition-colors hover:bg-surface-overlay hover:text-fg"
+          >
+            <span className="shrink-0 text-fg-subtle">
+              <svg className="h-[15px] w-[15px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129"/>
+              </svg>
+            </span>
+            <span className="flex-1">{locale === "tr" ? "English" : "Türkçe"}</span>
+            <span className="rounded border border-border bg-surface-overlay px-1.5 py-0.5 font-mono text-[9px] text-fg-disabled">
+              {locale.toUpperCase()}
+            </span>
+          </button>
+        </div>
+
+        {/* Shortcut hint — hidden on mobile */}
+        <div className="hidden md:block border-t border-border px-3 py-2">
+          <button
+            type="button"
+            onClick={() => setShowShortcuts(true)}
+            className="flex w-full items-center justify-between text-[9px] text-fg-disabled hover:text-fg-subtle transition-colors"
+          >
+            <span className="font-mono">g d/r/p/u</span>
+            <span className="rounded border border-border/50 px-1 py-0.5 font-mono text-[8px]">?</span>
+          </button>
         </div>
       </aside>
 
       {/* ── Main content ──────────────────────────────────────────────────── */}
       <div className="flex min-h-0 flex-1 flex-col overflow-auto bg-surface-base">
         {/* Mobile hamburger bar */}
-        <div className="flex h-10 items-center border-b border-border bg-surface-base px-4 md:hidden">
+        <div className="flex h-10 items-center justify-between border-b border-border bg-surface-base px-4 md:hidden">
           <button type="button" onClick={() => setSidebarOpen(true)}
             className="flex items-center gap-2 text-[12px] text-fg-muted hover:text-fg">
             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h7"/>
             </svg>
-            Menu
+            <span className="font-semibold text-fg">Management</span>
           </button>
+          <span className="text-[11px] text-fg-muted">{currentLabel}</span>
         </div>
         {/* Breadcrumb */}
         <div className="flex items-center gap-1.5 border-b border-border bg-surface-base px-4 py-2 text-[11px] shrink-0">
@@ -394,8 +643,22 @@ export default function ManagementLayout({
           <span className="text-fg-subtle">›</span>
           <span className="text-fg">{currentLabel}</span>
         </div>
-        {children}
+        <ManagementErrorBoundary>
+          {children}
+        </ManagementErrorBoundary>
       </div>
+
+      {/* Keyboard Shortcuts Modal */}
+      {showShortcuts && <ShortcutsModal onClose={() => setShowShortcuts(false)} />}
+
+      {/* Global Search Modal */}
+      {showSearch && (
+        <GlobalSearch
+          projectId={projectId}
+          mpid={mpid ?? null}
+          onClose={() => setShowSearch(false)}
+        />
+      )}
     </div>
   );
 }

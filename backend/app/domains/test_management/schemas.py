@@ -85,10 +85,10 @@ class TestFolderUpdate(BaseModel):
 
 class TestCaseStepIn(BaseModel):
     step_no: int = Field(..., ge=1)
-    action: str = Field(..., min_length=1)
-    expected_result: str = Field(..., min_length=1)
+    action: str = Field(..., min_length=1, max_length=5000)
+    expected_result: str = Field(..., min_length=1, max_length=5000)
     test_data: dict[str, Any] = Field(default_factory=dict)
-    notes: Optional[str] = None
+    notes: Optional[str] = Field(None, max_length=1000)
     is_required: bool = True
 
 
@@ -104,8 +104,8 @@ class TestCaseCreate(BaseModel):
     suite_id: Optional[str] = None
     folder_id: Optional[str] = None
     case_key: Optional[str] = None
-    objective: str = ""
-    preconditions: str = ""
+    objective: Optional[str] = Field(None, max_length=2000)
+    preconditions: Optional[str] = Field(None, max_length=2000)
     test_data: dict[str, Any] = Field(default_factory=dict)
     priority: str = "medium"
     severity: str = "major"
@@ -117,7 +117,7 @@ class TestCaseCreate(BaseModel):
     owner_id: Optional[str] = None
     tags: list[str] = Field(default_factory=list)
     custom_fields: dict[str, Any] = Field(default_factory=dict)
-    steps: list[TestCaseStepIn] = Field(default_factory=list)
+    steps: list[TestCaseStepIn] = Field(default_factory=list, max_length=500)
 
 
 class TestCaseUpdate(BaseModel):
@@ -195,7 +195,7 @@ class RepositoryOut(BaseModel):
 class TestPlanCreate(BaseModel):
     name: str = Field(..., min_length=1, max_length=300)
     plan_type: str = "regression"
-    release_name: Optional[str] = None
+    release_name: Optional[str] = Field(None, max_length=100)
     scope_summary: Optional[str] = None
 
 
@@ -222,13 +222,13 @@ class TestPlanOut(BaseModel):
 
 class TestCycleCreate(BaseModel):
     plan_id: str
-    name: str = Field(..., min_length=1, max_length=200)
+    name: str = Field(..., min_length=1, max_length=300)
     environment: Optional[str] = None
     build_version: Optional[str] = None
 
 
 class TestCycleUpdate(BaseModel):
-    name: Optional[str] = Field(default=None, min_length=1, max_length=200)
+    name: Optional[str] = Field(default=None, min_length=1, max_length=300)
     environment: Optional[str] = None
     build_version: Optional[str] = None
     status: Optional[str] = None
@@ -1228,3 +1228,12 @@ class StandupOut(BaseModel):
     predicted_completion: Optional[str]
     will_meet_gate: bool
     blocking_factors: list[str]
+
+
+class PlanImpactSummary(BaseModel):
+    plan_id: str
+    plan_name: str
+    cycle_count: int
+    run_count: int
+    run_case_count: int
+    evidence_count: int

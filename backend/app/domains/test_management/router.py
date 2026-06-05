@@ -6,7 +6,10 @@ Manual QA operation endpoints under /api/v1/test-management/*.
 from __future__ import annotations
 
 import hashlib
+import ipaddress
+import re as _re
 import secrets
+import socket
 from datetime import datetime as _datetime, timezone as _timezone
 
 _UTC = _timezone.utc  # Python 3.9 uyumlu
@@ -138,6 +141,41 @@ from app.domains.test_management.schemas import (
 from app.infra.database import get_db
 from app.infra.models import User
 
+def _is_ssrf_blocked(url: str) -> bool:
+    """RFC-1918, link-local ve loopback adresleri engelle."""
+    try:
+        parsed = urlparse(url)
+        hostname = parsed.hostname or ""
+        if hostname in ("localhost", "127.0.0.1", "::1", "0.0.0.0"):
+            return True
+        # DNS çözümle
+        try:
+            addr = socket.gethostbyname(hostname)
+            ip = ipaddress.ip_address(addr)
+            return (
+                ip.is_private
+                or ip.is_loopback
+                or ip.is_link_local
+                or ip.is_reserved
+                or ip.is_unspecified
+            )
+        except Exception:
+            return False
+    except Exception:
+        return True
+
+
+_UUID_RE = _re.compile(
+    r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$", _re.I
+)
+
+
+def _validate_uuid(value: str, field: str = "id") -> str:
+    if not _UUID_RE.match(value):
+        raise HTTPException(400, f"Geçersiz {field} formatı")
+    return value
+
+
 router = APIRouter(prefix="/test-management", tags=["test-management"])
 
 DB = Annotated[Session, Depends(get_db)]
@@ -147,14 +185,14 @@ ExecuteUser = Annotated[User, Depends(require_permission("test_management.execut
 AdminUser = Annotated[User, Depends(require_permission("test_management.admin"))]
 
 
-@router.get("/health", summary="Neurex Management domain health")
-def health() -> dict[str, str]:
-    return {"status": "ok", "domain": "test_management"}
+@router.get("/health", summary="Neurex Management domain health", include_in_schema=False)
+def health(_user: ReadUser) -> dict[str, str]:
+    return {"status": "ok"}
 
 
 @router.get("/projects", response_model=list[ManagementProjectOut])
 def list_projects(db: DB, _user: ReadUser) -> list[ManagementProjectOut]:
-    return service.list_projects(db)
+    return service.list_projects(db, user=_user)
 
 
 @router.post(
@@ -263,9 +301,12 @@ def test_outbound_webhook(
     _user: WriteUser,
 ) -> WebhookTestResponse:
     """Send a short server-side test payload to an outbound webhook target."""
+    _validate_uuid(project_id, "project_id")
     parsed = urlparse(payload.url)
     if parsed.scheme not in {"http", "https"} or not parsed.netloc:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Geçerli bir HTTP(S) webhook URL'i girin")
+    if _is_ssrf_blocked(payload.url):
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Bu hedefe webhook testi yapılamaz (iç ağ adresi)")
 
     headers = {"Content-Type": "application/json"}
     if payload.secret:
@@ -280,7 +321,7 @@ def test_outbound_webhook(
         **payload.payload,
     }
     try:
-        response = httpx.post(payload.url, headers=headers, json=body, timeout=8.0)
+        response = httpx.post(payload.url, headers=headers, json=body, timeout=8.0, follow_redirects=False)
     except httpx.HTTPError as exc:
         return WebhookTestResponse(ok=False, message=f"Webhook isteği gönderilemedi: {exc}")
 
@@ -591,10 +632,19 @@ def bulk_update_cases(project_id: str, payload: BulkUpdateCasesRequest, db: DB, 
     summary="Test koşumunun canlı ilerleme durumunu döner",
 )
 def run_progress(project_id: str, run_id: str, db: DB, _user: ReadUser) -> dict:
+    _validate_uuid(project_id, "project_id")
+    _validate_uuid(run_id, "run_id")
     from sqlalchemy import select as _sel
 
-    from app.domains.test_management.models import TestRunCase as TRC
+    from app.domains.test_management.models import TestCycle as _TC, TestRun as _TR, TestRunCase as TRC
     pid = service.resolve_project_id(db, project_id)
+    # Run'ın bu projeye ait olduğunu doğrula — IDOR önleme
+    run = db.scalar(_sel(_TR).where(_TR.id == run_id))
+    if not run:
+        raise HTTPException(status_code=404, detail="Run bulunamadı")
+    cycle = db.get(_TC, run.cycle_id)
+    if not cycle or cycle.project_id != pid:
+        raise HTTPException(status_code=404, detail="Run bulunamadı")
     run_cases = list(db.scalars(_sel(TRC).where(TRC.run_id == run_id)).all())
     total = len(run_cases)
     done_set = {"passed", "failed", "blocked", "skipped"}
@@ -624,12 +674,19 @@ def run_progress(project_id: str, run_id: str, db: DB, _user: ReadUser) -> dict:
     summary="Koşumu manuel olarak tamamlandı olarak işaretle",
 )
 def complete_run(project_id: str, run_id: str, db: DB, user: WriteUser) -> TestRunOut:
+    _validate_uuid(project_id, "project_id")
+    _validate_uuid(run_id, "run_id")
     from sqlalchemy import select as _sel
 
     from app.domains.test_management.models import TestRun as TR
     pid = service.resolve_project_id(db, project_id)
     run = db.scalar(_sel(TR).where(TR.id == run_id))
     if not run:
+        raise HTTPException(status_code=404, detail="Run bulunamadı")
+    # Sahiplik kontrolü — IDOR önleme
+    from app.domains.test_management.models import TestCycle as _TC2
+    cycle = db.get(_TC2, run.cycle_id)
+    if not cycle or cycle.project_id != pid:
         raise HTTPException(status_code=404, detail="Run bulunamadı")
     run.status = "completed"
     from datetime import datetime as _dt_local
@@ -742,6 +799,23 @@ def update_plan(project_id: str, plan_id: str, payload: TestPlanUpdate, db: DB, 
         return service.update_plan(db, project_id, plan_id, payload, user)
     except KeyError as e:
         raise HTTPException(status_code=404, detail=str(e)) from e
+
+
+@router.get(
+    "/projects/{project_id}/plans/{plan_id}/impact-summary",
+    summary="Plan silinirse etkilenecek kayıt sayıları",
+)
+def plan_impact_summary(
+    project_id: str,
+    plan_id: str,
+    db: DB,
+    _user: ReadUser,
+) -> dict:
+    """Silme modalı açılmadan önce kullanıcıya etki özeti göster."""
+    try:
+        return service.get_plan_impact_summary(db, project_id, plan_id)
+    except KeyError:
+        raise HTTPException(status_code=404, detail="Plan bulunamadı")
 
 
 @router.delete("/projects/{project_id}/plans/{plan_id}", status_code=status.HTTP_204_NO_CONTENT)

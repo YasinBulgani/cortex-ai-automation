@@ -262,11 +262,33 @@ function ImportJobDetailPanel({
   );
 }
 
+// ── Encoding-aware file reader ────────────────────────────────────────────────
+
+async function readFileWithEncoding(file: File): Promise<string> {
+  try {
+    const text = await file.text(); // UTF-8
+    // UTF-8 decode hatası yoksa kullan
+    if (!text.includes("�")) return text;
+  } catch {}
+  // ISO-8859-1 fallback
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => resolve(e.target?.result as string ?? "");
+    reader.onerror = reject;
+    reader.readAsText(file, "ISO-8859-1");
+  });
+}
+
 // ── CSV parse helper ──────────────────────────────────────────────────────────
 
 function parseCsvRows(text: string): Record<string, unknown>[] {
   const lines = text.trim().split("\n");
-  if (lines.length < 2) return [];
+  if (lines.length === 0) {
+    throw new Error("Dosya boş");
+  }
+  if (lines.length < 2) {
+    throw new Error("Dosya yalnızca başlık satırı içeriyor — veri satırı bulunamadı");
+  }
   const headers = lines[0].split(",").map((h) => h.trim().replace(/^"|"$/g, ""));
   return lines.slice(1).map((line) => {
     const vals = line.split(",").map((v) => v.trim().replace(/^"|"$/g, ""));
@@ -428,6 +450,7 @@ export default function ManagementImportExportPage() {
   const [exporting, setExporting] = useState(false);
   const [importError, setImportError] = useState<string | null>(null);
   const [exportError, setExportError] = useState<string | null>(null);
+  const [fileError, setFileError] = useState<string | null>(null);
   const [stagedImport, setStagedImport] = useState<StagedImport | null>(null);
   const [columnMapping, setColumnMapping] = useState<Record<string, ColumnKey>>({});
   const [updateExisting, setUpdateExisting] = useState(true);
@@ -482,12 +505,36 @@ export default function ManagementImportExportPage() {
 
   // ── File upload handler ──
 
+  const MAX_FILE_SIZE_MB = 50;
+  const MAX_FILE_SIZE = MAX_FILE_SIZE_MB * 1024 * 1024;
+
+  function validateFile(file: File): string | null {
+    const ext = "." + (file.name.split(".").pop()?.toLowerCase() ?? "");
+    if (ext === ".feature") {
+      return "Gherkin .feature dosyaları henüz desteklenmiyor. Lütfen Excel veya CSV formatını kullanın.";
+    }
+    if (file.size > MAX_FILE_SIZE) {
+      return `Dosya boyutu çok büyük. Maksimum ${MAX_FILE_SIZE_MB}MB desteklenir.`;
+    }
+    const allowed = [".xlsx", ".xls", ".csv", ".json"];
+    if (!allowed.includes(ext)) {
+      return `Desteklenmeyen dosya tipi. Kabul edilen: ${allowed.join(", ")}`;
+    }
+    return null;
+  }
+
   const handleFile = async (file: File) => {
+    setFileError(null);
+    const err = validateFile(file);
+    if (err) {
+      setFileError(err);
+      return;
+    }
     setUploading(true);
     try {
       let rows: Record<string, unknown>[] = [];
       if (file.name.endsWith(".csv")) {
-        const text = await file.text();
+        const text = await readFileWithEncoding(file);
         rows = parseCsvRows(text);
       } else if (file.name.endsWith(".xlsx") || file.name.endsWith(".xls")) {
         rows = await parseWorkbookRows(file);
@@ -498,6 +545,9 @@ export default function ManagementImportExportPage() {
       const headers = getHeaders(rows);
       setStagedImport({ filename: file.name, fileSize: file.size, headers, rows });
       setColumnMapping(buildInitialMapping(headers));
+    } catch (parseErr) {
+      const message = parseErr instanceof Error ? parseErr.message : "Dosya okunamadı.";
+      setFileError(message);
     } finally {
       setUploading(false);
     }
@@ -700,6 +750,11 @@ export default function ManagementImportExportPage() {
               Dosya önce staging alanına alınır; mapping ve dry-run kontrolünden sonra import job oluşturulur.
             </p>
           </div>
+          {fileError && (
+            <div className="mt-3 rounded-lg border border-red-500/20 bg-red-500/5 px-3 py-2 text-xs text-red-300">
+              {fileError}
+            </div>
+          )}
         </section>
 
         <section className="rounded-xl border border-border bg-surface-raised p-5">

@@ -42,7 +42,7 @@ export function BulkActionToolbar({
       <div className="flex items-center gap-3 rounded-xl border border-border-strong bg-surface-overlay px-4 py-3 shadow-2xl shadow-black/50">
         {/* Seçim sayısı */}
         <div className="flex items-center gap-2 pr-3 border-r border-border">
-          <div className="w-6 h-6 rounded-full bg-teal-600 flex items-center justify-center text-xs font-bold text-white">
+          <div className="w-6 h-6 rounded-full bg-brand flex items-center justify-center text-xs font-bold text-white">
             {selectedCount}
           </div>
           <span className="text-sm text-slate-300 font-medium whitespace-nowrap">
@@ -103,7 +103,7 @@ export function SelectCheckbox({ id, selectedIds, onToggle }: SelectCheckboxProp
       className={`
         w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 transition-all
         ${checked
-          ? "bg-teal-600 border-teal-600 text-white"
+          ? "bg-brand border-teal-600 text-white"
           : "border-border-strong hover:border-teal-500 bg-transparent"}
       `}
     >
@@ -135,9 +135,9 @@ export function SelectAllCheckbox({ totalIds, selectedIds, onSelectAll, onClearA
       className={`
         w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 transition-all
         ${allSelected
-          ? "bg-teal-600 border-teal-600 text-white"
+          ? "bg-brand border-teal-600 text-white"
           : someSelected
-          ? "bg-teal-600/50 border-teal-600 text-white"
+          ? "bg-brand/50 border-teal-600 text-white"
           : "border-border-strong hover:border-teal-500 bg-transparent"}
       `}
       title={allSelected ? "Tümünü kaldır" : "Tümünü seç"}

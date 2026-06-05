@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { useRouteParam } from "@/lib/use-route-param";
 import { cn } from "@/lib/utils";
+import { RoleGuard } from "../_components/RoleGuard";
 import {
   useManagementDefects,
   useUpdateManagementDefect,
@@ -14,6 +15,8 @@ import {
   type DefectLink,
 } from "@/lib/hooks/use-management";
 import { useManagementProjectId } from "@/lib/hooks/use-management-project-id";
+import { useToast } from "@/lib/useToast";
+import { PageErrorBoundary } from "../_components/PageErrorBoundary";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -87,14 +90,14 @@ interface DefectEditModalProps {
   defect: DefectLink;
   mpid: string;
   onClose: () => void;
-  onDeleted: () => void;
+  onDeleted: (id: string) => void;
 }
 
 interface DefectRowProps {
   defect: DefectLink;
   mpid: string;
   onClick: () => void;
-  onDeleted: () => void;
+  onDeleted: (id: string) => void;
 }
 
 interface CreateDefectModalProps {
@@ -407,6 +410,7 @@ function DefectEditModal({ defect, mpid, onClose, onDeleted }: DefectEditModalPr
   const [severity,      setSeverity]     = useState(defect.severity);
   const [priority,      setPriority]     = useState(defect.priority);
   const [retestStatus,  setRetestStatus] = useState(defect.retest_status);
+  const [assigneeId,    setAssigneeId]   = useState(defect.assignee_id ?? "");
   const [rootCause,     setRootCause]    = useState(defect.root_cause ?? "");
   const [aiSuggestions, setAiSuggestions] = useState<string[]>([]);
   const [showConfirmDelete, setShowConfirmDelete] = useState(false);
@@ -418,6 +422,7 @@ function DefectEditModal({ defect, mpid, onClose, onDeleted }: DefectEditModalPr
       severity,
       priority,
       retest_status: retestStatus,
+      assignee_id: assigneeId.trim() || null,
       root_cause: rootCause.trim() || null,
     });
     onClose();
@@ -426,7 +431,7 @@ function DefectEditModal({ defect, mpid, onClose, onDeleted }: DefectEditModalPr
   const handleDelete = async () => {
     await del.mutateAsync(defect.id);
     setShowConfirmDelete(false);
-    onDeleted();
+    onDeleted(defect.id);
   };
 
   const inp = "w-full rounded-xl border border-border bg-surface-overlay px-3 py-2 text-[13px] text-fg placeholder-slate-600 outline-none focus:border-teal-500/40 transition-colors";
@@ -493,40 +498,47 @@ function DefectEditModal({ defect, mpid, onClose, onDeleted }: DefectEditModalPr
           <div className="p-5 space-y-4">
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="mb-1 block text-[10px] uppercase tracking-widest text-fg-subtle">Status</label>
-                <select value={status} onChange={e => setStatus(e.target.value)} className={sel}>
+                <label htmlFor="edit-defect-status" className="mb-1 block text-[10px] uppercase tracking-widest text-fg-subtle">Status</label>
+                <select id="edit-defect-status" value={status} onChange={e => setStatus(e.target.value)} className={sel}>
                   {ALL_STATUSES.map(v => (
                     <option key={v} value={v}>{v.replace(/_/g," ")}</option>
                   ))}
                 </select>
               </div>
               <div>
-                <label className="mb-1 block text-[10px] uppercase tracking-widest text-fg-subtle">Retest</label>
-                <select value={retestStatus} onChange={e => setRetestStatus(e.target.value)} className={sel}>
+                <label htmlFor="edit-defect-retest" className="mb-1 block text-[10px] uppercase tracking-widest text-fg-subtle">Retest</label>
+                <select id="edit-defect-retest" value={retestStatus} onChange={e => setRetestStatus(e.target.value)} className={sel}>
                   {["pending","passed","failed","not_required","retest_failed"].map(v => (
                     <option key={v} value={v}>{v.replace(/_/g," ")}</option>
                   ))}
                 </select>
               </div>
               <div>
-                <label className="mb-1 block text-[10px] uppercase tracking-widest text-fg-subtle">Severity</label>
-                <select value={severity} onChange={e => setSeverity(e.target.value)} className={sel}>
+                <label htmlFor="edit-defect-severity" className="mb-1 block text-[10px] uppercase tracking-widest text-fg-subtle">Severity</label>
+                <select id="edit-defect-severity" value={severity} onChange={e => setSeverity(e.target.value)} className={sel}>
                   {["blocker","critical","major","minor","trivial"].map(v => (
                     <option key={v} value={v}>{v}</option>
                   ))}
                 </select>
               </div>
               <div>
-                <label className="mb-1 block text-[10px] uppercase tracking-widest text-fg-subtle">Öncelik</label>
-                <select value={priority} onChange={e => setPriority(e.target.value)} className={sel}>
+                <label htmlFor="edit-defect-priority" className="mb-1 block text-[10px] uppercase tracking-widest text-fg-subtle">Öncelik</label>
+                <select id="edit-defect-priority" value={priority} onChange={e => setPriority(e.target.value)} className={sel}>
                   {["P0","P1","P2","P3"].map(v => <option key={v} value={v}>{v}</option>)}
                 </select>
               </div>
             </div>
 
             <div>
+              <label htmlFor="edit-defect-assignee" className="mb-1 block text-[10px] uppercase tracking-widest text-fg-subtle">Atanan Kişi</label>
+              <input id="edit-defect-assignee" value={assigneeId} onChange={e => setAssigneeId(e.target.value)}
+                placeholder="kullanici@sirket.com veya kullanıcı adı"
+                className={inp} />
+            </div>
+
+            <div>
               <div className="mb-1 flex items-center justify-between">
-                <label className="text-[10px] uppercase tracking-widest text-fg-subtle">Kök Neden</label>
+                <label htmlFor="edit-defect-root-cause" className="text-[10px] uppercase tracking-widest text-fg-subtle">Kök Neden</label>
                 <button type="button"
                   disabled={analyze.isPending}
                   onClick={async () => {
@@ -538,7 +550,7 @@ function DefectEditModal({ defect, mpid, onClose, onDeleted }: DefectEditModalPr
                   {analyze.isPending ? "Analiz ediliyor…" : "✦ AI Analiz"}
                 </button>
               </div>
-              <textarea value={rootCause} onChange={e => setRootCause(e.target.value)}
+              <textarea id="edit-defect-root-cause" value={rootCause} onChange={e => setRootCause(e.target.value)}
                 rows={3} placeholder="Hatanın temel nedeni…"
                 className={cn(inp, "resize-none")}/>
               {aiSuggestions.length > 0 && (
@@ -595,9 +607,13 @@ function DefectRow({ defect, mpid, onClick, onDeleted }: DefectRowProps) {
                :                                       "text-fg-muted";
 
   const handleDeleteConfirm = async () => {
-    await del.mutateAsync(defect.id);
+    onDeleted(defect.id); // optimistic removal first
     setShowConfirmDelete(false);
-    onDeleted();
+    try {
+      await del.mutateAsync(defect.id);
+    } catch {
+      // rollback is handled by parent refetch
+    }
   };
 
   return (
@@ -688,10 +704,13 @@ function DefectRow({ defect, mpid, onClick, onDeleted }: DefectRowProps) {
 export default function ManagementDefectsPage() {
   const projectId = useRouteParam("projectId") ?? "";
   const mpid = useManagementProjectId(projectId || undefined);
+  const toastCtx = useToast();
 
   const defectsQuery = useManagementDefects(mpid || undefined);
-  const rows         = defectsQuery.data ?? [];
-  const loading      = defectsQuery.isLoading;
+  const [optimisticRemoved, setOptimisticRemoved] = useState<Set<string>>(new Set());
+  const serverRows = defectsQuery.data ?? [];
+  const rows = serverRows.filter(d => !optimisticRemoved.has(d.id));
+  const loading = defectsQuery.isLoading;
 
   const searchParams = useSearchParams();
   const router       = useRouter();
@@ -778,6 +797,7 @@ export default function ManagementDefectsPage() {
   const SEL = "rounded-xl border border-border bg-surface-overlay px-2.5 py-1.5 text-[10px] text-fg outline-none focus:border-border-strong transition-colors";
 
   return (
+    <PageErrorBoundary>
     <div className="min-h-screen bg-bg px-5 py-5">
       <div className="mx-auto max-w-7xl space-y-5">
 
@@ -787,14 +807,16 @@ export default function ManagementDefectsPage() {
             <h1 className="text-lg font-bold text-fg">Defekt Yönetimi</h1>
             <p className="mt-0.5 text-xs text-fg-muted">Test koşumlarından bağlanan defektler ve retest durumu</p>
           </div>
-          <button
-            type="button"
-            onClick={() => setShowCreate(true)}
-            aria-label="Yeni defekt oluştur"
-            className="rounded-xl bg-brand px-4 py-2 text-[12px] font-semibold text-brand-fg hover:brightness-105 transition-colors"
-          >
-            + Yeni Defekt
-          </button>
+          <RoleGuard minRole="member" projectId={projectId || undefined}>
+            <button
+              type="button"
+              onClick={() => setShowCreate(true)}
+              aria-label="Yeni defekt oluştur"
+              className="rounded-xl bg-brand px-4 py-2 text-[12px] font-semibold text-brand-fg hover:brightness-105 transition-colors"
+            >
+              + Yeni Defekt
+            </button>
+          </RoleGuard>
         </div>
 
         {/* Stats */}
@@ -914,7 +936,11 @@ export default function ManagementDefectsPage() {
                       defect={d}
                       mpid={mpid ?? ""}
                       onClick={() => setEditDefect(d)}
-                      onDeleted={() => void defectsQuery.refetch()}
+                      onDeleted={(id: string) => {
+                        setOptimisticRemoved(prev => new Set([...prev, id]));
+                        toastCtx.success("Defect silindi");
+                        void defectsQuery.refetch().then(() => setOptimisticRemoved(new Set()));
+                      }}
                     />
                   ))}
                 </tbody>
@@ -953,7 +979,12 @@ export default function ManagementDefectsPage() {
             defect={editDefect}
             mpid={mpid}
             onClose={() => setEditDefect(null)}
-            onDeleted={() => { setEditDefect(null); void defectsQuery.refetch(); }}
+            onDeleted={(id: string) => {
+              setOptimisticRemoved(prev => new Set([...prev, id]));
+              setEditDefect(null);
+              toastCtx.success("Defect silindi");
+              void defectsQuery.refetch().then(() => setOptimisticRemoved(new Set()));
+            }}
           />
         )}
 
@@ -985,5 +1016,6 @@ export default function ManagementDefectsPage() {
 
       </div>
     </div>
+    </PageErrorBoundary>
   );
 }

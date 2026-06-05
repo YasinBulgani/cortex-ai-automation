@@ -10,6 +10,9 @@ import {
   useKiwiPreview,
   useStartKiwiSync,
   useKiwiSyncJobs,
+  useWebhookSubscriptions,
+  useCreateWebhookSubscription,
+  useDeleteWebhookSubscription,
   type CicdWebhookConfig,
   type KiwiProduct,
   type ProjectSsoConfig,
@@ -508,25 +511,13 @@ const WEBHOOK_EVENTS: { id: WebhookEvent; label: string }[] = [
 type WebhookEntry = WebhookNotification & { events: WebhookEvent[] };
 
 function WebhookNotificationsPanel({ projectId }: { projectId: string }) {
-  const { data: savedWebhooks, isLoading } = useManagementSettingValue<WebhookEntry[]>(
-    projectId || undefined,
-    "webhook_notifications",
-    [],
-  );
-  const saveWebhooks = usePatchManagementSetting<WebhookEntry[]>(projectId, "webhook_notifications");
-  const [webhooks, setWebhooks] = useState<WebhookEntry[]>([]);
+  const { data: fetchedWebhooks, isLoading } = useWebhookSubscriptions(projectId || undefined);
+  const createWebhook = useCreateWebhookSubscription(projectId);
+  const deleteWebhook = useDeleteWebhookSubscription(projectId);
+  const webhooks: WebhookEntry[] = (fetchedWebhooks ?? []) as WebhookEntry[];
   const [showModal, setShowModal] = useState(false);
   const [toast, setToast] = useState<{ type: "ok" | "error"; msg: string } | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
-
-  useEffect(() => {
-    setWebhooks(savedWebhooks);
-  }, [savedWebhooks]);
-
-  const persist = async (list: WebhookEntry[]) => {
-    setWebhooks(list);
-    await saveWebhooks.mutateAsync(list);
-  };
 
   const showToast = (type: "ok" | "error", msg: string) => {
     setToast({ type, msg });
@@ -535,7 +526,7 @@ function WebhookNotificationsPanel({ projectId }: { projectId: string }) {
 
   const handleDelete = async (id: string) => {
     try {
-      await persist(webhooks.filter(w => w.id !== id));
+      await deleteWebhook.mutateAsync(id);
       setConfirmDelete(null);
       showToast("ok", "Webhook silindi.");
     } catch {
@@ -548,7 +539,7 @@ function WebhookNotificationsPanel({ projectId }: { projectId: string }) {
       const res = await apiFetch<{ ok: boolean; status_code?: number; message: string }>(
         `/api/v1/test-management/projects/${projectId}/webhook-test`,
         {
-        method: "POST",
+          method: "POST",
           json: {
             url: w.url,
             payload: {
@@ -570,15 +561,16 @@ function WebhookNotificationsPanel({ projectId }: { projectId: string }) {
   };
 
   const handleAdd = async (entry: Omit<WebhookEntry, "id">) => {
-    const newList = [...webhooks, { ...entry, id: crypto.randomUUID() }];
     try {
-      await persist(newList);
+      await createWebhook.mutateAsync({ url: entry.url, events: entry.events });
       setShowModal(false);
       showToast("ok", "Webhook eklendi.");
     } catch {
       showToast("error", "Webhook kaydedilemedi.");
     }
   };
+
+  const isBusy = createWebhook.isPending || deleteWebhook.isPending;
 
   return (
     <div className="space-y-5">
@@ -602,7 +594,7 @@ function WebhookNotificationsPanel({ projectId }: { projectId: string }) {
           <button
             type="button"
             onClick={() => setShowModal(true)}
-            disabled={isLoading || saveWebhooks.isPending}
+            disabled={isLoading || isBusy}
             className="flex items-center gap-1.5 rounded-xl bg-brand px-3 py-1.5 text-[12px] font-semibold text-brand-fg transition-colors hover:brightness-105"
           >
             <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -639,7 +631,7 @@ function WebhookNotificationsPanel({ projectId }: { projectId: string }) {
                   <button
                     type="button"
                     onClick={() => handleTest(w)}
-                    disabled={saveWebhooks.isPending}
+                    disabled={isBusy}
                     className="rounded-lg border border-border px-2.5 py-1 text-[11px] text-fg-muted transition-colors hover:bg-surface-raised hover:text-fg"
                   >
                     Test
@@ -649,9 +641,10 @@ function WebhookNotificationsPanel({ projectId }: { projectId: string }) {
                       <button
                         type="button"
                         onClick={() => handleDelete(w.id)}
-                        className="rounded-lg border border-danger/30 bg-danger-subtle px-2.5 py-1 text-[11px] text-danger transition-colors hover:bg-danger/15"
+                        disabled={deleteWebhook.isPending}
+                        className="rounded-lg border border-danger/30 bg-danger-subtle px-2.5 py-1 text-[11px] text-danger transition-colors hover:bg-danger/15 disabled:opacity-40"
                       >
-                        Sil
+                        {deleteWebhook.isPending ? "Siliniyor…" : "Sil"}
                       </button>
                       <button
                         type="button"
@@ -809,6 +802,8 @@ function JiraIntegrationPanel({ projectId: _projectId, mpid }: { projectId: stri
   const [statusMsg, setStatusMsg] = useState("");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [jiraWarning, setJiraWarning] = useState<string | null>(null);
+  const [savedProjectKey, setSavedProjectKey] = useState<string | null>(null);
 
   // Kayıtlı config'i yükle
   useEffect(() => {
@@ -817,7 +812,10 @@ function JiraIntegrationPanel({ projectId: _projectId, mpid }: { projectId: stri
       .then(data => {
         if (data.url) setUrl(data.url);
         if (data.email) setEmail(data.email);
-        if (data.project_key) setProjectKey(data.project_key);
+        if (data.project_key) {
+          setProjectKey(data.project_key);
+          setSavedProjectKey(data.project_key);
+        }
       })
       .catch(() => {});
   }, [mpid]);
@@ -838,13 +836,21 @@ function JiraIntegrationPanel({ projectId: _projectId, mpid }: { projectId: stri
   };
 
   const handleSave = async () => {
+    // Jira project_key değişiklik uyarısı
+    const trimmedKey = projectKey.trim();
+    if (savedProjectKey && trimmedKey && trimmedKey !== savedProjectKey) {
+      setJiraWarning("Proje anahtarı değiştiriliyor. Eski defect linkleri güncellenmeyecek.");
+    } else {
+      setJiraWarning(null);
+    }
     setSaving(true);
     try {
       await apiFetch("/api/jira/config", {
         method: "POST",
-        json: { url: url.trim(), email: email.trim(), token: token.trim() || undefined, project_key: projectKey.trim() },
+        json: { url: url.trim(), email: email.trim(), token: token.trim() || undefined, project_key: trimmedKey },
       });
       setSaved(true); setToken("");
+      setSavedProjectKey(trimmedKey || savedProjectKey);
       setTimeout(() => setSaved(false), 3000);
     } catch {
       setStatusMsg("Kaydedilemedi.");
@@ -870,6 +876,17 @@ function JiraIntegrationPanel({ projectId: _projectId, mpid }: { projectId: stri
             </svg>
           )}
           {statusMsg || (status === "testing" ? "Test ediliyor…" : "")}
+        </div>
+      )}
+
+      {/* Jira project_key change warning */}
+      {jiraWarning && (
+        <div className="flex items-center justify-between gap-2 rounded-xl border border-amber-500/30 bg-amber-500/8 px-4 py-3 text-[12px] text-amber-400">
+          <span>⚠️ {jiraWarning}</span>
+          <button type="button" onClick={() => setJiraWarning(null)}
+            className="shrink-0 text-amber-400/60 hover:text-amber-400 transition-colors">
+            ✕
+          </button>
         </div>
       )}
 
@@ -967,15 +984,16 @@ function CiCdWebhookPanel({ projectId, mpid }: { projectId: string; mpid: string
   );
   const saveCicd = usePatchManagementSetting<CicdWebhookConfig>(settingsProjectId, "cicd_webhook");
   const [webhookUrl, setWebhookUrl] = useState("");
-  const [secret, setSecret] = useState("");
+  const [webhookSecret, setWebhookSecret] = useState("");
   const [provider, setProvider] = useState("github");
   const [copied, setCopied] = useState(false);
-  const [testStatus, setTestStatus] = useState<"idle" | "sending" | "ok" | "error">("idle");
+  const [testing, setTesting] = useState(false);
+  const [testResult, setTestResult] = useState<{ ok: boolean; status_code?: number; message: string } | null>(null);
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
     setWebhookUrl(savedConfig.webhookUrl ?? "");
-    setSecret(savedConfig.secret ?? "");
+    setWebhookSecret(savedConfig.secret ?? "");
     setProvider(savedConfig.provider ?? "github");
   }, [savedConfig]);
 
@@ -993,15 +1011,16 @@ function CiCdWebhookPanel({ projectId, mpid }: { projectId: string; mpid: string
 
   const testWebhook = async () => {
     if (!webhookUrl.trim()) return;
-    setTestStatus("sending");
+    setTesting(true);
+    setTestResult(null);
     try {
-      const res = await apiFetch<{ ok: boolean; status_code?: number; message: string }>(
-        `/api/v1/test-management/projects/${settingsProjectId}/webhook-test`,
+      const result = await apiFetch<{ ok: boolean; status_code?: number; message: string }>(
+        `/api/v1/test-management/projects/${projectId}/webhook-test`,
         {
-        method: "POST",
+          method: "POST",
           json: {
             url: webhookUrl.trim(),
-            secret: secret.trim() || undefined,
+            secret: webhookSecret.trim() || undefined,
             payload: {
               provider,
               timestamp: new Date().toISOString(),
@@ -1009,17 +1028,18 @@ function CiCdWebhookPanel({ projectId, mpid }: { projectId: string; mpid: string
           },
         },
       );
-      setTestStatus(res.ok ? "ok" : "error");
-    } catch {
-      setTestStatus("error");
+      setTestResult(result);
+    } catch (err: unknown) {
+      setTestResult({ ok: false, message: err instanceof Error ? err.message : "Test başarısız" });
+    } finally {
+      setTesting(false);
     }
-    setTimeout(() => setTestStatus("idle"), 4000);
   };
 
   const saveWebhook = async () => {
     await saveCicd.mutateAsync({
       webhookUrl: webhookUrl.trim(),
-      secret: secret.trim() || undefined,
+      secret: webhookSecret.trim() || undefined,
       provider,
     });
     setSaved(true);
@@ -1053,7 +1073,7 @@ function CiCdWebhookPanel({ projectId, mpid }: { projectId: string; mpid: string
 
         <div>
           <label className="mb-1 block text-[11px] font-medium text-fg-muted">Webhook Secret (opsiyonel)</label>
-          <input value={secret} onChange={e => setSecret(e.target.value)}
+          <input value={webhookSecret} onChange={e => setWebhookSecret(e.target.value)}
             type="password" placeholder="İmza doğrulaması için gizli anahtar"
             className={inp} />
           <p className="mt-1 text-[11px] text-fg-subtle">X-Webhook-Secret başlığıyla gönderilir.</p>
@@ -1107,17 +1127,30 @@ function CiCdWebhookPanel({ projectId, mpid }: { projectId: string; mpid: string
           </select>
         </div>
 
-        <div className="flex items-center gap-2">
-          <button type="button" onClick={testWebhook}
-            disabled={!settingsProjectId || !webhookUrl.trim() || testStatus === "sending"}
-            className="rounded-xl border border-border px-4 py-2 text-[12px] font-medium text-fg-muted transition-colors hover:bg-surface-overlay hover:text-fg disabled:opacity-40">
-            {testStatus === "sending" ? "Gönderiliyor…" : testStatus === "ok" ? "✓ Başarılı" : testStatus === "error" ? "✗ Hata" : "Test Gönder"}
-          </button>
-          <button type="button" onClick={saveWebhook}
-            disabled={!settingsProjectId || !webhookUrl.trim() || saveCicd.isPending}
-            className="rounded-xl bg-brand px-5 py-2 text-[12px] font-semibold text-brand-fg transition-colors hover:brightness-105 disabled:opacity-40">
-            {saveCicd.isPending ? "Kaydediliyor…" : saved ? "Kaydedildi ✓" : "Webhook Kaydet"}
-          </button>
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center gap-2">
+            <button type="button" onClick={testWebhook}
+              disabled={!projectId || !webhookUrl.trim() || testing}
+              className="rounded-xl border border-border px-4 py-2 text-[12px] font-medium text-fg-muted transition-colors hover:bg-surface-overlay hover:text-fg disabled:opacity-40">
+              {testing ? "Gönderiliyor…" : "Test Gönder"}
+            </button>
+            <button type="button" onClick={saveWebhook}
+              disabled={!settingsProjectId || !webhookUrl.trim() || saveCicd.isPending}
+              className="rounded-xl bg-brand px-5 py-2 text-[12px] font-semibold text-brand-fg transition-colors hover:brightness-105 disabled:opacity-40">
+              {saveCicd.isPending ? "Kaydediliyor…" : saved ? "Kaydedildi ✓" : "Webhook Kaydet"}
+            </button>
+          </div>
+          {testResult && (
+            <div className={`flex items-center gap-2 rounded-xl border px-3 py-2 text-[12px] ${
+              testResult.ok
+                ? "border-emerald-500/30 bg-emerald-500/8 text-emerald-400"
+                : "border-danger/30 bg-danger-subtle text-danger"
+            }`}>
+              {testResult.ok ? "✓" : "✗"}{" "}
+              {testResult.message || (testResult.ok ? "Test başarılı" : "Test başarısız")}
+              {testResult.status_code && !testResult.ok && ` (HTTP ${testResult.status_code})`}
+            </div>
+          )}
         </div>
       </section>
 

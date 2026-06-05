@@ -180,8 +180,11 @@ def create_project(db: Session, payload: ManagementProjectCreate, user: Any | No
     return project
 
 
-def list_projects(db: Session) -> list[TestManagementProject]:
-    return list(db.scalars(select(TestManagementProject).order_by(TestManagementProject.created_at.desc())).all())
+def list_projects(db: Session, user: Any | None = None) -> list[TestManagementProject]:
+    q = select(TestManagementProject).order_by(TestManagementProject.created_at.desc())
+    if user is not None and hasattr(user, "tenant_id") and user.tenant_id:
+        q = q.where(TestManagementProject.tenant_id == str(user.tenant_id))
+    return list(db.scalars(q).all())
 
 
 def update_management_user_settings(db: Session, project_id: str, updates: dict[str, Any]) -> dict[str, Any]:
@@ -359,6 +362,21 @@ def delete_suite(db: Session, project_id: str, suite_id: str, user: Any | None) 
     db.commit()
 
 
+def _would_create_cycle(db: Session, folder_id: str, new_parent_id: str) -> bool:
+    """new_parent_id'nin ataları arasında folder_id var mı?"""
+    current_id = new_parent_id
+    visited: set[str] = set()
+    while current_id:
+        if current_id == folder_id:
+            return True
+        if current_id in visited:
+            break
+        visited.add(current_id)
+        parent_folder = db.get(TestFolder, current_id)
+        current_id = parent_folder.parent_id if parent_folder else None
+    return False
+
+
 def update_folder(db: Session, project_id: str, folder_id: str, payload: TestFolderUpdate, user: Any | None) -> TestFolder:
     project_id = resolve_project_id(db, project_id)
     folder = _ensure_folder(db, project_id, folder_id)
@@ -368,6 +386,8 @@ def update_folder(db: Session, project_id: str, folder_id: str, payload: TestFol
         new_parent_id = data["parent_id"]
         if new_parent_id == folder.id:
             raise ValueError("Folder kendi kendisinin parent'ı olamaz")
+        if new_parent_id is not None and _would_create_cycle(db, folder.id, new_parent_id):
+            raise ValueError("Bu taşıma döngüsel bir folder yapısı oluştururdu")
         if new_parent_id is not None:
             parent = _ensure_folder(db, project_id, new_parent_id)
             if parent is not None and parent.suite_id != folder.suite_id:
@@ -2500,3 +2520,32 @@ def remove_case_dependency(db: Session, project_id: str, case_id: str, dep_id: s
         raise KeyError("Bağımlılık bulunamadı")
     db.delete(dep)
     db.commit()
+
+
+def get_plan_impact_summary(db: Session, project_id: str, plan_id: str) -> dict:
+    """Plan silinmeden önce etkilenecek kayıt sayılarını döner."""
+    pid = resolve_project_id(db, project_id)
+    plan = db.get(TestPlan, plan_id)
+    if not plan or plan.project_id != pid:
+        raise KeyError(f"Plan not found: {plan_id}")
+
+    cycle_ids = [c.id for c in plan.cycles]
+    run_ids = []
+    run_case_count = 0
+    evidence_count = 0
+
+    for cycle in plan.cycles:
+        for run in cycle.runs:
+            run_ids.append(run.id)
+            run_case_count += len(run.run_cases)
+            for rc in run.run_cases:
+                evidence_count += len(rc.evidence_files) if hasattr(rc, 'evidence_files') else 0
+
+    return {
+        "plan_id": plan_id,
+        "plan_name": plan.name,
+        "cycle_count": len(cycle_ids),
+        "run_count": len(run_ids),
+        "run_case_count": run_case_count,
+        "evidence_count": evidence_count,
+    }

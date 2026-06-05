@@ -371,6 +371,7 @@ export function SuiteTree({ suites, folders, cases, node, onNode, pid, dragKind 
   const [folderName, setFolderName] = useState("");
   const [addingUnder, setAddingUnder] = useState<string | null>(null);
   const [draftName, setDraftName] = useState("");
+  const [deleteConfirmSuiteId, setDeleteConfirmSuiteId] = useState<string | null>(null);
 
   const createSuite = useCreateManagementSuite(pid);
   const createFolder = useCreateManagementFolder(pid);
@@ -427,8 +428,13 @@ export function SuiteTree({ suites, folders, cases, node, onNode, pid, dragKind 
   const onRenameFolder = (folderId: string, name: string) => { void updateFolder.mutateAsync({ folderId, name }); };
 
   const onDeleteSuite = (suiteId: string) => {
-    if (typeof window !== "undefined" && !window.confirm("Suite silinsin mi? İçindeki folder ve senaryolar etkilenebilir.")) return;
-    void deleteSuite.mutateAsync(suiteId);
+    setDeleteConfirmSuiteId(suiteId);
+  };
+
+  const confirmDeleteSuite = () => {
+    if (!deleteConfirmSuiteId) return;
+    void deleteSuite.mutateAsync(deleteConfirmSuiteId);
+    setDeleteConfirmSuiteId(null);
   };
   const onDeleteFolder = (folderId: string) => {
     if (typeof window !== "undefined" && !window.confirm("Folder silinsin mi?")) return;
@@ -551,6 +557,53 @@ export function SuiteTree({ suites, folders, cases, node, onNode, pid, dragKind 
           <span>{total} case</span>
         </div>
       </div>
+
+      {/* ── Suite delete confirm modal ─────────────────────────────────────── */}
+      {deleteConfirmSuiteId && (() => {
+        const suiteToDelete = suites.find(s => s.id === deleteConfirmSuiteId);
+        const caseCount = cases.filter(c => c.suite_id === deleteConfirmSuiteId).length;
+        const folderCount = folders.filter(f => f.suite_id === deleteConfirmSuiteId).length;
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+            <div className="w-full max-w-sm rounded-xl border border-border bg-surface-raised p-5 shadow-elevated">
+              <h3 className="text-sm font-semibold text-fg">Suite silinsin mi?</h3>
+              <p className="mt-2 text-xs text-fg-muted">
+                <span className="font-medium text-fg">{suiteToDelete?.name ?? "Suite"}</span> kalıcı olarak silinecek.
+              </p>
+              {(caseCount > 0 || folderCount > 0) && (
+                <div className="mt-3 rounded-lg border border-amber-500/25 bg-amber-500/10 px-3 py-2">
+                  {folderCount > 0 && (
+                    <p className="text-xs text-amber-400">
+                      Bu suite içinde {folderCount} folder var. Silinince folder'lar da kaldırılacak.
+                    </p>
+                  )}
+                  {caseCount > 0 && (
+                    <p className="text-amber-400 text-xs mt-1">
+                      ⚠️ Bu suite içinde {caseCount} case var. Silince bu case'lerin suite bağlantısı kaldırılacak.
+                    </p>
+                  )}
+                </div>
+              )}
+              <div className="mt-4 flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setDeleteConfirmSuiteId(null)}
+                  className="rounded-lg border border-border px-4 py-1.5 text-xs text-fg-subtle hover:bg-surface-overlay"
+                >
+                  İptal
+                </button>
+                <button
+                  type="button"
+                  onClick={confirmDeleteSuite}
+                  className="rounded-lg bg-red-600 px-4 py-1.5 text-xs font-semibold text-white hover:bg-red-500"
+                >
+                  Sil
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }

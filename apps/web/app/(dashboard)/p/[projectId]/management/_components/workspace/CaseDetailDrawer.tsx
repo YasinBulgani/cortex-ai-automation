@@ -5,6 +5,7 @@ import Link from "next/link";
 import { cn } from "@/lib/utils";
 import {
   useManagementCase,
+  useManagementCaseVersions,
   useUpdateManagementCase,
   useArchiveManagementCase,
   useDeleteManagementCase,
@@ -17,16 +18,11 @@ import { CommentThread } from "../CommentThread";
 
 type Tab = "detail" | "comments" | "history";
 
-const MOCK_HISTORY = [
-  { version: "v3", description: "Başlık güncellendi", relTime: "2 gün önce" },
-  { version: "v2", description: "Adım eklendi", relTime: "5 gün önce" },
-  { version: "v1", description: "Case oluşturuldu", relTime: "7 gün önce" },
-];
-
 export function CaseDetailDrawer({ caseId, pid, projectId, onClose }: {
   caseId: string; pid: string; projectId: string; onClose: () => void;
 }) {
   const { data: tc, isLoading } = useManagementCase(pid || undefined, caseId || undefined);
+  const { data: versions, isLoading: versionsLoading } = useManagementCaseVersions(pid || undefined, caseId || undefined);
   const update  = useUpdateManagementCase(pid);
   const archive = useArchiveManagementCase(pid);
   const del     = useDeleteManagementCase(pid);
@@ -38,17 +34,25 @@ export function CaseDetailDrawer({ caseId, pid, projectId, onClose }: {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const [tab, setTab] = useState<Tab>("detail");
-  const [editing,  setEditing]  = useState(false);
-  const [title,    setTitle]    = useState("");
-  const [priority, setPriority] = useState("P2");
-  const [status,   setStatus]   = useState("draft");
-  const [tagsText, setTagsText] = useState("");
+  const [editing,      setEditing]      = useState(false);
+  const [title,        setTitle]        = useState("");
+  const [priority,     setPriority]     = useState("P2");
+  const [status,       setStatus]       = useState("draft");
+  const [type,         setType]         = useState("manual");
+  const [severity,     setSeverity]     = useState("minor");
+  const [objective,    setObjective]    = useState("");
+  const [preconditions,setPreconditions]= useState("");
+  const [tagsText,     setTagsText]     = useState("");
 
   useEffect(() => {
     if (!tc) return;
     setTitle(tc.title ?? "");
     setPriority(tc.priority ?? "P2");
     setStatus(tc.status ?? "draft");
+    setType(tc.type ?? "manual");
+    setSeverity(tc.severity ?? "minor");
+    setObjective(tc.objective ?? "");
+    setPreconditions(tc.preconditions ?? "");
     setTagsText((tc.tags ?? []).join(", "));
     setEditing(false);
   }, [tc?.id]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -60,6 +64,10 @@ export function CaseDetailDrawer({ caseId, pid, projectId, onClose }: {
       title: title.trim() || tc.title,
       priority,
       status,
+      type,
+      severity,
+      objective: objective.trim() || null,
+      preconditions: preconditions.trim() || null,
       tags: tagsText.split(",").map(t => t.trim()).filter(Boolean),
     });
     setEditing(false);
@@ -184,27 +192,49 @@ export function CaseDetailDrawer({ caseId, pid, projectId, onClose }: {
         ) : tab === "history" ? (
           <div className="flex-1 overflow-auto p-4">
             <p className="mb-3 text-[10px] font-semibold uppercase tracking-widest text-fg-subtle">Versiyon Geçmişi</p>
-            <div className="space-y-0">
-              {MOCK_HISTORY.map((item, idx) => (
-                <div key={item.version} className="flex gap-3">
-                  <div className="flex flex-col items-center">
-                    <div className="mt-1 h-2 w-2 shrink-0 rounded-full bg-brand" />
-                    {idx < MOCK_HISTORY.length - 1 && (
-                      <div className="mt-1 w-px flex-1 bg-border" style={{ minHeight: "28px" }} />
-                    )}
-                  </div>
-                  <div className="pb-4">
-                    <div className="flex items-center gap-2">
-                      <span className="rounded-md border border-border bg-surface-overlay px-1.5 py-0.5 font-mono text-[10px] font-semibold text-fg-muted">
-                        {item.version}
-                      </span>
-                      <span className="text-[12px] text-fg-muted">{item.description}</span>
+            {versionsLoading ? (
+              <div className="space-y-3">
+                {[1, 2, 3].map(i => (
+                  <div key={i} className="h-10 animate-pulse rounded-lg bg-surface-overlay" style={{ opacity: 1 - i * 0.25 }} />
+                ))}
+              </div>
+            ) : !versions || versions.length === 0 ? (
+              <div className="flex flex-col items-center gap-2 py-8 text-center">
+                <svg className="h-8 w-8 text-fg-subtle/40" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                <p className="text-[12px] text-fg-subtle">Henüz versiyon geçmişi yok.</p>
+              </div>
+            ) : (
+              <div className="space-y-0">
+                {[...versions].reverse().map((v, idx, arr) => {
+                  const date = new Date(v.created_at);
+                  const relTime = date.toLocaleDateString("tr-TR", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
+                  const changedFields = v.changed_fields?.length > 0
+                    ? v.changed_fields.join(", ")
+                    : v.change_summary ?? "Güncellendi";
+                  return (
+                    <div key={v.id} className="flex gap-3">
+                      <div className="flex flex-col items-center">
+                        <div className="mt-1 h-2 w-2 shrink-0 rounded-full bg-brand" />
+                        {idx < arr.length - 1 && (
+                          <div className="mt-1 w-px flex-1 bg-border" style={{ minHeight: "28px" }} />
+                        )}
+                      </div>
+                      <div className="pb-4 min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="rounded-md border border-border bg-surface-overlay px-1.5 py-0.5 font-mono text-[10px] font-semibold text-fg-muted">
+                            v{v.version_no}
+                          </span>
+                          <span className="flex-1 truncate text-[12px] text-fg-muted">{changedFields}</span>
+                        </div>
+                        <p className="mt-0.5 text-[11px] text-fg-subtle">{relTime}</p>
+                      </div>
                     </div>
-                    <p className="mt-0.5 text-[11px] text-fg-subtle">{item.relTime}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         ) : editing ? (
           <div className="flex-1 overflow-auto p-4 space-y-3">
@@ -216,15 +246,39 @@ export function CaseDetailDrawer({ caseId, pid, projectId, onClose }: {
               <div>
                 <label className="mb-1 block text-[10px] font-semibold uppercase tracking-widest text-fg-subtle">Priority</label>
                 <select value={priority} onChange={e => setPriority(e.target.value)} className={sel}>
-                  {["P0", "P1", "P2", "P3"].map(v => <option key={v} value={v}>{v}</option>)}
+                  {["P0","P1","P2","P3"].map(v => <option key={v} value={v}>{v}</option>)}
                 </select>
               </div>
               <div>
                 <label className="mb-1 block text-[10px] font-semibold uppercase tracking-widest text-fg-subtle">Durum</label>
                 <select value={status} onChange={e => setStatus(e.target.value)} className={sel}>
-                  {["draft", "review", "active", "archived"].map(v => <option key={v} value={v}>{v}</option>)}
+                  {["draft","review","active","archived"].map(v => <option key={v} value={v}>{v}</option>)}
                 </select>
               </div>
+              <div>
+                <label className="mb-1 block text-[10px] font-semibold uppercase tracking-widest text-fg-subtle">Tür</label>
+                <select value={type} onChange={e => setType(e.target.value)} className={sel}>
+                  {["manual","automated","exploratory","regression","smoke","functional","performance","security","usability","acceptance"].map(v => <option key={v} value={v}>{v}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="mb-1 block text-[10px] font-semibold uppercase tracking-widest text-fg-subtle">Severity</label>
+                <select value={severity} onChange={e => setSeverity(e.target.value)} className={sel}>
+                  {["blocker","critical","major","minor","trivial"].map(v => <option key={v} value={v}>{v}</option>)}
+                </select>
+              </div>
+            </div>
+            <div>
+              <label className="mb-1 block text-[10px] font-semibold uppercase tracking-widest text-fg-subtle">Amaç</label>
+              <textarea value={objective} onChange={e => setObjective(e.target.value)}
+                rows={2} placeholder="Test senaryosunun amacı…"
+                className={cn(inp, "resize-none text-[12px]")} />
+            </div>
+            <div>
+              <label className="mb-1 block text-[10px] font-semibold uppercase tracking-widest text-fg-subtle">Ön Koşullar</label>
+              <textarea value={preconditions} onChange={e => setPreconditions(e.target.value)}
+                rows={2} placeholder="Testin başlamadan önce sağlanması gereken koşullar…"
+                className={cn(inp, "resize-none text-[12px]")} />
             </div>
             <div>
               <label className="mb-1 block text-[10px] font-semibold uppercase tracking-widest text-fg-subtle">Etiketler</label>

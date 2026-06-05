@@ -8,9 +8,13 @@ import {
   type DesignDataType,
   type DesignFieldSpec,
   type DesignRun,
+  type DesignTemplate,
   useCreateBvaRun,
+  useDeleteDesignTemplate,
   useDesignRuns,
+  useDesignTemplates,
   usePromoteCases,
+  useSaveDesignTemplate,
 } from "@/lib/hooks/use-mgmt-design";
 
 const DATA_TYPES: DesignDataType[] = ["int", "float", "string", "date", "bool", "enum"];
@@ -28,21 +32,73 @@ export default function BvaPage() {
   const [context, setContext] = useState("");
   const [promoted, setPromoted] = useState<Set<number>>(new Set());
   const [selectedHistory, setSelectedHistory] = useState<DesignRun | null>(null);
+  const [templateName, setTemplateName] = useState("");
+  const [showTemplateSave, setShowTemplateSave] = useState(false);
 
   const runMut     = useCreateBvaRun();
   const run        = runMut.data;
   const promoteMut = usePromoteCases(run?.id);
 
   const { data: historyRuns = [] } = useDesignRuns({ technique: "BVA", projectId });
+  const { data: savedTemplates = [] } = useDesignTemplates(projectId || undefined);
+  const saveTemplateMut   = useSaveDesignTemplate(projectId);
+  const deleteTemplateMut = useDeleteDesignTemplate(projectId);
+
+  const bvaTemplates = savedTemplates.filter((t: DesignTemplate) => t.technique === "BVA");
+
+  const handleSaveTemplate = () => {
+    if (!templateName.trim()) return;
+    saveTemplateMut.mutate(
+      { name: templateName.trim(), technique: "BVA", fields },
+      {
+        onSuccess: () => {
+          setTemplateName("");
+          setShowTemplateSave(false);
+        },
+      }
+    );
+  };
+
+  const handleLoadTemplate = (tpl: DesignTemplate) => {
+    setFields(tpl.fields.map(f => ({ ...f })));
+  };
 
   const update = (i: number, patch: Partial<DesignFieldSpec>) =>
     setFields(f => f.map((x, idx) => idx === i ? { ...x, ...patch } : x));
 
-  const submit = () => runMut.mutate({
-    project_id: projectId,
-    fields,
-    requirement_text: context.trim() || undefined,
-  });
+  const validateBvaFields = (fs: DesignFieldSpec[]): string | null => {
+    for (const f of fs) {
+      if (!f.name.trim()) return "Alan adı boş olamaz"
+      if (f.data_type !== "string" && f.data_type !== "bool" && f.data_type !== "enum") {
+        const min = f.min_value
+        const max = f.max_value
+        if (min !== null && min !== undefined && min !== "") {
+          const parsed = parseFloat(String(min))
+          if (isNaN(parsed)) return `"${f.name}" minimum değeri geçerli bir sayı olmalı`
+          if (!isFinite(parsed)) return `"${f.name}" minimum değeri sonsuz olamaz`
+        }
+        if (max !== null && max !== undefined && max !== "") {
+          const parsed = parseFloat(String(max))
+          if (isNaN(parsed)) return `"${f.name}" maksimum değeri geçerli bir sayı olmalı`
+          if (!isFinite(parsed)) return `"${f.name}" maksimum değeri sonsuz olamaz`
+        }
+      }
+    }
+    return null
+  }
+
+  const [validationError, setValidationError] = useState<string | null>(null)
+
+  const submit = () => {
+    const err = validateBvaFields(fields)
+    if (err) { setValidationError(err); return }
+    setValidationError(null)
+    runMut.mutate({
+      project_id: projectId,
+      fields,
+      requirement_text: context.trim() || undefined,
+    })
+  };
 
   const promote = (indexes: number[]) => {
     promoteMut.mutate({ case_indexes: indexes }, {
@@ -103,6 +159,36 @@ export default function BvaPage() {
         </div>
       )}
 
+      {/* Saved Templates */}
+      {bvaTemplates.length > 0 && (
+        <div className="rounded-xl border border-border bg-surface-raised p-4 space-y-2">
+          <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-500">Kayıtlı Şablonlar</p>
+          <div className="flex flex-wrap gap-2">
+            {bvaTemplates.map((tpl: DesignTemplate) => (
+              <div key={tpl.id} className="flex items-center gap-1.5 rounded-lg border border-border bg-white/[0.02] px-3 py-1.5">
+                <button
+                  type="button"
+                  onClick={() => handleLoadTemplate(tpl)}
+                  className="text-[12px] text-slate-300 hover:text-teal-300 transition-colors"
+                >
+                  {tpl.name}
+                </button>
+                <span className="text-slate-700 text-[10px]">({tpl.fields.length} alan)</span>
+                <button
+                  type="button"
+                  onClick={() => deleteTemplateMut.mutate(tpl.id)}
+                  className="ml-1 text-slate-700 hover:text-red-400 transition-colors text-[11px]"
+                  title="Şablonu sil"
+                >
+                  ✕
+                </button>
+              </div>
+            ))}
+          </div>
+          <p className="text-[10px] text-slate-600">Bir şablona tıklayarak alanları yükle</p>
+        </div>
+      )}
+
       <div className="grid gap-5 xl:grid-cols-2">
         {/* Form */}
         <div className="rounded-xl border border-border bg-surface-raised p-5 space-y-4">
@@ -129,6 +215,14 @@ export default function BvaPage() {
                     placeholder="max" className={cn(INP, "text-[12px]")}/>
                 </div>
               )}
+              {f.data_type === "date" && (
+                <div className="flex gap-2 pl-7">
+                  <input type="date" value={f.min_value ?? ""} onChange={e => update(i, { min_value: e.target.value || null })}
+                    className={cn(INP, "text-[12px]")} title="Minimum tarih"/>
+                  <input type="date" value={f.max_value ?? ""} onChange={e => update(i, { max_value: e.target.value || null })}
+                    className={cn(INP, "text-[12px]")} title="Maksimum tarih"/>
+                </div>
+              )}
               {f.data_type === "enum" && (
                 <input
                   value={Array.isArray(f.allowed_set) ? (f.allowed_set as string[]).join(", ") : ""}
@@ -146,11 +240,52 @@ export default function BvaPage() {
           <textarea value={context} onChange={e => setContext(e.target.value)} rows={2}
             placeholder="Requirement context (opsiyonel)…" className={cn(INP, "resize-none")}/>
 
+          {/* Template save */}
+          {showTemplateSave ? (
+            <div className="flex gap-2">
+              <input
+                value={templateName}
+                onChange={e => setTemplateName(e.target.value)}
+                placeholder="Şablon adı…"
+                className={cn(INP, "flex-1 text-[12px]")}
+                onKeyDown={e => { if (e.key === "Enter") handleSaveTemplate(); if (e.key === "Escape") setShowTemplateSave(false); }}
+                autoFocus
+              />
+              <button
+                type="button"
+                onClick={handleSaveTemplate}
+                disabled={!templateName.trim() || saveTemplateMut.isPending}
+                className="shrink-0 rounded-lg bg-teal-600/20 border border-teal-500/30 px-3 py-1.5 text-[12px] text-teal-300 hover:bg-teal-600/30 disabled:opacity-40 transition-colors"
+              >
+                {saveTemplateMut.isPending ? "…" : "Kaydet"}
+              </button>
+              <button
+                type="button"
+                onClick={() => { setShowTemplateSave(false); setTemplateName(""); }}
+                className="shrink-0 text-slate-600 hover:text-slate-400 text-[12px] px-1"
+              >
+                İptal
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setShowTemplateSave(true)}
+              disabled={fields.every(f => !f.name.trim())}
+              className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-border py-1.5 text-[11px] text-slate-600 hover:text-slate-400 disabled:opacity-30 transition-colors"
+            >
+              + Bu alanları şablon olarak kaydet (ekipte paylaş)
+            </button>
+          )}
+
           <button type="button" onClick={submit}
             disabled={fields.some(f => !f.name.trim()) || runMut.isPending}
             className="w-full rounded-xl bg-brand py-2.5 text-[13px] font-medium text-white hover:brightness-105 disabled:opacity-40 transition-colors">
             {runMut.isPending ? "Üretiliyor…" : "BVA Çalıştır"}
           </button>
+          {validationError && (
+            <p className="mt-2 text-xs text-amber-400">{validationError}</p>
+          )}
           {runMut.isError && (
             <p className="mt-2 text-xs text-red-400">
               Hata: {runMut.error instanceof Error ? runMut.error.message : "Çalıştırılamadı"}

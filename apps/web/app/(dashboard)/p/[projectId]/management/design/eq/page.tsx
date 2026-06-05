@@ -147,7 +147,7 @@ export default function EqPage() {
 
           <button type="button" onClick={submit}
             disabled={fields.some(f => !f.name.trim()) || runMut.isPending}
-            className="w-full rounded-xl bg-teal-600 py-2.5 text-[13px] font-medium text-white hover:bg-teal-700 disabled:opacity-40 transition-colors">
+            className="w-full rounded-xl bg-brand py-2.5 text-[13px] font-medium text-white hover:brightness-105 disabled:opacity-40 transition-colors">
             {runMut.isPending ? "Üretiliyor…" : "EQ Çalıştır"}
           </button>
         </div>

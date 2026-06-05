@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useEffect, useCallback, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useRouteParam } from "@/lib/use-route-param";
 import { useManagementProjectId } from "@/lib/hooks/use-management-project-id";
 import {
@@ -348,8 +349,19 @@ function SetupTrackerWidget({
 }
 
 export default function ManagementDashboardPage() {
-  const projectId = useRouteParam("projectId") ?? "";
-  const mpid = useManagementProjectId(projectId || undefined);
+  const router = useRouter();
+  const rawProjectId = useRouteParam("projectId");
+
+  useEffect(() => {
+    if (!rawProjectId) {
+      router.replace("/projects");
+    }
+  }, [rawProjectId, router]);
+
+  const projectId = rawProjectId ?? "";
+  const mpid = useManagementProjectId(rawProjectId || undefined);
+
+  if (!rawProjectId) return null;
 
   const summaryFast = useManagementDashboardSummary(mpid || undefined);
 
@@ -424,10 +436,38 @@ export default function ManagementDashboardPage() {
   }, [cases]);
 
   // If the fast summary endpoint already returned data, skip showing the skeleton
+  // Only treat as loading when there is no error — errors must not cause infinite loading
+  const hasError =
+    summaryFast.isError ||
+    repoQ.isError ||
+    runsQ.isError ||
+    summaryQ.isError ||
+    defectsQ.isError ||
+    requirementsQ.isError ||
+    releaseQ.isError ||
+    auditQ.isError ||
+    plansQ.isError;
+
   const isLoading = summaryFast.data
     ? false
-    : (repoQ.isLoading || runsQ.isLoading || summaryQ.isLoading);
+    : !hasError && (repoQ.isLoading || runsQ.isLoading || summaryQ.isLoading);
+
   const hasData = totalCases > 0 || runs.length > 0 || defects.length > 0 || requirements.length > 0;
+
+  // Error fallback — show only when there is no cached data at all
+  if (hasError && !summaryFast.data && !repoQ.data) {
+    return (
+      <div className="flex h-64 flex-col items-center justify-center gap-4">
+        <p className="text-sm text-fg-subtle">Veriler yüklenirken bir hata oluştu.</p>
+        <button
+          onClick={refreshAll}
+          className="rounded-lg bg-brand px-4 py-2 text-sm text-white"
+        >
+          Tekrar Dene
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-full space-y-5 bg-surface-base px-6 py-6">
@@ -448,12 +488,12 @@ export default function ManagementDashboardPage() {
         </div>
       </div>
 
-      {isLoading ? (
+      {isLoading && !hasError ? (
         <div className="grid grid-cols-2 gap-3 md:grid-cols-2 xl:grid-cols-4">
           {Array.from({ length: 8 }).map((_, i) => <div key={i} className="h-28 animate-pulse rounded-xl border border-border bg-surface-raised" />)}
         </div>
       ) : !hasData ? (
-        <QuickSetupWizard projectId={projectId} mpid={mpid ?? projectId} />
+        mpid ? <QuickSetupWizard projectId={projectId} mpid={mpid} /> : <EmptyState projectId={projectId} />
       ) : (
         <>
           <div className="grid gap-5 xl:grid-cols-2">

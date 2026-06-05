@@ -2,6 +2,23 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+  useSortable,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 type FormErrors = { title?: boolean };
 
@@ -9,8 +26,28 @@ import { useCreateManagementCase, useManagementRepository } from "@/lib/hooks/us
 import { useManagementProjectId } from "@/lib/hooks/use-management-project-id";
 import { SharedStepPicker } from "../../_components/SharedStepPicker";
 
+function SortableStepCard({ id, children }: { id: string; children: React.ReactNode }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+  return (
+    <div ref={setNodeRef} style={style} {...attributes}>
+      <div className="flex items-start gap-2">
+        <button {...listeners} className="mt-2 cursor-grab text-slate-500 hover:text-slate-300 p-1" title="Sürükle" type="button">
+          ⠿
+        </button>
+        <div className="flex-1">{children}</div>
+      </div>
+    </div>
+  );
+}
+
 
 type DraftStep = {
+  id: string;
   action: string;
   expected_result: string;
   test_data: string;
@@ -40,17 +77,34 @@ export default function NewManagementCasePage({ params }: { params: { projectId:
   const [riskArea, setRiskArea] = useState("");
   const [tags, setTags] = useState("");
   const [steps, setSteps] = useState<DraftStep[]>([
-    { action: "", expected_result: "", test_data: "", notes: "", is_required: true },
+    { id: crypto.randomUUID(), action: "", expected_result: "", test_data: "", notes: "", is_required: true },
   ]);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (active.id !== over?.id) {
+      setSteps(prev => {
+        const oldIdx = prev.findIndex(s => s.id === active.id);
+        const newIdx = prev.findIndex(s => s.id === over!.id);
+        return arrayMove(prev, oldIdx, newIdx).map((s, i) => ({ ...s, step_no: i + 1 }));
+      });
+    }
+  };
   const [formError, setFormError] = useState("");
   const [errors, setErrors] = useState<FormErrors>({});
 
   const addStep = () => {
-    setSteps((current) => [...current, { action: "", expected_result: "", test_data: "", notes: "", is_required: true }]);
+    setSteps((current) => [...current, { id: crypto.randomUUID(), action: "", expected_result: "", test_data: "", notes: "", is_required: true }]);
   };
 
   const insertSharedSteps = (sharedItems: import("@/lib/hooks/use-management").SharedStepItem[]) => {
     const newSteps: DraftStep[] = sharedItems.map(s => ({
+      id: crypto.randomUUID(),
       action: s.action,
       expected_result: s.expected_result ?? "",
       test_data: "",
@@ -85,9 +139,14 @@ export default function NewManagementCasePage({ params }: { params: { projectId:
       }))
       .filter((step) => step.action && step.expected_result);
 
-    if (!title.trim()) {
+    if (!title || title.trim().length === 0) {
       setErrors({ title: true });
-      setFormError("Başlık zorunludur.");
+      setFormError("Başlık boş bırakılamaz");
+      return;
+    }
+    if (title.trim().length > 500) {
+      setErrors({ title: true });
+      setFormError("Başlık en fazla 500 karakter olabilir");
       return;
     }
     if (cleanSteps.length === 0) {
@@ -139,10 +198,14 @@ export default function NewManagementCasePage({ params }: { params: { projectId:
               <input
                 value={title}
                 onChange={(event) => setTitle(event.target.value)}
+                maxLength={500}
                 className="w-full rounded-lg border border-border bg-bg px-3 py-2 text-sm text-white focus:border-teal-500/50 focus:outline-none"
                 placeholder="Login valid credentials"
               />
-              {errors.title && <p className="text-[12px] text-red-400 mt-1">Başlık zorunludur.</p>}
+              <div className="flex items-center justify-between mt-1">
+                {errors.title ? <p className="text-[12px] text-red-400">Başlık zorunludur.</p> : <span />}
+                <span className={`text-xs ${title.length >= 480 ? "text-amber-400" : "text-fg-subtle"}`}>{title.length}/500</span>
+              </div>
             </label>
             <div className="grid grid-cols-2 gap-3">
               <label className="space-y-1">
@@ -240,18 +303,22 @@ export default function NewManagementCasePage({ params }: { params: { projectId:
               <textarea
                 value={objective}
                 onChange={(event) => setObjective(event.target.value)}
+                maxLength={2000}
                 rows={3}
                 className="w-full resize-none rounded-lg border border-border bg-bg px-3 py-2 text-sm text-white focus:border-teal-500/50 focus:outline-none"
               />
+              <span className={`text-xs ${objective.length >= 1900 ? "text-amber-400" : "text-fg-subtle"}`}>{objective.length}/2000</span>
             </label>
             <label className="space-y-1">
               <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Preconditions</span>
               <textarea
                 value={preconditions}
                 onChange={(event) => setPreconditions(event.target.value)}
+                maxLength={2000}
                 rows={3}
                 className="w-full resize-none rounded-lg border border-border bg-bg px-3 py-2 text-sm text-white focus:border-teal-500/50 focus:outline-none"
               />
+              <span className={`text-xs ${preconditions.length >= 1900 ? "text-amber-400" : "text-fg-subtle"}`}>{preconditions.length}/2000</span>
             </label>
           </div>
           <label className="block space-y-1">
@@ -296,32 +363,38 @@ export default function NewManagementCasePage({ params }: { params: { projectId:
                 </button>
               </div>
             </div>
-            {steps.map((step, index) => (
-              <div key={index} className="grid gap-3 rounded-lg border border-border bg-bg p-3 md:grid-cols-[2rem_1fr_1fr_auto]">
-                <div className="pt-2 text-center font-mono text-xs text-slate-500">{index + 1}</div>
-                <div className="space-y-2">
-                  <textarea value={step.action} onChange={(event) => updateStep(index, { action: event.target.value })} rows={2} className="w-full resize-none rounded-lg border border-border bg-surface-raised px-3 py-2 text-sm text-white focus:border-teal-500/50 focus:outline-none" placeholder="Action" />
-                  <input value={step.test_data} onChange={(event) => updateStep(index, { test_data: event.target.value })} className="w-full rounded-lg border border-border bg-surface-raised px-3 py-2 text-xs text-white focus:border-teal-500/50 focus:outline-none" placeholder="Step test data" />
-                </div>
-                <div className="space-y-2">
-                  <textarea value={step.expected_result} onChange={(event) => updateStep(index, { expected_result: event.target.value })} rows={2} className="w-full resize-none rounded-lg border border-border bg-surface-raised px-3 py-2 text-sm text-white focus:border-teal-500/50 focus:outline-none" placeholder="Expected result / validation" />
-                  <input value={step.notes} onChange={(event) => updateStep(index, { notes: event.target.value })} className="w-full rounded-lg border border-border bg-surface-raised px-3 py-2 text-xs text-white focus:border-teal-500/50 focus:outline-none" placeholder="Notes" />
-                </div>
-                <div className="space-y-2">
-                  <label className="flex items-center gap-2 text-xs text-slate-400">
-                    <input type="checkbox" checked={step.is_required} onChange={(event) => updateStep(index, { is_required: event.target.checked })} />
-                    Required
-                  </label>
-                <button
-                  type="button"
-                  onClick={() => removeStep(index)}
-                  className="rounded-lg border border-border px-3 py-2 text-xs text-slate-500 hover:bg-surface-overlay hover:text-slate-200"
-                >
-                  Remove
-                </button>
-                </div>
-              </div>
-            ))}
+            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+              <SortableContext items={steps.map(s => s.id)} strategy={verticalListSortingStrategy}>
+                {steps.map((step, index) => (
+                  <SortableStepCard key={step.id} id={step.id}>
+                    <div className="grid gap-3 rounded-lg border border-border bg-bg p-3 md:grid-cols-[2rem_1fr_1fr_auto]">
+                      <div className="pt-2 text-center font-mono text-xs text-slate-500">{index + 1}</div>
+                      <div className="space-y-2">
+                        <textarea value={step.action} onChange={(event) => updateStep(index, { action: event.target.value })} rows={2} className="w-full resize-none rounded-lg border border-border bg-surface-raised px-3 py-2 text-sm text-white focus:border-teal-500/50 focus:outline-none" placeholder="Action" />
+                        <input value={step.test_data} onChange={(event) => updateStep(index, { test_data: event.target.value })} className="w-full rounded-lg border border-border bg-surface-raised px-3 py-2 text-xs text-white focus:border-teal-500/50 focus:outline-none" placeholder="Step test data" />
+                      </div>
+                      <div className="space-y-2">
+                        <textarea value={step.expected_result} onChange={(event) => updateStep(index, { expected_result: event.target.value })} rows={2} className="w-full resize-none rounded-lg border border-border bg-surface-raised px-3 py-2 text-sm text-white focus:border-teal-500/50 focus:outline-none" placeholder="Expected result / validation" />
+                        <input value={step.notes} onChange={(event) => updateStep(index, { notes: event.target.value })} className="w-full rounded-lg border border-border bg-surface-raised px-3 py-2 text-xs text-white focus:border-teal-500/50 focus:outline-none" placeholder="Notes" />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="flex items-center gap-2 text-xs text-slate-400">
+                          <input type="checkbox" checked={step.is_required} onChange={(event) => updateStep(index, { is_required: event.target.checked })} />
+                          Required
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => removeStep(index)}
+                          className="rounded-lg border border-border px-3 py-2 text-xs text-slate-500 hover:bg-surface-overlay hover:text-slate-200"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    </div>
+                  </SortableStepCard>
+                ))}
+              </SortableContext>
+            </DndContext>
           </div>
         </form>
         <div className="sticky bottom-0 z-10 border-t border-border bg-surface-base px-6 py-3 flex justify-end gap-2">

@@ -20,6 +20,7 @@ import {
   useCreateManagementCycle,
   useAIGeneratePlan,
   useManagementRepository,
+  usePlanImpactSummary,
   type TestPlan,
   type TestCycle,
   type TestRun,
@@ -317,12 +318,13 @@ function IcPencil({ className }: { className?: string }) {
 
 // ── Run row (with inline rename + delete confirm) ─────────────────────────────
 function RunRow({
-  run, projectId, onUpdate, onDelete,
+  run, projectId, onUpdate, onDelete, onComplete,
 }: {
   run: TestRun;
   projectId: string;
   onUpdate: (id: string, name: string) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
+  onComplete?: (id: string) => void;
 }) {
   const [renaming,   setRenaming]   = useState(false);
   const [renameVal,  setRenameVal]  = useState(run.name);
@@ -402,6 +404,16 @@ function RunRow({
       {/* Action buttons — only visible on hover */}
       {!renaming && !confirmDel && (
         <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+          {run.status !== "completed" && onComplete && (
+            <button
+              type="button"
+              title="Koşumu Tamamla ve Rapora Git"
+              onClick={e => { e.stopPropagation(); onComplete(run.id); }}
+              className="rounded px-1.5 py-0.5 text-[10px] font-medium text-emerald-400 hover:bg-emerald-500/10 transition-colors"
+            >
+              ✓
+            </button>
+          )}
           <button
             type="button"
             title="Yeniden Adlandır"
@@ -441,7 +453,7 @@ function RunRow({
 
 // ── Cycle / Run row ───────────────────────────────────────────────────────────
 function CycleRow({
-  cycle, runs, projectId, onStartRun, loading, onUpdateCycle, onUpdateRun, onDeleteRun,
+  cycle, runs, projectId, onStartRun, loading, onUpdateCycle, onUpdateRun, onDeleteRun, onDeleteCycle, onCompleteRun,
 }: {
   cycle: TestCycle;
   runs: TestRun[];
@@ -451,6 +463,8 @@ function CycleRow({
   onUpdateCycle: (id: string, name: string) => Promise<void>;
   onUpdateRun: (id: string, name: string) => Promise<void>;
   onDeleteRun: (id: string) => Promise<void>;
+  onDeleteCycle: (id: string) => void;
+  onCompleteRun?: (id: string) => void;
 }) {
   const total   = runs.reduce((n, r) => n + ((r.scope_snapshot as { case_ids?: string[] })?.case_ids?.length ?? 0), 0);
   const running = runs.some(r => r.status === "in_progress");
@@ -459,6 +473,9 @@ function CycleRow({
   const [renamingCycle,  setRenamingCycle]  = useState(false);
   const [cycleRenameVal, setCycleRenameVal] = useState(cycle.name);
   const [cycleSaving,    setCycleSaving]    = useState(false);
+
+  // Cycle delete confirm state
+  const [confirmDeleteCycle, setConfirmDeleteCycle] = useState(false);
 
   const commitCycleRename = async () => {
     const trimmed = cycleRenameVal.trim();
@@ -533,6 +550,18 @@ function CycleRow({
           </button>
         )}
 
+        {/* Cycle delete button */}
+        {!renamingCycle && (
+          <button
+            type="button"
+            title="Döngüyü Sil"
+            onClick={() => setConfirmDeleteCycle(true)}
+            className="shrink-0 rounded-md p-1.5 text-fg-subtle hover:bg-red-500/10 hover:text-red-400 transition-colors"
+          >
+            <IcTrash />
+          </button>
+        )}
+
         {/* Start run */}
         <button
           onClick={() => onStartRun(cycle)}
@@ -544,6 +573,32 @@ function CycleRow({
         </button>
       </div>
 
+      {/* Cycle delete confirm modal */}
+      {confirmDeleteCycle && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
+          <div className="bg-surface-raised rounded-xl border border-border p-6 max-w-sm w-full">
+            <h3 className="text-sm font-semibold text-fg mb-2">Döngüyü Sil</h3>
+            <p className="text-xs text-fg-subtle mb-4">
+              Bu döngü altındaki tüm koşumlar da silinecek. Bu işlem geri alınamaz.
+            </p>
+            <div className="flex gap-2 justify-end">
+              <button
+                onClick={() => setConfirmDeleteCycle(false)}
+                className="px-3 py-1.5 rounded-lg border border-border text-xs text-fg-muted hover:text-fg transition-colors"
+              >
+                İptal
+              </button>
+              <button
+                onClick={() => { onDeleteCycle(cycle.id); setConfirmDeleteCycle(false); }}
+                className="px-3 py-1.5 rounded-lg bg-red-500 text-white text-xs hover:bg-red-400 transition-colors"
+              >
+                Sil
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Run rows */}
       {runs.length > 0 && (
         <div className="bg-white/[0.01]">
@@ -554,6 +609,7 @@ function CycleRow({
               projectId={projectId}
               onUpdate={onUpdateRun}
               onDelete={onDeleteRun}
+              onComplete={onCompleteRun}
             />
           ))}
         </div>
@@ -563,8 +619,13 @@ function CycleRow({
 }
 
 // ── Delete confirm modal ──────────────────────────────────────────────────────
-function DeletePlanModal({ plan, onConfirm, onClose, loading }: {
-  plan: TestPlan; onConfirm: () => void; onClose: () => void; loading: boolean;
+function DeletePlanModal({ plan, onConfirm, onClose, loading, impactLoading, impactData }: {
+  plan: TestPlan;
+  onConfirm: () => void;
+  onClose: () => void;
+  loading: boolean;
+  impactLoading: boolean;
+  impactData?: { cycle_count: number; run_count: number; run_case_count: number; evidence_count: number };
 }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
@@ -574,6 +635,18 @@ function DeletePlanModal({ plan, onConfirm, onClose, loading }: {
           <span className="text-fg font-medium">{plan.name}</span> planını silmek istediğinizden emin misiniz?
           Bu işlem geri alınamaz.
         </p>
+        {impactLoading && <p className="mt-3 text-xs text-fg-subtle">Etki hesaplanıyor...</p>}
+        {impactData && (
+          <div className="mt-3 rounded-lg border border-red-500/20 bg-red-500/5 p-3 text-xs text-red-300 space-y-1">
+            <p className="font-medium">Bu işlem geri alınamaz. Silinecekler:</p>
+            <ul className="list-disc pl-4 space-y-0.5">
+              <li>{impactData.cycle_count} döngü</li>
+              <li>{impactData.run_count} koşum</li>
+              <li>{impactData.run_case_count} koşum adımı</li>
+              {impactData.evidence_count > 0 && <li>{impactData.evidence_count} kanıt dosyası</li>}
+            </ul>
+          </div>
+        )}
         <div className="mt-5 flex gap-2">
           <button onClick={onConfirm} disabled={loading}
             className="flex-1 rounded-lg bg-red-600 py-2 text-[13px] font-medium text-white hover:bg-red-500 disabled:opacity-40 transition-colors">
@@ -592,7 +665,7 @@ function DeletePlanModal({ plan, onConfirm, onClose, loading }: {
 // ── Plan row ──────────────────────────────────────────────────────────────────
 function PlanRow({
   plan, cycles, runs, projectId, onStartRun, runCreating,
-  onAddCycle, onDelete, onRenamePlan, onUpdateCycle, onUpdateRun, onDeleteRun,
+  onAddCycle, onDelete, onRenamePlan, onUpdateCycle, onUpdateRun, onDeleteRun, onDeleteCycle, onCompleteRun,
 }: {
   plan: TestPlan;
   cycles: TestCycle[];
@@ -606,6 +679,8 @@ function PlanRow({
   onUpdateCycle: (id: string, name: string) => Promise<void>;
   onUpdateRun: (id: string, name: string) => Promise<void>;
   onDeleteRun: (id: string) => Promise<void>;
+  onDeleteCycle: (id: string) => void;
+  onCompleteRun?: (id: string) => void;
 }) {
   const [open, setOpen] = useState(false);
   const [renaming, setRenaming] = useState(false);
@@ -697,8 +772,8 @@ function PlanRow({
             <div className="flex items-center justify-between px-6 py-4">
               <p className="text-[11px] text-fg-subtle">Bu plana ait cycle yok.</p>
               <button
-                disabled={!cycles.length}
-                title={!cycles.length ? "Önce cycle oluşturun" : undefined}
+                disabled
+                title="Önce cycle oluşturun"
                 className="flex items-center gap-1.5 rounded-lg border border-teal-500/25 px-3 py-1.5 text-[11px] font-medium text-teal-400 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
               >
                 <IcPlay /> Run Başlat
@@ -718,6 +793,8 @@ function PlanRow({
                   onUpdateCycle={onUpdateCycle}
                   onUpdateRun={onUpdateRun}
                   onDeleteRun={onDeleteRun}
+                  onDeleteCycle={onDeleteCycle}
+                  onCompleteRun={onCompleteRun}
                 />
               );
             })
@@ -776,6 +853,7 @@ export default function ManagementPlansPage() {
   const [activeCycleId,   setActiveCycleId]   = useState("");
   const [deletingPlan,    setDeletingPlan]     = useState<TestPlan | null>(null);
   const [deleteLoading,   setDeleteLoading]    = useState(false);
+  const impactQ = usePlanImpactSummary(mpid ?? undefined, deletingPlan?.id ?? undefined);
   const [creating,        setCreating]         = useState(false);
   const [runCycleForModal, setRunCycleForModal] = useState<TestCycle | null>(null);
   const [runCreatingFlag, setRunCreatingFlag]  = useState(false);
@@ -816,6 +894,15 @@ export default function ManagementPlansPage() {
       toast.success("Koşum silindi");
     } catch {
       toast.error("Koşum silinemedi");
+    }
+  };
+
+  const handleDeleteCycle = async (id: string) => {
+    try {
+      await deleteCycle.mutateAsync(id);
+      toast.success("Döngü silindi");
+    } catch {
+      toast.error("Döngü silinemedi");
     }
   };
 
@@ -862,6 +949,17 @@ export default function ManagementPlansPage() {
     } finally {
       setRunCreatingFlag(false);
     }
+  };
+
+  const handleCompleteRun = (runId: string) => {
+    updateRun.mutate(
+      { id: runId, status: "completed" },
+      {
+        onSuccess: () => {
+          router.push(`/p/${projectId}/management/reports`);
+        },
+      },
+    );
   };
 
   const handleCreateCycle = async (planId: string) => {
@@ -1086,6 +1184,8 @@ export default function ManagementPlansPage() {
                 onUpdateCycle={handleUpdateCycle}
                 onUpdateRun={handleUpdateRun}
                 onDeleteRun={handleDeleteRun}
+                onDeleteCycle={handleDeleteCycle}
+                onCompleteRun={handleCompleteRun}
               />
             );
           })
@@ -1111,6 +1211,8 @@ export default function ManagementPlansPage() {
           onConfirm={handleDeletePlan}
           onClose={() => setDeletingPlan(null)}
           loading={deleteLoading}
+          impactLoading={impactQ.isLoading}
+          impactData={impactQ.data}
         />
       )}
 

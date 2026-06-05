@@ -296,9 +296,13 @@ function QuickDefectModal({ mpid, caseTitle, caseKey, runCaseId, onClose }: {
   );
 }
 
+// ─── Draft key helper ─────────────────────────────────────────────────────────
+
+const draftKey = (runId: string, caseId: string) => `execute-draft-${runId}-${caseId}`;
+
 // ─── Main Execution Panel ─────────────────────────────────────────────────────
-function ExecutionPanel({ rc, projectId, runId, onNext, mpid }: {
-  rc: RunCase; projectId: string; runId: string; onNext: () => void; mpid: string;
+function ExecutionPanel({ rc, projectId, runId, onNext, onPrev, mpid }: {
+  rc: RunCase; projectId: string; runId: string; onNext: () => void; onPrev: (() => void) | null; mpid: string;
 }) {
   const snap     = rc.case_snapshot as { case?: SnapshotCase; steps?: SnapshotStep[] };
   const caseInfo = snap.case ?? {};
@@ -310,6 +314,31 @@ function ExecutionPanel({ rc, projectId, runId, onNext, mpid }: {
   const [notes,          setNotes]          = useState(rc.execution_notes ?? "");
   const [saving,         setSaving]         = useState(false);
   const [showDefectModal,setShowDefectModal] = useState(false);
+  const [showShortcuts,  setShowShortcuts]  = useState(false);
+
+  // ── Load draft from localStorage on mount / case change ─────────────────────
+  useEffect(() => {
+    if (!runId || !rc.id) return;
+    const key = draftKey(runId, rc.id);
+    const saved = localStorage.getItem(key);
+    if (saved) {
+      try {
+        const draft = JSON.parse(saved) as { notes?: string };
+        // Only restore draft if case hasn't been run yet
+        if (rc.status === "not_run" || !rc.status) {
+          if (draft.notes !== undefined) setNotes(draft.notes);
+        }
+      } catch { /* ignore malformed draft */ }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [runId, rc.id]);
+
+  // ── Auto-save notes draft to localStorage ───────────────────────────────────
+  useEffect(() => {
+    if (!runId || !rc.id) return;
+    const key = draftKey(runId, rc.id);
+    localStorage.setItem(key, JSON.stringify({ notes, status: rc.status }));
+  }, [runId, rc.id, notes, rc.status]);
 
   const updateCase     = useUpdateManagementRunCase(projectId, runId);
   const updateAllSteps = useUpdateManagementStepResult(projectId, rc.id, runId);
@@ -317,25 +346,30 @@ function ExecutionPanel({ rc, projectId, runId, onNext, mpid }: {
   // ── TestRail case-level result: one click → status set for whole case ─────
   const handleCaseStatus = useCallback(async (status: TestRunStatus) => {
     await updateCase.mutateAsync({ runCaseId: rc.id, status, execution_notes: notes || null });
+    // Clear draft once successfully saved to backend
+    localStorage.removeItem(draftKey(runId, rc.id));
     // Auto-advance to next case when marking terminal statuses (pass/fail/skip)
     if (["passed", "failed", "skipped"].includes(status)) {
       setTimeout(() => onNext(), 300);
     }
-  }, [updateCase, rc.id, notes, onNext]);
+  }, [updateCase, rc.id, notes, onNext, runId]);
 
-  // Keyboard shortcuts: P/F/B/S/R (only when not typing in a textarea/input)
+  // Keyboard shortcuts: P/F/B/S/R/N/← and ? (only when not typing in a textarea/input)
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLInputElement) return;
       if (e.metaKey || e.ctrlKey || e.altKey) return;
+      if (e.key === "?") { e.preventDefault(); setShowShortcuts(v => !v); return; }
+      if (e.key === "Escape") { setShowShortcuts(false); return; }
       const map: Record<string, TestRunStatus> = { p: "passed", f: "failed", b: "blocked", s: "skipped", r: "not_run" };
       const action = map[e.key.toLowerCase()];
       if (action) { e.preventDefault(); void handleCaseStatus(action); return; }
-      if (e.key.toLowerCase() === "n") { e.preventDefault(); onNext(); }
+      if (e.key.toLowerCase() === "n" || e.key === "ArrowRight") { e.preventDefault(); onNext(); return; }
+      if (e.key === "ArrowLeft" || e.key === "Backspace") { e.preventDefault(); onPrev?.(); }
     };
     document.addEventListener("keydown", handler);
     return () => document.removeEventListener("keydown", handler);
-  }, [handleCaseStatus, onNext]);
+  }, [handleCaseStatus, onNext, onPrev]);
 
   const handleBulkStatus = async (status: TestRunStatus) => {
     setSaving(true);
@@ -463,6 +497,44 @@ function ExecutionPanel({ rc, projectId, runId, onNext, mpid }: {
         />
       )}
 
+      {showShortcuts && (
+        <div
+          className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center"
+          onClick={() => setShowShortcuts(false)}
+        >
+          <div
+            className="bg-surface-raised rounded-xl p-6 max-w-sm w-full border border-border"
+            onClick={e => e.stopPropagation()}
+          >
+            <h2 className="text-sm font-semibold mb-4">Klavye Kısayolları</h2>
+            <table className="w-full text-xs text-fg-subtle">
+              <tbody>
+                {([
+                  ["P", "Geçti (Passed)"],
+                  ["F", "Başarısız (Failed)"],
+                  ["B", "Engellendi (Blocked)"],
+                  ["S", "Atlandı (Skipped)"],
+                  ["N / →", "Sonraki case"],
+                  ["← / Backspace", "Önceki case"],
+                  ["?", "Bu menüyü aç/kapat"],
+                ] as [string, string][]).map(([key, desc]) => (
+                  <tr key={key}>
+                    <td className="pr-4 py-1 font-mono text-fg">{key}</td>
+                    <td className="py-1">{desc}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <button
+              onClick={() => setShowShortcuts(false)}
+              className="mt-4 text-xs text-brand"
+            >
+              Kapat (Esc)
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Body */}
       <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
 
@@ -540,10 +612,20 @@ function ExecutionPanel({ rc, projectId, runId, onNext, mpid }: {
           <div className="text-[10px] text-slate-600">
             {passedCount}/{steps.length} adım tamamlandı
           </div>
-          <button type="button" onClick={onNext}
-            className="flex items-center gap-1.5 rounded-xl bg-brand px-4 py-2 text-xs font-semibold text-white hover:brightness-105 transition-colors shadow-lg shadow-blue-900/20">
-            <IcSave/> Kaydet & İleri
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              disabled={onPrev === null || saving}
+              onClick={() => onPrev?.()}
+              className="px-3 py-2 rounded-lg border border-border text-sm text-fg-subtle disabled:opacity-30"
+            >
+              ← Önceki
+            </button>
+            <button type="button" onClick={onNext}
+              className="flex items-center gap-1.5 rounded-xl bg-brand px-4 py-2 text-xs font-semibold text-white hover:brightness-105 transition-colors shadow-lg shadow-blue-900/20">
+              <IcSave/> Kaydet & İleri
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -578,6 +660,13 @@ export default function ManagementRunExecutePage() {
     const next = runCases[idx + 1];
     if (next) setSelectedRcId(next.id);
   };
+
+  const activeCaseIndex = runCases.findIndex(rc => rc.id === (selectedRc?.id ?? ""));
+  const prevCaseIndex   = activeCaseIndex > 0 ? activeCaseIndex - 1 : null;
+
+  const goPrev: (() => void) | null = prevCaseIndex !== null
+    ? () => { const prev = runCases[prevCaseIndex]; if (prev) setSelectedRcId(prev.id); }
+    : null;
 
   const passed      = runCases.filter(rc => rc.status === "passed").length;
   const failed      = runCases.filter(rc => rc.status === "failed").length;
@@ -760,7 +849,7 @@ export default function ManagementRunExecutePage() {
                 <p className="text-[11px] text-emerald-500/70">Koşumu tamamlamak için butona tıklayın.</p>
               </div>
             )}
-            <ExecutionPanel rc={selectedRc} projectId={projectId} runId={runId} onNext={goNext} mpid={mpid}/>
+            <ExecutionPanel rc={selectedRc} projectId={projectId} runId={runId} onNext={goNext} onPrev={goPrev} mpid={mpid}/>
           </>
         )}
 

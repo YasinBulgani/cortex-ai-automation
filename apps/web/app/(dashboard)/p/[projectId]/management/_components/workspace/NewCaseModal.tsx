@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
 import {
   DndContext, PointerSensor, KeyboardSensor,
@@ -249,12 +249,34 @@ export function NewCaseModal({ pid, suites, folders, defSuiteId, defFolderId, on
   const [steps,    setSteps]    = useState<DraftStep[]>([step(), step()]);
   const [err,      setErr]      = useState("");
   const [showAI,   setShowAI]   = useState(false);
+  const modalRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const h = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
     document.addEventListener("keydown", h);
     return () => document.removeEventListener("keydown", h);
   }, [onClose]);
+
+  useEffect(() => {
+    const el = modalRef.current;
+    if (!el) return;
+    const focusable = el.querySelectorAll<HTMLElement>(
+      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+    );
+    const first = focusable[0];
+    const last  = focusable[focusable.length - 1];
+    first?.focus();
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== "Tab") return;
+      if (e.shiftKey) {
+        if (document.activeElement === first) { e.preventDefault(); last?.focus(); }
+      } else {
+        if (document.activeElement === last)  { e.preventDefault(); first?.focus(); }
+      }
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, []);
 
   const avFolders = folders.filter(f => !suiteId || f.suite_id === suiteId);
   const sensors = useSensors(
@@ -298,8 +320,13 @@ export function NewCaseModal({ pid, suites, folders, defSuiteId, defFolderId, on
 
   return (
     <div className="fixed inset-0 z-modal flex items-start justify-center overflow-y-auto p-8 bg-black/60 backdrop-blur-sm">
-      <div className={cn("relative w-full rounded-xl border border-border bg-surface-raised shadow-2xl transition-all",
-        showAI ? "flex max-w-4xl gap-0" : "max-w-2xl")}>
+      <div
+        ref={modalRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="new-case-modal-title"
+        className={cn("relative w-full rounded-xl border border-border bg-surface-raised shadow-2xl transition-all",
+          showAI ? "flex max-w-4xl gap-0" : "max-w-2xl")}>
 
         {/* ── AI Panel (sol) ─────────────────────────────────────────────── */}
         {showAI && (
@@ -315,7 +342,7 @@ export function NewCaseModal({ pid, suites, folders, defSuiteId, defFolderId, on
         {/* ── Form (sağ) ─────────────────────────────────────────────────── */}
         <div className="flex flex-1 min-w-0 flex-col">
           <div className="flex items-center justify-between border-b border-border px-6 py-4">
-            <h2 className="text-[15px] font-semibold text-fg">Yeni Test Senaryosu</h2>
+            <h2 id="new-case-modal-title" className="text-[15px] font-semibold text-fg">Yeni Test Senaryosu</h2>
             <div className="flex items-center gap-2">
               <button type="button" onClick={() => setShowAI(v => !v)}
                 className={cn(
@@ -335,48 +362,73 @@ export function NewCaseModal({ pid, suites, folders, defSuiteId, defFolderId, on
 
           <div className="space-y-4 overflow-y-auto px-6 py-5" style={{ maxHeight: "calc(85vh - 130px)" }}>
             <div className="space-y-1">
-              <label className="text-[10px] font-semibold uppercase tracking-widest text-fg-subtle">
+              <label htmlFor="new-case-title" className="text-[10px] font-semibold uppercase tracking-widest text-fg-subtle">
                 Başlık<span className="text-red-400 ml-0.5">*</span>
               </label>
-              <input autoFocus type="text" value={title} onChange={e => setTitle(e.target.value)} placeholder="Senaryo başlığı" className={inp} />
+              <input id="new-case-title" autoFocus type="text" value={title} onChange={e => setTitle(e.target.value)} placeholder="Senaryo başlığı" className={inp} />
             </div>
 
             <div className="grid grid-cols-4 gap-2">
-              <select value={priority} onChange={e => setPriority(e.target.value)} className={sel}>
-                {["P0", "P1", "P2", "P3"].map(v => <option key={v} value={v}>{v}</option>)}
-              </select>
-              <select value={severity} onChange={e => setSeverity(e.target.value)} className={sel}>
-                {["critical", "major", "minor", "trivial"].map(v => <option key={v} value={v}>{v}</option>)}
-              </select>
-              <select value={type} onChange={e => setType(e.target.value)} className={sel}>
-                {TYPE_OPTIONS.map(v => <option key={v} value={v}>{v}</option>)}
-              </select>
-              <select value={status} onChange={e => setStatus(e.target.value)} className={sel}>
-                <option value="draft">Taslak</option>
-                <option value="active">Aktif</option>
-                <option value="review">Review</option>
-              </select>
+              <div>
+                <label htmlFor="new-case-priority" className="sr-only">Öncelik</label>
+                <select id="new-case-priority" value={priority} onChange={e => setPriority(e.target.value)} className={sel}>
+                  {["P0", "P1", "P2", "P3"].map(v => <option key={v} value={v}>{v}</option>)}
+                </select>
+              </div>
+              <div>
+                <label htmlFor="new-case-severity" className="sr-only">Önem Derecesi</label>
+                <select id="new-case-severity" value={severity} onChange={e => setSeverity(e.target.value)} className={sel}>
+                  {["critical", "major", "minor", "trivial"].map(v => <option key={v} value={v}>{v}</option>)}
+                </select>
+              </div>
+              <div>
+                <label htmlFor="new-case-type" className="sr-only">Tür</label>
+                <select id="new-case-type" value={type} onChange={e => setType(e.target.value)} className={sel}>
+                  {TYPE_OPTIONS.map(v => <option key={v} value={v}>{v}</option>)}
+                </select>
+              </div>
+              <div>
+                <label htmlFor="new-case-status" className="sr-only">Durum</label>
+                <select id="new-case-status" value={status} onChange={e => setStatus(e.target.value)} className={sel}>
+                  <option value="draft">Taslak</option>
+                  <option value="active">Aktif</option>
+                  <option value="review">Review</option>
+                </select>
+              </div>
             </div>
 
             <div className="grid grid-cols-2 gap-2">
-              <select value={suiteId} onChange={e => { setSuiteId(e.target.value); setFolderId(""); }} className={sel}>
-                <option value="">Suite seç</option>
-                {suites.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-              </select>
-              <select value={folderId} onChange={e => setFolderId(e.target.value)} className={sel}>
-                <option value="">Folder seç</option>
-                {avFolders.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
-              </select>
+              <div>
+                <label htmlFor="new-case-suite" className="sr-only">Suite</label>
+                <select id="new-case-suite" value={suiteId} onChange={e => { setSuiteId(e.target.value); setFolderId(""); }} className={sel}>
+                  <option value="">Suite seç</option>
+                  {suites.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                </select>
+              </div>
+              <div>
+                <label htmlFor="new-case-folder" className="sr-only">Folder</label>
+                <select id="new-case-folder" value={folderId} onChange={e => setFolderId(e.target.value)} className={sel}>
+                  <option value="">Folder seç</option>
+                  {avFolders.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
+                </select>
+              </div>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
-              <div><label className="mb-1 block text-[10px] font-semibold uppercase tracking-widest text-fg-subtle">Amaç</label>
-                <textarea value={obj} onChange={e => setObj(e.target.value)} rows={2} placeholder="Bu senaryonun amacı…" className={cn(inp, "resize-none")} /></div>
-              <div><label className="mb-1 block text-[10px] font-semibold uppercase tracking-widest text-fg-subtle">Ön Koşullar</label>
-                <textarea value={pre} onChange={e => setPre(e.target.value)} rows={2} placeholder="Başlamak için…" className={cn(inp, "resize-none")} /></div>
+              <div>
+                <label htmlFor="new-case-obj" className="mb-1 block text-[10px] font-semibold uppercase tracking-widest text-fg-subtle">Amaç</label>
+                <textarea id="new-case-obj" value={obj} onChange={e => setObj(e.target.value)} rows={2} placeholder="Bu senaryonun amacı…" className={cn(inp, "resize-none")} />
+              </div>
+              <div>
+                <label htmlFor="new-case-pre" className="mb-1 block text-[10px] font-semibold uppercase tracking-widest text-fg-subtle">Ön Koşullar</label>
+                <textarea id="new-case-pre" value={pre} onChange={e => setPre(e.target.value)} rows={2} placeholder="Başlamak için…" className={cn(inp, "resize-none")} />
+              </div>
             </div>
 
-            <input type="text" value={tagsText} onChange={e => setTagsText(e.target.value)} placeholder="smoke, regression, login…" className={inp} />
+            <div>
+              <label htmlFor="new-case-tags" className="sr-only">Etiketler</label>
+              <input id="new-case-tags" type="text" value={tagsText} onChange={e => setTagsText(e.target.value)} placeholder="smoke, regression, login…" className={inp} />
+            </div>
 
             <div>
               <div className="mb-2 flex items-center justify-between">

@@ -1,23 +1,180 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect, useRef, useCallback } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { useDraggable } from "@dnd-kit/core";
 import type { TestCase } from "@/lib/hooks/use-management";
+import { useCloneManagementCase, useArchiveManagementCase } from "@/lib/hooks/use-management";
 import { P_DOT, S_DOT, R_DOT, IcGrip, IcPlus, IcSearch, IcPlay, TYPE_OPTIONS } from "./shared";
 
-function CaseRow({ tc, selected, onSelect, checked, onCheck, projectId }: {
+// ─── Context Menu ─────────────────────────────────────────────────────────────
+
+interface ContextMenuProps {
+  x: number;
+  y: number;
+  tc: TestCase;
+  projectId: string;
+  onClose: () => void;
+  onClone: () => void;
+  onArchive: () => void;
+}
+
+function CaseContextMenu({ x, y, tc, projectId, onClose, onClone, onArchive }: ContextMenuProps) {
+  const router = useRouter();
+  const menuRef = useRef<HTMLDivElement>(null);
+  const [focusIdx, setFocusIdx] = useState(0);
+
+  // Adjust position to stay within viewport
+  const [pos, setPos] = useState({ x, y });
+  useEffect(() => {
+    const el = menuRef.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    setPos({
+      x: x + rect.width > vw ? vw - rect.width - 8 : x,
+      y: y + rect.height > vh ? vh - rect.height - 8 : y,
+    });
+  }, [x, y]);
+
+  const ITEM_COUNT = 4;
+  const itemsRef = useRef([
+    {
+      label: "Detayları Aç",
+      action: () => { router.push(`/p/${projectId}/management/cases/${tc.id}`); onClose(); },
+    },
+    {
+      label: "Klonla",
+      action: () => { onClone(); onClose(); },
+    },
+    {
+      label: "Arşivle",
+      action: () => { onArchive(); onClose(); },
+    },
+    {
+      label: "Yeni Pencerede Aç",
+      action: () => { window.open(`/p/${projectId}/management/cases/${tc.id}`, "_blank"); onClose(); },
+    },
+  ]);
+  // Keep ref in sync with latest callbacks (closures)
+  itemsRef.current[0].action = () => { router.push(`/p/${projectId}/management/cases/${tc.id}`); onClose(); };
+  itemsRef.current[1].action = () => { onClone(); onClose(); };
+  itemsRef.current[2].action = () => { onArchive(); onClose(); };
+  itemsRef.current[3].action = () => { window.open(`/p/${projectId}/management/cases/${tc.id}`, "_blank"); onClose(); };
+
+  const items = itemsRef.current;
+
+  useEffect(() => {
+    function handleKey(e: KeyboardEvent) {
+      if (e.key === "Escape") { onClose(); return; }
+      if (e.key === "ArrowDown") { setFocusIdx(i => (i + 1) % ITEM_COUNT); e.preventDefault(); }
+      if (e.key === "ArrowUp")   { setFocusIdx(i => (i - 1 + ITEM_COUNT) % ITEM_COUNT); e.preventDefault(); }
+      if (e.key === "Enter")     { itemsRef.current[focusIdx]?.action(); e.preventDefault(); }
+    }
+    document.addEventListener("keydown", handleKey);
+    return () => document.removeEventListener("keydown", handleKey);
+  }, [focusIdx, onClose]);
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        onClose();
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [onClose]);
+
+  return createPortal(
+    <div
+      ref={menuRef}
+      role="menu"
+      aria-label="Case işlemleri"
+      className="fixed z-[9000] min-w-[160px] overflow-hidden rounded-xl border border-border bg-surface-raised py-1 shadow-elevated"
+      style={{ left: pos.x, top: pos.y }}
+    >
+      <p className="px-3 py-1.5 text-[9px] font-semibold uppercase tracking-widest text-fg-subtle">
+        {tc.case_key}
+      </p>
+      <div className="my-1 border-t border-border" />
+      {items.map((item, idx) => (
+        <button
+          key={item.label}
+          type="button"
+          role="menuitem"
+          onClick={item.action}
+          onMouseEnter={() => setFocusIdx(idx)}
+          className={cn(
+            "flex w-full items-center gap-2 px-3 py-2 text-left text-[12px] transition-colors",
+            focusIdx === idx
+              ? "bg-brand-soft text-brand"
+              : "text-fg-muted hover:bg-surface-overlay hover:text-fg",
+          )}
+        >
+          {item.label}
+        </button>
+      ))}
+    </div>,
+    document.body,
+  );
+}
+
+function IcCopy() {
+  return (
+    <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+    </svg>
+  );
+}
+
+function CaseRow({ tc, selected, onSelect, checked, onCheck, projectId, onCloned }: {
   tc: TestCase; selected: boolean; onSelect: () => void;
   checked: boolean; onCheck: (e: React.MouseEvent) => void; projectId: string;
+  onCloned?: (newCaseId: string) => void;
 }) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: `case:${tc.id}`, data: { kind: "case", caseId: tc.id } });
+  const clone   = useCloneManagementCase(projectId);
+  const archive = useArchiveManagementCase(projectId);
+  const [cloning, setCloning] = useState(false);
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
+
   const pd = P_DOT[tc.priority] ?? P_DOT.P3;
   const sd = S_DOT[tc.status] ?? S_DOT.draft;
   const rd = tc.last_run_status ? (R_DOT[tc.last_run_status] ?? R_DOT.not_run) : null;
 
+  async function handleClone(e: React.MouseEvent) {
+    e.stopPropagation();
+    if (cloning) return;
+    setCloning(true);
+    try {
+      const res = await clone.mutateAsync({ caseId: tc.id });
+      onCloned?.(res.id);
+    } finally {
+      setCloning(false);
+    }
+  }
+
+  function handleContextMenu(e: React.MouseEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    setContextMenu({ x: e.clientX, y: e.clientY });
+  }
+
+  async function handleArchive() {
+    try {
+      await archive.mutateAsync(tc.id);
+    } catch {
+      // silently ignore — parent will refetch
+    }
+  }
+
   return (
-    <tr ref={setNodeRef} onClick={onSelect}
+    <>
+    <tr ref={setNodeRef} onClick={onSelect} onContextMenu={handleContextMenu}
       className={cn("group border-b border-border cursor-pointer transition-colors",
         isDragging && "opacity-30",
         selected ? "border-l-2 border-l-brand bg-brand-soft" : "border-l-2 border-l-transparent hover:bg-surface-overlay")}>
@@ -38,7 +195,12 @@ function CaseRow({ tc, selected, onSelect, checked, onCheck, projectId }: {
         <span className="select-all font-mono text-[10px] text-fg-subtle">{tc.case_key}</span>
       </td>
       <td className="px-3 py-3">
-        <p className="line-clamp-1 text-[13px] text-fg-muted transition-colors group-hover:text-fg">{tc.title}</p>
+        <div className="flex items-center gap-1.5">
+          {tc.parent_id && (
+            <span className="shrink-0 rounded border border-brand/20 bg-brand-soft px-1 py-0.5 text-[9px] font-medium text-brand" title="Alt senaryo">↳</span>
+          )}
+          <p className="line-clamp-1 text-[13px] text-fg-muted transition-colors group-hover:text-fg">{tc.title}</p>
+        </div>
         {tc.tags && tc.tags.length > 0 && (
           <div className="mt-1 flex gap-1">
             {tc.tags.slice(0, 3).map(t => <span key={t} className="rounded border border-border bg-surface-overlay px-1.5 py-0.5 text-[10px] text-fg-subtle">{t}</span>)}
@@ -76,15 +238,43 @@ function CaseRow({ tc, selected, onSelect, checked, onCheck, projectId }: {
           {tc.updated_at ? new Date(tc.updated_at).toLocaleDateString("tr-TR", { day: "2-digit", month: "short" }) : "—"}
         </span>
       </td>
-      <td className="w-10 px-2">
-        <Link href={`/p/${projectId}/management/cases/${tc.id}`} onClick={e => e.stopPropagation()}
-          className="invisible inline-flex rounded p-1 text-fg-subtle transition-all hover:bg-surface-overlay hover:text-fg group-hover:visible">
-          <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
-        </Link>
+      <td className="w-20 px-2">
+        <div className="invisible flex items-center gap-0.5 group-hover:visible">
+          <button type="button" onClick={handleClone} disabled={cloning} title="Klonla"
+            className="inline-flex rounded p-1 text-fg-subtle transition-all hover:bg-surface-overlay hover:text-fg disabled:opacity-40">
+            <IcCopy />
+          </button>
+          <Link href={`/p/${projectId}/management/cases/${tc.id}`} onClick={e => e.stopPropagation()}
+            className="inline-flex rounded p-1 text-fg-subtle transition-all hover:bg-surface-overlay hover:text-fg">
+            <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+          </Link>
+        </div>
       </td>
     </tr>
+    {contextMenu && (
+      <CaseContextMenu
+        x={contextMenu.x}
+        y={contextMenu.y}
+        tc={tc}
+        projectId={projectId}
+        onClose={() => setContextMenu(null)}
+        onClone={async () => {
+          setCloning(true);
+          try {
+            const res = await clone.mutateAsync({ caseId: tc.id });
+            onCloned?.(res.id);
+          } finally {
+            setCloning(false);
+          }
+        }}
+        onArchive={handleArchive}
+      />
+    )}
+    </>
   );
 }
+
+const VISIBLE_COUNT = 50;
 
 export function CaseTable({
   nodeName, nodeCases, loading, projectId,
@@ -96,10 +286,26 @@ export function CaseTable({
   checked: Set<string>; onCheck: (id: string) => void; onClearChecked: () => void; onToggleAll: (ids: string[]) => void;
   onNewCase: () => void; onCreateRun: () => void; onPromote: () => void; onArchiveMany: () => void; busy: boolean;
 }) {
-  const [search, setSearch] = useState("");
-  const [statusF, setStatusF] = useState("");
-  const [priorityF, setPriorityF] = useState("");
-  const [typeF, setTypeF] = useState("");
+  const router    = useRouter();
+  const pathname  = usePathname();
+  const params    = useSearchParams();
+
+  const [search,    setSearch]    = useState(() => params.get("q")  ?? "");
+  const [statusF,   setStatusF]   = useState(() => params.get("s")  ?? "");
+  const [priorityF, setPriorityF] = useState(() => params.get("p")  ?? "");
+  const [typeF,     setTypeF]     = useState(() => params.get("t")  ?? "");
+  const [page,      setPage]      = useState(0);
+  const tableTopRef = useRef<HTMLDivElement>(null);
+
+  // Sync filters → URL (debounced to avoid thrashing)
+  useEffect(() => {
+    const sp = new URLSearchParams(params.toString());
+    if (search)    sp.set("q", search);    else sp.delete("q");
+    if (statusF)   sp.set("s", statusF);   else sp.delete("s");
+    if (priorityF) sp.set("p", priorityF); else sp.delete("p");
+    if (typeF)     sp.set("t", typeF);     else sp.delete("t");
+    router.replace(`${pathname}?${sp.toString()}`, { scroll: false });
+  }, [search, statusF, priorityF, typeF]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const filtered = useMemo(() => {
     let r = nodeCases;
@@ -111,6 +317,23 @@ export function CaseTable({
     return r;
   }, [nodeCases, search, statusF, priorityF, typeF]);
 
+  // Reset page when filters change
+  useEffect(() => { setPage(0); }, [search, statusF, priorityF, typeF, nodeCases]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / VISIBLE_COUNT));
+  const safePage = Math.min(page, totalPages - 1);
+  const paginated = filtered.slice(safePage * VISIBLE_COUNT, (safePage + 1) * VISIBLE_COUNT);
+
+  const goToPrev = useCallback(() => {
+    setPage(p => Math.max(0, p - 1));
+    tableTopRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, []);
+
+  const goToNext = useCallback(() => {
+    setPage(p => Math.min(totalPages - 1, p + 1));
+    tableTopRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [totalPages]);
+
   const allChecked = filtered.length > 0 && filtered.every(c => checked.has(c.id));
   const hasFilter = !!(search || statusF || priorityF || typeF);
   const clearFilters = () => { setSearch(""); setStatusF(""); setPriorityF(""); setTypeF(""); };
@@ -118,7 +341,7 @@ export function CaseTable({
   const SEL = "rounded-xl border border-border bg-surface-raised px-2.5 py-1.5 text-[11px] text-fg-muted outline-none transition-colors focus:border-brand focus:ring-2 focus:ring-brand/15";
 
   return (
-    <div className="flex flex-1 flex-col min-w-0 overflow-hidden">
+    <div ref={tableTopRef} className="flex flex-1 flex-col min-w-0 overflow-hidden">
       {/* Toolbar */}
       <div className="flex flex-wrap items-center gap-2 border-b border-border bg-surface-raised px-4 py-2.5">
         <span className="mr-1 text-[13px] font-semibold text-fg">{nodeName}</span>
@@ -210,24 +433,48 @@ export function CaseTable({
               </tr>
             </thead>
             <tbody>
-              {filtered.map(tc => (
+              {paginated.map(tc => (
                 <CaseRow key={tc.id} tc={tc}
                   selected={selId === tc.id}
                   onSelect={() => onSelect(tc.id)}
                   checked={checked.has(tc.id)}
                   onCheck={e => { e.stopPropagation(); onCheck(tc.id); }}
-                  projectId={projectId} />
+                  projectId={projectId}
+                  onCloned={(newId) => onSelect(newId)} />
               ))}
             </tbody>
           </table>
         )}
       </div>
 
-      {/* Footer */}
-      <div className="flex items-center justify-between border-t border-border bg-surface-raised px-4 py-1.5">
-        <span className="text-[10px] text-fg-subtle">
+      {/* Footer / Pagination */}
+      <div className="flex items-center justify-between border-t border-border bg-surface-raised px-4 py-1.5 gap-2">
+        <span className="text-[10px] text-fg-subtle shrink-0">
           {hasFilter ? `${filtered.length} / ${nodeCases.length}` : `${filtered.length} senaryo`}
         </span>
+        {filtered.length > VISIBLE_COUNT && (
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={goToPrev}
+              disabled={safePage === 0}
+              className="rounded-lg border border-border px-2 py-0.5 text-[10px] text-fg-muted transition-colors hover:bg-surface-overlay hover:text-fg disabled:opacity-30"
+            >
+              ← Önceki
+            </button>
+            <span className="text-[10px] text-fg-subtle tabular-nums">
+              {safePage * VISIBLE_COUNT + 1}–{Math.min((safePage + 1) * VISIBLE_COUNT, filtered.length)} / {filtered.length} case
+            </span>
+            <button
+              type="button"
+              onClick={goToNext}
+              disabled={safePage >= totalPages - 1}
+              className="rounded-lg border border-border px-2 py-0.5 text-[10px] text-fg-muted transition-colors hover:bg-surface-overlay hover:text-fg disabled:opacity-30"
+            >
+              Sonraki →
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

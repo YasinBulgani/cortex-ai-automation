@@ -39,9 +39,31 @@ const nextConfig = {
     ],
   },
 
-  // ── Performans: HTTP Cache headers — statik varlıklar uzun süre cache ─
+  // ── Güvenlik + Performans: HTTP headers ────────────────────────────────
   async headers() {
     return [
+      {
+        // Güvenlik header'ları — tüm route'lara uygulanır
+        source: "/(.*)",
+        headers: [
+          {
+            key: "Content-Security-Policy",
+            value: [
+              "default-src 'self'",
+              "script-src 'self' 'unsafe-eval' 'unsafe-inline'", // Next.js için gerekli
+              "style-src 'self' 'unsafe-inline'",
+              "img-src 'self' data: blob: https:",
+              "font-src 'self'",
+              "connect-src 'self' https: wss:",
+              "frame-ancestors 'none'",
+            ].join("; "),
+          },
+          { key: "X-Frame-Options", value: "DENY" },
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+          { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
+        ],
+      },
       {
         // Next.js'in ürettiği statik dosyalar (/_next/static/*)
         // 1 yıl boyunca immutable olarak cache'lenir (content-hash ile)
@@ -76,6 +98,11 @@ const nextConfig = {
       {
         source: "/api/v1/:path*",
         destination: `${target}/api/v1/:path*`,
+      },
+      {
+        // Jira entegrasyonu — /api/jira/* backend'e proxy'lenir
+        source: "/api/jira/:path*",
+        destination: `${target}/api/jira/:path*`,
       },
     ];
   },

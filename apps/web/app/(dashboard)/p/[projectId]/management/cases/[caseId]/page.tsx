@@ -3,6 +3,23 @@
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+  useSortable,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import {
   useManagementCase,
   useManagementCaseVersions,
   useUpdateManagementCase,
@@ -19,15 +36,34 @@ import { useRouteParam } from "@/lib/use-route-param";
 import { CommentThread } from "../../_components/CommentThread";
 import { SharedStepPicker } from "../../_components/SharedStepPicker";
 
+function SortableStepCard({ id, children }: { id: string; children: React.ReactNode }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+  return (
+    <div ref={setNodeRef} style={style} {...attributes}>
+      <div className="flex items-start gap-2">
+        <button {...listeners} className="mt-1 cursor-grab text-slate-600 hover:text-slate-400 p-1" title="Sürükle" type="button">
+          ⠿
+        </button>
+        <div className="flex-1">{children}</div>
+      </div>
+    </div>
+  );
+}
+
 const PRIORITY_OPTIONS = ["P0", "P1", "P2", "P3"];
 const SEVERITY_OPTIONS = ["blocker", "critical", "major", "minor", "trivial"];
 const TYPE_OPTIONS = ["manual", "exploratory", "regression", "smoke", "uat"];
 const STATUS_OPTIONS = ["draft", "ready", "active", "archived"];
 
-type DraftStep = { id?: string; step_no: number; action: string; expected_result: string; test_data: string };
+type DraftStep = { id: string; step_no: number; action: string; expected_result: string; test_data: string; is_required: boolean; notes: string };
 
 function makeStep(no: number): DraftStep {
-  return { step_no: no, action: "", expected_result: "", test_data: "" };
+  return { id: crypto.randomUUID(), step_no: no, action: "", expected_result: "", test_data: "", is_required: true, notes: "" };
 }
 
 export default function ManagementCaseDetailPage() {
@@ -61,6 +97,7 @@ export default function ManagementCaseDetailPage() {
   const [dirty, setDirty]             = useState(false);
   const [saving, setSaving]           = useState(false);
   const [saveError, setSaveError]     = useState("");
+  const [titleError, setTitleError]   = useState<string|null>(null);
   const [activeTab, setActiveTab]     = useState<"edit" | "comments" | "history">("edit");
   const [revertMsg, setRevertMsg]     = useState("");
   const [showStepPicker, setShowStepPicker] = useState(false);
@@ -85,11 +122,13 @@ export default function ManagementCaseDetailPage() {
     setSteps(
       tc.steps && tc.steps.length > 0
         ? tc.steps.map((s: TestCaseStep) => ({
-            id: s.id,
+            id: s.id ?? crypto.randomUUID(),
             step_no: s.step_no,
             action: s.action,
             expected_result: s.expected_result,
             test_data: typeof s.test_data === "string" ? s.test_data : JSON.stringify(s.test_data ?? {}),
+            is_required: (s as unknown as { is_required?: boolean }).is_required ?? true,
+            notes: (s as unknown as { notes?: string }).notes ?? "",
           }))
         : [makeStep(1)]
     );
@@ -100,6 +139,15 @@ export default function ManagementCaseDetailPage() {
   const handleSave = async () => {
     if (!dirty) return;
     if (!caseId || !mpid) return;
+    if (!title || title.trim().length === 0) {
+      setTitleError("Başlık boş bırakılamaz")
+      return
+    }
+    if (title.trim().length > 500) {
+      setTitleError("Başlık en fazla 500 karakter olabilir")
+      return
+    }
+    setTitleError(null)
     setSaveError("");
     setSaving(true);
     try {
@@ -123,8 +171,8 @@ export default function ManagementCaseDetailPage() {
           action: s.action,
           expected_result: s.expected_result,
           test_data: {},
-          notes: null,
-          is_required: true,
+          notes: s.notes ?? "",
+          is_required: s.is_required ?? true,
         })),
       });
       setDirty(false);
@@ -155,11 +203,13 @@ export default function ManagementCaseDetailPage() {
     setSteps(
       rawSteps && rawSteps.length > 0
         ? rawSteps.map((s: TestCaseStep) => ({
-            id: s.id,
+            id: s.id ?? crypto.randomUUID(),
             step_no: s.step_no,
             action: s.action,
             expected_result: s.expected_result,
             test_data: typeof s.test_data === "string" ? s.test_data : JSON.stringify(s.test_data ?? {}),
+            is_required: (s as unknown as { is_required?: boolean }).is_required ?? true,
+            notes: (s as unknown as { notes?: string }).notes ?? "",
           }))
         : [makeStep(1)]
     );
@@ -186,13 +236,33 @@ export default function ManagementCaseDetailPage() {
 
   const insertSharedSteps = (sharedItems: import("@/lib/hooks/use-management").SharedStepItem[]) => {
     const newSteps: DraftStep[] = sharedItems.map((s, i) => ({
+      id: crypto.randomUUID(),
       step_no: steps.length + i + 1,
       action: s.action,
       expected_result: s.expected_result ?? "",
       test_data: "",
+      notes: s.notes ?? "",
+      is_required: s.is_required ?? true,
     }));
     setSteps(prev => [...prev, ...newSteps]);
     markDirty();
+  };
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (active.id !== over?.id) {
+      setSteps(prev => {
+        const oldIdx = prev.findIndex(s => s.id === active.id);
+        const newIdx = prev.findIndex(s => s.id === over!.id);
+        return arrayMove(prev, oldIdx, newIdx).map((s, i) => ({ ...s, step_no: i + 1 }));
+      });
+      markDirty();
+    }
   };
 
   if (isLoading) {
@@ -315,11 +385,16 @@ export default function ManagementCaseDetailPage() {
             <label className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-slate-600">Başlık</label>
             <input
               value={title}
-              onChange={e => { setTitle(e.target.value); markDirty(); }}
+              onChange={e => { setTitle(e.target.value); markDirty(); if (titleError) setTitleError(null); }}
               onBlur={handleSave}
+              maxLength={500}
               className="w-full rounded-md border border-border bg-white/[0.02] px-3 py-2 text-base font-medium text-slate-100 placeholder-slate-600 outline-none focus:border-teal-500/50"
               placeholder="Test case başlığı"
             />
+            <div className="flex items-center justify-between mt-1">
+              {titleError ? <p className="text-red-400 text-xs">{titleError}</p> : <span />}
+              <span className={`text-xs ${title.length >= 480 ? "text-amber-400" : "text-fg-subtle"}`}>{title.length}/500</span>
+            </div>
           </div>
 
           {/* Objective */}
@@ -330,9 +405,11 @@ export default function ManagementCaseDetailPage() {
               value={objective}
               onChange={e => { setObjective(e.target.value); markDirty(); }}
               onBlur={handleSave}
+              maxLength={2000}
               className="w-full resize-none rounded-md border border-border bg-white/[0.02] px-3 py-2 text-[13px] text-slate-200 placeholder-slate-600 outline-none focus:border-teal-500/50"
               placeholder="Test'in amacı…"
             />
+            <span className={`text-xs ${objective.length >= 1900 ? "text-amber-400" : "text-fg-subtle"}`}>{objective.length}/2000</span>
           </div>
 
           {/* Preconditions */}
@@ -343,9 +420,11 @@ export default function ManagementCaseDetailPage() {
               value={preconditions}
               onChange={e => { setPreconditions(e.target.value); markDirty(); }}
               onBlur={handleSave}
+              maxLength={2000}
               className="w-full resize-none rounded-md border border-border bg-white/[0.02] px-3 py-2 text-[13px] text-slate-200 placeholder-slate-600 outline-none focus:border-teal-500/50"
               placeholder="Gerekli ön koşullar…"
             />
+            <span className={`text-xs ${preconditions.length >= 1900 ? "text-amber-400" : "text-fg-subtle"}`}>{preconditions.length}/2000</span>
           </div>
 
           {/* Steps */}
@@ -368,46 +447,52 @@ export default function ManagementCaseDetailPage() {
                 </button>
               </div>
             </div>
-            <div className="space-y-2">
-              {steps.map((step, idx) => (
-                <div key={idx} className="rounded-md border border-border bg-white/[0.02] p-3">
-                  <div className="mb-2 flex items-center justify-between">
-                    <span className="text-[10px] text-slate-600">Adım {idx + 1}</span>
-                    {steps.length > 1 && (
-                      <button
-                        type="button"
-                        onClick={() => removeStep(idx)}
-                        className="text-[10px] text-slate-600 hover:text-red-400 transition-colors"
-                      >
-                        Kaldır
-                      </button>
-                    )}
-                  </div>
-                  <div className="space-y-2">
-                    <textarea
-                      rows={2}
-                      placeholder="Aksiyon"
-                      value={step.action}
-                      onChange={e => updateStep(idx, "action", e.target.value)}
-                      className="w-full resize-none rounded border border-border bg-white/[0.02] px-2 py-1.5 text-[13px] text-slate-200 placeholder-slate-600 outline-none focus:border-teal-500/50"
-                    />
-                    <textarea
-                      rows={2}
-                      placeholder="Beklenen sonuç"
-                      value={step.expected_result}
-                      onChange={e => updateStep(idx, "expected_result", e.target.value)}
-                      className="w-full resize-none rounded border border-border bg-white/[0.02] px-2 py-1.5 text-[13px] text-slate-200 placeholder-slate-600 outline-none focus:border-teal-500/50"
-                    />
-                    <input
-                      placeholder="Test verisi (opsiyonel)"
-                      value={step.test_data}
-                      onChange={e => updateStep(idx, "test_data", e.target.value)}
-                      className="w-full rounded border border-border bg-white/[0.02] px-2 py-1.5 text-[11px] text-slate-400 placeholder-slate-600 outline-none focus:border-teal-500/50"
-                    />
-                  </div>
+            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+              <SortableContext items={steps.map(s => s.id)} strategy={verticalListSortingStrategy}>
+                <div className="space-y-2">
+                  {steps.map((step, idx) => (
+                    <SortableStepCard key={step.id} id={step.id}>
+                      <div className="rounded-md border border-border bg-white/[0.02] p-3">
+                        <div className="mb-2 flex items-center justify-between">
+                          <span className="text-[10px] text-slate-600">Adım {idx + 1}</span>
+                          {steps.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() => removeStep(idx)}
+                              className="text-[10px] text-slate-600 hover:text-red-400 transition-colors"
+                            >
+                              Kaldır
+                            </button>
+                          )}
+                        </div>
+                        <div className="space-y-2">
+                          <textarea
+                            rows={2}
+                            placeholder="Aksiyon"
+                            value={step.action}
+                            onChange={e => updateStep(idx, "action", e.target.value)}
+                            className="w-full resize-none rounded border border-border bg-white/[0.02] px-2 py-1.5 text-[13px] text-slate-200 placeholder-slate-600 outline-none focus:border-teal-500/50"
+                          />
+                          <textarea
+                            rows={2}
+                            placeholder="Beklenen sonuç"
+                            value={step.expected_result}
+                            onChange={e => updateStep(idx, "expected_result", e.target.value)}
+                            className="w-full resize-none rounded border border-border bg-white/[0.02] px-2 py-1.5 text-[13px] text-slate-200 placeholder-slate-600 outline-none focus:border-teal-500/50"
+                          />
+                          <input
+                            placeholder="Test verisi (opsiyonel)"
+                            value={step.test_data}
+                            onChange={e => updateStep(idx, "test_data", e.target.value)}
+                            className="w-full rounded border border-border bg-white/[0.02] px-2 py-1.5 text-[11px] text-slate-400 placeholder-slate-600 outline-none focus:border-teal-500/50"
+                          />
+                        </div>
+                      </div>
+                    </SortableStepCard>
+                  ))}
                 </div>
-              ))}
-            </div>
+              </SortableContext>
+            </DndContext>
           </div>
         </div>
 

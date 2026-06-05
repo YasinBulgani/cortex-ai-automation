@@ -33,6 +33,9 @@ import { NewRunModal } from "./NewRunModal";
 import { type WsNode } from "./shared";
 import { CaseRow, ArchivedCaseRow } from "./CaseRow";
 import { RunTabHeader, type RunFilters } from "./RunTabHeader";
+import { WorkspaceFilterBar } from "./WorkspaceFilterBar";
+import { WorkspaceBulkActions } from "./WorkspaceBulkActions";
+import { WorkspaceEmptyState } from "./WorkspaceEmptyState";
 
 type DragData =
   | { kind: "case"; caseId: string }
@@ -45,13 +48,8 @@ type DragData =
 function IcCheck() {
   return <svg className="h-2.5 w-2.5" fill="none" viewBox="0 0 10 10" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M1.5 5l2.5 2.5 4.5-4.5" /></svg>;
 }
-function IcSearch() {
-  return <svg className="h-3.5 w-3.5 shrink-0 text-fg-subtle" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>;
-}
 
 // ─── Case Table (ultra-clean TestRail style) ──────────────────────────────────
-
-const SEL_CLS = "h-8 rounded-lg border border-border bg-surface-raised px-2.5 text-[11px] font-medium text-fg-muted outline-none transition-colors cursor-pointer hover:border-border-strong focus:border-brand focus:ring-2 focus:ring-brand/15";
 
 function CaseTable({
   nodeName, nodeCases, archivedCases, loading, projectId,
@@ -82,11 +80,8 @@ function CaseTable({
   const [showArchived, setShowArchived] = useState(false);
   const [cloningId,    setCloningId]    = useState<string | null>(null);
   const [unarchivedId, setUnarchivedId] = useState<string | null>(null);
-  const [cloneProgress, setCloneProgress] = useState<{ done: number; total: number } | null>(null);
   const [sortCol, setSortCol] = useState<string>("updated_at");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
-  const [tagInput, setTagInput] = useState("");
-  const [showTagInput, setShowTagInput] = useState(false);
 
   const searchTimer = useRef<ReturnType<typeof setTimeout>>();
   const [debouncedSearch, setDebouncedSearch] = useState(search);
@@ -138,14 +133,6 @@ function CaseTable({
     [checked, archivedCases],
   );
 
-  const handleBulkClone = async () => {
-    if (!checkedIds.length) return;
-    setCloneProgress({ done: 0, total: checkedIds.length });
-    await onBulkClone(checkedIds);
-    setCloneProgress(null);
-    onClearChecked();
-  };
-
   const handleCloneRow = async (caseId: string) => {
     setCloningId(caseId);
     try { await onCloneCase(caseId); }
@@ -162,220 +149,48 @@ function CaseTable({
     <div className="flex flex-1 flex-col min-w-0 overflow-hidden">
 
       {/* ── Toolbar ─────────────────────────────────────────────────────────── */}
-      <div className="flex flex-wrap items-center gap-2 border-b border-border bg-surface-raised px-4 py-3 shadow-xs">
-        {/* Section name + count */}
-        <span className="mr-1 text-[14px] font-semibold text-fg">{nodeName}</span>
-        <span className="rounded-full border border-border bg-surface-overlay px-2 py-0.5 text-[10px] font-medium tabular-nums text-fg-muted">
-          {filtered.length}{hasFilter && `/${nodeCases.length}`}
-        </span>
-        {/* Quick filters */}
-        {nodeCases.some(c => c.last_run_status === "failed") && (
-          <button type="button"
-            onClick={() => setStatus(status === "failed" ? "" : "failed")}
-            className={cn("rounded-full border px-2 py-0.5 text-[10px] font-medium transition-colors",
-              status === "failed" ? "bg-red-500/15 border-red-500/30 text-red-400" : "border-red-500/20 text-red-500/60 hover:text-red-400")}>
-            {nodeCases.filter(c => c.last_run_status === "failed").length} fail
-          </button>
-        )}
-        {nodeCases.some(c => c.last_run_status === "blocked") && (
-          <button type="button"
-            onClick={() => setStatus(status === "blocked" ? "" : "blocked")}
-            className={cn("rounded-full border px-2 py-0.5 text-[10px] font-medium transition-colors",
-              status === "blocked" ? "bg-amber-500/15 border-amber-500/30 text-amber-400" : "border-amber-500/20 text-amber-500/60 hover:text-amber-400")}>
-            {nodeCases.filter(c => c.last_run_status === "blocked").length} blk
-          </button>
-        )}
-
-        {/* Archived toggle */}
-        {archivedCases.length > 0 && (
-          <button type="button"
-            onClick={() => setShowArchived(v => !v)}
-            className={cn(
-              "rounded-full border px-2 py-0.5 text-[10px] font-medium transition-colors",
-              showArchived
-                ? "border-amber-500/30 bg-amber-500/10 text-amber-400"
-                : "border-border text-fg-subtle hover:text-fg",
-            )}>
-            {showArchived ? "Arşivi Gizle" : `Arşiv (${archivedCases.length})`}
-          </button>
-        )}
-
-        <div className="flex-1" />
-
-        {/* Search + active filter badge */}
-        <div className="flex items-center gap-1.5">
-          <div className="flex w-44 items-center gap-1.5 rounded-lg border border-border bg-surface-raised px-2.5 py-1.5 shadow-xs transition-colors focus-within:border-brand focus-within:ring-2 focus-within:ring-brand/15">
-            <IcSearch />
-            <input
-              type="text" value={search} onChange={e => setSearch(e.target.value)}
-              placeholder="Ara…"
-              className="flex-1 bg-transparent text-[11px] text-fg placeholder:text-fg-subtle outline-none min-w-0"
-            />
-          </div>
-          {activeFilterCount > 0 && (
-            <span className="rounded-full bg-brand px-2 py-0.5 text-[10px] font-semibold text-brand-fg">
-              {activeFilterCount}
-            </span>
-          )}
-        </div>
-
-        {/* Filters */}
-        <select value={priority} onChange={e => setPriority(e.target.value)} className={SEL_CLS}>
-          <option value="">Öncelik</option>
-          {["P0","P1","P2","P3"].map(v => <option key={v} value={v}>{v}</option>)}
-        </select>
-        <select value={type} onChange={e => setType(e.target.value)} className={cn(SEL_CLS, "hidden lg:block")}>
-          <option value="">Tür</option>
-          {["manual","smoke","regression","uat","exploratory","api","e2e"].map(v =>
-            <option key={v} value={v}>{v}</option>
-          )}
-        </select>
-        <select value={status} onChange={e => setStatus(e.target.value)} className={SEL_CLS}>
-          <option value="">Koşum</option>
-          {["passed","failed","blocked","skipped"].map(v => <option key={v} value={v}>{v}</option>)}
-        </select>
-        {hasFilter && (
-          <button
-            type="button"
-            onClick={clearAll}
-            title="Filtreleri temizle"
-            className="relative inline-flex items-center justify-center h-6 w-6 rounded-full bg-red-500/15 border border-red-500/25 text-red-400 transition-colors hover:bg-red-500/25 hover:border-red-500/40"
-          >
-            <svg className="h-3 w-3" fill="none" viewBox="0 0 12 12" stroke="currentColor" strokeWidth={2.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M2 2l8 8M10 2l-8 8" />
-            </svg>
-            {activeFilterCount > 0 && (
-              <span className="absolute -top-1 -right-1 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-red-500 text-[8px] font-bold text-white leading-none">
-                {activeFilterCount}
-              </span>
-            )}
-          </button>
-        )}
-
-        {/* Add case */}
-        <button type="button" onClick={onNewCase}
-          className="flex items-center gap-1.5 rounded-lg bg-brand px-3 py-1.5 text-[12px] font-semibold text-brand-fg shadow-sm transition-colors hover:brightness-105">
-          + Senaryo
-        </button>
-      </div>
+      <WorkspaceFilterBar
+        nodeName={nodeName}
+        totalCount={nodeCases.length}
+        filteredCount={filtered.length}
+        hasFilter={hasFilter}
+        search={search}
+        priority={priority}
+        type={type}
+        status={status}
+        activeFilterCount={activeFilterCount}
+        showArchived={showArchived}
+        archivedCount={archivedCases.length}
+        failedCount={nodeCases.filter(c => c.last_run_status === "failed").length}
+        blockedCount={nodeCases.filter(c => c.last_run_status === "blocked").length}
+        onSearchChange={setSearch}
+        onPriorityChange={setPriority}
+        onTypeChange={setType}
+        onStatusChange={setStatus}
+        onToggleArchived={() => setShowArchived(v => !v)}
+        onClearAll={clearAll}
+        onNewCase={onNewCase}
+      />
 
       {/* ── Bulk action bar ─────────────────────────────────────────────────── */}
-      {checked.size > 0 && (
-        <div className="flex flex-wrap items-center gap-2 border-b border-brand/20 bg-brand-soft px-4 py-2">
-          {/* Counter + select all */}
-          <span className="text-[11px] font-semibold text-brand">
-            {checked.size} senaryo seçili
-          </span>
-          <button type="button"
-            onClick={() => onToggleAll(nodeCases.map(c => c.id))}
-            className="rounded border border-brand/25 px-1.5 py-0.5 text-[10px] text-brand hover:bg-brand/10 transition-colors">
-            Tümünü Seç
-          </button>
-          <span className="text-[10px] text-fg-disabled">|</span>
-          <button type="button" onClick={onCreateRun} disabled={busy}
-            className="rounded-md border border-brand/25 bg-surface-raised px-2.5 py-1 text-[11px] font-medium text-brand transition-colors hover:bg-surface-overlay disabled:opacity-40">
-            ▶ Run Oluştur
-          </button>
-          <button type="button" onClick={onPromote} disabled={busy}
-            className="rounded border border-border px-2.5 py-1 text-[11px] text-fg-muted hover:text-fg disabled:opacity-40 transition-colors">
-            Aktife Al
-          </button>
-          {/* Bulk priority */}
-          <select disabled={busy} onChange={async e => {
-            if (!e.target.value) return;
-            await onBulkUpdate({ case_ids: [...checked], priority: e.target.value });
-            onClearChecked();
-            e.target.value = "";
-          }}
-            className="rounded border border-border bg-surface-raised px-2 py-1 text-[11px] text-fg-muted disabled:opacity-40 outline-none cursor-pointer">
-            <option value="">Öncelik Değiştir →</option>
-            {["P0","P1","P2","P3"].map(p => <option key={p} value={p}>{p}</option>)}
-          </select>
-          {/* Bulk move: suite picker */}
-          <select disabled={busy} onChange={async e => {
-            if (!e.target.value) return;
-            const [suiteId, folderId] = e.target.value.split("|");
-            const ids = [...checked];
-            for (const id of ids) {
-              await onBulkMove(id, suiteId, folderId || null);
-            }
-            onClearChecked();
-            e.target.value = "";
-          }}
-            className="rounded border border-border bg-surface-raised px-2 py-1 text-[11px] text-fg-muted disabled:opacity-40 outline-none cursor-pointer">
-            <option value="">Suite/Folder Taşı →</option>
-            {suites.map(s => (
-              <optgroup key={s.id} label={s.name}>
-                <option value={`${s.id}|`}>{s.name} (kök)</option>
-                {folders.filter(f => f.suite_id === s.id && !f.parent_id).map(f => (
-                  <option key={f.id} value={`${s.id}|${f.id}`}>&nbsp;&nbsp;{f.name}</option>
-                ))}
-              </optgroup>
-            ))}
-          </select>
-          {/* Etiket Ekle */}
-          {showTagInput ? (
-            <form
-              className="flex items-center gap-1"
-              onSubmit={async e => {
-                e.preventDefault();
-                const newTags = tagInput.split(",").map(t => t.trim()).filter(Boolean);
-                if (!newTags.length) { setShowTagInput(false); return; }
-                await onBulkUpdate({ case_ids: [...checked], tags_add: newTags });
-                setTagInput("");
-                setShowTagInput(false);
-                onClearChecked();
-              }}
-            >
-              <input
-                autoFocus
-                value={tagInput}
-                onChange={e => setTagInput(e.target.value)}
-                placeholder="tag1, tag2"
-                className="rounded border border-brand/30 bg-surface-raised px-2 py-1 text-[11px] text-fg outline-none focus:border-brand w-32"
-                onKeyDown={e => { if (e.key === "Escape") { setShowTagInput(false); setTagInput(""); } }}
-              />
-              <button type="submit" disabled={busy}
-                className="rounded border border-brand/30 bg-brand/10 px-2 py-1 text-[11px] text-brand hover:bg-brand/20 disabled:opacity-40 transition-colors">
-                Ekle
-              </button>
-              <button type="button" onClick={() => { setShowTagInput(false); setTagInput(""); }}
-                className="text-[11px] text-fg-subtle hover:text-fg px-1">✕</button>
-            </form>
-          ) : (
-            <button type="button" onClick={() => setShowTagInput(true)} disabled={busy}
-              className="rounded border border-border px-2.5 py-1 text-[11px] text-fg-muted hover:text-fg disabled:opacity-40 transition-colors">
-              🏷 Etiket Ekle
-            </button>
-          )}
-          {/* Bulk Clone */}
-          <button
-            type="button"
-            onClick={() => void handleBulkClone()}
-            disabled={busy || cloneProgress !== null}
-            className="rounded border border-border px-2.5 py-1 text-[11px] text-fg-muted hover:text-fg disabled:opacity-40 transition-colors"
-          >
-            {cloneProgress
-              ? `${cloneProgress.done}/${cloneProgress.total} kopyalandı`
-              : "Klonla"}
-          </button>
-
-          {/* Arşiv'den Çıkar — only when archived cases are selected */}
-          {checkedArchivedCount > 0 && (
-            <button type="button" onClick={onUnarchiveMany} disabled={busy}
-              className="rounded border border-emerald-500/25 px-2.5 py-1 text-[11px] text-emerald-400 hover:bg-emerald-500/10 disabled:opacity-40 transition-colors">
-              Arşiv&apos;den Çıkar ({checkedArchivedCount})
-            </button>
-          )}
-
-          <button type="button" onClick={onArchiveMany} disabled={busy}
-            className="rounded border border-red-500/20 px-2.5 py-1 text-[11px] text-red-400 hover:bg-red-500/10 disabled:opacity-40 transition-colors">
-            Arşivle
-          </button>
-          <button type="button" onClick={() => { onClearChecked(); setShowTagInput(false); setTagInput(""); }}
-            className="ml-auto text-[11px] text-fg-subtle hover:text-fg-muted">Temizle</button>
-        </div>
-      )}
+      <WorkspaceBulkActions
+        checkedSize={checked.size}
+        checkedIds={checkedIds}
+        checkedArchivedCount={checkedArchivedCount}
+        busy={busy}
+        suites={suites}
+        folders={folders}
+        onToggleAll={onToggleAll}
+        nodeCaseIds={nodeCases.map(c => c.id)}
+        onCreateRun={onCreateRun}
+        onPromote={onPromote}
+        onArchiveMany={onArchiveMany}
+        onUnarchiveMany={onUnarchiveMany}
+        onBulkMove={onBulkMove}
+        onBulkUpdate={onBulkUpdate}
+        onBulkClone={onBulkClone}
+        onClearChecked={onClearChecked}
+      />
 
       {/* ── Table ───────────────────────────────────────────────────────────── */}
       <div className="flex-1 overflow-auto">
@@ -390,25 +205,11 @@ function CaseTable({
             ))}
           </div>
         ) : filtered.length === 0 && !showArchived ? (
-          <div className="flex flex-col items-center justify-center py-24 gap-3">
-            {hasFilter ? (
-              <>
-                <p className="text-[13px] font-medium text-fg-muted">Sonuç bulunamadı</p>
-                <button type="button" onClick={clearAll}
-                  className="text-[12px] font-medium text-brand transition-colors hover:text-brand-secondary">
-                  Filtreleri temizle
-                </button>
-              </>
-            ) : (
-              <>
-                <p className="text-[13px] font-medium text-fg-muted">Bu bölümde senaryo yok</p>
-                <button type="button" onClick={onNewCase}
-                  className="rounded-lg bg-brand px-4 py-2 text-[12px] font-semibold text-brand-fg shadow-sm transition-colors hover:brightness-105">
-                  + İlk senaryoyu ekle
-                </button>
-              </>
-            )}
-          </div>
+          <WorkspaceEmptyState
+            hasFilter={hasFilter}
+            onClearFilters={clearAll}
+            onNewCase={onNewCase}
+          />
         ) : (
           <table className="w-full border-collapse">
             <thead className="sticky top-0 z-10 border-b border-border bg-surface-overlay">

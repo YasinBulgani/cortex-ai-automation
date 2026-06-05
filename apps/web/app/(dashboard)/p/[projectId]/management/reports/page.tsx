@@ -60,13 +60,24 @@ const DATE_RANGE_OPTIONS = [
   { label: "Son 90 gün", value: 90 },
 ];
 
+const CUSTOM_RANGE_VALUE = -1;
+
 const DAY_LABELS = ["G-6", "G-5", "G-4", "G-3", "G-2", "Dün", "Bugün"];
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
+/** RFC 4180 compliant CSV field escaping */
+function csvEscape(val: string | number | undefined): string {
+  const s = String(val ?? "");
+  if (s.includes(",") || s.includes('"') || s.includes("\n")) {
+    return '"' + s.replace(/"/g, '""') + '"';
+  }
+  return s;
+}
+
 function downloadCSV(rows: { metric: string; value: string | number }[], filename: string) {
   const header = "Metric,Value\n";
-  const body = rows.map(r => `"${r.metric}","${r.value}"`).join("\n");
+  const body = rows.map(r => `${csvEscape(r.metric)},${csvEscape(r.value)}`).join("\n");
   const blob = new Blob([header + body], { type: "text/csv;charset=utf-8;" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
@@ -436,21 +447,23 @@ function ExecutionSummaryTab({
 // ─── Regression Report Tab ────────────────────────────────────────────────────
 
 function RegressionReportTab({
-  regressionSets, regressionLoading, regressionError, runs,
+  regressionSets, regressionLoading, regressionError, runs, filteredRuns,
 }: {
   regressionSets: RegressionSet[] | undefined;
   regressionLoading: boolean;
   regressionError: boolean;
   runs: TestRun[] | undefined;
+  filteredRuns: TestRun[];
 }) {
   const sets = regressionSets ?? [];
+  const displayRuns = filteredRuns.length > 0 ? filteredRuns : (runs ?? []);
 
   const getLastRunStatus = (_setId: string): string => {
-    if (!runs) return "—";
+    if (!displayRuns.length) return "—";
     // TODO: regression_set_id ile filtrele — şu anda run adı üzerinden tahmini eşleştirme yapılıyor.
     // Doğru implementasyon: runs API'den regression_set_id alanı döndüğünde
-    // runs.filter(r => r.regression_set_id === _setId) şeklinde kullanılmalı.
-    const relatedRuns = runs.filter(r => r.name?.toLowerCase().includes("regress"));
+    // displayRuns.filter(r => r.regression_set_id === _setId) şeklinde kullanılmalı.
+    const relatedRuns = displayRuns.filter(r => r.name?.toLowerCase().includes("regress"));
     if (!relatedRuns.length) return "—";
     const lastRun = relatedRuns[0];
     return lastRun.status ?? "—";
@@ -519,7 +532,7 @@ function RegressionReportTab({
         <div className="grid grid-cols-3 gap-3">
           <KpiCard label="Toplam Set" value={sets.length} sub="tanımlı regresyon seti" />
           <KpiCard label="Toplam Case" value={sets.reduce((acc, s) => acc + s.cases.length, 0)} sub="regresyon kapsamı" />
-          <KpiCard label="Son Run" value={(runs ?? []).filter(r => r.status === "in_progress").length > 0 ? "Aktif" : "Tamamlandı"} sub="run durumu" />
+          <KpiCard label="Son Run" value={displayRuns.filter(r => r.status === "in_progress").length > 0 ? "Aktif" : "Tamamlandı"} sub="run durumu" />
         </div>
       )}
     </div>
@@ -530,10 +543,32 @@ function RegressionReportTab({
 
 function DefectSummaryTab({
   defects,
+  dateRangeDays,
+  customRange,
 }: {
   defects: DefectLink[] | undefined;
+  dateRangeDays: number;
+  customRange: { start: string; end: string } | null;
 }) {
-  const allDefects = defects ?? [];
+  const allDefects = useMemo(() => {
+    const raw = defects ?? [];
+    if (customRange) {
+      const start = new Date(customRange.start).getTime();
+      const end = new Date(customRange.end).getTime() + 24 * 60 * 60 * 1000 - 1;
+      return raw.filter(d => {
+        const t = d.created_at ? new Date(d.created_at).getTime() : null;
+        return t === null || (t >= start && t <= end);
+      });
+    }
+    if (dateRangeDays > 0) {
+      const cutoff = Date.now() - dateRangeDays * 24 * 60 * 60 * 1000;
+      return raw.filter(d => {
+        const t = d.created_at ? new Date(d.created_at).getTime() : null;
+        return t === null || t >= cutoff;
+      });
+    }
+    return raw;
+  }, [defects, dateRangeDays, customRange]);
   const openDefects = allDefects.filter(d => !["closed", "resolved", "fixed", "done"].includes(d.status.toLowerCase()));
 
   const severityCounts: Record<string, number> = {};
@@ -833,14 +868,18 @@ type SortDir = "asc" | "desc";
 function TesterPerformanceTab({
   cases,
   runs,
+  filteredRuns,
   loading,
 }: {
   cases: TestCase[] | undefined;
   runs: TestRun[] | undefined;
+  filteredRuns: TestRun[];
   loading: boolean;
 }) {
   const [sortKey, setSortKey] = useState<SortKey>("assigned");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
+
+  const displayRuns = filteredRuns.length > 0 ? filteredRuns : (runs ?? []);
 
   const testerRows = useMemo(() => {
     if (!cases) return [];
@@ -856,13 +895,10 @@ function TesterPerformanceTab({
     }
 
     // Add run-level tester info
-    if (runs) {
-      for (const run of runs) {
-        const key = (run.assigned_to ?? "").trim();
-        if (!key) continue;
-        const row = map.get(key) ?? { assigned: 0, completed: 0, passed: 0 };
-        if (!map.has(key)) map.set(key, row);
-      }
+    for (const run of displayRuns) {
+      const key = (run.assigned_to ?? "").trim();
+      if (!key) continue;
+      if (!map.has(key)) map.set(key, { assigned: 0, completed: 0, passed: 0 });
     }
 
     return [...map.entries()].map(([tester, data]) => ({
@@ -870,9 +906,9 @@ function TesterPerformanceTab({
       assigned: data.assigned,
       completed: data.completed,
       passRate: data.completed > 0 ? Math.round((data.passed / data.completed) * 100) : 0,
-      active: (runs ?? []).some(r => r.status === "in_progress" && r.assigned_to === tester),
+      active: displayRuns.some(r => r.status === "in_progress" && r.assigned_to === tester),
     }));
-  }, [cases, runs]);
+  }, [cases, displayRuns]);
 
   const sorted = useMemo(() => {
     return [...testerRows].sort((a, b) => {
@@ -981,6 +1017,7 @@ function ModuleCoverageTab({
 }: {
   cases: TestCase[] | undefined;
   loading: boolean;
+  filteredRuns?: TestRun[];
 }) {
   const suiteRows = useMemo(() => {
     if (!cases) return [];
@@ -1132,6 +1169,7 @@ export default function ManagementReportsPage() {
 
   const [activeTab,       setActiveTab]       = useState<ReportTab>("execution");
   const [dateRange,       setDateRange]       = useState(30);
+  const [customRange,     setCustomRange]     = useState<{ start: string; end: string } | null>(null);
   const [moduleFilter,    setModuleFilter]    = useState("");
   const [platformFilter,  setPlatformFilter]  = useState("");
 
@@ -1164,17 +1202,24 @@ export default function ManagementReportsPage() {
   const openDefects = (defects ?? []).filter(d => !["closed", "resolved", "fixed", "done"].includes(d.status.toLowerCase())).length;
   const activeRuns  = (runs ?? []).filter(r => r.status === "in_progress").length;
 
-  // Filtered runs: dateRange (days) + moduleFilter + platformFilter
+  // Filtered runs: dateRange (days) + customRange + moduleFilter + platformFilter
   const filteredRuns = useMemo(() => {
     if (!runs) return [];
-    const now = Date.now();
-    const cutoffMs = dateRange * 24 * 60 * 60 * 1000;
     return runs.filter(r => {
       // Date filter: use created_at or started_at if available
       const dateField = r.created_at || r.started_at;
-      if (dateField) {
-        const age = now - new Date(dateField).getTime();
-        if (age > cutoffMs) return false;
+      if (customRange || dateRange > 0) {
+        // Null tarihli run'lar tarih filtresi aktifken dışlanır
+        if (!dateField) return false;
+        const ts = new Date(dateField).getTime();
+        if (customRange) {
+          const start = new Date(customRange.start).getTime();
+          const end = new Date(customRange.end).getTime() + 24 * 60 * 60 * 1000 - 1;
+          if (ts < start || ts > end) return false;
+        } else {
+          const cutoffMs = dateRange * 24 * 60 * 60 * 1000;
+          if (Date.now() - ts > cutoffMs) return false;
+        }
       }
       // Module filter: match run name
       if (moduleFilter && !r.name.toLowerCase().includes(moduleFilter.toLowerCase())) return false;
@@ -1185,7 +1230,7 @@ export default function ManagementReportsPage() {
       }
       return true;
     });
-  }, [runs, dateRange, moduleFilter, platformFilter]);
+  }, [runs, dateRange, customRange, moduleFilter, platformFilter]);
 
   const checklist: ReleaseChecklistItem[] = release?.checklist ?? [];
 
@@ -1222,7 +1267,7 @@ export default function ManagementReportsPage() {
         { metric: "Not Run",      value: notRun  },
         { metric: "Açık Defect",  value: openDefects },
         { metric: "Aktif Run",    value: activeRuns  },
-        { metric: "Tarih Aralığı", value: `Son ${dateRange} gün` },
+        { metric: "Tarih Aralığı", value: customRange ? `${customRange.start} – ${customRange.end}` : `Son ${dateRange} gün` },
       ],
       `cortex-report-${new Date().toISOString().slice(0, 10)}.csv`,
     );
@@ -1274,9 +1319,9 @@ export default function ManagementReportsPage() {
             {DATE_RANGE_OPTIONS.map(opt => (
               <button
                 key={opt.value}
-                onClick={() => setDateRange(opt.value)}
+                onClick={() => { setDateRange(opt.value); setCustomRange(null); }}
                 className={`px-3 py-1.5 text-[11px] font-medium transition-colors ${
-                  dateRange === opt.value
+                  dateRange === opt.value && !customRange
                     ? "bg-emerald-600/30 text-emerald-400"
                     : "text-fg-subtle hover:bg-white/[0.04] hover:text-fg"
                 }`}
@@ -1284,7 +1329,39 @@ export default function ManagementReportsPage() {
                 {opt.label}
               </button>
             ))}
+            <button
+              onClick={() => {
+                setDateRange(CUSTOM_RANGE_VALUE);
+                setCustomRange(prev => prev ?? { start: "", end: "" });
+              }}
+              className={`px-3 py-1.5 text-[11px] font-medium transition-colors ${
+                dateRange === CUSTOM_RANGE_VALUE
+                  ? "bg-emerald-600/30 text-emerald-400"
+                  : "text-fg-subtle hover:bg-white/[0.04] hover:text-fg"
+              }`}
+            >
+              Özel
+            </button>
           </div>
+
+          {/* Custom date inputs */}
+          {dateRange === CUSTOM_RANGE_VALUE && (
+            <div className="flex items-center gap-2">
+              <input
+                type="date"
+                value={customRange?.start ?? ""}
+                onChange={e => setCustomRange(prev => ({ start: e.target.value, end: prev?.end ?? "" }))}
+                className="rounded-lg border border-border bg-bg px-2 py-1.5 text-[11px] text-fg-muted focus:outline-none focus:ring-1 focus:ring-emerald-600/50"
+              />
+              <span className="text-[11px] text-fg-subtle">–</span>
+              <input
+                type="date"
+                value={customRange?.end ?? ""}
+                onChange={e => setCustomRange(prev => ({ start: prev?.start ?? "", end: e.target.value }))}
+                className="rounded-lg border border-border bg-bg px-2 py-1.5 text-[11px] text-fg-muted focus:outline-none focus:ring-1 focus:ring-emerald-600/50"
+              />
+            </div>
+          )}
 
           <select value={moduleFilter} onChange={e => setModuleFilter(e.target.value)}
             className="rounded-lg border border-border bg-bg px-3 py-1.5 text-[11px] text-fg-muted focus:outline-none focus:ring-1 focus:ring-emerald-600/50">
@@ -1359,11 +1436,16 @@ export default function ManagementReportsPage() {
             regressionLoading={regressionLoading}
             regressionError={regressionError}
             runs={runs}
+            filteredRuns={filteredRuns}
           />
         )}
 
         {activeTab === "defects" && (
-          <DefectSummaryTab defects={defects} />
+          <DefectSummaryTab
+            defects={defects}
+            dateRangeDays={dateRange > 0 ? dateRange : 0}
+            customRange={customRange}
+          />
         )}
 
         {activeTab === "release" && (
@@ -1382,6 +1464,7 @@ export default function ManagementReportsPage() {
           <TesterPerformanceTab
             cases={casesData}
             runs={runs}
+            filteredRuns={filteredRuns}
             loading={casesLoading || runsLoading}
           />
         )}
@@ -1390,6 +1473,7 @@ export default function ManagementReportsPage() {
           <ModuleCoverageTab
             cases={casesData}
             loading={casesLoading}
+            filteredRuns={filteredRuns}
           />
         )}
       </div>

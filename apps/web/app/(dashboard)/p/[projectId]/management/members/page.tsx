@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouteParam } from "@/lib/use-route-param";
 import { useCurrentUser } from "@/lib/useCurrentUser";
 import { apiFetch } from "@/lib/api-client";
@@ -174,71 +175,54 @@ function InviteModal({ projectId, onClose, onInvited }: InviteModalProps) {
 export default function ManagementMembersPage() {
   const projectId = useRouteParam("projectId");
   const { user: currentUser } = useCurrentUser();
+  const qc = useQueryClient();
 
-  const [members, setMembers]     = useState<ProjectMember[]>([]);
-  const [loading, setLoading]     = useState(true);
-  const [error, setError]         = useState<string | null>(null);
   const [showInvite, setShowInvite] = useState(false);
-
-  // Role-change UI state: track which row is open
   const [openRoleMenu, setOpenRoleMenu] = useState<string | null>(null);
-  const [roleLoading, setRoleLoading]   = useState<string | null>(null);
-  const [removeLoading, setRemoveLoading] = useState<string | null>(null);
 
-  async function fetchMembers() {
-    if (!projectId) return;
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await apiFetch<ProjectMember[]>(
+  const membersQuery = useQuery({
+    queryKey: ["management", "members", projectId],
+    queryFn: () =>
+      apiFetch<ProjectMember[]>(
         `/api/v1/organizations/projects/${projectId}/members`
-      );
-      setMembers(Array.isArray(data) ? data : []);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Üyeler yüklenemedi.");
-    } finally {
-      setLoading(false);
-    }
-  }
+      ).then(data => (Array.isArray(data) ? data : [])),
+    enabled: !!projectId,
+  });
 
-  useEffect(() => {
-    void fetchMembers();
-  }, [projectId]); // eslint-disable-line react-hooks/exhaustive-deps
+  const members  = membersQuery.data ?? [];
+  const loading  = membersQuery.isLoading;
+  const error    = membersQuery.isError
+    ? (membersQuery.error instanceof Error
+        ? membersQuery.error.message
+        : "Üyeler yüklenemedi.")
+    : null;
 
-  async function handleRoleChange(userId: string, newRole: MemberRole) {
-    if (!projectId) return;
-    setRoleLoading(userId);
-    setOpenRoleMenu(null);
-    try {
-      await apiFetch(`/api/v1/organizations/projects/${projectId}/members/${userId}`, {
+  const roleChangeMut = useMutation({
+    mutationFn: ({ userId, role }: { userId: string; role: MemberRole }) =>
+      apiFetch(`/api/v1/organizations/projects/${projectId}/members/${userId}`, {
         method: "PATCH",
-        body: JSON.stringify({ role: newRole }),
-      });
-      setMembers(prev =>
-        prev.map(m => m.user_id === userId ? { ...m, role: newRole } : m)
-      );
-      void fetchMembers();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Rol değiştirilemedi.");
-    } finally {
-      setRoleLoading(null);
-    }
+        body: JSON.stringify({ role }),
+      }),
+    onSuccess: () =>
+      qc.invalidateQueries({ queryKey: ["management", "members", projectId] }),
+  });
+
+  const removeMut = useMutation({
+    mutationFn: (userId: string) =>
+      apiFetch(`/api/v1/organizations/projects/${projectId}/members/${userId}`, {
+        method: "DELETE",
+      }),
+    onSuccess: () =>
+      qc.invalidateQueries({ queryKey: ["management", "members", projectId] }),
+  });
+
+  function handleRoleChange(userId: string, newRole: MemberRole) {
+    setOpenRoleMenu(null);
+    roleChangeMut.mutate({ userId, role: newRole });
   }
 
-  async function handleRemove(userId: string) {
-    if (!projectId) return;
-    setRemoveLoading(userId);
-    try {
-      await apiFetch(`/api/v1/organizations/projects/${projectId}/members/${userId}`, {
-        method: "DELETE",
-      });
-      setMembers(prev => prev.filter(m => m.user_id !== userId));
-      void fetchMembers();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Üye kaldırılamadı.");
-    } finally {
-      setRemoveLoading(null);
-    }
+  function handleRemove(userId: string) {
+    removeMut.mutate(userId);
   }
 
   const isCurrentUser = (m: ProjectMember) =>
@@ -273,10 +257,10 @@ export default function ManagementMembersPage() {
           <p className="text-[12px] text-red-400">{error}</p>
           <button
             type="button"
-            onClick={() => setError(null)}
+            onClick={() => membersQuery.refetch()}
             className="text-[11px] text-red-400/60 hover:text-red-400 transition-colors"
           >
-            Kapat
+            Yeniden dene
           </button>
         </div>
       )}
@@ -347,7 +331,7 @@ export default function ManagementMembersPage() {
                       <div className="relative shrink-0">
                         <button
                           type="button"
-                          disabled={roleLoading === member.user_id}
+                          disabled={roleChangeMut.isPending && roleChangeMut.variables?.userId === member.user_id}
                           onClick={() =>
                             setOpenRoleMenu(prev =>
                               prev === member.user_id ? null : member.user_id
@@ -355,7 +339,7 @@ export default function ManagementMembersPage() {
                           }
                           className="rounded-lg border border-border px-2.5 py-1 text-[11px] text-slate-400 hover:text-slate-200 hover:border-slate-500 transition-colors disabled:opacity-50"
                         >
-                          {roleLoading === member.user_id ? "…" : "Rol Değiştir"}
+                          {roleChangeMut.isPending && roleChangeMut.variables?.userId === member.user_id ? "…" : "Rol Değiştir"}
                         </button>
 
                         {openRoleMenu === member.user_id && (
@@ -389,11 +373,11 @@ export default function ManagementMembersPage() {
                     {canEdit && (
                       <button
                         type="button"
-                        disabled={removeLoading === member.user_id}
+                        disabled={removeMut.isPending && removeMut.variables === member.user_id}
                         onClick={() => handleRemove(member.user_id)}
                         className="shrink-0 rounded-lg px-2.5 py-1 text-[11px] text-slate-500 hover:text-red-400 hover:bg-red-500/10 transition-colors disabled:opacity-50"
                       >
-                        {removeLoading === member.user_id ? "…" : "Kaldır"}
+                        {removeMut.isPending && removeMut.variables === member.user_id ? "…" : "Kaldır"}
                       </button>
                     )}
                   </li>
@@ -409,7 +393,9 @@ export default function ManagementMembersPage() {
         <InviteModal
           projectId={projectId}
           onClose={() => setShowInvite(false)}
-          onInvited={fetchMembers}
+          onInvited={() =>
+            qc.invalidateQueries({ queryKey: ["management", "members", projectId] })
+          }
         />
       )}
 

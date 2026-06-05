@@ -2147,3 +2147,14 @@ export function useDeleteWebhookSubscription(projectId: string) {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["management", projectId, "webhook-subscriptions"] }),
   });
 }
+
+export function usePlanImpactSummary(mpid: string | undefined, planId: string | undefined) {
+  return useQuery({
+    queryKey: ["management", mpid, "plan-impact", planId],
+    queryFn: () => apiFetch<{ cycle_count: number; run_count: number; run_case_count: number; evidence_count: number }>(
+      `${BASE(mpid!)}/plans/${planId!}/impact-summary`
+    ),
+    enabled: !!mpid && !!planId,
+    staleTime: 0,
+  });
+}

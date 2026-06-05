@@ -10,6 +10,7 @@ Endpoints:
   GET  /api/jira/projects                   - Jira projelerini listele
   GET  /api/jira/projects/{key}/issues      - Issue'ları listele (JQL + filtre)
   GET  /api/jira/issues/{issue_key}         - Tek issue detayı (yorumlar dahil)
+  POST /api/jira/webhook/jira-incoming      - Jira'dan gelen webhook event'lerini işle
 """
 
 from __future__ import annotations
@@ -17,7 +18,7 @@ from __future__ import annotations
 import logging
 from typing import Annotated, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, BackgroundTasks, Depends, Header, HTTPException, Request, status
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
@@ -84,6 +85,63 @@ def _get_jira_client(db: Session, tenant_id: str):
         return None, "jira kütüphanesi yüklü değil"
     except Exception as exc:
         return None, str(exc)
+
+
+def create_jira_issue(
+    config: dict,
+    title: str,
+    description: str = "",
+    issue_type: str = "Bug",
+    priority: str = "Medium",
+) -> Optional[str]:
+    """Jira'da issue oluştur, başarılıysa issue_key döndür; hata olursa None.
+
+    Args:
+        config: base_url, email, token, project_key anahtarlarını içeren dict.
+        title: Issue özeti (255 karakterle sınırlandırılır).
+        description: İsteğe bağlı açıklama metni (2000 karakterle sınırlandırılır).
+        issue_type: Jira issue türü (varsayılan: "Bug").
+        priority: Jira öncelik seviyesi (varsayılan: "Medium").
+
+    Returns:
+        Oluşturulan issue'nun key'i (örn. "PROJ-123") veya None.
+    """
+    import httpx  # noqa: PLC0415 — geç import, httpx isteğe bağlı bağımlılık
+
+    try:
+        r = httpx.post(
+            f"{config['base_url'].rstrip('/')}/rest/api/3/issue",
+            auth=(config["email"], config["token"]),
+            json={
+                "fields": {
+                    "project": {"key": config["project_key"]},
+                    "summary": title[:255],
+                    "description": {
+                        "type": "doc",
+                        "version": 1,
+                        "content": [
+                            {
+                                "type": "paragraph",
+                                "content": [{"type": "text", "text": description[:2000]}],
+                            }
+                        ],
+                    },
+                    "issuetype": {"name": issue_type},
+                    "priority": {"name": priority},
+                }
+            },
+            timeout=10.0,
+        )
+        if r.is_success:
+            return r.json().get("key")
+        logger.warning(
+            "Jira issue oluşturulamadı: HTTP %s — %s",
+            r.status_code,
+            r.text[:200],
+        )
+    except Exception as exc:
+        logger.warning("Jira issue oluşturulamadı: %s", exc)
+    return None
 
 
 def _extract_adf_text(node: object) -> str:
@@ -283,3 +341,113 @@ def jira_get_issue(issue_key: str, db: DB, user: CurrentUser):
         }
     except Exception as exc:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(exc))
+
+
+# ─── Webhook (Jira → Neurex) ──────────────────────────────────────────────────
+
+def _sync_defect_link_status(issue_key: str, new_status: str) -> None:
+    """BackgroundTask: DefectLink kaydını Jira'dan gelen yeni status ile güncelle."""
+    try:
+        from app.infra.database import SessionLocal  # noqa: PLC0415
+
+        db: Session = SessionLocal()
+        try:
+            # DefectLink modeli test_management domain'inde tanımlanmış olabilir;
+            # import hatası durumunda sessizce atla.
+            from app.domains.test_management.models import DefectLink  # noqa: PLC0415
+
+            links = (
+                db.query(DefectLink)
+                .filter(DefectLink.jira_issue_key == issue_key)
+                .all()
+            )
+            for link in links:
+                link.status = new_status
+            if links:
+                db.commit()
+                logger.info(
+                    "DefectLink status güncellendi: issue=%s yeni_durum=%s kayıt_sayısı=%d",
+                    issue_key,
+                    new_status,
+                    len(links),
+                )
+        except ImportError:
+            logger.debug("DefectLink modeli bulunamadı — status sync atlandı.")
+        finally:
+            db.close()
+    except Exception as exc:
+        logger.warning("DefectLink status sync hatası (issue=%s): %s", issue_key, exc)
+
+
+def _delete_defect_links(issue_key: str) -> None:
+    """BackgroundTask: Silinen Jira issue'ya bağlı DefectLink kayıtlarını kaldır."""
+    try:
+        from app.infra.database import SessionLocal  # noqa: PLC0415
+
+        db: Session = SessionLocal()
+        try:
+            from app.domains.test_management.models import DefectLink  # noqa: PLC0415
+
+            deleted = (
+                db.query(DefectLink)
+                .filter(DefectLink.jira_issue_key == issue_key)
+                .delete(synchronize_session=False)
+            )
+            if deleted:
+                db.commit()
+                logger.info(
+                    "DefectLink silindi: issue=%s kayıt_sayısı=%d",
+                    issue_key,
+                    deleted,
+                )
+        except ImportError:
+            logger.debug("DefectLink modeli bulunamadı — delete sync atlandı.")
+        finally:
+            db.close()
+    except Exception as exc:
+        logger.warning("DefectLink delete sync hatası (issue=%s): %s", issue_key, exc)
+
+
+@router.post("/webhook/jira-incoming", include_in_schema=True)
+async def jira_incoming_webhook(
+    request: Request,
+    background_tasks: BackgroundTasks,
+    x_atlassian_token: Optional[str] = Header(None, alias="x-atlassian-token"),
+) -> dict:
+    """Jira'dan gelen webhook event'lerini işle.
+
+    Desteklenen event'ler:
+    - jira:issue_updated  → DefectLink.status güncelleme (background task)
+    - jira:issue_deleted  → DefectLink kaydının silinmesi (background task)
+
+    Atlassian, webhook isteğinin ürettiği herhangi bir HTTP 200 yanıtını başarı
+    sayar; bu nedenle her zaman ``{"received": True}`` döner ve ağır işler
+    background task'a devredilir.
+    """
+    try:
+        payload = await request.json()
+    except Exception:
+        logger.warning("Jira webhook: geçersiz JSON gövdesi")
+        return {"received": False, "error": "invalid_json"}
+
+    event_type: str = payload.get("webhookEvent", "")
+    issue: dict = payload.get("issue", {})
+    issue_key: str = issue.get("key", "")
+
+    if event_type == "jira:issue_updated":
+        new_status: str = (
+            issue.get("fields", {}).get("status", {}).get("name", "")
+        )
+        logger.info("Jira webhook: issue güncellendi — %s → %s", issue_key, new_status)
+        if issue_key and new_status:
+            background_tasks.add_task(_sync_defect_link_status, issue_key, new_status)
+
+    elif event_type == "jira:issue_deleted":
+        logger.info("Jira webhook: issue silindi — %s", issue_key)
+        if issue_key:
+            background_tasks.add_task(_delete_defect_links, issue_key)
+
+    else:
+        logger.debug("Jira webhook: bilinmeyen event — %s", event_type)
+
+    return {"received": True, "event": event_type}
