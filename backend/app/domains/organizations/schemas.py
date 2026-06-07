@@ -5,7 +5,8 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Optional
 
-from pydantic import BaseModel, EmailStr, Field, computed_field
+from pydantic import BaseModel, EmailStr, Field, computed_field, field_validator
+from app.domains.auth.schemas import _validate_strong_password
 
 
 # ── Organizations ────────────────────────────────────────────────
@@ -94,7 +95,14 @@ class InvitationOut(BaseModel):
 class InvitationAccept(BaseModel):
     token: str
     full_name: Optional[str] = None
-    password: str = Field(min_length=8, max_length=128)
+    password: str = Field(default="", max_length=128)
+
+    @field_validator("password")
+    @classmethod
+    def validate_password(cls, v: str) -> str:
+        if not v:
+            return v  # empty = existing user flow (validated at route level)
+        return _validate_strong_password(v)
 
 
 # ── Project members ──────────────────────────────────────────────

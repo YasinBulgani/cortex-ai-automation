@@ -205,6 +205,14 @@ class Settings(BaseSettings):
     rate_limit_register: str = "2/minute"
     rate_limit_default: str = "60/minute"
 
+    # ── Proxy Güveni ──────────────────────────────────────────────────
+    # ProxyHeadersMiddleware için güvenilir upstream IP'ler.
+    # Üretimde load balancer / nginx IP'leriyle kısıtlayın:
+    #   TRUSTED_PROXY_IPS=10.0.0.1,10.0.0.2
+    # Varsayılan "*" tüm upstream'lere güvenir (geliştirme ortamı için OK,
+    # üretimde IP spoofing ile rate-limit bypass mümkündür).
+    trusted_proxy_ips: str = "*"
+
     # ── E-posta ────────────────────────────────────────────────────────
     # EMAIL_BACKEND: "console" | "memory" | "smtp"
     email_backend: str = "console"

@@ -404,7 +404,7 @@ class TestOrganizationsSchemas:
             InvitationAccept(token="tok", password="x" * 129)  # max_length=128
 
     def test_invitation_accept_valid(self):
-        inv = InvitationAccept(token="sometoken", password="securepass123")
+        inv = InvitationAccept(token="sometoken", password="SecurePass123!")
         assert inv.token == "sometoken"
 
     def test_team_slug_must_be_lowercase_alphanumeric_dash(self):

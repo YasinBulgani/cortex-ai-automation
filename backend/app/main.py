@@ -71,7 +71,13 @@ def create_app() -> FastAPI:
     # client IP / protocol from trusted reverse-proxy headers before any other
     # middleware (e.g. rate limiting, audit logging) reads request.client.
     # In Starlette, the last add_middleware() call becomes the outermost layer.
-    app.add_middleware(ProxyHeadersMiddleware, trusted_hosts=["*"])
+    # Set TRUSTED_PROXY_IPS to your load balancer IPs in production to prevent
+    # IP spoofing that would bypass rate limiting and brute-force guards.
+    trusted_proxy_ips = (
+        ["*"] if settings.trusted_proxy_ips.strip() == "*"
+        else [ip.strip() for ip in settings.trusted_proxy_ips.split(",") if ip.strip()]
+    )
+    app.add_middleware(ProxyHeadersMiddleware, trusted_hosts=trusted_proxy_ips)
 
     register_probe_routes(app, has_rate_limit=_has_rate_limit)
     register_api_routers(app)
