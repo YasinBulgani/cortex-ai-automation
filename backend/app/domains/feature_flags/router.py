@@ -26,11 +26,13 @@ router = APIRouter(prefix="/feature-flags", tags=["feature-flags"])
 
 
 _ADMIN_PERM = "admin.feature_flags"
+# Module-level dep so tests can reliably override it via dependency_overrides
+_require_admin = require_permission(_ADMIN_PERM)
 
 
 @router.get("", response_model=List[FlagOut])
 def list_flags(
-    _: Annotated[User, Depends(require_permission(_ADMIN_PERM))],
+    _: Annotated[User, Depends(_require_admin)],
 ) -> List[FlagOut]:
     return feature_flags.list_flags()
 
@@ -54,7 +56,7 @@ def evaluate_flag(
 @router.get("/{key}", response_model=FlagOut)
 def get_flag(
     key: str,
-    _: Annotated[User, Depends(require_permission(_ADMIN_PERM))],
+    _: Annotated[User, Depends(_require_admin)],
 ) -> FlagOut:
     out = feature_flags.get(key)
     if out is None:
@@ -66,7 +68,7 @@ def get_flag(
 def upsert_flag(
     key: str,
     payload: FlagUpdate,
-    user: Annotated[User, Depends(require_permission(_ADMIN_PERM))],
+    user: Annotated[User, Depends(_require_admin)],
 ) -> FlagOut:
     try:
         return feature_flags.set_flag(
@@ -81,7 +83,7 @@ def upsert_flag(
 @router.delete("/{key}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_flag(
     key: str,
-    _: Annotated[User, Depends(require_permission(_ADMIN_PERM))],
+    _: Annotated[User, Depends(_require_admin)],
 ) -> None:
     deleted = feature_flags.delete(key)
     if not deleted:

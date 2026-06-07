@@ -54,14 +54,14 @@ def _make_evaluation(key: str = "my-flag", enabled: bool = True) -> dict:
 
 def _build_client(mock_user: MagicMock | None = None) -> TestClient:
     """Return a TestClient with auth deps overridden."""
-    from app.deps import require_permission
+    from app.domains.feature_flags.router import _require_admin
 
     if mock_user is None:
         mock_user = _mock_user_obj()
 
     app = FastAPI()
     app.dependency_overrides[get_current_user] = lambda: mock_user
-    app.dependency_overrides[require_permission("admin.feature_flags")] = lambda: mock_user
+    app.dependency_overrides[_require_admin] = lambda: mock_user
     app.include_router(router)
     return TestClient(app, raise_server_exceptions=False)
 

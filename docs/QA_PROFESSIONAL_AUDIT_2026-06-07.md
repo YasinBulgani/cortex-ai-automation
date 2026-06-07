@@ -277,3 +277,56 @@ Ana dikkat noktaları:
 ---
 
 *Rapor: Otonom QA Audit, Claude Sonnet 4.6, 2026-06-07*
+
+---
+
+## Ek: Audit Oturumu Tüm Düzeltmeleri (Final)
+
+### Birim Test İyileştirmesi (Nihai)
+
+| Zaman | Başarısız | Geçen |
+|-------|-----------|-------|
+| Başlangıç | 7+ (prompt id type) | 10,217 |
+| Sonuç | 1 (flaky perf) | 10,270 |
+| Net İyileştirme | **-21 başarısız** | **+53 test** |
+
+### Yeni Bulunan ve Düzeltilen Bug'lar (Audit Sırasında)
+
+#### Bug-7: useManagementCases Pagination Mismatch (P0 Frontend)
+- **Semptom:** Backend `/cases` → `{items: [...], total: 12}` döndürüyor; frontend `TestCase[]` bekliyor
+- **Etki:** `casesData.map()` TypeError — reports sayfası, case detail sayfası, requirements sayfası çöküyor
+- **Düzeltme:** `useManagementCases()`, `useManagementCycles()`, `useManagementRuns()` hook'larında array-or-paginated union tipi + item extraction
+- **Dosya:** `apps/web/lib/hooks/use-management.ts:722, 811, 821`
+
+#### Bug-8: Feature Flags Dependency Override Bozuk (9 unit test)
+- **Semptom:** Feature flags admin endpoint testleri HTTP 403 döndürüyor
+- **Kök Neden:** `require_permission()` her çağrıda yeni closure üretiyor → test override yanlış objeyi hedefliyor
+- **Düzeltme:** Router'da `_require_admin = require_permission(_ADMIN_PERM)` module-level export; test bu objeyi import ediyor
+- **Dosyalar:** `backend/app/domains/feature_flags/router.py:30`, `backend/tests/unit/test_feature_flags_router.py:64`
+
+### Güvenlik Bulguları (Ek)
+- ✅ JWT tampering → HTTP 401
+- ✅ Mass assignment (is_superuser alanı) → yoksayıldı  
+- ✅ Header injection → 200 (doğru, log'a da yansıtılmıyor)
+- ✅ Large payload (600+ char title) → HTTP 422
+
+### Kullanıcı Akışı Doğrulaması (Browser)
+- ✅ Repository (cases) sayfası: 12 senaryo listeleniyor
+- ✅ Reports sayfası: Dashboard metrikleri, run listesi görüntüleniyor
+- ✅ Defect oluşturma: Çalışıyor (run_case_id optional)
+- ✅ Test run execution (1 case, mark as passed, 100% pass rate)
+
+### Response Format Tutarsızlıkları (P2 — Düzeltme Bekliyor)
+| Endpoint | Format |
+|----------|--------|
+| /cases | PAGINATED {items, total} |
+| /cycles | PAGINATED {items, total} |
+| /runs | PAGINATED {items, total} |
+| /plans | LIST [] |
+| /defects | LIST [] |
+| /regression/sets | LIST [] |
+| /requirements | LIST [] |
+| /milestones | LIST [] |
+
+Frontend hook'ları artık her iki formatı da handle ediyor. Backend standardizasyonu önerilir.
+

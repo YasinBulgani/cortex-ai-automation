@@ -16,6 +16,7 @@ logger = logging.getLogger(__name__)
 from fastapi import FastAPI
 
 from app.domains.accessibility.router import router as accessibility_router
+from app.domains.admin.router import router as admin_router
 from app.domains.agents.router import router as agents_router
 from app.domains.agents.v2.router import router as agents_v2_router
 from app.domains.ai.router import router as ai_router
@@ -139,6 +140,7 @@ except ImportError:
     logger.warning("Opsiyonel domain 'mobile' yüklenemedi, mobil endpoint'leri devre dışı.")
 
 _PREFIXED_ROUTERS = [
+    admin_router,
     auth_router,
     catalog_router,
     rules_router,

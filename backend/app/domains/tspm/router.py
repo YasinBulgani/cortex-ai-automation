@@ -1392,7 +1392,16 @@ def enhanced_bdd_generate(
     _get_project(db, project_id, user)
     from app.domains.tspm.bdd_generator import BDDGenerator
     gen = BDDGenerator(db, project_id)
-    result = gen.generate_scenarios(body.requirement_id, body.options)
+    try:
+        result = gen.generate_scenarios(body.requirement_id, body.options)
+    except Exception as exc:
+        err_msg = str(exc)
+        if "Connection" in err_msg or "refused" in err_msg or "ConnectError" in err_msg:
+            raise HTTPException(
+                status_code=503,
+                detail="LLM servisi şu anda kullanılamıyor. Lütfen daha sonra tekrar deneyin.",
+            ) from exc
+        raise HTTPException(status_code=500, detail=f"BDD üretimi başarısız: {err_msg[:200]}") from exc
     return EnhancedBddGenerateResponse(**result)
 
 

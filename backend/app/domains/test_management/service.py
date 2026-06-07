@@ -556,6 +556,12 @@ def list_cases(
     include_archived: bool = False,
     limit: int | None = None,
     offset: int = 0,
+    priority: str | None = None,
+    status: str | None = None,
+    automation_status: str | None = None,
+    suite_id: str | None = None,
+    folder_id: str | None = None,
+    owner_id: str | None = None,
 ) -> list[TestCase]:
     project_id = resolve_project_id(db, project_id)
     stmt = select(TestCase).options(selectinload(TestCase.steps)).where(TestCase.project_id == project_id)
@@ -564,6 +570,18 @@ def list_cases(
     if q:
         like = f"%{q}%"
         stmt = stmt.where(TestCase.title.ilike(like) | TestCase.case_key.ilike(like))
+    if priority:
+        stmt = stmt.where(TestCase.priority == priority)
+    if status:
+        stmt = stmt.where(TestCase.status == status)
+    if automation_status:
+        stmt = stmt.where(TestCase.automation_status == automation_status)
+    if suite_id:
+        stmt = stmt.where(TestCase.suite_id == suite_id)
+    if folder_id:
+        stmt = stmt.where(TestCase.folder_id == folder_id)
+    if owner_id:
+        stmt = stmt.where(TestCase.owner_id == owner_id)
     stmt = stmt.order_by(TestCase.created_at.desc())
     if offset:
         stmt = stmt.offset(offset)
@@ -577,6 +595,12 @@ def count_cases(
     project_id: str,
     q: str | None = None,
     include_archived: bool = False,
+    priority: str | None = None,
+    status: str | None = None,
+    automation_status: str | None = None,
+    suite_id: str | None = None,
+    folder_id: str | None = None,
+    owner_id: str | None = None,
 ) -> int:
     """Return total count of test cases matching the given filters (no pagination)."""
     from sqlalchemy import func as _func
@@ -588,6 +612,18 @@ def count_cases(
     if q:
         like = f"%{q}%"
         stmt = stmt.where(TestCase.title.ilike(like) | TestCase.case_key.ilike(like))
+    if priority:
+        stmt = stmt.where(TestCase.priority == priority)
+    if status:
+        stmt = stmt.where(TestCase.status == status)
+    if automation_status:
+        stmt = stmt.where(TestCase.automation_status == automation_status)
+    if suite_id:
+        stmt = stmt.where(TestCase.suite_id == suite_id)
+    if folder_id:
+        stmt = stmt.where(TestCase.folder_id == folder_id)
+    if owner_id:
+        stmt = stmt.where(TestCase.owner_id == owner_id)
     return db.scalar(stmt) or 0
 
 

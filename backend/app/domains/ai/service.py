@@ -1459,10 +1459,12 @@ async def async_stream_llm(
 def _get_ollama_client():
     """OpenAI SDK istemcisi — Ollama endpoint'ine baglanir (base_agent uyumu)."""
     try:
+        import httpx as _httpx
         from openai import OpenAI
         return OpenAI(
             base_url=settings.ollama_base_url,
             api_key=getattr(settings, "ollama_api_key", "ollama"),
+            http_client=_httpx.Client(timeout=_httpx.Timeout(90.0, connect=5.0)),
         )
     except ImportError:
         raise RuntimeError("openai paketi kurulu degil; `pip install openai` calistirin")

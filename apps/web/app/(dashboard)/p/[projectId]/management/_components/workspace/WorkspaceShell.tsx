@@ -88,7 +88,23 @@ function CaseTable({
   const searchTimer = useRef<ReturnType<typeof setTimeout>>();
   const [debouncedSearch, setDebouncedSearch] = useState(search);
 
-  // ── Keyboard shortcuts ───────────────────────────────────────────────────
+  useEffect(() => {
+    clearTimeout(searchTimer.current);
+    searchTimer.current = setTimeout(() => setDebouncedSearch(search), 250);
+    return () => clearTimeout(searchTimer.current);
+  }, [search]);
+
+  const filtered = useMemo(() => {
+    let r = nodeCases;
+    const q = debouncedSearch.trim().toLowerCase();
+    if (q)        r = r.filter(c => c.title.toLowerCase().includes(q) || c.case_key.toLowerCase().includes(q));
+    if (priority) r = r.filter(c => c.priority === priority);
+    if (type)     r = r.filter(c => c.type === type);
+    if (status)   r = r.filter(c => c.last_run_status === status);
+    return r;
+  }, [nodeCases, debouncedSearch, priority, type, status]);
+
+  // ── Keyboard shortcuts (placed after filtered is defined) ───────────────
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement;
@@ -114,22 +130,6 @@ function CaseTable({
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
   }, [filtered, onClearChecked, onToggleAll]);
-
-  useEffect(() => {
-    clearTimeout(searchTimer.current);
-    searchTimer.current = setTimeout(() => setDebouncedSearch(search), 250);
-    return () => clearTimeout(searchTimer.current);
-  }, [search]);
-
-  const filtered = useMemo(() => {
-    let r = nodeCases;
-    const q = debouncedSearch.trim().toLowerCase();
-    if (q)        r = r.filter(c => c.title.toLowerCase().includes(q) || c.case_key.toLowerCase().includes(q));
-    if (priority) r = r.filter(c => c.priority === priority);
-    if (type)     r = r.filter(c => c.type === type);
-    if (status)   r = r.filter(c => c.last_run_status === status);
-    return r;
-  }, [nodeCases, debouncedSearch, priority, type, status]);
 
   const sorted = useMemo(() => {
     const PRIO = { P0: 0, P1: 1, P2: 2, P3: 3 } as Record<string, number>;

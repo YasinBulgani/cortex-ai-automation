@@ -780,8 +780,13 @@ export default function ManagementDefectsPage() {
     if (severityF) r = r.filter(d => d.severity.toLowerCase() === severityF);
     if (statusF)   r = r.filter(d => d.status.toLowerCase().includes(statusF));
     if (priorityF) r = r.filter(d => d.priority === priorityF);
+    if (assigneeF) r = r.filter(d => (d.assignee_id ?? "").toLowerCase().includes(assigneeF.toLowerCase()));
+    if (myDefects && profile.data) {
+      const me = profile.data.email.toLowerCase();
+      r = r.filter(d => (d.assignee_id ?? "").toLowerCase().includes(me));
+    }
     return r;
-  }, [rows, search, severityF, statusF, priorityF]);
+  }, [rows, search, severityF, statusF, priorityF, assigneeF, myDefects, profile.data]);
 
   const sorted = useMemo(() => {
     const PRIO_ORDER: Record<string, number> = { P0: 0, P1: 1, P2: 2, P3: 3 };
@@ -809,13 +814,13 @@ export default function ManagementDefectsPage() {
   }
 
   // Bug fix 1: tüm filtre değişkenlerini bağımlılık listesine ekle
-  useEffect(() => { setPage(1); }, [search, severityF, statusF, priorityF]);
+  useEffect(() => { setPage(1); }, [search, severityF, statusF, priorityF, assigneeF, myDefects]);
 
-  const hasFilter = !!(search || severityF || statusF || priorityF);
+  const hasFilter = !!(search || severityF || statusF || priorityF || assigneeF || myDefects);
   const clearFilters = useCallback(() => {
-    setSearch(""); setSeverityF(""); setStatusF(""); setPriorityF(""); setPage(1);
+    setSearch(""); setSeverityF(""); setStatusF(""); setPriorityF(""); setAssigneeF(""); setMyDefects(false); setPage(1);
     const sp = new URLSearchParams(searchParams.toString());
-    sp.delete("q"); sp.delete("severity"); sp.delete("status"); sp.delete("priority");
+    sp.delete("q"); sp.delete("severity"); sp.delete("status"); sp.delete("priority"); sp.delete("assignee");
     router.replace(pathname + (sp.toString() ? "?" + sp.toString() : ""), { scroll: false });
   }, [searchParams, router, pathname]);
 
@@ -887,6 +892,31 @@ export default function ManagementDefectsPage() {
             <option value="">Öncelik</option>
             {["P0","P1","P2","P3"].map(v => <option key={v} value={v}>{v}</option>)}
           </select>
+
+          {/* Assigned to filter */}
+          <label htmlFor="defect-assignee-filter" className="sr-only">Atanan kişi filtresi</label>
+          <input
+            id="defect-assignee-filter"
+            type="text"
+            value={assigneeF}
+            onChange={e => handleAssigneeChange(e.target.value)}
+            placeholder="Atanan kişi…"
+            className="rounded-xl border border-border bg-surface-overlay px-2.5 py-1.5 text-[10px] text-fg placeholder-slate-600 outline-none focus:border-border-strong transition-colors"
+          />
+
+          {/* My defects quick toggle */}
+          <button
+            type="button"
+            onClick={() => setMyDefects(v => !v)}
+            className={cn(
+              "rounded-xl border px-2.5 py-1.5 text-[10px] font-medium transition-colors",
+              myDefects
+                ? "border-brand/40 bg-brand/10 text-brand"
+                : "border-border text-fg-muted hover:text-fg",
+            )}
+          >
+            Benim Defect&apos;lerim
+          </button>
 
           {hasFilter && (
             <button type="button" onClick={clearFilters}

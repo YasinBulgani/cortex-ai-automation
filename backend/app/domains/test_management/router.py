@@ -475,9 +475,25 @@ def list_cases(
     include_archived: bool = Query(default=False, description="Arşivlenmiş case'leri dahil et"),
     limit: int = Query(default=50, ge=1, le=500, description="Sayfa başına kayıt sayısı"),
     offset: int = Query(default=0, ge=0, description="Atlanacak kayıt sayısı (cursor)"),
+    priority: str | None = Query(default=None, description="Önceliğe göre filtre (low/medium/high/critical)"),
+    status: str | None = Query(default=None, description="Duruma göre filtre (draft/active/deprecated/archived)"),
+    automation_status: str | None = Query(default=None, description="Otomasyon durumu (manual/automated/in_progress)"),
+    suite_id: str | None = Query(default=None, description="Suite ID'ye göre filtre"),
+    folder_id: str | None = Query(default=None, description="Klasör ID'ye göre filtre"),
+    owner_id: str | None = Query(default=None, description="Sahip kullanıcı ID'sine göre filtre"),
 ) -> PagedResponse[TestCaseOut]:
-    total = service.count_cases(db, project_id, q=q, include_archived=include_archived)
-    items = service.list_cases(db, project_id, q=q, include_archived=include_archived, limit=limit, offset=offset)
+    filter_kwargs = dict(
+        q=q,
+        include_archived=include_archived,
+        priority=priority,
+        status=status,
+        automation_status=automation_status,
+        suite_id=suite_id,
+        folder_id=folder_id,
+        owner_id=owner_id,
+    )
+    total = service.count_cases(db, project_id, **filter_kwargs)
+    items = service.list_cases(db, project_id, limit=limit, offset=offset, **filter_kwargs)
     return PagedResponse(
         items=items,
         total=total,
@@ -2542,3 +2558,111 @@ def list_project_milestones(project_id: str, db: DB, _user: ReadUser) -> list[di
         }
         for p, count in plans
     ]
+
+
+# ─── Case Attachment Endpoints ────────────────────────────────────────────────
+
+_ATTACHMENT_STORE: dict[str, dict] = {}  # In-memory store (production: S3/DB)
+_MAX_ATTACHMENT_SIZE = 10 * 1024 * 1024  # 10 MB
+
+
+@router.post(
+    "/projects/{project_id}/cases/{case_id}/attachments",
+    status_code=201,
+    tags=["test-management"],
+    summary="Test case'e dosya ekle",
+)
+async def upload_case_attachment(
+    project_id: str,
+    case_id: str,
+    file: UploadFile,
+    db: DB,
+    user: WriteUser,
+) -> dict:
+    """Test case'e dosya ekler (max 10 MB).
+
+    Desteklenen formatlar: resim, PDF, metin, video (ekran kaydı).
+    """
+    content = await file.read()
+    if len(content) > _MAX_ATTACHMENT_SIZE:
+        raise HTTPException(status_code=413, detail="Dosya 10 MB sınırını aşıyor")
+
+    attachment_id = str(uuid4())
+    now_iso = _datetime.now(_UTC).isoformat()
+    record = {
+        "id": attachment_id,
+        "project_id": project_id,
+        "case_id": case_id,
+        "filename": file.filename or "unknown",
+        "size": len(content),
+        "content_type": file.content_type or "application/octet-stream",
+        "uploader_id": str(user.id),
+        "created_at": now_iso,
+    }
+    _ATTACHMENT_STORE[attachment_id] = {**record, "_content": content}
+    return record
+
+
+@router.get(
+    "/projects/{project_id}/cases/{case_id}/attachments",
+    tags=["test-management"],
+    summary="Test case dosyalarını listele",
+)
+def list_case_attachments(
+    project_id: str,
+    case_id: str,
+    db: DB,
+    user: ReadUser,
+) -> list:
+    """Belirtilen test case'e ait dosyaları listeler."""
+    return [
+        {k: v for k, v in rec.items() if k != "_content"}
+        for rec in _ATTACHMENT_STORE.values()
+        if rec["case_id"] == case_id and rec["project_id"] == project_id
+    ]
+
+
+@router.get(
+    "/projects/{project_id}/cases/{case_id}/attachments/{attachment_id}/download",
+    tags=["test-management"],
+    summary="Test case dosyasını indir",
+)
+def download_case_attachment(
+    project_id: str,
+    case_id: str,
+    attachment_id: str,
+    db: DB,
+    user: ReadUser,
+) -> StreamingResponse:
+    """Belirtilen eki indirir."""
+    import io
+
+    rec = _ATTACHMENT_STORE.get(attachment_id)
+    if not rec or rec["case_id"] != case_id or rec["project_id"] != project_id:
+        raise HTTPException(status_code=404, detail="Ek bulunamadı")
+    content = rec["_content"]
+    return StreamingResponse(
+        io.BytesIO(content),
+        media_type=rec["content_type"],
+        headers={"Content-Disposition": f"attachment; filename=\"{rec['filename']}\""},
+    )
+
+
+@router.delete(
+    "/projects/{project_id}/cases/{case_id}/attachments/{attachment_id}",
+    status_code=204,
+    tags=["test-management"],
+    summary="Test case dosyasını sil",
+)
+def delete_case_attachment(
+    project_id: str,
+    case_id: str,
+    attachment_id: str,
+    db: DB,
+    user: WriteUser,
+) -> None:
+    """Belirtilen eki siler."""
+    rec = _ATTACHMENT_STORE.get(attachment_id)
+    if not rec or rec["case_id"] != case_id or rec["project_id"] != project_id:
+        raise HTTPException(status_code=404, detail="Ek bulunamadı")
+    del _ATTACHMENT_STORE[attachment_id]
