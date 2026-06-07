@@ -17,6 +17,7 @@ import {
 import { useManagementProjectId } from "@/lib/hooks/use-management-project-id";
 import { useToast } from "@/lib/useToast";
 import { PageErrorBoundary } from "../_components/PageErrorBoundary";
+import { useProfile } from "@/lib/hooks/use-profile";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -736,6 +737,7 @@ export default function ManagementDefectsPage() {
   const defectsQuery = useManagementDefects(mpid || undefined);
   const rows = defectsQuery.data ?? [];
   const loading = defectsQuery.isLoading;
+  const profile = useProfile();
 
   const searchParams = useSearchParams();
   const router       = useRouter();
@@ -745,6 +747,8 @@ export default function ManagementDefectsPage() {
   const [severityF,    setSeverityF]    = useState(searchParams.get("severity") ?? "");
   const [statusF,      setStatusF]      = useState(searchParams.get("status") ?? "");
   const [priorityF,    setPriorityF]    = useState(searchParams.get("priority") ?? "");
+  const [assigneeF,    setAssigneeF]    = useState(searchParams.get("assignee") ?? "");
+  const [myDefects,    setMyDefects]    = useState(false);
   const [editDefect,      setEditDefect]      = useState<DefectLink | null>(null);
   const [showCreate,      setShowCreate]      = useState(false);
   const [analysisResults, setAnalysisResults] = useState<Record<string, string>>({});
@@ -763,6 +767,7 @@ export default function ManagementDefectsPage() {
   const handleSeverityChange = (v: string) => { setSeverityF(v); updateUrl({ severity: v }); };
   const handleStatusChange   = (v: string) => { setStatusF(v);   updateUrl({ status: v }); };
   const handlePriorityChange = (v: string) => { setPriorityF(v); updateUrl({ priority: v }); };
+  const handleAssigneeChange = (v: string) => { setAssigneeF(v); updateUrl({ assignee: v }); };
 
   const open      = rows.filter(d => !isClosed(d));
   const critical  = rows.filter(d => isBlocker(d));

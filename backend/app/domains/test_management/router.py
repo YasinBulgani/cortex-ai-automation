@@ -1331,7 +1331,7 @@ def export_defects(
     db: DB,
     _user: ReadUser,
     format: str = Query("csv", pattern="^(csv|json)$"),
-) -> "Response":
+):
     """Defect'leri CSV veya JSON olarak dışa aktar."""
     import csv
     import io

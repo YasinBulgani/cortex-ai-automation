@@ -1452,3 +1452,37 @@ async def async_stream_llm(
             max_tokens=max_tokens,
         ):
             yield token
+
+
+# ── OpenAI SDK compat client factories (used by base_agent.py) ───────────────
+
+def _get_ollama_client():
+    """OpenAI SDK istemcisi — Ollama endpoint'ine baglanir (base_agent uyumu)."""
+    try:
+        from openai import OpenAI
+        return OpenAI(
+            base_url=settings.ollama_base_url,
+            api_key=getattr(settings, "ollama_api_key", "ollama"),
+        )
+    except ImportError:
+        raise RuntimeError("openai paketi kurulu degil; `pip install openai` calistirin")
+
+
+def _get_openai_client():
+    """OpenAI SDK istemcisi — OpenAI/Groq endpoint'ine baglanir (base_agent uyumu)."""
+    try:
+        from openai import OpenAI
+        base_url = getattr(settings, "openai_base_url", None) or "https://api.openai.com/v1"
+        api_key = getattr(settings, "openai_api_key", None) or "no-key"
+        return OpenAI(base_url=base_url, api_key=api_key)
+    except ImportError:
+        raise RuntimeError("openai paketi kurulu degil; `pip install openai` calistirin")
+
+
+def _get_anthropic_client():
+    """Anthropic SDK istemcisi (base_agent uyumu)."""
+    try:
+        import anthropic
+        return anthropic.Anthropic(api_key=getattr(settings, "anthropic_api_key", ""))
+    except ImportError:
+        raise RuntimeError("anthropic paketi kurulu degil")

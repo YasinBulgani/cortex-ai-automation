@@ -88,6 +88,33 @@ function CaseTable({
   const searchTimer = useRef<ReturnType<typeof setTimeout>>();
   const [debouncedSearch, setDebouncedSearch] = useState(search);
 
+  // ── Keyboard shortcuts ───────────────────────────────────────────────────
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      const inInput = target.closest("input,textarea,select") !== null;
+
+      // "/" → focus search
+      if (e.key === "/" && !inInput) {
+        e.preventDefault();
+        document.querySelector<HTMLInputElement>("[data-search]")?.focus();
+        return;
+      }
+      // Escape → clear selection
+      if (e.key === "Escape") {
+        onClearChecked();
+        return;
+      }
+      // Ctrl/Cmd+A → select all visible
+      if ((e.ctrlKey || e.metaKey) && e.key === "a" && !inInput) {
+        e.preventDefault();
+        onToggleAll(filtered.map(c => c.id));
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [filtered, onClearChecked, onToggleAll]);
+
   useEffect(() => {
     clearTimeout(searchTimer.current);
     searchTimer.current = setTimeout(() => setDebouncedSearch(search), 250);

@@ -133,7 +133,8 @@ export function WorkspaceFilterBar({
             type="text"
             value={search}
             onChange={e => onSearchChange(e.target.value)}
-            placeholder="Ara…"
+            placeholder="Ara… (/)"
+            data-search
             className="flex-1 bg-transparent text-[11px] text-fg placeholder:text-fg-subtle outline-none min-w-0"
           />
         </div>
