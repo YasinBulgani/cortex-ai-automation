@@ -159,6 +159,16 @@ export default function CoveragePage() {
         />
       </MetricRow>
 
+      {/* Coverage-matrix API degrade olursa kullanıcıya uyarı ver */}
+      {matrixError && !matrixLoading && (
+        <div className="mb-4 flex items-center gap-3 rounded-xl border border-amber-500/20 bg-amber-500/5 px-4 py-3 text-sm text-amber-400">
+          <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+          </svg>
+          <span>Kapsam matrisi yüklenemedi — gereksinim listesi gösteriliyor. Matris verisi için sayfayı yenileyin.</span>
+        </div>
+      )}
+
       {/* Matris görünümü — sadece coverage-matrix başarılıysa */}
       {matrix && scenarioResults && matrix.scenario_ids.length > 0 && (
         <SectionCard

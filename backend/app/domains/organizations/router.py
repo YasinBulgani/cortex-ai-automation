@@ -6,7 +6,7 @@ import logging
 from typing import Annotated
 from urllib.parse import quote
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
@@ -106,8 +106,9 @@ def update_my_organization(
 def list_org_teams(
     user: Annotated[User, Depends(get_current_user)],
     db: Annotated[Session, Depends(get_db)],
+    limit: int = Query(100, ge=1, le=500),
 ):
-    teams = service.list_teams(db, user.tenant_id)
+    teams = service.list_teams(db, user.tenant_id)[:limit]
     out: list[TeamOut] = []
     for t in teams:
         count = db.scalar(
@@ -160,11 +161,12 @@ def list_team_members(
     team_id: str,
     user: Annotated[User, Depends(get_current_user)],
     db: Annotated[Session, Depends(get_db)],
+    limit: int = Query(200, ge=1, le=1000),
 ):
     team = db.get(Team, team_id)
     if not team or team.organization_id != user.tenant_id:
         raise HTTPException(404)
-    rows = service.list_team_members_with_user(db, team_id)
+    rows = service.list_team_members_with_user(db, team_id)[:limit]
     return [
         TeamMemberOut(
             user_id=u.id,
@@ -246,9 +248,10 @@ def create_invitation_endpoint(
 def list_invitations_endpoint(
     user: Annotated[User, Depends(get_current_user)],
     db: Annotated[Session, Depends(get_db)],
+    limit: int = Query(200, ge=1, le=500),
 ):
     _require_org_admin(user)
-    return service.list_pending_invitations(db, user.tenant_id)
+    return service.list_pending_invitations(db, user.tenant_id)[:limit]
 
 
 @router.delete("/invitations/{invitation_id}")
@@ -313,8 +316,9 @@ def list_project_members_endpoint(
     project_id: str,
     user: Annotated[User, Depends(get_current_user)],
     db: Annotated[Session, Depends(get_db)],
+    limit: int = Query(200, ge=1, le=1000),
 ):
-    rows = service.list_project_members_with_user(db, project_id)
+    rows = service.list_project_members_with_user(db, project_id)[:limit]
     return [
         ProjectMemberOut(
             project_id=project_id,

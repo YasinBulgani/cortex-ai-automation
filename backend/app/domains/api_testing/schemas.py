@@ -50,8 +50,8 @@ class EnvironmentOut(BaseModel):
 class SpecImportRequest(BaseModel):
     """URL veya inline content ile spec import."""
     source_url: Optional[str] = None
-    content: Optional[str] = None  # Raw JSON/YAML
-    name: Optional[str] = None  # Opsiyonel — spec title'dan alinir
+    content: Optional[str] = Field(None, max_length=2_000_000)  # Raw JSON/YAML — 2MB limit
+    name: Optional[str] = Field(None, max_length=300)
 
 
 class SpecOut(BaseModel):

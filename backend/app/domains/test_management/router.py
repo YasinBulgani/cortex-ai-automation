@@ -404,7 +404,10 @@ def list_suites(project_id: str, db: DB, _user: ReadUser) -> list[TestSuiteOut]:
 
 @router.post("/projects/{project_id}/suites", response_model=TestSuiteOut, status_code=status.HTTP_201_CREATED)
 def create_suite(project_id: str, payload: TestSuiteCreate, db: DB, user: WriteUser) -> TestSuiteOut:
-    return service.create_suite(db, project_id, payload, user)
+    try:
+        return service.create_suite(db, project_id, payload, user)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
 @router.get("/projects/{project_id}/folders", response_model=list[TestFolderOut])
@@ -430,7 +433,12 @@ def list_folders(
 
 @router.post("/projects/{project_id}/folders", response_model=TestFolderOut, status_code=status.HTTP_201_CREATED)
 def create_folder(project_id: str, payload: TestFolderCreate, db: DB, user: WriteUser) -> TestFolderOut:
-    return service.create_folder(db, project_id, payload, user)
+    try:
+        return service.create_folder(db, project_id, payload, user)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
 @router.patch("/projects/{project_id}/suites/{suite_id}", response_model=TestSuiteOut)
@@ -512,7 +520,12 @@ def list_cases(
 
 @router.post("/projects/{project_id}/cases", response_model=TestCaseOut, status_code=status.HTTP_201_CREATED)
 def create_case(project_id: str, payload: TestCaseCreate, db: DB, user: WriteUser) -> TestCaseOut:
-    return service.create_case(db, project_id, payload, user)
+    try:
+        return service.create_case(db, project_id, payload, user)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
 @router.get(

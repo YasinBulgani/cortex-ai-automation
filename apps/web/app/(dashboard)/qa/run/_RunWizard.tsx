@@ -37,6 +37,8 @@ export default function RunWizard() {
   const [plans, setPlans] = useState<Plan[]>([]);
   const [chosenPlan, setChosenPlan] = useState<Plan | null>(null);
   const [scoped, setScoped] = useState<TestCaseListItem[]>([]);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
 
   const [env, setEnv] = useState({ branch: "main", commit: "HEAD", browser: "chromium", env: "staging", url: "" });
   const [results, setResults] = useState<Record<string, Result>>({});
@@ -92,7 +94,9 @@ export default function RunWizard() {
   }
 
   async function saveRun() {
-    if (!chosenPlan) return;
+    if (!chosenPlan || saving) return;
+    setSaving(true);
+    setSaveError(null);
     try {
       const run = await apiFetch<{ id: string }>("/api/v1/qa/runs", {
         method: "POST",
@@ -106,7 +110,9 @@ export default function RunWizard() {
       setSavedRunId(run.id);
       setStep("done");
     } catch (err) {
-      alert(`Save failed: ${err instanceof Error ? err.message : "Bilinmeyen hata"}`);
+      setSaveError(err instanceof Error ? err.message : "Bilinmeyen hata");
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -237,9 +243,18 @@ export default function RunWizard() {
             ))}
           </tbody>
         </table>
+        {saveError && (
+          <div className="mt-3 rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700">
+            Kaydetme hatası: {saveError}
+          </div>
+        )}
         <div className="mt-4 flex gap-2">
-          <button onClick={saveRun} className="rounded bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700">
-            ✓ Run YAML olarak kaydet
+          <button
+            onClick={saveRun}
+            disabled={saving}
+            className="rounded bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-60"
+          >
+            {saving ? "Kaydediliyor..." : "✓ Run YAML olarak kaydet"}
           </button>
           <button onClick={() => setStep("execute")} className="rounded border border-gray-200 px-4 py-2 text-sm hover:bg-gray-50">
             ← Koşuma geri dön

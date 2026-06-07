@@ -292,12 +292,18 @@ export async function apiFetch<T>(
     h.set("Content-Type", "application/json");
   }
 
-  let res = await fetch(`${API_BASE}${path}`, {
-    ...rest,
-    credentials: "include",
-    headers: h,
-    body: json !== undefined ? JSON.stringify(json) : rest.body,
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${API_BASE}${path}`, {
+      ...rest,
+      credentials: "include",
+      headers: h,
+      body: json !== undefined ? JSON.stringify(json) : rest.body,
+    });
+  } catch (networkErr) {
+    const msg = networkErr instanceof Error ? networkErr.message : "Ağ bağlantısı hatası";
+    throw new ApiError(0, `Sunucuya ulaşılamadı: ${msg}`, null);
+  }
 
   // 401 → refresh token ile yenileme dene
   if (res.status === 401 && retryOnUnauthorized) {
@@ -306,12 +312,17 @@ export async function apiFetch<T>(
       const h2 = new Headers(headers);
       if (json !== undefined) h2.set("Content-Type", "application/json");
 
-      res = await fetch(`${API_BASE}${path}`, {
-        ...rest,
-        credentials: "include",
-        headers: h2,
-        body: json !== undefined ? JSON.stringify(json) : rest.body,
-      });
+      try {
+        res = await fetch(`${API_BASE}${path}`, {
+          ...rest,
+          credentials: "include",
+          headers: h2,
+          body: json !== undefined ? JSON.stringify(json) : rest.body,
+        });
+      } catch (networkErr) {
+        const msg = networkErr instanceof Error ? networkErr.message : "Ağ bağlantısı hatası";
+        throw new ApiError(0, `Sunucuya ulaşılamadı (yeniden deneme): ${msg}`, null);
+      }
     }
   }
 
