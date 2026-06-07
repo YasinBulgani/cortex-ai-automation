@@ -413,6 +413,11 @@ function SuiteTree({ suites, folders, cases, selected, onSelect, projectId }: {
 
       {/* Suites */}
       <div className="flex-1 space-y-0.5 overflow-y-auto px-2 pb-2 pt-1">
+        {visibleSuites.length === 0 && (
+          <div className="px-3 py-8 text-center text-xs text-fg-muted">
+            {treeSearch ? "Arama sonucu bulunamadı." : "Henüz test suite yok. \"+ Suite\" ile başlayın."}
+          </div>
+        )}
         {visibleSuites.map(suite => {
           const rootFolders  = folders.filter(f => f.suite_id === suite.id && !f.parent_id);
           const sc           = cases.filter(c => c.suite_id === suite.id && !c.archived).length;
