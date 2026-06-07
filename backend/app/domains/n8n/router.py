@@ -112,7 +112,7 @@ async def receive_n8n_callback(
 
 
 @router.get("/available-workflows")
-async def list_available_n8n_workflows(_user: CurrentUser):
+async def list_available_n8n_workflows(_user: Annotated[User, Depends(get_current_user)]):
     """Fetch workflow list directly from n8n REST API."""
     if not N8N_API_KEY:
         return {"workflows": [], "note": "N8N_API_KEY not configured"}

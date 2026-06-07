@@ -33,7 +33,7 @@ router = APIRouter(prefix="/health", tags=["health"])
     summary="Tüm bağımlılıkların detaylı sağlık durumu",
     response_description="Bileşen listesi + overall durum",
 )
-def extended(user: CurrentUser) -> ExtendedHealth:
+def extended(user: Annotated[User, Depends(get_current_user)]) -> ExtendedHealth:
     """Postgres, Redis, Engine, AI Gateway, Ollama — tümünün tek seferde durumu."""
     return get_extended_health()
 
@@ -49,7 +49,7 @@ class DetailedHealthResponse(BaseModel):
     response_model=DetailedHealthResponse,
     summary="DB + Redis detaylı sağlık kontrolü",
 )
-def detailed_health(user: CurrentUser) -> DetailedHealthResponse:
+def detailed_health(user: Annotated[User, Depends(get_current_user)]) -> DetailedHealthResponse:
     """Veritabanı ve Redis ping'i yaparak servis durumunu döner."""
     from sqlalchemy import text
 
@@ -97,7 +97,7 @@ class DbHealthResponse(BaseModel):
 
 
 @router.get("/db", response_model=DbHealthResponse, summary="PostgreSQL sağlık durumu")
-def db_health(user: CurrentUser) -> DbHealthResponse:
+def db_health(user: Annotated[User, Depends(get_current_user)]) -> DbHealthResponse:
     """Veritabanı ping + bağlantı havuzu istatistikleri."""
     try:
         from sqlalchemy import text

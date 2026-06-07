@@ -96,7 +96,7 @@ async def _ensure_session_access(session_id: str, user: User) -> dict:
 
 
 @router.post("/sessions", response_model=BrowserSessionInfo, status_code=201)
-async def create_session(body: BrowserSessionCreate, user: CurrentUser):
+async def create_session(body: BrowserSessionCreate, user: Annotated[User, Depends(get_current_user)]):
     """Yeni browser oturumu oluştur."""
     _require_playwright()
     try:
@@ -127,7 +127,7 @@ async def create_session(body: BrowserSessionCreate, user: CurrentUser):
 
 
 @router.get("/sessions", response_model=list[BrowserSessionInfo])
-async def list_sessions(user: CurrentUser):
+async def list_sessions(user: Annotated[User, Depends(get_current_user)]):
     """Aktif browser oturumlarini listele."""
     owner_user_id = None if _is_admin_user(user) else str(user.id)
     sessions = await _get_manager().list_sessions(owner_user_id=owner_user_id)
@@ -135,7 +135,7 @@ async def list_sessions(user: CurrentUser):
 
 
 @router.get("/sessions/{session_id}", response_model=BrowserSessionInfo)
-async def get_session(session_id: str, user: CurrentUser):
+async def get_session(session_id: str, user: Annotated[User, Depends(get_current_user)]):
     """Belirli bir oturumun bilgilerini getir."""
     try:
         info = await _ensure_session_access(session_id, user)
@@ -147,7 +147,7 @@ async def get_session(session_id: str, user: CurrentUser):
 
 
 @router.delete("/sessions/{session_id}", status_code=204)
-async def close_session(session_id: str, user: CurrentUser):
+async def close_session(session_id: str, user: Annotated[User, Depends(get_current_user)]):
     """Browser oturumunu kapat."""
     try:
         await _ensure_session_access(session_id, user)
@@ -165,7 +165,7 @@ async def close_session(session_id: str, user: CurrentUser):
     "/sessions/{session_id}/navigate", response_model=NavigateResponse
 )
 async def navigate(
-    session_id: str, body: NavigateRequest, user: CurrentUser
+    session_id: str, body: NavigateRequest, user: Annotated[User, Depends(get_current_user)]
 ):
     """Belirtilen URL'ye git."""
     try:
@@ -198,7 +198,7 @@ async def navigate(
     "/sessions/{session_id}/screenshot", response_model=ScreenshotResponse
 )
 async def take_screenshot(
-    session_id: str, body: ScreenshotRequest, user: CurrentUser
+    session_id: str, body: ScreenshotRequest, user: Annotated[User, Depends(get_current_user)]
 ):
     """Ekran goruntusu al."""
     try:
@@ -228,7 +228,7 @@ async def take_screenshot(
     "/sessions/{session_id}/dom", response_model=DOMSnapshotResponse
 )
 async def get_dom_snapshot(
-    session_id: str, body: DOMSnapshotRequest, user: CurrentUser
+    session_id: str, body: DOMSnapshotRequest, user: Annotated[User, Depends(get_current_user)]
 ):
     """DOM agacinin snapshot'ini al."""
     try:
@@ -255,7 +255,7 @@ async def get_dom_snapshot(
     response_model=SelectorValidateResponse,
 )
 async def validate_selectors(
-    session_id: str, body: SelectorValidateRequest, user: CurrentUser
+    session_id: str, body: SelectorValidateRequest, user: Annotated[User, Depends(get_current_user)]
 ):
     """Selector'lari dogrula ve stabilite skoru ver."""
     try:
@@ -278,7 +278,7 @@ async def validate_selectors(
     response_model=SelectorSuggestResponse,
 )
 async def suggest_selectors(
-    session_id: str, body: SelectorSuggestRequest, user: CurrentUser
+    session_id: str, body: SelectorSuggestRequest, user: Annotated[User, Depends(get_current_user)]
 ):
     """AI destekli selector onerisi. DOM'u analiz ederek hedef elemente uygun selector'lar olusturur."""
     try:
@@ -324,7 +324,7 @@ async def suggest_selectors(
     "/sessions/{session_id}/action", response_model=ActionResponse
 )
 async def execute_action(
-    session_id: str, body: ActionRequest, user: CurrentUser
+    session_id: str, body: ActionRequest, user: Annotated[User, Depends(get_current_user)]
 ):
     """Browser aksiyonu çalıştır (click, fill, select, hover, press, scroll, wait)."""
     _require_playwright()
@@ -352,7 +352,7 @@ async def execute_action(
     response_model=HealVerifyResponse,
 )
 async def heal_verify(
-    session_id: str, body: HealVerifyRequest, user: CurrentUser
+    session_id: str, body: HealVerifyRequest, user: Annotated[User, Depends(get_current_user)]
 ):
     """Healing sonrasi dogrulama: orijinal ve heal edilmis selector'i kontrol et."""
     try:
@@ -379,7 +379,7 @@ async def heal_verify(
 @router.get(
     "/sessions/{session_id}/screenshot", response_model=ScreenshotResponse
 )
-async def take_screenshot_get(session_id: str, user: CurrentUser):
+async def take_screenshot_get(session_id: str, user: Annotated[User, Depends(get_current_user)]):
     """GET alias — no-body screenshot for live preview (full_page=False default)."""
     try:
         await _ensure_session_access(session_id, user)
@@ -397,7 +397,7 @@ async def take_screenshot_get(session_id: str, user: CurrentUser):
     "/sessions/{session_id}/dom-snapshot", response_model=DOMSnapshotResponse
 )
 async def get_dom_snapshot_alias(
-    session_id: str, body: DOMSnapshotRequest, user: CurrentUser
+    session_id: str, body: DOMSnapshotRequest, user: Annotated[User, Depends(get_current_user)]
 ):
     """POST alias for /dom — frontend uses /dom-snapshot path."""
     try:
@@ -419,7 +419,7 @@ async def get_dom_snapshot_alias(
     response_model=SelectorValidateResponse,
 )
 async def validate_selectors_alias(
-    session_id: str, body: SelectorValidateRequest, user: CurrentUser
+    session_id: str, body: SelectorValidateRequest, user: Annotated[User, Depends(get_current_user)]
 ):
     """POST alias for /selectors/validate — frontend uses /validate-selectors path."""
     try:
@@ -437,7 +437,7 @@ async def validate_selectors_alias(
     response_model=SelectorSuggestResponse,
 )
 async def suggest_selectors_alias(
-    session_id: str, body: SelectorSuggestRequest, user: CurrentUser
+    session_id: str, body: SelectorSuggestRequest, user: Annotated[User, Depends(get_current_user)]
 ):
     """POST alias for /selectors/suggest — frontend uses /suggest-selectors path."""
     try:
@@ -459,7 +459,7 @@ async def suggest_selectors_alias(
     response_model=HealVerifyResponse,
 )
 async def heal_verify_alias(
-    session_id: str, body: HealVerifyRequest, user: CurrentUser
+    session_id: str, body: HealVerifyRequest, user: Annotated[User, Depends(get_current_user)]
 ):
     """POST alias for /heal/verify — frontend uses /verify-heal path."""
     try:
@@ -480,7 +480,7 @@ async def heal_verify_alias(
 
 
 @router.get("/health")
-async def playwright_health(user: CurrentUser):
+async def playwright_health(user: Annotated[User, Depends(get_current_user)]):
     """Playwright servisinin durumunu kontrol et."""
     return {
         "playwright_available": PLAYWRIGHT_AVAILABLE,

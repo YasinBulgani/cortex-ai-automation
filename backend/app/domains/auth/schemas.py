@@ -160,6 +160,14 @@ class UserUpdateRequest(BaseModel):
     department: Optional[str] = None
     is_active: Optional[bool] = None
     role: Optional[str] = None
+    new_password: Optional[str] = Field(None, min_length=12)
+
+    @field_validator("new_password")
+    @classmethod
+    def validate_new_password(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return v
+        return _validate_strong_password(v)
 
 
 # ── MFA / TOTP schemas ────────────────────────────────────────────────────────

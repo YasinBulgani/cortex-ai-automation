@@ -24,7 +24,7 @@ from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.deps import require_permission
+from app.deps import require_permission, get_current_user
 from app.domains.test_management import comments_service, design_service, intelligence_service, service
 from app.domains.test_management.intelligence_schemas import (
     AnomalyOut,

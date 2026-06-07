@@ -1,5 +1,6 @@
 """FastAPI Router — /api/v1/agents/v2/*"""
 from __future__ import annotations
+from typing import Annotated
 
 import asyncio
 import json
@@ -11,6 +12,7 @@ from pathlib import Path
 
 from fastapi import (
     APIRouter,
+    Depends,
     BackgroundTasks,
     Depends,
     File,
@@ -106,6 +108,7 @@ async def run_agent(
 
 @router.get("/runs", response_model=RunV2ListResponse)
 async def list_runs(
+    _user: Annotated[User, Depends(get_current_user)],
     project_id: str | None = None,
     page: int = 1,
     page_size: int = 20,
@@ -147,7 +150,7 @@ async def list_runs(
 
 
 @router.get("/runs/{run_id}", response_model=RunV2Status)
-async def get_run(run_id: str):
+async def get_run(run_id: str, _user: Annotated[User, Depends(get_current_user)]):
     store = get_run_store()
     rec = store.get(run_id)
     if not rec:
@@ -156,7 +159,7 @@ async def get_run(run_id: str):
 
 
 @router.get("/runs/{run_id}/stream")
-async def stream_run(run_id: str):
+async def stream_run(run_id: str, _user: Annotated[User, Depends(get_current_user)]):
     store = get_run_store()
     rec = store.get(run_id)
     if not rec:
@@ -243,8 +246,8 @@ def _rate_limit(rate: str):
 @_rate_limit("10/minute")
 async def upload_source_file(
     request: Request,
+    user: Annotated[User, Depends(get_current_user)],
     file: UploadFile = File(...),
-    user: User = Depends(get_current_user),
 ):
     """Sıfır-bilgi pipeline için kaynak dosya yükler.
 
@@ -396,7 +399,7 @@ _AGENT_CATALOG = [
 
 @router.get("/catalog", response_model=list[dict])
 async def agents_v2_catalog(
-    _user: User = Depends(get_current_user),
+    _user: Annotated[User, Depends(get_current_user)],
 ):
     """Kullanılabilir AI agent kataloğunu döndürür."""
     return _AGENT_CATALOG

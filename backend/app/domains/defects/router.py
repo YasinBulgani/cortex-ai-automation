@@ -16,8 +16,6 @@ from app.domains.defects import service as svc
 
 router = APIRouter(prefix="/defects", tags=["defects"])
 
-AuthUser = Annotated[User, Depends(get_current_user)]
-
 
 class OpenDefectIn(BaseModel):
     project_id: str = Field(min_length=1, max_length=100)
@@ -43,7 +41,7 @@ class VerifyIn(BaseModel):
 
 
 @router.post("", status_code=status.HTTP_201_CREATED)
-def open_defect(body: OpenDefectIn, user: AuthUser) -> dict:
+def open_defect(body: OpenDefectIn, user: Annotated[User, Depends(get_current_user)]) -> dict:
     d = svc.open_defect_from_execution(
         project_id=body.project_id,
         title=body.title,
@@ -60,7 +58,7 @@ def open_defect(body: OpenDefectIn, user: AuthUser) -> dict:
 
 @router.get("")
 def list_defects_endpoint(
-    user: AuthUser,
+    user: Annotated[User, Depends(get_current_user)],
     project_id: Optional[str] = Query(None),
     status: Optional[str] = Query(None),
 ) -> list[dict]:
@@ -68,7 +66,7 @@ def list_defects_endpoint(
 
 
 @router.get("/{defect_id}")
-def get_defect_endpoint(defect_id: str, user: AuthUser) -> dict:
+def get_defect_endpoint(defect_id: str, user: Annotated[User, Depends(get_current_user)]) -> dict:
     d = svc.get_defect(defect_id)
     if d is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Defect bulunamadı")
@@ -76,7 +74,7 @@ def get_defect_endpoint(defect_id: str, user: AuthUser) -> dict:
 
 
 @router.post("/{defect_id}/fix")
-def mark_fix(defect_id: str, body: MarkFixIn, user: AuthUser) -> dict:
+def mark_fix(defect_id: str, body: MarkFixIn, user: Annotated[User, Depends(get_current_user)]) -> dict:
     try:
         d = svc.mark_fix_merged(defect_id, body.commit_sha, actor=body.actor)
     except ValueError as exc:
@@ -85,7 +83,7 @@ def mark_fix(defect_id: str, body: MarkFixIn, user: AuthUser) -> dict:
 
 
 @router.post("/{defect_id}/verify")
-def verify_defect(defect_id: str, body: VerifyIn, user: AuthUser) -> dict:
+def verify_defect(defect_id: str, body: VerifyIn, user: Annotated[User, Depends(get_current_user)]) -> dict:
     try:
         d = svc.verify_and_close(
             defect_id,

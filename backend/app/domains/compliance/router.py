@@ -9,7 +9,7 @@ from typing import Annotated, List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import FileResponse
 
-from app.deps import require_permission
+from app.deps import require_permission, get_current_user
 from app.infra.models import User
 
 from .mapping import (

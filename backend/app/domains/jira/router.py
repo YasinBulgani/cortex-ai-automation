@@ -194,7 +194,7 @@ def jira_connection_status(db: DB, user: OptionalUser):
 
 
 @router.get("/config", response_model=JiraConfigOut)
-def jira_get_config(db: DB, user: CurrentUser):
+def jira_get_config(db: DB, user: Annotated[User, Depends(get_current_user)]):
     intg = _get_integration(db, user.tenant_id)
     if not intg:
         return JiraConfigOut(configured=False, url="", email="", project_key="")
@@ -209,7 +209,7 @@ def jira_get_config(db: DB, user: CurrentUser):
 
 
 @router.post("/config", status_code=status.HTTP_200_OK)
-def jira_save_config(body: JiraConfigSave, db: DB, user: CurrentUser):
+def jira_save_config(body: JiraConfigSave, db: DB, user: Annotated[User, Depends(get_current_user)]):
     """Jira bağlantı ayarlarını DB'ye kaydeder (upsert)."""
     url = body.url.strip().rstrip("/")
     if not url.lower().startswith(("http://", "https://")):
@@ -238,7 +238,7 @@ def jira_save_config(body: JiraConfigSave, db: DB, user: CurrentUser):
 
 
 @router.delete("/config", status_code=status.HTTP_200_OK)
-def jira_delete_config(db: DB, user: CurrentUser):
+def jira_delete_config(db: DB, user: Annotated[User, Depends(get_current_user)]):
     """Jira bağlantısını devre dışı bırakır (soft delete)."""
     intg = _get_integration(db, user.tenant_id)
     if intg:
@@ -248,7 +248,7 @@ def jira_delete_config(db: DB, user: CurrentUser):
 
 
 @router.post("/test-connection")
-def jira_test_connection(db: DB, user: CurrentUser):
+def jira_test_connection(db: DB, user: Annotated[User, Depends(get_current_user)]):
     client, err = _get_jira_client(db, user.tenant_id)
     if err:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=err)
@@ -260,7 +260,7 @@ def jira_test_connection(db: DB, user: CurrentUser):
 
 
 @router.get("/projects")
-def jira_list_projects(db: DB, user: CurrentUser):
+def jira_list_projects(db: DB, user: Annotated[User, Depends(get_current_user)]):
     client, err = _get_jira_client(db, user.tenant_id)
     if err:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=err)
@@ -275,7 +275,7 @@ def jira_list_projects(db: DB, user: CurrentUser):
 def jira_list_issues(
     project_key: str,
     db: DB,
-    user: CurrentUser,
+    user: Annotated[User, Depends(get_current_user)],
     search: str = "",
     issue_type: str = "",
     status_filter: str = "",
@@ -327,7 +327,7 @@ def jira_list_issues(
 
 
 @router.get("/issues/{issue_key}")
-def jira_get_issue(issue_key: str, db: DB, user: CurrentUser):
+def jira_get_issue(issue_key: str, db: DB, user: Annotated[User, Depends(get_current_user)]):
     """Tek bir Jira issue'nun tüm detaylarını döner."""
     client, err = _get_jira_client(db, user.tenant_id)
     if err:

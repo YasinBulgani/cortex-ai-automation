@@ -41,7 +41,7 @@ def _require_admin(user: User) -> None:
 
 
 @router.get("/users", summary="Tüm kullanıcıları listele (admin)")
-def admin_list_users(user: CurrentUser, db: DB) -> list[dict]:
+def admin_list_users(user: Annotated[User, Depends(get_current_user)], db: DB) -> list[dict]:
     """Sistemdeki tüm kullanıcıları döner. ``admin.*`` yetkisi gerektirir."""
     _require_admin(user)
 
@@ -70,7 +70,7 @@ def admin_list_users(user: CurrentUser, db: DB) -> list[dict]:
 
 
 @router.get("/teams", summary="Tüm takımları listele (admin)")
-def admin_list_teams(user: CurrentUser, db: DB) -> list[dict]:
+def admin_list_teams(user: Annotated[User, Depends(get_current_user)], db: DB) -> list[dict]:
     """Tüm organizasyon takımlarını döner. ``admin.*`` yetkisi gerektirir."""
     _require_admin(user)
 
@@ -95,7 +95,7 @@ def admin_list_teams(user: CurrentUser, db: DB) -> list[dict]:
 
 
 @router.get("/roles", summary="Tüm rolleri listele (admin)")
-def admin_list_roles(user: CurrentUser, db: DB) -> list[dict]:
+def admin_list_roles(user: Annotated[User, Depends(get_current_user)], db: DB) -> list[dict]:
     """Tanımlı tüm rolleri ve izinlerini döner. ``admin.*`` yetkisi gerektirir."""
     _require_admin(user)
 

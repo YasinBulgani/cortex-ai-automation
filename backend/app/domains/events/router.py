@@ -21,7 +21,7 @@ CurrentUser = Annotated[User, Depends(get_current_user)]
 
 @router.get("/history")
 def event_history(
-    user: CurrentUser,
+    user: Annotated[User, Depends(get_current_user)],
     name: Optional[str] = Query(None, description="Tam isim veya 'scenario.*' wildcard"),
     project_id: Optional[str] = Query(None),
     limit: int = Query(100, ge=1, le=500),
@@ -31,13 +31,13 @@ def event_history(
 
 
 @router.get("/stats")
-def event_stats(user: CurrentUser) -> dict:
+def event_stats(user: Annotated[User, Depends(get_current_user)]) -> dict:
     return bus.stats()
 
 
 @router.post("/publish-test")
 def publish_test_event(
-    user: CurrentUser,
+    user: Annotated[User, Depends(get_current_user)],
     name: str = Query("test.ping"),
     project_id: Optional[str] = Query(None),
 ) -> dict:

@@ -12,7 +12,7 @@ import logging
 import os
 import random
 from datetime import datetime, timedelta, timezone as _tz
-from typing import Any
+from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import JSONResponse
@@ -21,6 +21,7 @@ from sqlalchemy.orm import Session
 
 from app.deps import get_current_user
 from app.infra.database import get_db
+from app.infra.models import User
 
 _logger = logging.getLogger(__name__)
 
@@ -311,6 +312,7 @@ _RELEASE_HEALTH_FALLBACK = {
 #       Verdict, checks tablosundaki en kotu status'a gore hesaplanmali.
 @router.get("/web/release-health", summary="Web release sağlığı (verdict + checks)")
 def get_web_release_health(
+    _user: Annotated[User, Depends(get_current_user)] = None,  # type: ignore[assignment]
     project_id: str | None = None,
     db: Session = Depends(get_db),
 ) -> dict[str, Any]:
@@ -410,6 +412,7 @@ _DAY_OVER_DAY_FALLBACK_METRICS = [
 #        GROUP BY metric_key;
 @router.get("/web/day-over-day", summary="Bugün vs dün delta metrikleri")
 def get_web_day_over_day(
+    _user: Annotated[User, Depends(get_current_user)] = None,  # type: ignore[assignment]
     project_id: str | None = None,
     db: Session = Depends(get_db),
 ) -> dict[str, Any]:
@@ -564,7 +567,7 @@ def get_web_my_inbox(
 #        GROUP BY page_url, page_label;
 #       Trend icin: son 8 gunluk gunluk p75 pencereler.
 @router.get("/web/perf-metrics", summary="Core Web Vitals — sayfa başı + trend")
-def get_web_perf_metrics(project_id: str | None = None) -> dict[str, Any]:
+def get_web_perf_metrics(_user: Annotated[User, Depends(get_current_user)], project_id: str | None = None) -> dict[str, Any]:
     guard = _block_in_production("web/perf-metrics")
     if guard is not None:
         return guard

@@ -48,7 +48,7 @@ def _llm_available() -> bool:
 
 
 @router.post("/analyze", summary="Analyse changed PR files and return a PR summary")
-def analyze(body: AnalyzeRequest, user: CurrentUser) -> dict[str, Any]:
+def analyze(body: AnalyzeRequest, user: Annotated[User, Depends(get_current_user)]) -> dict[str, Any]:
     """Run TIA + coverage + eval summary for the given changed files.
 
     Returns a ``PRSummary`` serialised as a dict.
@@ -73,6 +73,6 @@ def analyze(body: AnalyzeRequest, user: CurrentUser) -> dict[str, Any]:
 
 
 @router.get("/health", summary="PR bot health check")
-def health(user: CurrentUser) -> dict[str, Any]:
+def health(user: Annotated[User, Depends(get_current_user)]) -> dict[str, Any]:
     """Return service liveness and whether an LLM backend is reachable."""
     return {"status": "ok", "llm_available": _llm_available()}

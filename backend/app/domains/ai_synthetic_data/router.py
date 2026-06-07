@@ -2,7 +2,7 @@
 
 import logging
 import time
-from typing import Any, Dict, List, Optional
+from typing import Annotated, Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
 
@@ -42,7 +42,7 @@ router = APIRouter(prefix="/synthetic", tags=["synthetic"])
 @router.post("/generate", response_model=GenerateResponse)
 def generate_synthetic(
     body: GenerateRequest,
-    user: User = Depends(get_current_user),
+    user: Annotated[User, Depends(get_current_user)],
 ) -> GenerateResponse:
     """Generate synthetic records from sample data using KDE or CTGAN."""
     t0 = time.time()
@@ -86,7 +86,7 @@ def generate_synthetic(
 @router.post("/banking-dataset", response_model=BankingDatasetResponse)
 def generate_banking_dataset(
     body: BankingDatasetRequest,
-    user: User = Depends(get_current_user),
+    user: Annotated[User, Depends(get_current_user)],
 ) -> BankingDatasetResponse:
     """Generate a full banking test dataset (customers -> accounts -> transactions)."""
     t0 = time.time()
@@ -136,7 +136,7 @@ def generate_banking_dataset(
 @router.post("/quality-check", response_model=QualityMetrics)
 def quality_check(
     body: QualityCheckRequest,
-    user: User = Depends(get_current_user),
+    user: Annotated[User, Depends(get_current_user)],
 ) -> QualityMetrics:
     """Compare original vs synthetic data quality."""
     if not body.original or not body.synthetic:
@@ -172,7 +172,7 @@ def quality_check(
 @router.post("/privacy-risk", response_model=PrivacyRiskResponse)
 def privacy_risk(
     body: PrivacyRiskRequest,
-    user: User = Depends(get_current_user),
+    user: Annotated[User, Depends(get_current_user)],
 ) -> PrivacyRiskResponse:
     """Assess re-identification risk between original and synthetic data."""
     if not body.original or not body.synthetic:
@@ -202,7 +202,7 @@ def privacy_risk(
 
 @router.get("/generators", response_model=GeneratorsListResponse)
 def list_generators(
-    user: User = Depends(get_current_user),
+    user: Annotated[User, Depends(get_current_user)],
 ) -> GeneratorsListResponse:
     """List available generators and their status."""
     generators = [
@@ -255,7 +255,7 @@ from app.domains.ai_synthetic_data.privacy_schemas import (
 @router.post("/privacy/privatize", response_model=PrivatizeResponse)
 def privatize_data(
     body: PrivatizeRequest,
-    user: User = Depends(get_current_user),
+    user: Annotated[User, Depends(get_current_user)],
 ) -> PrivatizeResponse:
     """Apply differential privacy to a dataset."""
     try:
@@ -273,7 +273,7 @@ def privatize_data(
 @router.post("/privacy/k-anonymity", response_model=KAnonymityResponse)
 def check_k_anonymity(
     body: KAnonymityRequest,
-    user: User = Depends(get_current_user),
+    user: Annotated[User, Depends(get_current_user)],
 ) -> KAnonymityResponse:
     """Check if dataset satisfies k-anonymity."""
     try:
@@ -291,7 +291,7 @@ def check_k_anonymity(
 @router.post("/privacy/l-diversity", response_model=LDiversityResponse)
 def check_l_diversity(
     body: LDiversityRequest,
-    user: User = Depends(get_current_user),
+    user: Annotated[User, Depends(get_current_user)],
 ) -> LDiversityResponse:
     """Check if dataset satisfies l-diversity."""
     try:
@@ -311,7 +311,7 @@ def check_l_diversity(
 @router.post("/privacy/reidentification-risk", response_model=ReidentificationResponse)
 def check_reidentification_risk(
     body: ReidentificationRequest,
-    user: User = Depends(get_current_user),
+    user: Annotated[User, Depends(get_current_user)],
 ) -> ReidentificationResponse:
     """Measure re-identification risk between original and synthetic datasets."""
     try:
@@ -331,7 +331,7 @@ def check_reidentification_risk(
 @router.post("/privacy/report", response_model=PrivacyReportResponse)
 def privacy_report_endpoint(
     body: PrivacyReportRequest,
-    user: User = Depends(get_current_user),
+    user: Annotated[User, Depends(get_current_user)],
 ) -> PrivacyReportResponse:
     """Generate a comprehensive privacy report including KVKK compliance."""
     try:
@@ -353,7 +353,7 @@ def privacy_report_endpoint(
 @router.post("/privacy/suggest-config", response_model=SuggestConfigResponse)
 def suggest_privacy_config(
     body: SuggestConfigRequest,
-    user: User = Depends(get_current_user),
+    user: Annotated[User, Depends(get_current_user)],
 ) -> SuggestConfigResponse:
     """Suggest per-column privacy configuration based on data analysis."""
     try:
@@ -469,7 +469,7 @@ class _NoiseResult(_Base):
 @router.post("/privacy/audit", response_model=_PrivacyAuditResult)
 def privacy_audit(
     body: _PrivacyAuditRequest,
-    user: User = Depends(get_current_user),
+    user: Annotated[User, Depends(get_current_user)],
 ) -> _PrivacyAuditResult:
     """PII detection + compliance audit for a dataset."""
     try:
@@ -518,7 +518,7 @@ def privacy_audit(
 @router.post("/privacy/anonymize", response_model=_AnonymizeResult)
 def anonymize_dataset(
     body: _AnonymizeRequest,
-    user: User = Depends(get_current_user),
+    user: Annotated[User, Depends(get_current_user)],
 ) -> _AnonymizeResult:
     """k-anonymity–based generalization/suppression of a dataset."""
     try:
@@ -559,7 +559,7 @@ def anonymize_dataset(
 @router.post("/privacy/noise", response_model=_NoiseResult)
 def add_differential_noise(
     body: _NoiseRequest,
-    user: User = Depends(get_current_user),
+    user: Annotated[User, Depends(get_current_user)],
 ) -> _NoiseResult:
     """Add differential privacy noise to a single numeric value."""
     try:
@@ -589,8 +589,8 @@ def add_differential_noise(
 
 @router.get("/privacy/report", response_model=_PrivacyAuditResult)
 def get_privacy_report_default(
+    user: Annotated[User, Depends(get_current_user)],
     project_id: Optional[str] = None,
-    user: User = Depends(get_current_user),
 ) -> _PrivacyAuditResult:
     """Return a default/empty privacy audit result (no stored state yet)."""
     return _PrivacyAuditResult(
@@ -611,7 +611,7 @@ def get_privacy_report_default(
 @router.post("/privacy/validate-tckn", response_model=TCKNValidateResponse)
 def validate_tckn_endpoint(
     body: TCKNValidateRequest,
-    user: User = Depends(get_current_user),
+    user: Annotated[User, Depends(get_current_user)],
 ) -> TCKNValidateResponse:
     """Validate a Turkish citizen ID number (TCKN)."""
     try:

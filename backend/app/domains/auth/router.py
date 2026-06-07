@@ -714,6 +714,9 @@ def update_user(
         new_role = db.scalar(select(Role).where(Role.name == body.role))
         if new_role:
             db.execute(sd_user_roles.insert().values(user_id=user_id, role_id=new_role.id))
+    if body.new_password is not None:
+        target.password_hash = hash_password(body.new_password)
+        revoke_all_user_tokens(user_id, db)
     db.commit()
     db.refresh(target)
     from app.infra.cache import cache_delete, make_key
@@ -774,6 +777,7 @@ def mfa_status(
 @_limit("3/minute")
 @router.post("/mfa/setup", response_model=MfaSetupResponse, tags=["auth", "mfa"])
 def mfa_setup(
+    request: Request,
     user: Annotated[User, Depends(get_current_user)],
     db: Session = Depends(get_db),
 ) -> MfaSetupResponse:
@@ -813,6 +817,7 @@ def mfa_setup(
 @_limit("5/minute")
 @router.post("/mfa/verify", tags=["auth", "mfa"])
 def mfa_verify(
+    request: Request,
     req: MfaVerifyRequest,
     user: Annotated[User, Depends(get_current_user)],
     db: Session = Depends(get_db),

@@ -112,7 +112,7 @@ class TestReleaseHealth:
 
         import json
         db = _make_mock_db()
-        response = get_web_release_health(project_id=None, db=db)
+        response = get_web_release_health(project_id=None, db=db, _user=None)
         body: dict[str, Any] = json.loads(response.body)
 
         assert "checks" in body
@@ -128,7 +128,7 @@ class TestReleaseHealth:
         import json
         db = _make_mock_db()
         body: dict[str, Any] = json.loads(
-            get_web_release_health(project_id=None, db=db).body
+            get_web_release_health(project_id=None, db=db, _user=None).body
         )
 
         for check in body["checks"]:
@@ -145,7 +145,7 @@ class TestReleaseHealth:
         import json
         db = _make_mock_db()
         body: dict[str, Any] = json.loads(
-            get_web_release_health(project_id=None, db=db).body
+            get_web_release_health(project_id=None, db=db, _user=None).body
         )
         assert body["verdict"] in {"ship", "caution", "block"}
 
@@ -155,7 +155,7 @@ class TestReleaseHealth:
         db = _make_mock_db()
 
         import json
-        result = get_web_release_health(project_id=None, db=db)
+        result = get_web_release_health(project_id=None, db=db, _user=None)
         # In production, _block_in_production returns a 200 demo-mode JSONResponse
         # (not an HTTPException). Accept any non-exception return.
         assert result is not None
@@ -180,7 +180,7 @@ class TestDayOverDay:
         import json
         db = _make_mock_db()
         body: dict[str, Any] = json.loads(
-            get_web_day_over_day(project_id=None, db=db).body
+            get_web_day_over_day(project_id=None, db=db, _user=None).body
         )
 
         assert "metrics" in body
@@ -196,7 +196,7 @@ class TestDayOverDay:
         import json
         db = _make_mock_db()
         body: dict[str, Any] = json.loads(
-            get_web_day_over_day(project_id=None, db=db).body
+            get_web_day_over_day(project_id=None, db=db, _user=None).body
         )
 
         for metric in body["metrics"]:
@@ -213,7 +213,7 @@ class TestDayOverDay:
         import json
         db = _make_mock_db()
         body: dict[str, Any] = json.loads(
-            get_web_day_over_day(project_id=None, db=db).body
+            get_web_day_over_day(project_id=None, db=db, _user=None).body
         )
 
         assert body.get("windowHours") == 24
@@ -223,7 +223,7 @@ class TestDayOverDay:
         monkeypatch.setattr(_router_module, "_is_production", lambda: True)
         db = _make_mock_db()
 
-        result = get_web_day_over_day(project_id=None, db=db)
+        result = get_web_day_over_day(project_id=None, db=db, _user=None)
         # In production, _block_in_production returns a 200 demo-mode JSONResponse
         # (not an HTTPException). Accept any non-exception return.
         assert result is not None

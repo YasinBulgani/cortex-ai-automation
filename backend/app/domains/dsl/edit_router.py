@@ -224,8 +224,8 @@ def _audit_to_out(a: DslCatalogAudit) -> AuditOut:
 @router.post("/actions", response_model=ApplyResponse, status_code=status.HTTP_201_CREATED)
 def create_action(
     body: CreateActionRequest,
-    db: DbSession,
-    actor: EditorUser,
+    db: Session = Depends(get_db),
+    actor: User = Depends(require_permission("dsl.edit")),
 ) -> ApplyResponse:
     """Yeni bir DSL cümleciği oluştur."""
     action_id = body.action.get("id")
@@ -251,8 +251,8 @@ def create_action(
 def update_action(
     action_id: str,
     body: UpdateActionRequest,
-    db: DbSession,
-    actor: EditorUser,
+    db: Session = Depends(get_db),
+    actor: User = Depends(require_permission("dsl.edit")),
 ) -> ApplyResponse:
     try:
         result = editor_service.apply_edit(
@@ -273,8 +273,8 @@ def update_action(
 @router.delete("/actions/{action_id}", response_model=ApplyResponse)
 def delete_action(
     action_id: str,
-    db: DbSession,
-    actor: EditorUser,
+    db: Session = Depends(get_db),
+    actor: User = Depends(require_permission("dsl.edit")),
     body: Optional[DeleteActionRequest] = None,
 ) -> ApplyResponse:
     options = body.options if body else EditOptions()
@@ -298,8 +298,8 @@ def delete_action(
 def deprecate_action(
     action_id: str,
     body: DeprecateActionRequest,
-    db: DbSession,
-    actor: EditorUser,
+    db: Session = Depends(get_db),
+    actor: User = Depends(require_permission("dsl.edit")),
 ) -> ApplyResponse:
     """Bir cümleciği deprecated olarak işaretle (replacement zorunlu)."""
     current = editor_service._current_action_raw(action_id)  # type: ignore[attr-defined]
@@ -332,8 +332,8 @@ def deprecate_action(
 
 @router.get("/proposals", response_model=ProposalListResponse)
 def list_proposals(
-    _: ReaderUser,
-    db: DbSession,
+    _user: Annotated[User, Depends(get_current_user)],
+    db: Session = Depends(get_db),
     status_q: Optional[str] = Query(
         default=None,
         alias="status",
@@ -354,8 +354,8 @@ def list_proposals(
 @router.get("/proposals/{proposal_id}", response_model=ProposalOut)
 def get_proposal(
     proposal_id: str,
-    _: ReaderUser,
-    db: DbSession,
+    _user: Annotated[User, Depends(get_current_user)],
+    db: Session = Depends(get_db),
 ) -> ProposalOut:
     try:
         prop = editor_service.get_proposal(db, proposal_id)
@@ -368,8 +368,8 @@ def get_proposal(
 def approve_proposal(
     proposal_id: str,
     body: ReviewRequest,
-    db: DbSession,
-    actor: ApproverUser,
+    db: Session = Depends(get_db),
+    actor: User = Depends(require_permission("dsl.approve")),
 ) -> ApplyResponse:
     try:
         result = editor_service.approve_proposal(
@@ -388,8 +388,8 @@ def approve_proposal(
 def reject_proposal(
     proposal_id: str,
     body: ReviewRequest,
-    db: DbSession,
-    actor: ApproverUser,
+    db: Session = Depends(get_db),
+    actor: User = Depends(require_permission("dsl.approve")),
 ) -> ProposalOut:
     try:
         prop = editor_service.reject_proposal(
@@ -405,8 +405,8 @@ def reject_proposal(
 
 @router.get("/audit", response_model=List[AuditOut])
 def list_audit(
-    _: ReaderUser,
-    db: DbSession,
+    _user: Annotated[User, Depends(get_current_user)],
+    db: Session = Depends(get_db),
     action_id: Optional[str] = Query(default=None, max_length=128),
     limit: int = Query(default=100, ge=1, le=500),
 ) -> List[AuditOut]:
@@ -421,8 +421,8 @@ def list_audit(
 def generate_ai_aliases(
     action_id: str,
     body: AiAliasRequest,
-    db: DbSession,
-    actor: EditorUser,
+    db: Session = Depends(get_db),
+    actor: User = Depends(require_permission("dsl.edit")),
 ) -> AiAliasResponse:
     """Mevcut cümleciğe AI ile yeni TR/EN alias önerileri üret.
 
@@ -451,7 +451,7 @@ def generate_ai_aliases(
 
 
 @router.get("/editor/config", response_model=EditorConfigOut)
-def editor_config(_: ReaderUser) -> EditorConfigOut:
+def editor_config(_user: Annotated[User, Depends(get_current_user)]) -> EditorConfigOut:
     """Frontend'in git akışını doğru göstermesi için aktif ayarlar."""
     cfg = GitConfig.from_env()
     return EditorConfigOut(

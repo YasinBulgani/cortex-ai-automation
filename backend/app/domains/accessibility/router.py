@@ -33,7 +33,7 @@ CurrentUser = Annotated[User, Depends(get_current_user)]
     summary="WCAG violation'ları Türkçe remediation'a çevir",
     response_description="ok=true + remediations veya ok=false + error",
 )
-def analyze(request: AnalyzeA11yRequest, user: CurrentUser) -> AnalyzeA11yResponse:
+def analyze(request: AnalyzeA11yRequest, user: Annotated[User, Depends(get_current_user)]) -> AnalyzeA11yResponse:
     """axe-core / Pa11y / Lighthouse çıktısından violation listesi alır,
     AI Gateway üzerinden (vLLM/Ollama/Groq/Gemini fallback) Türkçe
     açıklama + somut fix önerisi döndürür.
@@ -52,7 +52,7 @@ def analyze(request: AnalyzeA11yRequest, user: CurrentUser) -> AnalyzeA11yRespon
     "/status",
     summary="A11y analyzer durumu (feature flag + telemetri)",
 )
-def status(user: CurrentUser):
+def status(user: Annotated[User, Depends(get_current_user)]):
     """Frontend "AI ile açıklat" butonunu gösterip göstermemek için.
 
     enabled=false ise buton gizlenmeli veya disabled gösterilmeli.

@@ -9,9 +9,9 @@ import os
 import threading
 import uuid
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Annotated, Any, Dict, List, Optional
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, status, Depends
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 from sqlalchemy import select
@@ -42,6 +42,8 @@ from app.domains.ai.service import (
     async_generate_scenarios,
 )
 from app.domains.tspm.models import AiChatMessage, AiChatSession
+from app.infra.models import User
+from app.deps import get_current_user
 
 _logger = logging.getLogger(__name__)
 
@@ -192,7 +194,7 @@ class ChatResponse(BaseModel):
 
 
 @router.post("/chat/sessions", response_model=SessionOut, status_code=201)
-def create_session(body: SessionCreate, db: DB, user: CurrentUser):
+def create_session(body: SessionCreate, db: DB, user: Annotated[User, Depends(get_current_user)]):
     _require_project_access(db, user, body.project_id)
     session = AiChatSession(
         project_id=body.project_id,
@@ -210,7 +212,7 @@ def create_session(body: SessionCreate, db: DB, user: CurrentUser):
 
 
 @router.get("/llm/usage")
-def get_llm_usage(user: CurrentUser):
+def get_llm_usage(user: Annotated[User, Depends(get_current_user)]):
     """Kullanicinin güncel LLM kullanim durumunu dondurur (rate limit bilgisi)."""
     try:
         from app.domains.ai.llm_rate_limiter import get_user_usage
@@ -228,7 +230,7 @@ def get_llm_usage(user: CurrentUser):
 
 
 @router.get("/chat/sessions", response_model=List[SessionOut])
-def list_sessions(db: DB, user: CurrentUser, project_id: Optional[str] = None):
+def list_sessions(db: DB, user: Annotated[User, Depends(get_current_user)], project_id: Optional[str] = None):
     stmt = select(AiChatSession).where(AiChatSession.user_id == user.id)
     if project_id:
         stmt = stmt.where(AiChatSession.project_id == project_id)
@@ -244,7 +246,7 @@ def list_sessions(db: DB, user: CurrentUser, project_id: Optional[str] = None):
 
 
 @router.delete("/chat/sessions/{session_id}", status_code=204)
-def delete_session(session_id: str, db: DB, user: CurrentUser):
+def delete_session(session_id: str, db: DB, user: Annotated[User, Depends(get_current_user)]):
     session = db.get(AiChatSession, session_id)
     if session is None or session.user_id != user.id:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Oturum bulunamadı")
@@ -253,7 +255,7 @@ def delete_session(session_id: str, db: DB, user: CurrentUser):
 
 
 @router.get("/chat/sessions/{session_id}/messages", response_model=List[MessageOut])
-def list_messages(session_id: str, db: DB, user: CurrentUser):
+def list_messages(session_id: str, db: DB, user: Annotated[User, Depends(get_current_user)]):
     session = db.get(AiChatSession, session_id)
     if session is None or session.user_id != user.id:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Oturum bulunamadı")
@@ -297,7 +299,7 @@ def list_messages(session_id: str, db: DB, user: CurrentUser):
         429: {"description": "AI oran siniri asildi"},
     },
 )
-async def send_message(session_id: str, body: MessageCreate, db: DB, user: CurrentUser):
+async def send_message(session_id: str, body: MessageCreate, db: DB, user: Annotated[User, Depends(get_current_user)]):
     # ── Per-user LLM rate limit ──
     _check_llm_access(str(user.id))
 
@@ -351,7 +353,7 @@ async def send_message(session_id: str, body: MessageCreate, db: DB, user: Curre
 
 
 @router.post("/chat/sessions/{session_id}/messages/stream")
-async def stream_message(session_id: str, body: MessageCreate, db: DB, user: CurrentUser):
+async def stream_message(session_id: str, body: MessageCreate, db: DB, user: Annotated[User, Depends(get_current_user)]):
     """
     Streaming chat endpoint — Server-Sent Events (SSE) ile token token yanıt gonderir.
 
@@ -528,7 +530,7 @@ class GeneralStreamRequest(BaseModel):
 
 
 @router.post("/stream/scenarios")
-async def stream_scenario_generation(body: ScenarioStreamRequest, user: CurrentUser):
+async def stream_scenario_generation(body: ScenarioStreamRequest, user: Annotated[User, Depends(get_current_user)]):
     """Senaryo uretimini streaming olarak yapar."""
     from app.domains.ai.streaming_service import get_streaming_service
     svc = get_streaming_service()
@@ -561,7 +563,7 @@ async def stream_scenario_generation(body: ScenarioStreamRequest, user: CurrentU
 
 
 @router.post("/stream/analysis")
-async def stream_test_analysis(body: AnalysisStreamRequest, user: CurrentUser):
+async def stream_test_analysis(body: AnalysisStreamRequest, user: Annotated[User, Depends(get_current_user)]):
     """Test analizi streaming."""
     from app.domains.ai.streaming_service import get_streaming_service
     svc = get_streaming_service()
@@ -593,7 +595,7 @@ async def stream_test_analysis(body: AnalysisStreamRequest, user: CurrentUser):
 
 
 @router.post("/stream/test-data")
-async def stream_test_data(body: TestDataStreamRequest, user: CurrentUser):
+async def stream_test_data(body: TestDataStreamRequest, user: Annotated[User, Depends(get_current_user)]):
     """Test verisi uretimi streaming."""
     from app.domains.ai.streaming_service import get_streaming_service
     svc = get_streaming_service()
@@ -626,7 +628,7 @@ async def stream_test_data(body: TestDataStreamRequest, user: CurrentUser):
 
 
 @router.post("/stream/general")
-async def stream_general_llm(body: GeneralStreamRequest, user: CurrentUser):
+async def stream_general_llm(body: GeneralStreamRequest, user: Annotated[User, Depends(get_current_user)]):
     """Genel amacli LLM streaming."""
     from app.domains.ai.streaming_service import get_streaming_service
     svc = get_streaming_service()
@@ -668,7 +670,7 @@ class AnalyzeExecutionRequest(BaseModel):
     question: str = ""
 
 @router.post("/projects/{project_id}/suggest-scenarios")
-async def suggest_scenarios(project_id: str, body: SuggestScenariosRequest, db: DB, user: CurrentUser):
+async def suggest_scenarios(project_id: str, body: SuggestScenariosRequest, db: DB, user: Annotated[User, Depends(get_current_user)]):
     from app.domains.tspm.models import TspmProject, TspmScenario
     _check_llm_access(str(user.id))
     p = db.get(TspmProject, project_id)
@@ -694,7 +696,7 @@ async def suggest_scenarios(project_id: str, body: SuggestScenariosRequest, db: 
 
 
 @router.post("/projects/{project_id}/executions/{run_id}/analyze")
-async def analyze_execution(project_id: str, run_id: str, body: AnalyzeExecutionRequest, db: DB, user: CurrentUser):
+async def analyze_execution(project_id: str, run_id: str, body: AnalyzeExecutionRequest, db: DB, user: Annotated[User, Depends(get_current_user)]):
     from app.domains.tspm.models import TspmExecution, TspmExecutionResult, TspmScenario
     _check_llm_access(str(user.id))
     ex = db.get(TspmExecution, run_id)
@@ -726,7 +728,7 @@ async def analyze_execution(project_id: str, run_id: str, body: AnalyzeExecution
 # ═══════════════════════════════════════════════════════════════════════
 
 @router.post("/projects/{project_id}/prioritize-tests")
-def prioritize_tests(project_id: str, body: dict, db: DB, user: CurrentUser):
+def prioritize_tests(project_id: str, body: dict, db: DB, user: Annotated[User, Depends(get_current_user)]):
     """
     Değişen dosyalara ve geçmiş başarısızlık oranlarına göre testleri önceliklendirir.
     body: { changed_files: list[str], history: dict[str, {fail_rate: float, avg_duration: float}] }
@@ -770,7 +772,7 @@ def prioritize_tests(project_id: str, body: dict, db: DB, user: CurrentUser):
 
 
 @router.post("/projects/{project_id}/anomaly-detect")
-def anomaly_detect(project_id: str, db: DB, user: CurrentUser, body: Optional[Dict] = None):
+def anomaly_detect(project_id: str, db: DB, user: Annotated[User, Depends(get_current_user)], body: Optional[Dict] = None):
     """
     Test koşularında anomali (yavaşlama, hata paterni) tespit eder.
     body: { test_results: list[{testId, status, duration, retryCount}] } — opsiyonel.
@@ -857,7 +859,7 @@ def anomaly_detect(project_id: str, db: DB, user: CurrentUser, body: Optional[Di
 
 
 @router.post("/assert-advisor")
-async def assert_advisor(body: dict, user: CurrentUser):
+async def assert_advisor(body: dict, user: Annotated[User, Depends(get_current_user)]):
     """
     Verilen test kodunu analiz ederek assertion önerileri üretir (LLM destekli).
     body: { source_code: str, file_path: str }
@@ -890,7 +892,7 @@ class KnowledgeIngestRequest(BaseModel):
 
 
 @router.post("/knowledge/ingest")
-def knowledge_ingest(body: KnowledgeIngestRequest, user: CurrentUser, project_id: str = ""):
+def knowledge_ingest(body: KnowledgeIngestRequest, user: Annotated[User, Depends(get_current_user)], project_id: str = ""):
     """Dışarıdan bilgi ekle — git hook, CI/CD, veya diğer araçlar için."""
     if not project_id:
         raise HTTPException(400, "project_id query parametresi gerekli")
@@ -907,7 +909,7 @@ def knowledge_ingest(body: KnowledgeIngestRequest, user: CurrentUser, project_id
 
 
 @router.get("/knowledge/stats")
-def knowledge_stats(user: CurrentUser, project_id: str = ""):
+def knowledge_stats(user: Annotated[User, Depends(get_current_user)], project_id: str = ""):
     """KnowledgeStore istatistiklerini döndürür — UI hafıza göstergesi için."""
     if not project_id:
         raise HTTPException(400, "project_id query parametresi gerekli")
@@ -920,7 +922,7 @@ def knowledge_stats(user: CurrentUser, project_id: str = ""):
 
 
 @router.get("/providers")
-def get_providers(user: CurrentUser):
+def get_providers(user: Annotated[User, Depends(get_current_user)]):
     """Yapılandırılmış AI provider'ları döndürür (API anahtarları gizlenir)."""
     from app.config import get_settings
     s = get_settings()
@@ -940,9 +942,9 @@ _SUPPORTED_PROVIDERS = ("openai", "anthropic")
 
 
 @router.put("/providers/active")
-def set_active_provider(body: dict, user: CurrentUser):
+def set_active_provider(body: dict, user: Annotated[User, Depends(get_current_user)]):
     """Runtime provider degisikligi desteklenmez; yalnizca admin'e deterministic yanit doner."""
-    from app.deps import _user_permissions
+    from app.deps import _user_permissions, get_current_user
     perms = _user_permissions(user)
     if "admin.*" not in perms:
         raise HTTPException(403, "Admin yetkisi gerekli")
@@ -973,7 +975,7 @@ class BatchEmbedResponse(BaseModel):
 
 
 @router.post("/knowledge/batch-ingest", response_model=BatchEmbedResponse)
-def batch_ingest(body: BatchEmbedRequest, user: CurrentUser, project_id: str = ""):
+def batch_ingest(body: BatchEmbedRequest, user: Annotated[User, Depends(get_current_user)], project_id: str = ""):
     """Toplu bilgi ingestion — embedding + KnowledgeStore kayit."""
     if not project_id:
         raise HTTPException(400, "project_id query parametresi gerekli")
@@ -990,7 +992,7 @@ def batch_ingest(body: BatchEmbedRequest, user: CurrentUser, project_id: str = "
 
 
 @router.post("/knowledge/search")
-def knowledge_search(body: dict, user: CurrentUser, project_id: str = ""):
+def knowledge_search(body: dict, user: Annotated[User, Depends(get_current_user)], project_id: str = ""):
     """KnowledgeStore'da semantik arama."""
     if not project_id:
         raise HTTPException(400, "project_id query parametresi gerekli")
@@ -1031,7 +1033,7 @@ def knowledge_search(body: dict, user: CurrentUser, project_id: str = ""):
 
 
 @router.delete("/knowledge/clear")
-def knowledge_clear(user: CurrentUser, project_id: str = ""):
+def knowledge_clear(user: Annotated[User, Depends(get_current_user)], project_id: str = ""):
     """KnowledgeStore temizle (admin only)."""
     if not project_id:
         raise HTTPException(400, "project_id query parametresi gerekli")
@@ -1063,7 +1065,7 @@ def knowledge_clear(user: CurrentUser, project_id: str = ""):
 
 @router.get("/quality-metrics")
 def get_quality_metrics(
-    user: CurrentUser,
+    user: Annotated[User, Depends(get_current_user)],
     days: int = 30,
     agent_name: Optional[str] = None,
     model: Optional[str] = None,
@@ -1100,7 +1102,7 @@ def get_quality_metrics(
 
 
 @router.get("/quality/dashboard")
-def quality_dashboard(user: CurrentUser, days: int = 7):
+def quality_dashboard(user: Annotated[User, Depends(get_current_user)], days: int = 7):
     """
     Unified AI quality dashboard — tek cagri ile tüm metrikler.
 
@@ -1151,7 +1153,7 @@ def quality_dashboard(user: CurrentUser, days: int = 7):
 
 @router.post("/eval/run")
 def eval_run(
-    user: CurrentUser,
+    user: Annotated[User, Depends(get_current_user)],
     task_type: Optional[str] = None,
     include_judge: bool = True,
 ):
@@ -1186,21 +1188,21 @@ def eval_run(
 
 
 @router.get("/eval/latest")
-def eval_latest(user: CurrentUser, suite: str = "banking_test_gen_v1", limit: int = 50):
+def eval_latest(user: Annotated[User, Depends(get_current_user)], suite: str = "banking_test_gen_v1", limit: int = 50):
     """Son eval run sonuclarini getir."""
     from app.domains.ai.eval_suite import get_latest_eval_report
     return get_latest_eval_report(suite_name=suite, limit=limit)
 
 
 @router.get("/few-shot/candidates")
-def few_shot_candidates(user: CurrentUser, limit: int = 20):
+def few_shot_candidates(user: Annotated[User, Depends(get_current_user)], limit: int = 20):
     """Onay bekleyen few-shot aday ornekleri."""
     from app.domains.ai.few_shot_bank import list_candidates
     return {"candidates": list_candidates(limit=limit)}
 
 
 @router.post("/few-shot/candidates/{example_id}/approve")
-def few_shot_approve(example_id: int, user: CurrentUser):
+def few_shot_approve(example_id: int, user: Annotated[User, Depends(get_current_user)]):
     """Aday ornegi onayla. Yalnizca admin."""
     from app.deps import _user_permissions
     perms = _user_permissions(user)
@@ -1214,7 +1216,7 @@ def few_shot_approve(example_id: int, user: CurrentUser):
 
 
 @router.post("/few-shot/seed")
-def few_shot_seed(user: CurrentUser, force: bool = False):
+def few_shot_seed(user: Annotated[User, Depends(get_current_user)], force: bool = False):
     """Statik FEW_SHOT_EXAMPLES'i DB'ye yaz. Yalnizca admin."""
     from app.deps import _user_permissions
     perms = _user_permissions(user)
@@ -1226,7 +1228,7 @@ def few_shot_seed(user: CurrentUser, force: bool = False):
 
 @router.post("/knowledge/ingest/bdd")
 def knowledge_ingest_bdd(
-    user: CurrentUser,
+    user: Annotated[User, Depends(get_current_user)],
     base_path: str = os.environ.get("BDD_FEATURES_PATH", "./features"),
     limit: int = 0,
 ):
@@ -1242,7 +1244,7 @@ def knowledge_ingest_bdd(
 
 @router.post("/knowledge/ingest/traces")
 def knowledge_ingest_traces(
-    user: CurrentUser,
+    user: Annotated[User, Depends(get_current_user)],
     days: int = 1,
     max_records: int = 200,
 ):
@@ -1259,7 +1261,7 @@ def knowledge_ingest_traces(
 
 
 @router.get("/cache/stats")
-def cache_stats(user: CurrentUser):
+def cache_stats(user: Annotated[User, Depends(get_current_user)]):
     """Semantic cache istatistikleri."""
     from app.domains.ai.semantic_cache import cache_stats
     return cache_stats()
@@ -1267,7 +1269,7 @@ def cache_stats(user: CurrentUser):
 
 @router.delete("/cache")
 def cache_clear_endpoint(
-    user: CurrentUser,
+    user: Annotated[User, Depends(get_current_user)],
     task_type: Optional[str] = None,
 ):
     """Semantic cache temizle (admin). task_type verilirse sadece o bucket."""
@@ -1284,7 +1286,7 @@ def cache_clear_endpoint(
 
 
 @router.get("/finetune/readiness")
-def finetune_readiness(user: CurrentUser):
+def finetune_readiness(user: Annotated[User, Depends(get_current_user)]):
     """Fine-tuning için yeterli veri var mi?"""
     from app.domains.ai.finetune_export import get_export_readiness
     return get_export_readiness()
@@ -1294,7 +1296,7 @@ def finetune_readiness(user: CurrentUser):
 
 
 @router.get("/trace/chain/{correlation_id}")
-def trace_chain(correlation_id: str, user: CurrentUser):
+def trace_chain(correlation_id: str, user: Annotated[User, Depends(get_current_user)]):
     """Bir correlation_id'ye ait tüm LLM cagri zincirini getir.
 
     Debug araci: kullanıcı tek bir ID ile baslangic istekten son LLM cagrisina
@@ -1403,7 +1405,7 @@ def trace_chain(correlation_id: str, user: CurrentUser):
 
 
 @router.get("/rate-limits")
-def rate_limits_state(user: CurrentUser):
+def rate_limits_state(user: Annotated[User, Depends(get_current_user)]):
     """Tüm modellerin provider rate-limit state'i."""
     from app.domains.ai.rate_limit_monitor import get_all_rate_limits
     return {"models": get_all_rate_limits()}
@@ -1420,7 +1422,7 @@ class TokenPlanRequest(BaseModel):
 
 
 @router.post("/token-plan")
-def token_plan_endpoint(body: TokenPlanRequest, user: CurrentUser):
+def token_plan_endpoint(body: TokenPlanRequest, user: Annotated[User, Depends(get_current_user)]):
     """Prompt'un modele sigip sigmadigini on-kontrol et."""
     from app.domains.ai.token_counter import plan_tokens
 
@@ -1441,21 +1443,21 @@ def token_plan_endpoint(body: TokenPlanRequest, user: CurrentUser):
 
 
 @router.get("/shield/output-violations")
-def shield_output_violations(user: CurrentUser, days: int = 7):
+def shield_output_violations(user: Annotated[User, Depends(get_current_user)], days: int = 7):
     """output_shield ihlal istatistikleri."""
     from app.domains.ai.output_shield import get_violation_stats
     return get_violation_stats(days=days)
 
 
 @router.get("/routing/learned")
-def routing_learned(user: CurrentUser, days: int = 14):
+def routing_learned(user: Annotated[User, Depends(get_current_user)], days: int = 14):
     """router_learning — son N gunluk veri uzerinden preference analizi."""
     from app.domains.ai.router_learning import compute_preferences
     return {"preferences": compute_preferences(days=days)}
 
 
 @router.post("/routing/learn")
-def routing_run_learning(user: CurrentUser, days: int = 14, persist: bool = True):
+def routing_run_learning(user: Annotated[User, Depends(get_current_user)], days: int = 14, persist: bool = True):
     """Router learning cycle'i manuel calistir (admin)."""
     from app.deps import _user_permissions
     perms = _user_permissions(user)
@@ -1466,14 +1468,14 @@ def routing_run_learning(user: CurrentUser, days: int = 14, persist: bool = True
 
 
 @router.get("/review-queue")
-def review_queue_pending(user: CurrentUser, limit: int = 50):
+def review_queue_pending(user: Annotated[User, Depends(get_current_user)], limit: int = 50):
     """Bekleyen human-review kararlari."""
     from app.domains.ai.review_queue import list_pending
     return {"pending": list_pending(limit=limit)}
 
 
 @router.get("/review-queue/stats")
-def review_queue_stats(user: CurrentUser, days: int = 7):
+def review_queue_stats(user: Annotated[User, Depends(get_current_user)], days: int = 7):
     """Review kuyruk istatistikleri."""
     from app.domains.ai.review_queue import queue_stats
     return queue_stats(days=days)
@@ -1486,7 +1488,7 @@ class ReviewDecisionRequest(BaseModel):
 
 
 @router.post("/review-queue/{review_id}/resolve")
-def review_resolve(review_id: str, body: ReviewDecisionRequest, user: CurrentUser):
+def review_resolve(review_id: str, body: ReviewDecisionRequest, user: Annotated[User, Depends(get_current_user)]):
     """Review kararini uygula (admin)."""
     from app.deps import _user_permissions
     perms = _user_permissions(user)
@@ -1506,7 +1508,7 @@ def review_resolve(review_id: str, body: ReviewDecisionRequest, user: CurrentUse
 
 
 @router.get("/tools/list")
-def tools_list(user: CurrentUser):
+def tools_list(user: Annotated[User, Depends(get_current_user)]):
     """Kullanilabilir LLM tool'lari."""
     from app.domains.ai.tools import list_tools, tools_enabled
     return {
@@ -1519,7 +1521,7 @@ def tools_list(user: CurrentUser):
 
 
 @router.post("/cache/embeddings/clear")
-def cache_embeddings_clear(user: CurrentUser):
+def cache_embeddings_clear(user: Annotated[User, Depends(get_current_user)]):
     """Embedding cache temizle (admin)."""
     from app.deps import _user_permissions
     perms = _user_permissions(user)
@@ -1531,7 +1533,7 @@ def cache_embeddings_clear(user: CurrentUser):
 
 
 @router.get("/cache/embeddings/stats")
-def cache_embeddings_stats(user: CurrentUser):
+def cache_embeddings_stats(user: Annotated[User, Depends(get_current_user)]):
     """Embedding cache istatistikleri."""
     from app.domains.ai.embedding_cache import cache_stats
     return cache_stats()
@@ -1539,7 +1541,7 @@ def cache_embeddings_stats(user: CurrentUser):
 
 @router.post("/finetune/export")
 def finetune_export(
-    user: CurrentUser,
+    user: Annotated[User, Depends(get_current_user)],
     min_judge_score: float = 9.0,
     task_type: Optional[str] = None,
     include_few_shot: bool = True,
@@ -1569,7 +1571,7 @@ def finetune_export(
 
 @router.get("/llm-traces")
 def list_llm_traces(
-    user: CurrentUser,
+    user: Annotated[User, Depends(get_current_user)],
     run_id: Optional[str] = None,
     agent_name: Optional[str] = None,
     limit: int = 50,
@@ -1598,14 +1600,14 @@ def list_llm_traces(
 
 
 @router.get("/llm-traces/stats")
-def llm_trace_stats(user: CurrentUser):
+def llm_trace_stats(user: Annotated[User, Depends(get_current_user)]):
     """LLM trace özet istatistikleri."""
     from app.domains.ai.llm_trace import get_trace_stats
     return get_trace_stats()
 
 
 @router.get("/model-router/stats")
-def model_router_stats(user: CurrentUser):
+def model_router_stats(user: Annotated[User, Depends(get_current_user)]):
     """Smart Model Router konfigurasyonu ve istatistikleri."""
     try:
         from app.domains.ai.smart_model_router import get_routing_stats
@@ -1618,7 +1620,7 @@ def model_router_stats(user: CurrentUser):
 
 
 @router.get("/cross-agent-memory/stats")
-def cross_agent_memory_stats(user: CurrentUser, db: DB, project_id: str = ""):
+def cross_agent_memory_stats(user: Annotated[User, Depends(get_current_user)], db: DB, project_id: str = ""):
     """CrossAgentMemory istatistikleri — agent'lar arasi bilgi paylasim durumu."""
     _require_project_access(db, user, project_id)
     from app.domains.ai.cross_agent_memory import CrossAgentMemory
@@ -1627,7 +1629,7 @@ def cross_agent_memory_stats(user: CurrentUser, db: DB, project_id: str = ""):
 
 @router.get("/cross-agent-memory/entries")
 def cross_agent_memory_entries(
-    user: CurrentUser,
+    user: Annotated[User, Depends(get_current_user)],
     db: DB,
     event_type: Optional[str] = None,
     agent_name: Optional[str] = None,
@@ -1650,7 +1652,7 @@ def cross_agent_memory_entries(
 
 
 @router.get("/few-shot-bank/stats")
-def few_shot_bank_stats(user: CurrentUser):
+def few_shot_bank_stats(user: Annotated[User, Depends(get_current_user)]):
     """Few-shot ornek bankasi istatistikleri."""
     try:
         from app.domains.ai.few_shot_bank import get_example_count, list_available_examples
@@ -1679,7 +1681,7 @@ class AutopilotRunRequest(BaseModel):
 @router.get("/autopilot/status")
 def autopilot_status(
     db: DB,
-    user: CurrentUser,
+    user: Annotated[User, Depends(get_current_user)],
     project_id: str = "",
 ):
     """Nexus AI Autopilot son durumu ve gerekirse canlı snapshot."""
@@ -1693,7 +1695,7 @@ def autopilot_status(
 @router.get("/autopilot/runs")
 def autopilot_runs(
     db: DB,
-    user: CurrentUser,
+    user: Annotated[User, Depends(get_current_user)],
     project_id: str = "",
     limit: int = 20,
 ):
@@ -1709,7 +1711,7 @@ def autopilot_runs(
 def autopilot_run(
     body: AutopilotRunRequest,
     db: DB,
-    user: CurrentUser,
+    user: Annotated[User, Depends(get_current_user)],
 ):
     """
     Autopilot'u tek proje için manuel tetikle.
@@ -1867,7 +1869,7 @@ class ValidateCodeRequest(BaseModel):
 def qa_create_plan(
     body: QAPlanRequest,
     db: DB,
-    user: CurrentUser,
+    user: Annotated[User, Depends(get_current_user)],
     project_id: str = "",
 ):
     """
@@ -1893,7 +1895,7 @@ def qa_create_plan(
 def qa_execute_plan(
     plan_id: str,
     db: DB,
-    user: CurrentUser,
+    user: Annotated[User, Depends(get_current_user)],
     project_id: str = "",
 ):
     """
@@ -1923,7 +1925,7 @@ def qa_execute_plan(
 def qa_verify_plan(
     plan_id: str,
     db: DB,
-    user: CurrentUser,
+    user: Annotated[User, Depends(get_current_user)],
     project_id: str = "",
 ):
     """
@@ -1951,7 +1953,7 @@ def qa_verify_plan(
 def qa_full_cycle(
     body: QAPlanRequest,
     db: DB,
-    user: CurrentUser,
+    user: Annotated[User, Depends(get_current_user)],
     project_id: str = "",
 ):
     """
@@ -1976,7 +1978,7 @@ def qa_full_cycle(
 def qa_explore(
     body: QAExploreRequest,
     db: DB,
-    user: CurrentUser,
+    user: Annotated[User, Depends(get_current_user)],
     project_id: str = "",
 ):
     """
@@ -2000,7 +2002,7 @@ def qa_explore(
 @router.get("/qa/status/{plan_id}")
 def qa_plan_status(
     plan_id: str,
-    user: CurrentUser,
+    user: Annotated[User, Depends(get_current_user)],
 ):
     """
     QA planinin mevcut durumunu getir — adım ilerlemesi,
@@ -2027,7 +2029,7 @@ def qa_plan_status(
 def nl_test_generate(
     body: NLTestRequest,
     db: DB,
-    user: CurrentUser,
+    user: Annotated[User, Depends(get_current_user)],
     project_id: str = "",
 ):
     """
@@ -2061,7 +2063,7 @@ def nl_test_generate(
 def nl_test_batch(
     body: BatchNLRequest,
     db: DB,
-    user: CurrentUser,
+    user: Annotated[User, Depends(get_current_user)],
     project_id: str = "",
 ):
     """
@@ -2092,7 +2094,7 @@ def nl_test_batch(
 def nl_test_suggest(
     endpoint_id: str,
     db: DB,
-    user: CurrentUser,
+    user: Annotated[User, Depends(get_current_user)],
     project_id: str = "",
     count: int = 5,
 ):
@@ -2122,7 +2124,7 @@ def nl_test_suggest(
 @router.post("/nl-test/validate")
 def nl_test_validate(
     body: ValidateCodeRequest,
-    user: CurrentUser,
+    user: Annotated[User, Depends(get_current_user)],
 ):
     """
     Uretilen test kodunun syntax dogrulamasini yapar.
@@ -2158,7 +2160,7 @@ def nl_test_validate(
 )
 def ai_quality_dashboard(
     days: int = 30,
-    user: CurrentUser = None,
+    user: Annotated[User, Depends(get_current_user)] = None,
 ) -> Dict[str, Any]:
     """Unified dashboard payload consumed by ``apps/web/.../ai-quality/page.tsx``.
 

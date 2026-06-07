@@ -190,7 +190,7 @@ def _score_gap(fc: FileCoverage, start: int, end: int) -> float:
 def upload_coverage(
     body: CoverageUploadRequest,
     db: DB,
-    user: CurrentUser,
+    user: Annotated[User, Depends(get_current_user)],
 ) -> CoverageReport:
     """Coverage raporu yükle ve parse et."""
     try:
@@ -203,7 +203,7 @@ def upload_coverage(
 def analyze_coverage(
     body: AnalyzeRequest,
     db: DB,
-    user: CurrentUser,
+    user: Annotated[User, Depends(get_current_user)],
 ) -> AnalyzeResponse:
     """Coverage gap'lerini analiz et ve hedefleri belirle."""
     try:
@@ -221,7 +221,7 @@ def analyze_coverage(
 def generate_coverage_tests(
     body: GenerateTestRequest,
     db: DB,
-    user: CurrentUser,
+    user: Annotated[User, Depends(get_current_user)],
 ) -> GenerateTestResponse:
     """Kapsanmayan kod için test üret (AI destekli)."""
     try:
@@ -306,7 +306,7 @@ def generate_coverage_tests(
 @router.get("/reports", response_model=list[CoverageReportListItem])
 def list_reports(
     db: DB,
-    user: CurrentUser,
+    user: Annotated[User, Depends(get_current_user)],
     project_id: str | None = Query(default=None),
 ) -> list[CoverageReportListItem]:
     """Tüm coverage raporlarini listele."""
@@ -320,7 +320,7 @@ def list_reports(
 def get_report(
     report_id: str,
     db: DB,
-    user: CurrentUser,
+    user: Annotated[User, Depends(get_current_user)],
 ) -> CoverageReport:
     """Belirli bir coverage raporunu getir."""
     try:
@@ -336,7 +336,7 @@ def get_report(
 @router.get("/trends", response_model=TrendResponse)
 def get_trends(
     db: DB,
-    user: CurrentUser,
+    user: Annotated[User, Depends(get_current_user)],
     project_id: str | None = Query(default=None),
 ) -> TrendResponse:
     """Coverage trendlerini getir."""
@@ -353,7 +353,7 @@ def get_trends(
 def banking_targets(
     body: AnalyzeRequest,
     db: DB,
-    user: CurrentUser,
+    user: Annotated[User, Depends(get_current_user)],
 ) -> AnalyzeResponse:
     """Bankacilik-kritik kapsam hedeflerini belirle."""
     try:

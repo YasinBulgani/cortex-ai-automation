@@ -13,6 +13,7 @@ Platform-v4'ten taşınan özellikleri ifşa eden FastAPI endpoint'leri:
 Ana üretim endpoint'leri (POST /synthetic/generate vs) router.py'de kalır.
 """
 from __future__ import annotations
+from typing import Annotated
 
 import logging
 import uuid
@@ -95,8 +96,8 @@ class LearningAnalyzeResponse(BaseModel):
 
 @router.post("/schemas/analyze", response_model=AnalyzeResponse, status_code=status.HTTP_200_OK)
 async def analyze_schema(
+    user: Annotated[User, Depends(get_current_user)],
     file: UploadFile = File(..., description="CSV veya JSON dosya"),
-    user: User = Depends(get_current_user),
 ) -> AnalyzeResponse:
     """
     Yüklenen CSV/JSON'u analiz et → şema + sınıflandırma + PII özeti.
@@ -147,7 +148,7 @@ async def analyze_schema(
 
 @router.get("/scenarios", response_model=list[ScenarioSummary])
 def list_scenarios(
-    _user: User = Depends(get_current_user),
+    _user: Annotated[User, Depends(get_current_user)],
 ) -> list[dict]:
     """Banking senaryo profillerini listele (default, premium, new, high_risk, corporate, fraud_test)."""
     manager = ScenarioManager()
@@ -159,8 +160,8 @@ def list_scenarios(
 @router.post("/projects", response_model=ProjectOut, status_code=status.HTTP_201_CREATED)
 def create_project(
     body: ProjectCreate,
+    user: Annotated[User, Depends(get_current_user)],
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
 ) -> ProjectOut:
     """Yeni sentetik veri projesi oluştur."""
     project = SyntheticProject(
@@ -185,8 +186,8 @@ def create_project(
 
 @router.get("/projects", response_model=list[ProjectOut])
 def list_projects(
+    user: Annotated[User, Depends(get_current_user)],
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
 ) -> list[ProjectOut]:
     """Kullanıcının sentetik veri projelerini listele."""
     stmt = select(SyntheticProject)
@@ -214,8 +215,8 @@ def list_projects(
 @router.get("/projects/{project_id}", response_model=ProjectOut)
 def get_project(
     project_id: str,
+    user: Annotated[User, Depends(get_current_user)],
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
 ) -> ProjectOut:
     """Tek proje detayı."""
     project = db.execute(select(SyntheticProject).where(SyntheticProject.id == project_id)).scalars().first()
@@ -238,8 +239,8 @@ def get_project(
 @router.post("/schemas/{schema_id}/rules/infer", response_model=InferRulesResponse)
 def infer_rules(
     schema_id: str,
+    _user: Annotated[User, Depends(get_current_user)],
     db: Session = Depends(get_db),
-    _user: User = Depends(get_current_user),
 ) -> InferRulesResponse:
     """Mevcut detected_schema için RuleEngine ile kurallar üret ve kaydet."""
     schema_row = db.execute(select(SyntheticDetectedSchema).where(SyntheticDetectedSchema.id == schema_id)).scalars().first()
@@ -280,8 +281,8 @@ def infer_rules(
 @router.post("/learning/analyze/{schema_id}", response_model=LearningAnalyzeResponse)
 def analyze_learning(
     schema_id: str,
+    _user: Annotated[User, Depends(get_current_user)],
     db: Session = Depends(get_db),
-    _user: User = Depends(get_current_user),
 ) -> LearningAnalyzeResponse:
     """Bir şemanın geçmiş üretim preview'lerini LearningEngine ile analiz et."""
     schema_row = db.execute(select(SyntheticDetectedSchema).where(SyntheticDetectedSchema.id == schema_id)).scalars().first()

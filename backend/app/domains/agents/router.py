@@ -116,7 +116,7 @@ async def start_all_agents(
     body: RunAllRequest,
     bg: BackgroundTasks,
     db: DB,
-    user: CurrentUser,
+    user: Annotated[User, Depends(get_current_user)],
 ):
     if body.project_id:
         _require_project_access(db, user, body.project_id)
@@ -126,18 +126,18 @@ async def start_all_agents(
 
 
 @router.get("/status")
-def get_pipeline_status(user: CurrentUser):
+def get_pipeline_status(user: Annotated[User, Depends(get_current_user)]):
     return get_all_agents_status()
 
 
 @router.get("/logs")
-def get_pipeline_logs(user: CurrentUser, since: int = 0):
+def get_pipeline_logs(user: Annotated[User, Depends(get_current_user)], since: int = 0):
     """Return logs starting from index `since` for incremental polling."""
     return get_all_agents_logs(since)
 
 
 @router.post("/cancel")
-def cancel_pipeline(user: CurrentUser):
+def cancel_pipeline(user: Annotated[User, Depends(get_current_user)]):
     return cancel_all_agents_run()
 
 
@@ -165,7 +165,7 @@ class BankingRunRequest(BaseModel):
 async def start_banking_team(
     body: BankingRunRequest,
     bg: BackgroundTasks,
-    user: CurrentUser,
+    user: Annotated[User, Depends(get_current_user)],
 ):
     """Banking QA ekibini başlat. Ollama ile tamamen local çalışır."""
     return start_banking_team_run(
@@ -176,25 +176,25 @@ async def start_banking_team(
 
 
 @router.get("/banking/status")
-def get_banking_status(user: CurrentUser):
+def get_banking_status(user: Annotated[User, Depends(get_current_user)]):
     """Banking pipeline'ının anlık durumunu döndür."""
     return get_banking_pipeline_status()
 
 
 @router.get("/banking/logs")
-def get_banking_logs(user: CurrentUser, since: int = 0):
+def get_banking_logs(user: Annotated[User, Depends(get_current_user)], since: int = 0):
     """Son logları artımlı olarak döndür (polling için)."""
     return get_banking_pipeline_logs(since)
 
 
 @router.get("/banking/report")
-def get_banking_report(user: CurrentUser):
+def get_banking_report(user: Annotated[User, Depends(get_current_user)]):
     """Tamamlanan pipeline'ın final raporunu döndür."""
     return get_banking_pipeline_report()
 
 
 @router.post("/banking/cancel")
-def cancel_banking_pipeline(user: CurrentUser):
+def cancel_banking_pipeline(user: Annotated[User, Depends(get_current_user)]):
     """Çalışan banking pipeline'ını iptal et."""
     return cancel_banking_team_run()
 
@@ -202,7 +202,7 @@ def cancel_banking_pipeline(user: CurrentUser):
 @router.post("/banking/trigger-now")
 async def trigger_banking_now(
     bg: BackgroundTasks,
-    user: CurrentUser,
+    user: Annotated[User, Depends(get_current_user)],
     cycles: int = 2,
 ):
     """
@@ -213,13 +213,13 @@ async def trigger_banking_now(
 
 
 @router.get("/banking/scheduler")
-def get_scheduler_info(user: CurrentUser):
+def get_scheduler_info(user: Annotated[User, Depends(get_current_user)]):
     """Scheduler durumu ve sonraki çalışma zamanı."""
     return get_banking_scheduler_info()
 
 
 @router.get("/banking/health")
-def banking_system_health(user: CurrentUser):
+def banking_system_health(user: Annotated[User, Depends(get_current_user)]):
     """
     7/24 sistem sağlık durumu.
     Watchdog bu endpoint'i izler.
@@ -276,7 +276,7 @@ async def start_full_pipeline(
     body: PipelineStartRequest,
     bg: BackgroundTasks,
     db: DB,
-    user: CurrentUser,
+    user: Annotated[User, Depends(get_current_user)],
 ):
     """
     Analizden otomasyona uçtan uca pipeline başlat.
@@ -304,25 +304,25 @@ async def start_full_pipeline(
 
 
 @router.get("/pipeline/status")
-def get_pipeline_status_full(user: CurrentUser):
+def get_pipeline_status_full(user: Annotated[User, Depends(get_current_user)]):
     """Pipeline anlık durum — faz, ilerleme, senaryo sayısı, kalite skoru."""
     return get_full_pipeline_status()
 
 
 @router.get("/pipeline/logs")
-def get_pipeline_logs_full(user: CurrentUser, since: int = 0):
+def get_pipeline_logs_full(user: Annotated[User, Depends(get_current_user)], since: int = 0):
     """Pipeline logları — artımlı polling için `since` parametresi kullan."""
     return get_full_pipeline_logs(since)
 
 
 @router.get("/pipeline/report")
-def get_pipeline_report(user: CurrentUser):
+def get_pipeline_report(user: Annotated[User, Depends(get_current_user)]):
     """Tamamlanan pipeline'ın final raporunu döndür."""
     return get_full_pipeline_report()
 
 
 @router.post("/pipeline/cancel")
-def cancel_full_pipeline(user: CurrentUser):
+def cancel_full_pipeline(user: Annotated[User, Depends(get_current_user)]):
     """Çalışan pipeline'ı iptal et."""
     return cancel_full_pipeline_run()
 
@@ -331,7 +331,7 @@ def cancel_full_pipeline(user: CurrentUser):
 async def quick_start_pipeline(
     bg: BackgroundTasks,
     db: DB,
-    user: CurrentUser,
+    user: Annotated[User, Depends(get_current_user)],
     project_name: str = "Otomatik Keşif",
     target_url: Optional[str] = None,
 ):
@@ -357,7 +357,7 @@ async def run_heal_pipeline(
     body: HealRequest,
     bg: BackgroundTasks,
     db: DB,
-    user: CurrentUser,
+    user: Annotated[User, Depends(get_current_user)],
 ):
     """Kırık testleri otomatik tamir et.
 
@@ -417,14 +417,14 @@ async def run_heal_pipeline(
 
 
 @router.get("/heal/history", response_model=HealHistoryResponse)
-def get_heal_history(user: CurrentUser, db: DB, limit: int = 20, project_id: str = ""):
+def get_heal_history(user: Annotated[User, Depends(get_current_user)], db: DB, limit: int = 20, project_id: str = ""):
     """Son heal islemlerini getir (KnowledgeStore'dan)."""
     scoped_project_id = _require_scoped_project_id(db, user, project_id)
     return get_heal_history_data(project_id=scoped_project_id, limit=limit)
 
 
 @router.get("/heal/stats", response_model=HealStatsResponse)
-def get_heal_stats(user: CurrentUser, db: DB, project_id: str = ""):
+def get_heal_stats(user: Annotated[User, Depends(get_current_user)], db: DB, project_id: str = ""):
     """Healing istatistiklerini getir."""
     stats = HealStatsResponse()
     try:
@@ -495,7 +495,7 @@ def get_heal_stats(user: CurrentUser, db: DB, project_id: str = ""):
 async def resolve_locator_fallback(
     body: FallbackResolveRequest,
     db: DB,
-    user: CurrentUser,
+    user: Annotated[User, Depends(get_current_user)],
 ):
     """Kirilan selector için fallback zincirini çalıştır.
 
@@ -564,7 +564,7 @@ async def resolve_locator_fallback(
 @router.post("/locator/stability", response_model=StabilityAnalyzeResponse)
 async def analyze_locator_stability(
     body: StabilityAnalyzeRequest,
-    user: CurrentUser,
+    user: Annotated[User, Depends(get_current_user)],
 ):
     """Locator'larin stabilite analizini yap.
 
@@ -624,7 +624,7 @@ async def analyze_locator_stability(
 @router.post("/locator/improve", response_model=ImproveSuggestResponse)
 async def suggest_locator_improvements(
     body: ImproveSuggestRequest,
-    user: CurrentUser,
+    user: Annotated[User, Depends(get_current_user)],
 ):
     """Zayif locator'lar için iyilestirme onerileri üret."""
     try:
@@ -670,7 +670,7 @@ async def suggest_locator_improvements(
 @router.post("/locator/pom/generate", response_model=POMGenerateResponse)
 async def generate_page_object_model(
     body: POMGenerateRequest,
-    user: CurrentUser,
+    user: Annotated[User, Depends(get_current_user)],
 ):
     """Sayfa elementlerinden Page Object Model (POM) kodu üret."""
     try:
@@ -708,7 +708,7 @@ async def generate_page_object_model(
 @router.post("/locator/predict", response_model=BreakagePredictResponse)
 async def predict_locator_breakage(
     body: BreakagePredictRequest,
-    user: CurrentUser,
+    user: Annotated[User, Depends(get_current_user)],
 ):
     """Locator'larin kirilma riskini tahmin et."""
     try:
@@ -755,7 +755,7 @@ async def predict_locator_breakage(
 
 
 @router.get("/locator/trends", response_model=TrendAnalysisResponse)
-def get_locator_heal_trends(user: CurrentUser, db: DB, project_id: str = ""):
+def get_locator_heal_trends(user: Annotated[User, Depends(get_current_user)], db: DB, project_id: str = ""):
     """Heal trend analizi — strateji dagilimi, en cok kirilan selector'lar, sayfa bazli istatistik."""
     scoped_project_id = _require_scoped_project_id(db, user, project_id)
     return get_locator_trend_data(project_id=scoped_project_id)
@@ -767,7 +767,7 @@ def get_locator_heal_trends(user: CurrentUser, db: DB, project_id: str = ""):
 
 @router.get("/llm-traces")
 def get_llm_traces(
-    user: CurrentUser,
+    user: Annotated[User, Depends(get_current_user)],
     db: DB,
     run_id: Optional[str] = None,
     agent_name: Optional[str] = None,
@@ -784,7 +784,7 @@ def get_llm_traces(
 
 
 @router.get("/llm-traces/stats")
-def get_llm_trace_stats(user: CurrentUser):
+def get_llm_trace_stats(user: Annotated[User, Depends(get_current_user)]):
     """LLM cagri istatistikleri — toplam, başarılı, başarısız, ortalama gecikme."""
     from app.domains.ai.llm_trace import get_trace_stats
     return get_trace_stats()

@@ -37,13 +37,13 @@ class ClarifyIn(BaseModel):
 
 
 @router.post("/sessions", status_code=status.HTTP_201_CREATED)
-def create_session_endpoint(body: CreateSessionIn, user: AuthUser) -> dict:
+def create_session_endpoint(body: CreateSessionIn, user: Annotated[User, Depends(get_current_user)]) -> dict:
     s = svc.create_session(project_id=body.project_id, user_id=user.id)
     return s.to_dict()
 
 
 @router.get("/sessions/{session_id}")
-def get_session_endpoint(session_id: str, user: AuthUser) -> dict:
+def get_session_endpoint(session_id: str, user: Annotated[User, Depends(get_current_user)]) -> dict:
     s = svc.get_session(session_id)
     if s is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Pilot session bulunamadı")
@@ -54,14 +54,14 @@ def get_session_endpoint(session_id: str, user: AuthUser) -> dict:
 
 @router.get("/sessions")
 def list_sessions_endpoint(
-    user: AuthUser,
+    user: Annotated[User, Depends(get_current_user)],
     project_id: Optional[str] = Query(None),
 ) -> list[dict]:
     return [s.to_dict() for s in svc.list_sessions(project_id=project_id, user_id=user.id)]
 
 
 @router.post("/sessions/{session_id}/converse")
-def converse_endpoint(session_id: str, body: ConverseIn, user: AuthUser) -> dict:
+def converse_endpoint(session_id: str, body: ConverseIn, user: Annotated[User, Depends(get_current_user)]) -> dict:
     s = svc.get_session(session_id)
     if s is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Pilot session bulunamadı")
@@ -75,7 +75,7 @@ def converse_endpoint(session_id: str, body: ConverseIn, user: AuthUser) -> dict
 
 
 @router.post("/sessions/{session_id}/clarify")
-def clarify_endpoint(session_id: str, body: ClarifyIn, user: AuthUser) -> dict:
+def clarify_endpoint(session_id: str, body: ClarifyIn, user: Annotated[User, Depends(get_current_user)]) -> dict:
     s = svc.get_session(session_id)
     if s is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Pilot session bulunamadı")
@@ -89,7 +89,7 @@ def clarify_endpoint(session_id: str, body: ClarifyIn, user: AuthUser) -> dict:
 
 
 @router.post("/sessions/{session_id}/execute-stage")
-def execute_stage_endpoint(session_id: str, user: AuthUser) -> dict:
+def execute_stage_endpoint(session_id: str, user: Annotated[User, Depends(get_current_user)]) -> dict:
     s = svc.get_session(session_id)
     if s is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Pilot session bulunamadı")

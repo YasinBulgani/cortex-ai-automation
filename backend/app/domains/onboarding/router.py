@@ -43,7 +43,7 @@ def steps():
     "/status",
     summary="Mevcut kullanıcının onboarding durumu",
 )
-def status(user: CurrentUser):
+def status(user: Annotated[User, Depends(get_current_user)]):
     """Kullanıcının onboarding tamamlanma durumunu döner.
 
     Frontend bu endpoint'i kullanarak onboarding widget'ını gösterip
@@ -72,7 +72,7 @@ def status(user: CurrentUser):
     "/checklist",
     summary="Onboarding yapılacaklar listesi",
 )
-def checklist(user: CurrentUser):
+def checklist(user: Annotated[User, Depends(get_current_user)]):
     """Onboarding adımlarını tamamlanma durumu ile birlikte döner.
 
     Her adım için ``done`` alanı tamamlanıp tamamlanmadığını gösterir.
@@ -113,7 +113,7 @@ def checklist(user: CurrentUser):
     summary="Proje için tamamlanma özeti",
 )
 def progress(
-    user: CurrentUser,
+    user: Annotated[User, Depends(get_current_user)],
     project_id: str = Path(..., min_length=1, max_length=120),
 ):
     try:
@@ -131,7 +131,7 @@ def progress(
     response_model=OnboardingProgress,
     summary="Tek bir adımın tamamlanma durumunu güncelle",
 )
-def update(req: ProgressUpdateRequest, user: CurrentUser):
+def update(req: ProgressUpdateRequest, user: Annotated[User, Depends(get_current_user)]):
     try:
         # Adım ID doğrula — uydurma step_id kabul etme
         valid_ids = {s.id for s in DEFAULT_STEPS}
@@ -156,7 +156,7 @@ def update(req: ProgressUpdateRequest, user: CurrentUser):
     summary="Proje için onboarding state'i sıfırla (test/admin)",
 )
 def reset(
-    user: CurrentUser,
+    user: Annotated[User, Depends(get_current_user)],
     project_id: str = Path(..., min_length=1, max_length=120),
 ):
     try:

@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 import os
 from datetime import datetime, timezone as _tz
-from typing import Any
+from typing import Annotated, Any
 
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
@@ -549,7 +549,7 @@ async def automation_brain_capabilities():
 )
 async def create_automation_run(
     payload: AutomationRunCreate,
-    user: User = Depends(get_current_user),
+    user: Annotated[User, Depends(get_current_user)],
     db: Session = Depends(get_db),
 ):
     """Create a normalized automation run envelope."""
@@ -626,7 +626,7 @@ async def cancel_automation_run(run_id: str, db: Session = Depends(get_db)):
 )
 async def retry_automation_run(
     run_id: str,
-    user: User = Depends(get_current_user),
+    user: Annotated[User, Depends(get_current_user)],
     db: Session = Depends(get_db),
 ):
     """Create a retry run using the same normalized contract."""

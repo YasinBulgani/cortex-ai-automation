@@ -6,7 +6,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
-from app.deps import require_permission
+from app.deps import require_permission, get_current_user
 from app.infra.models import User
 from .service import list_templates, preview_email, send_email
 
@@ -32,8 +32,8 @@ class SendRequest(BaseModel):
 
 
 @router.get("/templates", summary="List available email templates")
-def get_templates() -> list[str]:
-    """Return a sorted list of registered template IDs."""
+def get_templates(_user: Annotated[User, Depends(require_permission("admin.*"))]) -> list[str]:
+    """Return a sorted list of registered template IDs. Admin only."""
     return list_templates()
 
 

@@ -25,7 +25,7 @@ router = APIRouter(prefix="/quality", tags=["quality"])
     summary="Dashboard için platform kalite metrikleri",
 )
 def metrics(
-    user: CurrentUser,
+    user: Annotated[User, Depends(get_current_user)],
     history_limit: int = Query(10, ge=1, le=50, description="Geçmiş rapor sayısı"),
 ) -> QualityMetrics:
     """Latest eval raporu + son N koşumun özeti.
@@ -43,7 +43,7 @@ def metrics(
     summary="Genel kalite skoru — project_id opsiyonel",
 )
 def get_quality_score(
-    user: CurrentUser,
+    user: Annotated[User, Depends(get_current_user)],
     project_id: Optional[str] = Query(default=None, description="Proje ID (opsiyonel, global skor için boş bırakın)"),
 ) -> dict:
     """Genel kalite skoru hesapla.

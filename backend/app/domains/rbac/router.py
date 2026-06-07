@@ -39,13 +39,13 @@ class EnforceSodRequest(BaseModel):
 
 
 @router.get("/roles", summary="List all roles")
-def list_all_roles(_user: AuthUser) -> list[str]:
+def list_all_roles(_user: Annotated[User, Depends(get_current_user)]) -> list[str]:
     """Return a sorted list of all defined RBAC role names."""
     return list_roles()
 
 
 @router.get("/roles/{role_name}", summary="Get role and its permissions")
-def get_role_detail(role_name: str, _user: AuthUser) -> dict[str, Any]:
+def get_role_detail(role_name: str, _user: Annotated[User, Depends(get_current_user)]) -> dict[str, Any]:
     """Return role metadata including its permission set."""
     try:
         return get_role(role_name)
@@ -54,7 +54,7 @@ def get_role_detail(role_name: str, _user: AuthUser) -> dict[str, Any]:
 
 
 @router.post("/check-permission", summary="Check whether a permission is granted")
-def check_permission_endpoint(body: CheckPermissionRequest, _user: AuthUser) -> dict[str, bool]:
+def check_permission_endpoint(body: CheckPermissionRequest, _user: Annotated[User, Depends(get_current_user)]) -> dict[str, bool]:
     """Return ``{allowed: bool}`` — whether ``permission`` is in user_permissions."""
     allowed = check_permission(body.user_permissions, body.permission)
     return {"allowed": allowed}
@@ -63,8 +63,8 @@ def check_permission_endpoint(body: CheckPermissionRequest, _user: AuthUser) -> 
 @router.post("/enforce-sod", summary="Enforce Segregation-of-Duties policy")
 def enforce_sod_endpoint(
     body: EnforceSodRequest,
-    _user: AuthUser,
-    audit_store: Annotated[AuditStore, Depends(get_audit_store)],
+    _user: Annotated[User, Depends(get_current_user)],
+    audit_store: AuditStore = Depends(get_audit_store),
 ) -> dict[str, bool]:
     """Return ``{ok: true}`` or raise 403 on SoD violation."""
     try:

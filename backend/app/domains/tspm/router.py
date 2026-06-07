@@ -598,7 +598,7 @@ def _evaluate_api_assertions(assertions: Optional[list[dict[str, Any]]], respons
 @router.get("/projects", response_model=list[ProjectOut])
 def list_projects(
     db: DB,
-    user: CurrentUser,
+    user: Annotated[User, Depends(get_current_user)],
     include_archived: bool = Query(True, description="Arşivli projeleri de listeye dahil et."),
     sort: str = Query(
         "created_at",
@@ -654,7 +654,7 @@ def list_projects(
 
 
 @router.post("/projects/{project_id}/touch", response_model=ProjectOut)
-def touch_project(project_id: str, db: DB, user: CurrentUser):
+def touch_project(project_id: str, db: DB, user: Annotated[User, Depends(get_current_user)]):
     """Ana sayfa 'Son Açılan Proje' kartı için: son açılış zamanını işaretler.
 
     Frontend dashboard layout'u URL'den projectId çıktığında idempotent olarak
@@ -672,7 +672,7 @@ def touch_project(project_id: str, db: DB, user: CurrentUser):
     response_model=Optional[RecentProjectSummary],
     summary="Ana sayfa 'Son Açılan Proje' kartı için zengin özet",
 )
-def get_recent_project(db: DB, user: CurrentUser):
+def get_recent_project(db: DB, user: Annotated[User, Depends(get_current_user)]):
     """En son açılmış projeyi + son koşum özetini tek çağrıda döner.
 
     Sıralama önceliği:
@@ -764,7 +764,7 @@ def create_project(
 
 
 @router.get("/projects/{project_id}", response_model=ProjectOut)
-def get_project(project_id: str, db: DB, user: CurrentUser):
+def get_project(project_id: str, db: DB, user: Annotated[User, Depends(get_current_user)]):
     """Tek proje detayını getirir."""
     project = _get_project(db, project_id, user)
     return project
@@ -812,7 +812,7 @@ def delete_project(
 # ═══════════════════════════════════════════════════════════════════════
 
 @router.get("/projects/{project_id}/dashboard", response_model=DashboardStats)
-def project_dashboard(project_id: str, db: DB, user: CurrentUser):
+def project_dashboard(project_id: str, db: DB, user: Annotated[User, Depends(get_current_user)]):
     """Proje özet istatistiklerini getirir.
 
     Performans: Sonuçlar proje bazında 30 saniye Redis/in-process cache'e alınır.
@@ -834,7 +834,7 @@ def project_dashboard(project_id: str, db: DB, user: CurrentUser):
 
 
 @router.get("/dashboard/global", response_model=GlobalDashboardOut)
-def global_dashboard(db: DB, user: CurrentUser):
+def global_dashboard(db: DB, user: Annotated[User, Depends(get_current_user)]):
     """Platform genelinde özet istatistikler.
 
     Performans: Sonuçlar kullanıcı bazında 30 saniye Redis/in-process cache'e alınır.
@@ -1068,7 +1068,7 @@ def global_dashboard(db: DB, user: CurrentUser):
 
 @router.get("/projects/{project_id}/scenarios", response_model=list[ScenarioOut])
 def list_scenarios(
-    project_id: str, db: DB, user: CurrentUser,
+    project_id: str, db: DB, user: Annotated[User, Depends(get_current_user)],
     q: Optional[str] = Query(None),
     tag: Optional[str] = Query(None, description="Tek tag ile filtrele"),
     tags: Optional[str] = Query(None, description="Virgülle ayrılmış çoklu tag filtresi"),
@@ -1112,7 +1112,7 @@ def create_scenario(
 
 
 @router.get("/projects/{project_id}/scenarios/{scenario_id}", response_model=ScenarioOut)
-def get_scenario(project_id: str, scenario_id: str, db: DB, user: CurrentUser):
+def get_scenario(project_id: str, scenario_id: str, db: DB, user: Annotated[User, Depends(get_current_user)]):
     """Test senaryosu detayini getirir."""
     return scenario_svc.get_scenario_or_404(db, project_id, scenario_id)
 
@@ -1153,7 +1153,7 @@ def _refresh_scenario_quality(db: Session, scenario: TspmScenario) -> dict[str, 
 
 @router.post("/projects/{project_id}/scenarios/{scenario_id}/score")
 def score_scenario_endpoint(
-    project_id: str, scenario_id: str, db: DB, user: CurrentUser,
+    project_id: str, scenario_id: str, db: DB, user: Annotated[User, Depends(get_current_user)],
 ):
     """Tek bir senaryoyu LLM-as-Judge ile yeniden skorla ve embedding üret."""
     s = db.get(TspmScenario, scenario_id)
@@ -1176,7 +1176,7 @@ def score_scenario_endpoint(
 
 @router.get("/projects/{project_id}/scenarios/{scenario_id}/similar")
 def find_similar_scenarios_endpoint(
-    project_id: str, scenario_id: str, db: DB, user: CurrentUser,
+    project_id: str, scenario_id: str, db: DB, user: Annotated[User, Depends(get_current_user)],
     top_k: int = Query(5, ge=1, le=20),
     min_similarity: float = Query(0.75, ge=0.0, le=1.0),
 ):
@@ -1223,7 +1223,7 @@ def find_similar_scenarios_endpoint(
 
 @router.post("/projects/{project_id}/wizard/score-all")
 def score_all_scenarios(
-    project_id: str, db: DB, user: CurrentUser,
+    project_id: str, db: DB, user: Annotated[User, Depends(get_current_user)],
     body: dict | None = None,
 ):
     """Projenin tüm (veya body.scenario_ids ile belirtilen) senaryolarını
@@ -1451,7 +1451,7 @@ def bdd_suggest_edge_cases(
 def bdd_step_library(
     project_id: str,
     db: DB,
-    user: CurrentUser,
+    user: Annotated[User, Depends(get_current_user)],
 ):
     """Extract reusable step patterns from all project scenarios."""
     _get_project(db, project_id, user)
@@ -1470,7 +1470,7 @@ def bdd_validate_gherkin(
     project_id: str,
     body: GherkinValidateRequest,
     db: DB,
-    user: CurrentUser,
+    user: Annotated[User, Depends(get_current_user)],
 ):
     """Validate Gherkin text for syntax correctness (Turkish + English keywords)."""
     _get_project(db, project_id, user)
@@ -1525,7 +1525,7 @@ def create_requirement(
 
 @router.get("/projects/{project_id}/requirements", response_model=list[RequirementOut])
 def list_requirements(
-    project_id: str, db: DB, user: CurrentUser,
+    project_id: str, db: DB, user: Annotated[User, Depends(get_current_user)],
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=500),
 ):
@@ -1603,14 +1603,14 @@ def unlink_scenario_requirement(
 
 
 @router.get("/projects/{project_id}/coverage-matrix", response_model=CoverageMatrixOut)
-def get_coverage_matrix(project_id: str, db: DB, user: CurrentUser):
+def get_coverage_matrix(project_id: str, db: DB, user: Annotated[User, Depends(get_current_user)]):
     """Gereksinim kapsama matrisini getirir."""
     _get_project(db, project_id, user)
     return scenario_svc.build_coverage_matrix_for_project(db, project_id)
 
 
 @router.get("/projects/{project_id}/coverage-gaps", response_model=list[RequirementOut])
-def get_coverage_gaps(project_id: str, db: DB, user: CurrentUser):
+def get_coverage_gaps(project_id: str, db: DB, user: Annotated[User, Depends(get_current_user)]):
     """Kapsama bosluklarini listeler."""
     _get_project(db, project_id, user)
     return scenario_svc.get_coverage_gaps_for_project(db, project_id)
@@ -1624,7 +1624,7 @@ def get_coverage_gaps(project_id: str, db: DB, user: CurrentUser):
     "/projects/{project_id}/scenarios/{scenario_id}/versions",
     response_model=list[ScenarioVersionOut],
 )
-def list_scenario_versions(project_id: str, scenario_id: str, db: DB, user: CurrentUser):
+def list_scenario_versions(project_id: str, scenario_id: str, db: DB, user: Annotated[User, Depends(get_current_user)]):
     """Senaryo surumlerini listeler."""
     s = db.get(TspmScenario, scenario_id)
     if s is None or s.project_id != project_id:
@@ -1641,7 +1641,7 @@ def list_scenario_versions(project_id: str, scenario_id: str, db: DB, user: Curr
     response_model=ScenarioVersionDiff,
 )
 def diff_scenario_versions(
-    project_id: str, scenario_id: str, v1: int, v2: int, db: DB, user: CurrentUser,
+    project_id: str, scenario_id: str, v1: int, v2: int, db: DB, user: Annotated[User, Depends(get_current_user)],
 ):
     """Iki senaryo surumu arasindaki farklari getirir."""
     s = db.get(TspmScenario, scenario_id)
@@ -1679,7 +1679,7 @@ def diff_scenario_versions(
 
 @router.get("/projects/{project_id}/executions", response_model=list[ExecutionOut])
 def list_executions(
-    project_id: str, db: DB, user: CurrentUser,
+    project_id: str, db: DB, user: Annotated[User, Depends(get_current_user)],
     skip: int = Query(0, ge=0, description="Kaç kayıt atlanacak"),
     limit: int = Query(50, ge=1, le=200, description="Sayfa başına kayıt (maks 200)"),
     platform: Optional[str] = Query(None, description="Platform filtresi: ios | android | desktop"),
@@ -1768,10 +1768,10 @@ def create_execution(
 @router.get("/projects/{project_id}/executions/compare")
 def compare_executions(
     project_id: str,
+    user: Annotated[User, Depends(get_current_user)],
     run1: str = Query(...),
     run2: str = Query(...),
     db: DB = ...,
-    user: CurrentUser = ...,
 ):
     """İki koşuyu karşılaştır."""
     _get_project(db, project_id, user)
@@ -1779,7 +1779,7 @@ def compare_executions(
 
 
 @router.get("/projects/{project_id}/executions/{run_id}", response_model=ExecutionDetailOut)
-def get_execution(project_id: str, run_id: str, db: DB, user: CurrentUser):
+def get_execution(project_id: str, run_id: str, db: DB, user: Annotated[User, Depends(get_current_user)]):
     # Üyelik doğrulaması: execution bulunmadan önce proje erişimi şart.
     _get_project(db, project_id, user)
     ex = db.get(TspmExecution, run_id)
@@ -1925,7 +1925,7 @@ def rerun_execution(
 
 
 @router.post("/projects/{project_id}/executions/{run_id}/cancel", status_code=200)
-def cancel_execution(project_id: str, run_id: str, db: DB, user: CurrentUser):
+def cancel_execution(project_id: str, run_id: str, db: DB, user: Annotated[User, Depends(get_current_user)]):
     """Devam eden bir koşumu iptal eder; bekleyen sonuçları 'skipped' yapar."""
     execution = db.get(TspmExecution, run_id)
     if execution is None or execution.project_id != project_id:
@@ -1952,7 +1952,7 @@ def cancel_execution(project_id: str, run_id: str, db: DB, user: CurrentUser):
 # ═══════════════════════════════════════════════════════════════════════
 
 @router.get("/projects/{project_id}/execution-trends", response_model=ExecutionTrendsOut)
-def get_execution_trends(project_id: str, db: DB, user: CurrentUser, days: int = Query(30)):
+def get_execution_trends(project_id: str, db: DB, user: Annotated[User, Depends(get_current_user)], days: int = Query(30)):
     """Test kosusu trendlerini getirir. 60s cache — analytics sayfası için."""
     from app.infra.cache import cache_get, cache_set, make_key
 
@@ -1977,7 +1977,7 @@ class _ProjectStats(_PydanticBase):
 
 
 @router.get("/projects/{project_id}/stats", response_model=_ProjectStats)
-def get_project_stats(project_id: str, db: DB, user: CurrentUser):
+def get_project_stats(project_id: str, db: DB, user: Annotated[User, Depends(get_current_user)]):
     """Proje özet istatistiklerini getirir."""
     _get_project(db, project_id, user)
     total_scenarios = db.scalar(
@@ -2009,7 +2009,7 @@ def get_project_stats(project_id: str, db: DB, user: CurrentUser):
 
 
 @router.get("/projects/{project_id}/execution-stats", response_model=ExecutionStatsOut)
-def get_execution_stats(project_id: str, db: DB, user: CurrentUser):
+def get_execution_stats(project_id: str, db: DB, user: Annotated[User, Depends(get_current_user)]):
     """Test kosusu istatistiklerini getirir. 60s cache."""
     from app.infra.cache import cache_get, cache_set, make_key
     _get_project(db, project_id, user)
@@ -2026,7 +2026,7 @@ def get_execution_stats(project_id: str, db: DB, user: CurrentUser):
 
 
 @router.get("/projects/{project_id}/flaky-tests", response_model=list[FlakyTestOut])
-def get_flaky_tests(project_id: str, db: DB, user: CurrentUser):
+def get_flaky_tests(project_id: str, db: DB, user: Annotated[User, Depends(get_current_user)]):
     """Flaky testleri listeler. 120s cache."""
     from app.infra.cache import cache_get, cache_set, make_key
     _get_project(db, project_id, user)
@@ -2062,7 +2062,7 @@ class _AnomalyReport(_PydanticBase):
 
 
 @router.post("/projects/{project_id}/flaky-anomaly", response_model=_AnomalyReport)
-def detect_flaky_anomalies(project_id: str, db: DB, user: CurrentUser):
+def detect_flaky_anomalies(project_id: str, db: DB, user: Annotated[User, Depends(get_current_user)]):
     """Flaky testleri anomali türlerine göre sınıflandırır."""
     _get_project(db, project_id, user)
     flaky = execution_svc.get_flaky_tests_for_project(db, project_id)
@@ -2105,7 +2105,7 @@ def detect_flaky_anomalies(project_id: str, db: DB, user: CurrentUser):
 
 @router.get("/projects/{project_id}/flows", response_model=list[FlowOut])
 def list_flows(
-    project_id: str, db: DB, user: CurrentUser,
+    project_id: str, db: DB, user: Annotated[User, Depends(get_current_user)],
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=500),
 ):
@@ -2143,7 +2143,7 @@ def create_flow(
 
 
 @router.get("/projects/{project_id}/flows/{flow_id}", response_model=FlowDetailOut)
-def get_flow(project_id: str, flow_id: str, db: DB, user: CurrentUser):
+def get_flow(project_id: str, flow_id: str, db: DB, user: Annotated[User, Depends(get_current_user)]):
     """Akis detayini getirir."""
     return flow_regression_svc.get_flow_or_404(db, project_id, flow_id)
 
@@ -2168,7 +2168,7 @@ def update_flow_graph(
 
 @router.get("/projects/{project_id}/regression-sets", response_model=list[RegressionSetOut])
 def list_regression_sets(
-    project_id: str, db: DB, user: CurrentUser,
+    project_id: str, db: DB, user: Annotated[User, Depends(get_current_user)],
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=500),
 ):
@@ -2206,7 +2206,7 @@ def create_regression_set(
 
 
 @router.get("/projects/{project_id}/regression-sets/{set_id}", response_model=RegressionSetDetailOut)
-def get_regression_set(project_id: str, set_id: str, db: DB, user: CurrentUser):
+def get_regression_set(project_id: str, set_id: str, db: DB, user: Annotated[User, Depends(get_current_user)]):
     """Regresyon seti detayini getirir."""
     return flow_regression_svc.get_regression_set_detail_for_project(
         db,
@@ -2233,7 +2233,7 @@ def add_scenarios_to_regression(
     "/projects/{project_id}/regression-sets/suggest",
     response_model=RegressionSuggestResponse,
 )
-def suggest_regression_sets(project_id: str, body: RegressionSuggestRequest, db: DB, user: CurrentUser):
+def suggest_regression_sets(project_id: str, body: RegressionSuggestRequest, db: DB, user: Annotated[User, Depends(get_current_user)]):
     """Projedeki senaryoları AI ile analiz edip regresyon seti önerileri döndürür."""
     _get_project(db, project_id, user)
     return flow_regression_svc.suggest_regression_sets_for_project(db, project_id, body)
@@ -2263,7 +2263,7 @@ def accept_suggested_sets(
 
 @router.get("/projects/{project_id}/approvals", response_model=list[ApprovalOut])
 def list_approvals(
-    project_id: str, db: DB, user: CurrentUser,
+    project_id: str, db: DB, user: Annotated[User, Depends(get_current_user)],
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=200),
 ):
@@ -2393,7 +2393,7 @@ def create_schedule(
 
 @router.get("/projects/{project_id}/schedules", response_model=list[ScheduleOut])
 def list_schedules(
-    project_id: str, db: DB, user: CurrentUser,
+    project_id: str, db: DB, user: Annotated[User, Depends(get_current_user)],
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=200),
 ):
@@ -2468,7 +2468,7 @@ def create_test_data(
 
 @router.get("/projects/{project_id}/test-data", response_model=list[TestDataSetOut])
 def list_test_data(
-    project_id: str, db: DB, user: CurrentUser,
+    project_id: str, db: DB, user: Annotated[User, Depends(get_current_user)],
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=500),
 ):
@@ -2513,7 +2513,8 @@ def delete_test_data(
 
 
 @router.get("/projects/{project_id}/test-data/{data_id}/export")
-def export_test_data(project_id: str, data_id: str, format: str = "csv", db: DB = ..., user: CurrentUser = ...):
+def export_test_data(project_id: str, data_id: str, user: Annotated[User, Depends(get_current_user)],
+    format: str = "csv", db: DB = ..., ):
     """Veri setini CSV veya JSON olarak dışa aktarır."""
     return test_data_svc.export_test_data_for_project(
         db,
@@ -2524,7 +2525,7 @@ def export_test_data(project_id: str, data_id: str, format: str = "csv", db: DB 
 
 
 @router.post("/projects/{project_id}/test-data/{data_id}/mask")
-def mask_test_data(project_id: str, data_id: str, body: dict, db: DB, user: CurrentUser):
+def mask_test_data(project_id: str, data_id: str, body: dict, db: DB, user: Annotated[User, Depends(get_current_user)]):
     """Belirtilen sütunlardaki PII verilerini maskeler."""
     return test_data_svc.mask_test_data_for_project(
         db,
@@ -2535,14 +2536,14 @@ def mask_test_data(project_id: str, data_id: str, body: dict, db: DB, user: Curr
 
 
 @router.post("/projects/{project_id}/test-data/generate")
-def generate_test_data(project_id: str, body: dict, db: DB, user: CurrentUser):
+def generate_test_data(project_id: str, body: dict, db: DB, user: Annotated[User, Depends(get_current_user)]):
     """Faker ile sentetik veri üretir."""
     _get_project(db, project_id, user)
     return test_data_svc.generate_test_data_preview(body)
 
 
 @router.post("/projects/{project_id}/test-data/simulate-schema")
-def simulate_schema(project_id: str, body: dict, db: DB, user: CurrentUser):
+def simulate_schema(project_id: str, body: dict, db: DB, user: Annotated[User, Depends(get_current_user)]):
     """
     Çok tablolu, kurallı şema simülasyonu.
 
@@ -2582,25 +2583,25 @@ def simulate_schema(project_id: str, body: dict, db: DB, user: CurrentUser):
 # ── DB-Aware Smart Simulation endpoints ──────────────────────────────────────
 
 @router.post("/test-data/parse-schema")
-def parse_schema_from_ddl(body: dict, user: CurrentUser):
+def parse_schema_from_ddl(body: dict, user: Annotated[User, Depends(get_current_user)]):
     """DDL SQL metnini WizardTable[] şemasına dönüştür (LLM destekli)."""
     return test_data_sim_svc.parse_schema_from_ddl(body)
 
 
 @router.post("/test-data/parse-csv-schema")
-def parse_schema_from_csv(body: dict, user: CurrentUser):
+def parse_schema_from_csv(body: dict, user: Annotated[User, Depends(get_current_user)]):
     """CSV başlıkları ve örnek satırlardan WizardTable[] şeması çıkar."""
     return test_data_sim_svc.parse_schema_from_csv(body)
 
 
 @router.post("/test-data/parse-natural-language")
-def parse_schema_from_natural_language(body: dict, user: CurrentUser):
+def parse_schema_from_natural_language(body: dict, user: Annotated[User, Depends(get_current_user)]):
     """Doğal dil açıklamasından WizardTable[] şeması üret (LLM gerekli)."""
     return test_data_sim_svc.parse_schema_from_natural_language(body)
 
 
 @router.post("/test-data/parse-db-connection")
-def parse_schema_from_db(body: dict, user: CurrentUser):
+def parse_schema_from_db(body: dict, user: Annotated[User, Depends(get_current_user)]):
     """
     Canlı veritabanına bağlan ve şemayı WizardTable[]'a dönüştür.
     Body: { connection_string, schema_name?, exclude_tables? }
@@ -2609,7 +2610,7 @@ def parse_schema_from_db(body: dict, user: CurrentUser):
 
 
 @router.post("/test-data/simulate")
-def standalone_simulate(body: dict, user: CurrentUser):
+def standalone_simulate(body: dict, user: Annotated[User, Depends(get_current_user)]):
     """
     Proje gerektirmeyen standalone şema simülasyonu.
     Body: { locale?, tables: [...WizardTable], quality_check? }
@@ -2619,7 +2620,7 @@ def standalone_simulate(body: dict, user: CurrentUser):
 
 
 @router.post("/test-data/write-to-db")
-def write_simulated_to_db(body: dict, user: CurrentUser):
+def write_simulated_to_db(body: dict, user: Annotated[User, Depends(get_current_user)]):
     """
     Simüle edilmiş veriyi hedef veritabanına yazar.
     Body: { connection_string, tables: {tbl: {columns, rows}} }
@@ -2629,13 +2630,13 @@ def write_simulated_to_db(body: dict, user: CurrentUser):
 
 
 @router.post("/test-data/ai-enrich-schema")
-def ai_enrich_schema(body: dict, user: CurrentUser):
+def ai_enrich_schema(body: dict, user: Annotated[User, Depends(get_current_user)]):
     """WizardTable[] şemasını AI ile zenginleştir: iş kuralları, PII tespiti, kalite ipuçları."""
     return test_data_sim_svc.ai_enrich_schema(body)
 
 
 @router.post("/projects/{project_id}/test-data/full-simulate")
-def full_simulate(project_id: str, body: dict, db: DB, user: CurrentUser):
+def full_simulate(project_id: str, body: dict, db: DB, user: Annotated[User, Depends(get_current_user)]):
     """Simüle et + FK bütünlüğü doğrula + kalite skoru döndür."""
     _get_project(db, project_id, user)
     return test_data_sim_svc.full_simulate(body)
@@ -2663,7 +2664,7 @@ def bind_data_to_scenario(
     "/projects/{project_id}/scenarios/{scenario_id}/expanded",
     response_model=ExpandedScenarioOut,
 )
-def get_expanded_scenario(project_id: str, scenario_id: str, db: DB, user: CurrentUser):
+def get_expanded_scenario(project_id: str, scenario_id: str, db: DB, user: Annotated[User, Depends(get_current_user)]):
     """Veri bagli senaryonun genisletilmis halini getirir."""
     return binding_svc.get_expanded_scenario_for_project(db, project_id, scenario_id)
 
@@ -2687,7 +2688,7 @@ def create_integration(
 
 @router.get("/projects/{project_id}/integrations", response_model=list[IntegrationOut])
 def list_integrations(
-    project_id: str, db: DB, user: CurrentUser,
+    project_id: str, db: DB, user: Annotated[User, Depends(get_current_user)],
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=200),
 ):
@@ -2763,7 +2764,7 @@ def sync_integration(
 
 
 @router.post("/projects/{project_id}/integrations/{integration_id}/test-notification")
-def test_notification(project_id: str, integration_id: str, db: DB, user: CurrentUser):
+def test_notification(project_id: str, integration_id: str, db: DB, user: Annotated[User, Depends(get_current_user)]):
     """Slack veya Teams webhook'una test bildirimi gönderir."""
     intg = db.get(TspmIntegration, integration_id)
     if intg is None or intg.project_id != project_id:
@@ -2919,7 +2920,7 @@ def create_api_collection(
 
 @router.get("/projects/{project_id}/api-tests/collections", response_model=list[ApiCollectionOut])
 def list_api_collections(
-    project_id: str, db: DB, user: CurrentUser,
+    project_id: str, db: DB, user: Annotated[User, Depends(get_current_user)],
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=500),
 ):
@@ -2966,7 +2967,7 @@ def list_api_collections(
     "/projects/{project_id}/api-tests/collections/{collection_id}",
     response_model=ApiCollectionDetailOut,
 )
-def get_api_collection(project_id: str, collection_id: str, db: DB, user: CurrentUser):
+def get_api_collection(project_id: str, collection_id: str, db: DB, user: Annotated[User, Depends(get_current_user)]):
     """API test koleksiyonu detayini getirir."""
     col = db.get(TspmApiCollection, collection_id)
     if col is None or col.project_id != project_id:
@@ -3022,7 +3023,7 @@ def create_api_request(
     "/projects/{project_id}/api-tests/collections/{collection_id}/requests",
     response_model=list[ApiRequestOut],
 )
-def list_api_requests(project_id: str, collection_id: str, db: DB, user: CurrentUser):
+def list_api_requests(project_id: str, collection_id: str, db: DB, user: Annotated[User, Depends(get_current_user)]):
     """Koleksiyondaki API isteklerini listeler."""
     col = db.get(TspmApiCollection, collection_id)
     if col is None or col.project_id != project_id:
@@ -3164,7 +3165,7 @@ def run_api_collection(
 
 @router.get("/projects/{project_id}/api-tests/runs", response_model=list[ApiTestRunOut])
 def list_api_runs(
-    project_id: str, db: DB, user: CurrentUser,
+    project_id: str, db: DB, user: Annotated[User, Depends(get_current_user)],
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=200),
 ):
@@ -3198,7 +3199,7 @@ def list_api_runs(
 
 
 @router.get("/projects/{project_id}/api-tests/runs/{api_run_id}", response_model=ApiTestRunOut)
-def get_api_run(project_id: str, api_run_id: str, db: DB, user: CurrentUser):
+def get_api_run(project_id: str, api_run_id: str, db: DB, user: Annotated[User, Depends(get_current_user)]):
     """API test kosusu detayini getirir."""
     run = db.get(TspmApiTestRun, api_run_id)
     if run is None:
@@ -3238,7 +3239,7 @@ def add_project_member(
 
 @router.get("/projects/{project_id}/members", response_model=list[ProjectMemberOut])
 def list_project_members(
-    project_id: str, db: DB, user: CurrentUser,
+    project_id: str, db: DB, user: Annotated[User, Depends(get_current_user)],
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=200),
 ):
@@ -3275,7 +3276,7 @@ _IKEY = {"X-Internal-Key": _ENGINE_KEY}
 
 
 @router.post("/projects/{project_id}/wizard/analyze")
-def wizard_analyze(project_id: str, body: dict, db: DB, user: CurrentUser):
+def wizard_analyze(project_id: str, body: dict, db: DB, user: Annotated[User, Depends(get_current_user)]):
     """
     Analiz dokümanından AI ile manuel test senaryoları + BDD üretir.
     Nexus QA: Önce AI Gateway (vLLM→Groq→Gemini→Ollama) denenir,
@@ -3450,9 +3451,9 @@ def wizard_analyze(project_id: str, body: dict, db: DB, user: CurrentUser):
 @router.post("/projects/{project_id}/wizard/upload-document")
 async def wizard_upload_document(
     project_id: str,
+    user: Annotated[User, Depends(get_current_user)],
     file: UploadFile = File(...),
     db: DB = ...,
-    user: CurrentUser = ...,
 ):
     """
     Nexus QA Faz 2 — Doküman Yükleme + AI Analiz Pipeline
@@ -3530,7 +3531,7 @@ async def wizard_upload_document(
 
 
 @router.post("/projects/{project_id}/wizard/analyze-multimodal")
-def wizard_analyze_multimodal(project_id: str, body: dict, db: DB, user: CurrentUser):
+def wizard_analyze_multimodal(project_id: str, body: dict, db: DB, user: Annotated[User, Depends(get_current_user)]):
     """Görsel destekli analiz — text + mockup/screenshot kombine.
 
     Body şeması:
@@ -3627,7 +3628,7 @@ async def wizard_analyze_chunked(
     project_id: str,
     body: dict,
     db: DB,
-    user: CurrentUser,
+    user: Annotated[User, Depends(get_current_user)],
 ):
     """
     Nexus QA Faz 2 — Chunk'lı AI Analiz Pipeline
@@ -3691,7 +3692,7 @@ async def wizard_analyze_chunked(
 
 
 @router.post("/projects/{project_id}/database/test-connection")
-def test_db_connection(project_id: str, body: dict, db: DB, user: CurrentUser):
+def test_db_connection(project_id: str, body: dict, db: DB, user: Annotated[User, Depends(get_current_user)]):
     """Verilen DB bağlantı dizesini test eder; başarılı ise şema özetini döner."""
     _get_project(db, project_id, user)
     connection_string: str = body.get("connection_string", "").strip()
@@ -3726,7 +3727,7 @@ def test_db_connection(project_id: str, body: dict, db: DB, user: CurrentUser):
 
 
 @router.post("/projects/{project_id}/wizard/crawl")
-def wizard_crawl(project_id: str, body: dict, db: DB, user: CurrentUser):
+def wizard_crawl(project_id: str, body: dict, db: DB, user: Annotated[User, Depends(get_current_user)]):
     """Engine crawler ile hedef uygulamayı keşfeder."""
     _get_project(db, project_id, user)
     try:
@@ -3745,7 +3746,7 @@ def wizard_crawl(project_id: str, body: dict, db: DB, user: CurrentUser):
 
 
 @router.post("/projects/{project_id}/wizard/discover-selectors")
-def wizard_discover(project_id: str, body: dict, db: DB, user: CurrentUser):
+def wizard_discover(project_id: str, body: dict, db: DB, user: Annotated[User, Depends(get_current_user)]):
     """Tek sayfadaki tüm elementlerin selector/XPath bilgilerini keşfeder."""
     _get_project(db, project_id, user)
     try:
@@ -3764,7 +3765,7 @@ def wizard_discover(project_id: str, body: dict, db: DB, user: CurrentUser):
 
 
 @router.post("/projects/{project_id}/wizard/monkey-test")
-def wizard_monkey_test(project_id: str, body: dict, db: DB, user: CurrentUser):
+def wizard_monkey_test(project_id: str, body: dict, db: DB, user: Annotated[User, Depends(get_current_user)]):
     """Monkey testing — rastgele etkileşim ile hata avcılığı."""
     _get_project(db, project_id, user)
     try:
@@ -3783,7 +3784,7 @@ def wizard_monkey_test(project_id: str, body: dict, db: DB, user: CurrentUser):
 
 
 @router.post("/projects/{project_id}/wizard/generate-automation")
-def wizard_generate_automation(project_id: str, body: dict, db: DB, user: CurrentUser):
+def wizard_generate_automation(project_id: str, body: dict, db: DB, user: Annotated[User, Depends(get_current_user)]):
     """
     Senaryolardan + selectorlardan otomasyon kodu üretir.
     Frontend 'scenario_ids' (UUID list) gönderir; biz DB'den çekip
@@ -4468,7 +4469,7 @@ def _extract_value_hint(step_text: str) -> str | None:
 
 
 @router.post("/projects/{project_id}/wizard/generate-maviyaka")
-def wizard_generate_neurex(project_id: str, body: dict, db: DB, user: CurrentUser):
+def wizard_generate_neurex(project_id: str, body: dict, db: DB, user: Annotated[User, Depends(get_current_user)]):
     """Neurex formatında Cucumber feature dosyaları üretir."""
     project = _get_project(db, project_id, user)
 
@@ -4609,7 +4610,7 @@ def _rule_based_feature(title: str, steps: list[dict], url: str, locators: list[
 # ═══════════════════════════════════════════════════════════════════════
 
 @router.post("/projects/{project_id}/wizard/match-manual-scenarios")
-def wizard_match_manual_scenarios(project_id: str, body: dict, db: DB, user: CurrentUser):
+def wizard_match_manual_scenarios(project_id: str, body: dict, db: DB, user: Annotated[User, Depends(get_current_user)]):
     """Mevcut manuel senaryoların her adımını, verilen locator kataloğundaki
     en uygun key + XPath ile LLM üzerinden eşler. Sonuç: feature dosyaları +
     ayrıntılı mapping raporu (hangi step hangi locator'a + XPath'e bağlandı).
@@ -4933,7 +4934,7 @@ def _json_compact(obj: Any) -> str:
 
 
 @router.post("/projects/{project_id}/wizard/crawl-locators")
-def wizard_crawl_locators(project_id: str, body: dict, db: DB, user: CurrentUser):
+def wizard_crawl_locators(project_id: str, body: dict, db: DB, user: Annotated[User, Depends(get_current_user)]):
     """Hedef URL'yi Playwright ile tarar, Neurex lokator JSON üretir."""
     _get_project(db, project_id, user)
     url: str = body.get("url", "")
@@ -5183,7 +5184,7 @@ Başka hiçbir şey yazma.""",
 
 
 @router.post("/projects/{project_id}/wizard/match-locators")
-def wizard_match_locators(project_id: str, body: dict, db: DB, user: CurrentUser):
+def wizard_match_locators(project_id: str, body: dict, db: DB, user: Annotated[User, Depends(get_current_user)]):
     """Kayıtlı senaryo adımlarını crawl'lı lokator listesiyle eşleştirir.
 
     İstek gövdesi::
@@ -5508,7 +5509,7 @@ def wizard_match_locators(project_id: str, body: dict, db: DB, user: CurrentUser
 
 
 @router.post("/projects/{project_id}/wizard/suggest-locator")
-def wizard_suggest_locator(project_id: str, body: dict, db: DB, user: CurrentUser):
+def wizard_suggest_locator(project_id: str, body: dict, db: DB, user: Annotated[User, Depends(get_current_user)]):
     """Eksik bir lokator key için AI önerisi üretir."""
     _get_project(db, project_id, user)
     key: str = body.get("key", "")
@@ -5540,7 +5541,7 @@ Başka hiçbir şey yazma.""",
 
 
 @router.post("/projects/{project_id}/locators")
-def save_locator(project_id: str, body: dict, db: DB, user: CurrentUser):
+def save_locator(project_id: str, body: dict, db: DB, user: Annotated[User, Depends(get_current_user)]):
     """Lokator object repository'ye kaydeder (engine DB'si)."""
     _get_project(db, project_id, user)
     name = body.get("name", "")
@@ -5562,7 +5563,7 @@ def save_locator(project_id: str, body: dict, db: DB, user: CurrentUser):
 
 @router.post("/projects/{project_id}/wizard/run-neurex")
 @router.post("/projects/{project_id}/wizard/run-maviyaka")
-def wizard_run_neurex(project_id: str, body: dict, db: DB, user: CurrentUser):
+def wizard_run_neurex(project_id: str, body: dict, db: DB, user: Annotated[User, Depends(get_current_user)]):
     """Neurex feature dosyalarını Python Playwright engine ile çalıştırır."""
     _get_project(db, project_id, user)
     try:
@@ -5611,7 +5612,7 @@ def wizard_run_neurex(project_id: str, body: dict, db: DB, user: CurrentUser):
 # ═══════════════════════════════════════════════════════════════════════
 
 @router.post("/projects/{project_id}/monkey-testing/run")
-def monkey_testing_run(project_id: str, body: dict, db: DB, user: CurrentUser):
+def monkey_testing_run(project_id: str, body: dict, db: DB, user: Annotated[User, Depends(get_current_user)]):
     """Gelişmiş Monkey Testing — analiz ve senaryo üretimi ile."""
     _get_project(db, project_id, user)
     try:
@@ -5629,7 +5630,7 @@ def monkey_testing_run(project_id: str, body: dict, db: DB, user: CurrentUser):
 
 
 @router.post("/projects/{project_id}/monkey-testing/probe")
-def monkey_testing_probe(project_id: str, body: dict, db: DB, user: CurrentUser):
+def monkey_testing_probe(project_id: str, body: dict, db: DB, user: Annotated[User, Depends(get_current_user)]):
     """Hedef URL'i (ve opsiyonel login URL'ini) hızlıca probe eder.
     Kullanıcı 'Başlat' demeden önce hedefin erişilebilir ve makul olduğunu
     görebilsin diye full Playwright run yerine httpx HEAD/GET kullanır.
@@ -5683,7 +5684,7 @@ def monkey_testing_probe(project_id: str, body: dict, db: DB, user: CurrentUser)
 # ═══════════════════════════════════════════════════════════════════════
 
 @router.post("/projects/{project_id}/automation/run", status_code=200)
-def automation_run(project_id: str, body: dict, db: DB, user: CurrentUser):
+def automation_run(project_id: str, body: dict, db: DB, user: Annotated[User, Depends(get_current_user)]):
     """
     Senaryo listesini engine'in /api/nexus/run endpoint'ine gönderir.
     Body: { scenario_ids: [str], browser?: str, base_url?: str }
@@ -5734,7 +5735,7 @@ def automation_run(project_id: str, body: dict, db: DB, user: CurrentUser):
 
 
 @router.delete("/projects/{project_id}/automation/run/{run_id}", status_code=200)
-def automation_cancel(project_id: str, run_id: str, user: CurrentUser):
+def automation_cancel(project_id: str, run_id: str, user: Annotated[User, Depends(get_current_user)]):
     """Engine'deki çalışan Playwright koşumunu iptal eder."""
     try:
         resp = httpx.delete(
@@ -5756,7 +5757,7 @@ def automation_cancel(project_id: str, run_id: str, user: CurrentUser):
 
 
 @router.get("/projects/{project_id}/automation/stream/{run_id}")
-async def automation_stream(project_id: str, run_id: str, user: CurrentUser):
+async def automation_stream(project_id: str, run_id: str, user: Annotated[User, Depends(get_current_user)]):
     """
     Engine'in SSE stream'ini /api/run/<run_id>/stream den okuyup tarayıcıya aktarır.
     """
@@ -5792,7 +5793,9 @@ async def automation_stream(project_id: str, run_id: str, user: CurrentUser):
 # ═══════════════════════════════════════════════════════════════════════
 
 @router.get("/search")
-def global_search(q: str = Query("", min_length=1), db: DB = ..., user: CurrentUser = ...):
+def global_search(user: Annotated[User, Depends(get_current_user)],
+    q: str = Query("", min_length=1),
+    db: DB = ...,):
     """Projeler ve senaryolar üzerinde arama."""
     results = []
 
@@ -5816,7 +5819,9 @@ def global_search(q: str = Query("", min_length=1), db: DB = ..., user: CurrentU
 # ═══════════════════════════════════════════════════════════════════════
 
 @router.get("/projects/{project_id}/executions/{run_id}/report")
-def get_execution_report(project_id: str, run_id: str, format: str = "html", db: DB = ..., user: CurrentUser = ...):
+def get_execution_report(project_id: str, run_id: str, user: Annotated[User, Depends(get_current_user)],
+    format: str = "html",
+    db: DB = ...,):
     """Bir test koşusu için HTML veya JSON raporu üretir ve indirilir."""
     import io
     import json as _json
@@ -5897,7 +5902,11 @@ th{{background:#f9fafb;font-weight:600}}
 
 
 @router.get("/projects/{project_id}/report/summary")
-def get_project_summary_report(project_id: str, format: str = "html", days: int = 30, db: DB = ..., user: CurrentUser = ...):
+def get_project_summary_report(project_id: str,
+    user: Annotated[User, Depends(get_current_user)],
+    format: str = "html",
+    days: int = 30,
+    db: DB = ...,):
     """Proje için özet HTML veya JSON raporu üretir (son N gün)."""
     import io
     import json as _json
@@ -5957,7 +5966,7 @@ th,td{{padding:.5rem .8rem;border:1px solid #e5e7eb;text-align:left}}th{{backgro
 # ═══════════════════════════════════════════════════════════════════════
 
 @router.get("/projects/{project_id}/workflows")
-def list_workflows(project_id: str, db: DB, user: CurrentUser):
+def list_workflows(project_id: str, db: DB, user: Annotated[User, Depends(get_current_user)]):
     """Projeye ait workflow kayitlarini listeler."""
     _get_project(db, project_id, user)
     rows = list(db.scalars(
@@ -5977,7 +5986,7 @@ def list_workflows(project_id: str, db: DB, user: CurrentUser):
 
 
 @router.post("/projects/{project_id}/workflows", status_code=201)
-def create_workflow(project_id: str, body: dict, db: DB, user: CurrentUser):
+def create_workflow(project_id: str, body: dict, db: DB, user: Annotated[User, Depends(get_current_user)]):
     """Yeni workflow baglantisi olusturur."""
     _get_project(db, project_id, user)
     w = TspmN8nWorkflow(
@@ -5996,7 +6005,7 @@ def create_workflow(project_id: str, body: dict, db: DB, user: CurrentUser):
 
 
 @router.put("/projects/{project_id}/workflows/{workflow_id}")
-def update_workflow(project_id: str, workflow_id: str, body: dict, db: DB, user: CurrentUser):
+def update_workflow(project_id: str, workflow_id: str, body: dict, db: DB, user: Annotated[User, Depends(get_current_user)]):
     """Workflow bilgilerini gunceller."""
     _get_project(db, project_id, user)
     w = db.get(TspmN8nWorkflow, workflow_id)
@@ -6010,7 +6019,7 @@ def update_workflow(project_id: str, workflow_id: str, body: dict, db: DB, user:
 
 
 @router.delete("/projects/{project_id}/workflows/{workflow_id}", status_code=204)
-def delete_workflow(project_id: str, workflow_id: str, db: DB, user: CurrentUser):
+def delete_workflow(project_id: str, workflow_id: str, db: DB, user: Annotated[User, Depends(get_current_user)]):
     """Workflow kaydini siler."""
     _get_project(db, project_id, user)
     w = db.get(TspmN8nWorkflow, workflow_id)
@@ -6021,7 +6030,7 @@ def delete_workflow(project_id: str, workflow_id: str, db: DB, user: CurrentUser
 
 
 @router.post("/projects/{project_id}/workflows/{workflow_id}/trigger")
-def trigger_workflow(project_id: str, workflow_id: str, body: dict, db: DB, user: CurrentUser):
+def trigger_workflow(project_id: str, workflow_id: str, body: dict, db: DB, user: Annotated[User, Depends(get_current_user)]):
     """Workflow calismasini tetikler."""
     from app.config import get_settings
     _get_project(db, project_id, user)
@@ -6053,7 +6062,7 @@ def trigger_workflow(project_id: str, workflow_id: str, body: dict, db: DB, user
 
 
 @router.get("/projects/{project_id}/workflows/{workflow_id}/executions")
-def list_workflow_executions(project_id: str, workflow_id: str, db: DB, user: CurrentUser):
+def list_workflow_executions(project_id: str, workflow_id: str, db: DB, user: Annotated[User, Depends(get_current_user)]):
     """Workflow calisma gecmisini listeler."""
     _get_project(db, project_id, user)
     rows = list(db.scalars(
@@ -6075,7 +6084,7 @@ def list_workflow_executions(project_id: str, workflow_id: str, db: DB, user: Cu
 # ═══════════════════════════════════════════════════════════════════════
 
 @router.get("/projects/{project_id}/locators")
-def list_locators(project_id: str, db: DB, user: CurrentUser):
+def list_locators(project_id: str, db: DB, user: Annotated[User, Depends(get_current_user)]):
     """Engine'deki locator'ları listeler ve project_id ile filtreler."""
     _get_project(db, project_id, user)
     try:
@@ -6088,7 +6097,7 @@ def list_locators(project_id: str, db: DB, user: CurrentUser):
 
 
 @router.post("/projects/{project_id}/locators", status_code=201)
-def create_locator(project_id: str, body: dict, db: DB, user: CurrentUser):
+def create_locator(project_id: str, body: dict, db: DB, user: Annotated[User, Depends(get_current_user)]):
     """Yeni locator ekler."""
     _get_project(db, project_id, user)
     try:
@@ -6100,7 +6109,7 @@ def create_locator(project_id: str, body: dict, db: DB, user: CurrentUser):
 
 
 @router.delete("/projects/{project_id}/locators/{locator_id}", status_code=204)
-def delete_locator(project_id: str, locator_id: str, db: DB, user: CurrentUser):
+def delete_locator(project_id: str, locator_id: str, db: DB, user: Annotated[User, Depends(get_current_user)]):
     """Locator siler."""
     _get_project(db, project_id, user)
     try:
@@ -6112,7 +6121,7 @@ def delete_locator(project_id: str, locator_id: str, db: DB, user: CurrentUser):
 
 
 @router.post("/projects/{project_id}/locators/health-check")
-def locator_health_check(project_id: str, body: dict, db: DB, user: CurrentUser):
+def locator_health_check(project_id: str, body: dict, db: DB, user: Annotated[User, Depends(get_current_user)]):
     """Seçili locator'lar için sağlık kontrolü çalıştırır."""
     _get_project(db, project_id, user)
     try:
@@ -6124,7 +6133,7 @@ def locator_health_check(project_id: str, body: dict, db: DB, user: CurrentUser)
 
 
 @router.post("/projects/{project_id}/locators/discover")
-def locator_discover(project_id: str, body: dict, db: DB, user: CurrentUser):
+def locator_discover(project_id: str, body: dict, db: DB, user: Annotated[User, Depends(get_current_user)]):
     """Verilen URL'den locator'ları otomatik keşfeder."""
     _get_project(db, project_id, user)
     try:
@@ -6140,7 +6149,7 @@ def locator_discover(project_id: str, body: dict, db: DB, user: CurrentUser):
 # ═══════════════════════════════════════════════════════════════════════
 
 @router.get("/projects/{project_id}/visual/baselines")
-def list_visual_baselines(project_id: str, db: DB, user: CurrentUser):
+def list_visual_baselines(project_id: str, db: DB, user: Annotated[User, Depends(get_current_user)]):
     """Projeye ait baseline listesini döndürür."""
     _get_project(db, project_id, user)
     try:
@@ -6153,7 +6162,7 @@ def list_visual_baselines(project_id: str, db: DB, user: CurrentUser):
 
 
 @router.post("/projects/{project_id}/visual/baselines", status_code=201)
-async def upload_visual_baseline(project_id: str, request: Request, db: DB, user: CurrentUser):
+async def upload_visual_baseline(project_id: str, request: Request, db: DB, user: Annotated[User, Depends(get_current_user)]):
     """Baseline screenshot yükler (multipart forward)."""
     _get_project(db, project_id, user)
     try:
@@ -6168,7 +6177,7 @@ async def upload_visual_baseline(project_id: str, request: Request, db: DB, user
 
 
 @router.post("/projects/{project_id}/visual/compare")
-def visual_compare(project_id: str, body: dict, db: DB, user: CurrentUser):
+def visual_compare(project_id: str, body: dict, db: DB, user: Annotated[User, Depends(get_current_user)]):
     """Mevcut sayfayı baseline ile karşılaştırır."""
     _get_project(db, project_id, user)
     try:
@@ -6180,7 +6189,7 @@ def visual_compare(project_id: str, body: dict, db: DB, user: CurrentUser):
 
 
 @router.delete("/projects/{project_id}/visual/baselines/{baseline_id}", status_code=204)
-def delete_visual_baseline(project_id: str, baseline_id: str, db: DB, user: CurrentUser):
+def delete_visual_baseline(project_id: str, baseline_id: str, db: DB, user: Annotated[User, Depends(get_current_user)]):
     """Baseline siler."""
     _get_project(db, project_id, user)
     try:
@@ -6204,7 +6213,7 @@ def generate_test_cases(
     project_id: str,
     body: GenerateTestCasesRequest,
     db: DB,
-    user: CurrentUser,
+    user: Annotated[User, Depends(get_current_user)],
 ):
     """AI Gateway üzerinden toplu test case üretir, DB'ye kaydeder."""
     _get_project(db, project_id, user)
@@ -6227,7 +6236,7 @@ def generate_test_cases(
     response_model=list[AiBatchOut],
     tags=["faz3-test-cases"],
 )
-def list_batches(project_id: str, db: DB, user: CurrentUser):
+def list_batches(project_id: str, db: DB, user: Annotated[User, Depends(get_current_user)]):
     """Projeye ait tüm AI üretim batch'lerini listeler."""
     _get_project(db, project_id, user)
     return tc_svc.list_batches(db, project_id)
@@ -6238,7 +6247,7 @@ def list_batches(project_id: str, db: DB, user: CurrentUser):
     response_model=AiBatchDetailOut,
     tags=["faz3-test-cases"],
 )
-def get_batch(project_id: str, batch_id: str, db: DB, user: CurrentUser):
+def get_batch(project_id: str, batch_id: str, db: DB, user: Annotated[User, Depends(get_current_user)]):
     """Batch detayı + içerdiği test case'ler."""
     _get_project(db, project_id, user)
     batch = tc_svc.get_batch(db, batch_id, project_id)
@@ -6256,7 +6265,7 @@ def get_batch(project_id: str, batch_id: str, db: DB, user: CurrentUser):
     status_code=204,
     tags=["faz3-test-cases"],
 )
-def delete_batch(project_id: str, batch_id: str, db: DB, user: CurrentUser):
+def delete_batch(project_id: str, batch_id: str, db: DB, user: Annotated[User, Depends(get_current_user)]):
     """Batch ve içindeki tüm test case'leri siler."""
     _get_project(db, project_id, user)
     batch = tc_svc.get_batch(db, batch_id, project_id)
@@ -6273,7 +6282,7 @@ def delete_batch(project_id: str, batch_id: str, db: DB, user: CurrentUser):
 def list_test_cases(
     project_id: str,
     db: DB,
-    user: CurrentUser,
+    user: Annotated[User, Depends(get_current_user)],
     batch_id: Optional[str] = Query(None),
     review_status: Optional[str] = Query(None),
 ):
@@ -6302,7 +6311,7 @@ def list_test_cases(
     response_model=TestCaseOut,
     tags=["faz3-test-cases"],
 )
-def get_test_case(project_id: str, tc_id: str, db: DB, user: CurrentUser):
+def get_test_case(project_id: str, tc_id: str, db: DB, user: Annotated[User, Depends(get_current_user)]):
     """Tek test case detayı."""
     _get_project(db, project_id, user)
     tc = tc_svc.get_test_case(db, tc_id, project_id)
@@ -6321,7 +6330,7 @@ def update_test_case(
     tc_id: str,
     body: TestCaseUpdate,
     db: DB,
-    user: CurrentUser,
+    user: Annotated[User, Depends(get_current_user)],
 ):
     """Test case alanlarını günceller (edit)."""
     _get_project(db, project_id, user)
@@ -6347,7 +6356,7 @@ def review_test_case(
     tc_id: str,
     body: TestCaseReviewAction,
     db: DB,
-    user: CurrentUser,
+    user: Annotated[User, Depends(get_current_user)],
 ):
     """Tek test case onayla / reddet / düzenle-ve-onayla."""
     _get_project(db, project_id, user)
@@ -6366,7 +6375,7 @@ def bulk_review_test_cases(
     project_id: str,
     body: BulkReviewRequest,
     db: DB,
-    user: CurrentUser,
+    user: Annotated[User, Depends(get_current_user)],
 ):
     """Toplu onayla / reddet. Seçilen ID'leri işler, sayıları döner."""
     _get_project(db, project_id, user)
@@ -6380,7 +6389,7 @@ def bulk_review_test_cases(
     status_code=204,
     tags=["faz3-test-cases"],
 )
-def delete_test_case(project_id: str, tc_id: str, db: DB, user: CurrentUser):
+def delete_test_case(project_id: str, tc_id: str, db: DB, user: Annotated[User, Depends(get_current_user)]):
     """Test case siler."""
     _get_project(db, project_id, user)
     tc = tc_svc.get_test_case(db, tc_id, project_id)
@@ -6408,7 +6417,7 @@ def generate_automation_code(
     project_id: str,
     body: GenerateAutomationRequest,
     db: DB,
-    user: CurrentUser,
+    user: Annotated[User, Depends(get_current_user)],
 ):
     """
     Onaylı test case'lerden Gherkin + Java Neurex + Playwright TS kodu üretir.
@@ -6595,7 +6604,7 @@ def run_ai_debug_loop(
     execution_id: str,
     body: RunDebugRequest,
     db: DB,
-    user: CurrentUser,
+    user: Annotated[User, Depends(get_current_user)],
 ):
     """
     Bir execution'ın başarısız testlerini AI ile analiz et.
@@ -6677,7 +6686,7 @@ def export_allure(
     project_id: str,
     execution_id: str,
     db: DB,
-    user: CurrentUser,
+    user: Annotated[User, Depends(get_current_user)],
 ):
     """
     Bir execution'ın Allure-uyumlu JSON export verilerini döndür.
@@ -6748,7 +6757,7 @@ def nexus_chat(
     project_id: str,
     body: ChatRequest,
     db: DB,
-    user: CurrentUser,
+    user: Annotated[User, Depends(get_current_user)],
 ):
     """
     Proje bağlamında çalışan AI chat asistanı.
@@ -6810,7 +6819,7 @@ def nexus_chat(
 )
 def get_chat_quick_actions(
     project_id: str,
-    user: CurrentUser,
+    user: Annotated[User, Depends(get_current_user)],
 ):
     """AI Chat sayfasında gösterilecek hızlı eylem listesi."""
     return [QuickAction(**a) for a in chat_svc.QUICK_ACTIONS]
@@ -6926,7 +6935,7 @@ def get_execution_metrics(
     project_id: str,
     execution_id: str,
     db: DB,
-    user: CurrentUser,
+    user: Annotated[User, Depends(get_current_user)],
 ):
     """Tamamlanmış bir execution'ın pass/fail/skip metriklerini döndürür."""
     _get_project(db, project_id, user)
@@ -6986,7 +6995,7 @@ def get_run_status(
     execution_id: str,
     run_id: str,
     db: DB,
-    user: CurrentUser,
+    user: Annotated[User, Depends(get_current_user)],
 ):
     """SSE stream'inin hâlâ aktif olup olmadığını sorgula."""
     _get_project(db, project_id, user)
@@ -7015,7 +7024,7 @@ def start_mobile_run(
     project_id: str,
     body: MobileRunCreate,
     db: DB,
-    user: CurrentUser,
+    user: Annotated[User, Depends(get_current_user)],
 ):
     """
     Seçili cihazlarda paralel Playwright mobil emülasyon testi başlatır.
@@ -7133,7 +7142,7 @@ async def monkey_run_sync(
     project_id: str,
     request: Request,
     db: DB,
-    user: CurrentUser,
+    user: Annotated[User, Depends(get_current_user)],
 ):
     _get_project(db, project_id, user)
     body = await request.json()
@@ -7157,7 +7166,7 @@ async def monkey_video(
     project_id: str,
     run_id: str,
     db: DB,
-    user: CurrentUser,
+    user: Annotated[User, Depends(get_current_user)],
 ):
     _get_project(db, project_id, user)
     try:
@@ -7183,7 +7192,7 @@ async def llm_agent_run_stream(
     project_id: str,
     request: Request,
     db: DB,
-    user: CurrentUser,
+    user: Annotated[User, Depends(get_current_user)],
 ):
     """
     Gelişmiş ReAct döngüsü — 5 aşamalı derin plan ve hipotez takibi.

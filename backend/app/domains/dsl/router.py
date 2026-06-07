@@ -100,7 +100,7 @@ CategoryNodeOut.model_rebuild()
 
 @router.get("/actions", response_model=DslActionListResponse)
 def list_actions(
-    _: CurrentUser,
+    _: Annotated[User, Depends(get_current_user)],
     category: Optional[str] = Query(None, description="Üst ya da tam kategori"),
     lang: Optional[str] = Query(None, pattern="^(tr|en)$"),
     tag: Optional[str] = Query(None),
@@ -122,7 +122,7 @@ def list_actions(
 @router.get("/actions/{action_id}", response_model=DslAction)
 def get_action(
     action_id: str,
-    _: CurrentUser,
+    _: Annotated[User, Depends(get_current_user)],
 ) -> DslAction:
     """Tek bir cümleciğin detayı (TR/EN alias + tüm dil implementasyonları)."""
     action = dsl_service.get_action(action_id)
@@ -136,7 +136,7 @@ def get_action(
 
 @router.get("/search", response_model=DslSearchResponse)
 def search_actions(
-    _: CurrentUser,
+    _: Annotated[User, Depends(get_current_user)],
     q: str = Query(..., min_length=1, max_length=200),
     lang: Optional[str] = Query(None, pattern="^(tr|en)$"),
     limit: int = Query(50, ge=1, le=200),
@@ -146,13 +146,13 @@ def search_actions(
 
 
 @router.get("/stats", response_model=DslStats)
-def get_stats(_: CurrentUser) -> DslStats:
+def get_stats(_: Annotated[User, Depends(get_current_user)]) -> DslStats:
     """Toplam cümlecik sayısı, kategori/dil/implementation dağılımı."""
     return dsl_service.get_stats()
 
 
 @router.get("/categories", response_model=list[CategoryNodeOut])
-def get_categories(_: CurrentUser) -> list[CategoryNodeOut]:
+def get_categories(_: Annotated[User, Depends(get_current_user)]) -> list[CategoryNodeOut]:
     """UI sol paneli için 2 seviyeli kategori ağacı."""
     tree = dsl_service.category_tree()
     return [
@@ -173,7 +173,7 @@ def get_categories(_: CurrentUser) -> list[CategoryNodeOut]:
 def suggest(
     body: SuggestRequest,
     db: DbSession,
-    _: CurrentUser,
+    _: Annotated[User, Depends(get_current_user)],
 ) -> DslSearchResponse:
     """Serbest metin açıklama → en uygun cümlecik önerileri.
 
@@ -204,7 +204,7 @@ def suggest(
 def search_semantic(
     body: SemanticSearchRequest,
     db: DbSession,
-    _: CurrentUser,
+    _: Annotated[User, Depends(get_current_user)],
 ) -> DslSearchResponse:
     """Embedding tabanlı anlamsal arama.
 
@@ -221,7 +221,7 @@ def search_semantic(
 def record_feedback(
     body: FeedbackRequest,
     db: DbSession,
-    current: CurrentUser,
+    current: User = Depends(get_current_user),
 ) -> FeedbackResponse:
     """Kullanıcının arama sonucuna verdiği 👍 / 👎 kaydı."""
     entry = feedback_service.record_feedback(
@@ -246,7 +246,7 @@ def record_feedback(
 
 
 @router.get("/index/info", response_model=IndexInfo)
-def index_info(_: CurrentUser) -> IndexInfo:
+def index_info(_: Annotated[User, Depends(get_current_user)]) -> IndexInfo:
     """Aktif embedding indeksinin durumu."""
     info = dsl_service.embedding_index_info()
     return IndexInfo(
@@ -261,7 +261,7 @@ def index_info(_: CurrentUser) -> IndexInfo:
 
 @router.post("/index/rebuild", response_model=IndexRebuildResponse)
 def index_rebuild(
-    _: CurrentUser,
+    _: Annotated[User, Depends(get_current_user)],
     force: bool = Query(default=False, description="Hash aynı olsa bile yeniden üret"),
 ) -> IndexRebuildResponse:
     """Embedding indeksini gateway üzerinden yeniden üret.
@@ -279,7 +279,7 @@ def index_rebuild(
 
 
 @router.post("/reload", response_model=DslReloadResponse)
-def reload_catalog(_: CurrentUser) -> DslReloadResponse:
+def reload_catalog(_: Annotated[User, Depends(get_current_user)]) -> DslReloadResponse:
     """Disk'ten katalog'u yeniden yükle.
 
     YAML dosyaları değiştikten sonra pod'u restart etmeden cache'i

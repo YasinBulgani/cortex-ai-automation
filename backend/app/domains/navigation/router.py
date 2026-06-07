@@ -33,7 +33,7 @@ def navigation_tree() -> list[dict[str, Any]]:
 
 
 @router.get("/bookmarks/{user_id}", summary="Get bookmarks for a user")
-def user_bookmarks(user_id: str, user: CurrentUser) -> list[str]:
+def user_bookmarks(user_id: str, user: Annotated[User, Depends(get_current_user)]) -> list[str]:
     """Return the list of bookmarked paths for *user_id*."""
     if user.id != user_id:
         raise HTTPException(403, "Başka kullanıcının bookmark'larına erişemezsiniz")
@@ -41,7 +41,7 @@ def user_bookmarks(user_id: str, user: CurrentUser) -> list[str]:
 
 
 @router.post("/bookmarks/{user_id}", summary="Add a bookmark for a user")
-def create_bookmark(user_id: str, body: AddBookmarkRequest, user: CurrentUser) -> dict[str, bool]:
+def create_bookmark(user_id: str, body: AddBookmarkRequest, user: Annotated[User, Depends(get_current_user)]) -> dict[str, bool]:
     """Add *path* to *user_id*'s bookmarks. Idempotent."""
     if user.id != user_id:
         raise HTTPException(403, "Başka kullanıcının bookmark'larına erişemezsiniz")
@@ -56,7 +56,7 @@ def create_bookmark(user_id: str, body: AddBookmarkRequest, user: CurrentUser) -
     "/bookmarks/{user_id}/{path:path}",
     summary="Remove a bookmark for a user",
 )
-def delete_bookmark(user_id: str, path: str, user: CurrentUser) -> dict[str, bool]:
+def delete_bookmark(user_id: str, path: str, user: Annotated[User, Depends(get_current_user)]) -> dict[str, bool]:
     """Remove the bookmark at *path* for *user_id*.
 
     Returns 404 if the bookmark is not found.

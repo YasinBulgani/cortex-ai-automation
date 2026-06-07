@@ -13,7 +13,7 @@ from typing import Annotated, List, Optional
 
 from fastapi import APIRouter, Body, Depends, HTTPException, Path, Query, status
 
-from app.deps import require_permission
+from app.deps import get_current_user, require_permission
 from app.infra.models import User
 from . import insights, service
 from .insights import InsightsResponse
@@ -41,12 +41,14 @@ router = APIRouter(prefix="/qa", tags=["qa"])
 logger = logging.getLogger(__name__)
 
 AdminUser = Annotated[User, Depends(require_permission("admin.*"))]
+AuthUser = Annotated[User, Depends(get_current_user)]
 
 
 # ── Cases ───────────────────────────────────────────────────────────────
 
 @router.get("/cases", response_model=TestCaseListResponse)
 def list_cases(
+    _user: Annotated[User, Depends(get_current_user)],
     suite: Optional[str] = Query(None),
     priority: Optional[str] = Query(None, pattern="^P[0-3]$"),
     automation_status: Optional[str] = Query(None),
@@ -63,7 +65,10 @@ def list_cases(
 
 
 @router.get("/cases/{tc_id}", response_model=TestCase)
-def get_case(tc_id: str = Path(..., pattern="^TC-[A-Z0-9]+-\\d+$")) -> TestCase:
+def get_case(
+    tc_id: str,
+    _user: Annotated[User, Depends(get_current_user)],
+) -> TestCase:
     tc = service.get_test_case(tc_id)
     if not tc:
         raise HTTPException(status.HTTP_404_NOT_FOUND, f"TC not found: {tc_id}")
@@ -94,12 +99,12 @@ def update_case(
 # ── Runs ────────────────────────────────────────────────────────────────
 
 @router.get("/runs", response_model=List[TestRunListItem])
-def list_runs(limit: int = Query(50, ge=1, le=500)) -> List[TestRunListItem]:
+def list_runs(_user: Annotated[User, Depends(get_current_user)], limit: int = Query(50, ge=1, le=500)) -> List[TestRunListItem]:
     return service.list_runs()[:limit]
 
 
 @router.get("/runs/{run_id}", response_model=TestRun)
-def get_run(run_id: str = Path(..., pattern="^TR-\\d{4}-\\d{2}-\\d{2}-[A-Z0-9-]+-\\d+$")) -> TestRun:
+def get_run(run_id: str, _user: Annotated[User, Depends(get_current_user)]) -> TestRun:
     run = service.get_run(run_id)
     if not run:
         raise HTTPException(status.HTTP_404_NOT_FOUND, f"Run not found: {run_id}")
@@ -119,40 +124,40 @@ def create_run(req: CreateRunRequest, _admin: AdminUser) -> TestRun:
 # ── Plans ───────────────────────────────────────────────────────────────
 
 @router.get("/plans", response_model=List[Plan])
-def list_plans() -> List[Plan]:
+def list_plans(_user: Annotated[User, Depends(get_current_user)]) -> List[Plan]:
     return service.list_plans()
 
 
 # ── Requirements ────────────────────────────────────────────────────────
 
 @router.get("/requirements", response_model=List[Requirement])
-def list_requirements() -> List[Requirement]:
+def list_requirements(_user: Annotated[User, Depends(get_current_user)]) -> List[Requirement]:
     return service.list_requirements()
 
 
 # ── Pre-conditions ──────────────────────────────────────────────────────
 
 @router.get("/pre-conditions", response_model=List[PreCondition])
-def list_pre_conditions() -> List[PreCondition]:
+def list_pre_conditions(_user: Annotated[User, Depends(get_current_user)]) -> List[PreCondition]:
     return service.list_pre_conditions()
 
 
 # ── Coverage + Health ───────────────────────────────────────────────────
 
 @router.get("/coverage", response_model=CoverageResponse)
-def coverage() -> CoverageResponse:
+def coverage(_user: Annotated[User, Depends(get_current_user)]) -> CoverageResponse:
     return service.coverage_summary()
 
 
 @router.get("/health", response_model=HealthReport)
-def health() -> HealthReport:
+def health(_user: Annotated[User, Depends(get_current_user)]) -> HealthReport:
     return service.health_score()
 
 
 # ── Insights ────────────────────────────────────────────────────────────
 
 @router.get("/insights", response_model=InsightsResponse)
-def get_insights() -> InsightsResponse:
+def get_insights(_user: Annotated[User, Depends(get_current_user)]) -> InsightsResponse:
     """Velocity (TC/hafta), trend (günlük pass rate), per-owner breakdown,
     top failing TC'ler. Dashboard "Insights" sekmesi ve haftalık rapor için."""
     return insights.insights_response()

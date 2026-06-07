@@ -36,7 +36,7 @@ CurrentUser = Annotated[User, Depends(get_current_user)]
 )
 async def generate(
     body: SuiteGenerateRequest,
-    _: CurrentUser,
+    _: Annotated[User, Depends(get_current_user)],
 ) -> SuiteGenerateResponse:
     """Manuel testten Gherkin + otomasyon kodu üret.
 
@@ -65,7 +65,7 @@ async def generate(
 )
 async def run_suite(
     body: SuiteRunRequest,
-    _: CurrentUser,
+    _: Annotated[User, Depends(get_current_user)],
 ) -> SuiteRunResponse:
     """Mevcut bir feature dosyasını engine üzerinden koştur."""
     try:
@@ -80,7 +80,7 @@ async def run_suite(
 @router.get("/runs/{run_id}", response_model=SuiteRunStatus)
 def get_run(
     run_id: str,
-    _: CurrentUser,
+    _: Annotated[User, Depends(get_current_user)],
 ) -> SuiteRunStatus:
     """Koşum durumu (queued / running / passed / failed / error)."""
     rec = suite_service.get_run_status(run_id)
@@ -95,7 +95,7 @@ def get_run(
 @router.post("/catalog/suggest", response_model=SuiteCatalogSuggestResponse)
 def suggest_catalog(
     body: SuiteCatalogSuggestRequest,
-    _: CurrentUser,
+    _: Annotated[User, Depends(get_current_user)],
 ) -> SuiteCatalogSuggestResponse:
     """Serbest metin → DSL cümlecik önerisi.
 
@@ -105,7 +105,7 @@ def suggest_catalog(
 
 
 @router.get("/health", response_model=SuiteHealthResponse)
-async def health(_: CurrentUser) -> SuiteHealthResponse:
+async def health(_: Annotated[User, Depends(get_current_user)]) -> SuiteHealthResponse:
     """Backend + Engine + DSL sağlık özeti."""
     return await suite_service.health_snapshot()
 
@@ -113,7 +113,7 @@ async def health(_: CurrentUser) -> SuiteHealthResponse:
 @router.post("/mobile/generate", response_model=MobileGenerateResponse)
 def mobile_generate(
     body: MobileGenerateRequest,
-    _: CurrentUser,
+    _: Annotated[User, Depends(get_current_user)],
 ) -> MobileGenerateResponse:
     """Doğal dil + cihaz bağlamı → mobil DSL cümlecikleriyle Gherkin.
 

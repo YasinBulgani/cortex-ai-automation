@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 import logging
-from typing import Dict, List, Optional
+from typing import Annotated, Dict, List, Optional
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel, Field
 
+from app.infra.models import User
+from app.deps import get_current_user
 from app.domains.ai.router_shared import (
     DB,
     CurrentUser,
@@ -144,7 +146,7 @@ class ValidateCodeRequest(BaseModel):
 def qa_create_plan(
     body: QAPlanRequest,
     db: DB,
-    user: CurrentUser,
+    user: Annotated[User, Depends(get_current_user)],
     project_id: str = "",
 ):
     if not project_id:
@@ -166,7 +168,7 @@ def qa_create_plan(
 def qa_execute_plan(
     plan_id: str,
     db: DB,
-    user: CurrentUser,
+    user: Annotated[User, Depends(get_current_user)],
     project_id: str = "",
 ):
     if not project_id:
@@ -192,7 +194,7 @@ def qa_execute_plan(
 def qa_verify_plan(
     plan_id: str,
     db: DB,
-    user: CurrentUser,
+    user: Annotated[User, Depends(get_current_user)],
     project_id: str = "",
 ):
     if not project_id:
@@ -218,7 +220,7 @@ def qa_verify_plan(
 def qa_full_cycle(
     body: QAPlanRequest,
     db: DB,
-    user: CurrentUser,
+    user: Annotated[User, Depends(get_current_user)],
     project_id: str = "",
 ):
     if not project_id:
@@ -240,7 +242,7 @@ def qa_full_cycle(
 def qa_explore(
     body: QAExploreRequest,
     db: DB,
-    user: CurrentUser,
+    user: Annotated[User, Depends(get_current_user)],
     project_id: str = "",
 ):
     if not project_id:
@@ -261,13 +263,13 @@ def qa_explore(
 @router.get("/qa/status/{plan_id}")
 def qa_plan_status(
     plan_id: str,
-    user: CurrentUser,
+    user: Annotated[User, Depends(get_current_user)],
     db: DB,
     project_id: str = "",
 ):
     try:
         require_project_access(db, user, project_id)
-        from app.deps import _user_permissions
+        from app.deps import _user_permissions, get_current_user
         from app.domains.ai.qa_orchestrator import get_plan_status_scoped
 
         perms = _user_permissions(user)
@@ -291,7 +293,7 @@ def qa_plan_status(
 def nl_test_generate(
     body: NLTestRequest,
     db: DB,
-    user: CurrentUser,
+    user: Annotated[User, Depends(get_current_user)],
     project_id: str = "",
 ):
     if not project_id:
@@ -323,7 +325,7 @@ def nl_test_generate(
 def nl_test_batch(
     body: BatchNLRequest,
     db: DB,
-    user: CurrentUser,
+    user: Annotated[User, Depends(get_current_user)],
     project_id: str = "",
 ):
     if not project_id:
@@ -353,7 +355,7 @@ def nl_test_batch(
 def nl_test_suggest(
     endpoint_id: str,
     db: DB,
-    user: CurrentUser,
+    user: Annotated[User, Depends(get_current_user)],
     project_id: str = "",
     count: int = 5,
 ):
@@ -382,7 +384,7 @@ def nl_test_suggest(
 @router.post("/nl-test/validate")
 def nl_test_validate(
     body: ValidateCodeRequest,
-    user: CurrentUser,
+    user: Annotated[User, Depends(get_current_user)],
 ):
     _ = user
     valid_languages = ("python", "typescript")

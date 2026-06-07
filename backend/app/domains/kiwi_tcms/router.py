@@ -7,7 +7,7 @@ from typing import Annotated, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
-from app.deps import require_permission
+from app.deps import require_permission, get_current_user
 from app.domains.kiwi_tcms import service
 from app.domains.kiwi_tcms.schemas import (
     KiwiConnectionIn,

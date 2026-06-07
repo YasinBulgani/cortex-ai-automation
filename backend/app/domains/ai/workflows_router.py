@@ -13,7 +13,7 @@ import logging
 from datetime import datetime, timezone as _tz
 UTC = _tz.utc  # Python 3.9 uyumlu alias
 from pathlib import Path
-from typing import Any
+from typing import Annotated, Any
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, status
 from fastapi.responses import FileResponse
@@ -182,7 +182,7 @@ async def create_ai_workflow(
     body: AIWorkflowCreateRequest,
     background: BackgroundTasks,
     request: Request,
-    user: User = Depends(get_current_user),
+    user: Annotated[User, Depends(get_current_user)],
 ):
     if body.auto_merge:
         raise HTTPException(
@@ -259,7 +259,7 @@ async def create_ai_workflow(
 
 @router.get("/dead-letters", response_model=AIWorkflowDeadLetterListResponse)
 async def list_ai_workflow_dead_letters(
-    user: User = Depends(get_current_user),
+    user: Annotated[User, Depends(get_current_user)],
     limit: int = 100,
 ):
     _require_workflow_admin(user)
@@ -270,7 +270,7 @@ async def list_ai_workflow_dead_letters(
 
 @router.get("/health", response_model=AIWorkflowHealthSummary)
 async def get_ai_workflow_health(
-    user: User = Depends(get_current_user),
+    user: Annotated[User, Depends(get_current_user)],
     limit: int = 250,
 ):
     _require_workflow_admin(user)
@@ -280,7 +280,7 @@ async def get_ai_workflow_health(
 @router.get("/{workflow_id}", response_model=AIWorkflowStatus)
 async def get_ai_workflow(
     workflow_id: str,
-    user: User = Depends(get_current_user),
+    user: Annotated[User, Depends(get_current_user)],
 ):
     rec = _get_workflow_record(workflow_id)
     _require_workflow_access(user, rec)
@@ -292,7 +292,7 @@ async def get_ai_workflow(
 @router.get("/{workflow_id}/events", response_model=AIWorkflowEventListResponse)
 async def list_ai_workflow_events(
     workflow_id: str,
-    user: User = Depends(get_current_user),
+    user: Annotated[User, Depends(get_current_user)],
 ):
     rec = _get_workflow_record(workflow_id)
     _require_workflow_access(user, rec)
@@ -305,7 +305,7 @@ async def list_ai_workflow_events(
 @router.get("/{workflow_id}/artifacts", response_model=AIWorkflowArtifactListResponse)
 async def list_ai_workflow_artifacts(
     workflow_id: str,
-    user: User = Depends(get_current_user),
+    user: Annotated[User, Depends(get_current_user)],
 ):
     rec = _get_workflow_record(workflow_id)
     _require_workflow_access(user, rec)
@@ -319,7 +319,7 @@ async def list_ai_workflow_artifacts(
 async def download_ai_workflow_artifact(
     workflow_id: str,
     artifact_id: str,
-    user: User = Depends(get_current_user),
+    user: Annotated[User, Depends(get_current_user)],
 ):
     rec = _get_workflow_record(workflow_id)
     _require_workflow_access(user, rec)
@@ -354,7 +354,7 @@ async def approve_ai_workflow(
     body: AIWorkflowApprovalRequest,
     background: BackgroundTasks,
     request: Request,
-    user: User = Depends(get_current_user),
+    user: Annotated[User, Depends(get_current_user)],
 ):
     rec = _get_workflow_record(workflow_id)
     _require_workflow_approver(user, rec)
@@ -401,7 +401,7 @@ async def approve_ai_workflow(
 @router.post("/{workflow_id}/cancel")
 async def cancel_ai_workflow(
     workflow_id: str,
-    user: User = Depends(get_current_user),
+    user: Annotated[User, Depends(get_current_user)],
 ):
     rec = _get_workflow_record(workflow_id)
     _require_workflow_access(user, rec)

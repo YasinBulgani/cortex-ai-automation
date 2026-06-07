@@ -43,7 +43,7 @@ def _verify_webhook_signature(x_webhook_secret: str | None = Header(None)) -> No
 
 
 @router.post("/text", status_code=status.HTTP_201_CREATED)
-def ingest_text_endpoint(body: TextIngestIn, user: CurrentUser) -> dict:
+def ingest_text_endpoint(body: TextIngestIn, user: Annotated[User, Depends(get_current_user)]) -> dict:
     try:
         req = svc.ingest_text(
             project_id=body.project_id,
@@ -89,12 +89,12 @@ def confluence_webhook(
 
 
 @router.get("/projects/{project_id}")
-def list_for_project(project_id: str, user: CurrentUser) -> list[dict]:
+def list_for_project(project_id: str, user: Annotated[User, Depends(get_current_user)]) -> list[dict]:
     return [r.to_dict() for r in svc.list_ingested(project_id=project_id)]
 
 
 @router.get("/{req_id}")
-def get_ingested(req_id: str, user: CurrentUser) -> dict:
+def get_ingested(req_id: str, user: Annotated[User, Depends(get_current_user)]) -> dict:
     req = svc.get_ingested(req_id)
     if req is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Requirement bulunamadı")

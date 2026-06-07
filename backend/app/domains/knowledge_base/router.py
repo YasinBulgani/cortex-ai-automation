@@ -40,6 +40,7 @@ class ArticleOut(BaseModel):
 
 @router.get("/articles", response_model=list[ArticleOut])
 def list_articles_endpoint(
+    _user: Annotated[User, Depends(get_current_user)],
     category: Optional[str] = None,
     tag: Optional[str] = None,
     sort: str = "newest",
@@ -49,7 +50,7 @@ def list_articles_endpoint(
 
 
 @router.get("/articles/{article_id}", response_model=ArticleOut)
-def get_article_endpoint(article_id: str) -> ArticleOut:
+def get_article_endpoint(article_id: str, _user: Annotated[User, Depends(get_current_user)]) -> ArticleOut:
     a = svc.get_article(article_id)
     if a is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Article bulunamadı")
@@ -57,7 +58,7 @@ def get_article_endpoint(article_id: str) -> ArticleOut:
 
 
 @router.post("/articles", response_model=ArticleOut, status_code=status.HTTP_201_CREATED)
-def create_article_endpoint(body: ArticleIn, user: AuthUser) -> ArticleOut:
+def create_article_endpoint(body: ArticleIn, user: Annotated[User, Depends(get_current_user)]) -> ArticleOut:
     try:
         a = svc.create_article(
             title=body.title,
@@ -73,7 +74,7 @@ def create_article_endpoint(body: ArticleIn, user: AuthUser) -> ArticleOut:
 
 
 @router.get("/search")
-def search_endpoint(q: str, limit: int = 20) -> list[ArticleOut]:
+def search_endpoint(q: str, _user: Annotated[User, Depends(get_current_user)], limit: int = 20) -> list[ArticleOut]:
     items = svc.search(q, limit=min(limit, 100))
     return [ArticleOut(**a.to_dict()) for a in items]
 

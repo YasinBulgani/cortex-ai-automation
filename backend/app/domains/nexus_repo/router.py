@@ -401,7 +401,7 @@ class BitbucketFetchRequest(BaseModel):
 )
 async def bitbucket_proxy_fetch(
     body: BitbucketFetchRequest,
-    user: CurrentUser,
+    user: Annotated[User, Depends(get_current_user)],
 ) -> dict:
     """Bitbucket src API'ye backend üzerinden istek atar.
 

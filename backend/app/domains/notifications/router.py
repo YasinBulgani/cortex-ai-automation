@@ -126,13 +126,13 @@ async def websocket_notifications(websocket: WebSocket, token: str = Query("")):
 # ── Notification List / Count (frontend convenience) ─────────────────────────
 
 @router.get("/notifications", response_model=list)
-def list_notifications(db: DB, current_user: CurrentUser, limit: int = Query(20, ge=1, le=100)):
+def list_notifications(db: DB, current_user: Annotated[User, Depends(get_current_user)], limit: int = Query(20, ge=1, le=100)):
     """Kullanıcının bildirimlerini listele (şimdilik boş — gerçek impl bildirim tablosu gerektirir)."""
     return []
 
 
 @router.get("/notifications/unread-count")
-def get_unread_notification_count(db: DB, current_user: CurrentUser) -> dict:
+def get_unread_notification_count(db: DB, current_user: Annotated[User, Depends(get_current_user)]) -> dict:
     """Okunmamış bildirim sayısını döndür."""
     return {"count": 0}
 
@@ -140,7 +140,7 @@ def get_unread_notification_count(db: DB, current_user: CurrentUser) -> dict:
 # ── Notification Preferences ──────────────────────────────────────────────────
 
 @router.get("/notifications/prefs", response_model=NotificationPrefsOut)
-def get_notification_prefs(db: DB, current_user: CurrentUser):
+def get_notification_prefs(db: DB, current_user: Annotated[User, Depends(get_current_user)]):
     """Mevcut kullanıcının bildirim tercihlerini döndürür. Kayıt yoksa varsayılanları döner."""
     from app.domains.notifications.models import NotificationPrefs
 
@@ -161,7 +161,7 @@ def get_notification_prefs(db: DB, current_user: CurrentUser):
 
 
 @router.put("/notifications/prefs", response_model=NotificationPrefsOut)
-def upsert_notification_prefs(body: NotificationPrefsIn, db: DB, current_user: CurrentUser):
+def upsert_notification_prefs(body: NotificationPrefsIn, db: DB, current_user: Annotated[User, Depends(get_current_user)]):
     """Mevcut kullanıcının bildirim tercihlerini oluşturur veya günceller."""
     from datetime import datetime
 
@@ -205,7 +205,7 @@ class BulkSendRequest(BaseModel):
 
 
 @router.post("/notifications/bulk-send")
-def bulk_send_notifications(body: BulkSendRequest, db: DB, current_user: CurrentUser):
+def bulk_send_notifications(body: BulkSendRequest, db: DB, current_user: Annotated[User, Depends(get_current_user)]):
     """Admin: kullanici listesine bildirim gonder (her birinin tercihleri saygi gorur)."""
     from fastapi import HTTPException
 
@@ -224,7 +224,7 @@ def bulk_send_notifications(body: BulkSendRequest, db: DB, current_user: Current
 
 
 @router.post("/notifications/digest/run")
-def trigger_daily_digest(db: DB, current_user: CurrentUser, lookback_hours: int = Query(24, ge=1, le=168)):
+def trigger_daily_digest(db: DB, current_user: Annotated[User, Depends(get_current_user)], lookback_hours: int = Query(24, ge=1, le=168)):
     """Admin/cron: gunluk digest job'ini calistir."""
     from fastapi import HTTPException
 

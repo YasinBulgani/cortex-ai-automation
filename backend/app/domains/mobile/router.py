@@ -14,13 +14,13 @@ Uç noktalar:
     POST   /api/v1/mobile/visual-verify                 → görsel doğrulama
 """
 from __future__ import annotations
+from typing import Annotated
 
 import asyncio
 import json
 import logging
 from collections.abc import AsyncIterator
 from pathlib import Path
-from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import FileResponse, StreamingResponse
@@ -57,17 +57,15 @@ _logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/mobile", tags=["mobile"])
 
-AuthUser = Annotated[User, Depends(get_current_user)]
-
 
 # ── Devices ────────────────────────────────────────────────────
 @router.get("/devices", response_model=list[Device])
-def list_devices() -> list[Device]:
+def list_devices(_user: Annotated[User, Depends(get_current_user)]) -> list[Device]:
     return get_broker().list()
 
 
 @router.get("/devices/{device_id}", response_model=Device)
-def get_device(device_id: str) -> Device:
+def get_device(device_id: str, _user: Annotated[User, Depends(get_current_user)]) -> Device:
     dev = get_broker().get(device_id)
     if not dev:
         raise HTTPException(404, "Cihaz bulunamadı")
@@ -75,13 +73,13 @@ def get_device(device_id: str) -> Device:
 
 
 @router.post("/devices/probe", response_model=list[Device])
-def probe_devices() -> list[Device]:
+def probe_devices(_user: Annotated[User, Depends(get_current_user)]) -> list[Device]:
     """Appium /status probe — cihaz kartlarındaki ready bilgisini gerçek kaynaktan günceller."""
     return get_broker().probe_all_appium()
 
 
 @router.post("/devices/{device_id}/reboot", response_model=Device)
-def reboot_device(device_id: str, user: AuthUser) -> Device:
+def reboot_device(device_id: str, user: Annotated[User, Depends(get_current_user)]) -> Device:
     dev = get_broker().reboot(device_id)
     if not dev:
         raise HTTPException(404, "Cihaz bulunamadı")
@@ -89,18 +87,18 @@ def reboot_device(device_id: str, user: AuthUser) -> Device:
 
 
 @router.post("/enroll-physical", response_model=Device)
-def enroll_physical(req: PhysicalEnrollRequest, user: AuthUser) -> Device:
+def enroll_physical(req: PhysicalEnrollRequest, user: Annotated[User, Depends(get_current_user)]) -> Device:
     return get_broker().enroll_physical(req)
 
 
 @router.get("/stats", response_model=FarmStats)
-def farm_stats() -> FarmStats:
+def farm_stats(_user: Annotated[User, Depends(get_current_user)]) -> FarmStats:
     return FarmStats(**get_broker().stats())
 
 
 # ── LLM Stepper ────────────────────────────────────────────────
 @router.post("/generate-from-prompt", response_model=StepGenerationResponse)
-def generate_from_prompt(req: StepGenerationRequest, user: AuthUser) -> StepGenerationResponse:
+def generate_from_prompt(req: StepGenerationRequest, user: Annotated[User, Depends(get_current_user)]) -> StepGenerationResponse:
     return generate_steps(
         prompt=req.prompt,
         platform=req.platform,
@@ -111,7 +109,7 @@ def generate_from_prompt(req: StepGenerationRequest, user: AuthUser) -> StepGene
 
 # ── Sessions ───────────────────────────────────────────────────
 @router.post("/sessions", response_model=list[Session])
-async def create_session(req: SessionCreate, user: AuthUser) -> list[Session]:
+async def create_session(req: SessionCreate, user: Annotated[User, Depends(get_current_user)]) -> list[Session]:
     sessions = await start_suite(req)
     if not sessions:
         raise HTTPException(409, "Uygun cihaz yok (hepsi busy veya offline)")
@@ -119,12 +117,12 @@ async def create_session(req: SessionCreate, user: AuthUser) -> list[Session]:
 
 
 @router.get("/sessions", response_model=list[Session])
-def list_sessions(limit: int = 40) -> list[Session]:
+def list_sessions(_user: Annotated[User, Depends(get_current_user)], limit: int = 40) -> list[Session]:
     return get_store().list_recent(limit=limit)
 
 
 @router.get("/sessions/{session_id}", response_model=Session)
-def get_session(session_id: str) -> Session:
+def get_session(session_id: str, _user: Annotated[User, Depends(get_current_user)]) -> Session:
     s = get_store().get(session_id)
     if not s:
         raise HTTPException(404, "Session bulunamadı")
@@ -132,7 +130,7 @@ def get_session(session_id: str) -> Session:
 
 
 @router.get("/sessions/{session_id}/stream")
-async def session_stream(session_id: str) -> StreamingResponse:
+async def session_stream(session_id: str, _user: Annotated[User, Depends(get_current_user)]) -> StreamingResponse:
     """SSE stream — session bitene kadar canlı event'ler.
 
     Frontend: `new EventSource('/api/v1/mobile/sessions/{id}/stream')`
@@ -160,7 +158,7 @@ async def session_stream(session_id: str) -> StreamingResponse:
 
 
 @router.get("/sessions/{session_id}/artifacts", response_model=list[MobileArtifact])
-def list_session_artifacts(session_id: str) -> list[MobileArtifact]:
+def list_session_artifacts(session_id: str, _user: Annotated[User, Depends(get_current_user)]) -> list[MobileArtifact]:
     s = get_store().get(session_id)
     if not s:
         raise HTTPException(404, "Session bulunamadı")
@@ -168,7 +166,7 @@ def list_session_artifacts(session_id: str) -> list[MobileArtifact]:
 
 
 @router.get("/artifacts/{artifact_id}")
-def get_artifact(artifact_id: str) -> FileResponse:
+def get_artifact(artifact_id: str, _user: Annotated[User, Depends(get_current_user)]) -> FileResponse:
     artifact = get_artifact_store().get(artifact_id)
     if not artifact:
         raise HTTPException(404, "Artifact bulunamadı")
@@ -184,13 +182,14 @@ def get_artifact(artifact_id: str) -> FileResponse:
 
 # ── Visual Verifier ────────────────────────────────────────────
 @router.post("/visual-verify", response_model=VisualVerifyResponse)
-def visual_verification(req: VisualVerifyRequest, user: AuthUser) -> VisualVerifyResponse:
+def visual_verification(req: VisualVerifyRequest, user: Annotated[User, Depends(get_current_user)]) -> VisualVerifyResponse:
     return visual_verify(req)
 
 
 # ── Seed Scenarios ─────────────────────────────────────────────
 @router.get("/scenarios/seed", response_model=list[SeedScenario])
 def list_seeds(
+    _user: Annotated[User, Depends(get_current_user)],
     category: SeedCategory | None = None,
     platform: str | None = None,
     difficulty: SeedDifficulty | None = None,
@@ -200,12 +199,12 @@ def list_seeds(
 
 
 @router.get("/scenarios/seed/categories", response_model=list[str])
-def list_seed_categories() -> list[str]:
+def list_seed_categories(_user: Annotated[User, Depends(get_current_user)]) -> list[str]:
     return list(seed_categories())
 
 
 @router.get("/scenarios/seed/{scenario_id}", response_model=SeedScenario)
-def get_seed(scenario_id: str) -> SeedScenario:
+def get_seed(scenario_id: str, _user: Annotated[User, Depends(get_current_user)]) -> SeedScenario:
     s = get_seed_scenario(scenario_id)
     if not s:
         raise HTTPException(404, "Seed senaryo bulunamadı")
@@ -216,6 +215,7 @@ def get_seed(scenario_id: str) -> SeedScenario:
 
 @router.get("/farm/devices", summary="List devices from active farm provider")
 def list_farm_devices(
+    _user: Annotated[User, Depends(get_current_user)],
     platform: str | None = None,
     os_version: str | None = None,
 ) -> list[dict]:
@@ -237,7 +237,7 @@ def list_farm_devices(
 def start_farm_session(
     device_id: str,
     app_path: str,
-    _user: AuthUser,
+    _user: Annotated[User, Depends(get_current_user)],
     capabilities: dict = {},
 ) -> dict:
     """Start a test session on the specified device via the active farm provider.
@@ -254,7 +254,7 @@ def start_farm_session(
 
 
 @router.get("/farm/sessions/{session_id}", summary="Get farm session status")
-def get_farm_session(session_id: str) -> dict:
+def get_farm_session(session_id: str, _user: Annotated[User, Depends(get_current_user)]) -> dict:
     from dataclasses import asdict
 
     from .device_farm_adapters import get_device_farm
@@ -265,7 +265,7 @@ def get_farm_session(session_id: str) -> dict:
 
 
 @router.delete("/farm/sessions/{session_id}", summary="Stop a farm session")
-def stop_farm_session(session_id: str, _user: AuthUser) -> dict[str, str]:
+def stop_farm_session(session_id: str, _user: Annotated[User, Depends(get_current_user)]) -> dict[str, str]:
     from .device_farm_adapters import get_device_farm
 
     farm = get_device_farm()
