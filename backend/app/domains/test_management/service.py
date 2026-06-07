@@ -60,6 +60,7 @@ from app.domains.test_management.schemas import (
     RequirementLinkCreate,
     RequirementLinkOut,
     RequirementOut,
+    RequirementUpdate,
     StandupAnomaly,
     TestCaseOut,
     TestFolderOut,
@@ -1849,6 +1850,32 @@ def create_requirement(db: Session, project_id: str, payload: RequirementCreate,
     db.commit()
     db.refresh(requirement)
     return requirement
+
+
+def update_requirement(db: Session, project_id: str, req_id: str, payload: Any, user: Any | None) -> Requirement:
+    project_id = resolve_project_id(db, project_id)
+    req = db.scalar(select(Requirement).where(Requirement.id == req_id, Requirement.project_id == project_id))
+    if req is None:
+        raise KeyError("Requirement bulunamadı")
+    changed: list[str] = []
+    for key, value in payload.model_dump(exclude_unset=True).items():
+        setattr(req, key, value)
+        changed.append(key)
+    if changed:
+        audit(db, "requirement.updated", "requirement", req.id, project_id, user, {"changed_fields": changed})
+    db.commit()
+    db.refresh(req)
+    return req
+
+
+def delete_requirement(db: Session, project_id: str, req_id: str, user: Any | None) -> None:
+    project_id = resolve_project_id(db, project_id)
+    req = db.scalar(select(Requirement).where(Requirement.id == req_id, Requirement.project_id == project_id))
+    if req is None:
+        raise KeyError("Requirement bulunamadı")
+    audit(db, "requirement.deleted", "requirement", req_id, project_id, user)
+    db.delete(req)
+    db.commit()
 
 
 def requirement_traceability(db: Session, project_id: str) -> list[dict[str, Any]]:

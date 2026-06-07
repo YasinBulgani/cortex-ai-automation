@@ -534,6 +534,17 @@ class RequirementCreate(BaseModel):
     tags: list[str] = Field(default_factory=list)
 
 
+class RequirementUpdate(BaseModel):
+    title: Optional[str] = Field(default=None, min_length=1, max_length=500)
+    description: Optional[str] = None
+    priority: Optional[str] = None
+    status: Optional[str] = None
+    owner_id: Optional[str] = None
+    url: Optional[str] = None
+    tags: Optional[list[str]] = None
+    acceptance_criteria: Optional[list[dict[str, Any]]] = None
+
+
 class RequirementOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

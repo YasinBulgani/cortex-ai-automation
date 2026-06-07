@@ -93,6 +93,7 @@ from app.domains.test_management.schemas import (
     RequirementLinkOut,
     RequirementLinkUpdate,
     RequirementOut,
+    RequirementUpdate,
     RunCaseOut,
     RunCaseUpdate,
     RunDetailOut,
