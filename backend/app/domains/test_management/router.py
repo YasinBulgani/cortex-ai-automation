@@ -345,6 +345,8 @@ def test_sso_endpoint(
     parsed = urlparse(payload.sso_url)
     if parsed.scheme not in {"http", "https"} or not parsed.netloc:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Geçerli bir HTTP(S) SSO URL'i girin")
+    if _is_ssrf_blocked(payload.sso_url):
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Bu hedefe SSO testi yapılamaz (iç ağ adresi)")
 
     try:
         response = httpx.head(payload.sso_url, timeout=8.0, follow_redirects=True)

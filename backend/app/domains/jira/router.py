@@ -15,8 +15,11 @@ Endpoints:
 
 from __future__ import annotations
 
+import ipaddress
 import logging
+import socket
 from typing import Annotated, Optional
+from urllib.parse import urlparse
 
 from fastapi import APIRouter, BackgroundTasks, Depends, Header, HTTPException, Request, status
 from pydantic import BaseModel, Field
@@ -27,6 +30,23 @@ from app.infra.database import get_db
 from app.infra.models import User
 
 from .models import JiraIntegration
+
+
+def _is_ssrf_blocked(url: str) -> bool:
+    """RFC-1918, link-local ve loopback adresleri engelle (SSRF koruması)."""
+    try:
+        parsed = urlparse(url)
+        hostname = parsed.hostname or ""
+        if hostname in ("localhost", "127.0.0.1", "::1", "0.0.0.0"):
+            return True
+        try:
+            addr = socket.gethostbyname(hostname)
+            ip = ipaddress.ip_address(addr)
+            return ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved or ip.is_unspecified
+        except Exception:
+            return False
+    except Exception:
+        return True
 
 logger = logging.getLogger(__name__)
 
@@ -191,10 +211,15 @@ def jira_get_config(db: DB, user: CurrentUser):
 @router.post("/config", status_code=status.HTTP_200_OK)
 def jira_save_config(body: JiraConfigSave, db: DB, user: CurrentUser):
     """Jira bağlantı ayarlarını DB'ye kaydeder (upsert)."""
+    url = body.url.strip().rstrip("/")
+    if not url.lower().startswith(("http://", "https://")):
+        raise HTTPException(400, "Jira URL'i http:// veya https:// ile başlamalı")
+    if _is_ssrf_blocked(url):
+        raise HTTPException(400, "Geçersiz Jira URL'i — iç ağ adresleri kullanılamaz")
     intg = _get_integration(db, user.tenant_id)
     new_token = body.token.strip()
     if intg:
-        intg.jira_url = body.url.strip().rstrip("/")
+        intg.jira_url = url
         intg.email = body.email.strip()
         if new_token:  # Boş token → mevcut token koru
             intg.api_token = new_token
@@ -202,7 +227,7 @@ def jira_save_config(body: JiraConfigSave, db: DB, user: CurrentUser):
     else:
         intg = JiraIntegration(
             tenant_id=user.tenant_id,
-            jira_url=body.url.strip().rstrip("/"),
+            jira_url=url,
             email=body.email.strip(),
             api_token=new_token,
             default_project_key=body.project_key.strip() or None,

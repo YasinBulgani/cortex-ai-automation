@@ -14,11 +14,14 @@ from __future__ import annotations
 
 import hashlib
 import hmac
+import ipaddress
 import json
 import logging
 import os
+import socket
 from datetime import datetime, timezone as _tz
 from typing import Any, Optional
+from urllib.parse import urlparse
 
 from fastapi import APIRouter, BackgroundTasks, Depends, Header, HTTPException, Request
 from pydantic import BaseModel
@@ -671,6 +674,23 @@ from app.domains.cicd import jenkins_service as _jenkins_svc  # noqa: E402
 from app.infra.models import User as _User  # noqa: E402
 
 
+def _is_ssrf_blocked(url: str) -> bool:
+    """RFC-1918, link-local ve loopback adresleri engelle (SSRF koruması)."""
+    try:
+        parsed = urlparse(url)
+        hostname = parsed.hostname or ""
+        if hostname in ("localhost", "127.0.0.1", "::1", "0.0.0.0"):
+            return True
+        try:
+            addr = socket.gethostbyname(hostname)
+            ip = ipaddress.ip_address(addr)
+            return ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved or ip.is_unspecified
+        except Exception:
+            return False
+    except Exception:
+        return True
+
+
 class JenkinsConnectionIn(BaseModel):
     name: str
     base_url: str
@@ -705,6 +725,8 @@ def jenkins_create_connection(
         raise HTTPException(400, "Bağlantı adı boş olamaz")
     if not body.base_url.lower().startswith(("http://", "https://")):
         raise HTTPException(400, "base_url http:// veya https:// ile başlamalı")
+    if _is_ssrf_blocked(body.base_url):
+        raise HTTPException(400, "Geçersiz Jenkins URL'i — iç ağ adresleri kullanılamaz")
     try:
         conn = _jenkins_svc.create_connection(
             db,
