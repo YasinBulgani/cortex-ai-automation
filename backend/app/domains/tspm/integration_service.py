@@ -99,6 +99,12 @@ def test_integration_notification(
     if not webhook_url:
         raise ValueError("Bu entegrasyon için webhook_url yapılandırılmamış")
 
+    from app.domains.api_testing.network_security import UnsafeTargetError, validate_outbound_url
+    try:
+        validate_outbound_url(webhook_url)
+    except UnsafeTargetError as exc:
+        raise ValueError(f"Guvensiz webhook hedefi: {exc}") from exc
+
     project = db.get(TspmProject, project_id)
     project_name = project.name if project else project_id
 

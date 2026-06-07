@@ -119,7 +119,10 @@ export default function BillingPage() {
             },
           );
           if (result?.checkout_url) {
-            window.location.href = result.checkout_url;
+            const url = new URL(result.checkout_url);
+            if (url.protocol === "https:") {
+              window.location.href = result.checkout_url;
+            }
             return;
           }
           setPlanError("Stripe checkout adresi alınamadı.");
@@ -155,7 +158,10 @@ export default function BillingPage() {
         { method: "POST" },
       );
       if (result?.portal_url) {
-        window.location.href = result.portal_url;
+        const url = new URL(result.portal_url);
+        if (url.protocol === "https:") {
+          window.location.href = result.portal_url;
+        }
       }
     } catch (e) {
       setPlanError(

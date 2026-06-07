@@ -29,12 +29,7 @@ const AI_PROXY_PERMISSIONS = (
   .filter(Boolean);
 
 function gatewayInternalKey(): string {
-  return (
-    process.env.GATEWAY_INTERNAL_KEY ||
-    // Backward compatibility for older local env files. This stays server-side.
-    process.env.NEXT_PUBLIC_GATEWAY_KEY ||
-    ""
-  );
+  return process.env.GATEWAY_INTERNAL_KEY || "";
 }
 
 type CurrentUser = {

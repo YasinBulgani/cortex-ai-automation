@@ -2775,6 +2775,13 @@ def test_notification(project_id: str, integration_id: str, db: DB, user: Annota
     if not webhook_url:
         raise HTTPException(400, "Bu entegrasyon için webhook_url yapılandırılmamış")
 
+    # SSRF protection: validate webhook URL against private/loopback ranges
+    from app.domains.api_testing.network_security import UnsafeTargetError, validate_outbound_url
+    try:
+        validate_outbound_url(webhook_url)
+    except UnsafeTargetError as exc:
+        raise HTTPException(400, f"Guvensiz webhook hedefi: {exc}")
+
     project = db.get(TspmProject, project_id)
     project_name = project.name if project else project_id
 
@@ -6045,6 +6052,16 @@ def trigger_workflow(project_id: str, workflow_id: str, body: dict, db: DB, user
     try:
         target_url = w.webhook_path or f"{settings.n8n_base_url}/api/v1/workflows/{w.n8n_workflow_id}/execute"
         headers = {"X-N8N-API-KEY": settings.n8n_api_key} if settings.n8n_api_key else {}
+        # SSRF protection on user-stored webhook_path
+        if w.webhook_path:
+            from app.domains.api_testing.network_security import UnsafeTargetError, validate_outbound_url
+            try:
+                validate_outbound_url(w.webhook_path)
+            except UnsafeTargetError as exc:
+                execution.status = "error"
+                execution.error = f"Guvensiz webhook hedefi: {exc}"
+                db.commit()
+                raise HTTPException(400, execution.error)
         resp = httpx.post(target_url, json=body, headers=headers, timeout=30.0)
         n8n_data = resp.json() if resp.status_code < 300 else {}
         execution.status = "success"

@@ -525,7 +525,7 @@ class TestProductsTelemetry:
         monkeypatch.setattr(_router_module, "_DEMO_MODE", True)
 
         import json
-        body: dict[str, Any] = json.loads(get_product_telemetry("one").body)
+        body: dict[str, Any] = json.loads(get_product_telemetry("one", MagicMock()).body)
 
         assert body["productId"] == "one"
         assert "stats" in body
@@ -535,7 +535,7 @@ class TestProductsTelemetry:
     def test_invalid_product_id_raises_404(self):
         """Geçersiz product_id HTTP 404 yükseltmeli."""
         with pytest.raises(HTTPException) as exc_info:
-            get_product_telemetry("nonexistent-product")
+            get_product_telemetry("nonexistent-product", MagicMock())
 
         assert exc_info.value.status_code == 404
 
@@ -544,7 +544,7 @@ class TestProductsTelemetry:
         monkeypatch.setattr(_router_module, "_DEMO_MODE", True)
 
         import json
-        body: dict[str, Any] = json.loads(get_product_telemetry("studio").body)
+        body: dict[str, Any] = json.loads(get_product_telemetry("studio", MagicMock()).body)
 
         assert "aiInsights" in body
         assert isinstance(body["aiInsights"], list)
@@ -554,7 +554,7 @@ class TestProductsTelemetry:
         monkeypatch.setattr(_router_module, "_DEMO_MODE", True)
 
         import json
-        body: dict[str, Any] = json.loads(get_product_telemetry("service").body)
+        body: dict[str, Any] = json.loads(get_product_telemetry("service", MagicMock()).body)
 
         assert "lastUpdated" in body
 
@@ -563,7 +563,7 @@ class TestProductsTelemetry:
         monkeypatch.setattr(_router_module, "_DEMO_MODE", True)
 
         import json
-        body: dict[str, Any] = json.loads(get_product_telemetry("mobile").body)
+        body: dict[str, Any] = json.loads(get_product_telemetry("mobile", MagicMock()).body)
 
         for stat in body["stats"]:
             assert "sparkline" in stat, f"sparkline eksik stat: {stat.get('key')}"
@@ -575,7 +575,7 @@ class TestProductsTelemetry:
 
         import json
         for pid in VALID_PRODUCT_IDS:
-            response = get_product_telemetry(pid)
+            response = get_product_telemetry(pid, MagicMock())
             body = json.loads(response.body)
             assert body["productId"] == pid, f"{pid} için productId eşleşmedi"
 
@@ -584,7 +584,7 @@ class TestProductsTelemetry:
         monkeypatch.setattr(_router_module, "_DEMO_MODE", True)
 
         import json
-        body: dict[str, Any] = json.loads(get_product_telemetry("data").body)
+        body: dict[str, Any] = json.loads(get_product_telemetry("data", MagicMock()).body)
 
         assert body["isDemo"] is True
         assert body["demo_mode"] is True
@@ -593,12 +593,12 @@ class TestProductsTelemetry:
         """Demo modunda X-Data-Mode: demo başlığı eklenmeli."""
         monkeypatch.setattr(_router_module, "_DEMO_MODE", True)
 
-        response = get_product_telemetry("intelligence")
+        response = get_product_telemetry("intelligence", MagicMock())
         assert response.headers.get("x-data-mode") == "demo"
 
     def test_no_demo_header_when_not_demo_mode(self, monkeypatch):
         """Demo modu kapalıyken X-Data-Mode başlığı bulunmamalı."""
         monkeypatch.setattr(_router_module, "_DEMO_MODE", False)
 
-        response = get_product_telemetry("nexus-code")
+        response = get_product_telemetry("nexus-code", MagicMock())
         assert "x-data-mode" not in response.headers

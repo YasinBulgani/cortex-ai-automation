@@ -230,7 +230,10 @@ AI_INSIGHTS: dict[str, list[dict[str, Any]]] = {
 #        ORDER BY recorded_at DESC;
 #       AI insights icin: SELECT * FROM ai_insights WHERE product_id = :product_id AND dismissed = FALSE;
 @router.get("/{product_id}/telemetry", summary="Ürün telemetri verisi")
-def get_product_telemetry(product_id: str) -> JSONResponse:
+def get_product_telemetry(
+    product_id: str,
+    _: Annotated[User, Depends(get_current_user)],
+) -> JSONResponse:
     # DEMO MODE: Gercek DB aggregation yerine PRODUCT_STATS sabit verisini kullanir.
     if product_id not in VALID_PRODUCT_IDS:
         raise HTTPException(status_code=404, detail=f"Geçersiz product_id: {product_id}")
