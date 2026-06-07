@@ -358,7 +358,7 @@ class RegressionSetOut(BaseModel):
 
 
 class TestRunCreate(BaseModel):
-    cycle_id: str
+    cycle_id: Optional[str] = None
     name: str = Field(..., min_length=1, max_length=300)
     case_ids: list[str] = Field(default_factory=list)
     assigned_to: Optional[str] = None
@@ -521,7 +521,7 @@ class ReleaseSignoffOut(BaseModel):
 
 class RequirementCreate(BaseModel):
     external_source: str = "internal"
-    external_key: str = Field(..., min_length=1, max_length=200)
+    external_key: Optional[str] = Field(default=None, max_length=200)
     title: str = Field(..., min_length=1, max_length=500)
     description: Optional[str] = None
     priority: str = "medium"
@@ -557,13 +557,18 @@ class RequirementOut(BaseModel):
 
 class RequirementLinkCreate(BaseModel):
     requirement_id: Optional[str] = None
-    case_id: str
+    case_id: Optional[str] = None
     external_source: str = "internal"
-    external_key: str = Field(..., min_length=1, max_length=200)
-    title_snapshot: str = Field(..., min_length=1, max_length=500)
+    external_key: Optional[str] = Field(default=None, max_length=200)
+    title_snapshot: Optional[str] = Field(default=None, max_length=500)
+    title: Optional[str] = Field(default=None, max_length=500)
+    description: Optional[str] = None
+    priority: str = "medium"
+    status: str = "active"
     url: Optional[str] = None
     source_updated_at: Optional[datetime] = None
     coverage_status: str = "covered"
+    tags: list[str] = Field(default_factory=list)
 
 
 class RequirementLinkOut(BaseModel):
@@ -582,10 +587,10 @@ class RequirementLinkOut(BaseModel):
 
 
 class DefectLinkCreate(BaseModel):
-    run_case_id: str
+    run_case_id: Optional[str] = None
     step_result_id: Optional[str] = None
     external_source: str = "internal"
-    external_key: str = Field(..., min_length=1, max_length=200)
+    external_key: Optional[str] = Field(default=None, max_length=200)
     title: str = Field(..., min_length=1, max_length=500)
     status: str = "open"
     severity: str = "major"
@@ -594,6 +599,8 @@ class DefectLinkCreate(BaseModel):
     root_cause: Optional[str] = None
     retest_status: str = "not_ready"
     url: Optional[str] = None
+    description: Optional[str] = None
+    type: Optional[str] = None
 
 
 class DefectLinkUpdate(BaseModel):
@@ -611,10 +618,10 @@ class DefectLinkOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: str
-    run_case_id: str
+    run_case_id: Optional[str] = None
     step_result_id: Optional[str] = None
     external_source: str
-    external_key: str
+    external_key: Optional[str] = None
     title: str
     status: str
     severity: str

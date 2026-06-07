@@ -1251,6 +1251,9 @@ export default function ScenariosPage() {
   const [priorityF,      setPriorityF]      = useState("");
   const [typeF,          setTypeF]          = useState("");
   const [runF,           setRunF]           = useState("");
+  const [tagF,           setTagF]           = useState("");
+  const [sortF,          setSortF]          = useState<"title" | "updated_at" | "last_run_at" | "priority">("title");
+  const [sortDir,        setSortDir]        = useState<"asc" | "desc">("asc");
   const [draggingId,     setDraggingId]     = useState<string | null>(null);
 
   const sensors = useSensors(
@@ -1266,6 +1269,15 @@ export default function ScenariosPage() {
     }
   }, [active, selectedNode]);
 
+  // Collect all unique tags from cases for the tag dropdown
+  const allTags = useMemo(() => {
+    const set = new Set<string>();
+    nodeCases.forEach(c => (c.tags ?? []).forEach(t => set.add(t)));
+    return [...set].sort();
+  }, [nodeCases]);
+
+  const PRIORITY_ORDER: Record<string, number> = { P0: 0, P1: 1, P2: 2, P3: 3 };
+
   const filtered = useMemo(() => {
     let r = nodeCases;
     const q = search.trim().toLowerCase();
@@ -1274,15 +1286,32 @@ export default function ScenariosPage() {
     if (priorityF) r = r.filter(c => c.priority === priorityF);
     if (typeF)     r = r.filter(c => c.type === typeF);
     if (runF)      r = r.filter(c => (c.last_run_status ?? "not_run") === runF);
-    return r;
-  }, [nodeCases, search, statusF, priorityF, typeF, runF]);
+    if (tagF)      r = r.filter(c => (c.tags ?? []).includes(tagF));
 
-  const hasFilter    = !!(search || statusF || priorityF || typeF || runF);
+    // Sort
+    r = [...r].sort((a, b) => {
+      let cmp = 0;
+      if (sortF === "title") {
+        cmp = a.title.localeCompare(b.title, "tr");
+      } else if (sortF === "updated_at") {
+        cmp = (a.updated_at ?? "").localeCompare(b.updated_at ?? "");
+      } else if (sortF === "last_run_at") {
+        cmp = (a.last_run_at ?? "").localeCompare(b.last_run_at ?? "");
+      } else if (sortF === "priority") {
+        cmp = (PRIORITY_ORDER[a.priority] ?? 9) - (PRIORITY_ORDER[b.priority] ?? 9);
+      }
+      return sortDir === "asc" ? cmp : -cmp;
+    });
+
+    return r;
+  }, [nodeCases, search, statusF, priorityF, typeF, runF, tagF, sortF, sortDir]);
+
+  const hasFilter    = !!(search || statusF || priorityF || typeF || runF || tagF);
   const selectedCase = selectedCaseId ? active.find(c => c.id === selectedCaseId) : null;
   const allChecked   = filtered.length > 0 && filtered.every(c => checkedIds.has(c.id));
   const toggleAll    = () => allChecked ? setCheckedIds(new Set()) : setCheckedIds(new Set(filtered.map(c => c.id)));
   const toggleOne    = (e: React.MouseEvent, id: string) => { e.stopPropagation(); setCheckedIds(p => { const n = new Set(p); n.has(id) ? n.delete(id) : n.add(id); return n; }); };
-  const clearFilters = () => { setSearch(""); setStatusF(""); setPriorityF(""); setTypeF(""); setRunF(""); };
+  const clearFilters = () => { setSearch(""); setStatusF(""); setPriorityF(""); setTypeF(""); setRunF(""); setTagF(""); setSortF("title"); setSortDir("asc"); };
 
   const stats = useMemo(() => ({
     total:   nodeCases.length,
@@ -1364,6 +1393,36 @@ export default function ScenariosPage() {
             <option value="">Koşum</option>
             {Object.entries(RUN_CFG).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
           </select>
+          {allTags.length > 0 && (
+            <select value={tagF} onChange={e => setTagF(e.target.value)} className={cn(SEL, "hidden xl:block")}>
+              <option value="">Etiket</option>
+              {allTags.map(t => <option key={t} value={t}>{t}</option>)}
+            </select>
+          )}
+          <div className="hidden items-center gap-0.5 xl:flex">
+            <select
+              value={sortF}
+              onChange={e => setSortF(e.target.value as typeof sortF)}
+              className={SEL}
+            >
+              <option value="title">Ad</option>
+              <option value="updated_at">Tarih</option>
+              <option value="last_run_at">Son Koşum</option>
+              <option value="priority">Öncelik</option>
+            </select>
+            <button
+              type="button"
+              title={sortDir === "asc" ? "Artan sıralama" : "Azalan sıralama"}
+              onClick={() => setSortDir(d => d === "asc" ? "desc" : "asc")}
+              className="flex h-[30px] w-[30px] items-center justify-center rounded-xl border border-border bg-surface-raised text-fg-subtle transition-colors hover:bg-surface-overlay hover:text-fg"
+            >
+              {sortDir === "asc" ? (
+                <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12"/></svg>
+              ) : (
+                <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 4h13M3 8h9m-9 4h9m5-4v12m0 0l-4-4m4 4l4-4"/></svg>
+              )}
+            </button>
+          </div>
           {hasFilter && (
             <button type="button" onClick={clearFilters}
               className="rounded-xl border border-danger/20 px-2 py-1.5 text-[10px] font-semibold text-danger transition-colors hover:bg-danger-subtle">

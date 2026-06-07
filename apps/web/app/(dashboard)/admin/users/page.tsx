@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/api";
 import { PageHeader } from "@/components/nexus/PageHeader";
+import { EmptyState } from "@/components/nexus";
 
 type UserRow = {
   id: string;
@@ -41,11 +42,12 @@ export default function AdminUsersPage() {
   const [inviteRole, setInviteRole] = useState("member");
   const [inviteErr, setInviteErr] = useState<string | null>(null);
 
-  const { data: users = [] } = useQuery<UserRow[]>({
+  const { data: users = [], isLoading: usersLoading, isError: usersError } = useQuery<UserRow[]>({
     queryKey: usersQK,
     queryFn: () => apiFetch<UserRow[]>("/api/v1/auth/users"),
     staleTime: 2 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
+    retry: 1,
   });
 
   const filtered = useMemo(() => {
@@ -231,6 +233,34 @@ export default function AdminUsersPage() {
         )}
       </div>
 
+      {/* Loading skeleton */}
+      {usersLoading && (
+        <div className="rounded-xl border border-slate-800 bg-slate-900/40 overflow-hidden">
+          <div className="border-b border-slate-800 px-5 py-3">
+            <div className="h-3 w-32 animate-pulse rounded bg-slate-800" />
+          </div>
+          {[1, 2, 3, 4, 5].map((i) => (
+            <div key={i} className="flex items-center gap-6 border-b border-slate-800/50 px-5 py-3.5 last:border-0">
+              <div className="h-3 w-40 animate-pulse rounded bg-slate-800" />
+              <div className="h-3 w-28 animate-pulse rounded bg-slate-800" />
+              <div className="h-5 w-16 animate-pulse rounded-full bg-slate-800" />
+              <div className="h-5 w-14 animate-pulse rounded-full bg-slate-800" />
+              <div className="h-3 w-16 animate-pulse rounded bg-slate-800" />
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Error state */}
+      {usersError && (
+        <div className="rounded-xl border border-red-500/20 bg-red-500/5 p-8 text-center">
+          <p className="text-sm font-medium text-red-400">Kullanıcılar yüklenemedi</p>
+          <p className="mt-1 text-xs text-slate-500">Sunucuya bağlanılamadı. Lütfen tekrar deneyin.</p>
+        </div>
+      )}
+
+      {/* Table */}
+      {!usersLoading && !usersError && (
       <div className="rounded-xl border border-slate-800 bg-slate-900/40 overflow-hidden">
         <div className="border-b border-slate-800 px-5 py-3">
           <span className="text-xs text-slate-500">{filtered.length} / {users.length} kullanıcı</span>
@@ -278,10 +308,21 @@ export default function AdminUsersPage() {
                   </td>
                 </tr>
               ))}
-              {filtered.length === 0 && (
+              {filtered.length === 0 && users.length > 0 && (
                 <tr>
                   <td colSpan={5} className="px-5 py-10 text-center text-sm text-slate-500">
-                    {search ? `"${search}" için sonuç bulunamadı.` : "Kullanıcı yok."}
+                    &ldquo;{search}&rdquo; için sonuç bulunamadı.
+                  </td>
+                </tr>
+              )}
+              {filtered.length === 0 && users.length === 0 && (
+                <tr>
+                  <td colSpan={5}>
+                    <EmptyState
+                      icon="👤"
+                      title="Henüz kullanıcı yok"
+                      description="Yukarıdaki formu kullanarak ilk kullanıcıyı ekleyin"
+                    />
                   </td>
                 </tr>
               )}
@@ -289,6 +330,7 @@ export default function AdminUsersPage() {
           </table>
         </div>
       </div>
+      )}
     </div>
   );
 }

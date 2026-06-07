@@ -1331,11 +1331,29 @@ def count_runs(
 
 def create_run(db: Session, project_id: str, payload: TestRunCreate, user: Any | None) -> TestRun:
     project_id = resolve_project_id(db, project_id)
-    cycle = db.get(TestCycle, payload.cycle_id)
-    if cycle is None or cycle.plan.project_id != project_id:
-        raise KeyError("Test cycle bulunamadı")
+    cycle_id = payload.cycle_id
+    if cycle_id:
+        cycle = db.get(TestCycle, cycle_id)
+        if cycle is None or cycle.plan.project_id != project_id:
+            raise KeyError("Test cycle bulunamadı")
+    else:
+        # Auto-resolve: use first existing cycle, or create a default plan+cycle
+        cycle = db.scalar(
+            select(TestCycle)
+            .join(TestPlan, TestCycle.plan_id == TestPlan.id)
+            .where(TestPlan.project_id == project_id)
+            .order_by(TestCycle.created_at)
+        )
+        if cycle is None:
+            default_plan = TestPlan(project_id=project_id, name="Default Plan", plan_type="sprint")
+            db.add(default_plan)
+            db.flush()
+            cycle = TestCycle(plan_id=default_plan.id, name="Sprint 1")
+            db.add(cycle)
+            db.flush()
+        cycle_id = cycle.id
     run = TestRun(
-        cycle_id=payload.cycle_id,
+        cycle_id=cycle_id,
         name=payload.name,
         source_type=payload.source_type,
         source_ref=payload.source_ref,
@@ -1779,7 +1797,11 @@ def _find_requirement(db: Session, project_id: str, external_source: str, extern
 
 
 def create_requirement(db: Session, project_id: str, payload: RequirementCreate, user: Any | None) -> Requirement:
+    import secrets as _secrets
     project_id = resolve_project_id(db, project_id)
+    # Auto-generate external_key when not provided
+    if not payload.external_key:
+        payload = payload.model_copy(update={"external_key": f"REQ-{_secrets.token_hex(4).upper()}"})
     existing = _find_requirement(db, project_id, payload.external_source, payload.external_key)
     if existing is not None:
         raise ValueError("Requirement key already exists")
@@ -1975,11 +1997,18 @@ def list_defect_links(db: Session, project_id: str) -> list[DefectLink]:
 
 
 def create_defect_link(db: Session, project_id: str, payload: DefectLinkCreate, user: Any | None) -> DefectLink:
+    import secrets as _secrets
     project_id = resolve_project_id(db, project_id)
-    run_case = db.get(TestRunCase, payload.run_case_id)
-    if run_case is None or run_case.case.project_id != project_id:
-        raise KeyError("Run case bulunamadı")
-    link = DefectLink(**payload.model_dump())
+    # run_case_id is optional — only validate when provided
+    if payload.run_case_id:
+        run_case = db.get(TestRunCase, payload.run_case_id)
+        if run_case is None or run_case.case.project_id != project_id:
+            raise KeyError("Run case bulunamadı")
+    # Auto-generate external_key when not provided
+    data = payload.model_dump(exclude={"description", "type"})
+    if not data.get("external_key"):
+        data["external_key"] = f"DEF-{_secrets.token_hex(4).upper()}"
+    link = DefectLink(**data)
     db.add(link)
     db.flush()
     audit(db, "defect_link.created", "defect_link", link.id, project_id, user)
@@ -1993,9 +2022,11 @@ def update_defect_link(db: Session, project_id: str, defect_id: str, payload: De
     defect = db.get(DefectLink, defect_id)
     if defect is None:
         raise KeyError("Defect bağlantısı bulunamadı")
-    run_case = db.get(TestRunCase, defect.run_case_id)
-    if run_case is None or run_case.case.project_id != project_id:
-        raise KeyError("Defect bağlantısı bulunamadı")
+    # Only validate run_case when it's linked
+    if defect.run_case_id:
+        run_case = db.get(TestRunCase, defect.run_case_id)
+        if run_case is None or run_case.case.project_id != project_id:
+            raise KeyError("Defect bağlantısı bulunamadı")
     changed: list[str] = []
     for key, value in payload.model_dump(exclude_unset=True).items():
         setattr(defect, key, value)
@@ -2022,9 +2053,11 @@ def delete_defect_link(db: Session, project_id: str, defect_id: str, user: Any |
     defect = db.get(DefectLink, defect_id)
     if defect is None:
         raise KeyError("Defect bağlantısı bulunamadı")
-    run_case = db.get(TestRunCase, defect.run_case_id)
-    if run_case is None or run_case.case.project_id != project_id:
-        raise KeyError("Defect bağlantısı bulunamadı")
+    # Only validate run_case when the defect is linked to one
+    if defect.run_case_id:
+        run_case = db.get(TestRunCase, defect.run_case_id)
+        if run_case is None or run_case.case.project_id != project_id:
+            raise KeyError("Defect bağlantısı bulunamadı")
     audit(db, "defect_link.deleted", "defect_link", defect_id, project_id, user)
     db.delete(defect)
     db.commit()
@@ -2749,10 +2782,41 @@ def dashboard_summary_fast(db: Session, project_id: str) -> dict[str, Any]:
         .where(TestCase.project_id == project_id, DefectLink.severity.in_(["critical", "blocker"]))
     ) or 0
 
+    # Total defects linked to this project
+    defect_count = db.scalar(
+        select(func.count()).select_from(DefectLink)
+        .join(TestRunCase, DefectLink.run_case_id == TestRunCase.id)
+        .join(TestCase, TestRunCase.case_id == TestCase.id)
+        .where(TestCase.project_id == project_id)
+    ) or 0
+
+    open_defects = db.scalar(
+        select(func.count()).select_from(DefectLink)
+        .join(TestRunCase, DefectLink.run_case_id == TestRunCase.id)
+        .join(TestCase, TestRunCase.case_id == TestCase.id)
+        .where(TestCase.project_id == project_id, DefectLink.status.in_(["open", "in_progress", "reopened"]))
+    ) or 0
+
+    resolved_defects = db.scalar(
+        select(func.count()).select_from(DefectLink)
+        .join(TestRunCase, DefectLink.run_case_id == TestRunCase.id)
+        .join(TestCase, TestRunCase.case_id == TestCase.id)
+        .where(TestCase.project_id == project_id, DefectLink.status.in_(["resolved", "closed", "verified"]))
+    ) or 0
+
+    requirement_count = db.scalar(
+        select(func.count()).select_from(Requirement)
+        .where(Requirement.project_id == project_id)
+    ) or 0
+
     return {
         "total_cases": total_cases,
         "active_runs": active_runs,
         "failed_cases": failed_cases,
         "critical_defects": critical_defects,
         "suite_count": suite_count,
+        "defect_count": defect_count,
+        "open_defects": open_defects,
+        "resolved_defects": resolved_defects,
+        "requirement_count": requirement_count,
     }

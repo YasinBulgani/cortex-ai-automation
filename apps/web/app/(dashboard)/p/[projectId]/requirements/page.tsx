@@ -115,12 +115,13 @@ export default function RequirementsPage() {
   const [priorityFilter, setPriorityFilter] = useState("");
   const [localOrder, setLocalOrder] = useState<Requirement[] | null>(null);
 
-  const { data: fetchedRequirements = [] } = useQuery<Requirement[]>({
+  const { data: fetchedRequirements = [], isLoading, isError, error } = useQuery<Requirement[]>({
     queryKey: requirementsQK,
     queryFn: () => apiFetch<Requirement[]>(`/api/v1/tspm/projects/${projectId}/requirements`),
     enabled: !!projectId,
     staleTime: 60 * 1000,
     gcTime: 5 * 60 * 1000,
+    retry: 1,
   });
 
   const requirements = localOrder ?? fetchedRequirements;
@@ -292,7 +293,39 @@ export default function RequirementsPage() {
         />
       </div>
 
+      {/* Loading state */}
+      {isLoading && (
+        <div className="rounded-xl border border-slate-700 bg-slate-900/40 overflow-hidden">
+          <div className="border-b border-slate-800 px-4 py-2.5">
+            <div className="h-3 w-32 animate-pulse rounded bg-slate-800" />
+          </div>
+          {[1, 2, 3, 4, 5].map((i) => (
+            <div key={i} className="flex items-center gap-4 border-b border-slate-800/50 px-4 py-3 last:border-0">
+              <div className="h-3 w-16 animate-pulse rounded bg-slate-800" />
+              <div className="h-3 flex-1 animate-pulse rounded bg-slate-800" />
+              <div className="h-5 w-14 animate-pulse rounded-full bg-slate-800" />
+              <div className="h-3 w-8 animate-pulse rounded bg-slate-800" />
+              <div className="h-3 w-16 animate-pulse rounded bg-slate-800" />
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Error state */}
+      {isError && (
+        <div className="rounded-xl border border-red-500/20 bg-red-500/5 p-8 text-center">
+          <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-red-500/10">
+            <svg className="h-5 w-5 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.34 16.5C2.57 18.333 3.532 20 5.072 20z" />
+            </svg>
+          </div>
+          <p className="text-sm font-medium text-red-400">Gereksinimler yüklenemedi</p>
+          <p className="mt-1 text-xs text-slate-500">{error instanceof Error ? error.message : "Sunucu hatası"}</p>
+        </div>
+      )}
+
       {/* Table */}
+      {!isLoading && !isError && (
       <div className="rounded-xl border border-slate-700 bg-slate-900/40 overflow-hidden">
         <DndContext
           sensors={sensors}
@@ -354,6 +387,7 @@ export default function RequirementsPage() {
           </DragOverlay>
         </DndContext>
       </div>
+      )}
     </div>
   );
 }

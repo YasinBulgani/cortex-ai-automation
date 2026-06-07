@@ -99,8 +99,8 @@ class BDDGenerator:
     def _get_agent(self):
         # type: () -> Any
         if self._agent is None:
-            from app.domains.agents.banking_team.base_agent import BaseAgent
-            agent = BaseAgent()
+            from app.domains.agents.banking_team.scenario_generator import ScenarioGeneratorAgent
+            agent = ScenarioGeneratorAgent()
             agent.name = "bdd_generator"
             agent.temperature = 0.35
             agent.max_tokens = 8192

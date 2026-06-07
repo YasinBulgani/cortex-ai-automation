@@ -8,6 +8,7 @@ from pydantic import BaseModel
 
 from app.deps import get_current_user
 from app.infra.models import User
+from .audit_store import AuditStore, get_audit_store
 from .service import (
     check_permission,
     enforce_segregation,
@@ -60,36 +61,15 @@ def check_permission_endpoint(body: CheckPermissionRequest, _user: AuthUser) -> 
 
 
 @router.post("/enforce-sod", summary="Enforce Segregation-of-Duties policy")
-def enforce_sod_endpoint(body: EnforceSodRequest, _user: AuthUser) -> dict[str, bool]:
-    """Return ``{ok: true}`` or raise 403 on SoD violation.
-
-    Note: this endpoint requires a real AuditStore. In the current stub
-    implementation, no past actions are checked (AuditStore returns empty).
-    Wire a real AuditStore via dependency injection for production use.
-    """
-    from datetime import datetime
-    from typing import List, Optional, Tuple
-
-    from .policy import ActorAction
-
-    class _NoopAuditStore:
-        """Stub — always returns empty; replace with real impl via DI."""
-
-        def actor_recent_actions(
-            self,
-            *,
-            actor_user_id: str,
-            actions: Tuple[str, ...],
-            since: datetime,
-            resource_type: Optional[str] = None,
-            resource_id: Optional[str] = None,
-            tenant_id: Optional[str] = None,
-        ) -> List[ActorAction]:
-            return []
-
+def enforce_sod_endpoint(
+    body: EnforceSodRequest,
+    _user: AuthUser,
+    audit_store: Annotated[AuditStore, Depends(get_audit_store)],
+) -> dict[str, bool]:
+    """Return ``{ok: true}`` or raise 403 on SoD violation."""
     try:
         enforce_segregation(
-            audit_store=_NoopAuditStore(),
+            audit_store=audit_store,
             user_id=body.user_id,
             new_action=body.new_action,
             resource_type=body.resource_type,

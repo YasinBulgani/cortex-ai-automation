@@ -135,12 +135,13 @@ export default function RegressionSetsPage() {
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [extraInstructions, setExtraInstructions] = useState("");
 
-  const { data: fetchedRows = [] } = useQuery<SetRow[]>({
+  const { data: fetchedRows = [], isLoading: rowsLoading, isError: rowsError, error: rowsFetchError } = useQuery<SetRow[]>({
     queryKey: regressionQK(projectId ?? ""),
     queryFn: () => apiFetch<SetRow[]>(`/api/v1/tspm/projects/${projectId}/regression-sets`),
     enabled: !!projectId,
     staleTime: 60 * 1000,
     gcTime: 5 * 60 * 1000,
+    retry: 1,
   });
 
   const rows = localOrder ?? fetchedRows;
@@ -385,7 +386,38 @@ export default function RegressionSetsPage() {
         </SectionCard>
       )}
 
+      {/* Loading state */}
+      {rowsLoading && (
+        <div className="overflow-hidden rounded-xl border border-slate-700 bg-slate-900/40">
+          <div className="border-b border-slate-800 px-4 py-2.5">
+            <div className="h-3 w-28 animate-pulse rounded bg-slate-800" />
+          </div>
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="flex items-center gap-4 border-b border-slate-800/50 px-4 py-3 last:border-0">
+              <div className="h-3 flex-1 animate-pulse rounded bg-slate-800" />
+              <div className="h-5 w-20 animate-pulse rounded-full bg-slate-800" />
+              <div className="h-2 w-28 animate-pulse rounded-full bg-slate-800" />
+              <div className="h-3 w-16 animate-pulse rounded bg-slate-800" />
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Error state */}
+      {rowsError && (
+        <div className="rounded-xl border border-red-500/20 bg-red-500/5 p-8 text-center">
+          <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-red-500/10">
+            <svg className="h-5 w-5 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.34 16.5C2.57 18.333 3.532 20 5.072 20z" />
+            </svg>
+          </div>
+          <p className="text-sm font-medium text-red-400">Regresyon setleri yüklenemedi</p>
+          <p className="mt-1 text-xs text-slate-500">{rowsFetchError instanceof Error ? rowsFetchError.message : "Sunucu hatası"}</p>
+        </div>
+      )}
+
       {/* Table */}
+      {!rowsLoading && !rowsError && (
       <div className="overflow-hidden rounded-xl border border-slate-700 bg-slate-900/40">
         <DndContext
           sensors={sensors}
@@ -406,7 +438,25 @@ export default function RegressionSetsPage() {
             </thead>
             <SortableContext items={rows.map(r => r.id)} strategy={verticalListSortingStrategy}>
               <tbody>
-                {sortMode ? (
+                {rows.length === 0 ? (
+                  <tr>
+                    <td colSpan={6}>
+                      <EmptyState
+                        icon="🔄"
+                        title="Henüz regresyon seti yok"
+                        description="Yeni set oluşturun veya AI ile otomatik öneriler alın"
+                        action={
+                          <button
+                            onClick={() => document.querySelector<HTMLInputElement>('[data-testid="regression-input-name"]')?.focus()}
+                            className="px-4 py-2 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-500 rounded-xl transition-colors"
+                          >
+                            Set Oluştur
+                          </button>
+                        }
+                      />
+                    </td>
+                  </tr>
+                ) : sortMode ? (
                   rows.map(r => (
                     <SortableSetRow key={r.id} row={r} projectId={projectId} />
                   ))
@@ -455,6 +505,7 @@ export default function RegressionSetsPage() {
           </DragOverlay>
         </DndContext>
       </div>
+      )}
     </div>
   );
 }

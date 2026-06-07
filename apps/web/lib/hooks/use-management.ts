@@ -722,10 +722,12 @@ export function useManagementAuditEvents(projectId: string | undefined, limit = 
 export function useManagementCases(projectId: string | undefined, includeArchived = false) {
   return useQuery({
     queryKey: [...managementKeys.cases(projectId), includeArchived] as const,
-    queryFn: () =>
-      apiFetch<TestCase[]>(
+    queryFn: async () => {
+      const res = await apiFetch<TestCase[] | { items: TestCase[]; total: number }>(
         `${BASE(projectId!)}/cases${includeArchived ? "?include_archived=true" : ""}`,
-      ),
+      );
+      return Array.isArray(res) ? res : (res as { items: TestCase[] }).items ?? [];
+    },
     enabled: !!projectId,
     staleTime: 30_000,
   });
@@ -809,8 +811,12 @@ export function useManagementPlans(projectId: string | undefined) {
 export function useManagementCycles(projectId: string | undefined, planId?: string) {
   return useQuery({
     queryKey: [...managementKeys.cycles(projectId), planId] as const,
-    queryFn: () =>
-      apiFetch<TestCycle[]>(`${BASE(projectId!)}/cycles${planId ? `?plan_id=${encodeURIComponent(planId)}` : ""}`),
+    queryFn: async () => {
+      const res = await apiFetch<TestCycle[] | { items: TestCycle[]; total: number }>(
+        `${BASE(projectId!)}/cycles${planId ? `?plan_id=${encodeURIComponent(planId)}` : ""}`,
+      );
+      return Array.isArray(res) ? res : (res as { items: TestCycle[] }).items ?? [];
+    },
     enabled: !!projectId,
     staleTime: 30_000,
   });
@@ -819,10 +825,12 @@ export function useManagementCycles(projectId: string | undefined, planId?: stri
 export function useManagementRuns(projectId: string | undefined, statusFilter?: string) {
   return useQuery({
     queryKey: [...managementKeys.runs(projectId), statusFilter] as const,
-    queryFn: () =>
-      apiFetch<TestRun[]>(
+    queryFn: async () => {
+      const res = await apiFetch<TestRun[] | { items: TestRun[]; total: number }>(
         `${BASE(projectId!)}/runs${statusFilter ? `?status=${encodeURIComponent(statusFilter)}` : ""}`,
-      ),
+      );
+      return Array.isArray(res) ? res : (res as { items: TestRun[] }).items ?? [];
+    },
     enabled: !!projectId,
     staleTime: 30_000,
   });

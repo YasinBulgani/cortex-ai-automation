@@ -13,7 +13,7 @@ import socket
 from datetime import datetime as _datetime, timezone as _timezone
 
 _UTC = _timezone.utc  # Python 3.9 uyumlu
-from typing import Annotated, cast
+from typing import Annotated, Optional, cast
 from urllib.parse import urlparse
 from uuid import uuid4
 
@@ -383,9 +383,42 @@ def export_repository(project_id: str, db: DB, _user: ReadUser) -> dict[str, obj
     return service.export_repository(db, project_id)
 
 
+@router.get("/projects/{project_id}/suites", response_model=list[TestSuiteOut])
+def list_suites(project_id: str, db: DB, _user: ReadUser) -> list[TestSuiteOut]:
+    """Projedeki tüm test suite'lerini listeler."""
+    from app.domains.test_management.models import TestSuite
+    suites = db.scalars(
+        select(TestSuite)
+        .where(TestSuite.project_id == project_id)
+        .order_by(TestSuite.order_index, TestSuite.created_at)
+    ).all()
+    return list(suites)
+
+
 @router.post("/projects/{project_id}/suites", response_model=TestSuiteOut, status_code=status.HTTP_201_CREATED)
 def create_suite(project_id: str, payload: TestSuiteCreate, db: DB, user: WriteUser) -> TestSuiteOut:
     return service.create_suite(db, project_id, payload, user)
+
+
+@router.get("/projects/{project_id}/folders", response_model=list[TestFolderOut])
+def list_folders(
+    project_id: str,
+    db: DB,
+    _user: ReadUser,
+    suite_id: Optional[str] = None,
+) -> list[TestFolderOut]:
+    """Projedeki tüm klasörleri listeler. suite_id filtresi opsiyoneldir."""
+    from app.domains.test_management.models import TestFolder, TestSuite
+    stmt = (
+        select(TestFolder)
+        .join(TestSuite, TestFolder.suite_id == TestSuite.id)
+        .where(TestSuite.project_id == project_id)
+    )
+    if suite_id:
+        stmt = stmt.where(TestFolder.suite_id == suite_id)
+    stmt = stmt.order_by(TestFolder.order_index, TestFolder.created_at)
+    folders = db.scalars(stmt).all()
+    return list(folders)
 
 
 @router.post("/projects/{project_id}/folders", response_model=TestFolderOut, status_code=status.HTTP_201_CREATED)
@@ -515,6 +548,20 @@ def quality_scan(
         issues_found=len(results),
         results=sorted(results, key=lambda r: r.score),
     )
+
+
+@router.get(
+    "/projects/{project_id}/cases/search",
+    response_model=list[TestCaseOut],
+    summary="Search test cases by title or case key (frontend search)",
+)
+def search_cases(
+    project_id: str,
+    db: DB,
+    _user: ReadUser,
+    q: str = Query(default="", description="Search query — matches title and case_key"),
+) -> list[TestCaseOut]:
+    return service.search_cases(db, project_id, q=q)
 
 
 @router.get("/projects/{project_id}/cases/{case_id}", response_model=TestCaseOut)
@@ -1074,20 +1121,6 @@ def list_evidence_by_run_case(
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
-@router.get(
-    "/projects/{project_id}/cases/search",
-    response_model=list[TestCaseOut],
-    summary="Search test cases by title or case key (frontend search)",
-)
-def search_cases(
-    project_id: str,
-    db: DB,
-    _user: ReadUser,
-    q: str = Query(default="", description="Search query — matches title and case_key"),
-) -> list[TestCaseOut]:
-    return service.search_cases(db, project_id, q=q)
-
-
 @router.get("/projects/{project_id}/reports/dashboard-summary")
 def dashboard_summary(project_id: str, db: DB, _user: ReadUser) -> dict:
     return service.dashboard_summary(db, project_id)
@@ -1192,16 +1225,46 @@ def list_requirement_links(
 
 @router.post(
     "/projects/{project_id}/requirements",
-    response_model=RequirementLinkOut,
     status_code=status.HTTP_201_CREATED,
 )
-def create_requirement_link(
+def create_requirement_or_link(
     project_id: str,
     payload: RequirementLinkCreate,
     db: DB,
     user: WriteUser,
-) -> RequirementLinkOut:
-    return service.create_requirement_link(db, project_id, payload, user)
+) -> dict:
+    """Esnek requirement oluşturma: case_id varsa link, yoksa standalone requirement."""
+    import secrets as _secrets
+
+    if payload.case_id:
+        # Klasik link modu
+        result = service.create_requirement_link(db, project_id, payload, user)
+        return {
+            "id": result.id, "project_id": result.project_id,
+            "case_id": result.case_id, "external_key": result.external_key,
+            "title_snapshot": result.title_snapshot, "coverage_status": result.coverage_status,
+        }
+    else:
+        # Standalone requirement oluştur (catalog'a ekle)
+        from app.domains.test_management.schemas import RequirementCreate
+        title = payload.title or payload.title_snapshot or "Yeni Gereksinim"
+        req_payload = RequirementCreate(
+            external_source=payload.external_source,
+            external_key=payload.external_key or f"REQ-{_secrets.token_hex(4).upper()}",
+            title=title,
+            description=payload.description,
+            priority=payload.priority,
+            status=payload.status,
+            url=payload.url,
+            tags=payload.tags,
+        )
+        result = service.create_requirement(db, project_id, req_payload, user)
+        return {
+            "id": result.id, "project_id": result.project_id,
+            "external_key": result.external_key, "title": result.title,
+            "description": result.description, "priority": result.priority,
+            "status": result.status, "created_at": result.created_at.isoformat(),
+        }
 
 
 @router.patch("/projects/{project_id}/requirements/{req_id}", response_model=RequirementLinkOut)
@@ -1257,6 +1320,62 @@ def delete_defect_link(project_id: str, defect_id: str, db: DB, user: WriteUser)
         service.delete_defect_link(db, project_id, defect_id, user)
     except KeyError as e:
         raise HTTPException(status_code=404, detail=str(e)) from e
+
+
+@router.get(
+    "/projects/{project_id}/defects/export",
+    summary="Defect'leri CSV veya JSON olarak dışa aktar",
+)
+def export_defects(
+    project_id: str,
+    db: DB,
+    _user: ReadUser,
+    format: str = Query("csv", pattern="^(csv|json)$"),
+) -> "Response":
+    """Defect'leri CSV veya JSON olarak dışa aktar."""
+    import csv
+    import io
+    import json as _json
+    from fastapi.responses import Response as _Response
+
+    pid = service.resolve_project_id(db, project_id)
+    defects = service.list_defect_links(db, pid)
+
+    if format == "json":
+        data = [
+            {
+                "id": d.id,
+                "external_key": d.external_key,
+                "title": d.title,
+                "status": d.status,
+                "severity": d.severity,
+                "priority": d.priority,
+                "root_cause": d.root_cause,
+                "retest_status": d.retest_status,
+                "created_at": d.created_at.isoformat() if d.created_at else None,
+            }
+            for d in defects
+        ]
+        return _Response(
+            content=_json.dumps(data, ensure_ascii=False, indent=2),
+            media_type="application/json",
+            headers={"Content-Disposition": "attachment; filename=defects.json"},
+        )
+    else:  # csv
+        output = io.StringIO()
+        writer = csv.writer(output)
+        writer.writerow(["ID", "External Key", "Title", "Status", "Severity", "Priority", "Root Cause", "Retest Status", "Created"])
+        for d in defects:
+            writer.writerow([
+                d.id, d.external_key, d.title, d.status,
+                d.severity, d.priority, d.root_cause or "",
+                d.retest_status, str(d.created_at) if d.created_at else "",
+            ])
+        return _Response(
+            content=output.getvalue(),
+            media_type="text/csv",
+            headers={"Content-Disposition": "attachment; filename=defects.csv"},
+        )
 
 
 @router.post(

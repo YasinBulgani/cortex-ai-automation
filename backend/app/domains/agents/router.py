@@ -575,13 +575,13 @@ async def analyze_locator_stability(
 
         intel = LocatorIntelligence()
         locator_dicts = [loc.model_dump() for loc in body.locators]
-        result = await intel.analyze_stability(
+        result = intel.analyze_stability(
             locators=locator_dicts,
-            dom_snippet=body.dom_snippet,
         )
 
         details = []
-        for d in result.get("details", []):
+        raw_details = result.details if hasattr(result, 'details') else result.get("details", [])
+        for d in raw_details:
             details.append(StabilityDetail(
                 selector=d.get("selector", ""),
                 name=d.get("name", ""),
@@ -716,15 +716,17 @@ async def predict_locator_breakage(
 
         intel = LocatorIntelligence()
         locator_dicts = [loc.model_dump() for loc in body.locators]
-        result = await intel.predict_breakage(
+        result = intel.predict_breakage(
             locators=locator_dicts,
             recent_changes=body.recent_changes,
         )
 
         from app.domains.agents.banking_team.locator_schemas import BreakagePrediction as _BP
 
+        # predict_breakage returns a list directly
+        raw_predictions = result if isinstance(result, list) else result.get("predictions", [])
         predictions = []
-        for p in result.get("predictions", []):
+        for p in raw_predictions:
             predictions.append(_BP(
                 selector=p.get("selector", ""),
                 name=p.get("name", ""),

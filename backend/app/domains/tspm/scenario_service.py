@@ -197,9 +197,11 @@ def create_requirement_for_project(
     project_id: str,
     body: RequirementCreate,
 ) -> RequirementOut:
+    import secrets as _sec
+    external_id = body.external_id or f"REQ-{_sec.token_hex(4).upper()}"
     requirement = TspmRequirement(
         project_id=project_id,
-        external_id=body.external_id,
+        external_id=external_id,
         title=body.title,
         description=body.description,
         priority=body.priority,

@@ -537,7 +537,7 @@ _VALID_PRIORITIES = {"low", "medium", "high", "critical"}
 
 
 class RequirementCreate(BaseModel):
-    external_id: str = Field(min_length=1, max_length=100)
+    external_id: Optional[str] = Field(default=None, min_length=1, max_length=100)
     title: str = Field(min_length=1, max_length=500)
     description: str = Field(default="", max_length=5000)
     priority: str = "medium"
