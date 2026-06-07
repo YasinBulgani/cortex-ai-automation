@@ -672,10 +672,9 @@ class AnalyzeExecutionRequest(BaseModel):
 @router.post("/projects/{project_id}/suggest-scenarios")
 async def suggest_scenarios(project_id: str, body: SuggestScenariosRequest, db: DB, user: Annotated[User, Depends(get_current_user)]):
     from app.domains.tspm.models import TspmProject, TspmScenario
+    _require_project_access(db, user, project_id)
     _check_llm_access(str(user.id))
     p = db.get(TspmProject, project_id)
-    if p is None:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Proje bulunamadı")
     existing = list(db.scalars(
         select(TspmScenario).where(TspmScenario.project_id == project_id).limit(50)
     ))
@@ -698,6 +697,7 @@ async def suggest_scenarios(project_id: str, body: SuggestScenariosRequest, db: 
 @router.post("/projects/{project_id}/executions/{run_id}/analyze")
 async def analyze_execution(project_id: str, run_id: str, body: AnalyzeExecutionRequest, db: DB, user: Annotated[User, Depends(get_current_user)]):
     from app.domains.tspm.models import TspmExecution, TspmExecutionResult, TspmScenario
+    _require_project_access(db, user, project_id)
     _check_llm_access(str(user.id))
     ex = db.get(TspmExecution, run_id)
     if ex is None or ex.project_id != project_id:
@@ -733,6 +733,7 @@ def prioritize_tests(project_id: str, body: dict, db: DB, user: Annotated[User, 
     Değişen dosyalara ve geçmiş başarısızlık oranlarına göre testleri önceliklendirir.
     body: { changed_files: list[str], history: dict[str, {fail_rate: float, avg_duration: float}] }
     """
+    _require_project_access(db, user, project_id)
     from app.domains.tspm.models import TspmScenario
     changed_files = body.get("changed_files", [])
     history = body.get("history", {})
@@ -773,19 +774,7 @@ def prioritize_tests(project_id: str, body: dict, db: DB, user: Annotated[User, 
 
 @router.post("/projects/{project_id}/anomaly-detect")
 def anomaly_detect(project_id: str, db: DB, user: Annotated[User, Depends(get_current_user)], body: Optional[Dict] = None):
-    """
-    Test koşularında anomali (yavaşlama, hata paterni) tespit eder.
-    body: { test_results: list[{testId, status, duration, retryCount}] } — opsiyonel.
-    Boş body gelirse son 20 koşu analiz edilir.
-
-    Dönüş şeması (frontend uyumlu):
-    {
-      anomalies: [{execution_id, execution_name, duration_seconds, z_score, issue}],
-      total_analyzed: int,
-      anomaly_count: int,
-      avg_duration: float,
-    }
-    """
+    _require_project_access(db, user, project_id)
     import statistics
     from app.domains.tspm.models import TspmExecution, TspmExecutionResult, TspmScenario
 
@@ -1572,6 +1561,7 @@ def finetune_export(
 @router.get("/llm-traces")
 def list_llm_traces(
     user: Annotated[User, Depends(get_current_user)],
+    db: DB,
     run_id: Optional[str] = None,
     agent_name: Optional[str] = None,
     limit: int = 50,
@@ -1580,8 +1570,7 @@ def list_llm_traces(
     phase: Optional[str] = None,
 ):
     """Son LLM trace kayitlarini getir."""
-    if not project_id:
-        raise HTTPException(400, "project_id query parametresi gerekli")
+    _require_project_access(db, user, project_id)
     from app.deps import _user_permissions
     from app.domains.ai.llm_trace import get_recent_traces
     perms = _user_permissions(user)
@@ -1685,8 +1674,7 @@ def autopilot_status(
     project_id: str = "",
 ):
     """Nexus AI Autopilot son durumu ve gerekirse canlı snapshot."""
-    if not project_id:
-        raise HTTPException(400, "project_id query parametresi gerekli")
+    _require_project_access(db, user, project_id)
     from app.domains.ai.autopilot import latest_autopilot_status
 
     return latest_autopilot_status(db, project_id)
@@ -1700,8 +1688,7 @@ def autopilot_runs(
     limit: int = 20,
 ):
     """Nexus AI Autopilot çalışma geçmişi."""
-    if not project_id:
-        raise HTTPException(400, "project_id query parametresi gerekli")
+    _require_project_access(db, user, project_id)
     from app.domains.ai.autopilot import list_autopilot_runs
 
     return {"runs": list_autopilot_runs(db, project_id=project_id, limit=limit)}
@@ -1721,6 +1708,7 @@ def autopilot_run(
       - assist: öneri + güvenli plan
       - autonomous: öneri + güvenli aksiyon uygulama
     """
+    _require_project_access(db, user, body.project_id)
     from app.domains.ai.autopilot import NexusAutopilot
 
     try:

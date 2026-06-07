@@ -63,14 +63,17 @@ def check_permission_endpoint(body: CheckPermissionRequest, _user: Annotated[Use
 @router.post("/enforce-sod", summary="Enforce Segregation-of-Duties policy")
 def enforce_sod_endpoint(
     body: EnforceSodRequest,
-    _user: Annotated[User, Depends(get_current_user)],
+    current_user: Annotated[User, Depends(get_current_user)],
     audit_store: AuditStore = Depends(get_audit_store),
 ) -> dict[str, bool]:
     """Return ``{ok: true}`` or raise 403 on SoD violation."""
+    from app.deps import _user_permissions
+    is_admin = "admin.*" in _user_permissions(current_user)
+    effective_user_id = body.user_id if is_admin else str(current_user.id)
     try:
         enforce_segregation(
             audit_store=audit_store,
-            user_id=body.user_id,
+            user_id=effective_user_id,
             new_action=body.new_action,
             resource_type=body.resource_type,
             resource_id=body.resource_id,

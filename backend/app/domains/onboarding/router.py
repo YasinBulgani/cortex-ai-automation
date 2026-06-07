@@ -7,6 +7,9 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Path
 
+from sqlalchemy import func, select
+from sqlalchemy.orm import Session
+
 from app.deps import _user_permissions, get_current_user
 from app.domains.onboarding.schemas import (
     OnboardingProgress,
@@ -17,7 +20,24 @@ from app.domains.onboarding.service import (
     compute_progress,
     progress_store,
 )
+from app.infra.database import get_db
 from app.infra.models import User
+
+
+def _check_project_access(project_id: str, db: Session, user: User) -> None:
+    from app.domains.tspm.models import TspmProject, TspmProjectMember
+    if db.get(TspmProject, project_id) is None:
+        raise HTTPException(status_code=404, detail="Proje bulunamadı")
+    if "admin.*" in _user_permissions(user):
+        return
+    is_member = db.scalar(
+        select(func.count()).where(
+            TspmProjectMember.project_id == project_id,
+            TspmProjectMember.user_id == user.id,
+        )
+    )
+    if not is_member:
+        raise HTTPException(status_code=403, detail="Bu projeye erişim yetkiniz yok")
 
 logger = logging.getLogger(__name__)
 
@@ -114,9 +134,11 @@ def checklist(user: Annotated[User, Depends(get_current_user)]):
 )
 def progress(
     user: Annotated[User, Depends(get_current_user)],
+    db: Session = Depends(get_db),
     project_id: str = Path(..., min_length=1, max_length=120),
 ):
     try:
+        _check_project_access(project_id, db, user)
         completed = progress_store.get(project_id)
         return compute_progress(project_id=project_id, completed=completed)
     except HTTPException:

@@ -37,6 +37,9 @@ def client():
     fake_user.id = "user-1"
     fake_user.roles = []
     fake_db = MagicMock()
+    # Mock project membership: db.get returns a project object, execute().scalars().all() returns user's project IDs
+    fake_db.get.return_value = MagicMock()
+    fake_db.execute.return_value.scalars.return_value.all.return_value = ["proj-1"]
 
     app.dependency_overrides[get_current_user] = lambda: fake_user
     app.dependency_overrides[get_db] = lambda: fake_db

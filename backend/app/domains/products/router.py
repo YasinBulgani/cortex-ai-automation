@@ -517,6 +517,22 @@ def get_web_my_inbox(
     current_user: Any = Depends(get_current_user),
 ) -> dict[str, Any]:
     try:
+        if project_id:
+            from app.deps import _user_permissions
+            from app.domains.tspm.models import TspmProject, TspmProjectMember
+            from sqlalchemy import func, select as _select
+            if db.get(TspmProject, project_id) is None:
+                return {"items": [], "total": 0, "updatedAt": _now_iso()}
+            if "admin.*" not in _user_permissions(current_user):
+                is_member = db.scalar(
+                    _select(func.count()).where(
+                        TspmProjectMember.project_id == project_id,
+                        TspmProjectMember.user_id == current_user.id,
+                    )
+                )
+                if not is_member:
+                    return {"items": [], "total": 0, "updatedAt": _now_iso()}
+
         from app.domains.defects import service as defect_svc
 
         open_defects = defect_svc.list_defects(
@@ -612,14 +628,30 @@ def post_web_inbox_action(
     if action == "resolve":
         try:
             from app.domains.defects import service as defect_svc
+            from app.deps import _user_permissions
+            from app.domains.tspm.models import TspmProject, TspmProjectMember
+            from sqlalchemy import func, select as _select
             defect = defect_svc.get_defect(item_id)
-            if defect is not None and defect.status not in ("closed", "verified"):
-                defect_svc.verify_and_close(
-                    item_id,
-                    rerun_id=f"inbox-resolve-{user_id}",
-                    rerun_passed=True,
-                    actor=str(user_id),
-                )
+            if defect is not None:
+                if defect.project_id and db.get(TspmProject, defect.project_id):
+                    if "admin.*" not in _user_permissions(current_user):
+                        is_member = db.scalar(
+                            _select(func.count()).where(
+                                TspmProjectMember.project_id == defect.project_id,
+                                TspmProjectMember.user_id == current_user.id,
+                            )
+                        )
+                        if not is_member:
+                            raise HTTPException(status_code=403, detail="Bu defect'e erişim yetkiniz yok")
+                if defect.status not in ("closed", "verified"):
+                    defect_svc.verify_and_close(
+                        item_id,
+                        rerun_id=f"inbox-resolve-{user_id}",
+                        rerun_passed=True,
+                        actor=str(user_id),
+                    )
+        except HTTPException:
+            raise
         except Exception as exc:
             _logger.warning("[inbox] resolve defect hatası item=%s: %s", item_id, exc)
 

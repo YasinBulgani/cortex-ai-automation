@@ -37,6 +37,16 @@ def client():
     fake_user = MagicMock()
     fake_user.id = "test-user-id"
     fake_user.roles = []
+
+    # Return project owned by test user for any valid ID, None for "nonexistent"
+    def _project_factory(model_class, project_id, **kwargs):
+        if str(project_id) in ("nonexistent",):
+            return None
+        p = _fake_project(str(project_id))
+        p.created_by = "test-user-id"
+        return p
+
+    fake_db.get.side_effect = _project_factory
     app.dependency_overrides[get_db] = lambda: fake_db
     app.dependency_overrides[get_current_user] = lambda: fake_user
 

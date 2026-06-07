@@ -14,6 +14,7 @@ try:
 
     from app.domains.ingestion.router import router
     from app.deps import get_current_user
+    from app.infra.database import get_db
     from app.infra.models import User
 
     _IMPORT_OK = True
@@ -29,10 +30,18 @@ def _mock_user():
     return u
 
 
+def _mock_db():
+    db = MagicMock()
+    db.get.return_value = MagicMock()  # project exists
+    db.scalar.return_value = 1  # user is a member
+    return db
+
+
 def _app() -> "TestClient":
     app = FastAPI()
     app.include_router(router)
     app.dependency_overrides[get_current_user] = _mock_user
+    app.dependency_overrides[get_db] = _mock_db
     return TestClient(app, raise_server_exceptions=False)
 
 

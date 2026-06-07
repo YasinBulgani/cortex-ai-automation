@@ -13,6 +13,7 @@ try:
 
     from app.deps import get_current_user
     from app.domains.defects.router import router
+    from app.infra.database import get_db
 
     _IMPORT_OK = True
 except ImportError:
@@ -28,10 +29,20 @@ def _mock_user():
     return u
 
 
+def _mock_db():
+    db = MagicMock()
+    # Make TspmProject exist and user is a member
+    db.get.return_value = MagicMock()
+    db.scalar.return_value = 1
+    db.execute.return_value.scalars.return_value.all.return_value = []
+    return db
+
+
 def _app() -> "TestClient":
     app = FastAPI()
     app.include_router(router)
     app.dependency_overrides[get_current_user] = _mock_user
+    app.dependency_overrides[get_db] = _mock_db
     return TestClient(app, raise_server_exceptions=False)
 
 

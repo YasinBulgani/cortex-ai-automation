@@ -164,6 +164,7 @@ def _store_event(
     event_type: str,
     payload: dict,
     project_ref: str = "",
+    tenant_id: str | None = None,
 ) -> dict:
     """Persist webhook event while preserving the public response shape."""
     event = {
@@ -182,6 +183,7 @@ def _store_event(
     if isinstance(repository, dict):
         repo_name = repository.get("full_name", "") or repository.get("name", "")
 
+    _DEFAULT_TENANT = "00000000-0000-0000-0000-000000000001"
     params = {
         "event_id": event["id"],
         "source": source,
@@ -194,6 +196,7 @@ def _store_event(
         "repo_name": (repo_name or project_ref)[:256],
         "author": _extract_author(payload),
         "received_at": event["received_at"],
+        "tenant_id": tenant_id or _DEFAULT_TENANT,
     }
 
     try:
@@ -202,12 +205,13 @@ def _store_event(
                 """
                 INSERT INTO cicd_webhook_events (
                     event_id, source, event_type, project_ref, payload, payload_summary,
-                    commit_sha, branch, repo_name, author, received_at
+                    commit_sha, branch, repo_name, author, received_at, tenant_id
                 )
                 VALUES (
                     :event_id, :source, :event_type, :project_ref,
                     CAST(:payload AS JSONB), CAST(:payload_summary AS JSONB),
-                    :commit_sha, :branch, :repo_name, :author, :received_at
+                    :commit_sha, :branch, :repo_name, :author, :received_at,
+                    CAST(:tenant_id AS UUID)
                 )
                 """
             ),
@@ -222,7 +226,12 @@ def _store_event(
     return event
 
 
-def _list_events(db: Session, source: Optional[str] = None, limit: int = 50) -> dict:
+def _list_events(
+    db: Session,
+    source: Optional[str] = None,
+    limit: int = 50,
+    tenant_id: Optional[str] = None,
+) -> dict:
     """Fetch recent CI/CD events with the legacy response payload shape."""
     safe_limit = max(1, min(limit, 500))
     rows = db.execute(
@@ -237,11 +246,12 @@ def _list_events(db: Session, source: Optional[str] = None, limit: int = 50) -> 
                 payload_summary
             FROM cicd_webhook_events
             WHERE (:source IS NULL OR source = :source)
+              AND (:tenant_id IS NULL OR tenant_id = CAST(:tenant_id AS UUID))
             ORDER BY received_at DESC
             LIMIT :limit
             """
         ),
-        {"source": source, "limit": safe_limit},
+        {"source": source, "limit": safe_limit, "tenant_id": tenant_id},
     ).mappings().all()
 
     total = db.execute(
@@ -250,9 +260,10 @@ def _list_events(db: Session, source: Optional[str] = None, limit: int = 50) -> 
             SELECT COUNT(*)
             FROM cicd_webhook_events
             WHERE (:source IS NULL OR source = :source)
+              AND (:tenant_id IS NULL OR tenant_id = CAST(:tenant_id AS UUID))
             """
         ),
-        {"source": source},
+        {"source": source, "tenant_id": tenant_id},
     ).scalar_one()
 
     events = []
@@ -319,7 +330,8 @@ async def github_webhook(
     action = payload.get("action", "")
     conclusion = payload.get("workflow_run", {}).get("conclusion", "")
 
-    ev = _store_event(db, "github", x_github_event, payload, project_ref=repo)
+    tenant_id = getattr(request.state, "tenant_id", None)
+    ev = _store_event(db, "github", x_github_event, payload, project_ref=repo, tenant_id=tenant_id)
 
     # Auto-trigger Neurex tests when a workflow run completes successfully
     if x_github_event == "workflow_run" and conclusion == "success":
@@ -354,7 +366,8 @@ async def gitlab_webhook(
     project_ref = payload.get("project", {}).get("path_with_namespace", "unknown")
     pipeline_status = payload.get("object_attributes", {}).get("status", "")
 
-    ev = _store_event(db, "gitlab", object_kind, payload, project_ref=project_ref)
+    tenant_id = getattr(request.state, "tenant_id", None)
+    ev = _store_event(db, "gitlab", object_kind, payload, project_ref=project_ref, tenant_id=tenant_id)
 
     if object_kind == "pipeline" and pipeline_status == "success":
         ref = payload.get("object_attributes", {}).get("ref", "")
@@ -386,8 +399,9 @@ async def jenkins_webhook(
 
     build_status = payload.get("build", {}).get("status", payload.get("status", ""))
     job_name = payload.get("name", payload.get("build", {}).get("full_url", "unknown"))
+    tenant_id = getattr(request.state, "tenant_id", None)
 
-    ev = _store_event(db, "jenkins", "build", payload, project_ref=job_name)
+    ev = _store_event(db, "jenkins", "build", payload, project_ref=job_name, tenant_id=tenant_id)
 
     if build_status in ("SUCCESS", "success"):
         background_tasks.add_task(_auto_trigger_on_ci_success, "jenkins", job_name, "", payload)
@@ -402,9 +416,9 @@ def list_events(
     source: Optional[str] = None,
     limit: int = 50,
     db: Session = Depends(get_db),
-    _current_user=Depends(get_current_user),
+    current_user: User = Depends(get_current_user),
 ):
-    return _list_events(db, source=source, limit=limit)
+    return _list_events(db, source=source, limit=limit, tenant_id=str(current_user.tenant_id))
 
 
 # ─── Manual trigger ──────────────────────────────────────────────────────────

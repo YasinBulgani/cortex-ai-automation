@@ -17,7 +17,10 @@ from pydantic import BaseModel, Field
 
 from app.deps import get_current_user
 from app.domains.ingestion import service as svc
+from app.infra.database import get_db
 from app.infra.models import User
+from sqlalchemy import func, select
+from sqlalchemy.orm import Session
 
 router = APIRouter(prefix="/ingestion", tags=["ingestion"])
 
@@ -96,14 +99,43 @@ def confluence_webhook(
     return req.to_dict()
 
 
+def _require_project_access(project_id: str, db: Session, user: User) -> None:
+    from app.domains.tspm.models import TspmProject, TspmProjectMember
+    if db.get(TspmProject, project_id) is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Proje bulunamadı")
+    for role in (user.roles or []):
+        for rp in (role.permissions or []):
+            if getattr(rp, "permission", "") == "admin.*":
+                return
+    is_member = db.scalar(
+        select(func.count()).where(
+            TspmProjectMember.project_id == project_id,
+            TspmProjectMember.user_id == user.id,
+        )
+    )
+    if not is_member:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Bu projeye erişim yetkiniz yok")
+
+
 @router.get("/projects/{project_id}")
-def list_for_project(project_id: str, user: Annotated[User, Depends(get_current_user)]) -> list[dict]:
+def list_for_project(
+    project_id: str,
+    user: Annotated[User, Depends(get_current_user)],
+    db: Session = Depends(get_db),
+) -> list[dict]:
+    _require_project_access(project_id, db, user)
     return [r.to_dict() for r in svc.list_ingested(project_id=project_id)]
 
 
 @router.get("/{req_id}")
-def get_ingested(req_id: str, user: Annotated[User, Depends(get_current_user)]) -> dict:
+def get_ingested(
+    req_id: str,
+    user: Annotated[User, Depends(get_current_user)],
+    db: Session = Depends(get_db),
+) -> dict:
     req = svc.get_ingested(req_id)
     if req is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Requirement bulunamadı")
+    if req.project_id:
+        _require_project_access(req.project_id, db, user)
     return req.to_dict()

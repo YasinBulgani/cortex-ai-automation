@@ -15,8 +15,10 @@ Endpoints:
 
 from __future__ import annotations
 
+import hmac
 import ipaddress
 import logging
+import os
 import socket
 from typing import Annotated, Optional
 from urllib.parse import urlparse
@@ -25,11 +27,14 @@ from fastapi import APIRouter, BackgroundTasks, Depends, Header, HTTPException, 
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
+from app.config import settings
 from app.deps import get_current_user, get_optional_user
 from app.infra.database import get_db
 from app.infra.models import User
 
 from .models import JiraIntegration
+
+JIRA_WEBHOOK_SECRET = os.environ.get("JIRA_WEBHOOK_SECRET", "")
 
 
 def _is_ssrf_blocked(url: str) -> bool:
@@ -435,6 +440,11 @@ def _delete_defect_links(issue_key: str) -> None:
         logger.warning("DefectLink delete sync hatası (issue=%s): %s", issue_key, exc)
 
 
+def _webhook_secret_required() -> bool:
+    forced = os.environ.get("JIRA_REQUIRE_WEBHOOK_SECRET", "").lower() in {"1", "true", "yes"}
+    return forced or settings.is_production_like
+
+
 @router.post("/webhook/jira-incoming", include_in_schema=True)
 async def jira_incoming_webhook(
     request: Request,
@@ -451,6 +461,13 @@ async def jira_incoming_webhook(
     sayar; bu nedenle her zaman ``{"received": True}`` döner ve ağır işler
     background task'a devredilir.
     """
+    if _webhook_secret_required() and not JIRA_WEBHOOK_SECRET:
+        raise HTTPException(503, "JIRA_WEBHOOK_SECRET ayarı zorunlu ama yapılandırılmamış")
+    if JIRA_WEBHOOK_SECRET:
+        provided = x_atlassian_token or ""
+        if not hmac.compare_digest(provided, JIRA_WEBHOOK_SECRET):
+            raise HTTPException(401, "Geçersiz Jira webhook token")
+
     try:
         payload = await request.json()
     except Exception:

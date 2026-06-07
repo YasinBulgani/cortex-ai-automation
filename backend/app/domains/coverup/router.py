@@ -193,6 +193,8 @@ def upload_coverage(
     user: Annotated[User, Depends(get_current_user)],
 ) -> CoverageReport:
     """Coverage raporu yükle ve parse et."""
+    if body.project_id:
+        _require_project_access(body.project_id, db, user)
     try:
         return create_report(_repository(db), body)
     except ValueError as exc:

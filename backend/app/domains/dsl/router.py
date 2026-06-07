@@ -15,7 +15,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
-from app.deps import get_current_user
+from app.deps import _user_permissions, get_current_user
 from app.domains.dsl import feedback_service
 from app.domains.dsl import service as dsl_service
 from app.domains.dsl.schemas import (
@@ -261,9 +261,11 @@ def index_info(_: Annotated[User, Depends(get_current_user)]) -> IndexInfo:
 
 @router.post("/index/rebuild", response_model=IndexRebuildResponse)
 def index_rebuild(
-    _: Annotated[User, Depends(get_current_user)],
+    current_user: Annotated[User, Depends(get_current_user)],
     force: bool = Query(default=False, description="Hash aynı olsa bile yeniden üret"),
 ) -> IndexRebuildResponse:
+    if "admin.*" not in _user_permissions(current_user):
+        raise HTTPException(status_code=403, detail="Bu işlem yalnızca admin kullanıcılar tarafından yapılabilir")
     """Embedding indeksini gateway üzerinden yeniden üret.
 
     Katalog YAML'leri değiştikten sonra `/reload` çağırmak index'i arka planda

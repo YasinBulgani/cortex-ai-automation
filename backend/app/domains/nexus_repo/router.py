@@ -46,6 +46,24 @@ def _require_feature():
         )
 
 
+def _is_admin_user(user: User) -> bool:
+    for role in (user.roles or []):
+        for rp in (role.permissions or []):
+            if getattr(rp, "permission", "") == "admin.*":
+                return True
+    return False
+
+
+def _get_project_or_403(project_id: str, db: Session, user: User):
+    from .models import NexusProject as _NexusProject
+    project = db.get(_NexusProject, project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Proje bulunamadı")
+    if not _is_admin_user(user) and project.created_by != user.id:
+        raise HTTPException(status_code=403, detail="Bu projeye erişim yetkiniz yok")
+    return project
+
+
 # All authenticated nexus-repo endpoints require auth + feature flag.
 router = APIRouter(
     prefix="/nexus-repo",
@@ -78,27 +96,28 @@ def list_projects(
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=200),
     db: Session = Depends(get_db),
+    user: CurrentUser = None,
 ):
-    return service.list_projects(db, skip=skip, limit=limit, archived=archived)
+    owner_id = None if _is_admin_user(user) else user.id
+    return service.list_projects(db, skip=skip, limit=limit, archived=archived, owner_id=owner_id)
 
 
 @router.post("/projects", response_model=NexusProjectOut, status_code=status.HTTP_201_CREATED)
 def create_project(
     data: NexusProjectCreate,
     db: Session = Depends(get_db),
+    user: CurrentUser = None,
 ):
-    return service.create_project(db, data)
+    return service.create_project(db, data, created_by=user.id)
 
 
 @router.get("/projects/{project_id}", response_model=NexusProjectOut)
 def get_project(
     project_id: str,
     db: Session = Depends(get_db),
+    user: CurrentUser = None,
 ):
-    project = service.get_project(db, project_id)
-    if not project:
-        raise HTTPException(status_code=404, detail="Proje bulunamadı")
-    return project
+    return _get_project_or_403(project_id, db, user)
 
 
 @router.patch("/projects/{project_id}", response_model=NexusProjectOut)
@@ -106,10 +125,9 @@ def update_project(
     project_id: str,
     data: NexusProjectUpdate,
     db: Session = Depends(get_db),
+    user: CurrentUser = None,
 ):
-    project = service.get_project(db, project_id)
-    if not project:
-        raise HTTPException(status_code=404, detail="Proje bulunamadı")
+    project = _get_project_or_403(project_id, db, user)
     return service.update_project(db, project, data)
 
 
@@ -117,10 +135,9 @@ def update_project(
 def archive_project(
     project_id: str,
     db: Session = Depends(get_db),
+    user: CurrentUser = None,
 ):
-    project = service.get_project(db, project_id)
-    if not project:
-        raise HTTPException(status_code=404, detail="Proje bulunamadı")
+    project = _get_project_or_403(project_id, db, user)
     service.archive_project(db, project)
 
 
@@ -130,10 +147,9 @@ def archive_project(
 def list_crawls(
     project_id: str,
     db: Session = Depends(get_db),
+    user: CurrentUser = None,
 ):
-    project = service.get_project(db, project_id)
-    if not project:
-        raise HTTPException(status_code=404, detail="Proje bulunamadı")
+    _get_project_or_403(project_id, db, user)
     return service.list_crawl_jobs(db, project_id)
 
 
@@ -141,11 +157,10 @@ def list_crawls(
 def start_crawl(
     project_id: str,
     db: Session = Depends(get_db),
+    user: CurrentUser = None,
 ):
     """Repo tarama işini başlatır (arka planda daemon thread)."""
-    project = service.get_project(db, project_id)
-    if not project:
-        raise HTTPException(status_code=404, detail="Proje bulunamadı")
+    _get_project_or_403(project_id, db, user)
     job = service.create_crawl_job(db, project_id)
     from .crawler import run_crawl_job
     _run_in_thread(run_crawl_job, job.id)
@@ -157,7 +172,9 @@ def get_crawl_job(
     project_id: str,
     job_id: str,
     db: Session = Depends(get_db),
+    user: CurrentUser = None,
 ):
+    _get_project_or_403(project_id, db, user)
     from .models import NexusCrawlJob
     job = db.execute(
         select(NexusCrawlJob).where(
@@ -180,7 +197,9 @@ def list_scenarios(
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=500),
     db: Session = Depends(get_db),
+    user: CurrentUser = None,
 ):
+    _get_project_or_403(project_id, db, user)
     return service.list_scenarios(db, project_id, type_filter=type, status_filter=status_filter, skip=skip, limit=limit)
 
 
@@ -189,10 +208,9 @@ def create_scenario(
     project_id: str,
     data: NexusScenarioCreate,
     db: Session = Depends(get_db),
+    user: CurrentUser = None,
 ):
-    project = service.get_project(db, project_id)
-    if not project:
-        raise HTTPException(status_code=404, detail="Proje bulunamadı")
+    _get_project_or_403(project_id, db, user)
     return service.create_scenario(db, project_id, data)
 
 
@@ -202,7 +220,9 @@ def update_scenario(
     scenario_id: str,
     data: NexusScenarioUpdate,
     db: Session = Depends(get_db),
+    user: CurrentUser = None,
 ):
+    _get_project_or_403(project_id, db, user)
     scenario = service.get_scenario(db, scenario_id)
     if not scenario or scenario.project_id != project_id:
         raise HTTPException(status_code=404, detail="Senaryo bulunamadı")
@@ -214,7 +234,9 @@ def delete_scenario(
     project_id: str,
     scenario_id: str,
     db: Session = Depends(get_db),
+    user: CurrentUser = None,
 ):
+    _get_project_or_403(project_id, db, user)
     scenario = service.get_scenario(db, scenario_id)
     if not scenario or scenario.project_id != project_id:
         raise HTTPException(status_code=404, detail="Senaryo bulunamadı")
@@ -228,7 +250,9 @@ def list_endpoints(
     project_id: str,
     job_id: str,
     db: Session = Depends(get_db),
+    user: CurrentUser = None,
 ):
+    _get_project_or_403(project_id, db, user)
     from .models import NexusCrawlJob
     job = db.execute(
         select(NexusCrawlJob).where(
@@ -246,7 +270,9 @@ def list_files(
     job_id: str,
     with_summary: Optional[bool] = Query(None),
     db: Session = Depends(get_db),
+    user: CurrentUser = None,
 ):
+    _get_project_or_403(project_id, db, user)
     from .models import NexusCrawlJob
     job = db.execute(
         select(NexusCrawlJob).where(
@@ -264,10 +290,9 @@ def list_files(
 def get_stats(
     project_id: str,
     db: Session = Depends(get_db),
+    user: CurrentUser = None,
 ):
-    project = service.get_project(db, project_id)
-    if not project:
-        raise HTTPException(status_code=404, detail="Proje bulunamadı")
+    _get_project_or_403(project_id, db, user)
     return service.get_project_stats(db, project_id)
 
 
@@ -278,11 +303,10 @@ def generate_scenarios(
     project_id: str,
     data: NexusGenerateRequest,
     db: Session = Depends(get_db),
+    user: CurrentUser = None,
 ):
     """LLM ile senaryo üretimini başlatır (arka planda daemon thread)."""
-    project = service.get_project(db, project_id)
-    if not project:
-        raise HTTPException(status_code=404, detail="Proje bulunamadı")
+    project = _get_project_or_403(project_id, db, user)
 
     from .llm_generator import run_generate_job
     _run_in_thread(
@@ -308,12 +332,11 @@ def create_export(
     project_id: str,
     data: NexusExportCreate,
     db: Session = Depends(get_db),
+    user: CurrentUser = None,
 ):
     """Dışa aktarım işini başlatır (arka planda daemon thread)."""
-    project = service.get_project(db, project_id)
-    if not project:
-        raise HTTPException(status_code=404, detail="Proje bulunamadı")
-    export = service.create_export(db, project_id, data)
+    _get_project_or_403(project_id, db, user)
+    export = service.create_export(db, project_id, data, created_by=user.id)
     from .exporter import run_export_job
     _run_in_thread(run_export_job, export.id)
     return export
@@ -323,7 +346,9 @@ def create_export(
 def list_exports(
     project_id: str,
     db: Session = Depends(get_db),
+    user: CurrentUser = None,
 ):
+    _get_project_or_403(project_id, db, user)
     from .models import NexusExport
     return db.execute(
         select(NexusExport)
@@ -337,8 +362,10 @@ def download_export(
     project_id: str,
     export_id: str,
     db: Session = Depends(get_db),
+    user: CurrentUser = None,
 ):
     """Hazır export dosyasını indir."""
+    _get_project_or_403(project_id, db, user)
     from fastapi.responses import FileResponse
 
     from .models import NexusExport

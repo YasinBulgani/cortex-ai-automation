@@ -26,14 +26,18 @@ from .schemas import (
 
 # ── Project CRUD ──────────────────────────────────────────────────────────────
 
-def list_projects(db: Session, *, skip: int = 0, limit: int = 50, archived: bool = False) -> list[NexusProject]:
-    return db.execute(
-        select(NexusProject)
-        .where(NexusProject.archived == archived)
-        .order_by(NexusProject.created_at.desc())
-        .offset(skip)
-        .limit(limit)
-    ).scalars().all()
+def list_projects(
+    db: Session,
+    *,
+    skip: int = 0,
+    limit: int = 50,
+    archived: bool = False,
+    owner_id: Optional[str] = None,
+) -> list[NexusProject]:
+    q = select(NexusProject).where(NexusProject.archived == archived)
+    if owner_id is not None:
+        q = q.where(NexusProject.created_by == owner_id)
+    return db.execute(q.order_by(NexusProject.created_at.desc()).offset(skip).limit(limit)).scalars().all()
 
 
 def get_project(db: Session, project_id: str) -> Optional[NexusProject]:

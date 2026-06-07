@@ -19,6 +19,7 @@ from fastapi.testclient import TestClient
 try:
     from app.domains.onboarding.router import router as onboarding_router
     from app.deps import get_current_user
+    from app.infra.database import get_db
     from app.infra.models import User
     _IMPORT_OK = True
 except Exception:
@@ -75,11 +76,19 @@ def _make_step_dict(step_id: str = "create_project", order: int = 1) -> dict:
     }
 
 
+def _mock_db():
+    db = MagicMock()
+    db.get.return_value = MagicMock()  # project exists
+    db.scalar.return_value = 1  # user is a member
+    return db
+
+
 @pytest.fixture
 def client():
     app = FastAPI()
     app.include_router(onboarding_router, prefix="/api/v1")
     app.dependency_overrides[get_current_user] = _mock_user
+    app.dependency_overrides[get_db] = _mock_db
     return TestClient(app, raise_server_exceptions=False)
 
 
@@ -88,6 +97,7 @@ def admin_client():
     app = FastAPI()
     app.include_router(onboarding_router, prefix="/api/v1")
     app.dependency_overrides[get_current_user] = _mock_admin_user
+    app.dependency_overrides[get_db] = _mock_db
     return TestClient(app, raise_server_exceptions=False)
 
 

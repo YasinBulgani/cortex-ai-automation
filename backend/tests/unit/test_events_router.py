@@ -12,6 +12,7 @@ try:
 
     from app.domains.events.router import router
     from app.deps import get_current_user
+    from app.infra.database import get_db
     from app.infra.models import User
 
     _IMPORT_OK = True
@@ -39,10 +40,18 @@ def _mock_admin_user():
     return u
 
 
+def _mock_db_with_member():
+    db = MagicMock()
+    db.get.return_value = MagicMock()  # project exists
+    db.scalar.return_value = 1  # user is a member
+    return db
+
+
 def _app() -> "TestClient":
     app = FastAPI()
     app.include_router(router)
     app.dependency_overrides[get_current_user] = _mock_user
+    app.dependency_overrides[get_db] = _mock_db_with_member
     return TestClient(app, raise_server_exceptions=False)
 
 
@@ -50,6 +59,7 @@ def _admin_app() -> "TestClient":
     app = FastAPI()
     app.include_router(router)
     app.dependency_overrides[get_current_user] = _mock_admin_user
+    app.dependency_overrides[get_db] = lambda: MagicMock()
     return TestClient(app, raise_server_exceptions=False)
 
 
@@ -72,7 +82,7 @@ def _fake_event(name: str = "test.ping", project_id: str = "proj-1") -> MagicMoc
 def test_get_event_history_returns_200() -> None:
     if not _IMPORT_OK:
         return
-    client = _app()
+    client = _admin_app()
     fake_evt = _fake_event()
     with patch("app.domains.events.router.bus") as mock_bus:
         mock_bus.history.return_value = [fake_evt]
@@ -83,7 +93,7 @@ def test_get_event_history_returns_200() -> None:
 def test_get_event_history_returns_list() -> None:
     if not _IMPORT_OK:
         return
-    client = _app()
+    client = _admin_app()
     fake_evts = [_fake_event("a.b"), _fake_event("c.d")]
     with patch("app.domains.events.router.bus") as mock_bus:
         mock_bus.history.return_value = fake_evts
@@ -96,12 +106,23 @@ def test_get_event_history_returns_list() -> None:
 def test_get_event_history_empty_list() -> None:
     if not _IMPORT_OK:
         return
-    client = _app()
+    client = _admin_app()
     with patch("app.domains.events.router.bus") as mock_bus:
         mock_bus.history.return_value = []
         r = client.get("/events/history")
     assert r.status_code == 200
     assert r.json() == []
+
+
+def test_get_event_history_non_admin_without_project_id_403() -> None:
+    """Non-admin users must provide project_id."""
+    if not _IMPORT_OK:
+        return
+    client = _app()
+    with patch("app.domains.events.router.bus") as mock_bus:
+        mock_bus.history.return_value = []
+        r = client.get("/events/history")
+    assert r.status_code == 403
 
 
 def test_get_event_history_name_filter_passed_to_bus() -> None:

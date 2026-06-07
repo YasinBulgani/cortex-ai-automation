@@ -50,6 +50,9 @@ from app.domains.test_management.schemas import (
     CaseDependencyOut,
     CaseParamSetCreate,
     CaseParamSetOut,
+    CaseReviewActionRequest,
+    CaseReviewOut,
+    CaseReviewSubmitRequest,
     DefectLinkCreate,
     DefectLinkOut,
     DefectLinkUpdate,
@@ -60,6 +63,8 @@ from app.domains.test_management.schemas import (
     EvidenceOut,
     ExecutionSummaryOut,
     ExpandCaseResponse,
+    FlakyTestOut,
+    FlakyTestsResponse,
     ImportJobDetailOut,
     ManagementProjectCreate,
     ManagementProjectOut,
@@ -751,6 +756,94 @@ def improve_case(project_id: str, case_id: str, payload: TestCaseImproveRequest,
 
 
 @router.post(
+    "/projects/{project_id}/cases/{case_id}/submit-review",
+    response_model=CaseReviewOut,
+    summary="Test case'i incelemeye gönder (draft → pending)",
+)
+def submit_case_for_review(
+    project_id: str, case_id: str, payload: CaseReviewSubmitRequest, db: DB, user: WriteUser
+) -> CaseReviewOut:
+    try:
+        case = service.submit_case_for_review(db, project_id, case_id, user, payload.comment)
+        return CaseReviewOut.model_validate(case)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.post(
+    "/projects/{project_id}/cases/{case_id}/approve",
+    response_model=CaseReviewOut,
+    summary="Test case incelemesini onayla (pending → approved)",
+)
+def approve_case_review(
+    project_id: str, case_id: str, payload: CaseReviewActionRequest, db: DB, user: WriteUser
+) -> CaseReviewOut:
+    try:
+        case = service.approve_case_review(db, project_id, case_id, user, payload.comment)
+        return CaseReviewOut.model_validate(case)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.post(
+    "/projects/{project_id}/cases/{case_id}/reject",
+    response_model=CaseReviewOut,
+    summary="Test case incelemesini reddet (pending → rejected)",
+)
+def reject_case_review(
+    project_id: str, case_id: str, payload: CaseReviewActionRequest, db: DB, user: WriteUser
+) -> CaseReviewOut:
+    try:
+        case = service.reject_case_review(db, project_id, case_id, user, payload.comment)
+        return CaseReviewOut.model_validate(case)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.get(
+    "/projects/{project_id}/cases/review-queue",
+    response_model=list[CaseReviewOut],
+    summary="Belirli review durumundaki case'leri listele",
+)
+def list_review_queue(
+    project_id: str,
+    review_status: str = Query(default="pending", description="none|pending|approved|rejected"),
+    limit: int = Query(default=50, ge=1, le=200),
+    db: DB = ...,
+    _user: ReadUser = ...,
+) -> list[CaseReviewOut]:
+    cases = service.get_review_queue(db, project_id, status=review_status, limit=limit)
+    return [CaseReviewOut.model_validate(c) for c in cases]
+
+
+@router.get(
+    "/projects/{project_id}/cases/flaky",
+    response_model=FlakyTestsResponse,
+    summary="Yüksek flakiness skoruna sahip unstable test case'leri listele",
+)
+def list_flaky_cases(
+    project_id: str,
+    threshold: float = Query(default=0.2, ge=0.0, le=1.0, description="Minimum flakiness skoru (0-1)"),
+    min_runs: int = Query(default=3, ge=1, description="Minimum koşum sayısı"),
+    limit: int = Query(default=50, ge=1, le=200),
+    db: DB = ...,
+    _user: ReadUser = ...,
+) -> FlakyTestsResponse:
+    result = service.list_flaky_cases(db, project_id, threshold=threshold, min_runs=min_runs, limit=limit)
+    return FlakyTestsResponse(
+        items=[FlakyTestOut.model_validate(c) for c in result["items"]],
+        total=result["total"],
+        threshold=result["threshold"],
+    )
+
+
+@router.post(
     "/projects/{project_id}/cases/generate",
     response_model=TestCaseGenerateResponse,
     summary="AI ile test case üret (save=true ise DB'ye kaydeder)",
@@ -1127,7 +1220,14 @@ def update_run_case(
     user: ExecuteUser,
 ) -> RunCaseOut:
     """Update the overall status of a test case in a run (TestRail-style case-level result)."""
-    return service.update_run_case(db, project_id, run_case_id, payload, user)
+    result = service.update_run_case(db, project_id, run_case_id, payload, user)
+    # Recompute flakiness score asynchronously after status change
+    if payload.status in ("passed", "failed") and result.case_id:
+        try:
+            service.recompute_case_flakiness(db, result.case_id)
+        except Exception:
+            pass  # Non-critical: do not fail the main request
+    return result
 
 
 @router.patch("/projects/{project_id}/run-cases/{run_case_id}/steps/{step_no}", response_model=RunCaseOut)
@@ -2437,6 +2537,8 @@ class WebhookProbeRequest(BaseModel):
 @router.post("/webhook-probe", response_model=dict)
 def webhook_probe(body: WebhookProbeRequest, _user: ReadUser) -> dict:
     """Webhook URL'ini backend tarafından test eder (CORS sorununu önler)."""
+    if _is_ssrf_blocked(body.url):
+        raise HTTPException(status_code=422, detail="Webhook URL'i dahili ağa erişim sağlamaya izin vermiyor")
     import httpx as _httpx
     payload = {"event": body.events[0] if body.events else "test", "test": True}
     try:
