@@ -626,7 +626,10 @@ def list_users(
     if cached is not None:
         return [UserListOut(**item) if isinstance(item, dict) else item for item in cached]
     users = list(db.scalars(
-        select(User).options(joinedload(User.roles)).order_by(User.created_at.desc())
+        select(User)
+        .where(User.tenant_id == user.tenant_id)
+        .options(joinedload(User.roles))
+        .order_by(User.created_at.desc())
     ).unique())
     result = [
         UserListOut(
@@ -704,6 +707,9 @@ def update_user(
     target = db.get(User, user_id)
     if target is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Kullanıcı bulunamadı")
+    # Cross-tenant isolation: admin can only modify users in their own tenant.
+    if target.tenant_id != user.tenant_id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Başka kuruluşun kullanıcısını değiştiremezsiniz")
     if body.full_name is not None:
         target.full_name = body.full_name
     if body.department is not None:
@@ -747,6 +753,8 @@ def delete_user(
     target = db.get(User, user_id)
     if target is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Kullanıcı bulunamadı")
+    if target.tenant_id != user.tenant_id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Başka kuruluşun kullanıcısını silemezsiniz")
     target.is_active = False
     db.commit()
     from app.infra.cache import cache_delete, make_key
@@ -945,6 +953,14 @@ def mfa_login(
 
     if payload.get("purpose") != "mfa_challenge":
         raise HTTPException(status_code=401, detail="Geçersiz token amacı")
+
+    # Single-use enforcement: consume the jti so the token cannot be replayed.
+    jti: str = payload.get("jti", "")
+    if jti:
+        from app.domains.auth.service import _store_access_revocation
+        exp_ts = int(payload.get("exp", 0))
+        if exp_ts:
+            _store_access_revocation(jti, exp_ts)
 
     user_id: str = payload.get("sub") or ""
     db_user = db.get(User, user_id)

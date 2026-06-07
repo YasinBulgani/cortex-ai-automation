@@ -233,9 +233,9 @@ class OpenDefectIssueResponse(BaseModel):
 
 
 class AISuggestRequest(BaseModel):
-    suite: str
-    requirement: Optional[str] = None
-    brief: Optional[str] = None
+    suite: str = Field(min_length=1, max_length=64, pattern=r"^[A-Za-z0-9_-]+$")
+    requirement: Optional[str] = Field(default=None, max_length=2000)
+    brief: Optional[str] = Field(default=None, max_length=2000)
     max_cases: int = Field(default=5, ge=1, le=10)
     dry_run: bool = True
 

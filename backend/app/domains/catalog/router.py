@@ -23,16 +23,27 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/datasets", tags=["catalog"])
 
 
+def _is_admin_user(user: User) -> bool:
+    for role in (user.roles or []):
+        for rp in (role.permissions or []):
+            if getattr(rp, "permission", "") == "admin.*":
+                return True
+    return False
+
+
 @router.get("", response_model=list[DatasetOut])
 def list_datasets(
     db: Annotated[Session, Depends(get_db)],
-    _: Annotated[User, Depends(get_current_user)],
+    user: Annotated[User, Depends(get_current_user)],
     limit: int = Query(100, ge=1, le=500),
     offset: int = Query(0, ge=0),
 ) -> list[Dataset]:
-    """Veri setlerini listeler."""
+    """Veri setlerini listeler — sadece kendi veri setleri (admin hepsini görür)."""
     try:
-        return list(db.scalars(select(Dataset).order_by(Dataset.created_at.desc()).limit(limit).offset(offset)).all())
+        q = select(Dataset).order_by(Dataset.created_at.desc()).limit(limit).offset(offset)
+        if not _is_admin_user(user):
+            q = q.where(Dataset.created_by == user.id)
+        return list(db.scalars(q).all())
     except Exception as e:
         logger.error("list_datasets failed: %s", e, exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
@@ -70,18 +81,24 @@ def create_dataset(
         raise HTTPException(status_code=500, detail=str(e))
 
 
+def _get_dataset_or_403(dataset_id: str, db: Session, user: User) -> Dataset:
+    ds = db.get(Dataset, dataset_id)
+    if ds is None:
+        raise HTTPException(status_code=404, detail="Veri seti bulunamadı")
+    if not _is_admin_user(user) and ds.created_by != user.id:
+        raise HTTPException(status_code=403, detail="Bu veri setine erişim yetkiniz yok")
+    return ds
+
+
 @router.get("/{dataset_id}", response_model=DatasetOut)
 def get_dataset(
     dataset_id: str,
     db: Annotated[Session, Depends(get_db)],
-    _: Annotated[User, Depends(get_current_user)],
+    user: Annotated[User, Depends(get_current_user)],
 ) -> Dataset:
     """Belirtilen veri seti detayini getirir."""
     try:
-        ds = db.get(Dataset, dataset_id)
-        if ds is None:
-            raise HTTPException(status_code=404, detail="Veri seti bulunamadı")
-        return ds
+        return _get_dataset_or_403(dataset_id, db, user)
     except HTTPException:
         raise
     except Exception as e:
@@ -103,9 +120,7 @@ def create_dataset_version(
 ) -> DatasetVersion:
     """Veri seti icin yeni bir surum olusturur."""
     try:
-        ds = db.get(Dataset, dataset_id)
-        if ds is None:
-            raise HTTPException(status_code=404, detail="Veri seti bulunamadı")
+        ds = _get_dataset_or_403(dataset_id, db, user)
         max_v = db.scalar(
             select(func.max(DatasetVersion.version)).where(DatasetVersion.dataset_id == dataset_id)
         )
@@ -144,13 +159,12 @@ def create_dataset_version(
 def list_versions(
     dataset_id: str,
     db: Annotated[Session, Depends(get_db)],
-    _: Annotated[User, Depends(get_current_user)],
+    user: Annotated[User, Depends(get_current_user)],
     limit: int = Query(100, ge=1, le=500),
 ) -> list[DatasetVersion]:
     """Veri seti surumlerini listeler."""
     try:
-        if db.get(Dataset, dataset_id) is None:
-            raise HTTPException(status_code=404, detail="Veri seti bulunamadı")
+        _get_dataset_or_403(dataset_id, db, user)
         return list(
             db.scalars(
                 select(DatasetVersion)
@@ -174,10 +188,11 @@ def get_schema_for_version(
     dataset_id: str,
     version_id: str,
     db: Annotated[Session, Depends(get_db)],
-    _: Annotated[User, Depends(get_current_user)],
+    user: Annotated[User, Depends(get_current_user)],
 ) -> SchemaSnapshot:
     """Belirtilen surume ait sema bilgisini getirir."""
     try:
+        _get_dataset_or_403(dataset_id, db, user)
         ver = db.get(DatasetVersion, version_id)
         if ver is None or ver.dataset_id != dataset_id:
             raise HTTPException(status_code=404, detail="Sürüm bulunamadı")

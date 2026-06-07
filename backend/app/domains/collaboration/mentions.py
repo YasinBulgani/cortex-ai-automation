@@ -20,16 +20,26 @@ def extract_handles(body: str) -> list[str]:
     return list({m.group(1).lower() for m in _MENTION_RE.finditer(body)})
 
 
-def resolve_handles_to_users(db: Session, handles: Iterable[str]) -> list[User]:
+def resolve_handles_to_users(
+    db: Session,
+    handles: Iterable[str],
+    tenant_id: str | None = None,
+) -> list[User]:
     """Match handles against the local-part of email. Fast & deterministic."""
     handles = [h.lower() for h in handles]
     if not handles:
         return []
-    # email LIKE handle@%   (case-insensitive)
     from sqlalchemy import func, or_, select
     conds = [func.lower(User.email).like(f"{h}@%") for h in handles]
-    return list(db.execute(select(User).where(or_(*conds))).scalars().all())
+    q = select(User).where(or_(*conds))
+    if tenant_id:
+        q = q.where(User.tenant_id == tenant_id)
+    return list(db.execute(q).scalars().all())
 
 
-def parse_and_resolve(db: Session, body: str) -> list[User]:
-    return resolve_handles_to_users(db, extract_handles(body))
+def parse_and_resolve(
+    db: Session,
+    body: str,
+    tenant_id: str | None = None,
+) -> list[User]:
+    return resolve_handles_to_users(db, extract_handles(body), tenant_id=tenant_id)

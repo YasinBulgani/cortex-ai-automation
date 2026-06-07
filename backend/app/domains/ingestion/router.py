@@ -36,8 +36,16 @@ class TextIngestIn(BaseModel):
 # Webhooks (Jira, Confluence) use HMAC signature verification instead of user
 # auth, since they are called by external services, not authenticated users.
 
+def _webhook_secret_required() -> bool:
+    from app.config import settings as _settings
+    forced = os.environ.get("INGESTION_REQUIRE_WEBHOOK_SECRET", "").lower() in {"1", "true", "yes"}
+    return forced or _settings.is_production_like
+
+
 def _verify_webhook_signature(x_webhook_secret: str | None = Header(None)) -> None:
     expected = os.environ.get("WEBHOOK_SECRET", "")
+    if _webhook_secret_required() and not expected:
+        raise HTTPException(503, "Webhook secret zorunlu ancak yapılandırılmamış (WEBHOOK_SECRET)")
     if expected and not hmac.compare_digest(x_webhook_secret or "", expected):
         raise HTTPException(401, "Invalid webhook signature")
 

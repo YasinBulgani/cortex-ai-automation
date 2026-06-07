@@ -38,8 +38,11 @@ def get_templates(_user: Annotated[User, Depends(require_permission("admin.*"))]
 
 
 @router.post("/preview", summary="Render an email template to HTML")
-def preview(body: PreviewRequest) -> dict[str, str]:
-    """Render *template_name* with *context* and return ``{html: str}``."""
+def preview(
+    body: PreviewRequest,
+    _user: Annotated[User, Depends(require_permission("admin.*"))],
+) -> dict[str, str]:
+    """Render *template_name* with *context* and return ``{html: str}``. Admin only."""
     try:
         html = preview_email(body.template_name, body.context)
     except ValueError as exc:

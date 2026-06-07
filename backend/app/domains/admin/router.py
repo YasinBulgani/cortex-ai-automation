@@ -79,7 +79,11 @@ def admin_list_teams(user: Annotated[User, Depends(get_current_user)], db: DB) -
 
     from app.infra.models import Team
 
-    teams = list(db.scalars(select(Team).order_by(Team.name)))
+    teams = list(db.scalars(
+        select(Team)
+        .where(Team.organization_id == user.tenant_id)
+        .order_by(Team.name)
+    ))
     return [
         {
             "id": str(t.id),

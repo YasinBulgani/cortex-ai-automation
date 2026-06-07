@@ -14,15 +14,28 @@ from app.infra.models import Dataset, RuleSet, User
 router = APIRouter(prefix="/datasets", tags=["rules"])
 
 
+def _get_dataset_or_403(dataset_id: str, db: Session, user: User) -> Dataset:
+    ds = db.get(Dataset, dataset_id)
+    if ds is None:
+        raise HTTPException(status_code=404, detail="Veri seti bulunamadı")
+    is_admin = any(
+        getattr(rp, "permission", "") == "admin.*"
+        for role in (user.roles or [])
+        for rp in (role.permissions or [])
+    )
+    if not is_admin and ds.created_by != user.id:
+        raise HTTPException(status_code=403, detail="Bu veri setine erişim yetkiniz yok")
+    return ds
+
+
 @router.get("/{dataset_id}/rule-sets", response_model=list[RuleSetOut])
 def list_rule_sets(
     dataset_id: str,
     db: Annotated[Session, Depends(get_db)],
-    _: Annotated[User, Depends(get_current_user)],
+    user: Annotated[User, Depends(get_current_user)],
 ) -> list[RuleSet]:
     """Is kurali setlerini listeler."""
-    if db.get(Dataset, dataset_id) is None:
-        raise HTTPException(status_code=404, detail="Veri seti bulunamadı")
+    _get_dataset_or_403(dataset_id, db, user)
     return list(
         db.scalars(
             select(RuleSet)
@@ -45,8 +58,7 @@ def create_rule_set(
     user: Annotated[User, Depends(get_current_user)],
 ) -> RuleSet:
     """Yeni is kurali seti olusturur."""
-    if db.get(Dataset, dataset_id) is None:
-        raise HTTPException(status_code=404, detail="Veri seti bulunamadı")
+    _get_dataset_or_403(dataset_id, db, user)
     rs = RuleSet(
         dataset_id=dataset_id,
         name=body.name,
@@ -74,9 +86,10 @@ def get_rule_set(
     dataset_id: str,
     rule_set_id: str,
     db: Annotated[Session, Depends(get_db)],
-    _: Annotated[User, Depends(get_current_user)],
+    user: Annotated[User, Depends(get_current_user)],
 ) -> RuleSet:
     """Kural seti detayini getirir."""
+    _get_dataset_or_403(dataset_id, db, user)
     rs = db.get(RuleSet, rule_set_id)
     if rs is None or rs.dataset_id != dataset_id:
         raise HTTPException(status_code=404, detail="Kural seti bulunamadı")

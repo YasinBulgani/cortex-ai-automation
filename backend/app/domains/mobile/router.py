@@ -274,7 +274,7 @@ def stop_farm_session(session_id: str, _user: Annotated[User, Depends(get_curren
 
 
 @router.get("/farm/health", summary="External device farm provider health")
-def farm_health() -> dict:
+def farm_health(_user: Annotated[User, Depends(get_current_user)]) -> dict:
     from .device_farm_adapters import get_device_farm
 
     return get_device_farm().health()

@@ -184,6 +184,10 @@ def decode_token(token: str) -> dict:
         settings.jwt_secret,
         algorithms=[settings.jwt_algorithm],
     )
+    # Reject special-purpose tokens (mfa_challenge, password_reset) as access tokens.
+    purpose = payload.get("purpose")
+    if purpose is not None:
+        raise jwt.InvalidTokenError(f"Bu token normal kimlik doğrulama için kullanılamaz (purpose={purpose})")
     jti = payload.get("jti", "")
     if _is_access_revoked(jti):
         raise jwt.InvalidTokenError("Token iptal edilmis")

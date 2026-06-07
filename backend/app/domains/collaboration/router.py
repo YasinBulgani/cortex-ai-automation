@@ -71,7 +71,7 @@ def preview_mentions(
 ):
     text = body.get("body", "")
     handles = extract_handles(text)
-    users = parse_and_resolve(db, text)
+    users = parse_and_resolve(db, text, tenant_id=user.tenant_id)
     return {
         "handles": handles,
         "resolved": [{"id": u.id, "email": u.email, "full_name": u.full_name} for u in users],

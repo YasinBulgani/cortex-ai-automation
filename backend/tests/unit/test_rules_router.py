@@ -29,6 +29,7 @@ except ImportError:
 def _make_user() -> MagicMock:
     user = MagicMock()
     user.id = "user-001"
+    user.roles = []
     return user
 
 
@@ -51,6 +52,7 @@ def _make_ruleset(
 def _make_dataset(ds_id: str = "ds-001") -> MagicMock:
     ds = MagicMock()
     ds.id = ds_id
+    ds.created_by = "user-001"
     return ds
 
 
@@ -203,9 +205,10 @@ def test_get_rule_set_wrong_dataset_404() -> None:
         return
     mock_user = _make_user()
     mock_db = MagicMock()
-    # RuleSet found but dataset_id mismatch
+    ds = _make_dataset()
     rs = _make_ruleset(dataset_id="ds-OTHER")
-    mock_db.get.return_value = rs
+    # First db.get call returns dataset, second returns ruleset
+    mock_db.get.side_effect = [ds, rs]
 
     client = _app_with_overrides(mock_db, mock_user)
     r = client.get("/datasets/ds-001/rule-sets/rs-001")
@@ -217,8 +220,10 @@ def test_get_rule_set_found_200() -> None:
         return
     mock_user = _make_user()
     mock_db = MagicMock()
+    ds = _make_dataset()
     rs = _make_ruleset(dataset_id="ds-001")
-    mock_db.get.return_value = rs
+    # First db.get call returns dataset, second returns ruleset
+    mock_db.get.side_effect = [ds, rs]
 
     client = _app_with_overrides(mock_db, mock_user)
     r = client.get("/datasets/ds-001/rule-sets/rs-001")

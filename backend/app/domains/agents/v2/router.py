@@ -117,13 +117,16 @@ async def run_agent(
 
 @router.get("/runs", response_model=RunV2ListResponse)
 async def list_runs(
-    _user: Annotated[User, Depends(get_current_user)],
+    current_user: Annotated[User, Depends(get_current_user)],
     project_id: str | None = None,
     page: int = 1,
     page_size: int = 20,
     request: Request = None,  # type: ignore[assignment]
 ):
-    tenant_id = getattr(request.state, "tenant_id", None) if request else None
+    # Use the verified user's tenant_id, not the unverified request.state value.
+    tenant_id = getattr(current_user, "tenant_id", None) or getattr(
+        request.state, "tenant_id", None
+    ) if request else getattr(current_user, "tenant_id", None)
     store = get_run_store()
     records = store.list(project_id=project_id, tenant_id=tenant_id, limit=page * page_size)
 
@@ -158,21 +161,28 @@ async def list_runs(
     return RunV2ListResponse(runs=items, total=len(records), page=page, page_size=page_size)
 
 
-@router.get("/runs/{run_id}", response_model=RunV2Status)
-async def get_run(run_id: str, _user: Annotated[User, Depends(get_current_user)]):
-    store = get_run_store()
+def _get_run_or_403(run_id: str, store, user: User):
+    """Return run record if it belongs to the user's tenant, else raise 403/404."""
     rec = store.get(run_id)
     if not rec:
         raise HTTPException(status_code=404, detail=f"Run bulunamadı: {run_id}")
+    user_tenant = getattr(user, "tenant_id", None)
+    if user_tenant and rec.tenant_id and rec.tenant_id != user_tenant:
+        raise HTTPException(status_code=403, detail="Bu çalıştırmaya erişim yetkiniz yok")
+    return rec
+
+
+@router.get("/runs/{run_id}", response_model=RunV2Status)
+async def get_run(run_id: str, current_user: Annotated[User, Depends(get_current_user)]):
+    store = get_run_store()
+    rec = _get_run_or_403(run_id, store, current_user)
     return RunV2Status(**rec.to_status_dict())
 
 
 @router.get("/runs/{run_id}/stream")
-async def stream_run(run_id: str, _user: Annotated[User, Depends(get_current_user)]):
+async def stream_run(run_id: str, current_user: Annotated[User, Depends(get_current_user)]):
     store = get_run_store()
-    rec = store.get(run_id)
-    if not rec:
-        raise HTTPException(status_code=404, detail=f"Run bulunamadı: {run_id}")
+    rec = _get_run_or_403(run_id, store, current_user)
 
     async def event_stream() -> AsyncIterator[str]:
         for evt in rec.events:
@@ -204,11 +214,9 @@ async def stream_run(run_id: str, _user: Annotated[User, Depends(get_current_use
 
 
 @router.post("/runs/{run_id}/cancel")
-async def cancel_run(run_id: str):
+async def cancel_run(run_id: str, current_user: Annotated[User, Depends(get_current_user)]):
     store = get_run_store()
-    rec = store.get(run_id)
-    if not rec:
-        raise HTTPException(status_code=404, detail=f"Run bulunamadı: {run_id}")
+    rec = _get_run_or_403(run_id, store, current_user)
     if rec.status in ("completed", "failed", "cancelled"):
         return {"run_id": run_id, "status": rec.status, "message": "Zaten bitmiş"}
     state = dict(rec.state or {})

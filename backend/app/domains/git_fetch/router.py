@@ -133,7 +133,14 @@ def fetch_git_repo(
             actual_branch = body.branch or "main"
 
         root = Path(tmp)
-        search_root = root / body.path_prefix.strip("/") if body.path_prefix.strip("/") else root
+        if body.path_prefix.strip("/"):
+            candidate = (root / body.path_prefix.strip("/")).resolve()
+            # Prevent path traversal outside the cloned repo
+            if not str(candidate).startswith(str(root.resolve())):
+                raise HTTPException(status_code=422, detail="Geçersiz path_prefix: repo dışına çıkıyor")
+            search_root = candidate
+        else:
+            search_root = root
 
         files: list[FetchedFile] = []
         skipped = 0

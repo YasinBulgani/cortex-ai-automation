@@ -513,7 +513,7 @@ async def engine_health():
             return resp.json()
     except httpx.RequestError:
         logger.warning("Automation engine health check failed for %s", ENGINE_BASE)
-        return {"status": "unreachable", "engine_url": ENGINE_BASE}
+        return {"status": "unreachable"}
 
 
 @router.get(

@@ -31,17 +31,35 @@ def _queue() -> Queue:
     return Queue(settings.rq_queue_name, connection=Redis.from_url(settings.redis_url))
 
 
+def _is_admin_user(user: User) -> bool:
+    for role in (user.roles or []):
+        for rp in (role.permissions or []):
+            if getattr(rp, "permission", "") == "admin.*":
+                return True
+    return False
+
+
+def _get_job_or_403(job_id: str, db: Session, user: User) -> GenerationJob:
+    """Return the job if it belongs to the user (or user is admin), else raise 403/404."""
+    job = db.get(GenerationJob, job_id)
+    if job is None:
+        raise HTTPException(status_code=404, detail="İş bulunamadı")
+    if not _is_admin_user(user) and job.created_by != user.id:
+        raise HTTPException(status_code=403, detail="Bu işe erişim yetkiniz yok")
+    return job
+
+
 @router.get("", response_model=list[GenerationJobOut])
 def list_jobs(
     db: Annotated[Session, Depends(get_db)],
-    _: Annotated[User, Depends(get_current_user)],
+    user: Annotated[User, Depends(get_current_user)],
     limit: int = 50,
 ) -> list[GenerationJob]:
-    """Arka plan islerini listeler."""
+    """Arka plan islerini listeler — sadece kendi işleri (admin hepsini görür)."""
     try:
-        q = (
-            select(GenerationJob).order_by(GenerationJob.created_at.desc()).limit(min(limit, 200))
-        )
+        q = select(GenerationJob).order_by(GenerationJob.created_at.desc()).limit(min(limit, 200))
+        if not _is_admin_user(user):
+            q = q.where(GenerationJob.created_by == user.id)
         return list(db.scalars(q).all())
     except Exception as e:
         logger.error("list_jobs failed: %s", e, exc_info=True)
@@ -98,14 +116,11 @@ def enqueue_job(
 def get_job(
     job_id: str,
     db: Annotated[Session, Depends(get_db)],
-    _: Annotated[User, Depends(get_current_user)],
+    user: Annotated[User, Depends(get_current_user)],
 ) -> GenerationJob:
     """Is detayini ve durumunu getirir."""
     try:
-        job = db.get(GenerationJob, job_id)
-        if job is None:
-            raise AppError("job.not_found")
-        return job
+        return _get_job_or_403(job_id, db, user)
     except (AppError, HTTPException):
         raise
     except Exception as e:
@@ -117,12 +132,11 @@ def get_job(
 def list_events(
     job_id: str,
     db: Annotated[Session, Depends(get_db)],
-    _: Annotated[User, Depends(get_current_user)],
+    user: Annotated[User, Depends(get_current_user)],
 ) -> list[JobEvent]:
     """Ise ait olay kayitlarini listeler."""
     try:
-        if db.get(GenerationJob, job_id) is None:
-            raise AppError("job.not_found")
+        _get_job_or_403(job_id, db, user)
         return list(
             db.scalars(
                 select(JobEvent).where(JobEvent.job_id == job_id).order_by(JobEvent.ts.asc())
@@ -139,12 +153,11 @@ def list_events(
 def list_job_artifacts(
     job_id: str,
     db: Annotated[Session, Depends(get_db)],
-    _: Annotated[User, Depends(get_current_user)],
+    user: Annotated[User, Depends(get_current_user)],
 ):
     """Ise bagli artifact dosyalarini listeler."""
     try:
-        if db.get(GenerationJob, job_id) is None:
-            raise AppError("job.not_found")
+        _get_job_or_403(job_id, db, user)
         arts = db.scalars(select(Artifact).where(Artifact.job_id == job_id)).all()
         return [
             ArtifactOut(
