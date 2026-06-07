@@ -59,6 +59,7 @@ async def run_agent(
     body: RunAgentV2Request,
     background: BackgroundTasks,
     request: Request,
+    current_user: Annotated[User, Depends(get_current_user)],
 ):
     input_payload = _build_payload(body)
     if not input_payload:
@@ -67,8 +68,16 @@ async def run_agent(
             detail="Kaynak belirtilmemiş. url/file_path/text/swagger_url gerekli.",
         )
 
-    tenant_id = getattr(request.state, "tenant_id", "default")
-    user_id = getattr(request.state, "user_id", "anonymous")
+    # SSRF protection: validate user-supplied URLs before queuing
+    from app.domains.api_testing.network_security import UnsafeTargetError, validate_outbound_url
+    for url_field in filter(None, [body.url, body.swagger_url]):
+        try:
+            validate_outbound_url(url_field)
+        except UnsafeTargetError as exc:
+            raise HTTPException(status_code=400, detail=f"Guvensiz URL: {exc}")
+
+    tenant_id = getattr(current_user, "tenant_id", None) or getattr(request.state, "tenant_id", "default")
+    user_id = current_user.id
 
     cfg = get_config()
     if body.auto_pr:
