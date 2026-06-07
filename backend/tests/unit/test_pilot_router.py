@@ -11,6 +11,7 @@ try:
     from fastapi import FastAPI
     from fastapi.testclient import TestClient
 
+    from app.deps import get_current_user
     from app.domains.pilot.router import router
 
     _IMPORT_OK = True
@@ -22,18 +23,32 @@ except ImportError:
 # Helpers
 # ---------------------------------------------------------------------------
 
+_TEST_USER_ID = "user-001"
+
+
+def _mock_user():
+    u = MagicMock()
+    u.id = _TEST_USER_ID
+    u.email = "test@example.com"
+    u.is_active = True
+    u.roles = []
+    return u
+
+
 def _app() -> TestClient:
     app = FastAPI()
     app.include_router(router)
+    app.dependency_overrides[get_current_user] = _mock_user
     return TestClient(app, raise_server_exceptions=False)
 
 
 def _fake_session(session_id: str = "sess-001") -> MagicMock:
     s = MagicMock()
+    s.user_id = _TEST_USER_ID
     s.to_dict.return_value = {
         "id": session_id,
         "project_id": "proj-001",
-        "user_id": "user-001",
+        "user_id": _TEST_USER_ID,
         "status": "active",
         "stages": [],
     }
@@ -50,7 +65,7 @@ def test_create_session_success() -> None:
     client = _app()
     with patch("app.domains.pilot.router.svc") as mock_svc:
         mock_svc.create_session.return_value = _fake_session()
-        r = client.post("/pilot/sessions", json={"project_id": "proj-001", "user_id": "user-001"})
+        r = client.post("/pilot/sessions", json={"project_id": "proj-001"})
     assert r.status_code == 201
     data = r.json()
     assert "id" in data
@@ -61,8 +76,7 @@ def test_create_session_missing_project_id_422() -> None:
     if not _IMPORT_OK:
         return
     client = _app()
-    # project_id has min_length=1, empty string should fail
-    r = client.post("/pilot/sessions", json={"project_id": "", "user_id": "user-001"})
+    r = client.post("/pilot/sessions", json={"project_id": ""})
     assert r.status_code == 422
 
 
@@ -74,7 +88,8 @@ def test_create_session_no_body_422() -> None:
     assert r.status_code == 422
 
 
-def test_create_session_default_user_id() -> None:
+def test_create_session_user_from_auth() -> None:
+    """user_id artık body'den değil, token'dan alınıyor."""
     if not _IMPORT_OK:
         return
     client = _app()
@@ -82,8 +97,7 @@ def test_create_session_default_user_id() -> None:
         mock_svc.create_session.return_value = _fake_session()
         r = client.post("/pilot/sessions", json={"project_id": "proj-999"})
     assert r.status_code == 201
-    # service was called
-    mock_svc.create_session.assert_called_once()
+    mock_svc.create_session.assert_called_once_with(project_id="proj-999", user_id=_TEST_USER_ID)
 
 
 # ---------------------------------------------------------------------------
@@ -136,7 +150,7 @@ def test_list_sessions_with_project_filter() -> None:
         r = client.get("/pilot/sessions?project_id=proj-001")
     assert r.status_code == 200
     assert len(r.json()) == 2
-    mock_svc.list_sessions.assert_called_once_with(project_id="proj-001", user_id=None)
+    mock_svc.list_sessions.assert_called_once_with(project_id="proj-001", user_id=_TEST_USER_ID)
 
 
 # ---------------------------------------------------------------------------
@@ -164,7 +178,9 @@ def test_converse_success() -> None:
         return
     client = _app()
     with patch("app.domains.pilot.router.svc") as mock_svc:
-        mock_svc.converse.return_value = _fake_session()
+        session = _fake_session()
+        mock_svc.get_session.return_value = session
+        mock_svc.converse.return_value = session
         r = client.post(
             "/pilot/sessions/sess-001/converse",
             json={"text": "Ne yapmamı istiyorsunuz?"},
@@ -179,7 +195,7 @@ def test_converse_session_not_found_404() -> None:
         return
     client = _app()
     with patch("app.domains.pilot.router.svc") as mock_svc:
-        mock_svc.converse.side_effect = ValueError("Session bulunamadı")
+        mock_svc.get_session.return_value = None
         r = client.post("/pilot/sessions/bad-id/converse", json={"text": "merhaba"})
     assert r.status_code == 404
 
@@ -193,7 +209,9 @@ def test_execute_stage_success() -> None:
         return
     client = _app()
     with patch("app.domains.pilot.router.svc") as mock_svc:
-        mock_svc.execute_next_stage.return_value = _fake_session()
+        session = _fake_session()
+        mock_svc.get_session.return_value = session
+        mock_svc.execute_next_stage.return_value = session
         r = client.post("/pilot/sessions/sess-001/execute-stage")
     assert r.status_code == 200
     assert "id" in r.json()
@@ -204,6 +222,7 @@ def test_execute_stage_bad_state_400() -> None:
         return
     client = _app()
     with patch("app.domains.pilot.router.svc") as mock_svc:
+        mock_svc.get_session.return_value = _fake_session()
         mock_svc.execute_next_stage.side_effect = ValueError("Session zaten tamamlandı")
         r = client.post("/pilot/sessions/sess-001/execute-stage")
     assert r.status_code == 400
@@ -218,7 +237,9 @@ def test_clarify_success() -> None:
         return
     client = _app()
     with patch("app.domains.pilot.router.svc") as mock_svc:
-        mock_svc.answer_clarification.return_value = _fake_session()
+        session = _fake_session()
+        mock_svc.get_session.return_value = session
+        mock_svc.answer_clarification.return_value = session
         r = client.post(
             "/pilot/sessions/sess-001/clarify",
             json={"answer": "evet"},
@@ -231,6 +252,7 @@ def test_clarify_bad_state_400() -> None:
         return
     client = _app()
     with patch("app.domains.pilot.router.svc") as mock_svc:
+        mock_svc.get_session.return_value = _fake_session()
         mock_svc.answer_clarification.side_effect = ValueError("Bekleyen soru yok")
         r = client.post("/pilot/sessions/sess-001/clarify", json={"answer": "evet"})
     assert r.status_code == 400

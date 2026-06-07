@@ -20,10 +20,13 @@ import json
 import logging
 from collections.abc import AsyncIterator
 from pathlib import Path
+from typing import Annotated
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import FileResponse, StreamingResponse
 
+from app.deps import get_current_user
+from app.infra.models import User
 from .artifact_store import get_artifact_store
 from .device_broker import get_broker
 from .llm_stepper import generate_steps
@@ -54,6 +57,8 @@ _logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/mobile", tags=["mobile"])
 
+AuthUser = Annotated[User, Depends(get_current_user)]
+
 
 # ── Devices ────────────────────────────────────────────────────
 @router.get("/devices", response_model=list[Device])
@@ -76,7 +81,7 @@ def probe_devices() -> list[Device]:
 
 
 @router.post("/devices/{device_id}/reboot", response_model=Device)
-def reboot_device(device_id: str) -> Device:
+def reboot_device(device_id: str, user: AuthUser) -> Device:
     dev = get_broker().reboot(device_id)
     if not dev:
         raise HTTPException(404, "Cihaz bulunamadı")
@@ -84,7 +89,7 @@ def reboot_device(device_id: str) -> Device:
 
 
 @router.post("/enroll-physical", response_model=Device)
-def enroll_physical(req: PhysicalEnrollRequest) -> Device:
+def enroll_physical(req: PhysicalEnrollRequest, user: AuthUser) -> Device:
     return get_broker().enroll_physical(req)
 
 
@@ -95,7 +100,7 @@ def farm_stats() -> FarmStats:
 
 # ── LLM Stepper ────────────────────────────────────────────────
 @router.post("/generate-from-prompt", response_model=StepGenerationResponse)
-def generate_from_prompt(req: StepGenerationRequest) -> StepGenerationResponse:
+def generate_from_prompt(req: StepGenerationRequest, user: AuthUser) -> StepGenerationResponse:
     return generate_steps(
         prompt=req.prompt,
         platform=req.platform,
@@ -106,7 +111,7 @@ def generate_from_prompt(req: StepGenerationRequest) -> StepGenerationResponse:
 
 # ── Sessions ───────────────────────────────────────────────────
 @router.post("/sessions", response_model=list[Session])
-async def create_session(req: SessionCreate) -> list[Session]:
+async def create_session(req: SessionCreate, user: AuthUser) -> list[Session]:
     sessions = await start_suite(req)
     if not sessions:
         raise HTTPException(409, "Uygun cihaz yok (hepsi busy veya offline)")
@@ -179,7 +184,7 @@ def get_artifact(artifact_id: str) -> FileResponse:
 
 # ── Visual Verifier ────────────────────────────────────────────
 @router.post("/visual-verify", response_model=VisualVerifyResponse)
-def visual_verification(req: VisualVerifyRequest) -> VisualVerifyResponse:
+def visual_verification(req: VisualVerifyRequest, user: AuthUser) -> VisualVerifyResponse:
     return visual_verify(req)
 
 
@@ -232,6 +237,7 @@ def list_farm_devices(
 def start_farm_session(
     device_id: str,
     app_path: str,
+    _user: AuthUser,
     capabilities: dict = {},
 ) -> dict:
     """Start a test session on the specified device via the active farm provider.
@@ -259,7 +265,7 @@ def get_farm_session(session_id: str) -> dict:
 
 
 @router.delete("/farm/sessions/{session_id}", summary="Stop a farm session")
-def stop_farm_session(session_id: str) -> dict[str, str]:
+def stop_farm_session(session_id: str, _user: AuthUser) -> dict[str, str]:
     from .device_farm_adapters import get_device_farm
 
     farm = get_device_farm()

@@ -663,7 +663,7 @@ class _LocalFarmAdapter:
 
         broker = _self_mod.get_broker()
         devices = broker.list()
-        idle = sum(1 for d in devices if d.status.value == "idle")
+        idle = sum(1 for d in devices if (d.status.value if hasattr(d.status, 'value') else d.status) == "idle")
         return {
             "provider": self.name,
             "total_devices": len(devices),

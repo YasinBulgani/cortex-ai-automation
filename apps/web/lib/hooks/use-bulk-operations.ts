@@ -31,7 +31,7 @@ export function useBulkUpdateCases(projectId: string) {
     mutationFn: (payload: BulkUpdateCasesPayload) =>
       apiFetch<BulkUpdateResult>(
         `/api/v1/test-management/projects/${projectId}/cases/bulk-update`,
-        { method: 'POST', body: JSON.stringify(payload) },
+        { method: 'POST', json: payload },
       ),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ['management', 'cases', projectId] })
@@ -51,7 +51,7 @@ export function useBulkDeleteCases(projectId: string) {
     mutationFn: (case_ids: string[]) =>
       apiFetch<{ deleted: number }>(
         `/api/v1/test-management/projects/${projectId}/cases/bulk-delete`,
-        { method: 'POST', body: JSON.stringify({ case_ids }) },
+        { method: 'POST', json: { case_ids } },
       ),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ['management', 'cases', projectId] })

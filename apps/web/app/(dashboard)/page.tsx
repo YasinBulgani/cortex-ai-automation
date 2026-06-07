@@ -43,7 +43,7 @@ export default function AktiviteMonitoru() {
 
   // React Query: caching, deduplication, auto-refetch her şeyi halleder.
   // refetchInterval hook içinde tanımlandı (30s) — ayrıca setInterval GEREKMEZ.
-  const { data, isLoading, dataUpdatedAt, refetch } = useGlobalDashboard();
+  const { data, isLoading, isError, error, dataUpdatedAt, refetch } = useGlobalDashboard();
 
   // "Duraklat" modunda React Query'nin otomatik polling'ini durdur
   // Bu geçici çözüm: hook'u paused state'e göre override et
@@ -76,6 +76,21 @@ export default function AktiviteMonitoru() {
 
   return (
     <div className="flex flex-col gap-6 p-6">
+      {/* Hata durumu */}
+      {isError && !isLoading && (
+        <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 flex items-center justify-between gap-4">
+          <p className="text-sm text-red-400">
+            Dashboard verileri yüklenemedi: {(error as Error)?.message ?? "Sunucu hatası"}
+          </p>
+          <button
+            onClick={() => refetch()}
+            className="shrink-0 rounded-lg border border-red-500/40 px-3 py-1 text-xs font-medium text-red-400 hover:bg-red-500/20 transition-colors"
+          >
+            Tekrar Dene
+          </button>
+        </div>
+      )}
+
       {/* Başlık */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>

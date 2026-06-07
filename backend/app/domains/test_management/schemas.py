@@ -115,6 +115,9 @@ class TestCaseStepIn(BaseModel):
     is_required: bool = True
 
 
+TestCaseStepCreate = TestCaseStepIn  # public alias used in tests and API consumers
+
+
 class TestCaseStepOut(TestCaseStepIn):
     model_config = ConfigDict(from_attributes=True)
 
@@ -218,6 +221,7 @@ class RepositoryOut(BaseModel):
 class TestPlanCreate(BaseModel):
     name: str = Field(..., min_length=1, max_length=300)
     plan_type: str = "regression"
+    status: str = "draft"
     release_name: Optional[str] = Field(None, max_length=100)
     scope_summary: Optional[str] = None
 
@@ -1126,9 +1130,12 @@ class TestCaseCloneRequest(BaseModel):
 
 
 class TestPlanAIGenerateRequest(BaseModel):
-    release_name: str = Field(..., min_length=1, max_length=200)
+    release_name: str = Field(default="Next Release", min_length=1, max_length=200)
     goal: Optional[str] = Field(default=None, max_length=500)
     plan_type: str = "regression"
+    objective: Optional[str] = Field(default=None, max_length=1000)
+    risk_areas: list[str] = Field(default_factory=list)
+    coverage_target: float = 0.8
 
 
 class TestPlanAIGenerateResponse(BaseModel):

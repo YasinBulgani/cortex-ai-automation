@@ -8,11 +8,12 @@ from __future__ import annotations
 import pytest
 
 try:
-    from unittest.mock import patch
+    from unittest.mock import MagicMock, patch
 
     from fastapi import FastAPI
     from fastapi.testclient import TestClient
 
+    from app.deps import get_current_user
     from app.domains.email.router import router as email_router
 
     _IMPORT_OK = True
@@ -27,9 +28,23 @@ pytestmark = pytest.mark.skipif(not _IMPORT_OK, reason="import failed")
 # ---------------------------------------------------------------------------
 
 
+def _mock_admin_user():
+    u = MagicMock()
+    u.id = "admin-user"
+    u.email = "admin@example.com"
+    u.is_active = True
+    role = MagicMock()
+    perm = MagicMock()
+    perm.permission = "admin.*"
+    role.permissions = [perm]
+    u.roles = [role]
+    return u
+
+
 def _app() -> TestClient:
     app = FastAPI()
     app.include_router(email_router, prefix="/api/v1")
+    app.dependency_overrides[get_current_user] = _mock_admin_user
     return TestClient(app, raise_server_exceptions=False)
 
 

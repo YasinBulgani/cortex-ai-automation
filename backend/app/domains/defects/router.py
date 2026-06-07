@@ -1,20 +1,28 @@
-"""Defect router — /api/v1/defects."""
+"""Defect router — /api/v1/defects.
+
+CI entegrasyonu için tüm write endpoint'ler authentication gerektirir.
+CI pipeline'ları service-account JWT token kullanmalıdır.
+"""
 from __future__ import annotations
 
-from typing import Optional
+from typing import Annotated, Optional
 
-from fastapi import APIRouter, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, Field
 
+from app.deps import get_current_user
+from app.infra.models import User
 from app.domains.defects import service as svc
 
 router = APIRouter(prefix="/defects", tags=["defects"])
 
+AuthUser = Annotated[User, Depends(get_current_user)]
+
 
 class OpenDefectIn(BaseModel):
-    project_id: str = Field(min_length=1)
+    project_id: str = Field(min_length=1, max_length=100)
     title: str = Field(min_length=1, max_length=240)
-    description: str = Field(min_length=1)
+    description: str = Field(min_length=1, max_length=10_000)
     scenario_id: Optional[str] = None
     execution_id: Optional[str] = None
     severity: str = "major"
@@ -24,18 +32,18 @@ class OpenDefectIn(BaseModel):
 
 
 class MarkFixIn(BaseModel):
-    commit_sha: str = Field(min_length=1)
+    commit_sha: str = Field(min_length=1, max_length=100)
     actor: str = "ci"
 
 
 class VerifyIn(BaseModel):
-    rerun_id: str = Field(min_length=1)
+    rerun_id: str = Field(min_length=1, max_length=100)
     rerun_passed: bool
     actor: str = "system"
 
 
 @router.post("", status_code=status.HTTP_201_CREATED)
-def open_defect(body: OpenDefectIn) -> dict:
+def open_defect(body: OpenDefectIn, user: AuthUser) -> dict:
     d = svc.open_defect_from_execution(
         project_id=body.project_id,
         title=body.title,
@@ -52,6 +60,7 @@ def open_defect(body: OpenDefectIn) -> dict:
 
 @router.get("")
 def list_defects_endpoint(
+    user: AuthUser,
     project_id: Optional[str] = Query(None),
     status: Optional[str] = Query(None),
 ) -> list[dict]:
@@ -59,7 +68,7 @@ def list_defects_endpoint(
 
 
 @router.get("/{defect_id}")
-def get_defect_endpoint(defect_id: str) -> dict:
+def get_defect_endpoint(defect_id: str, user: AuthUser) -> dict:
     d = svc.get_defect(defect_id)
     if d is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Defect bulunamadı")
@@ -67,7 +76,7 @@ def get_defect_endpoint(defect_id: str) -> dict:
 
 
 @router.post("/{defect_id}/fix")
-def mark_fix(defect_id: str, body: MarkFixIn) -> dict:
+def mark_fix(defect_id: str, body: MarkFixIn, user: AuthUser) -> dict:
     try:
         d = svc.mark_fix_merged(defect_id, body.commit_sha, actor=body.actor)
     except ValueError as exc:
@@ -76,7 +85,7 @@ def mark_fix(defect_id: str, body: MarkFixIn) -> dict:
 
 
 @router.post("/{defect_id}/verify")
-def verify_defect(defect_id: str, body: VerifyIn) -> dict:
+def verify_defect(defect_id: str, body: VerifyIn, user: AuthUser) -> dict:
     try:
         d = svc.verify_and_close(
             defect_id,

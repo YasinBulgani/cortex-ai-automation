@@ -9,10 +9,12 @@ Mount prefix: /api/v1/qa (router_registry'de)
 from __future__ import annotations
 
 import logging
-from typing import List, Optional
+from typing import Annotated, List, Optional
 
-from fastapi import APIRouter, Body, HTTPException, Path, Query, status
+from fastapi import APIRouter, Body, Depends, HTTPException, Path, Query, status
 
+from app.deps import require_permission
+from app.infra.models import User
 from . import insights, service
 from .insights import InsightsResponse
 from .models import (
@@ -37,6 +39,8 @@ from .models import (
 
 router = APIRouter(prefix="/qa", tags=["qa"])
 logger = logging.getLogger(__name__)
+
+AdminUser = Annotated[User, Depends(require_permission("admin.*"))]
 
 
 # ── Cases ───────────────────────────────────────────────────────────────
@@ -67,7 +71,7 @@ def get_case(tc_id: str = Path(..., pattern="^TC-[A-Z0-9]+-\\d+$")) -> TestCase:
 
 
 @router.post("/cases", response_model=TestCase, status_code=status.HTTP_201_CREATED)
-def create_case(req: CreateTestCaseRequest) -> TestCase:
+def create_case(req: CreateTestCaseRequest, _admin: AdminUser) -> TestCase:
     try:
         return service.create_test_case(req)
     except ValueError as e:
@@ -76,6 +80,7 @@ def create_case(req: CreateTestCaseRequest) -> TestCase:
 
 @router.patch("/cases/{tc_id}", response_model=TestCase)
 def update_case(
+    _admin: AdminUser,
     tc_id: str = Path(..., pattern="^TC-[A-Z0-9]+-\\d+$"),
     req: UpdateTestCaseRequest = Body(...),
 ) -> TestCase:
@@ -102,7 +107,7 @@ def get_run(run_id: str = Path(..., pattern="^TR-\\d{4}-\\d{2}-\\d{2}-[A-Z0-9-]+
 
 
 @router.post("/runs", response_model=TestRun, status_code=status.HTTP_201_CREATED)
-def create_run(req: CreateRunRequest) -> TestRun:
+def create_run(req: CreateRunRequest, _admin: AdminUser) -> TestRun:
     return service.create_run(
         plan=req.plan,
         executor=req.executor,
@@ -156,7 +161,7 @@ def get_insights() -> InsightsResponse:
 # ── AI suggest (LLM TC draft) ───────────────────────────────────────────
 
 @router.post("/ai-suggest", response_model=AISuggestResponse)
-def ai_suggest(req: AISuggestRequest) -> AISuggestResponse:
+def ai_suggest(req: AISuggestRequest, _admin: AdminUser) -> AISuggestResponse:
     """ai-suggest.mjs CLI wrapper.
 
     Dry-run modunda prompt'u döner (LLM çağrısı yapmaz). Production'da
@@ -236,7 +241,7 @@ def ai_suggest(req: AISuggestRequest) -> AISuggestResponse:
 # ── Defect Issue (GitHub bridge) ────────────────────────────────────────
 
 @router.post("/defects/open-issue", response_model=OpenDefectIssueResponse)
-def open_defect_issue(req: OpenDefectIssueRequest) -> OpenDefectIssueResponse:
+def open_defect_issue(req: OpenDefectIssueRequest, _admin: AdminUser) -> OpenDefectIssueResponse:
     """Failed run → GitHub Issue (qa-defect label).
 
     Şu an dry-run modunda — gerçek `gh issue create` çağrısı

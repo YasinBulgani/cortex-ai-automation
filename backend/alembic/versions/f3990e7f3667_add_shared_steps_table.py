@@ -194,68 +194,68 @@ def upgrade() -> None:
     sa.PrimaryKeyConstraint('id')
     )
     op.drop_index(op.f('ix_nexus_settings_project_id'), table_name='nexus_settings')
-    op.drop_table('nexus_settings')
+    op.execute('DROP TABLE IF EXISTS nexus_settings CASCADE')
     op.drop_index(op.f('ix_nexus_scenarios_project_id'), table_name='nexus_scenarios')
     op.execute("DROP TABLE IF EXISTS nexus_scenarios CASCADE")
-    op.drop_index(op.f('idx_heal_history_file'), table_name='heal_history')
-    op.drop_index(op.f('idx_heal_history_run'), table_name='heal_history')
-    op.drop_index(op.f('idx_heal_history_strategy'), table_name='heal_history')
-    op.drop_table('heal_history')
+    op.drop_index(op.f('idx_heal_history_file'), table_name='heal_history', if_exists=True)
+    op.drop_index(op.f('idx_heal_history_run'), table_name='heal_history', if_exists=True)
+    op.drop_index(op.f('idx_heal_history_strategy'), table_name='heal_history', if_exists=True)
+    op.execute("DROP TABLE IF EXISTS heal_history CASCADE")
     op.drop_index(op.f('idx_outbox_aggregate'), table_name='outbox')
     op.drop_index(op.f('idx_outbox_event_type'), table_name='outbox')
     op.drop_index(op.f('idx_outbox_pending'), table_name='outbox', postgresql_where="((status)::text = ANY ((ARRAY['pending'::character varying, 'failed'::character varying])::text[]))")
-    op.drop_table('outbox')
+    op.execute('DROP TABLE IF EXISTS outbox CASCADE')
     op.drop_index(op.f('ix_iam_users_email'), table_name='iam_users')
     op.drop_index(op.f('ix_iam_users_is_active'), table_name='iam_users')
-    op.drop_table('iam_users')
+    op.execute('DROP TABLE IF EXISTS iam_users CASCADE')
     op.drop_index(op.f('idx_playwright_sessions_status'), table_name='playwright_sessions', postgresql_where="((status)::text = 'active'::text)")
-    op.drop_table('playwright_sessions')
+    op.execute('DROP TABLE IF EXISTS playwright_sessions CASCADE')
     op.drop_index(op.f('ix_nexus_labels_scenario_id'), table_name='nexus_labels')
-    op.drop_table('nexus_labels')
+    op.execute('DROP TABLE IF EXISTS nexus_labels CASCADE')
     op.drop_index(op.f('idx_jenkins_conn_tenant'), table_name='cicd_jenkins_connections')
     op.drop_index(op.f('uq_jenkins_conn_tenant_name'), table_name='cicd_jenkins_connections')
-    op.drop_table('cicd_jenkins_connections')
-    op.drop_table('scaffold_templates')
+    op.execute('DROP TABLE IF EXISTS cicd_jenkins_connections CASCADE')
+    op.execute('DROP TABLE IF EXISTS scaffold_templates CASCADE')
     op.drop_index(op.f('ix_tspm_wizard_snapshots_project_id'), table_name='tspm_wizard_snapshots')
     op.drop_index(op.f('ix_tspm_wizard_snapshots_template_id'), table_name='tspm_wizard_snapshots')
     op.drop_index(op.f('ix_tspm_wizard_snapshots_updated_at'), table_name='tspm_wizard_snapshots')
-    op.drop_table('tspm_wizard_snapshots')
+    op.execute('DROP TABLE IF EXISTS tspm_wizard_snapshots CASCADE')
     op.drop_index(op.f('ix_project_knowledge_created_at'), table_name='project_knowledge')
     op.drop_index(op.f('ix_project_knowledge_project_id'), table_name='project_knowledge')
     op.drop_index(op.f('ix_project_knowledge_project_source'), table_name='project_knowledge')
     op.drop_index(op.f('ix_project_knowledge_source'), table_name='project_knowledge')
-    op.drop_table('project_knowledge')
+    op.execute('DROP TABLE IF EXISTS project_knowledge CASCADE')
     op.drop_index(op.f('ix_sd_automation_templates_created_at'), table_name='sd_automation_templates')
     op.drop_index(op.f('ix_sd_automation_templates_framework'), table_name='sd_automation_templates')
     op.drop_index(op.f('ix_sd_automation_templates_status'), table_name='sd_automation_templates')
-    op.drop_table('sd_automation_templates')
+    op.execute('DROP TABLE IF EXISTS sd_automation_templates CASCADE')
     op.drop_index(op.f('ix_nexus_endpoints_crawl_job_id'), table_name='nexus_endpoints')
-    op.drop_table('nexus_endpoints')
+    op.execute('DROP TABLE IF EXISTS nexus_endpoints CASCADE')
     op.drop_index(op.f('ix_nexus_crawl_jobs_project_id'), table_name='nexus_crawl_jobs')
-    op.drop_table('nexus_crawl_jobs')
+    op.execute('DROP TABLE IF EXISTS nexus_crawl_jobs CASCADE')
     op.drop_index(op.f('ix_nexus_comments_scenario_id'), table_name='nexus_comments')
-    op.drop_table('nexus_comments')
+    op.execute('DROP TABLE IF EXISTS nexus_comments CASCADE')
     op.drop_index(op.f('ix_prj_projects_name'), table_name='prj_projects')
     op.drop_index(op.f('ix_prj_projects_status'), table_name='prj_projects')
-    op.drop_table('prj_projects')
+    op.execute('DROP TABLE IF EXISTS prj_projects CASCADE')
     op.drop_index(op.f('ix_nexus_files_crawl_job_id'), table_name='nexus_files')
-    op.drop_table('nexus_files')
+    op.execute('DROP TABLE IF EXISTS nexus_files CASCADE')
     op.drop_index(op.f('ix_jira_integrations_tenant_id'), table_name='jira_integrations')
-    op.drop_table('jira_integrations')
+    op.execute('DROP TABLE IF EXISTS jira_integrations CASCADE')
     op.drop_index(op.f('idx_cicd_events_branch'), table_name='cicd_webhook_events')
     op.drop_index(op.f('idx_cicd_events_project_ref'), table_name='cicd_webhook_events')
     op.drop_index(op.f('idx_cicd_events_source'), table_name='cicd_webhook_events')
-    op.drop_table('cicd_webhook_events')
-    op.drop_table('tenants')
+    op.execute('DROP TABLE IF EXISTS cicd_webhook_events CASCADE')
+    op.execute('DROP TABLE IF EXISTS tenants CASCADE')
     op.drop_index(op.f('ix_nexus_llm_logs_project_id'), table_name='nexus_llm_logs')
-    op.drop_table('nexus_llm_logs')
-    op.drop_table('nexus_projects')
+    op.execute('DROP TABLE IF EXISTS nexus_llm_logs CASCADE')
+    op.execute('DROP TABLE IF EXISTS nexus_projects CASCADE')
     op.drop_index(op.f('ix_nexus_cases_scenario_id'), table_name='nexus_cases')
-    op.drop_table('nexus_cases')
+    op.execute('DROP TABLE IF EXISTS nexus_cases CASCADE')
     op.drop_index(op.f('ix_scn_scenarios_project_id'), table_name='scn_scenarios')
     op.drop_index(op.f('ix_scn_scenarios_status'), table_name='scn_scenarios')
-    op.drop_table('scn_scenarios')
-    op.drop_table('scaffold_projects')
+    op.execute('DROP TABLE IF EXISTS scn_scenarios CASCADE')
+    op.execute('DROP TABLE IF EXISTS scaffold_projects CASCADE')
     op.drop_index(op.f('idx_llm_traces_agent'), table_name='llm_traces')
     op.drop_index(op.f('idx_llm_traces_created'), table_name='llm_traces')
     op.drop_index(op.f('idx_llm_traces_project_id'), table_name='llm_traces')
@@ -265,9 +265,11 @@ def upgrade() -> None:
     op.drop_index(op.f('idx_llm_traces_streaming'), table_name='llm_traces')
     op.drop_index(op.f('idx_llm_traces_task_type'), table_name='llm_traces')
     op.drop_index(op.f('idx_llm_traces_tokens'), table_name='llm_traces', postgresql_where='(total_tokens IS NOT NULL)')
-    op.drop_table('llm_traces')
+    op.execute('DROP TABLE IF EXISTS llm_traces CASCADE')
     op.drop_index(op.f('ix_nexus_exports_project_id'), table_name='nexus_exports')
-    op.drop_table('nexus_exports')
+    op.execute('DROP TABLE IF EXISTS nexus_exports CASCADE')
+    op.execute('DROP VIEW IF EXISTS coverage_banking_critical')
+    op.execute('DROP VIEW IF EXISTS coverage_trend')
     op.alter_column('coverage_file_details', 'report_id',
                existing_type=sa.VARCHAR(length=64),
                nullable=False)
@@ -393,6 +395,28 @@ def upgrade() -> None:
                existing_type=postgresql.TIMESTAMP(timezone=True),
                nullable=False,
                existing_server_default=sa.text('now()'))
+    op.execute("""
+        CREATE OR REPLACE VIEW coverage_banking_critical AS
+        SELECT cfd.report_id, cfd.file_path, cfd.line_rate, cfd.branch_rate,
+               cfd.missed_lines, cfd.uncovered_functions, cr.created_at
+        FROM coverage_file_details cfd
+        JOIN coverage_reports cr ON cr.id::text = cfd.report_id::text
+        WHERE cfd.line_rate < 0.70
+          AND (cfd.file_path ILIKE '%payment%' OR cfd.file_path ILIKE '%transfer%'
+               OR cfd.file_path ILIKE '%auth%' OR cfd.file_path ILIKE '%session%'
+               OR cfd.file_path ILIKE '%kyc%' OR cfd.file_path ILIKE '%kvkk%'
+               OR cfd.file_path ILIKE '%pii%' OR cfd.file_path ILIKE '%encrypt%'
+               OR cfd.file_path ILIKE '%security%' OR cfd.file_path ILIKE '%compliance%')
+        ORDER BY cfd.line_rate
+    """)
+    op.execute("""
+        CREATE OR REPLACE VIEW coverage_trend AS
+        SELECT id AS report_id, project_name, commit_sha, branch, format,
+               created_at, line_rate, branch_rate, function_rate,
+               total_lines, covered_lines, total_files
+        FROM coverage_reports
+        ORDER BY created_at DESC
+    """)
     op.create_foreign_key(None, 'mgmt_case_param_sets', 'test_management_cases', ['case_id'], ['id'], ondelete='CASCADE')
     op.create_foreign_key(None, 'mgmt_comments', 'test_management_projects', ['project_id'], ['id'], ondelete='CASCADE')
     op.drop_index(op.f('ix_mgmt_design_runs_tenant_id'), table_name='mgmt_design_technique_runs')
@@ -401,10 +425,7 @@ def upgrade() -> None:
     op.drop_index(op.f('ix_mgmt_notif_tenant_id'), table_name='mgmt_notifications')
     op.drop_index(op.f('ix_mgmt_notif_user_id'), table_name='mgmt_notifications')
     op.create_foreign_key(None, 'mgmt_notifications', 'test_management_projects', ['project_id'], ['id'], ondelete='CASCADE')
-    op.alter_column('notification_prefs', 'user_id',
-               existing_type=sa.UUID(),
-               type_=sa.String(length=36),
-               existing_nullable=False)
+    # Skip notification_prefs.user_id type change — UUID and VARCHAR(36) are compatible, foreign key is preserved
     op.drop_index(op.f('idx_agent_v2_dead_letters_queue_created'), table_name='sd_agent_v2_dead_letters')
     op.drop_index(op.f('idx_agent_v2_dead_letters_run'), table_name='sd_agent_v2_dead_letters', postgresql_where='(run_id IS NOT NULL)')
     op.create_index(op.f('ix_sd_agent_v2_dead_letters_created_at'), 'sd_agent_v2_dead_letters', ['created_at'], unique=False)

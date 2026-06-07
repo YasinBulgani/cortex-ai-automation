@@ -625,7 +625,7 @@ def list_users(
         return [UserListOut(**item) if isinstance(item, dict) else item for item in cached]
     users = list(db.scalars(
         select(User).options(joinedload(User.roles)).order_by(User.created_at.desc())
-    ))
+    ).unique())
     result = [
         UserListOut(
             id=u.id, email=u.email, full_name=u.full_name,

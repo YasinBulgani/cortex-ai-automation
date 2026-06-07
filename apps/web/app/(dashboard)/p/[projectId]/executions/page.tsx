@@ -147,7 +147,7 @@ export default function ExecutionsListPage() {
   const queryClient = useQueryClient();
   const execQK = ["executions", "list", projectId] as const;
 
-  const { data: rows = [], isLoading: loading } = useQuery({
+  const { data: rows = [], isLoading: loading, isError, error } = useQuery({
     queryKey: execQK,
     queryFn: () => apiFetch<Row[]>(`/api/v1/tspm/projects/${projectId}/executions`),
     enabled: !!projectId,
@@ -356,6 +356,24 @@ export default function ExecutionsListPage() {
                     <div className="h-4 w-4 animate-spin rounded-full border-2 border-slate-700 border-t-blue-400" />
                     Yükleniyor...
                   </div>
+                </td>
+              </tr>
+            ) : isError ? (
+              <tr>
+                <td colSpan={5}>
+                  <EmptyState
+                    icon="⚠️"
+                    title="Koşular yüklenemedi"
+                    description={(error as Error)?.message ?? "Sunucuya bağlanılamadı. Lütfen tekrar deneyin."}
+                    action={
+                      <button
+                        onClick={load}
+                        className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-500"
+                      >
+                        Tekrar Dene
+                      </button>
+                    }
+                  />
                 </td>
               </tr>
             ) : filtered.length === 0 ? (

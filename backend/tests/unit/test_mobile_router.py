@@ -13,6 +13,7 @@ try:
     from fastapi import FastAPI
     from fastapi.testclient import TestClient
 
+    from app.deps import get_current_user
     from app.domains.mobile.router import router as mobile_router
     _IMPORT_OK = True
 except Exception:
@@ -76,10 +77,20 @@ def _make_step_response():
 # Fixtures
 # ---------------------------------------------------------------------------
 
+def _mock_user():
+    u = MagicMock()
+    u.id = "user-test"
+    u.email = "test@example.com"
+    u.is_active = True
+    u.roles = []
+    return u
+
+
 @pytest.fixture
 def client():
     app = FastAPI()
     app.include_router(mobile_router, prefix="/api/v1")
+    app.dependency_overrides[get_current_user] = _mock_user
     return TestClient(app, raise_server_exceptions=False)
 
 

@@ -1,9 +1,13 @@
 """Email domain router — prefix /email."""
 from __future__ import annotations
 
+from typing import Annotated
+
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
+from app.deps import require_permission
+from app.infra.models import User
 from .service import list_templates, preview_email, send_email
 
 router = APIRouter(prefix="/email", tags=["email"])
@@ -22,15 +26,6 @@ class SendRequest(BaseModel):
     subject: str
     template_name: str
     context: dict = {}
-
-
-# ── Admin dependency stub ────────────────────────────────────────────────
-# Replace with a real auth/permission check (e.g. require_permission("email.send"))
-
-
-def _require_admin() -> None:  # pragma: no cover
-    """Placeholder admin guard — wire to real auth in production."""
-    return None
 
 
 # ── Endpoints ────────────────────────────────────────────────────────────
@@ -55,7 +50,7 @@ def preview(body: PreviewRequest) -> dict[str, str]:
 @router.post("/send", summary="Send an email (admin only)")
 def send(
     body: SendRequest,
-    _admin: None = Depends(_require_admin),
+    _admin: Annotated[User, Depends(require_permission("admin.*"))],
 ) -> dict[str, bool]:
     """Render *template_name* with *context* and send to *to*.
 

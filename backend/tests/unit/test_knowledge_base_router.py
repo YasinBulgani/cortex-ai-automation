@@ -7,9 +7,25 @@ try:
     from fastapi.testclient import TestClient
     from fastapi import FastAPI
     from unittest.mock import MagicMock, patch
+    from app.deps import get_current_user
     from app.domains.knowledge_base.router import router
 except ImportError as _e:
     pytest.skip(f"knowledge_base router not importable: {_e}", allow_module_level=True)
+
+
+def _mock_user():
+    u = MagicMock()
+    u.id = "user-test"
+    u.email = "test@example.com"
+    u.full_name = "Test User"
+    u.is_active = True
+    role = MagicMock()
+    perm = MagicMock()
+    perm.permission = "admin.*"
+    role.permissions = [perm]
+    u.roles = [role]
+    return u
+
 
 # ---------------------------------------------------------------------------
 # App fixture
@@ -19,6 +35,7 @@ except ImportError as _e:
 def client():
     app = FastAPI()
     app.include_router(router)
+    app.dependency_overrides[get_current_user] = _mock_user
     return TestClient(app, raise_server_exceptions=False)
 
 

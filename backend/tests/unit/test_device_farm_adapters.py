@@ -34,7 +34,9 @@ class TestLocalFarmAdapter:
         device.status.value = "idle"
         device.appium_port = 4723
         broker.list_devices.return_value = [device]
+        broker.list.return_value = [device]
         broker.get_device.return_value = device
+        broker.get.return_value = device
         return broker
 
     def test_list_devices(self, adapter, mock_broker) -> None:
@@ -71,6 +73,7 @@ class TestLocalFarmAdapter:
 
     def test_start_session_unknown_device(self, adapter, mock_broker) -> None:
         mock_broker.get_device.return_value = None
+        mock_broker.get.return_value = None
         with patch(
             "app.domains.mobile.device_farm_adapters.get_broker",
             return_value=mock_broker,

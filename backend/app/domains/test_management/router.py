@@ -384,6 +384,12 @@ def export_repository(project_id: str, db: DB, _user: ReadUser) -> dict[str, obj
     return service.export_repository(db, project_id)
 
 
+@router.get("/projects/{project_id}/repository/export")
+def export_repository_alias(project_id: str, db: DB, _user: ReadUser) -> dict[str, object]:
+    """Alias for /export — frontend hook compatibility."""
+    return service.export_repository(db, project_id)
+
+
 @router.get("/projects/{project_id}/suites", response_model=list[TestSuiteOut])
 def list_suites(project_id: str, db: DB, _user: ReadUser) -> list[TestSuiteOut]:
     """Projedeki tüm test suite'lerini listeler."""
