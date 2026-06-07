@@ -1,7 +1,7 @@
 import logging
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
@@ -27,10 +27,12 @@ router = APIRouter(prefix="/datasets", tags=["catalog"])
 def list_datasets(
     db: Annotated[Session, Depends(get_db)],
     _: Annotated[User, Depends(get_current_user)],
+    limit: int = Query(100, ge=1, le=500),
+    offset: int = Query(0, ge=0),
 ) -> list[Dataset]:
     """Veri setlerini listeler."""
     try:
-        return list(db.scalars(select(Dataset).order_by(Dataset.created_at.desc())).all())
+        return list(db.scalars(select(Dataset).order_by(Dataset.created_at.desc()).limit(limit).offset(offset)).all())
     except Exception as e:
         logger.error("list_datasets failed: %s", e, exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
@@ -143,6 +145,7 @@ def list_versions(
     dataset_id: str,
     db: Annotated[Session, Depends(get_db)],
     _: Annotated[User, Depends(get_current_user)],
+    limit: int = Query(100, ge=1, le=500),
 ) -> list[DatasetVersion]:
     """Veri seti surumlerini listeler."""
     try:
@@ -153,6 +156,7 @@ def list_versions(
                 select(DatasetVersion)
                 .where(DatasetVersion.dataset_id == dataset_id)
                 .order_by(DatasetVersion.version.desc())
+                .limit(limit)
             ).all()
         )
     except HTTPException:

@@ -233,7 +233,7 @@ export default function PortfolioPage() {
   const [newOpen, setNewOpen]       = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
-  const { data: projects = [], isLoading: loading } = useQuery<Project[]>({
+  const { data: projects = [], isLoading: loading, isError: projectsError, refetch: refetchProjects } = useQuery<Project[]>({
     queryKey: projectsQK,
     queryFn: () => apiFetch<Project[]>("/api/v1/tspm/projects"),
     staleTime: 60 * 1000,
@@ -410,6 +410,19 @@ export default function PortfolioPage() {
           </button>
         </div>
       </div>
+
+      {/* Hata durumu */}
+      {projectsError && !loading && (
+        <div className="flex items-center justify-between rounded-xl border border-red-500/20 bg-red-500/5 px-4 py-3">
+          <p className="text-sm text-red-400">Projeler yüklenemedi. Lütfen tekrar deneyin.</p>
+          <button
+            onClick={() => refetchProjects()}
+            className="shrink-0 rounded-lg border border-red-500/30 px-3 py-1 text-xs font-medium text-red-400 hover:bg-red-500/10 transition-colors"
+          >
+            Tekrar Dene
+          </button>
+        </div>
+      )}
 
       {/* Proje listesi */}
       {loading ? (
