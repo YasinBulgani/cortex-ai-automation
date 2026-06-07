@@ -1306,6 +1306,7 @@ def update_scenario(
     user: Annotated[User, Depends(require_permission(Permission.SCENARIO_UPDATE))],
 ):
     """Test senaryosunu gunceller."""
+    _get_project(db, project_id, user)  # membership guard
     from app.infra.cache import cache_delete, make_key
     result = scenario_svc.update_scenario_for_project(db, project_id, scenario_id, body, actor_user_id=user.id)
     cache_delete(make_key("scenarios", "list", project_id))
@@ -1566,6 +1567,7 @@ def delete_requirement(
     user: Annotated[User, Depends(require_permission(Permission.REQUIREMENT_MANAGE))],
 ):
     """Gereksinim kaydini siler."""
+    _get_project(db, project_id, user)  # membership guard
     from app.infra.cache import cache_delete, make_key
     scenario_svc.delete_requirement_for_project(db, project_id, requirement_id)
     cache_delete(make_key("requirements", "list", project_id))
@@ -1927,6 +1929,7 @@ def rerun_execution(
 @router.post("/projects/{project_id}/executions/{run_id}/cancel", status_code=200)
 def cancel_execution(project_id: str, run_id: str, db: DB, user: Annotated[User, Depends(get_current_user)]):
     """Devam eden bir koşumu iptal eder; bekleyen sonuçları 'skipped' yapar."""
+    _get_project(db, project_id, user)  # membership guard
     execution = db.get(TspmExecution, run_id)
     if execution is None or execution.project_id != project_id:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Koşu bulunamadı")
@@ -2418,6 +2421,7 @@ def update_schedule(
     user: Annotated[User, Depends(require_permission(Permission.SCHEDULE_MANAGE))],
 ):
     """Zamanlama bilgilerini gunceller."""
+    _get_project(db, project_id, user)
     result = schedule_svc.update_schedule_for_project(db, project_id, schedule_id, body)
     from app.infra.cache import cache_delete, make_key
     cache_delete(make_key("schedules", "list", project_id))
@@ -2430,6 +2434,7 @@ def delete_schedule(
     user: Annotated[User, Depends(require_permission(Permission.SCHEDULE_MANAGE))],
 ):
     """Zamanlama kaydini siler."""
+    _get_project(db, project_id, user)
     schedule_svc.delete_schedule_for_project(db, project_id, schedule_id)
     from app.infra.cache import cache_delete, make_key
     cache_delete(make_key("schedules", "list", project_id))
@@ -2495,6 +2500,7 @@ def update_test_data(
     user: Annotated[User, Depends(require_permission(Permission.TEST_DATA_MANAGE))],
 ):
     """Test verisi setini gunceller."""
+    _get_project(db, project_id, user)
     from app.infra.cache import cache_delete, make_key
     result = test_data_svc.update_test_data_for_project(db, project_id, data_id, body)
     cache_delete(make_key("test-data", "list", project_id))
@@ -2507,6 +2513,7 @@ def delete_test_data(
     user: Annotated[User, Depends(require_permission(Permission.TEST_DATA_MANAGE))],
 ):
     """Test verisi setini siler."""
+    _get_project(db, project_id, user)
     from app.infra.cache import cache_delete, make_key
     test_data_svc.delete_test_data_for_project(db, project_id, data_id)
     cache_delete(make_key("test-data", "list", project_id))
@@ -2715,6 +2722,7 @@ def update_integration(
     user: Annotated[User, Depends(require_permission(Permission.INTEGRATION_MANAGE))],
 ):
     """Entegrasyon bilgilerini gunceller."""
+    _get_project(db, project_id, user)
     from app.infra.cache import cache_delete, make_key
     result = integration_svc.update_integration_for_project(db, project_id, integration_id, body)
     cache_delete(make_key("integrations", "list", project_id))
@@ -2727,6 +2735,7 @@ def delete_integration(
     user: Annotated[User, Depends(require_permission(Permission.INTEGRATION_MANAGE))],
 ):
     """Entegrasyonu siler."""
+    _get_project(db, project_id, user)
     from app.infra.cache import cache_delete, make_key
     integration_svc.delete_integration_for_project(db, project_id, integration_id)
     cache_delete(make_key("integrations", "list", project_id))
