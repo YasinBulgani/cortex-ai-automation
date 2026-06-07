@@ -771,6 +771,7 @@ def mfa_status(
     )
 
 
+@_limit("3/minute")
 @router.post("/mfa/setup", response_model=MfaSetupResponse, tags=["auth", "mfa"])
 def mfa_setup(
     user: Annotated[User, Depends(get_current_user)],
@@ -809,6 +810,7 @@ def mfa_setup(
     )
 
 
+@_limit("5/minute")
 @router.post("/mfa/verify", tags=["auth", "mfa"])
 def mfa_verify(
     req: MfaVerifyRequest,

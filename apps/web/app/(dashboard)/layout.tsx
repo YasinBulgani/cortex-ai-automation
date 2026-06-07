@@ -30,6 +30,16 @@ function DashboardInner({ children }: { children: React.ReactNode }) {
     }
   }, [projectsError, toast]);
 
+  // Oturum sona erince kullanıcıyı bilgilendir ve login'e yönlendir
+  useEffect(() => {
+    function handleSessionExpired() {
+      toast("Oturum süreniz doldu. Lütfen tekrar giriş yapın.", "error");
+      setTimeout(() => router.replace("/login"), 2000);
+    }
+    window.addEventListener("neurex:session-expired", handleSessionExpired);
+    return () => window.removeEventListener("neurex:session-expired", handleSessionExpired);
+  }, [toast, router]);
+
   const projectId = pathname?.match(/^\/p\/([^/]+)/)?.[1];
   const { setProject } = useProject();
   const touchedRef = useRef<string | null>(null);

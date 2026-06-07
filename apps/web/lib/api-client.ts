@@ -360,6 +360,8 @@ export async function apiFetch<T>(
       (window as unknown as { __bgtsAuthBootstrapping?: boolean }).__bgtsAuthBootstrapping === true;
     if (res.status === 401 && !isAuthPath && !bootstrapping && !skipAuthRedirect && typeof window !== "undefined") {
       clearTokens();
+      // Oturum süresi dolduğunda UI katmanının toast gösterebilmesi için event yayınla
+      window.dispatchEvent(new CustomEvent("neurex:session-expired"));
     }
 
     throw new ApiError(res.status, detail, body);

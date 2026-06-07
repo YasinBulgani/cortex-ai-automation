@@ -9,7 +9,7 @@ import {
   CheckCircle2, User, AlertCircle, KeyRound, Fingerprint, ServerCog,
   Activity, FileCheck2,
 } from "lucide-react";
-import { API_BASE, ENGINE_BASE, apiFetch, setTokens, migrateToCookieAuth } from "@/lib/api-client";
+import { API_BASE, ENGINE_BASE, apiFetch, setTokens, migrateToCookieAuth, getToken, hasSession } from "@/lib/api-client";
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
@@ -207,6 +207,15 @@ function LoginPageContent() {
   }, [dark]);
 
   useEffect(() => { setUiReady(true); }, []);
+
+  // Zaten giriş yapılmışsa dashboard'a yönlendir
+  useEffect(() => {
+    if (getToken() || hasSession()) {
+      router.replace(nextPath);
+    }
+  // nextPath ve router'ın değişmesi her zaman sadece mount'ta tetikler
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // auto-login (dev only)
   useEffect(() => {
