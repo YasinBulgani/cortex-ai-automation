@@ -481,6 +481,8 @@ def change_password(
     if not verify_password(body.current_password, user.password_hash):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Mevcut şifre hatalı")
     user.password_hash = hash_password(body.new_password)
+    # Revoke all refresh tokens so other sessions are terminated
+    revoke_all_user_tokens(user.id, db)
     log_audit(
         db,
         actor_user_id=user.id,
@@ -848,6 +850,7 @@ def mfa_verify(
 
 
 @router.post("/mfa/disable", tags=["auth", "mfa"])
+@_limit("3/minute")
 def mfa_disable(
     req: MfaDisableRequest,
     user: Annotated[User, Depends(get_current_user)],
@@ -879,6 +882,7 @@ def mfa_disable(
 
 
 @router.post("/mfa/backup-codes/regenerate", tags=["auth", "mfa"])
+@_limit("2/minute")
 def mfa_regenerate_backup_codes(
     req: MfaVerifyRequest,  # require TOTP confirmation before regenerating
     user: Annotated[User, Depends(get_current_user)],

@@ -12,6 +12,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
 from app.deps import get_current_user
+from app.domains.api_testing.network_security import UnsafeTargetError, validate_outbound_url
 from app.infra.models import User
 
 router = APIRouter(prefix="/git", tags=["git"])
@@ -98,6 +99,12 @@ def fetch_git_repo(
     parsed = urlparse(body.url)
     if parsed.scheme not in ("http", "https"):
         raise HTTPException(status_code=422, detail="Yalnızca http/https URL desteklenir")
+
+    # SSRF protection: block private/loopback/link-local addresses
+    try:
+        validate_outbound_url(body.url)
+    except UnsafeTargetError as exc:
+        raise HTTPException(status_code=422, detail=f"Guvensiz git repo URL'i: {exc}")
 
     allowed = set(body.extensions) if body.extensions else _ALLOWED_EXTENSIONS
     clone_url = _inject_token(body.url, body.token)

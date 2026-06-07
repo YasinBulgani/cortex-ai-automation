@@ -134,6 +134,7 @@ class TestGoogleOidcCallbackSuccess:
         _inject_state(state, "google")
 
         existing_user = MagicMock()
+        existing_user.mfa_enabled = False
         existing_user.id = 42
         client, _ = _make_client(db_user=existing_user)
 
@@ -171,6 +172,7 @@ class TestAzureOidcCallbackSuccess:
         _inject_state(state, "azure")
 
         existing_user = MagicMock()
+        existing_user.mfa_enabled = False
         existing_user.id = 99
         client, _ = _make_client(db_user=existing_user)
 
@@ -364,6 +366,7 @@ class TestSsoExistingUserLogin:
         _inject_state(state, "google")
 
         existing_user = MagicMock()
+        existing_user.mfa_enabled = False
         existing_user.id = 55
         client, mock_session = _make_client(db_user=existing_user)
 

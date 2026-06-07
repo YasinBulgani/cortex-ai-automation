@@ -49,6 +49,7 @@ from app.domains.knowledge_base.router import router as knowledge_base_router
 from app.domains.marketplace.router import router as marketplace_router
 from app.domains.n8n.router import router as n8n_router
 from app.domains.feature_flags.router import router as feature_flags_router
+from app.domains.nexus_repo.router import health_router as nexus_repo_health_router
 from app.domains.nexus_repo.router import router as nexus_repo_router
 from app.domains.notifications.router import router as notifications_router
 from app.domains.onboarding.router import router as onboarding_router
@@ -208,6 +209,9 @@ def register_api_routers(app: FastAPI) -> None:
 
     # api_testing ayrı prefix: ekibin kararıyla /api/v1 dışında
     app.include_router(api_testing_router)
+
+    # nexus_repo health endpoint has no auth/feature guard — register separately
+    app.include_router(nexus_repo_health_router, prefix="/api/v1")
 
     if _HAS_RBAC_ROUTER and rbac_router is not None:
         app.include_router(rbac_router, prefix="/api/v1")

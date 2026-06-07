@@ -275,38 +275,53 @@ def accept_invitation_endpoint(
     body: InvitationAccept,
     db: Annotated[Session, Depends(get_db)],
 ):
-    """Public endpoint — token ile yeni hesap olustur veya mevcut hesabi ekle."""
+    """Public endpoint — token ile yeni hesap olustur veya mevcut hesabi ekle.
+
+    Güvenlik: Mevcut kullanıcı varsa onay sadece ilgili kullanıcının kimliğiyle
+    yapılmalıdır. Davet tokenı başka bir kullanıcı tarafından kabul edilemez.
+    Yeni kullanıcı oluşturma akışında e-posta ve şifre gereklidir.
+    """
     inv = service.find_invitation_by_token(db, body.token)
     if not inv:
         raise HTTPException(400, detail="Davet gecersiz, kullanilmis veya suresi dolmus")
 
-    # Mevcut kullanici varsa: tenant degis + team'e ekle
-    user = db.execute(select(User).where(User.email == inv.email)).scalars().first()
+    existing_user = db.execute(select(User).where(User.email == inv.email)).scalars().first()
     created = False
-    if user is None:
-        user = User(
+
+    if existing_user is None:
+        # New user: password required
+        if not body.password:
+            raise HTTPException(400, detail="Yeni hesap icin sifre gerekli")
+        new_user = User(
             email=inv.email,
             password_hash=hash_password(body.password),
             full_name=body.full_name,
             tenant_id=inv.organization_id,
             is_active=True,
         )
-        db.add(user)
+        db.add(new_user)
         db.flush()
+        acting_user = new_user
         created = True
     else:
-        # mevcut kullanici, sadece tenant'a ekleniyor olabilir
-        if user.tenant_id != inv.organization_id:
-            user.tenant_id = inv.organization_id
+        # Existing user: verify they know their own password before we move
+        # them to a new org. This prevents token-based account hijacking.
+        if not body.password or not __import__('bcrypt').checkpw(
+            body.password.encode("utf-8"), existing_user.password_hash.encode("utf-8")
+        ):
+            raise HTTPException(401, detail="Kimlik dogrulamasi basarisiz. Mevcut parolanizi girin.")
+        if existing_user.tenant_id != inv.organization_id:
+            existing_user.tenant_id = inv.organization_id
+        acting_user = existing_user
 
     if inv.team_id:
         service.add_team_member(
-            db, team_id=inv.team_id, user_id=user.id, role=inv.role
+            db, team_id=inv.team_id, user_id=acting_user.id, role=inv.role
         )
 
     service.mark_invitation_accepted(db, invitation_id=inv.id)
     db.commit()
-    log_audit(db, actor_user_id=user.id, action="invitation.accept", resource_type="invitation", resource_id=inv.id, payload=None, ip=None)
+    log_audit(db, actor_user_id=acting_user.id, action="invitation.accept", resource_type="invitation", resource_id=inv.id, payload=None, ip=None)
     return {"ok": True, "created_user": created, "organization_id": inv.organization_id}
 
 
@@ -318,6 +333,13 @@ def list_project_members_endpoint(
     db: Annotated[Session, Depends(get_db)],
     limit: int = Query(200, ge=1, le=1000),
 ):
+    # Ensure requester is a member of this project or org admin
+    from app.infra.models import ProjectMember
+    perms = _user_permissions(user)
+    if "admin.*" not in perms:
+        member = db.get(ProjectMember, (project_id, user.id))
+        if member is None:
+            raise HTTPException(status.HTTP_403_FORBIDDEN, "Bu projeye erisim yetkiniz yok")
     rows = service.list_project_members_with_user(db, project_id)[:limit]
     return [
         ProjectMemberOut(

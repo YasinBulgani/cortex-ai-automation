@@ -423,6 +423,7 @@ class TestCallbackInvalidState:
         _seed_state(state, "google")
 
         existing_user = MagicMock()
+        existing_user.mfa_enabled = False
         existing_user.id = 1
         client, _ = _make_client(db_user=existing_user)
 
@@ -457,6 +458,7 @@ class TestCallbackCodeExchangeSuccess:
         _seed_state(state, "google")
 
         existing_user = MagicMock()
+        existing_user.mfa_enabled = False
         existing_user.id = 10
         client, _ = _make_client(db_user=existing_user)
 
@@ -647,6 +649,7 @@ class TestCallbackExistingUser:
         _seed_state(state, "google")
 
         existing_user = MagicMock()
+        existing_user.mfa_enabled = False
         existing_user.id = 42
         client, mock_session = _make_client(db_user=existing_user)
 
@@ -688,6 +691,7 @@ class TestTokenCreationAfterCallback:
         _seed_state(state, "google")
 
         existing_user = MagicMock()
+        existing_user.mfa_enabled = False
         existing_user.id = 77
         client, _ = _make_client(db_user=existing_user)
 
@@ -719,6 +723,7 @@ class TestTokenCreationAfterCallback:
         _seed_state(state, "google")
 
         existing_user = MagicMock()
+        existing_user.mfa_enabled = False
         existing_user.id = 5
         client, _ = _make_client(db_user=existing_user)
 
@@ -765,6 +770,7 @@ class TestStateExpiry:
         _seed_state(state, "google")
 
         existing_user = MagicMock()
+        existing_user.mfa_enabled = False
         existing_user.id = 3
         client, _ = _make_client(db_user=existing_user)
 

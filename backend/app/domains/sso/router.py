@@ -254,12 +254,48 @@ def sso_callback(
         )
         db.add(user)
         db.flush()
-        log_audit(db, user_id=user.id, action="sso.provision", resource=provider)
+        log_audit(
+            db,
+            actor_user_id=user.id,
+            action="sso.provision",
+            resource_type="sso",
+            resource_id=provider,
+            payload=None,
+            ip=None,
+        )
 
-    log_audit(db, user_id=user.id, action="sso.login", resource=provider)
+    # MFA check: if user has MFA enabled, SSO must still complete MFA step
+    if getattr(user, "mfa_enabled", False):
+        from app.domains.auth.service import create_access_token as _cat
+        mfa_session = _cat(
+            user.id,
+            extra_claims={
+                "purpose": "mfa_challenge",
+                "tenant": getattr(user, "tenant_id", "00000000-0000-0000-0000-000000000001"),
+                "sso_provider": provider,
+            },
+            expires_minutes=5,
+        )
+        db.commit()
+        fe_url = (settings.app_public_url or "http://localhost:3000").rstrip("/")
+        return RedirectResponse(
+            f"{fe_url}/mfa?session_token={mfa_session}&next=/",
+            status_code=302,
+        )
+
+    log_audit(
+        db,
+        actor_user_id=user.id,
+        action="sso.login",
+        resource_type="sso",
+        resource_id=provider,
+        payload=None,
+        ip=None,
+    )
     db.commit()
 
-    # Issue our session
+    # Issue our session — honour HTTPS to set secure cookies correctly
+    secure = request.url.scheme == "https" or request.headers.get("x-forwarded-proto") == "https"
     access_jwt = create_access_token(subject_user_id=user.id)
     refresh_jwt = create_refresh_token(
         user_id=user.id, db=db, user_agent=request.headers.get("user-agent", "")
@@ -268,11 +304,11 @@ def sso_callback(
     fe_url = (settings.app_public_url or "http://localhost:3000").rstrip("/")
     response = RedirectResponse(f"{fe_url}/?sso=success")
     response.set_cookie(
-        ACCESS_TOKEN_COOKIE, access_jwt, httponly=True, secure=False,
+        ACCESS_TOKEN_COOKIE, access_jwt, httponly=True, secure=secure,
         samesite="lax", max_age=30 * 60,
     )
     response.set_cookie(
-        REFRESH_TOKEN_COOKIE, refresh_jwt, httponly=True, secure=False,
+        REFRESH_TOKEN_COOKIE, refresh_jwt, httponly=True, secure=secure,
         samesite="lax", max_age=7 * 24 * 3600,
     )
     return response

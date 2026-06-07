@@ -42,12 +42,15 @@ def _require_admin(user: User) -> None:
 
 @router.get("/users", summary="Tüm kullanıcıları listele (admin)")
 def admin_list_users(user: Annotated[User, Depends(get_current_user)], db: DB) -> list[dict]:
-    """Sistemdeki tüm kullanıcıları döner. ``admin.*`` yetkisi gerektirir."""
+    """Tenant içindeki kullanıcıları döner. ``admin.*`` yetkisi gerektirir."""
     _require_admin(user)
 
     users = list(
         db.scalars(
-            select(User).options(joinedload(User.roles)).order_by(User.created_at.desc())
+            select(User)
+            .where(User.tenant_id == user.tenant_id)
+            .options(joinedload(User.roles))
+            .order_by(User.created_at.desc())
         ).unique()
     )
     return [

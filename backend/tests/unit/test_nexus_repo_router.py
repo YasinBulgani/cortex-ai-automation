@@ -12,6 +12,7 @@ try:
     from fastapi import FastAPI
     from fastapi.testclient import TestClient
 
+    from app.domains.nexus_repo.router import health_router as nexus_health_router
     from app.domains.nexus_repo.router import router as nexus_router
     _IMPORT_OK = True
 except Exception:
@@ -26,12 +27,18 @@ pytestmark = pytest.mark.skipif(not _IMPORT_OK, reason="import failed")
 
 @pytest.fixture
 def client():
+    from app.deps import get_current_user
     from app.infra.database import get_db
     app = FastAPI()
+    app.include_router(nexus_health_router, prefix="/api/v1")
     app.include_router(nexus_router, prefix="/api/v1")
 
     fake_db = MagicMock()
+    fake_user = MagicMock()
+    fake_user.id = "test-user-id"
+    fake_user.roles = []
     app.dependency_overrides[get_db] = lambda: fake_db
+    app.dependency_overrides[get_current_user] = lambda: fake_user
 
     return TestClient(app, raise_server_exceptions=False)
 
