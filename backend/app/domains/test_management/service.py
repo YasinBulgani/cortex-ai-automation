@@ -2883,3 +2883,47 @@ def dashboard_summary_fast(db: Session, project_id: str) -> dict[str, Any]:
         "resolved_defects": resolved_defects,
         "requirement_count": requirement_count,
     }
+
+
+def get_run_trend(db: Session, project_id: str, limit: int = 20) -> list[dict]:
+    """Son N test koşusunun geçme oranı trendi."""
+    from sqlalchemy import text as sa_text
+    result = db.execute(
+        sa_text("""
+            SELECT
+                r.id AS run_id,
+                r.name,
+                r.created_at,
+                COUNT(rc.id) AS total_cases,
+                COUNT(CASE WHEN rc.status = 'passed' THEN 1 END) AS passed,
+                COUNT(CASE WHEN rc.status = 'failed' THEN 1 END) AS failed,
+                CASE
+                    WHEN COUNT(rc.id) = 0 THEN 0.0
+                    ELSE ROUND(
+                        COUNT(CASE WHEN rc.status = 'passed' THEN 1 END)::numeric
+                        / COUNT(rc.id) * 100, 1
+                    )
+                END AS pass_rate_pct
+            FROM test_management_runs r
+            JOIN test_management_cycles c ON r.cycle_id = c.id
+            LEFT JOIN test_management_run_cases rc ON rc.run_id = r.id
+            WHERE c.project_id = :project_id
+            GROUP BY r.id, r.name, r.created_at
+            ORDER BY r.created_at DESC
+            LIMIT :limit
+        """),
+        {"project_id": project_id, "limit": limit},
+    )
+    rows = result.mappings().all()
+    return [
+        {
+            "run_id": str(row["run_id"]),
+            "name": row["name"],
+            "created_at": row["created_at"].isoformat() if row["created_at"] else None,
+            "total_cases": int(row["total_cases"]),
+            "passed": int(row["passed"]),
+            "failed": int(row["failed"]),
+            "pass_rate_pct": float(row["pass_rate_pct"]),
+        }
+        for row in rows
+    ]

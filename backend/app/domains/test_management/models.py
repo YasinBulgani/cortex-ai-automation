@@ -6,6 +6,7 @@ import uuid
 from datetime import datetime, timezone as _tz
 from typing import Any, Optional
 
+import sqlalchemy as sa
 from sqlalchemy import JSON, Boolean, DateTime, ForeignKey, Index, Integer, String, Text, UniqueConstraint
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -242,7 +243,7 @@ class RegressionSetCase(Base):
     severity_snapshot: Mapped[str] = mapped_column(String(32), nullable=False, server_default="")
     type_snapshot: Mapped[str] = mapped_column(String(64), nullable=False, server_default="")
     order_index: Mapped[int] = mapped_column(Integer, default=0, server_default="0", nullable=False)
-    risk_score: Mapped[int] = mapped_column(Integer, default=0, server_default="0", nullable=False)
+    risk_score: Mapped[float] = mapped_column(sa.Float, default=0.0, server_default="0", nullable=False)
     reason: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     include_mode: Mapped[str] = mapped_column(String(32), default="suggested", server_default="suggested", nullable=False)
 

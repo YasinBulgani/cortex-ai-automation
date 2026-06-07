@@ -1161,6 +1161,17 @@ def execution_summary(project_id: str, db: DB, _user: ReadUser) -> ExecutionSumm
     return service.execution_summary(db, project_id)
 
 
+@router.get("/projects/{project_id}/reports/run-trend", response_model=list[dict])
+def run_trend(
+    project_id: str,
+    db: DB,
+    _user: ReadUser,
+    limit: int = Query(default=20, ge=1, le=100),
+) -> list[dict]:
+    """Son N test koşusunun geçme oranı trendi (Reports sayfası grafikleri için)."""
+    return service.get_run_trend(db, project_id, limit=limit)
+
+
 @router.get("/projects/{project_id}/reports/release", response_model=ReleaseReportOut)
 def release_report(project_id: str, db: DB, _user: ReadUser) -> ReleaseReportOut:
     return service.release_report(db, project_id)
@@ -1284,22 +1295,37 @@ def create_requirement_or_link(
         }
 
 
-@router.patch("/projects/{project_id}/requirements/{req_id}", response_model=RequirementLinkOut)
-def update_requirement_link(
+@router.patch("/projects/{project_id}/requirements/{req_id}")
+def update_requirement_or_link(
     project_id: str,
     req_id: str,
-    payload: RequirementLinkUpdate,
+    payload: RequirementUpdate,
     db: DB,
     user: WriteUser,
-) -> RequirementLinkOut:
+) -> dict:
+    """Standalone requirement veya link güncelle (ID'ye göre otomatik belirlenir)."""
     try:
-        return service.update_requirement_link(db, project_id, req_id, payload, user)
+        req = service.update_requirement(db, project_id, req_id, payload, user)
+        return RequirementOut.model_validate(req).model_dump(mode="json")
+    except KeyError:
+        pass
+    # Fallback: link güncelleme
+    link_payload = RequirementLinkUpdate(**{k: v for k, v in payload.model_dump(exclude_unset=True).items() if k in RequirementLinkUpdate.model_fields})
+    try:
+        link = service.update_requirement_link(db, project_id, req_id, link_payload, user)
+        return RequirementLinkOut.model_validate(link).model_dump(mode="json")
     except KeyError as e:
         raise HTTPException(status_code=404, detail=str(e)) from e
 
 
 @router.delete("/projects/{project_id}/requirements/{req_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_requirement_link(project_id: str, req_id: str, db: DB, user: WriteUser) -> None:
+def delete_requirement_or_link(project_id: str, req_id: str, db: DB, user: WriteUser) -> None:
+    """Standalone requirement veya link sil (ID'ye göre otomatik belirlenir)."""
+    try:
+        service.delete_requirement(db, project_id, req_id, user)
+        return
+    except KeyError:
+        pass
     try:
         service.delete_requirement_link(db, project_id, req_id, user)
     except KeyError as e:

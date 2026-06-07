@@ -196,7 +196,7 @@ def upgrade() -> None:
     op.drop_index(op.f('ix_nexus_settings_project_id'), table_name='nexus_settings')
     op.drop_table('nexus_settings')
     op.drop_index(op.f('ix_nexus_scenarios_project_id'), table_name='nexus_scenarios')
-    op.drop_table('nexus_scenarios')
+    op.execute("DROP TABLE IF EXISTS nexus_scenarios CASCADE")
     op.drop_index(op.f('idx_heal_history_file'), table_name='heal_history')
     op.drop_index(op.f('idx_heal_history_run'), table_name='heal_history')
     op.drop_index(op.f('idx_heal_history_strategy'), table_name='heal_history')

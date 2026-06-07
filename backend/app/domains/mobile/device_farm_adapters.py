@@ -612,7 +612,7 @@ class _LocalFarmAdapter:
         from app.domains.mobile import device_farm_adapters as _self_mod
 
         broker = _self_mod.get_broker()
-        devices = broker.list_devices()
+        devices = broker.list()
         result = []
         for d in devices:
             if platform and d.platform != platform:
@@ -625,7 +625,7 @@ class _LocalFarmAdapter:
                 platform=d.platform,
                 os_version=d.os_version,
                 provider=self.name,
-                available=d.status.value == "idle",
+                available=(d.status.value if hasattr(d.status, 'value') else d.status) == "idle",
             ))
         return result
 
@@ -634,7 +634,7 @@ class _LocalFarmAdapter:
         from app.domains.mobile import device_farm_adapters as _self_mod
 
         broker = _self_mod.get_broker()
-        dev = broker.get_device(device_id)
+        dev = broker.get(device_id)
         if not dev:
             return FarmSession(session_id="error", device_id=device_id,
                                provider=self.name, status="error",
@@ -662,7 +662,7 @@ class _LocalFarmAdapter:
         from app.domains.mobile import device_farm_adapters as _self_mod
 
         broker = _self_mod.get_broker()
-        devices = broker.list_devices()
+        devices = broker.list()
         idle = sum(1 for d in devices if d.status.value == "idle")
         return {
             "provider": self.name,
