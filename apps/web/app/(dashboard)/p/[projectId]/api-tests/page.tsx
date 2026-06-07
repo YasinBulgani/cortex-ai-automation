@@ -97,7 +97,7 @@ export default function ApiTestsPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [runResults, setRunResults] = useState<RunResult[] | null>(null);
 
-  const { data: collections = [] } = useQuery<Collection[]>({
+  const { data: collections = [], isLoading: collectionsLoading } = useQuery<Collection[]>({
     queryKey: collectionsQK,
     queryFn: () => apiFetch<Collection[]>(`${basePath}/collections`),
     enabled: !!projectId,
@@ -105,7 +105,7 @@ export default function ApiTestsPage() {
     gcTime: 5 * 60 * 1000,
   });
 
-  const { data: fetchedRequests = [] } = useQuery<ApiRequest[]>({
+  const { data: fetchedRequests = [], isLoading: requestsLoading } = useQuery<ApiRequest[]>({
     queryKey: requestsQK(selectedId ?? ""),
     queryFn: () => apiFetch<ApiRequest[]>(`${basePath}/collections/${selectedId}/requests`),
     enabled: !!projectId && !!selectedId,
@@ -113,7 +113,7 @@ export default function ApiTestsPage() {
     gcTime: 5 * 60 * 1000,
   });
 
-  const { data: runs = [] } = useQuery<Run[]>({
+  const { data: runs = [], isLoading: runsLoading } = useQuery<Run[]>({
     queryKey: runsQK,
     queryFn: () => apiFetch<Run[]>(`${basePath}/runs`),
     enabled: !!projectId,
@@ -206,6 +206,28 @@ export default function ApiTestsPage() {
   const runPassCount = runResults?.filter((r) => r.passed).length ?? 0;
   const runFailCount = runResults ? runResults.length - runPassCount : 0;
   const inputCls = "rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500/50";
+
+  if (collectionsLoading || runsLoading) {
+    return (
+      <div className="min-h-screen bg-slate-950 p-6 flex flex-col gap-4" data-testid="api-tests-page">
+        <div className="h-12 w-48 animate-pulse rounded-xl bg-slate-800" />
+        <div className="grid grid-cols-4 gap-4">
+          {[1, 2, 3, 4].map(i => (
+            <div key={i} className="h-20 animate-pulse rounded-xl bg-slate-800" />
+          ))}
+        </div>
+        <div className="grid grid-cols-3 gap-3">
+          {[1, 2, 3].map(i => (
+            <div key={i} className="h-24 animate-pulse rounded-2xl bg-slate-800" />
+          ))}
+        </div>
+        <div className="flex gap-4" style={{ height: 400 }}>
+          <div className="w-60 animate-pulse rounded-xl bg-slate-800" />
+          <div className="flex-1 animate-pulse rounded-xl bg-slate-800" />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-950 p-6 flex flex-col gap-4" data-testid="api-tests-page">
@@ -375,7 +397,13 @@ export default function ApiTestsPage() {
                       </h3>
                       <span className="ml-auto text-xs text-slate-500">{requests.length} istek</span>
                     </div>
-                    {requests.length === 0 ? (
+                    {requestsLoading && !!selectedId ? (
+                      <div className="space-y-2 p-4">
+                        {[1, 2, 3].map(i => (
+                          <div key={i} className="h-12 animate-pulse rounded-lg bg-slate-800" />
+                        ))}
+                      </div>
+                    ) : requests.length === 0 ? (
                       <div className="p-6">
                         <EmptyState
                           icon="📡"

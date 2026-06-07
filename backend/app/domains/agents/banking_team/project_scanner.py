@@ -21,7 +21,7 @@ import subprocess
 from pathlib import Path
 from typing import Any
 
-from .base_agent import AgentResult, BaseAgent
+from .base_agent import BaseAgent, AgentResult
 
 logger = logging.getLogger(__name__)
 

@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Optional
 
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, computed_field
 
 
 # ── Organizations ────────────────────────────────────────────────
@@ -74,6 +74,18 @@ class InvitationOut(BaseModel):
     accepted_at: Optional[datetime] = None
     revoked_at: Optional[datetime] = None
     created_at: datetime
+
+    @computed_field
+    @property
+    def status(self) -> str:
+        if self.revoked_at is not None:
+            return "revoked"
+        if self.accepted_at is not None:
+            return "accepted"
+        from datetime import datetime, timezone
+        if datetime.now(timezone.utc) > self.expires_at:
+            return "expired"
+        return "pending"
 
     class Config:
         from_attributes = True

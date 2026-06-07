@@ -118,7 +118,15 @@ _CONTRACTS: dict[TaskType, type[BaseModel]] = {
 
 
 def validate_structured_contract(request: AIRequest, payload: dict[str, Any] | list[Any]) -> dict[str, Any] | list[Any]:
-    """Validate structured JSON payloads for high-risk tasks at the gateway boundary."""
+    """Validate structured JSON payloads for high-risk tasks at the gateway boundary.
+
+    Pipeline iç çağrıları (schema_version başı "pipeline-") kontrakt doğrulamasını atlar:
+    pipeline adımları metni zincirleme bağlam olarak kullanır, katı şema doğrulaması gerekmez.
+    """
+    # Pipeline internal calls bypass strict schema validation
+    if request.schema_version and str(request.schema_version).startswith("pipeline-"):
+        return payload
+
     contract = _CONTRACTS.get(request.task_type)
     if contract is None:
         if request.json_mode:

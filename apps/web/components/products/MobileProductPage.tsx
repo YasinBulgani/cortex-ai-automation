@@ -28,6 +28,17 @@ type Project = { id: string; name: string; description?: string };
 
 type DeviceStatus = "idle" | "running" | "queued" | "offline";
 
+/** Backend /api/v1/mobile/devices yanıt şeması */
+interface ApiDevice {
+  id: string;
+  name: string;
+  platform: "ios" | "android";
+  os_version: string;
+  status: "idle" | "running" | "booting" | "offline" | "error";
+  battery: number;
+  last_seen?: string | null;
+}
+
 interface Device {
   id: string;
   name: string;
@@ -46,23 +57,7 @@ interface AiInsight {
   cta?: string;
 }
 
-// ─── Mock data (real API gelene kadar) ──────────────────────────────────────
-
-const DEVICES: Device[] = [
-  { id: "ip15p",  name: "iPhone 15 Pro",       os: "iOS",     version: "17.4",   status: "running", battery: 87, lastRun: "şu an" },
-  { id: "ip14",   name: "iPhone 14",           os: "iOS",     version: "17.3",   status: "idle",    battery: 100, lastRun: "12 dk önce" },
-  { id: "ip13m",  name: "iPhone 13 Mini",      os: "iOS",     version: "16.7",   status: "queued",  battery: 64 },
-  { id: "ipsem",  name: "iPhone SE 3",         os: "iOS",     version: "16.5",   status: "idle",    battery: 92, lastRun: "1 sa önce" },
-  { id: "ipad",   name: "iPad Pro 12.9",       os: "iOS",     version: "17.4",   status: "offline", battery: 0 },
-  { id: "g8",     name: "Pixel 8",             os: "Android", version: "14",     status: "running", battery: 73, lastRun: "şu an" },
-  { id: "g7",     name: "Pixel 7",             os: "Android", version: "14",     status: "idle",    battery: 88, lastRun: "8 dk önce" },
-  { id: "s24u",   name: "Galaxy S24 Ultra",    os: "Android", version: "14",     status: "queued",  battery: 91 },
-  { id: "s23",    name: "Galaxy S23",          os: "Android", version: "13",     status: "idle",    battery: 56 },
-  { id: "a54",    name: "Galaxy A54",          os: "Android", version: "13",     status: "running", battery: 45, lastRun: "şu an" },
-  { id: "rn12",   name: "Redmi Note 12",       os: "Android", version: "13",     status: "idle",    battery: 100 },
-  { id: "pix6",   name: "Pixel 6a",            os: "Android", version: "13",     status: "offline", battery: 0 },
-];
-
+// ─── AI Insights — statik içerik (AI analiz endpoint'i hazır olduğunda değiştirilecek) ──
 const AI_INSIGHTS: AiInsight[] = [
   {
     id: "ins-1",
@@ -99,10 +94,10 @@ const MODULES = [
     key: "device-matrix",
     title: "Cihaz Matrisi",
     icon: "📱",
-    description: "iOS + Android, fiziksel + emülatör. 12 cihaz live. Otomatik dağıtım, paralel koşu.",
+    description: "iOS + Android, fiziksel + emülatör. Otomatik dağıtım, paralel koşu.",
     href: "mobile",
     isPrimary: true,
-    liveCount: "12 cihaz",
+    liveCount: "cihaz live",
   },
   {
     key: "scenarios",
@@ -163,6 +158,38 @@ function sanitizeProjectName(name: string): string {
   return name;
 }
 
+function formatLastSeen(iso: string): string {
+  try {
+    const diff = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
+    if (diff < 30) return "şu an";
+    if (diff < 60) return `${diff} sn önce`;
+    if (diff < 3600) return `${Math.floor(diff / 60)} dk önce`;
+    return `${Math.floor(diff / 3600)} sa önce`;
+  } catch {
+    return "bilinmiyor";
+  }
+}
+
+/** Backend ApiDevice → frontend Device dönüşümü */
+function mapApiDevice(d: ApiDevice): Device {
+  const statusMap: Record<ApiDevice["status"], DeviceStatus> = {
+    idle: "idle",
+    running: "running",
+    booting: "running",
+    offline: "offline",
+    error: "offline",
+  };
+  return {
+    id: d.id,
+    name: d.name,
+    os: d.platform === "ios" ? "iOS" : "Android",
+    version: d.os_version,
+    status: statusMap[d.status],
+    battery: d.battery,
+    lastRun: d.last_seen ? formatLastSeen(d.last_seen) : undefined,
+  };
+}
+
 // ─── Status renkleri ────────────────────────────────────────────────────────
 
 const STATUS_CLASSES: Record<DeviceStatus, { ring: string; bg: string; dot: string; label: string; text: string }> = {
@@ -177,6 +204,9 @@ const STATUS_CLASSES: Record<DeviceStatus, { ring: string; bg: string; dot: stri
 export function MobileProductPage() {
   const { project, projectId } = useProject();
   const [projects, setProjects] = useState<Project[]>([]);
+  const [devices, setDevices] = useState<Device[]>([]);
+  const [devicesLoading, setDevicesLoading] = useState(true);
+  const [devicesError, setDevicesError] = useState<string | null>(null);
   const [tick, setTick] = useState(0); // live indicator ticker
 
   useEffect(() => {
@@ -185,25 +215,144 @@ export function MobileProductPage() {
       .catch(() => setProjects([]));
   }, []);
 
+  // Cihazları backend'den çek; her 15 saniyede bir yenile
+  useEffect(() => {
+    let cancelled = false;
+
+    const fetchDevices = () => {
+      apiFetch<ApiDevice[]>("/api/v1/mobile/devices")
+        .then(data => {
+          if (cancelled) return;
+          setDevices(Array.isArray(data) ? data.map(mapApiDevice) : []);
+          setDevicesError(null);
+        })
+        .catch((err: unknown) => {
+          if (cancelled) return;
+          setDevicesError(err instanceof Error ? err.message : "Cihazlar yüklenemedi");
+        })
+        .finally(() => {
+          if (!cancelled) setDevicesLoading(false);
+        });
+    };
+
+    fetchDevices();
+    const interval = setInterval(fetchDevices, 15_000);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, []);
+
   useEffect(() => {
     const t = setInterval(() => setTick(v => v + 1), 3000);
     return () => clearInterval(t);
   }, []);
 
-  // Device stats
+  // Device stats — gerçek veriden hesapla
   const stats = useMemo(() => {
-    const total = DEVICES.length;
-    const running = DEVICES.filter(d => d.status === "running").length;
-    const idle = DEVICES.filter(d => d.status === "idle").length;
-    const queued = DEVICES.filter(d => d.status === "queued").length;
-    const offline = DEVICES.filter(d => d.status === "offline").length;
-    const ios = DEVICES.filter(d => d.os === "iOS").length;
-    const android = DEVICES.filter(d => d.os === "Android").length;
+    const total = devices.length;
+    const running = devices.filter(d => d.status === "running").length;
+    const idle = devices.filter(d => d.status === "idle").length;
+    const queued = devices.filter(d => d.status === "queued").length;
+    const offline = devices.filter(d => d.status === "offline").length;
+    const ios = devices.filter(d => d.os === "iOS").length;
+    const android = devices.filter(d => d.os === "Android").length;
     return { total, running, idle, queued, offline, ios, android };
-  }, []);
+  }, [devices]);
 
   const activeProject = project ?? projects.find(p => p.id === projectId);
   const safeProjectName = activeProject ? sanitizeProjectName(activeProject.name) : null;
+
+  // Cihaz matrisi içeriği — loading / error / empty / liste
+  function DeviceMatrixContent() {
+    if (devicesLoading) {
+      return (
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <div key={i} className="rounded-xl border border-slate-800 bg-slate-900 p-3 animate-pulse">
+              <div className="h-8 w-8 rounded-lg bg-slate-800 mb-2" />
+              <div className="h-2 w-3/4 rounded bg-slate-800 mb-1.5" />
+              <div className="h-2 w-1/2 rounded bg-slate-800" />
+            </div>
+          ))}
+        </div>
+      );
+    }
+
+    if (devicesError) {
+      return (
+        <div className="flex flex-col items-center justify-center py-10 gap-3">
+          <span className="text-2xl">⚠️</span>
+          <p className="text-sm text-red-400 font-medium">Cihazlar yüklenemedi</p>
+          <p className="text-xs text-slate-500 text-center max-w-xs">{devicesError}</p>
+          <button
+            type="button"
+            onClick={() => {
+              setDevicesLoading(true);
+              setDevicesError(null);
+              apiFetch<ApiDevice[]>("/api/v1/mobile/devices")
+                .then(data => setDevices(Array.isArray(data) ? data.map(mapApiDevice) : []))
+                .catch((err: unknown) => setDevicesError(err instanceof Error ? err.message : "Cihazlar yüklenemedi"))
+                .finally(() => setDevicesLoading(false));
+            }}
+            className="rounded-lg border border-slate-700 px-3 py-1.5 text-xs text-slate-300 hover:bg-slate-800 transition-colors"
+          >
+            Yeniden dene
+          </button>
+        </div>
+      );
+    }
+
+    if (devices.length === 0) {
+      return (
+        <div className="flex flex-col items-center justify-center py-10 gap-3">
+          <span className="text-3xl">📱</span>
+          <p className="text-sm text-slate-400 font-medium">Henüz cihaz yok</p>
+          <p className="text-xs text-slate-500 text-center max-w-xs">
+            Fiziksel cihaz eklemek için fiziksel kayıt akışını kullanın ya da emülatör başlatın.
+          </p>
+        </div>
+      );
+    }
+
+    return (
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5">
+        {devices.map((d) => {
+          const cfg = STATUS_CLASSES[d.status];
+          return (
+            <div
+              key={d.id}
+              className={`group relative rounded-xl border ${cfg.ring} ${cfg.bg} p-3 transition-all hover:scale-[1.03] hover:border-rose-500/50 cursor-pointer`}
+            >
+              <div className="flex items-start justify-between gap-2 mb-2">
+                <span className="text-2xl leading-none">{d.os === "iOS" ? "📱" : "🤖"}</span>
+                <span className={`shrink-0 h-2 w-2 mt-1.5 rounded-full ${cfg.dot}`} />
+              </div>
+              <p className="text-xs font-semibold text-white truncate">{d.name}</p>
+              <p className="text-[10px] text-slate-500 mt-0.5">{d.os} {d.version}</p>
+              <div className="mt-2 flex items-center justify-between text-[10px]">
+                <span className={cfg.text}>{cfg.label}</span>
+                {d.status !== "offline" && (
+                  <span className="flex items-center gap-0.5 text-slate-500 tabular-nums">
+                    <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                    {d.battery}%
+                  </span>
+                )}
+              </div>
+              {d.lastRun && (
+                <p className="mt-1 text-[9px] text-slate-600 truncate">son: {d.lastRun}</p>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    );
+  }
+
+  // tick bağımlılığını tüketmek için (lint uyarısını önle)
+  void tick;
 
   return (
     <div className="flex flex-col gap-8 p-6 pb-12">
@@ -232,7 +381,12 @@ export function MobileProductPage() {
             </h1>
 
             <p className="text-base lg:text-lg text-slate-300 max-w-xl leading-relaxed mb-6">
-              iOS + Android, fiziksel + emülatör, paralel koşu. <strong className="text-white">{stats.total} cihaz</strong>{" "}
+              iOS + Android, fiziksel + emülatör, paralel koşu.{" "}
+              {devicesLoading ? (
+                <span className="inline-block h-4 w-16 rounded bg-slate-700 animate-pulse align-middle" />
+              ) : (
+                <strong className="text-white">{stats.total} cihaz</strong>
+              )}{" "}
               hazır — {stats.running} canlı çalışıyor, {stats.idle} idle. AI flaky test'leri tespit eder, locator'ları onarır,
               cihaz-spesifik regression'ları öngörür.
             </p>
@@ -275,22 +429,30 @@ export function MobileProductPage() {
 
           {/* Sağ: Mini cihaz visualization */}
           <div className="hidden lg:flex flex-col items-center gap-3">
-            <div className="grid grid-cols-4 gap-2">
-              {DEVICES.slice(0, 12).map((d, i) => {
-                const cfg = STATUS_CLASSES[d.status];
-                return (
-                  <div
-                    key={d.id}
-                    className={`group flex flex-col items-center justify-center w-14 h-20 rounded-lg border ${cfg.ring} ${cfg.bg} transition-all hover:scale-110`}
-                    title={`${d.name} · ${cfg.label}`}
-                    style={{ animationDelay: `${i * 50}ms` }}
-                  >
-                    <span className="text-lg leading-none">{d.os === "iOS" ? "📱" : "🤖"}</span>
-                    <span className={`mt-1 h-1.5 w-1.5 rounded-full ${cfg.dot}`} />
-                  </div>
-                );
-              })}
-            </div>
+            {devicesLoading ? (
+              <div className="grid grid-cols-4 gap-2">
+                {Array.from({ length: 12 }).map((_, i) => (
+                  <div key={i} className="w-14 h-20 rounded-lg border border-slate-800 bg-slate-900 animate-pulse" />
+                ))}
+              </div>
+            ) : (
+              <div className="grid grid-cols-4 gap-2">
+                {devices.slice(0, 12).map((d, i) => {
+                  const cfg = STATUS_CLASSES[d.status];
+                  return (
+                    <div
+                      key={d.id}
+                      className={`group flex flex-col items-center justify-center w-14 h-20 rounded-lg border ${cfg.ring} ${cfg.bg} transition-all hover:scale-110`}
+                      title={`${d.name} · ${cfg.label}`}
+                      style={{ animationDelay: `${i * 50}ms` }}
+                    >
+                      <span className="text-lg leading-none">{d.os === "iOS" ? "📱" : "🤖"}</span>
+                      <span className={`mt-1 h-1.5 w-1.5 rounded-full ${cfg.dot}`} />
+                    </div>
+                  );
+                })}
+              </div>
+            )}
             <p className="text-xs text-slate-500">{stats.total} cihaz · {stats.ios} iOS · {stats.android} Android</p>
           </div>
         </div>
@@ -308,21 +470,21 @@ export function MobileProductPage() {
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
           <StatCard
             label="Aktif Cihaz"
-            value={`${stats.total - stats.offline}/${stats.total}`}
+            value={devicesLoading ? "—" : `${stats.total - stats.offline}/${stats.total}`}
             tone="success"
             sparkline={[10, 11, 12, 12, 11, 12, stats.total - stats.offline]}
             hint={`${stats.offline} offline`}
           />
           <StatCard
             label="Şu an Koşuyor"
-            value={stats.running}
+            value={devicesLoading ? "—" : stats.running}
             tone="info"
             sparkline={genSparkline(stats.running, 7, 2)}
             trend={+12}
           />
           <StatCard
             label="Kuyrukta"
-            value={stats.queued}
+            value={devicesLoading ? "—" : stats.queued}
             tone="warning"
             hint="ortalama 2dk bekleme"
           />
@@ -359,49 +521,20 @@ export function MobileProductPage() {
             <div>
               <h2 className="text-base font-bold text-white flex items-center gap-2">
                 <span>📱</span> Cihaz Matrisi
-                <span className="rounded-full bg-rose-500/10 border border-rose-500/30 px-2 py-0.5 text-[10px] font-semibold text-rose-300">
-                  {stats.total} cihaz
-                </span>
+                {!devicesLoading && (
+                  <span className="rounded-full bg-rose-500/10 border border-rose-500/30 px-2 py-0.5 text-[10px] font-semibold text-rose-300">
+                    {stats.total} cihaz
+                  </span>
+                )}
               </h2>
-              <p className="text-xs text-slate-500 mt-0.5">Live status · 3 saniyede bir güncellenir</p>
+              <p className="text-xs text-slate-500 mt-0.5">Live status · 15 saniyede bir güncellenir</p>
             </div>
             <button className="rounded-lg border border-slate-700 px-3 py-1.5 text-xs text-slate-300 hover:bg-slate-800 transition-colors">
               + Cihaz Ekle
             </button>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5">
-            {DEVICES.map((d) => {
-              const cfg = STATUS_CLASSES[d.status];
-              return (
-                <div
-                  key={d.id}
-                  className={`group relative rounded-xl border ${cfg.ring} ${cfg.bg} p-3 transition-all hover:scale-[1.03] hover:border-rose-500/50 cursor-pointer`}
-                >
-                  <div className="flex items-start justify-between gap-2 mb-2">
-                    <span className="text-2xl leading-none">{d.os === "iOS" ? "📱" : "🤖"}</span>
-                    <span className={`shrink-0 h-2 w-2 mt-1.5 rounded-full ${cfg.dot}`} />
-                  </div>
-                  <p className="text-xs font-semibold text-white truncate">{d.name}</p>
-                  <p className="text-[10px] text-slate-500 mt-0.5">{d.os} {d.version}</p>
-                  <div className="mt-2 flex items-center justify-between text-[10px]">
-                    <span className={cfg.text}>{cfg.label}</span>
-                    {d.status !== "offline" && (
-                      <span className="flex items-center gap-0.5 text-slate-500 tabular-nums">
-                        <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                        </svg>
-                        {d.battery}%
-                      </span>
-                    )}
-                  </div>
-                  {d.lastRun && (
-                    <p className="mt-1 text-[9px] text-slate-600 truncate">son: {d.lastRun}</p>
-                  )}
-                </div>
-              );
-            })}
-          </div>
+          <DeviceMatrixContent />
         </section>
 
         {/* OS Distribution + Quick Stats */}
@@ -412,23 +545,33 @@ export function MobileProductPage() {
           <div className="relative flex items-center justify-center mb-5">
             <svg viewBox="0 0 100 100" className="h-32 w-32 -rotate-90">
               <circle cx="50" cy="50" r="40" stroke="#1e293b" strokeWidth="14" fill="none" />
-              <circle
-                cx="50" cy="50" r="40"
-                stroke="#fb7185" strokeWidth="14" fill="none"
-                strokeDasharray={`${(stats.ios / stats.total) * 251.3} 251.3`}
-                strokeLinecap="round"
-              />
-              <circle
-                cx="50" cy="50" r="40"
-                stroke="#34d399" strokeWidth="14" fill="none"
-                strokeDasharray={`${(stats.android / stats.total) * 251.3} 251.3`}
-                strokeDashoffset={`-${(stats.ios / stats.total) * 251.3}`}
-                strokeLinecap="round"
-              />
+              {stats.total > 0 && (
+                <>
+                  <circle
+                    cx="50" cy="50" r="40"
+                    stroke="#fb7185" strokeWidth="14" fill="none"
+                    strokeDasharray={`${(stats.ios / stats.total) * 251.3} 251.3`}
+                    strokeLinecap="round"
+                  />
+                  <circle
+                    cx="50" cy="50" r="40"
+                    stroke="#34d399" strokeWidth="14" fill="none"
+                    strokeDasharray={`${(stats.android / stats.total) * 251.3} 251.3`}
+                    strokeDashoffset={`-${(stats.ios / stats.total) * 251.3}`}
+                    strokeLinecap="round"
+                  />
+                </>
+              )}
             </svg>
             <div className="absolute inset-0 flex flex-col items-center justify-center">
-              <span className="text-2xl font-bold text-white tabular-nums">{stats.total}</span>
-              <span className="text-[10px] text-slate-500 uppercase tracking-wider">Toplam</span>
+              {devicesLoading ? (
+                <div className="h-6 w-10 rounded bg-slate-700 animate-pulse" />
+              ) : (
+                <>
+                  <span className="text-2xl font-bold text-white tabular-nums">{stats.total}</span>
+                  <span className="text-[10px] text-slate-500 uppercase tracking-wider">Toplam</span>
+                </>
+              )}
             </div>
           </div>
 
@@ -440,7 +583,9 @@ export function MobileProductPage() {
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-white tabular-nums font-semibold">{stats.ios}</span>
-                <span className="text-xs text-slate-500 tabular-nums">%{Math.round((stats.ios / stats.total) * 100)}</span>
+                {stats.total > 0 && (
+                  <span className="text-xs text-slate-500 tabular-nums">%{Math.round((stats.ios / stats.total) * 100)}</span>
+                )}
               </div>
             </div>
             <div className="flex items-center justify-between text-sm">
@@ -450,7 +595,9 @@ export function MobileProductPage() {
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-white tabular-nums font-semibold">{stats.android}</span>
-                <span className="text-xs text-slate-500 tabular-nums">%{Math.round((stats.android / stats.total) * 100)}</span>
+                {stats.total > 0 && (
+                  <span className="text-xs text-slate-500 tabular-nums">%{Math.round((stats.android / stats.total) * 100)}</span>
+                )}
               </div>
             </div>
           </div>
@@ -503,7 +650,9 @@ export function MobileProductPage() {
                   <h3 className={`text-sm font-bold ${m.isPrimary ? "text-rose-300" : "text-white"} group-hover:text-rose-300 transition-colors`}>
                     {m.title}
                   </h3>
-                  <p className="text-[10px] text-slate-600 mt-0.5 tabular-nums">{m.liveCount}</p>
+                  <p className="text-[10px] text-slate-600 mt-0.5 tabular-nums">
+                    {m.key === "device-matrix" ? `${stats.total} ${m.liveCount}` : m.liveCount}
+                  </p>
                 </div>
               </div>
               <p className="text-xs text-slate-400 leading-relaxed line-clamp-3">{m.description}</p>
@@ -673,7 +822,7 @@ export function MobileProductPage() {
         <div className="grid gap-3 md:grid-cols-3">
           {[
             { step: 1, title: "Proje seç veya oluştur", desc: "Mevcut bir projeyi aç ya da yeni mobile odaklı proje başlat", action: "Projeleri gör", href: "/portfolio" },
-            { step: 2, title: "Cihazları doğrula", desc: "12 cihaz hazır. Listeden kontrol et, offline olanları yeniden bağla", action: "Matrise git", href: activeProject ? `/p/${activeProject.id}/mobile` : "/portfolio" },
+            { step: 2, title: "Cihazları doğrula", desc: `${stats.total} cihaz hazır. Listeden kontrol et, offline olanları yeniden bağla`, action: "Matrise git", href: activeProject ? `/p/${activeProject.id}/mobile` : "/portfolio" },
             { step: 3, title: "İlk senaryoyu çalıştır", desc: "Hazır şablonlardan seç veya AI ile yeni senaryo oluştur", action: "Senaryolar", href: activeProject ? `/p/${activeProject.id}/scenarios` : "/task-drafts" },
           ].map((s) => (
             <div key={s.step} className="rounded-xl border border-slate-800 bg-slate-900 p-4">

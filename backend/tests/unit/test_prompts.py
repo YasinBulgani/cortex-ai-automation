@@ -74,7 +74,7 @@ def test_canary_bucket_different_prompt_independent() -> None:
 
 def _mk_version(prompt_id: str, version: int, system: str = "S", user_t: str = "U") -> PromptVersionOut:
     return PromptVersionOut(
-        id=version,
+        id=str(version),
         prompt_id=prompt_id,
         version=version,
         system_prompt=system,

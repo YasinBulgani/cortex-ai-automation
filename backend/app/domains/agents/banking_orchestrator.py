@@ -33,8 +33,8 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from dataclasses import asdict, dataclass, field
-from datetime import datetime, timezone as _tz
+from dataclasses import dataclass, field, asdict
+from datetime import datetime, timezone
 from enum import Enum
 from typing import Any
 
@@ -144,7 +144,7 @@ class BankingPipelineState:
 
     def log(self, phase: str, agent: str, msg: str, level: str = "info") -> None:
         entry = BankingLog(
-            timestamp=datetime.now(_tz.utc).isoformat(),
+            timestamp=datetime.now(timezone.utc).isoformat(),
             phase=phase,
             agent=agent,
             message=msg,
@@ -243,25 +243,25 @@ async def run_banking_team(
       focus_module — Odaklanılacak modül
     """
     from app.domains.agents.banking_team import (
-        AutoHealerAgent,
+        DataAnalystAgent,
+        ScenarioGeneratorAgent,
+        RegulationAgent,
         AutomationDecisionAgent,
         CodeGeneratorAgent,
-        DataAnalystAgent,
-        QualityJudgeAgent,
-        RegulationAgent,
-        ScenarioGeneratorAgent,
         SelfImprovingAgent,
+        AutoHealerAgent,
+        QualityJudgeAgent,
     )
     from app.domains.agents.banking_team.debate_orchestrator import DebateOrchestrator
-    from app.domains.agents.banking_team.output_writer import OutputWriterAgent
     from app.domains.agents.banking_team.project_scanner import ProjectScannerAgent
+    from app.domains.agents.banking_team.output_writer import OutputWriterAgent
     from app.domains.agents.banking_team.test_runner import TestRunnerAgent
     from app.domains.ai.knowledge_store import KnowledgeStore
 
     banking_pipeline.running = True
     banking_pipeline.run_id = run_id
     banking_pipeline.total_cycles = total_cycles
-    banking_pipeline.started_at = datetime.now(_tz.utc).isoformat()
+    banking_pipeline.started_at = datetime.now(timezone.utc).isoformat()
     banking_pipeline.progress = 0
 
     PHASES_PER_CYCLE = 15  # 0-8 + 4 yeni faz + 2 debate faz
@@ -944,7 +944,7 @@ async def run_banking_team(
         logger.exception("Banking pipeline hatası")
     finally:
         banking_pipeline.running = False
-        banking_pipeline.completed_at = datetime.now(_tz.utc).isoformat()
+        banking_pipeline.completed_at = datetime.now(timezone.utc).isoformat()
 
 
 def _extract_failed_tests(test_data: dict) -> list[dict]:

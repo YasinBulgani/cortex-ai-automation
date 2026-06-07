@@ -23,6 +23,7 @@ import { useProject } from "@/lib/useProject";
 import { SidebarProjectSwitcher } from "@/components/SidebarProjectSwitcher";
 import { PRODUCT_BRAND } from "@/lib/products/brand";
 import { ToastContainer } from "@/components/ToastContainer";
+import { useCurrentUser } from "@/lib/useCurrentUser";
 
 // Lazy-loaded ağır bileşenler — ilk render'da bundle'a dahil edilmez
 const CommandPalette       = lazy(() => import("./CommandPalette").then(m => ({ default: m.CommandPalette })));
@@ -222,6 +223,7 @@ export function AppShell({
   const router = useRouter();
   const path   = usePathname();
   const { projectId: ctxProjectId } = useProject();
+  const { user: currentUser, loading: userLoading } = useCurrentUser();
 
   const [storedProjectId, setStoredProjectId] = useState<string | null>(null);
   const [sidebarOpen,     setSidebarOpen]     = useState(false);
@@ -264,6 +266,23 @@ export function AppShell({
       (effectiveProjectId ? { id: effectiveProjectId, name: `Proje ${effectiveProjectId}` } : undefined),
     [projects, effectiveProjectId],
   );
+
+  // Kullanıcı baş harfleri — full_name'den türetilir, yoksa email'den
+  const userInitials = useMemo(() => {
+    if (!currentUser) return userLoading ? "" : "?";
+    const name = currentUser.full_name?.trim();
+    if (name) {
+      const parts = name.split(/\s+/).filter(Boolean);
+      if (parts.length >= 2) {
+        return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+      }
+      return parts[0].slice(0, 2).toUpperCase();
+    }
+    return currentUser.email.slice(0, 2).toUpperCase();
+  }, [currentUser, userLoading]);
+
+  const userDisplayName = currentUser?.full_name?.trim() || currentUser?.email || "Kullanıcı";
+  const userEmail = currentUser?.email ?? "";
 
   // Stale localStorage cleanup: stored project no longer exists in fetched list.
   // Without this, deleted projects keep generating /p/<gone-id>/* URLs that 404.
@@ -767,16 +786,25 @@ export function AppShell({
                   className="flex h-8 w-8 items-center justify-center rounded-full bg-violet-600 text-xs font-bold text-white transition hover:bg-violet-500"
                   aria-label="Kullanıcı menüsü"
                   data-testid="header-btn-user-menu"
+                  title={userDisplayName}
                 >
-                  YB
+                  {userLoading ? (
+                    <span className="h-3 w-3 rounded-full border-2 border-white/40 border-t-white animate-spin inline-block" />
+                  ) : userInitials}
                 </button>
                 {userMenuOpen && (
                   <>
                     <div className="fixed inset-0 z-40" onClick={() => setUserMenuOpen(false)} />
                     <div className="absolute right-0 top-full z-50 mt-2 w-52 rounded-xl border border-border bg-surface-raised py-1 shadow-elevated animate-slide-down origin-top-right">
                       <div className="border-b border-border px-3 py-2">
-                        <p className="text-sm font-medium text-fg">Yasin Bulgan</p>
-                        <p className="text-xs text-fg-subtle">yasin.bulgan@bgtest.com</p>
+                        {userLoading ? (
+                          <p className="text-xs text-fg-subtle">Yükleniyor…</p>
+                        ) : (
+                          <>
+                            <p className="text-sm font-medium text-fg">{userDisplayName}</p>
+                            {userEmail && <p className="text-xs text-fg-subtle">{userEmail}</p>}
+                          </>
+                        )}
                       </div>
                       <Link href="/profile" className="block px-3 py-2 text-sm text-fg-muted hover:bg-surface-overlay transition-colors" onClick={() => setUserMenuOpen(false)} data-testid="user-menu-link-profile">Profil</Link>
                       <Link href="/settings/security" className="block px-3 py-2 text-sm text-fg-muted hover:bg-surface-overlay transition-colors" onClick={() => setUserMenuOpen(false)} data-testid="user-menu-link-security">🔐 Güvenlik (2FA)</Link>

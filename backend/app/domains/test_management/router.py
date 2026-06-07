@@ -39,6 +39,7 @@ from app.domains.test_management.schemas import (
     ALLOWED_COMMENT_ENTITY_TYPES,
     ALLOWED_TECHNIQUES,
     AuditEventOut,
+    PagedResponse,
     BulkUpdateCasesRequest,
     BulkUpdateCasesResponse,
     BvaRunCreate,
@@ -428,15 +429,29 @@ def delete_folder(project_id: str, folder_id: str, db: DB, user: WriteUser) -> N
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
-@router.get("/projects/{project_id}/cases", response_model=list[TestCaseOut])
+@router.get(
+    "/projects/{project_id}/cases",
+    response_model=PagedResponse[TestCaseOut],
+    summary="Test case listesi (sayfalı). limit/offset ile sayfalama desteklenir.",
+)
 def list_cases(
     project_id: str,
     db: DB,
     _user: ReadUser,
-    q: str | None = Query(default=None),
-    include_archived: bool = False,
-) -> list[TestCaseOut]:
-    return service.list_cases(db, project_id, q=q, include_archived=include_archived)
+    q: str | None = Query(default=None, description="Başlık veya case key'e göre filtre"),
+    include_archived: bool = Query(default=False, description="Arşivlenmiş case'leri dahil et"),
+    limit: int = Query(default=50, ge=1, le=500, description="Sayfa başına kayıt sayısı"),
+    offset: int = Query(default=0, ge=0, description="Atlanacak kayıt sayısı (cursor)"),
+) -> PagedResponse[TestCaseOut]:
+    total = service.count_cases(db, project_id, q=q, include_archived=include_archived)
+    items = service.list_cases(db, project_id, q=q, include_archived=include_archived, limit=limit, offset=offset)
+    return PagedResponse(
+        items=items,
+        total=total,
+        limit=limit,
+        offset=offset,
+        has_more=(offset + len(items)) < total,
+    )
 
 
 @router.post("/projects/{project_id}/cases", response_model=TestCaseOut, status_code=status.HTTP_201_CREATED)
@@ -444,8 +459,71 @@ def create_case(project_id: str, payload: TestCaseCreate, db: DB, user: WriteUse
     return service.create_case(db, project_id, payload, user)
 
 
+@router.get(
+    "/projects/{project_id}/cases/quality-scan",
+    response_model=QualityScanResponse,
+    summary="Test case kalite taraması — kısa başlık, boş adım, vs.",
+)
+def quality_scan(
+    project_id: str,
+    db: DB,
+    _user: ReadUser,
+    limit: int = Query(default=50, ge=1, le=200),
+) -> QualityScanResponse:
+    from app.domains.test_management.schemas import QualityScanResult
+    cases = service.list_cases(db, project_id)[:limit]
+    results = []
+    for case in cases:
+        issues = []
+        score  = 100
+        if len((case.title or "").split()) < 3:
+            issues.append("Başlık çok kısa (< 3 kelime)")
+            score -= 20
+        if not case.objective:
+            issues.append("Amaç eksik")
+            score -= 10
+        if not case.steps or len(case.steps) == 0:
+            issues.append("Test adımı yok")
+            score -= 30
+        elif len(case.steps) == 1:
+            issues.append("Sadece 1 test adımı var")
+            score -= 10
+        if case.steps:
+            empty_steps = [s for s in case.steps if not s.action.strip()]
+            if empty_steps:
+                issues.append(f"{len(empty_steps)} boş adım var")
+                score -= 15
+            missing_expected = [s for s in case.steps if not s.expected_result.strip()]
+            if len(missing_expected) > len(case.steps) // 2:
+                issues.append("Adımların yarısından fazlasında beklenen sonuç eksik")
+                score -= 15
+        if not case.tags or len(case.tags) == 0:
+            issues.append("Etiket yok")
+            score -= 5
+        if issues:
+            results.append(QualityScanResult(
+                case_id=case.id,
+                case_key=case.case_key,
+                title=case.title,
+                issues=issues,
+                score=max(0, score),
+                recommendation="İyileştir" if score < 60 else "Gözden geçir",
+            ))
+    return QualityScanResponse(
+        total=len(cases),
+        scanned=len(cases),
+        issues_found=len(results),
+        results=sorted(results, key=lambda r: r.score),
+    )
+
+
 @router.get("/projects/{project_id}/cases/{case_id}", response_model=TestCaseOut)
 def get_case(project_id: str, case_id: str, db: DB, _user: ReadUser) -> TestCaseOut:
+    import uuid as _uuid
+    try:
+        _uuid.UUID(case_id)
+    except ValueError:
+        raise HTTPException(status_code=404, detail="Test case bulunamadı")
     return service.get_case(db, project_id, case_id)
 
 
@@ -548,6 +626,11 @@ def move_case(
     summary="Test case'i kalıcı olarak sil",
 )
 def delete_case(project_id: str, case_id: str, db: DB, user: WriteUser) -> None:
+    import uuid as _uuid
+    try:
+        _uuid.UUID(case_id)
+    except ValueError:
+        raise HTTPException(status_code=404, detail="Test case bulunamadı")
     try:
         service.delete_case(db, project_id, case_id, user)
     except KeyError as exc:
@@ -643,7 +726,9 @@ def run_progress(project_id: str, run_id: str, db: DB, _user: ReadUser) -> dict:
     if not run:
         raise HTTPException(status_code=404, detail="Run bulunamadı")
     cycle = db.get(_TC, run.cycle_id)
-    if not cycle or cycle.project_id != pid:
+    if not cycle:
+        raise HTTPException(status_code=404, detail="Run bulunamadı")
+    if cycle.project_id is not None and cycle.project_id != pid:
         raise HTTPException(status_code=404, detail="Run bulunamadı")
     run_cases = list(db.scalars(_sel(TRC).where(TRC.run_id == run_id)).all())
     total = len(run_cases)
@@ -694,64 +779,6 @@ def complete_run(project_id: str, run_id: str, db: DB, user: WriteUser) -> TestR
     db.commit()
     db.refresh(run)
     return run
-
-
-@router.get(
-    "/projects/{project_id}/cases/quality-scan",
-    response_model=QualityScanResponse,
-    summary="Test case kalite taraması — kısa başlık, boş adım, vs.",
-)
-def quality_scan(
-    project_id: str,
-    db: DB,
-    _user: ReadUser,
-    limit: int = Query(default=50, ge=1, le=200),
-) -> QualityScanResponse:
-    from app.domains.test_management.schemas import QualityScanResult
-    cases = service.list_cases(db, project_id)[:limit]
-    results = []
-    for case in cases:
-        issues = []
-        score  = 100
-        if len((case.title or "").split()) < 3:
-            issues.append("Başlık çok kısa (< 3 kelime)")
-            score -= 20
-        if not case.objective:
-            issues.append("Amaç eksik")
-            score -= 10
-        if not case.steps or len(case.steps) == 0:
-            issues.append("Test adımı yok")
-            score -= 30
-        elif len(case.steps) == 1:
-            issues.append("Sadece 1 test adımı var")
-            score -= 10
-        if case.steps:
-            empty_steps = [s for s in case.steps if not s.action.strip()]
-            if empty_steps:
-                issues.append(f"{len(empty_steps)} boş adım var")
-                score -= 15
-            missing_expected = [s for s in case.steps if not s.expected_result.strip()]
-            if len(missing_expected) > len(case.steps) // 2:
-                issues.append("Adımların yarısından fazlasında beklenen sonuç eksik")
-                score -= 15
-        if not case.tags or len(case.tags) == 0:
-            issues.append("Etiket yok")
-            score -= 5
-        if issues:
-            results.append(QualityScanResult(
-                case_id=case.id,
-                case_key=case.case_key,
-                title=case.title,
-                issues=issues,
-                score=max(0, score),
-                recommendation="İyileştir" if score < 60 else "Gözden geçir",
-            ))
-    return QualityScanResponse(
-        total=len(cases),
-        scanned=len(cases),
-        issues_found=len(results),
-        results=sorted(results, key=lambda r: r.score),
-    )
 
 
 @router.get(
@@ -826,14 +853,28 @@ def delete_plan(project_id: str, plan_id: str, db: DB, user: WriteUser) -> None:
         raise HTTPException(status_code=404, detail=str(e)) from e
 
 
-@router.get("/projects/{project_id}/cycles", response_model=list[TestCycleOut])
+@router.get(
+    "/projects/{project_id}/cycles",
+    response_model=PagedResponse[TestCycleOut],
+    summary="Test döngüsü listesi (sayfalı). limit/offset ile sayfalama desteklenir.",
+)
 def list_cycles(
     project_id: str,
     db: DB,
     _user: ReadUser,
-    plan_id: str | None = Query(default=None),
-) -> list[TestCycleOut]:
-    return service.list_cycles(db, project_id, plan_id=plan_id)
+    plan_id: str | None = Query(default=None, description="Belirli bir plana ait cycle'ları filtrele"),
+    limit: int = Query(default=50, ge=1, le=500, description="Sayfa başına kayıt sayısı"),
+    offset: int = Query(default=0, ge=0, description="Atlanacak kayıt sayısı (cursor)"),
+) -> PagedResponse[TestCycleOut]:
+    total = service.count_cycles(db, project_id, plan_id=plan_id)
+    items = service.list_cycles(db, project_id, plan_id=plan_id, limit=limit, offset=offset)
+    return PagedResponse(
+        items=items,
+        total=total,
+        limit=limit,
+        offset=offset,
+        has_more=(offset + len(items)) < total,
+    )
 
 
 @router.post("/projects/{project_id}/cycles", response_model=TestCycleOut, status_code=status.HTTP_201_CREATED)
@@ -941,14 +982,29 @@ def delete_regression_set(
     service.delete_regression_set(db, project_id, set_id, user)
 
 
-@router.get("/projects/{project_id}/runs", response_model=list[TestRunOut])
+@router.get(
+    "/projects/{project_id}/runs",
+    response_model=PagedResponse[TestRunOut],
+    summary="Test koşumu listesi (sayfalı). limit/offset ile sayfalama desteklenir.",
+)
 def list_runs(
     project_id: str,
     db: DB,
     _user: ReadUser,
-    status: str | None = Query(default=None, description="Filter by run status"),
-) -> list[TestRunOut]:
-    return service.list_runs(db, project_id, status_filter=status)
+    status: str | None = Query(default=None, description="Run durumuna göre filtre"),
+    cycle_id: str | None = Query(default=None, description="Belirli bir cycle'a ait run'ları filtrele"),
+    limit: int = Query(default=50, ge=1, le=500, description="Sayfa başına kayıt sayısı"),
+    offset: int = Query(default=0, ge=0, description="Atlanacak kayıt sayısı (cursor)"),
+) -> PagedResponse[TestRunOut]:
+    total = service.count_runs(db, project_id, cycle_id=cycle_id, status_filter=status)
+    items = service.list_runs(db, project_id, limit=limit, offset=offset, cycle_id=cycle_id, status_filter=status)
+    return PagedResponse(
+        items=items,
+        total=total,
+        limit=limit,
+        offset=offset,
+        has_more=(offset + len(items)) < total,
+    )
 
 
 @router.post("/projects/{project_id}/runs", response_model=TestRunOut, status_code=status.HTTP_201_CREATED)
@@ -2294,3 +2350,76 @@ def delete_dashboard(project_id: str, dash_id: str, db: DB, user: WriteUser) -> 
     settings["custom_dashboards"] = items
     proj.settings_data = settings
     db.commit()
+
+
+# ── Convenience endpoints for frontend ────────────────────────────────────────
+
+@router.get("/projects/{project_id}/tags", response_model=list[str])
+def list_project_tags(project_id: str, db: DB, _user: ReadUser) -> list[str]:
+    """Return all unique tags used in the project's test cases."""
+    from sqlalchemy import text
+    project_id = service.resolve_project_id(db, project_id)
+    rows = db.execute(
+        text(
+            "SELECT DISTINCT tag FROM test_management_cases, "
+            "jsonb_array_elements_text(tags) AS tag "
+            "WHERE project_id = :pid AND NOT archived ORDER BY tag"
+        ),
+        {"pid": project_id},
+    ).fetchall()
+    return [r[0] for r in rows]
+
+
+@router.get("/projects/{project_id}/modules")
+def list_project_modules(project_id: str, db: DB, _user: ReadUser) -> list[dict]:
+    """Return project modules (test suites) with case counts."""
+    from sqlalchemy import func
+    from app.domains.test_management.models import TestSuite, TestCase
+    project_id = service.resolve_project_id(db, project_id)
+    suites = (
+        db.query(TestSuite, func.count(TestCase.id).label("case_count"))
+        .outerjoin(TestCase, (TestCase.suite_id == TestSuite.id) & ~TestCase.archived)
+        .filter(TestSuite.project_id == project_id)
+        .group_by(TestSuite.id)
+        .order_by(TestSuite.name)
+        .all()
+    )
+    return [
+        {
+            "id": s.id,
+            "name": s.name,
+            "description": s.description,
+            "status": s.status,
+            "case_count": count,
+            "created_at": s.created_at.isoformat() if s.created_at else None,
+        }
+        for s, count in suites
+    ]
+
+
+@router.get("/projects/{project_id}/milestones")
+def list_project_milestones(project_id: str, db: DB, _user: ReadUser) -> list[dict]:
+    """Return project milestones (test plans) with cycle counts."""
+    from sqlalchemy import func
+    from app.domains.test_management.models import TestPlan, TestCycle
+    project_id = service.resolve_project_id(db, project_id)
+    plans = (
+        db.query(TestPlan, func.count(TestCycle.id).label("cycle_count"))
+        .outerjoin(TestCycle, TestCycle.plan_id == TestPlan.id)
+        .filter(TestPlan.project_id == project_id)
+        .group_by(TestPlan.id)
+        .order_by(TestPlan.created_at.desc())
+        .all()
+    )
+    return [
+        {
+            "id": p.id,
+            "name": p.name,
+            "description": p.scope_summary,
+            "plan_type": p.plan_type,
+            "status": p.status,
+            "cycle_count": count,
+            "created_at": p.created_at.isoformat() if p.created_at else None,
+        }
+        for p, count in plans
+    ]

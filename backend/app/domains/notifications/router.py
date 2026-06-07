@@ -123,6 +123,20 @@ async def websocket_notifications(websocket: WebSocket, token: str = Query("")):
         await manager.disconnect(websocket, user_id)
 
 
+# ── Notification List / Count (frontend convenience) ─────────────────────────
+
+@router.get("/notifications", response_model=list)
+def list_notifications(db: DB, current_user: CurrentUser, limit: int = Query(20, ge=1, le=100)):
+    """Kullanıcının bildirimlerini listele (şimdilik boş — gerçek impl bildirim tablosu gerektirir)."""
+    return []
+
+
+@router.get("/notifications/unread-count")
+def get_unread_notification_count(db: DB, current_user: CurrentUser) -> dict:
+    """Okunmamış bildirim sayısını döndür."""
+    return {"count": 0}
+
+
 # ── Notification Preferences ──────────────────────────────────────────────────
 
 @router.get("/notifications/prefs", response_model=NotificationPrefsOut)

@@ -1,11 +1,13 @@
 """RBAC domain router — prefix /rbac."""
 from __future__ import annotations
 
-from typing import Any
+from typing import Annotated, Any
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
+from app.deps import get_current_user
+from app.infra.models import User
 from .service import (
     check_permission,
     enforce_segregation,
@@ -14,6 +16,7 @@ from .service import (
 )
 
 router = APIRouter(prefix="/rbac", tags=["rbac"])
+AuthUser = Annotated[User, Depends(get_current_user)]
 
 
 # ── Request / Response models ────────────────────────────────────────────
@@ -35,13 +38,13 @@ class EnforceSodRequest(BaseModel):
 
 
 @router.get("/roles", summary="List all roles")
-def list_all_roles() -> list[str]:
+def list_all_roles(_user: AuthUser) -> list[str]:
     """Return a sorted list of all defined RBAC role names."""
     return list_roles()
 
 
 @router.get("/roles/{role_name}", summary="Get role and its permissions")
-def get_role_detail(role_name: str) -> dict[str, Any]:
+def get_role_detail(role_name: str, _user: AuthUser) -> dict[str, Any]:
     """Return role metadata including its permission set."""
     try:
         return get_role(role_name)
@@ -50,14 +53,14 @@ def get_role_detail(role_name: str) -> dict[str, Any]:
 
 
 @router.post("/check-permission", summary="Check whether a permission is granted")
-def check_permission_endpoint(body: CheckPermissionRequest) -> dict[str, bool]:
+def check_permission_endpoint(body: CheckPermissionRequest, _user: AuthUser) -> dict[str, bool]:
     """Return ``{allowed: bool}`` — whether ``permission`` is in user_permissions."""
     allowed = check_permission(body.user_permissions, body.permission)
     return {"allowed": allowed}
 
 
 @router.post("/enforce-sod", summary="Enforce Segregation-of-Duties policy")
-def enforce_sod_endpoint(body: EnforceSodRequest) -> dict[str, bool]:
+def enforce_sod_endpoint(body: EnforceSodRequest, _user: AuthUser) -> dict[str, bool]:
     """Return ``{ok: true}`` or raise 403 on SoD violation.
 
     Note: this endpoint requires a real AuditStore. In the current stub

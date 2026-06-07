@@ -5,8 +5,8 @@ import json
 import logging
 from pathlib import Path
 
-from ..prompts.registry import resolve_agent_system_prompt
 from ..prompts.scenario import SCENARIO_SYSTEM_PROMPT, build_scenario_user_prompt
+from ..prompts.registry import resolve_agent_system_prompt
 from ..schemas.scenario import ScenarioSpec
 from ..state import AgentState
 from ..tools.ai_gateway import ai_complete

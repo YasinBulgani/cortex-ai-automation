@@ -8,7 +8,7 @@
  *   ✍️ Manuel    — enriched editor with locator inspector + builder + templates
  */
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 const DASHBOARD_URL = process.env.NEXT_PUBLIC_CORTEX_DASHBOARD_URL || "http://localhost:5001";
 
@@ -29,19 +29,49 @@ const LOCATOR_TYPES = ["css", "id", "name", "xpath", "linktext", "partiallinktex
 export function CortexScenarioAuthor({ open, onClose }: Props) {
   const [mode, setMode] = useState<Mode>("manual");
   const [expanded, setExpanded] = useState(false);
+  const dialogRef = useRef<HTMLDivElement | null>(null);
+
+  // Focus the dialog panel when it opens so keyboard users land inside it.
+  useEffect(() => {
+    if (open) {
+      dialogRef.current?.focus();
+    }
+  }, [open]);
+
+  // Close on Escape key.
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLDivElement>) => {
+      if (e.key === "Escape") {
+        e.stopPropagation();
+        onClose();
+      }
+    },
+    [onClose]
+  );
+
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm grid place-items-center p-4" onClick={onClose}>
+    <div
+      className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm grid place-items-center p-4"
+      onClick={onClose}
+      aria-hidden="true"
+    >
       <div
-        className={`w-full overflow-y-auto rounded-2xl bg-slate-950 border border-fuchsia-500/30 shadow-2xl shadow-fuchsia-500/20 transition-all ${
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="cortex-author-title"
+        tabIndex={-1}
+        className={`w-full overflow-y-auto rounded-2xl bg-slate-950 border border-fuchsia-500/30 shadow-2xl shadow-fuchsia-500/20 transition-all focus:outline-none ${
           expanded ? "max-w-[95vw] max-h-[95vh]" : "max-w-6xl max-h-[92vh]"
         }`}
         onClick={(e) => e.stopPropagation()}
+        onKeyDown={handleKeyDown}
       >
         <div className="sticky top-0 z-10 px-6 py-4 border-b border-slate-800 bg-slate-950/95 backdrop-blur flex items-center justify-between">
           <div>
-            <h2 className="text-lg font-bold text-white">+ Yeni Cortex Senaryosu</h2>
+            <h2 id="cortex-author-title" className="text-lg font-bold text-white">+ Yeni Cortex Senaryosu</h2>
             <p className="text-xs text-slate-400 mt-0.5">3 yöntem · sonuç projects/cortex/'a yazılır</p>
           </div>
           <div className="flex items-center gap-2">
@@ -626,11 +656,23 @@ function RecorderTab({ onClose }: { onClose: () => void }) {
 
       {/* 🪄 AI Polish modal — overlays everything when open */}
       {polish.open && (
-        <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4 sm:p-6">
-          <div className="bg-slate-950 border border-fuchsia-500/40 rounded-xl shadow-2xl w-full max-w-6xl max-h-[88vh] flex flex-col overflow-hidden">
+        <div
+          className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4 sm:p-6"
+          aria-hidden="true"
+          onClick={closePolish}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="polish-modal-title"
+            tabIndex={-1}
+            className="bg-slate-950 border border-fuchsia-500/40 rounded-xl shadow-2xl w-full max-w-6xl max-h-[88vh] flex flex-col overflow-hidden focus:outline-none"
+            onClick={(e) => e.stopPropagation()}
+            onKeyDown={(e) => { if (e.key === "Escape") closePolish(); }}
+          >
             <div className="px-4 py-3 border-b border-slate-800 flex items-start justify-between gap-3">
               <div>
-                <h3 className="font-bold text-white text-base">🪄 AI Polish — Önizleme</h3>
+                <h3 id="polish-modal-title" className="font-bold text-white text-base">🪄 AI Polish — Önizleme</h3>
                 <p className="text-xs text-slate-400 mt-0.5">
                   {polish.path ? polish.path.split("/").pop() : "son kayıt"}  ·  Model: <code className="text-fuchsia-300">{polish.model}</code>
                 </p>
@@ -825,11 +867,23 @@ function LogsButton() {
         📋 Logs
       </button>
       {open && (
-        <div className="fixed inset-0 z-[60] bg-black/80 grid place-items-center p-6" onClick={() => setOpen(false)}>
-          <div className="bg-slate-950 border border-slate-700 rounded-2xl max-w-5xl w-full max-h-[80vh] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
+        <div
+          className="fixed inset-0 z-[60] bg-black/80 grid place-items-center p-6"
+          aria-hidden="true"
+          onClick={() => setOpen(false)}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="logs-modal-title"
+            tabIndex={-1}
+            className="bg-slate-950 border border-slate-700 rounded-2xl max-w-5xl w-full max-h-[80vh] overflow-hidden flex flex-col focus:outline-none"
+            onClick={(e) => e.stopPropagation()}
+            onKeyDown={(e) => { if (e.key === "Escape") setOpen(false); }}
+          >
             <div className="flex items-center justify-between px-4 py-3 border-b border-slate-800">
               <div>
-                <p className="text-sm font-bold text-white">📋 Recorder Log (JVM stdout/stderr)</p>
+                <p id="logs-modal-title" className="text-sm font-bold text-white">📋 Recorder Log (JVM stdout/stderr)</p>
                 <p className="text-xs text-slate-500">logs/recorder.log · {loading ? "yukleniyor…" : "her 2.5sn yenilenir"}</p>
               </div>
               <button onClick={() => setOpen(false)} className="w-7 h-7 rounded bg-slate-800 hover:bg-slate-700 text-white">✕</button>

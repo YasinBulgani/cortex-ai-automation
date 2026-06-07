@@ -432,7 +432,7 @@ class KnowledgeStore:
         """
         count = 0
         for item in items:
-            item_project_id = item.get("project_id") or project_id
+            item_project_id = item.get("project_id") or self._project_id
             if self.ingest(
                 item.get("text", ""),
                 item.get("source", "unknown"),
@@ -777,14 +777,14 @@ class KnowledgeStore:
             if not self._supports_project_scope():
                 logger.warning(
                     "KnowledgeStore keyword search project scope migration'i bekliyor; project_id=%s",
-                    project_id,
+                    self._project_id,
                 )
                 return []
             keywords = [w for w in query.lower().split() if len(w) > 3]
             if not keywords:
                 return []
             conditions = " OR ".join(["LOWER(content) LIKE %s"] * len(keywords))
-            params: list = [project_id] + [f"%{kw}%" for kw in keywords]
+            params: list = [self._project_id] + [f"%{kw}%" for kw in keywords]
             where = f"WHERE project_id = %s AND ({conditions})"
             if sources:
                 where += " AND source = ANY(%s)"

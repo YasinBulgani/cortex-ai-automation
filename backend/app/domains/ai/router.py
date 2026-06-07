@@ -770,49 +770,89 @@ def prioritize_tests(project_id: str, body: dict, db: DB, user: CurrentUser):
 
 
 @router.post("/projects/{project_id}/anomaly-detect")
-def anomaly_detect(project_id: str, body: dict, db: DB, user: CurrentUser):
+def anomaly_detect(project_id: str, db: DB, user: CurrentUser, body: Optional[Dict] = None):
     """
-    Test sonuçlarında anomali (flaky, yavaşlama, regresyon) tespit eder.
-    body: { test_results: list[{testId, status, duration, retryCount}] }
+    Test koşularında anomali (yavaşlama, hata paterni) tespit eder.
+    body: { test_results: list[{testId, status, duration, retryCount}] } — opsiyonel.
+    Boş body gelirse son 20 koşu analiz edilir.
+
+    Dönüş şeması (frontend uyumlu):
+    {
+      anomalies: [{execution_id, execution_name, duration_seconds, z_score, issue}],
+      total_analyzed: int,
+      anomaly_count: int,
+      avg_duration: float,
+    }
     """
     import statistics
-    results = body.get("test_results", [])
+    from app.domains.tspm.models import TspmExecution, TspmExecutionResult, TspmScenario
+
+    results: list[dict] = body.get("test_results", []) if body else []
+
     if not results:
-        # Projedeki son koşu sonuçlarını kullan
-        from app.domains.tspm.models import TspmExecution, TspmExecutionResult
-        last_exec = db.scalars(
-            select(TspmExecution).where(TspmExecution.project_id == project_id)
-            .order_by(TspmExecution.created_at.desc()).limit(1)
-        ).first()
-        if last_exec:
-            rows = list(db.scalars(
-                select(TspmExecutionResult).where(TspmExecutionResult.execution_id == last_exec.id)
+        # Son koşuları DB'den çek
+        recent_execs = list(db.scalars(
+            select(TspmExecution)
+            .where(TspmExecution.project_id == project_id)
+            .order_by(TspmExecution.created_at.desc())
+            .limit(20)
+        ))
+        for exec_obj in recent_execs:
+            exec_results = list(db.scalars(
+                select(TspmExecutionResult)
+                .where(TspmExecutionResult.execution_id == exec_obj.id)
             ))
-            results = [{"testId": r.scenario_id, "status": r.status, "duration": r.duration_ms or 0, "retryCount": 0} for r in rows]
+            for r in exec_results:
+                results.append({
+                    "testId": r.scenario_id,
+                    "executionId": exec_obj.id,
+                    "executionName": exec_obj.name or f"Koşu #{exec_obj.id[:8]}",
+                    "status": r.status,
+                    "duration": r.duration_ms or 0,
+                    "retryCount": 0,
+                })
+
+    # Senaryo başlıklarını toplu çek
+    scenario_ids = list({r.get("testId") for r in results if r.get("testId")})
+    scenario_title_map: dict[str, str] = {}
+    if scenario_ids:
+        sc_rows = list(db.scalars(
+            select(TspmScenario).where(TspmScenario.id.in_(scenario_ids))
+        ))
+        scenario_title_map = {sc.id: sc.title for sc in sc_rows}
+
+    durations = [r.get("duration", 0) for r in results if r.get("duration", 0) > 0]
+    mean_dur = statistics.mean(durations) if durations else 0
+    stdev_dur = statistics.stdev(durations) if len(durations) > 1 else 0
+    avg_duration_sec = round(mean_dur / 1000, 2)
 
     anomalies = []
-    durations = [r.get("duration", 0) for r in results if r.get("duration", 0) > 0]
-    if len(durations) > 2:
-        mean_dur = statistics.mean(durations)
-        stdev_dur = statistics.stdev(durations) if len(durations) > 1 else 0
-        threshold = mean_dur + 2 * stdev_dur
-
-        for r in results:
-            issues = []
-            if r.get("retryCount", 0) > 1:
-                issues.append("flaky")
-            if r.get("duration", 0) > threshold and threshold > 0:
-                issues.append("yavaş")
-            if r.get("status") == "failed":
-                issues.append("başarısız")
-            if issues:
-                anomalies.append({"testId": r["testId"], "issues": issues, "duration": r.get("duration", 0)})
+    for r in results:
+        dur = r.get("duration", 0)
+        z_score = round((dur - mean_dur) / stdev_dur, 2) if stdev_dur > 0 else 0.0
+        issues = []
+        if r.get("retryCount", 0) > 1:
+            issues.append("flaky")
+        if stdev_dur > 0 and z_score > 2:
+            issues.append("yavaş koşu")
+        if r.get("status") == "failed":
+            issues.append("başarısız")
+        if issues:
+            sc_id = r.get("testId", "")
+            exec_name = r.get("executionName", scenario_title_map.get(sc_id, sc_id[:8] if sc_id else "Bilinmiyor"))
+            anomalies.append({
+                "execution_id": r.get("executionId", sc_id),
+                "execution_name": exec_name,
+                "duration_seconds": round(dur / 1000, 2),
+                "z_score": z_score,
+                "issue": ", ".join(issues),
+            })
 
     return {
         "anomalies": anomalies,
-        "total_tested": len(results),
+        "total_analyzed": len(results),
         "anomaly_count": len(anomalies),
-        "avg_duration_ms": round(statistics.mean(durations), 2) if durations else 0,
+        "avg_duration": avg_duration_sec,
     }
 
 

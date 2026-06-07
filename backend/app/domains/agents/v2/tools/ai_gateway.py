@@ -70,7 +70,7 @@ class GatewayUsage:
     total_tokens: int = 0
     cost_usd: float = 0.0
 
-    def add(self, other: GatewayUsage) -> GatewayUsage:
+    def add(self, other: "GatewayUsage") -> "GatewayUsage":
         return GatewayUsage(
             input_tokens=self.input_tokens + other.input_tokens,
             output_tokens=self.output_tokens + other.output_tokens,

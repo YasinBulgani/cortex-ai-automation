@@ -106,7 +106,7 @@ services:
       ai-gateway:
         condition: service_started   # ai-gateway opsiyonel — ENGINE_REQUIRED_FOR_READY=false ile başlar
     healthcheck:
-      test: ["CMD-SHELL", "curl -fsS http://localhost:8000/health || exit 1"]
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/health')\" 2>/dev/null || exit 1"]
       interval: 30s
       timeout: 10s
       start_period: 30s

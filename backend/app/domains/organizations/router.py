@@ -97,7 +97,7 @@ def update_my_organization(
         org.name = body.name
     db.commit()
     db.refresh(org)
-    log_audit(db, user_id=user.id, action="organization.update", resource=org.id)
+    log_audit(db, actor_user_id=user.id, action="organization.update", resource_type="organization", resource_id=org.id, payload=None, ip=None)
     return org
 
 
@@ -111,7 +111,7 @@ def list_org_teams(
     out: list[TeamOut] = []
     for t in teams:
         count = db.scalar(
-            select(func.count(TeamMember.id)).where(TeamMember.team_id == t.id)
+            select(func.count(TeamMember.user_id)).where(TeamMember.team_id == t.id)
         )
         out.append(
             TeamOut(
@@ -143,7 +143,7 @@ def create_team_endpoint(
     )
     db.commit()
     db.refresh(team)
-    log_audit(db, user_id=user.id, action="team.create", resource=team.id)
+    log_audit(db, actor_user_id=user.id, action="team.create", resource_type="organization", resource_id=team.id, payload=None, ip=None)
     return TeamOut(
         id=team.id,
         organization_id=team.organization_id,
@@ -193,7 +193,7 @@ def add_team_member_endpoint(
         raise HTTPException(404, detail="Kullanici bu organizasyonda degil")
     service.add_team_member(db, team_id=team_id, user_id=body.user_id, role=body.role)
     db.commit()
-    log_audit(db, user_id=user.id, action="team.member.add", resource=f"{team_id}:{body.user_id}")
+    log_audit(db, actor_user_id=user.id, action="team.member.add", resource_type="organization", resource_id=f"{team_id}:{body.user_id}", payload=None, ip=None)
     return {"ok": True}
 
 
@@ -210,7 +210,7 @@ def remove_team_member_endpoint(
         raise HTTPException(404)
     ok = service.remove_team_member(db, team_id=team_id, user_id=user_id)
     db.commit()
-    log_audit(db, user_id=user.id, action="team.member.remove", resource=f"{team_id}:{user_id}")
+    log_audit(db, actor_user_id=user.id, action="team.member.remove", resource_type="organization", resource_id=f"{team_id}:{user_id}", payload=None, ip=None)
     return {"ok": ok}
 
 
@@ -238,7 +238,7 @@ def create_invitation_endpoint(
     db.refresh(inv)
     org = service.get_organization(db, user.tenant_id)
     _send_invite_email(body.email, raw_token, org.name if org else "Cortex", body.role)
-    log_audit(db, user_id=user.id, action="invitation.create", resource=inv.id)
+    log_audit(db, actor_user_id=user.id, action="invitation.create", resource_type="invitation", resource_id=inv.id, payload=None, ip=None)
     return inv
 
 
@@ -263,7 +263,7 @@ def revoke_invitation_endpoint(
         raise HTTPException(404)
     ok = service.revoke_invitation(db, invitation_id=invitation_id)
     db.commit()
-    log_audit(db, user_id=user.id, action="invitation.revoke", resource=invitation_id)
+    log_audit(db, actor_user_id=user.id, action="invitation.revoke", resource_type="invitation", resource_id=invitation_id, payload=None, ip=None)
     return {"ok": ok}
 
 
@@ -303,7 +303,7 @@ def accept_invitation_endpoint(
 
     service.mark_invitation_accepted(db, invitation_id=inv.id)
     db.commit()
-    log_audit(db, user_id=user.id, action="invitation.accept", resource=inv.id)
+    log_audit(db, actor_user_id=user.id, action="invitation.accept", resource_type="invitation", resource_id=inv.id, payload=None, ip=None)
     return {"ok": True, "created_user": created, "organization_id": inv.organization_id}
 
 
@@ -343,8 +343,7 @@ def add_project_member_endpoint(
         db, project_id=project_id, user_id=body.user_id, role=body.role
     )
     db.commit()
-    log_audit(db, user_id=user.id, action="project.member.add",
-              resource=f"{project_id}:{body.user_id}")
+    log_audit(db, actor_user_id=user.id, action="project.member.add", resource_type="project", resource_id=f"{project_id}:{body.user_id}", payload=None, ip=None)
     return {"ok": True}
 
 
@@ -358,6 +357,5 @@ def remove_project_member_endpoint(
     _require_org_admin(user)
     ok = service.remove_project_member(db, project_id=project_id, user_id=user_id)
     db.commit()
-    log_audit(db, user_id=user.id, action="project.member.remove",
-              resource=f"{project_id}:{user_id}")
+    log_audit(db, actor_user_id=user.id, action="project.member.remove", resource_type="project", resource_id=f"{project_id}:{user_id}", payload=None, ip=None)
     return {"ok": ok}

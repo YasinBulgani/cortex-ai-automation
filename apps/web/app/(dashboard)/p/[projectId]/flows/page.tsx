@@ -29,7 +29,7 @@ export default function FlowsListPage() {
   const [name, setName] = useState("");
   const [err, setErr] = useState<string | null>(null);
 
-  const { data: rows = [] } = useQuery<FlowRow[]>({
+  const { data: rows = [], isLoading: flowsLoading } = useQuery<FlowRow[]>({
     queryKey: flowsQK(projectId ?? ""),
     queryFn: () => apiFetch<FlowRow[]>(`/api/v1/tspm/projects/${projectId}/flows`),
     enabled: !!projectId,
@@ -109,7 +109,13 @@ export default function FlowsListPage() {
       </form>
 
       {/* Flow grid */}
-      {rows.length === 0 ? (
+      {flowsLoading ? (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3" data-testid="flows-grid-loading">
+          {[1, 2, 3, 4, 5, 6].map(i => (
+            <div key={i} className="h-28 animate-pulse rounded-xl bg-slate-800" />
+          ))}
+        </div>
+      ) : rows.length === 0 ? (
         <div className="rounded-xl border border-slate-700 bg-slate-900/40 p-16">
           <EmptyState
             icon="🔧"

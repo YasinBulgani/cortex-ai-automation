@@ -275,9 +275,9 @@ def get_product_telemetry(product_id: str) -> JSONResponse:
 
 
 _DEMO_NOTICE = (
-    "DEMO_DATA: Bu endpoint henüz gerçek aggregation'a bağlanmadı — "
-    "dönen veriler statik örnektir. "
-    "Bkz: backend/app/domains/products/router.py TODO yorumları."
+    "DEMO_DATA: Bu endpoint henüz gercek aggregation'a baglanmadi -- "
+    "donen veriler statik ornektir. "
+    "Bkz: backend/app/domains/products/router.py TODO yorumlari."
 )
 _DEMO_HEADERS = {"X-Data-Mode": "demo", "X-Demo-Data": "true", "X-Demo-Notice": _DEMO_NOTICE}
 

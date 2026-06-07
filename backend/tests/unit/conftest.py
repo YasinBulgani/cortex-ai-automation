@@ -195,3 +195,32 @@ def feature_flags():
     """
     from app.domains.feature_flags.service import feature_flags as svc
     return svc
+
+
+@pytest.fixture(autouse=True)
+def reset_notifications_manager():
+    """Reset ConnectionManager global state between tests to prevent ordering-dependent failures."""
+    try:
+        from app.domains.notifications.service import manager
+        original_connections = dict(manager.active_connections)
+        yield
+        manager.active_connections.clear()
+        manager.active_connections.update(original_connections)
+    except Exception:
+        yield
+
+
+@pytest.fixture(autouse=True)
+def reset_rate_limiter_state():
+    """Reset rate limiter global state between tests."""
+    try:
+        import app.domains.auth.rate_limiter as rl_module
+        if hasattr(rl_module, '_rate_limit_store'):
+            original = dict(rl_module._rate_limit_store)
+            yield
+            rl_module._rate_limit_store.clear()
+            rl_module._rate_limit_store.update(original)
+        else:
+            yield
+    except Exception:
+        yield

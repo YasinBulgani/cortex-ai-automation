@@ -3,9 +3,32 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any, Generic, Optional, TypeVar
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
+
+T = TypeVar("T")
+
+
+class PagedResponse(BaseModel, Generic[T]):
+    """Standard paginated list response envelope.
+
+    All list endpoints that support pagination return this shape::
+
+        {
+            "items": [...],
+            "total": 42,
+            "limit": 20,
+            "offset": 0,
+            "has_more": true
+        }
+    """
+
+    items: list[T]
+    total: int
+    limit: int
+    offset: int
+    has_more: bool
 
 
 class ManagementProjectCreate(BaseModel):
@@ -262,7 +285,7 @@ class RegressionSelectionFilter(BaseModel):
 class RegressionSetCaseIn(BaseModel):
     case_id: str
     order_index: int = 0
-    risk_score: int = 0
+    risk_score: float = 0.0
     reason: str = "Manual selection"
     include_mode: str = "manual"
 
@@ -299,7 +322,7 @@ class RegressionCandidateOut(BaseModel):
     status: str
     tags: list[str]
     last_run_status: Optional[str] = None
-    risk_score: int
+    risk_score: float
     reasons: list[str]
 
 
@@ -314,7 +337,7 @@ class RegressionSetCaseOut(BaseModel):
     type: str
     last_run_status: Optional[str] = None
     order_index: int
-    risk_score: int
+    risk_score: float
     reason: Optional[str] = None
     include_mode: str
 
@@ -1039,6 +1062,10 @@ class BulkUpdateCasesRequest(BaseModel):
 class BulkUpdateCasesResponse(BaseModel):
     updated: int
     failed: int = 0
+
+
+# Alias — task gereksinimi ve geriye dönük uyumluluk için
+BulkCaseUpdate = BulkUpdateCasesRequest
 
 
 class TestCaseGenerateRequest(BaseModel):

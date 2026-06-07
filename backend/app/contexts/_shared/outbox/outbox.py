@@ -45,7 +45,7 @@ class OutboxEntry:
     error: str | None = None
 
     @classmethod
-    def from_event(cls, event: DomainEvent) -> OutboxEntry:
+    def from_event(cls, event: DomainEvent) -> "OutboxEntry":
         # Event'i serialize et (dataclass __dict__ uyarlı, datetime ISO)
         payload = {}
         for field_name in event.__dataclass_fields__:

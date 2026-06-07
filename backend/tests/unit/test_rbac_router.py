@@ -28,7 +28,15 @@ pytestmark = pytest.mark.skipif(not _IMPORT_OK, reason="import failed")
 
 
 def _app() -> TestClient:
+    from unittest.mock import MagicMock
+    from app.deps import get_current_user
+
     app = FastAPI()
+    # Override auth dependency so tests don't need a real DB/JWT
+    mock_user = MagicMock()
+    mock_user.id = "test-user-id"
+    mock_user.roles = []
+    app.dependency_overrides[get_current_user] = lambda: mock_user
     app.include_router(rbac_router, prefix="/api/v1")
     return TestClient(app, raise_server_exceptions=False)
 

@@ -76,6 +76,8 @@ async def _ai_call(task_type: TaskType, messages: list[Message]) -> str:
         # None: model_post_init her görev için doğru temperature/max_tokens'ı seçer
         temperature=None,
         max_tokens=None,
+        # Pipeline iç çağrısı — yapısal kontrakt doğrulaması atlanır (çıktı metin olarak işlenir)
+        schema_version="pipeline-internal-v1",
     )
     response = await ai_router.route(request)
     return response.content

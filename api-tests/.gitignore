@@ -1,0 +1,13 @@
+# Local environment overrides — never commit these
+*.env.local
+.env.local
+.env
+
+# JetBrains HTTP Client scratch files
+http-client.private.env.json
+
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+allure-results/

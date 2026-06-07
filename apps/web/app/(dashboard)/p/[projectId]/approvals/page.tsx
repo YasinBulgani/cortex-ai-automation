@@ -138,7 +138,7 @@ export default function ApprovalsPage() {
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
 
-  const { data: rows = [] } = useQuery<Approval[]>({
+  const { data: rows = [], isLoading: approvalsLoading } = useQuery<Approval[]>({
     queryKey: approvalsQK(projectId ?? ""),
     queryFn: () => apiFetch<Approval[]>(`/api/v1/tspm/projects/${projectId}/approvals`),
     enabled: !!projectId,
@@ -241,7 +241,21 @@ export default function ApprovalsPage() {
 
       {/* Kanban board */}
       <div data-testid="approval-list" className="grid gap-4 flex-1" style={{ gridTemplateColumns: active ? "1fr 1fr 1fr" : "repeat(3, 1fr)" }}>
-        <DndContext
+        {approvalsLoading ? (
+          <>
+            {[1, 2, 3].map(col => (
+              <div key={col} className="flex flex-col rounded-xl border border-slate-700 bg-slate-900/40" style={{ minHeight: 400 }}>
+                <div className="h-10 animate-pulse rounded-t-xl bg-slate-800 border-b border-slate-800" />
+                <div className="flex-1 space-y-2 p-3">
+                  {[1, 2, 3].map(card => (
+                    <div key={card} className="h-24 animate-pulse rounded-xl bg-slate-800" />
+                  ))}
+                </div>
+              </div>
+            ))}
+          </>
+        ) : null}
+        {!approvalsLoading && <DndContext
           sensors={sensors}
           collisionDetection={closestCorners}
           onDragStart={handleDragStart}
@@ -275,7 +289,7 @@ export default function ApprovalsPage() {
               </div>
             )}
           </DragOverlay>
-        </DndContext>
+        </DndContext>}
       </div>
 
       {/* Detail panel */}

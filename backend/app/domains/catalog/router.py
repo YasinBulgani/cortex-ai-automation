@@ -1,3 +1,4 @@
+import logging
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
@@ -17,6 +18,8 @@ from app.domains.catalog.schemas import (
 from app.infra.database import get_db
 from app.infra.models import Dataset, DatasetVersion, SchemaSnapshot, User
 
+logger = logging.getLogger(__name__)
+
 router = APIRouter(prefix="/datasets", tags=["catalog"])
 
 
@@ -26,7 +29,11 @@ def list_datasets(
     _: Annotated[User, Depends(get_current_user)],
 ) -> list[Dataset]:
     """Veri setlerini listeler."""
-    return list(db.scalars(select(Dataset).order_by(Dataset.created_at.desc())).all())
+    try:
+        return list(db.scalars(select(Dataset).order_by(Dataset.created_at.desc())).all())
+    except Exception as e:
+        logger.error("list_datasets failed: %s", e, exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.post("", response_model=DatasetOut, status_code=status.HTTP_201_CREATED)
@@ -37,21 +44,28 @@ def create_dataset(
     user: Annotated[User, Depends(get_current_user)],
 ) -> Dataset:
     """Yeni veri seti olusturur."""
-    ds = Dataset(name=body.name, description=body.description, created_by=user.id)
-    db.add(ds)
-    db.flush()
-    log_audit(
-        db,
-        actor_user_id=user.id,
-        action="dataset.create",
-        resource_type="dataset",
-        resource_id=ds.id,
-        payload={"name": body.name},
-        ip=client_ip(request),
-    )
-    db.commit()
-    db.refresh(ds)
-    return ds
+    try:
+        ds = Dataset(name=body.name, description=body.description, created_by=user.id)
+        db.add(ds)
+        db.flush()
+        log_audit(
+            db,
+            actor_user_id=user.id,
+            action="dataset.create",
+            resource_type="dataset",
+            resource_id=ds.id,
+            payload={"name": body.name},
+            ip=client_ip(request),
+        )
+        db.commit()
+        db.refresh(ds)
+        return ds
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("create_dataset failed: %s", e, exc_info=True)
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.get("/{dataset_id}", response_model=DatasetOut)
@@ -61,10 +75,16 @@ def get_dataset(
     _: Annotated[User, Depends(get_current_user)],
 ) -> Dataset:
     """Belirtilen veri seti detayini getirir."""
-    ds = db.get(Dataset, dataset_id)
-    if ds is None:
-        raise HTTPException(status_code=404, detail="Veri seti bulunamadı")
-    return ds
+    try:
+        ds = db.get(Dataset, dataset_id)
+        if ds is None:
+            raise HTTPException(status_code=404, detail="Veri seti bulunamadı")
+        return ds
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("get_dataset(%s) failed: %s", dataset_id, e, exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.post(
@@ -80,35 +100,42 @@ def create_dataset_version(
     user: Annotated[User, Depends(get_current_user)],
 ) -> DatasetVersion:
     """Veri seti icin yeni bir surum olusturur."""
-    ds = db.get(Dataset, dataset_id)
-    if ds is None:
-        raise HTTPException(status_code=404, detail="Veri seti bulunamadı")
-    max_v = db.scalar(
-        select(func.max(DatasetVersion.version)).where(DatasetVersion.dataset_id == dataset_id)
-    )
-    next_v = (max_v or 0) + 1
-    ver = DatasetVersion(dataset_id=dataset_id, version=next_v, status="draft")
-    db.add(ver)
-    db.flush()
-    snap = SchemaSnapshot(
-        dataset_version_id=ver.id,
-        snapshot=body.snapshot or {},
-        profile=body.profile,
-        pii_flags=body.pii_flags,
-    )
-    db.add(snap)
-    log_audit(
-        db,
-        actor_user_id=user.id,
-        action="dataset_version.create",
-        resource_type="dataset_version",
-        resource_id=ver.id,
-        payload={"dataset_id": dataset_id, "version": next_v},
-        ip=client_ip(request),
-    )
-    db.commit()
-    db.refresh(ver)
-    return ver
+    try:
+        ds = db.get(Dataset, dataset_id)
+        if ds is None:
+            raise HTTPException(status_code=404, detail="Veri seti bulunamadı")
+        max_v = db.scalar(
+            select(func.max(DatasetVersion.version)).where(DatasetVersion.dataset_id == dataset_id)
+        )
+        next_v = (max_v or 0) + 1
+        ver = DatasetVersion(dataset_id=dataset_id, version=next_v, status="draft")
+        db.add(ver)
+        db.flush()
+        snap = SchemaSnapshot(
+            dataset_version_id=ver.id,
+            snapshot=body.snapshot or {},
+            profile=body.profile,
+            pii_flags=body.pii_flags,
+        )
+        db.add(snap)
+        log_audit(
+            db,
+            actor_user_id=user.id,
+            action="dataset_version.create",
+            resource_type="dataset_version",
+            resource_id=ver.id,
+            payload={"dataset_id": dataset_id, "version": next_v},
+            ip=client_ip(request),
+        )
+        db.commit()
+        db.refresh(ver)
+        return ver
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("create_dataset_version(%s) failed: %s", dataset_id, e, exc_info=True)
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.get("/{dataset_id}/versions", response_model=list[DatasetVersionOut])
@@ -118,15 +145,21 @@ def list_versions(
     _: Annotated[User, Depends(get_current_user)],
 ) -> list[DatasetVersion]:
     """Veri seti surumlerini listeler."""
-    if db.get(Dataset, dataset_id) is None:
-        raise HTTPException(status_code=404, detail="Veri seti bulunamadı")
-    return list(
-        db.scalars(
-            select(DatasetVersion)
-            .where(DatasetVersion.dataset_id == dataset_id)
-            .order_by(DatasetVersion.version.desc())
-        ).all()
-    )
+    try:
+        if db.get(Dataset, dataset_id) is None:
+            raise HTTPException(status_code=404, detail="Veri seti bulunamadı")
+        return list(
+            db.scalars(
+                select(DatasetVersion)
+                .where(DatasetVersion.dataset_id == dataset_id)
+                .order_by(DatasetVersion.version.desc())
+            ).all()
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("list_versions(%s) failed: %s", dataset_id, e, exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.get(
@@ -140,12 +173,18 @@ def get_schema_for_version(
     _: Annotated[User, Depends(get_current_user)],
 ) -> SchemaSnapshot:
     """Belirtilen surume ait sema bilgisini getirir."""
-    ver = db.get(DatasetVersion, version_id)
-    if ver is None or ver.dataset_id != dataset_id:
-        raise HTTPException(status_code=404, detail="Sürüm bulunamadı")
-    snap = db.scalar(
-        select(SchemaSnapshot).where(SchemaSnapshot.dataset_version_id == version_id)
-    )
-    if snap is None:
-        raise HTTPException(status_code=404, detail="Şema bulunamadı")
-    return snap
+    try:
+        ver = db.get(DatasetVersion, version_id)
+        if ver is None or ver.dataset_id != dataset_id:
+            raise HTTPException(status_code=404, detail="Sürüm bulunamadı")
+        snap = db.scalar(
+            select(SchemaSnapshot).where(SchemaSnapshot.dataset_version_id == version_id)
+        )
+        if snap is None:
+            raise HTTPException(status_code=404, detail="Şema bulunamadı")
+        return snap
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("get_schema_for_version(%s, %s) failed: %s", dataset_id, version_id, e, exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))

@@ -27,9 +27,9 @@ from app.core.security_config import (
     API_CACHE_CONTROL,
     API_CSP,
     HSTS_HEADER,
+    SECURITY_HEADERS,
     MAX_REQUEST_BODY_SIZE,
     MAX_UPLOAD_SIZE,
-    SECURITY_HEADERS,
 )
 
 _logger = logging.getLogger("bgts.security")

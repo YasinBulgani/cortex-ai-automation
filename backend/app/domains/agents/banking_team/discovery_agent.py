@@ -25,9 +25,9 @@ from __future__ import annotations
 
 import logging
 import re
-from urllib.parse import urljoin, urlparse
+from urllib.parse import urlparse, urljoin
 
-from .base_agent import AgentResult, BaseAgent
+from .base_agent import BaseAgent, AgentResult
 
 logger = logging.getLogger(__name__)
 

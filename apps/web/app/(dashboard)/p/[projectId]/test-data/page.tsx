@@ -54,7 +54,7 @@ export default function TestDataPage() {
   const [showCreate, setShowCreate] = useState(false);
   const [newDs, setNewDs] = useState({ name: "", description: "" });
 
-  const { data: dataSets = [] } = useQuery<DataSet[]>({
+  const { data: dataSets = [], isLoading: datasetsLoading } = useQuery<DataSet[]>({
     queryKey: testDataQK,
     queryFn: () => apiFetch<DataSet[]>(basePath),
     enabled: !!projectId,
@@ -176,6 +176,19 @@ export default function TestDataPage() {
     if (!selectedId || columnsToMask.length === 0) return;
     if (!confirm(`${columnsToMask.join(", ")} sütunları maskelensin mi?`)) return;
     maskMut.mutate(columnsToMask);
+  }
+
+  if (datasetsLoading) {
+    return (
+      <div className="min-h-screen bg-slate-950 p-6 flex flex-col gap-4" data-testid="test-data-page">
+        <div className="h-12 w-48 animate-pulse rounded-xl bg-slate-800" />
+        <div className="grid grid-cols-2 gap-4">
+          <div className="h-20 animate-pulse rounded-xl bg-slate-800" />
+          <div className="h-20 animate-pulse rounded-xl bg-slate-800" />
+        </div>
+        <div className="h-64 animate-pulse rounded-xl bg-slate-800" />
+      </div>
+    );
   }
 
   return (

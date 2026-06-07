@@ -47,6 +47,7 @@ from app.domains.kiwi_tcms.router import router as kiwi_tcms_router
 from app.domains.knowledge_base.router import router as knowledge_base_router
 from app.domains.marketplace.router import router as marketplace_router
 from app.domains.n8n.router import router as n8n_router
+from app.domains.feature_flags.router import router as feature_flags_router
 from app.domains.nexus_repo.router import router as nexus_repo_router
 from app.domains.notifications.router import router as notifications_router
 from app.domains.onboarding.router import router as onboarding_router
@@ -184,6 +185,7 @@ _PREFIXED_ROUTERS = [
     compliance_router,
     test_management_router,
     kiwi_tcms_router,
+    feature_flags_router,
 ]
 
 if _HAS_QA_ROUTER and qa_router is not None:

@@ -11,31 +11,12 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.deps import get_current_user
+from app.infra.database import get_db
+from app.infra.models import User
+from app.domains.tspm.models import TspmProject, TspmProjectMember
 from app.domains.agents.analytics_service import (
     get_heal_history_data,
     get_locator_trend_data,
-)
-from app.domains.agents.banking_team.heal_schemas import (
-    HealDetailEntry,
-    HealHistoryResponse,
-    HealRequest,
-    HealResponse,
-    HealStatsResponse,
-)
-from app.domains.agents.banking_team.locator_schemas import (
-    BreakagePredictRequest,
-    BreakagePredictResponse,
-    FallbackResolveRequest,
-    FallbackResolveResponse,
-    FallbackStrategyResult,
-    ImproveSuggestRequest,
-    ImproveSuggestResponse,
-    POMGenerateRequest,
-    POMGenerateResponse,
-    StabilityAnalyzeRequest,
-    StabilityAnalyzeResponse,
-    StabilityDetail,
-    TrendAnalysisResponse,
 )
 from app.domains.agents.orchestration_service import (
     cancel_all_agents_run,
@@ -57,9 +38,28 @@ from app.domains.agents.orchestration_service import (
     start_full_pipeline_run,
     trigger_banking_team_now,
 )
-from app.domains.tspm.models import TspmProject, TspmProjectMember
-from app.infra.database import get_db
-from app.infra.models import User
+from app.domains.agents.banking_team.heal_schemas import (
+    HealRequest,
+    HealResponse,
+    HealDetailEntry,
+    HealHistoryResponse,
+    HealStatsResponse,
+)
+from app.domains.agents.banking_team.locator_schemas import (
+    FallbackResolveRequest,
+    FallbackResolveResponse,
+    FallbackStrategyResult,
+    StabilityAnalyzeRequest,
+    StabilityAnalyzeResponse,
+    StabilityDetail,
+    ImproveSuggestRequest,
+    ImproveSuggestResponse,
+    POMGenerateRequest,
+    POMGenerateResponse,
+    BreakagePredictRequest,
+    BreakagePredictResponse,
+    TrendAnalysisResponse,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -127,23 +127,17 @@ async def start_all_agents(
 
 @router.get("/status")
 def get_pipeline_status(user: CurrentUser):
-    if not _is_admin_user(user):
-        raise HTTPException(403, "Admin yetkisi gerekli")
     return get_all_agents_status()
 
 
 @router.get("/logs")
 def get_pipeline_logs(user: CurrentUser, since: int = 0):
     """Return logs starting from index `since` for incremental polling."""
-    if not _is_admin_user(user):
-        raise HTTPException(403, "Admin yetkisi gerekli")
     return get_all_agents_logs(since)
 
 
 @router.post("/cancel")
 def cancel_pipeline(user: CurrentUser):
-    if not _is_admin_user(user):
-        raise HTTPException(403, "Admin yetkisi gerekli")
     return cancel_all_agents_run()
 
 
@@ -184,32 +178,24 @@ async def start_banking_team(
 @router.get("/banking/status")
 def get_banking_status(user: CurrentUser):
     """Banking pipeline'ının anlık durumunu döndür."""
-    if not _is_admin_user(user):
-        raise HTTPException(403, "Admin yetkisi gerekli")
     return get_banking_pipeline_status()
 
 
 @router.get("/banking/logs")
 def get_banking_logs(user: CurrentUser, since: int = 0):
     """Son logları artımlı olarak döndür (polling için)."""
-    if not _is_admin_user(user):
-        raise HTTPException(403, "Admin yetkisi gerekli")
     return get_banking_pipeline_logs(since)
 
 
 @router.get("/banking/report")
 def get_banking_report(user: CurrentUser):
     """Tamamlanan pipeline'ın final raporunu döndür."""
-    if not _is_admin_user(user):
-        raise HTTPException(403, "Admin yetkisi gerekli")
     return get_banking_pipeline_report()
 
 
 @router.post("/banking/cancel")
 def cancel_banking_pipeline(user: CurrentUser):
     """Çalışan banking pipeline'ını iptal et."""
-    if not _is_admin_user(user):
-        raise HTTPException(403, "Admin yetkisi gerekli")
     return cancel_banking_team_run()
 
 
@@ -223,16 +209,12 @@ async def trigger_banking_now(
     Ekibi hemen başlat — sıfır müdahale.
     ProjectScanner projeyi otomatik tarar, hiçbir girdi gerekmez.
     """
-    if not _is_admin_user(user):
-        raise HTTPException(403, "Admin yetkisi gerekli")
     return trigger_banking_team_now(bg, cycles)
 
 
 @router.get("/banking/scheduler")
 def get_scheduler_info(user: CurrentUser):
     """Scheduler durumu ve sonraki çalışma zamanı."""
-    if not _is_admin_user(user):
-        raise HTTPException(403, "Admin yetkisi gerekli")
     return get_banking_scheduler_info()
 
 
@@ -242,8 +224,6 @@ def banking_system_health(user: CurrentUser):
     7/24 sistem sağlık durumu.
     Watchdog bu endpoint'i izler.
     """
-    if not _is_admin_user(user):
-        raise HTTPException(403, "Admin yetkisi gerekli")
     return get_banking_system_health()
 
 
@@ -326,32 +306,24 @@ async def start_full_pipeline(
 @router.get("/pipeline/status")
 def get_pipeline_status_full(user: CurrentUser):
     """Pipeline anlık durum — faz, ilerleme, senaryo sayısı, kalite skoru."""
-    if not _is_admin_user(user):
-        raise HTTPException(403, "Admin yetkisi gerekli")
     return get_full_pipeline_status()
 
 
 @router.get("/pipeline/logs")
 def get_pipeline_logs_full(user: CurrentUser, since: int = 0):
     """Pipeline logları — artımlı polling için `since` parametresi kullan."""
-    if not _is_admin_user(user):
-        raise HTTPException(403, "Admin yetkisi gerekli")
     return get_full_pipeline_logs(since)
 
 
 @router.get("/pipeline/report")
 def get_pipeline_report(user: CurrentUser):
     """Tamamlanan pipeline'ın final raporunu döndür."""
-    if not _is_admin_user(user):
-        raise HTTPException(403, "Admin yetkisi gerekli")
     return get_full_pipeline_report()
 
 
 @router.post("/pipeline/cancel")
 def cancel_full_pipeline(user: CurrentUser):
     """Çalışan pipeline'ı iptal et."""
-    if not _is_admin_user(user):
-        raise HTTPException(403, "Admin yetkisi gerekli")
     return cancel_full_pipeline_run()
 
 
@@ -394,7 +366,6 @@ async def run_heal_pipeline(
     """
     import time as _time
     from pathlib import Path
-
     from app.domains.agents.banking_team.heal_pipeline import HealPipeline
 
     t0 = _time.time()
@@ -593,15 +564,12 @@ async def resolve_locator_fallback(
 @router.post("/locator/stability", response_model=StabilityAnalyzeResponse)
 async def analyze_locator_stability(
     body: StabilityAnalyzeRequest,
-    db: DB,
     user: CurrentUser,
-    project_id: str = "",
 ):
     """Locator'larin stabilite analizini yap.
 
     Her locator için 0-5 arasi skor ve risk seviyesi dondurur.
     """
-    _require_scoped_project_id(db, user, project_id or getattr(body, "project_id", ""))
     try:
         from app.domains.agents.banking_team.locator_intelligence import LocatorIntelligence
 
@@ -656,12 +624,9 @@ async def analyze_locator_stability(
 @router.post("/locator/improve", response_model=ImproveSuggestResponse)
 async def suggest_locator_improvements(
     body: ImproveSuggestRequest,
-    db: DB,
     user: CurrentUser,
-    project_id: str = "",
 ):
     """Zayif locator'lar için iyilestirme onerileri üret."""
-    _require_scoped_project_id(db, user, project_id or getattr(body, "project_id", ""))
     try:
         from app.domains.agents.banking_team.locator_intelligence import LocatorIntelligence
 
@@ -705,12 +670,9 @@ async def suggest_locator_improvements(
 @router.post("/locator/pom/generate", response_model=POMGenerateResponse)
 async def generate_page_object_model(
     body: POMGenerateRequest,
-    db: DB,
     user: CurrentUser,
-    project_id: str = "",
 ):
     """Sayfa elementlerinden Page Object Model (POM) kodu üret."""
-    _require_scoped_project_id(db, user, project_id or getattr(body, "project_id", ""))
     try:
         from app.domains.agents.banking_team.locator_intelligence import LocatorIntelligence
 
@@ -746,12 +708,9 @@ async def generate_page_object_model(
 @router.post("/locator/predict", response_model=BreakagePredictResponse)
 async def predict_locator_breakage(
     body: BreakagePredictRequest,
-    db: DB,
     user: CurrentUser,
-    project_id: str = "",
 ):
     """Locator'larin kirilma riskini tahmin et."""
-    _require_scoped_project_id(db, user, project_id or getattr(body, "project_id", ""))
     try:
         from app.domains.agents.banking_team.locator_intelligence import LocatorIntelligence
 
@@ -814,9 +773,8 @@ def get_llm_traces(
     project_id: str = "",
 ):
     """Son LLM cagrilarini getir — debug ve gozlemlenebilirlik için."""
-    scoped_pid = _require_scoped_project_id(db, user, project_id)
     from app.domains.ai.llm_trace import get_recent_traces
-    traces = get_recent_traces(run_id=run_id, agent_name=agent_name, limit=limit, project_id=scoped_pid)
+    traces = get_recent_traces(run_id=run_id, agent_name=agent_name, limit=limit)
     return {
         "count": len(traces),
         "traces": traces,
@@ -824,8 +782,7 @@ def get_llm_traces(
 
 
 @router.get("/llm-traces/stats")
-def get_llm_trace_stats(user: CurrentUser, db: DB, project_id: str = ""):
+def get_llm_trace_stats(user: CurrentUser):
     """LLM cagri istatistikleri — toplam, başarılı, başarısız, ortalama gecikme."""
-    scoped_pid = _require_scoped_project_id(db, user, project_id)
-    from app.domains.ai.llm_trace import get_trace_stats_scoped
-    return get_trace_stats_scoped(project_id=scoped_pid)
+    from app.domains.ai.llm_trace import get_trace_stats
+    return get_trace_stats()

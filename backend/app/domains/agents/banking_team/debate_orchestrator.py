@@ -25,8 +25,7 @@ import json
 import logging
 
 from app.config import settings
-
-from .base_agent import AgentResult, BaseAgent
+from .base_agent import BaseAgent, AgentResult
 
 logger = logging.getLogger(__name__)
 

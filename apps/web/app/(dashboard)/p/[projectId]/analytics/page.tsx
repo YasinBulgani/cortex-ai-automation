@@ -17,14 +17,38 @@ import {
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PageFeedbackWidget } from "@/components/PageFeedbackWidget";
 
-type TrendPoint = { date: string; pass_rate: number; total_runs: number };
-type ExecStats = { total_runs: number; avg_pass_rate: number; total_scenarios: number };
+/** Tek bir gün için trend verisi — backend: TrendDataPoint */
+type TrendPoint = {
+  date: string;
+  pass_rate: number;
+  /** Toplam koşu sayısı — backend alanı: total */
+  total: number;
+  passed: number;
+  failed: number;
+};
+
+/** Backend: ExecutionTrendsOut */
+type ExecutionTrendsOut = {
+  days: number;
+  data_points: TrendPoint[];
+};
+
+/** Backend: ExecutionStatsOut */
+type ExecStats = {
+  total_executions: number;
+  total_scenarios_run: number;
+  avg_pass_rate: number;
+  last_execution_at: string | null;
+};
+
+/** Backend: FlakyTestOut */
 type FlakyTest = {
   scenario_id: string;
   scenario_title: string;
-  inconsistency_rate: number;
-  recent_results: string[];
+  flip_count: number;
+  last_results: string[];
 };
+
 type AnomalyResult = {
   anomalies: Array<{
     execution_id: string;
@@ -41,10 +65,10 @@ type AnomalyResult = {
 type TimeRange = "7" | "30" | "90";
 
 const resultColor: Record<string, string> = {
-  passed:  "bg-emerald-500",
-  failed:  "bg-red-500",
+  passed: "bg-emerald-500",
+  failed: "bg-red-500",
   skipped: "bg-amber-400",
-  error:   "bg-orange-500",
+  error: "bg-orange-500",
 };
 
 const TIME_RANGE_LABEL: Record<TimeRange, string> = {
@@ -61,15 +85,21 @@ export default function AnalyticsPage() {
   const [showAnomalyPanel, setShowAnomalyPanel] = useState(false);
   const [timeRange, setTimeRange] = useState<TimeRange>("30");
 
-  const { data: trends = [] } = useQuery<TrendPoint[]>({
+  const { data: trendsOut, isLoading: trendsLoading } = useQuery<ExecutionTrendsOut>({
     queryKey: ["analytics", "trends", projectId, timeRange],
-    queryFn: () => apiFetch<TrendPoint[]>(`/api/v1/tspm/projects/${projectId}/execution-trends?days=${timeRange}`),
+    queryFn: () =>
+      apiFetch<ExecutionTrendsOut>(
+        `/api/v1/tspm/projects/${projectId}/execution-trends?days=${timeRange}`,
+      ),
     enabled: !!projectId,
     staleTime: 60 * 1000,
     gcTime: 5 * 60 * 1000,
   });
 
-  const { data: stats = null } = useQuery<ExecStats | null>({
+  // Normalize: backend returns {days, data_points:[]}
+  const trends: TrendPoint[] = trendsOut?.data_points ?? [];
+
+  const { data: stats = null, isLoading: statsLoading } = useQuery<ExecStats | null>({
     queryKey: ["analytics", "stats", projectId],
     queryFn: () => apiFetch<ExecStats>(`/api/v1/tspm/projects/${projectId}/execution-stats`),
     enabled: !!projectId,
@@ -77,13 +107,15 @@ export default function AnalyticsPage() {
     gcTime: 5 * 60 * 1000,
   });
 
-  const { data: flaky = [] } = useQuery<FlakyTest[]>({
+  const { data: flaky = [], isLoading: flakyLoading } = useQuery<FlakyTest[]>({
     queryKey: ["analytics", "flaky", projectId],
     queryFn: () => apiFetch<FlakyTest[]>(`/api/v1/tspm/projects/${projectId}/flaky-tests`),
     enabled: !!projectId,
     staleTime: 2 * 60 * 1000,
     gcTime: 5 * 60 * 1000,
   });
+
+  const pageLoading = trendsLoading || statsLoading;
 
   const load = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: ["analytics", "trends", projectId, timeRange] });
@@ -93,8 +125,15 @@ export default function AnalyticsPage() {
   useRealtimeExecution(projectId, load);
 
   const anomalyMut = useMutation({
-    mutationFn: () => apiFetch<AnomalyResult>(`/api/v1/ai/projects/${projectId}/anomaly-detect`, { method: "POST" }),
-    onSuccess: (result) => { setAnomalyResult(result); },
+    mutationFn: () =>
+      apiFetch<AnomalyResult>(`/api/v1/ai/projects/${projectId}/anomaly-detect`, {
+        method: "POST",
+        body: JSON.stringify({}),
+        headers: { "Content-Type": "application/json" },
+      }),
+    onSuccess: (result) => {
+      setAnomalyResult(result);
+    },
   });
 
   async function runAnomalyDetect() {
@@ -110,15 +149,17 @@ export default function AnalyticsPage() {
   const pad = { t: 16, r: 16, b: 28, l: 40 };
   const cw = W - pad.l - pad.r;
   const ch = H - pad.t - pad.b;
-  const maxRuns = Math.max(...trends.map(t => t.total_runs), 1);
+  const maxRuns = Math.max(...trends.map((t) => t.total), 1);
 
   function pts(): string {
     if (trends.length === 0) return "";
-    return trends.map((p, i) => {
-      const x = pad.l + (i / Math.max(trends.length - 1, 1)) * cw;
-      const y = pad.t + ch - (p.pass_rate / 100) * ch;
-      return `${x},${y}`;
-    }).join(" ");
+    return trends
+      .map((p, i) => {
+        const x = pad.l + (i / Math.max(trends.length - 1, 1)) * cw;
+        const y = pad.t + ch - (p.pass_rate / 100) * ch;
+        return `${x},${y}`;
+      })
+      .join(" ");
   }
 
   const avgRate = stats ? Math.round(stats.avg_pass_rate) : 0;
@@ -127,21 +168,50 @@ export default function AnalyticsPage() {
   const trendDir: "up" | "down" | "neutral" =
     avgRate >= 80 ? "up" : avgRate < 50 ? "down" : "neutral";
 
+  if (pageLoading) {
+    return (
+      <div className="min-h-screen bg-slate-950 p-6" data-testid="analytics-page">
+        <div className="mb-6 h-12 w-48 animate-pulse rounded-xl bg-slate-800" />
+        <div className="mb-6 grid grid-cols-4 gap-4">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="h-20 animate-pulse rounded-xl bg-slate-800" />
+          ))}
+        </div>
+        <div className="mb-4 h-64 animate-pulse rounded-xl bg-slate-800" />
+        <div className="grid grid-cols-2 gap-4">
+          <div className="h-40 animate-pulse rounded-xl bg-slate-800" />
+          <div className="h-40 animate-pulse rounded-xl bg-slate-800" />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-slate-950 p-6" data-testid="analytics-page">
       <PageHeader
         icon={
           <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+            />
           </svg>
         }
         title="Analitik"
         description="Test koşum trendleri, başarı oranları ve anomali tespiti"
         right={
-          <Tabs variant="pill" value={timeRange} onValueChange={(v) => setTimeRange(v as TimeRange)}>
+          <Tabs
+            variant="pill"
+            value={timeRange}
+            onValueChange={(v) => setTimeRange(v as TimeRange)}
+          >
             <TabsList>
-              {(["7", "30", "90"] as TimeRange[]).map(r => (
-                <TabsTrigger key={r} value={r}>{TIME_RANGE_LABEL[r]}</TabsTrigger>
+              {(["7", "30", "90"] as TimeRange[]).map((r) => (
+                <TabsTrigger key={r} value={r}>
+                  {TIME_RANGE_LABEL[r]}
+                </TabsTrigger>
               ))}
             </TabsList>
           </Tabs>
@@ -151,13 +221,37 @@ export default function AnalyticsPage() {
       {/* Stat cards */}
       <MetricRow cols={4} className="mb-6">
         <StatCard
-          icon={<svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>}
+          icon={
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"
+              />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+          }
           label="Toplam Koşu"
-          value={stats?.total_runs ?? "—"}
+          value={stats?.total_executions ?? "—"}
           color="blue"
         />
         <StatCard
-          icon={<svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>}
+          icon={
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+          }
           label="Ort. Başarı Oranı"
           value={stats ? `${avgRate}%` : "—"}
           color={rateColor}
@@ -165,13 +259,31 @@ export default function AnalyticsPage() {
           sub={stats ? TIME_RANGE_LABEL[timeRange] : undefined}
         />
         <StatCard
-          icon={<svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>}
-          label="Toplam Senaryo"
-          value={stats?.total_scenarios ?? "—"}
+          icon={
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+              />
+            </svg>
+          }
+          label="Toplam Senaryo Koşu"
+          value={stats?.total_scenarios_run ?? "—"}
           color="violet"
         />
         <StatCard
-          icon={<svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>}
+          icon={
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+              />
+            </svg>
+          }
           label="Flaky Test"
           value={flaky.length}
           color={flaky.length > 0 ? "amber" : "slate"}
@@ -185,28 +297,48 @@ export default function AnalyticsPage() {
         <SectionCard
           title="Başarı Oranı Trendi"
           className="lg:col-span-2"
-          right={stats ? <TrendBadge value={avgRate - 50} direction={trendDir} label={`${avgRate}%`} /> : undefined}
+          right={
+            stats ? (
+              <TrendBadge value={avgRate - 50} direction={trendDir} label={`${avgRate}%`} />
+            ) : undefined
+          }
         >
           {trends.length === 0 ? (
             <p className="py-8 text-center text-sm text-slate-500">Trend verisi yok</p>
           ) : (
             <svg viewBox={`0 0 ${W} ${H}`} className="w-full" aria-label="Başarı oranı grafiği">
-              {[0, 25, 50, 75, 100].map(v => {
+              {[0, 25, 50, 75, 100].map((v) => {
                 const y = pad.t + ch - (v / 100) * ch;
                 return (
                   <g key={v}>
-                    <line x1={pad.l} x2={W - pad.r} y1={y} y2={y} stroke="#334155" strokeDasharray="4 4" />
-                    <text x={pad.l - 6} y={y + 4} textAnchor="end" fill="#64748b" fontSize={10}>{v}%</text>
+                    <line
+                      x1={pad.l}
+                      x2={W - pad.r}
+                      y1={y}
+                      y2={y}
+                      stroke="#334155"
+                      strokeDasharray="4 4"
+                    />
+                    <text x={pad.l - 6} y={y + 4} textAnchor="end" fill="#64748b" fontSize={10}>
+                      {v}%
+                    </text>
                   </g>
                 );
               })}
 
               {[0, Math.floor(trends.length / 2), trends.length - 1]
                 .filter((i, idx, arr) => arr.indexOf(i) === idx && trends[i])
-                .map(i => {
+                .map((i) => {
                   const x = pad.l + (i / Math.max(trends.length - 1, 1)) * cw;
                   return (
-                    <text key={i} x={x} y={H - 4} textAnchor="middle" fill="#64748b" fontSize={10}>
+                    <text
+                      key={i}
+                      x={x}
+                      y={H - 4}
+                      textAnchor="middle"
+                      fill="#64748b"
+                      fontSize={10}
+                    >
                       {trends[i].date.slice(5)}
                     </text>
                   );
@@ -226,14 +358,30 @@ export default function AnalyticsPage() {
                 </linearGradient>
               </defs>
 
-              <polyline points={pts()} fill="none" stroke="#3b82f6" strokeWidth={2} strokeLinejoin="round" />
+              <polyline
+                points={pts()}
+                fill="none"
+                stroke="#3b82f6"
+                strokeWidth={2}
+                strokeLinejoin="round"
+              />
 
               {trends.map((p, i) => {
                 const x = pad.l + (i / Math.max(trends.length - 1, 1)) * cw;
                 const y = pad.t + ch - (p.pass_rate / 100) * ch;
                 return (
-                  <circle key={i} cx={x} cy={y} r={3} fill="#3b82f6" stroke="#0f172a" strokeWidth={1.5}>
-                    <title>{p.date}: %{p.pass_rate} ({p.total_runs} koşu)</title>
+                  <circle
+                    key={i}
+                    cx={x}
+                    cy={y}
+                    r={3}
+                    fill="#3b82f6"
+                    stroke="#0f172a"
+                    strokeWidth={1.5}
+                  >
+                    <title>
+                      {p.date}: %{p.pass_rate} ({p.total} koşu)
+                    </title>
                   </circle>
                 );
               })}
@@ -247,12 +395,15 @@ export default function AnalyticsPage() {
             <p className="py-8 text-center text-sm text-slate-500">Veri yok</p>
           ) : (
             <div className="flex items-end gap-0.5" style={{ height: 100 }}>
-              {trends.map(t => (
+              {trends.map((t) => (
                 <div
                   key={t.date}
                   className="flex-1 cursor-default rounded-t bg-blue-500/40 transition-colors hover:bg-blue-500/70"
-                  style={{ height: `${(t.total_runs / maxRuns) * 100}%`, minHeight: t.total_runs > 0 ? 3 : 0 }}
-                  title={`${t.date}: ${t.total_runs} koşu`}
+                  style={{
+                    height: `${(t.total / maxRuns) * 100}%`,
+                    minHeight: t.total > 0 ? 3 : 0,
+                  }}
+                  title={`${t.date}: ${t.total} koşu`}
                 />
               ))}
             </div>
@@ -262,7 +413,21 @@ export default function AnalyticsPage() {
         {/* AI Anomaly Detection */}
         <SectionCard
           title="AI Anomali Tespiti"
-          icon={<svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>}
+          icon={
+            <svg
+              className="h-3.5 w-3.5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M13 10V3L4 14h7v7l9-11h-7z"
+              />
+            </svg>
+          }
           right={
             <button
               onClick={runAnomalyDetect}
@@ -272,75 +437,124 @@ export default function AnalyticsPage() {
               {anomalyLoading ? (
                 <div className="h-3 w-3 animate-spin rounded-full border-2 border-slate-600 border-t-violet-400" />
               ) : (
-                <svg className="h-3 w-3 text-violet-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                <svg
+                  className="h-3 w-3 text-violet-400"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M13 10V3L4 14h7v7l9-11h-7z"
+                  />
                 </svg>
               )}
               Anomali Tara
             </button>
           }
         >
-          <p className="mb-3 text-xs text-slate-500">İstatistiksel sapma analizi ile olağandışı koşuları tespit eder</p>
-          {showAnomalyPanel && (
-            anomalyLoading ? (
+          <p className="mb-3 text-xs text-slate-500">
+            İstatistiksel sapma analizi ile olağandışı koşuları tespit eder
+          </p>
+          {showAnomalyPanel &&
+            (anomalyLoading ? (
               <div className="space-y-2">
-                {[1, 2, 3].map(i => (
+                {[1, 2, 3].map((i) => (
                   <div key={i} className="h-10 animate-pulse rounded-lg bg-slate-800" />
                 ))}
               </div>
             ) : anomalyResult ? (
               <div className="space-y-3">
                 <MetricRow cols={3} gap="sm">
-                  <StatCard label="Analiz Edilen" value={anomalyResult.total_analyzed} color="slate" />
-                  <StatCard label="Anomali" value={anomalyResult.anomaly_count} color={anomalyResult.anomaly_count > 0 ? "red" : "emerald"} />
-                  <StatCard label="Ort. Süre" value={`${Math.round(anomalyResult.avg_duration)}s`} color="slate" />
+                  <StatCard
+                    label="Analiz Edilen"
+                    value={anomalyResult.total_analyzed}
+                    color="slate"
+                  />
+                  <StatCard
+                    label="Anomali"
+                    value={anomalyResult.anomaly_count}
+                    color={anomalyResult.anomaly_count > 0 ? "red" : "emerald"}
+                  />
+                  <StatCard
+                    label="Ort. Süre"
+                    value={`${Math.round(anomalyResult.avg_duration)}s`}
+                    color="slate"
+                  />
                 </MetricRow>
                 {anomalyResult.anomalies.length > 0 ? (
                   <div className="divide-y divide-slate-800 overflow-hidden rounded-lg border border-slate-700">
-                    {anomalyResult.anomalies.map(a => (
-                      <div key={a.execution_id} className="flex items-start justify-between gap-2 px-3 py-2 hover:bg-slate-800/40">
+                    {anomalyResult.anomalies.map((a) => (
+                      <div
+                        key={a.execution_id}
+                        className="flex items-start justify-between gap-2 px-3 py-2 hover:bg-slate-800/40"
+                      >
                         <div>
                           <p className="text-sm font-medium text-white">{a.execution_name}</p>
-                          <p className="text-xs text-slate-500">{a.issue} · {a.duration_seconds}s · z={a.z_score.toFixed(2)}</p>
+                          <p className="text-xs text-slate-500">
+                            {a.issue} · {a.duration_seconds}s · z={a.z_score.toFixed(2)}
+                          </p>
                         </div>
                         <StatusBadge status="warning" label="Anomali" />
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <p className="py-3 text-center text-sm text-emerald-400">✓ Anomali tespit edilmedi</p>
+                  <p className="py-3 text-center text-sm text-emerald-400">
+                    Anomali tespit edilmedi
+                  </p>
                 )}
               </div>
-            ) : null
-          )}
+            ) : null)}
         </SectionCard>
       </div>
 
       {/* Flaky tests */}
       <SectionCard title="Flaky Testler" noPad>
-        {flaky.length === 0 ? (
-          <p className="p-6 text-center text-sm text-slate-500">Flaky test bulunamadı ✓</p>
+        {flakyLoading ? (
+          <div className="space-y-2 p-4">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="h-10 animate-pulse rounded-lg bg-slate-800" />
+            ))}
+          </div>
+        ) : flaky.length === 0 ? (
+          <p className="p-6 text-center text-sm text-slate-500">Flaky test bulunamadı</p>
         ) : (
           <table className="w-full">
             <thead>
               <tr className="border-b border-slate-800">
-                <th className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-slate-400">Senaryo</th>
-                <th className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-slate-400">Tutarsızlık</th>
-                <th className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-slate-400">Son Sonuçlar</th>
+                <th className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-slate-400">
+                  Senaryo
+                </th>
+                <th className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-slate-400">
+                  Geçiş Sayısı
+                </th>
+                <th className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-slate-400">
+                  Son Sonuçlar
+                </th>
               </tr>
             </thead>
             <tbody>
-              {flaky.map(f => (
-                <tr key={f.scenario_id} className="border-b border-slate-800 last:border-0 hover:bg-slate-800/30">
-                  <td className="px-4 py-3 text-sm font-medium text-white">{f.scenario_title}</td>
+              {flaky.map((f) => (
+                <tr
+                  key={f.scenario_id}
+                  className="border-b border-slate-800 last:border-0 hover:bg-slate-800/30"
+                >
+                  <td className="px-4 py-3 text-sm font-medium text-white">
+                    {f.scenario_title || f.scenario_id.slice(0, 8)}
+                  </td>
                   <td className="px-4 py-3">
-                    <span className={`text-sm font-semibold ${f.inconsistency_rate > 0.5 ? "text-red-400" : "text-amber-400"}`}>
-                      %{Math.round(f.inconsistency_rate * 100)}
+                    <span
+                      className={`text-sm font-semibold ${f.flip_count > 3 ? "text-red-400" : "text-amber-400"}`}
+                    >
+                      {f.flip_count} geçiş
                     </span>
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex gap-1">
-                      {f.recent_results.map((r, i) => (
+                      {f.last_results.map((r, i) => (
                         <span
                           key={i}
                           className={`inline-block h-3 w-3 rounded-full ${resultColor[r] ?? "bg-slate-600"}`}
@@ -356,7 +570,6 @@ export default function AnalyticsPage() {
         )}
       </SectionCard>
       <PageFeedbackWidget />
-
     </div>
   );
 }

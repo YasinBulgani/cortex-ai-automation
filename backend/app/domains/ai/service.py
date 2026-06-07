@@ -1336,7 +1336,7 @@ async def async_generate_test_data(description: str, columns: list[dict] | None 
 _async_http_client: httpx.AsyncClient | None = None  # noqa: F821
 
 
-def _get_async_http_client() -> httpx.AsyncClient:
+def _get_async_http_client() -> httpx.AsyncClient:  # noqa: F821
     global _async_http_client
     import httpx as _httpx
     if _async_http_client is None or _async_http_client.is_closed:

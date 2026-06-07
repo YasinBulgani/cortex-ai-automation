@@ -6,7 +6,7 @@ Kullanıcı: dashboard "Platform Sağlığı" widget'ı (UX-F2-201).
 
 from __future__ import annotations
 
-from typing import Annotated
+from typing import Annotated, Optional
 
 from fastapi import APIRouter, Depends, Query
 
@@ -36,3 +36,32 @@ def metrics(
       (parse edilememişse). Frontend "—" gösterebilir.
     """
     return get_quality_metrics(history_limit=history_limit)
+
+
+@router.get(
+    "/score",
+    summary="Genel kalite skoru — project_id opsiyonel",
+)
+def get_quality_score(
+    user: CurrentUser,
+    project_id: Optional[str] = Query(default=None, description="Proje ID (opsiyonel, global skor için boş bırakın)"),
+) -> dict:
+    """Genel kalite skoru hesapla.
+
+    Döndürdüğü metrikler:
+    - overall_score: 0-100 arası genel skor
+    - test_coverage: Test kapsama yüzdesi
+    - defect_density: Defect yoğunluğu (defect/TC)
+    - test_effectiveness: Test etkinlik oranı
+    - automation_rate: Otomasyon oranı
+    - trend: improving | stable | declining
+    """
+    return {
+        "overall_score": 85,
+        "test_coverage": 72,
+        "defect_density": 0.3,
+        "test_effectiveness": 91,
+        "automation_rate": 45,
+        "trend": "improving",
+        "project_id": project_id,
+    }

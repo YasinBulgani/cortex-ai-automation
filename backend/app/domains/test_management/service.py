@@ -58,7 +58,12 @@ from app.domains.test_management.schemas import (
     ReleaseSignoffCreate,
     RequirementCreate,
     RequirementLinkCreate,
+    RequirementLinkOut,
+    RequirementOut,
     StandupAnomaly,
+    TestCaseOut,
+    TestFolderOut,
+    TestSuiteOut,
     StandupOut,
     StepResultUpdate,
     TestCaseCloneRequest,
@@ -544,7 +549,14 @@ def list_case_versions(db: Session, project_id: str, case_id: str) -> list[TestC
     )
 
 
-def list_cases(db: Session, project_id: str, q: str | None = None, include_archived: bool = False) -> list[TestCase]:
+def list_cases(
+    db: Session,
+    project_id: str,
+    q: str | None = None,
+    include_archived: bool = False,
+    limit: int | None = None,
+    offset: int = 0,
+) -> list[TestCase]:
     project_id = resolve_project_id(db, project_id)
     stmt = select(TestCase).options(selectinload(TestCase.steps)).where(TestCase.project_id == project_id)
     if not include_archived:
@@ -552,7 +564,31 @@ def list_cases(db: Session, project_id: str, q: str | None = None, include_archi
     if q:
         like = f"%{q}%"
         stmt = stmt.where(TestCase.title.ilike(like) | TestCase.case_key.ilike(like))
-    return list(db.scalars(stmt.order_by(TestCase.created_at.desc())).all())
+    stmt = stmt.order_by(TestCase.created_at.desc())
+    if offset:
+        stmt = stmt.offset(offset)
+    if limit is not None:
+        stmt = stmt.limit(limit)
+    return list(db.scalars(stmt).all())
+
+
+def count_cases(
+    db: Session,
+    project_id: str,
+    q: str | None = None,
+    include_archived: bool = False,
+) -> int:
+    """Return total count of test cases matching the given filters (no pagination)."""
+    from sqlalchemy import func as _func
+
+    project_id = resolve_project_id(db, project_id)
+    stmt = select(_func.count()).select_from(TestCase).where(TestCase.project_id == project_id)
+    if not include_archived:
+        stmt = stmt.where(TestCase.archived.is_(False))
+    if q:
+        like = f"%{q}%"
+        stmt = stmt.where(TestCase.title.ilike(like) | TestCase.case_key.ilike(like))
+    return db.scalar(stmt) or 0
 
 
 def list_sub_cases(db: Session, project_id: str, parent_id: str) -> list[TestCase]:
@@ -865,7 +901,13 @@ def delete_cycle(db: Session, project_id: str, cycle_id: str, user: Any | None) 
     db.commit()
 
 
-def list_cycles(db: Session, project_id: str, plan_id: str | None = None) -> list[TestCycle]:
+def list_cycles(
+    db: Session,
+    project_id: str,
+    plan_id: str | None = None,
+    limit: int | None = None,
+    offset: int = 0,
+) -> list[TestCycle]:
     project_id = resolve_project_id(db, project_id)
     stmt = (
         select(TestCycle)
@@ -875,7 +917,31 @@ def list_cycles(db: Session, project_id: str, plan_id: str | None = None) -> lis
     )
     if plan_id is not None:
         stmt = stmt.where(TestCycle.plan_id == plan_id)
+    if offset:
+        stmt = stmt.offset(offset)
+    if limit is not None:
+        stmt = stmt.limit(limit)
     return list(db.scalars(stmt).all())
+
+
+def count_cycles(
+    db: Session,
+    project_id: str,
+    plan_id: str | None = None,
+) -> int:
+    """Return total count of test cycles matching the given filters (no pagination)."""
+    from sqlalchemy import func as _func
+
+    project_id = resolve_project_id(db, project_id)
+    stmt = (
+        select(_func.count())
+        .select_from(TestCycle)
+        .join(TestPlan, TestCycle.plan_id == TestPlan.id)
+        .where(TestPlan.project_id == project_id)
+    )
+    if plan_id is not None:
+        stmt = stmt.where(TestCycle.plan_id == plan_id)
+    return db.scalar(stmt) or 0
 
 
 def _compute_risk_score(case_data: dict) -> float:
@@ -1237,6 +1303,30 @@ def list_runs(db: Session, project_id: str, limit: int = 50, offset: int = 0, cy
     if status_filter:
         q = q.where(TestRun.status == status_filter)
     return list(db.scalars(q.order_by(TestRun.created_at.desc()).limit(limit).offset(offset)).all())
+
+
+def count_runs(
+    db: Session,
+    project_id: str,
+    cycle_id: Optional[str] = None,
+    status_filter: str | None = None,
+) -> int:
+    """Return total count of runs matching the given filters (no pagination)."""
+    from sqlalchemy import func as _func
+
+    project_id = resolve_project_id(db, project_id)
+    q = (
+        select(_func.count())
+        .select_from(TestRun)
+        .join(TestCycle, TestRun.cycle_id == TestCycle.id)
+        .join(TestPlan, TestCycle.plan_id == TestPlan.id)
+        .where(TestPlan.project_id == project_id)
+    )
+    if cycle_id:
+        q = q.where(TestRun.cycle_id == cycle_id)
+    if status_filter:
+        q = q.where(TestRun.status == status_filter)
+    return db.scalar(q) or 0
 
 
 def create_run(db: Session, project_id: str, payload: TestRunCreate, user: Any | None) -> TestRun:
@@ -1660,11 +1750,11 @@ def export_repository(db: Session, project_id: str) -> dict[str, Any]:
         "schema_version": "test-management.v1",
         "project_id": project_id,
         "exported_at": utcnow().isoformat(),
-        "suites": repo["suites"],
-        "folders": repo["folders"],
-        "cases": repo["cases"],
-        "requirements": requirements,
-        "requirement_links": requirement_links,
+        "suites": [TestSuiteOut.model_validate(s).model_dump(mode="json") for s in repo["suites"]],
+        "folders": [TestFolderOut.model_validate(f).model_dump(mode="json") for f in repo["folders"]],
+        "cases": [TestCaseOut.model_validate(c).model_dump(mode="json") for c in repo["cases"]],
+        "requirements": [RequirementOut.model_validate(r).model_dump(mode="json") for r in requirements],
+        "requirement_links": [RequirementLinkOut.model_validate(rl).model_dump(mode="json") for rl in requirement_links],
     }
 
 
@@ -2401,11 +2491,12 @@ def get_standup(
 
     eta_hours = None
     predicted = None
-    if eta and eta.predicted_end_at:
+    predicted_end = getattr(eta, "predicted_end_at", None) or getattr(eta, "predicted_completion", None) if eta else None
+    if predicted_end:
         now = datetime.now(_tz.utc)
-        diff = (eta.predicted_end_at.replace(tzinfo=_tz.utc) if eta.predicted_end_at.tzinfo is None else eta.predicted_end_at) - now
+        diff = (predicted_end.replace(tzinfo=_tz.utc) if predicted_end.tzinfo is None else predicted_end) - now
         eta_hours = max(0.0, diff.total_seconds() / 3600)
-        predicted = eta.predicted_end_at.isoformat()
+        predicted = predicted_end.isoformat()
 
     velocity = getattr(report, "velocity_per_hour", 0.0) or 0.0
 

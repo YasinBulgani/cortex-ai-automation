@@ -28,7 +28,7 @@ export default function RegressionSetDetailPage() {
   const [toAdd, setToAdd] = useState<Set<string>>(new Set());
   const [err, setErr] = useState<string | null>(null);
 
-  const { data } = useQuery<Detail>({
+  const { data, isLoading: detailLoading } = useQuery<Detail>({
     queryKey: detailQK,
     queryFn: () => apiFetch<Detail>(`/api/v1/tspm/projects/${projectId}/regression-sets/${setId}`),
     enabled: !!projectId && !!setId,
@@ -36,7 +36,7 @@ export default function RegressionSetDetailPage() {
     gcTime: 5 * 60 * 1000,
   });
 
-  const { data: allScenarios = [] } = useQuery<Scenario[]>({
+  const { data: allScenarios = [], isLoading: scenariosLoading } = useQuery<Scenario[]>({
     queryKey: scenariosQK,
     queryFn: () => apiFetch<Scenario[]>(`/api/v1/tspm/projects/${projectId}/scenarios`),
     enabled: !!projectId,
@@ -71,7 +71,37 @@ export default function RegressionSetDetailPage() {
     addMut.mutate(Array.from(toAdd));
   }
 
-  if (!data) return <p className="text-sm text-slate-400">Yükleniyor…</p>;
+  if (detailLoading || scenariosLoading) {
+    return (
+      <div className="mx-auto max-w-4xl space-y-6" data-testid="regression-detail-page">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="space-y-2">
+            <div className="h-8 w-64 animate-pulse rounded-lg bg-slate-800" />
+            <div className="h-4 w-24 animate-pulse rounded-lg bg-slate-800" />
+          </div>
+          <div className="h-9 w-28 animate-pulse rounded-lg bg-slate-800" />
+        </div>
+        <div className="rounded-lg border border-slate-800">
+          <div className="h-10 animate-pulse rounded-t-lg bg-slate-800 border-b border-slate-800" />
+          <div className="divide-y divide-slate-800">
+            {[1, 2, 3].map(i => (
+              <div key={i} className="h-10 animate-pulse bg-slate-900/40" />
+            ))}
+          </div>
+        </div>
+        <div className="rounded-lg border border-slate-800">
+          <div className="h-10 animate-pulse rounded-t-lg bg-slate-800 border-b border-slate-800" />
+          <div className="divide-y divide-slate-800">
+            {[1, 2, 3].map(i => (
+              <div key={i} className="h-10 animate-pulse bg-slate-900/40" />
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!data) return <p className="text-sm text-slate-400">Veri bulunamadı.</p>;
 
   const existing = new Set(data.scenarios.map((s) => s.scenario_id));
   const available = allScenarios.filter((s) => !existing.has(s.id));

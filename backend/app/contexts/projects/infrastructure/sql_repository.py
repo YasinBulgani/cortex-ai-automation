@@ -55,7 +55,7 @@ class ProjectRow(Base):
     updated_at      = Column(DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now())
 
     @classmethod
-    def from_aggregate(cls, project: Project) -> ProjectRow:
+    def from_aggregate(cls, project: Project) -> "ProjectRow":
         return cls(
             id=project.id.value,
             name=str(project.name),
@@ -88,7 +88,7 @@ class ProjectRow(Base):
 class SqlAlchemyProjectRepository(ProjectRepository):
     """ProjectRepository PostgreSQL implementation (async)."""
 
-    def __init__(self, session: AsyncSession):
+    def __init__(self, session: "AsyncSession"):
         self.session = session
 
     async def get(self, project_id: ProjectId) -> Project | None:
