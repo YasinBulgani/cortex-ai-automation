@@ -11,7 +11,7 @@
  */
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import {
   type MgmtNotification,
@@ -37,6 +37,10 @@ export function NotificationBell({ className, projectId = null }: NotificationBe
   const [open, setOpen] = useState(false);
   const [unreadOnly, setUnreadOnly] = useState(false);
   const [showDigest, setShowDigest] = useState(false);
+  // Hydration güvenliği: ilk client render server ile aynı olsun (rozet yok).
+  // unread sayısı client-only kaynaklardan (query cache/backend-first) gelir.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
   const { user } = useCurrentUser();
   const { data: counts } = useUnreadCount();
   const { data: notifications = [], isLoading, isError } = useNotifications({
@@ -63,7 +67,7 @@ export function NotificationBell({ className, projectId = null }: NotificationBe
         className="relative inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-700 bg-slate-900 text-slate-200 transition hover:bg-slate-800"
       >
         <BellIcon />
-        {unread > 0 ? (
+        {mounted && unread > 0 ? (
           <span className="absolute -right-1 -top-1 inline-flex min-w-[18px] items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-bold text-white">
             {unread > 99 ? "99+" : unread}
           </span>

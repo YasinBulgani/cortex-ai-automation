@@ -4,10 +4,22 @@ import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import { Tooltip } from "@/components/ui/tooltip";
 
+type AiProvider = {
+  available: boolean;
+  in_chain?: boolean;
+  model?: string;
+  latency_ms?: number;
+};
+
 type AiHealth = {
   status: string;
-  providers: Record<string, boolean>;
+  providers: Record<string, AiProvider>;
 };
+
+/** Sağlayıcı "aktif" mi — gateway hem boolean hem detay-obje dönebilir. */
+function isProviderActive(v: AiProvider | boolean): boolean {
+  return typeof v === "boolean" ? v : Boolean(v?.available);
+}
 
 const PROVIDER_LABELS: Record<string, string> = {
   anthropic: "Anthropic",
@@ -54,7 +66,7 @@ export function AiStatusChip() {
 
   if (loading) return null;
 
-  const active = health ? Object.entries(health.providers).filter(([, v]) => v).map(([k]) => k) : [];
+  const active = health ? Object.entries(health.providers).filter(([, v]) => isProviderActive(v)).map(([k]) => k) : [];
   const activeCount = active.length;
   const totalCount = health ? Object.keys(health.providers).length : 0;
 
@@ -86,14 +98,17 @@ export function AiStatusChip() {
       content={
         <div className="flex flex-col gap-1 min-w-[140px]">
           <p className="font-semibold text-fg">AI Sağlayıcıları</p>
-          {health && Object.entries(health.providers).map(([name, ok]) => (
-            <div key={name} className="flex items-center justify-between gap-2">
-              <span className="text-fg-muted">{PROVIDER_LABELS[name] ?? name}</span>
-              <span className={cn("text-[10px] font-semibold", ok ? "text-success" : "text-fg-disabled")}>
-                {ok ? "Aktif" : "Pasif"}
-              </span>
-            </div>
-          ))}
+          {health && Object.entries(health.providers).map(([name, v]) => {
+            const ok = isProviderActive(v);
+            return (
+              <div key={name} className="flex items-center justify-between gap-2">
+                <span className="text-fg-muted">{PROVIDER_LABELS[name] ?? name}</span>
+                <span className={cn("text-[10px] font-semibold", ok ? "text-success" : "text-fg-disabled")}>
+                  {ok ? "Aktif" : "Pasif"}
+                </span>
+              </div>
+            );
+          })}
           {!health && <p className="text-danger text-xs">Gateway erişilemiyor</p>}
         </div>
       }

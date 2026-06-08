@@ -17,7 +17,8 @@ const GATEWAY_BASE = (
 const BACKEND_BASE = (
   process.env.API_BASE_URL ||
   process.env.NEXT_PUBLIC_API_BASE ||
-  "http://127.0.0.1:8765"
+  process.env.API_PROXY_TARGET ||
+  "http://127.0.0.1:8000"
 ).replace(/\/$/, "");
 const MAX_AI_PROXY_BODY_BYTES = Number(process.env.AI_PROXY_MAX_BODY_BYTES || 1024 * 1024);
 const AI_PROXY_PERMISSIONS = (

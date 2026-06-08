@@ -4,9 +4,15 @@ const apiProxyTarget =
   rawApiProxyTarget === undefined ? "http://127.0.0.1:8000" : rawApiProxyTarget.replace(/\/$/, "");
 
 const backendTarget = process.env.API_PROXY_TARGET || "http://127.0.0.1:8000";
+const devAssetPrefix =
+  process.env.NODE_ENV === "production"
+    ? ""
+    : `/__next_dev_assets_${process.env.NEXT_DEV_ASSET_VERSION || Date.now().toString(36)}`;
 
 const nextConfig = {
   reactStrictMode: true,
+
+  assetPrefix: devAssetPrefix,
 
   // ── Performans: X-Powered-By header'ını kaldır (güvenlik + boyut) ──
   poweredByHeader: false,
@@ -66,12 +72,18 @@ const nextConfig = {
       },
       {
         // Next.js'in ürettiği statik dosyalar (/_next/static/*)
-        // 1 yıl boyunca immutable olarak cache'lenir (content-hash ile)
+        // PROD: dosya adları content-hash'li → 1 yıl immutable cache güvenli.
+        // DEV: chunk adları sabit (hash yok) → immutable cache HMR'ı kırar,
+        //      tarayıcı kod değişiminden sonra eski chunk'ı sunup hydration
+        //      mismatch'e yol açar. Bu yüzden dev'de cache kapatılır.
         source: "/_next/static/:path*",
         headers: [
           {
             key: "Cache-Control",
-            value: "public, max-age=31536000, immutable",
+            value:
+              process.env.NODE_ENV === "production"
+                ? "public, max-age=31536000, immutable"
+                : "no-store, must-revalidate",
           },
         ],
       },
@@ -95,6 +107,14 @@ const nextConfig = {
     const target = apiProxyTarget || backendTarget;
 
     return [
+      ...(devAssetPrefix
+        ? [
+            {
+              source: "/:devAsset(__next_dev_assets_[^/]+)/_next/static/:path*",
+              destination: "/_next/static/:path*",
+            },
+          ]
+        : []),
       {
         source: "/api/v1/:path*",
         destination: `${target}/api/v1/:path*`,

@@ -41,15 +41,19 @@ function DashboardInner({ children }: { children: React.ReactNode }) {
   }, [toast, router]);
 
   const projectId = pathname?.match(/^\/p\/([^/]+)/)?.[1];
-  const { setProject } = useProject();
+  const { project: activeProject, setProject } = useProject();
   const touchedRef = useRef<string | null>(null);
 
-  // URL'deki proje değişince context'i guncelle (localStorage'a yazar)
+  // URL'deki proje değişince context'i guncelle (localStorage'a yazar).
+  // Guard: context zaten bu projectId'deyse tekrar set etme — aksi halde
+  // `found` bulunamayan (kullanıcıya ait olmayan) projelerde her render yeni
+  // {id,name} objesi set edilip sonsuz render döngüsü (Maximum update depth) oluşur.
   useEffect(() => {
     if (!projectId) return;
+    if (activeProject?.id === projectId) return;
     const found = projects.find((p) => p.id === projectId);
     setProject(found ?? { id: projectId, name: `Proje ${projectId}` });
-  }, [projectId, projects, setProject]);
+  }, [projectId, projects, setProject, activeProject?.id]);
 
   // Ana sayfa "Son Açılan Proje" kartı için: proje değişince bir kez touch et.
   // Idempotent ama tekrarlanan renderlarda ağı boşa yormamak için ref ile dedupe.
