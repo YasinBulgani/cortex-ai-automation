@@ -33,7 +33,7 @@
     "@radix-ui/react-slot": "^1.0.2",
     "@radix-ui/react-tabs": "^1.1.13",
     "@radix-ui/react-tooltip": "^1.2.8",
-    "@sentry/nextjs": "^8.0.0",
+    "@sentry/nextjs": "^10.56.0",
     "@tanstack/react-query": "^5.99.0",
     "@tanstack/react-virtual": "^3.13.24",
     "@types/js-yaml": "^4.0.9",
