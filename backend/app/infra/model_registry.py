@@ -11,6 +11,7 @@ from app.contexts.identity.infrastructure.sql_repository import UserRow  # noqa:
 from app.contexts.projects.infrastructure.sql_repository import ProjectRow  # noqa: F401
 from app.contexts.scenarios.infrastructure.sql_repository import ScenarioRow  # noqa: F401
 from app.domains.api_testing import models as api_testing_models  # noqa: F401
+from app.domains.automation_suite import models as automation_suite_models  # noqa: F401
 from app.domains.billing import models as billing_models  # noqa: F401
 from app.domains.coverup import models as coverup_models  # noqa: F401
 from app.domains.kiwi_tcms import models as kiwi_tcms_models  # noqa: F401

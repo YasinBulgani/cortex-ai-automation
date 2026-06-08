@@ -2,7 +2,8 @@
 
 Sorumluluklar:
   * Engine (Flask :5001) çağrıları (async httpx)
-  * In-memory koşum kaydı (prod'da DB tablosu ile değiştirilebilir)
+  * Kalıcı koşum kaydı (SQL ``automation_suite_runs``; DB erişilemezse
+    in-memory fallback) — pod restart'ında koşum geçmişi kaybolmaz
   * Üretilen Gherkin'i DSL kataloğuyla eşleştirip bilinen/bilinmeyen
     cümlecik raporu üretme
 """
@@ -12,8 +13,7 @@ import asyncio
 import logging
 import re
 import uuid
-import dataclasses
-from dataclasses import dataclass, field, asdict as _dc_asdict
+from dataclasses import dataclass, field
 from datetime import datetime, timezone as _tz
 from threading import RLock
 from typing import Any, Dict, List, Optional
@@ -61,7 +61,10 @@ def _engine_headers() -> dict[str, str]:
     return {_INTERNAL_KEY_HEADER: _engine_internal_key()}
 
 
-# ── In-memory Run Registry ──────────────────────────────────────────────────
+# ── Run Registry (SQL-backed) ─────────────────────────────────────────────────
+
+_MAX_LOG_LINES = 200
+
 
 @dataclass
 class _RunRecord:
@@ -79,57 +82,32 @@ class _RunRecord:
 
 
 class _RunRegistry:
-    """Thread-safe koşum registry'si.
+    """Koşum registry'si — SQL (``automation_suite_runs``) kaynak-of-truth.
 
-    Redis varsa koşum kayıtları orada saklanır (TTL=24sa) — pod restart'larına
-    karşı dayanıklı. Redis yoksa in-memory fallback kullanılır.
-    Gerçek rapor yine de `reports/` ve Allure altında kalır.
+    Koşum kayıtları kalıcıdır: pod restart'ında geçmiş kaybolmaz. DB bir
+    nedenle erişilemezse thread-safe in-memory dict'e graceful düşülür, böylece
+    koşum yine de yürür (yalnızca o kayıt kalıcı olmaz).
     """
-
-    _REDIS_TTL = 86_400  # 24 saat
-    _KEY_PREFIX = "automation_run:"
 
     def __init__(self) -> None:
         self._lock = RLock()
-        self._store: Dict[str, _RunRecord] = {}
-        self._redis = self._try_redis()
+        self._store: Dict[str, _RunRecord] = {}  # DB erişilemezse fallback
 
     @staticmethod
-    def _try_redis():
-        try:
-            import redis as _redis_lib
-            client = _redis_lib.from_url(
-                settings.redis_url,
-                decode_responses=True,
-                socket_connect_timeout=1,
-                socket_timeout=1,
-            )
-            client.ping()
-            logger.info("AutomationSuite: Redis registry bağlandı")
-            return client
-        except Exception as exc:
-            logger.warning("AutomationSuite: Redis yok, in-memory fallback (%s)", exc)
-            return None
-
-    def _to_json(self, rec: _RunRecord) -> str:
-        import json as _json
-        d = _dc_asdict(rec)
-        # datetime → ISO string
-        for k in ("started_at", "completed_at"):
-            if d.get(k) is not None:
-                d[k] = d[k].isoformat()
-        return _json.dumps(d)
-
-    def _from_json(self, raw: str) -> Optional[_RunRecord]:
-        import json as _json
-        try:
-            d = _json.loads(raw)
-            for k in ("started_at", "completed_at"):
-                if d.get(k):
-                    d[k] = datetime.fromisoformat(d[k])
-            return _RunRecord(**d)
-        except Exception:
-            return None
+    def _row_to_record(row: Any) -> _RunRecord:
+        return _RunRecord(
+            run_id=row.run_id,
+            status=row.status,
+            started_at=row.started_at,
+            completed_at=row.completed_at,
+            feature_path=row.feature_path,
+            framework=row.framework,
+            passed=row.passed,
+            failed=row.failed,
+            error=row.error,
+            report_url=row.report_url,
+            logs=list(row.logs or []),
+        )
 
     def create(self, *, feature_path: Optional[str], framework: Optional[Framework]) -> _RunRecord:
         run_id = uuid.uuid4().hex[:16]
@@ -140,38 +118,42 @@ class _RunRegistry:
             feature_path=feature_path,
             framework=framework,
         )
-        if self._redis:
-            try:
-                self._redis.setex(
-                    f"{self._KEY_PREFIX}{run_id}",
-                    self._REDIS_TTL,
-                    self._to_json(rec),
-                )
-                return rec
-            except Exception:
-                pass
-        with self._lock:
-            self._store[run_id] = rec
-        return rec
+        try:
+            from app.domains.automation_suite.models import AutomationSuiteRun
+            from app.infra.database import SessionLocal
+
+            with SessionLocal() as db:
+                db.add(AutomationSuiteRun(
+                    run_id=rec.run_id,
+                    status=rec.status,
+                    started_at=rec.started_at,
+                    feature_path=rec.feature_path,
+                    framework=rec.framework,
+                    logs=[],
+                ))
+                db.commit()
+            return rec
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("AutomationSuite: DB create başarısız, in-memory fallback (%s)", exc)
+            with self._lock:
+                self._store[run_id] = rec
+            return rec
 
     def update(self, run_id: str, **fields: Any) -> Optional[_RunRecord]:
-        if self._redis:
-            try:
-                raw = self._redis.get(f"{self._KEY_PREFIX}{run_id}")
-                if raw:
-                    rec = self._from_json(raw)
-                    if rec:
-                        for key, value in fields.items():
-                            if hasattr(rec, key):
-                                setattr(rec, key, value)
-                        self._redis.setex(
-                            f"{self._KEY_PREFIX}{run_id}",
-                            self._REDIS_TTL,
-                            self._to_json(rec),
-                        )
-                        return rec
-            except Exception:
-                pass
+        try:
+            from app.domains.automation_suite.models import AutomationSuiteRun
+            from app.infra.database import SessionLocal
+
+            with SessionLocal() as db:
+                row = db.get(AutomationSuiteRun, run_id)
+                if row is not None:
+                    for key, value in fields.items():
+                        if hasattr(row, key):
+                            setattr(row, key, value)
+                    db.commit()
+                    return self._row_to_record(row)
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("AutomationSuite: DB update başarısız (%s)", exc)
         with self._lock:
             rec = self._store.get(run_id)
             if rec is None:
@@ -182,39 +164,41 @@ class _RunRegistry:
             return rec
 
     def append_log(self, run_id: str, line: str) -> None:
-        if self._redis:
-            try:
-                raw = self._redis.get(f"{self._KEY_PREFIX}{run_id}")
-                if raw:
-                    rec = self._from_json(raw)
-                    if rec:
-                        rec.logs.append(line)
-                        if len(rec.logs) > 200:
-                            rec.logs = rec.logs[-200:]
-                        self._redis.setex(
-                            f"{self._KEY_PREFIX}{run_id}",
-                            self._REDIS_TTL,
-                            self._to_json(rec),
-                        )
-                        return
-            except Exception:
-                pass
+        try:
+            from app.domains.automation_suite.models import AutomationSuiteRun
+            from app.infra.database import SessionLocal
+
+            with SessionLocal() as db:
+                row = db.get(AutomationSuiteRun, run_id)
+                if row is not None:
+                    logs = list(row.logs or [])
+                    logs.append(line)
+                    if len(logs) > _MAX_LOG_LINES:
+                        logs = logs[-_MAX_LOG_LINES:]
+                    row.logs = logs  # reassign → JSONB dirty tracking
+                    db.commit()
+                    return
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("AutomationSuite: DB append_log başarısız (%s)", exc)
         with self._lock:
             rec = self._store.get(run_id)
             if rec is None:
                 return
             rec.logs.append(line)
-            if len(rec.logs) > 200:
-                rec.logs = rec.logs[-200:]
+            if len(rec.logs) > _MAX_LOG_LINES:
+                rec.logs = rec.logs[-_MAX_LOG_LINES:]
 
     def get(self, run_id: str) -> Optional[_RunRecord]:
-        if self._redis:
-            try:
-                raw = self._redis.get(f"{self._KEY_PREFIX}{run_id}")
-                if raw:
-                    return self._from_json(raw)
-            except Exception:
-                pass
+        try:
+            from app.domains.automation_suite.models import AutomationSuiteRun
+            from app.infra.database import SessionLocal
+
+            with SessionLocal() as db:
+                row = db.get(AutomationSuiteRun, run_id)
+                if row is not None:
+                    return self._row_to_record(row)
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("AutomationSuite: DB get başarısız (%s)", exc)
         with self._lock:
             return self._store.get(run_id)
 
