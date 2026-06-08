@@ -144,8 +144,12 @@ const MODULES = [
 // ─── Helper fonksiyonlar ────────────────────────────────────────────────────
 
 function genSparkline(seed: number, length = 7, variance = 5): number[] {
+  // Deterministik: Math.random() KULLANILMAZ — bu fonksiyon render sırasında
+  // çağrılıyor; rastgelelik SSR ile client ilk render'ı farklılaştırıp
+  // hydration mismatch (Sparkline path/aria text) yaratır. İkinci sinüs ile
+  // doku korunur, çıktı stabil kalır.
   return Array.from({ length }, (_, i) =>
-    Math.max(0, Math.floor(seed * 0.7 + Math.sin(i * 0.8 + seed) * variance + Math.random() * 3))
+    Math.max(0, Math.floor(seed * 0.7 + Math.sin(i * 0.8 + seed) * variance + Math.abs(Math.sin(i * 2.3 + seed * 1.7)) * 3))
   );
 }
 

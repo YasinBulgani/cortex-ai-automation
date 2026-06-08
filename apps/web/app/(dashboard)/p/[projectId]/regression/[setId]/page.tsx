@@ -103,7 +103,8 @@ export default function RegressionSetDetailPage() {
 
   if (!data) return <p className="text-sm text-slate-400">Veri bulunamadı.</p>;
 
-  const existing = new Set(data.scenarios.map((s) => s.scenario_id));
+  const scenarios = data.scenarios ?? [];
+  const existing = new Set(scenarios.map((s) => s.scenario_id));
   const available = allScenarios.filter((s) => !existing.has(s.id));
 
   return (
@@ -111,7 +112,7 @@ export default function RegressionSetDetailPage() {
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight" data-testid="regression-detail-heading">{data.name}</h1>
-          <p className="text-sm text-slate-400">{data.scenarios.length} senaryo</p>
+          <p className="text-sm text-slate-400">{scenarios.length} senaryo</p>
         </div>
         <Link href={`/p/${projectId}/regression`}>
           <Button type="button" variant="ghost" data-testid="regression-detail-btn-back">Listeye dön</Button>
@@ -121,7 +122,7 @@ export default function RegressionSetDetailPage() {
       <section className="rounded-lg border border-slate-800">
         <div className="border-b border-slate-800 px-4 py-2 text-xs font-medium text-slate-400">Mevcut senaryolar</div>
         <ul className="divide-y divide-border">
-          {data.scenarios.map((s) => (
+          {scenarios.map((s) => (
             <li key={s.item_id} className="flex items-center gap-3 px-4 py-2 text-sm">
               <Link href={`/p/${projectId}/scenarios/${s.scenario_id}`} className="hover:underline">
                 {s.title}

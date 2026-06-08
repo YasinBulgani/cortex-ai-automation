@@ -158,11 +158,12 @@ export default function ExecutionDetailPage() {
     );
   }
 
+  const results = data.results ?? [];
   const displayMetrics = metrics ?? {
-    total: data.results.length,
-    passed: data.results.filter((r) => r.status === "passed").length,
-    failed: data.results.filter((r) => r.status === "failed").length,
-    skipped: data.results.filter((r) => ["skipped", "not_run"].includes(r.status)).length,
+    total: results.length,
+    passed: results.filter((r) => r.status === "passed").length,
+    failed: results.filter((r) => r.status === "failed").length,
+    skipped: results.filter((r) => ["skipped", "not_run"].includes(r.status)).length,
     pass_rate: 0,
     duration_seconds: null,
   };

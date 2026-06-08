@@ -66,9 +66,11 @@ export function AiStatusChip() {
 
   if (loading) return null;
 
-  const active = health ? Object.entries(health.providers).filter(([, v]) => isProviderActive(v)).map(([k]) => k) : [];
+  // providers eksik/bozuk gelebilir (gateway hata gövdesi) — guard'la.
+  const providers = health?.providers ?? {};
+  const active = Object.entries(providers).filter(([, v]) => isProviderActive(v)).map(([k]) => k);
   const activeCount = active.length;
-  const totalCount = health ? Object.keys(health.providers).length : 0;
+  const totalCount = Object.keys(providers).length;
 
   const tone =
     !health           ? "danger"  :
@@ -98,7 +100,7 @@ export function AiStatusChip() {
       content={
         <div className="flex flex-col gap-1 min-w-[140px]">
           <p className="font-semibold text-fg">AI Sağlayıcıları</p>
-          {health && Object.entries(health.providers).map(([name, v]) => {
+          {health && Object.entries(providers).map(([name, v]) => {
             const ok = isProviderActive(v);
             return (
               <div key={name} className="flex items-center justify-between gap-2">

@@ -204,7 +204,7 @@ export default function CustomDashboardsPage() {
 
   const live = useMemo<LiveData>(() => {
     const openDefects = (defects ?? []).filter(
-      (d) => !["closed", "resolved", "fixed", "done"].includes(d.status.toLowerCase()),
+      (d) => !["closed", "resolved", "fixed", "done"].includes((d.status ?? "").toLowerCase()),
     ).length;
 
     const recentRuns = (runs ?? [])
