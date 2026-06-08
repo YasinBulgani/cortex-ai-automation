@@ -222,6 +222,16 @@ def test_apply_edit_require_review_creates_pending(monkeypatch: pytest.MonkeyPat
         "implementations": {"python": {"source_file": "x.py"}},
     }
     with _db_session() as db:
+        # Test izolasyonu: bu testler gerçek DB'ye yazıyor (rollback yok), bu
+        # yüzden bu action_id için önceki koşumlardan kalan proposal'ları temizle
+        # — aksi halde aşağıdaki sayım assert'i birikmeyle bozulur.
+        from sqlalchemy import delete
+
+        from app.infra.models import DslEditProposal
+
+        db.execute(delete(DslEditProposal).where(DslEditProposal.action_id == "pending_action_1"))
+        db.commit()
+
         result = editor_service.apply_edit(
             db,
             operation="create",
