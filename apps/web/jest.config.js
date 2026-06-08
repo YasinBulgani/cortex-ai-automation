@@ -8,6 +8,9 @@ const customJestConfig = {
   testEnvironment: "jsdom",
   setupFilesAfterEnv: ["<rootDir>/jest.setup.ts"],
   moduleNameMapper: {
+    // @testing-library/react'in render'ını QueryClientProvider ile sar
+    // (çoğu test query-kullanan bileşeni provider'sız render ediyordu).
+    "^@testing-library/react$": "<rootDir>/test-utils/rtl-render.ts",
     "^@/(.*)$": "<rootDir>/$1",
   },
   testPathIgnorePatterns: ["<rootDir>/.next/", "<rootDir>/node_modules/"],
