@@ -107,7 +107,12 @@ def test_compute_diff_delete():
 # ── apply_edit (git disabled) ──────────────────────────────────────────────
 
 
-def _dummy_user(user_id: str = "u1", email: str = "[email protected]"):
+def _dummy_user(user_id: str | None = None, email: str = "[email protected]"):
+    # proposer_id, sd_users'a UUID FK'li ve nullable bir kolon. Sahte "u1"
+    # değeri hem UUID tipini hem FK'yi ihlal ediyordu (test tablolar oluşunca
+    # un-skip olup patlıyordu). Gerçek bir kullanıcı satırı kurmak bu birim
+    # testlerin kapsamı dışında — proposer kimliği test edilmiyor — bu yüzden
+    # None (anonim proposer) kullanılır; kolon bunu açıkça kabul eder.
     class _U:  # noqa: N801
         def __init__(self):
             self.id = user_id
