@@ -112,13 +112,13 @@ export default function CoveragePage() {
 
   const gaps = useMemo(() => {
     if (matrix) {
-      return matrix.requirement_ids
-        .filter((rId) => !matrix.cells.some((c) => c.requirement_id === rId))
+      return (matrix.requirement_ids ?? [])
+        .filter((rId) => !(matrix.cells ?? []).some((c) => c.requirement_id === rId))
         .map((rId) => ({
           id: rId,
-          external_id: matrix.requirement_external_ids[rId] ?? rId.slice(0, 8),
-          title: matrix.requirement_titles[rId] ?? rId,
-          priority: matrix.requirement_priorities[rId] ?? "medium",
+          external_id: matrix.requirement_external_ids?.[rId] ?? rId.slice(0, 8),
+          title: matrix.requirement_titles?.[rId] ?? rId,
+          priority: matrix.requirement_priorities?.[rId] ?? "medium",
           scenario_count: 0,
         }));
     }
