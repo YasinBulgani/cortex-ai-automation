@@ -9,6 +9,8 @@ export interface ProductLiveStat {
   target?: number;
   sparkline: number[];
   severity?: "ok" | "warn" | "critical";
+  /** Backend provenance: true = canlı DB aggregation, false = demo/şablon. */
+  real?: boolean;
 }
 
 export interface AiInsight {
@@ -63,4 +65,6 @@ export interface ProductTelemetry {
   browsers?: BrowserStat[];
   lastUpdated: string;
   isDemo?: boolean;
+  /** perf-metrics trend serisi gerçek günlük p75'ten mi (web ürünü). */
+  trendReal?: boolean;
 }

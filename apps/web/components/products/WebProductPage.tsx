@@ -27,8 +27,12 @@ import { PerfPanel } from "./web/PerfPanel";
 const brand = PRODUCT_BRAND.web;
 const ZERO_STATE_TELEMETRY = DEMO_TELEMETRY.web;
 
-function DataModeNotice({ error, isDemo }: { error?: Error | null; isDemo?: boolean }) {
-  if (!isDemo && !error) return null;
+function DataModeNotice({ error, isDemo, partialDemo }: { error?: Error | null; isDemo?: boolean; partialDemo?: boolean }) {
+  if (!isDemo && !partialDemo && !error) return null;
+
+  // partialDemo: sayfa canlı ama bazı kartlar (ör. kaynak tablosu olmayan
+  // metrikler) hâlâ örnek veri — kullanıcı canlı sanmasın diye işaretle.
+  const partialOnly = partialDemo && !isDemo && !error;
 
   return (
     <section
@@ -38,15 +42,21 @@ function DataModeNotice({ error, isDemo }: { error?: Error | null; isDemo?: bool
     >
       <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <p className="font-semibold">Bu ekrandaki bazı kartlar demo/fallback veriyle çalışıyor.</p>
+          <p className="font-semibold">
+            {partialOnly
+              ? "Bazı kartlar canlı, bazıları örnek veriyle çalışıyor."
+              : "Bu ekrandaki bazı kartlar demo/fallback veriyle çalışıyor."}
+          </p>
           <p className="mt-0.5 text-xs text-amber-800 dark:text-amber-100/80">
             {error
               ? `Canlı ürün telemetrisi alınamadı: ${error.message}`
-              : "Backend gerçek aggregation verisi sağlamadığında örnek veri gösteriliyor."}
+              : partialOnly
+                ? "Henüz kaynak verisi olmayan metrikler örnek (demo) değerle gösteriliyor."
+                : "Backend gerçek aggregation verisi sağlamadığında örnek veri gösteriliyor."}
           </p>
         </div>
         <span className="w-fit rounded-full border border-amber-300 bg-white px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200">
-          Demo modu
+          {partialOnly ? "Kısmi canlı" : "Demo modu"}
         </span>
       </div>
     </section>
@@ -584,7 +594,7 @@ function WebProjectZeroState() {
 // ─── Main Component ───────────────────────────────────────────────────────
 
 export function WebProductPage() {
-  const { telemetry, loading, isDemo, error } = useProductTelemetry("web");
+  const { telemetry, loading, isDemo, error, partialDemo } = useProductTelemetry("web");
   const { project, projectId } = useProject();
 
   if (!projectId) return <WebProjectZeroState />;
@@ -594,7 +604,7 @@ export function WebProductPage() {
       {/* ── Release Sağlığı (en üstte, karar bantı) ─── */}
       <ReleaseHealthBanner />
 
-      <DataModeNotice error={error} isDemo={isDemo} />
+      <DataModeNotice error={error} isDemo={isDemo} partialDemo={partialDemo} />
 
       {/* ── Slim Hero: proje + CTA'lar ───────────────── */}
       <section className="relative rounded-2xl border border-slate-800 bg-slate-900/60 px-5 py-4">

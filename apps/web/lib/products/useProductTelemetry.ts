@@ -14,6 +14,8 @@ export function useProductTelemetry(productId: ProductFamilyId): {
   error: Error | null;
   refresh: () => void;
   isDemo: boolean;
+  /** Sayfa global demo değil ama bazı stat'lar demo/şablon (real:false) — karışık provenance. */
+  partialDemo: boolean;
 } {
   const [telemetry, setTelemetry] = useState<ProductTelemetry | null>(null);
   const [loading, setLoading] = useState(true);
@@ -55,5 +57,9 @@ export function useProductTelemetry(productId: ProductFamilyId): {
     };
   }, [fetchData]);
 
-  return { telemetry, loading, error, refresh: fetchData, isDemo };
+  // Karışık provenance: global demo değil ama en az bir stat real:false.
+  const partialDemo =
+    !isDemo && Boolean(telemetry?.stats?.some((s) => s.real === false));
+
+  return { telemetry, loading, error, refresh: fetchData, isDemo, partialDemo };
 }
