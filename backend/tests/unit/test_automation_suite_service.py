@@ -152,7 +152,7 @@ class TestStartRunValidation:
         )
 
         with pytest.raises(ValueError, match="feature_path"):
-            asyncio.get_event_loop().run_until_complete(svc.start_run(req))
+            asyncio.run(svc.start_run(req))
 
     def test_valid_feature_path_returns_run_id(self, monkeypatch):
         """Geçerli feature_path ile start_run run_id döndürmeli."""
@@ -169,6 +169,6 @@ class TestStartRunValidation:
             headless=True,
             tags=[],
         )
-        result = asyncio.get_event_loop().run_until_complete(svc.start_run(req))
+        result = asyncio.run(svc.start_run(req))
         assert result.run_id
         assert result.status == "queued"
