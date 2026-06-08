@@ -26,7 +26,10 @@ try:
         _DEMO_MODE,
         _is_production,
         _block_in_production,
-        _real_management_stats,
+        _management_stat_values,
+        _web_stat_values,
+        _service_stat_values,
+        _real_stat_values,
         _VALID_INBOX_ACTIONS,
         VALID_PRODUCT_IDS,
         PRODUCT_STATS,
@@ -606,13 +609,13 @@ class TestProductsTelemetry:
 
 
 # ===========================================================================
-# 9. test_real_management_stats — canlı QA telemetrisi
+# 9. test_real_stat_values — canlı telemetri sağlayıcıları + provenance
 # ===========================================================================
 
-class TestRealManagementStats:
-    """_real_management_stats ve management ürünü için gerçek-veri yolunu doğrular."""
+class TestManagementStatValues:
+    """_management_stat_values dict çıktısını ve hesaplamalarını doğrular."""
 
-    # _real_management_stats içindeki db.scalar çağrı sırası:
+    # db.scalar çağrı sırası:
     # cases, active_runs, passed, failed, blocked, total_reqs, covered_reqs, workload
     def _db_with_scalars(self, values: list[int]) -> MagicMock:
         db = _make_mock_db()
@@ -621,45 +624,84 @@ class TestRealManagementStats:
 
     def test_computes_pass_rate_and_coverage(self):
         """Pass rate = passed/(passed+failed), coverage = covered/total — yüzde olarak."""
-        db = self._db_with_scalars([120, 3, 80, 20, 5, 50, 40, 6])
-        stats = _real_management_stats(db)
-        by_key = {s["key"]: s for s in stats}
+        vals = _management_stat_values(self._db_with_scalars([120, 3, 80, 20, 5, 50, 40, 6]))
 
-        assert by_key["cases"]["value"] == 120
-        assert by_key["active_runs"]["value"] == 3
-        assert by_key["pass_rate"]["value"] == 80   # 80/(80+20)
-        assert by_key["blocked"]["value"] == 5
-        assert by_key["coverage"]["value"] == 80    # 40/50
-        assert by_key["workload"]["value"] == 6
+        assert vals["cases"]["value"] == 120
+        assert vals["active_runs"]["value"] == 3
+        assert vals["pass_rate"]["value"] == 80   # 80/(80+20)
+        assert vals["blocked"]["value"] == 5
+        assert vals["coverage"]["value"] == 80    # 40/50
+        assert vals["workload"]["value"] == 6
 
     def test_zero_executed_yields_zero_pass_rate(self):
         """Hiç yürütülmüş case yoksa pass_rate sıfıra bölme yapmadan 0 döner."""
-        db = self._db_with_scalars([0, 0, 0, 0, 0, 0, 0, 0])
-        stats = _real_management_stats(db)
-        by_key = {s["key"]: s for s in stats}
+        vals = _management_stat_values(self._db_with_scalars([0, 0, 0, 0, 0, 0, 0, 0]))
 
-        assert by_key["pass_rate"]["value"] == 0
-        assert by_key["coverage"]["value"] == 0
+        assert vals["pass_rate"]["value"] == 0
+        assert vals["coverage"]["value"] == 0
 
     def test_severity_warning_thresholds(self):
         """Düşük pass_rate/coverage ve blocked>0 'warning' severity üretir."""
-        db = self._db_with_scalars([10, 1, 50, 50, 4, 10, 1, 2])
-        stats = _real_management_stats(db)
-        by_key = {s["key"]: s for s in stats}
+        vals = _management_stat_values(self._db_with_scalars([10, 1, 50, 50, 4, 10, 1, 2]))
 
-        assert by_key["pass_rate"]["value"] == 50
-        assert by_key["pass_rate"]["severity"] == "warning"   # < 85
-        assert by_key["blocked"]["severity"] == "warning"     # blocked > 0
-        assert by_key["coverage"]["severity"] == "warning"    # 10% < 80
+        assert vals["pass_rate"]["value"] == 50
+        assert vals["pass_rate"]["severity"] == "warning"   # < 85
+        assert vals["blocked"]["severity"] == "warning"     # blocked > 0
+        assert vals["coverage"]["severity"] == "warning"    # 10% < 80
 
     def test_returns_none_on_db_error(self):
         """DB hatası durumunda None döner (çağıran demo'ya düşer)."""
         db = _make_mock_db()
         db.scalar.side_effect = Exception("db down")
-        assert _real_management_stats(db) is None
+        assert _management_stat_values(db) is None
 
-    def test_management_endpoint_uses_real_stats_when_demo_off(self, monkeypatch):
-        """Demo kapalı + product=management → gerçek stats, isDemo False, demo header yok."""
+
+class TestWebAndServiceStatValues:
+    """_web_stat_values ve _service_stat_values sağlayıcılarını doğrular."""
+
+    def test_web_pass_rate_from_metrics(self):
+        """web sağlayıcısı ortalama pass_rate'i yuvarlayarak döner."""
+        db = _make_mock_db()
+        db.scalar.return_value = 87.4
+        vals = _web_stat_values(db)
+        assert vals["pass_rate"]["value"] == 87
+        assert vals["pass_rate"]["severity"] == "ok"
+
+    def test_web_returns_none_when_no_runs(self):
+        """Hiç koşum yoksa (avg None) None döner → demo fallback."""
+        db = _make_mock_db()
+        db.scalar.return_value = None
+        assert _web_stat_values(db) is None
+
+    def test_service_endpoints_and_contracts(self):
+        """service sağlayıcısı endpoint + contract sayılarını döner."""
+        db = _make_mock_db()
+        db.scalar.side_effect = [42, 7]
+        vals = _service_stat_values(db)
+        assert vals["endpoints"]["value"] == 42
+        assert vals["contracts"]["value"] == 7
+
+    def test_service_returns_none_when_empty(self):
+        """Hiç API verisi yoksa None döner → demo fallback."""
+        db = _make_mock_db()
+        db.scalar.side_effect = [0, 0]
+        assert _service_stat_values(db) is None
+
+    def test_real_stat_values_dispatch_unknown_product(self):
+        """Gerçek sağlayıcısı olmayan ürün için None döner."""
+        assert _real_stat_values("intelligence", _make_mock_db()) is None
+
+
+class TestTelemetryProvenanceMerge:
+    """Endpoint'te gerçek/demo birleştirme ve 'real' provenance bayrağını doğrular."""
+
+    def _db_with_scalars(self, values: list[int]) -> MagicMock:
+        db = _make_mock_db()
+        db.scalar.side_effect = list(values)
+        return db
+
+    def test_management_full_real_when_demo_off(self, monkeypatch):
+        """Demo kapalı + management → tüm stat'lar real:True, isDemo False, header yok."""
         monkeypatch.setattr(_router_module, "_DEMO_MODE", False)
         db = self._db_with_scalars([100, 2, 90, 10, 0, 20, 18, 4])
 
@@ -668,23 +710,51 @@ class TestRealManagementStats:
         body: dict[str, Any] = json.loads(response.body)
 
         assert body["isDemo"] is False
-        assert body["demo_mode"] is False
         assert "x-data-mode" not in response.headers
-        # Gerçek modda sahte AI insight dönmemeli
         assert body["aiInsights"] == []
         by_key = {s["key"]: s for s in body["stats"]}
-        assert by_key["pass_rate"]["value"] == 90   # 90/(90+10)
+        assert by_key["pass_rate"]["value"] == 90
         assert by_key["cases"]["value"] == 100
+        # Management tam gerçek → her stat real:True
+        assert all(s["real"] is True for s in body["stats"])
 
-    def test_management_endpoint_falls_back_to_demo_on_db_error(self, monkeypatch):
-        """Demo kapalı ama DB sorgusu patlarsa demo şablonuna düşer."""
+    def test_web_partial_real_marks_provenance(self, monkeypatch):
+        """web: pass_rate real:True, kalan stat'lar real:False (demo şablonu)."""
+        monkeypatch.setattr(_router_module, "_DEMO_MODE", False)
+        db = _make_mock_db()
+        db.scalar.return_value = 91.0
+
+        import json
+        body: dict[str, Any] = json.loads(
+            get_product_telemetry("web", MagicMock(), db=db).body
+        )
+        by_key = {s["key"]: s for s in body["stats"]}
+
+        assert by_key["pass_rate"]["real"] is True
+        assert by_key["pass_rate"]["value"] == 91
+        # Gerçek kaynağı olmayan web stat'ları demo şablonundan, real:False
+        assert by_key["browsers"]["real"] is False
+        assert body["isDemo"] is False
+
+    def test_demo_mode_marks_all_stats_real_false(self, monkeypatch):
+        """Demo modunda tüm stat'lar real:False olmalı."""
+        monkeypatch.setattr(_router_module, "_DEMO_MODE", True)
+
+        import json
+        body: dict[str, Any] = json.loads(
+            get_product_telemetry("management", MagicMock()).body
+        )
+        assert all(s["real"] is False for s in body["stats"])
+
+    def test_falls_back_to_demo_on_db_error(self, monkeypatch):
+        """Demo kapalı ama DB patlarsa demo şablonuna düşer (stat listesi dolu kalır)."""
         monkeypatch.setattr(_router_module, "_DEMO_MODE", False)
         db = _make_mock_db()
         db.scalar.side_effect = Exception("db down")
 
         import json
-        response = get_product_telemetry("management", MagicMock(), db=db)
-        body: dict[str, Any] = json.loads(response.body)
-
-        # Fallback şablon kullanıldı; gerçek veri olmadığı için isDemo False (demo mode kapalı)
-        assert "stats" in body and len(body["stats"]) > 0
+        body: dict[str, Any] = json.loads(
+            get_product_telemetry("management", MagicMock(), db=db).body
+        )
+        assert len(body["stats"]) > 0
+        assert all(s["real"] is False for s in body["stats"])

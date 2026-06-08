@@ -223,12 +223,16 @@ AI_INSIGHTS: dict[str, list[dict[str, Any]]] = {
 }
 
 
-def _real_management_stats(db: Session) -> list[dict[str, Any]] | None:
-    """'management' ürünü için canlı QA telemetrisini test_management tablolarından hesaplar.
+# ── Gerçek telemetri sağlayıcıları ────────────────────────────────────────────
+#
+# Her sağlayıcı, ilgili ürün için DB'den hesaplayabildiği stat'ları
+# {stat_key: {"value": int, "severity"?: str}} sözlüğü olarak döndürür.
+# Hesaplanamayan stat'lar atlanır (çağıran o stat'ı demo şablonundan doldurur).
+# Hata veya hiç veri yoksa None döner. Tenant izolasyonu DB session RLS ile.
 
-    Sorgu başarısız olursa (tablo yok, DB erişilemez) None döner; çağıran demo
-    şablonuna düşer. Tenant izolasyonu DB session'ındaki RLS context ile sağlanır.
-    """
+
+def _management_stat_values(db: Session) -> dict[str, dict[str, Any]] | None:
+    """'management' ürünü — test_management tablolarından canlı QA telemetrisi."""
     try:
         from app.domains.test_management.models import (
             Requirement,
@@ -238,17 +242,13 @@ def _real_management_stats(db: Session) -> list[dict[str, Any]] | None:
             TestRunCase,
         )
 
-        # Manuel test case sayısı (arşivlenmemiş)
+        # NOT: db.scalar çağrı sırası testlerde side_effect ile eşlendiği için korunmalı.
         cases = db.scalar(
             select(func.count(TestCase.id)).where(TestCase.archived.is_(False))
         ) or 0
-
-        # Şu an çalışan run'lar
         active_runs = db.scalar(
             select(func.count(TestRun.id)).where(TestRun.status == "running")
         ) or 0
-
-        # Pass rate: passed / (passed + failed) — yürütülmüş run-case'ler üzerinden
         passed = db.scalar(
             select(func.count(TestRunCase.id)).where(TestRunCase.status == "passed")
         ) or 0
@@ -258,12 +258,10 @@ def _real_management_stats(db: Session) -> list[dict[str, Any]] | None:
         executed = passed + failed
         pass_rate = round(passed / executed * 100) if executed else 0
 
-        # Blocked run-case'ler
         blocked = db.scalar(
             select(func.count(TestRunCase.id)).where(TestRunCase.status == "blocked")
         ) or 0
 
-        # Requirement coverage: en az bir 'covered' link'i olan gereksinim / toplam
         total_reqs = db.scalar(select(func.count(Requirement.id))) or 0
         covered_reqs = db.scalar(
             select(func.count(func.distinct(RequirementLink.requirement_id))).where(
@@ -281,21 +279,72 @@ def _real_management_stats(db: Session) -> list[dict[str, Any]] | None:
             )
         ) or 0
 
-        return [
-            {"key": "cases",       "label": "Manuel Test Case", "value": int(cases),       "unit": None, "trend": "flat", "severity": "ok"},
-            {"key": "active_runs", "label": "Aktif Run",        "value": int(active_runs), "unit": None, "trend": "flat", "severity": "ok"},
-            {"key": "pass_rate",   "label": "Pass Rate",        "value": int(pass_rate),   "unit": "%",  "trend": "flat", "severity": "ok" if pass_rate >= 85 else "warning"},
-            {"key": "blocked",     "label": "Blocked",          "value": int(blocked),     "unit": None, "trend": "flat", "severity": "warning" if blocked else "ok"},
-            {"key": "coverage",    "label": "Req. Coverage",    "value": int(coverage),    "unit": "%",  "trend": "flat", "severity": "ok" if coverage >= 80 else "warning"},
-            {"key": "workload",    "label": "Tester İş Yükü",   "value": int(workload),    "unit": None, "trend": "flat", "severity": "ok"},
-        ]
+        return {
+            "cases":       {"value": int(cases)},
+            "active_runs": {"value": int(active_runs)},
+            "pass_rate":   {"value": int(pass_rate), "severity": "ok" if pass_rate >= 85 else "warning"},
+            "blocked":     {"value": int(blocked),   "severity": "warning" if blocked else "ok"},
+            "coverage":    {"value": int(coverage),  "severity": "ok" if coverage >= 80 else "warning"},
+            "workload":    {"value": int(workload)},
+        }
     except Exception as exc:
         _logger.warning("Products management gerçek telemetri sorgusu başarısız: %s", exc)
         return None
 
 
-# TODO: Diğer ürünler (one/studio/service/web/mobile/data/intelligence/nexus-code)
-#        için de gerçek aggregation eklenecek. 'management' canlı veriye bağlandı.
+def _web_stat_values(db: Session) -> dict[str, dict[str, Any]] | None:
+    """'web' ürünü — son 7 günün ortalama pass rate'i TspmExecutionMetrics'ten."""
+    try:
+        from app.domains.tspm.models import TspmExecutionMetrics
+
+        cutoff = datetime.now(_tz.utc) - timedelta(days=7)
+        avg_pass = db.scalar(
+            select(func.avg(TspmExecutionMetrics.pass_rate)).where(
+                TspmExecutionMetrics.executed_at >= cutoff
+            )
+        )
+        if avg_pass is None:
+            return None  # hiç koşum yok → demo şablonuna düş
+        pr = round(float(avg_pass))
+        return {"pass_rate": {"value": pr, "severity": "ok" if pr >= 85 else "warning"}}
+    except Exception as exc:
+        _logger.warning("Products web gerçek telemetri sorgusu başarısız: %s", exc)
+        return None
+
+
+def _service_stat_values(db: Session) -> dict[str, dict[str, Any]] | None:
+    """'service' ürünü — API endpoint ve koleksiyon (sözleşme) sayıları."""
+    try:
+        from app.domains.tspm.models import TspmApiCollection, TspmApiRequest
+
+        endpoints = db.scalar(select(func.count(TspmApiRequest.id))) or 0
+        contracts = db.scalar(select(func.count(TspmApiCollection.id))) or 0
+        if not endpoints and not contracts:
+            return None  # hiç API verisi yok → demo şablonuna düş
+        return {
+            "endpoints": {"value": int(endpoints)},
+            "contracts": {"value": int(contracts)},
+        }
+    except Exception as exc:
+        _logger.warning("Products service gerçek telemetri sorgusu başarısız: %s", exc)
+        return None
+
+
+# Gerçek veriye bağlı ürünler. Kalan ürünler (one/studio/mobile/data/intelligence/
+# nexus-code) henüz tam demo — kaynak tabloları oluşturuldukça buraya eklenecek.
+_REAL_STAT_PROVIDERS = {
+    "management": _management_stat_values,
+    "web": _web_stat_values,
+    "service": _service_stat_values,
+}
+
+
+def _real_stat_values(product_id: str, db: Session) -> dict[str, dict[str, Any]] | None:
+    """Ürün için gerçek stat değerlerini döndürür (varsa); aksi halde None."""
+    provider = _REAL_STAT_PROVIDERS.get(product_id)
+    return provider(db) if provider is not None else None
+
+
 #       AI insights icin: SELECT * FROM ai_insights WHERE product_id = :product_id AND dismissed = FALSE;
 @router.get("/{product_id}/telemetry", summary="Ürün telemetri verisi")
 def get_product_telemetry(
@@ -307,19 +356,29 @@ def get_product_telemetry(
         raise HTTPException(status_code=404, detail=f"Geçersiz product_id: {product_id}")
 
     now = datetime.now(_tz.utc).isoformat()
+    template = PRODUCT_STATS.get(product_id, [])
 
-    # Demo modu kapalıysa, gerçek aggregation'ı destekleyen ürünler için canlı
-    # veri çek. Şu an yalnızca 'management' ürünü test_management tablolarına bağlı.
-    real_stats: list[dict[str, Any]] | None = None
-    if not _DEMO_MODE and product_id == "management":
-        real_stats = _real_management_stats(db)
+    # Demo modu kapalıysa gerçek değerleri çek; her stat tek tek gerçek veri ya da
+    # demo şablonundan dolar ve "real" bayrağıyla provenance işaretlenir.
+    real_values = _real_stat_values(product_id, db) if not _DEMO_MODE else None
 
-    if real_stats is not None:
-        # Gerçek veri: sparkline'ı düz (sabit) tut, rastgele jitter ekleme.
-        stats = [
-            {**s, "sparkline": [s["value"]] * 7, "delta": 0, "deltaLabel": "bu hafta"}
-            for s in real_stats
-        ]
+    if real_values:
+        stats = []
+        for s in template:
+            override = real_values.get(s["key"])
+            if override is not None:
+                val = int(override["value"])
+                stats.append({
+                    **s, **override, "value": val,
+                    "sparkline": [val] * 7, "delta": 0, "deltaLabel": "bu hafta",
+                    "real": True,
+                })
+            else:
+                stats.append({
+                    **s,
+                    "sparkline": _sparkline(int(s["value"])), "delta": 0,
+                    "deltaLabel": "bu hafta", "real": False,
+                })
         is_demo = False
         # Gerçek AI insight kaynağı henüz yok — sahte insight döndürmemek için boş bırak.
         ai_insights: list[dict[str, Any]] = []
@@ -331,8 +390,9 @@ def get_product_telemetry(
                 "sparkline": _sparkline(int(s["value"])),
                 "delta": random.choice([-1, 0, 1, 2]),
                 "deltaLabel": "bu hafta",
+                "real": False,
             }
-            for s in PRODUCT_STATS.get(product_id, [])
+            for s in template
         ]
         is_demo = _DEMO_MODE
         ai_insights = [
