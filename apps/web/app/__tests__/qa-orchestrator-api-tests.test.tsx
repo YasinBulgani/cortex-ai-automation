@@ -130,6 +130,12 @@ jest.mock("@tanstack/react-query", () => ({
     isPending: false,
     isError: false,
   })),
+  useQuery: jest.fn(() => ({ data: undefined, isLoading: false, isError: false, refetch: jest.fn() })),
+  useQueryClient: jest.fn(() => ({
+    invalidateQueries: jest.fn(),
+    setQueryData: jest.fn(),
+    getQueryData: jest.fn(),
+  })),
 }));
 
 // ─── Imports ─────────────────────────────────────────────────────────────────

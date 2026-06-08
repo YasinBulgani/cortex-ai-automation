@@ -38,6 +38,7 @@ jest.mock("@/lib/use-route-param", () => ({
 const apiFetchMock = jest.fn();
 jest.mock("@/lib/api", () => ({
   apiFetch: (...args: any[]) => apiFetchMock(...args),
+  engineFetch: jest.fn(() => Promise.resolve({})),
   clearToken: jest.fn(),
   API_BASE: "http://localhost:8000",
   ENGINE_BASE: "http://localhost:8080",

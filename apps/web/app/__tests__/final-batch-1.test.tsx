@@ -26,6 +26,9 @@ jest.mock("next/navigation", () => ({
   useRouter: () => ({ push: jest.fn(), back: jest.fn() }),
   useParams: jest.fn(() => ({})),
   usePathname: () => "/p/proj-1",
+  useSearchParams: () => new URLSearchParams(),
+  redirect: jest.fn(),
+  notFound: jest.fn(),
 }));
 jest.mock("@/lib/use-route-param", () => ({
   useRouteParam: jest.fn(() => "proj-1"),
