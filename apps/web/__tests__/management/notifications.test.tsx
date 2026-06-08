@@ -12,6 +12,11 @@ import { renderHook, render, screen, fireEvent, waitFor, act } from "@testing-li
 const apiFetchMock = jest.fn();
 jest.mock("@/lib/api-client", () => ({
   apiFetch: (...args: unknown[]) => apiFetchMock(...args),
+  // use-auth.ts (NotificationBell → useCurrentUser) bunları da import eder
+  getToken: () => null,
+  hasSession: () => false,
+  clearTokens: () => {},
+  setTokens: () => {},
 }));
 
 jest.mock("next/link", () => {

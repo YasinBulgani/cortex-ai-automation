@@ -328,19 +328,19 @@ describe("AiStatusChip", () => {
     jest.clearAllMocks();
   });
 
-  it("shows loading state while fetching", () => {
-    // Never resolves → component stays in loading=true
+  it("renders nothing while loading", () => {
+    // Never resolves → component stays in loading=true ve null döner (chip yok)
     global.fetch = jest.fn().mockReturnValue(new Promise(() => {}));
     render(<AiStatusChip />);
-    expect(screen.getByText(/AI \.\.\./i)).toBeInTheDocument();
+    expect(screen.queryByTestId("ai-status-chip")).not.toBeInTheDocument();
   });
 
-  it("shows success chip when providers are active", async () => {
+  it("hides the chip when AI is healthy (>=2 providers active)", async () => {
     global.fetch = jest.fn().mockResolvedValue({
       ok: true,
       json: async () => ({
         status: "ok",
-        providers: { anthropic: true, vllm: true, groq: false },
+        providers: { anthropic: { available: true }, vllm: { available: true }, groq: { available: false } },
       }),
     } as Response);
 
@@ -348,8 +348,8 @@ describe("AiStatusChip", () => {
       render(<AiStatusChip />);
     });
 
-    expect(screen.getByTestId("ai-status-chip")).toBeInTheDocument();
-    expect(screen.getByText(/Anthropic/)).toBeInTheDocument();
+    // Sağlıklı durum (success tone) → chip gizlenir; chip sadece sorunda görünür.
+    expect(screen.queryByTestId("ai-status-chip")).not.toBeInTheDocument();
   });
 
   it("shows danger chip when fetch fails", async () => {
@@ -380,12 +380,13 @@ describe("AiStatusChip", () => {
     expect(screen.getByTestId("ai-status-chip")).toBeInTheDocument();
   });
 
-  it("shows +N when more than 1 active provider", async () => {
+  it("shows active provider name and total count in warning state", async () => {
+    // Tek aktif sağlayıcı → warning tone → chip görünür: "AI: Anthropic / 3"
     global.fetch = jest.fn().mockResolvedValue({
       ok: true,
       json: async () => ({
         status: "ok",
-        providers: { anthropic: true, vllm: true, groq: true },
+        providers: { anthropic: { available: true }, vllm: { available: false }, groq: { available: false } },
       }),
     } as Response);
 
@@ -393,6 +394,8 @@ describe("AiStatusChip", () => {
       render(<AiStatusChip />);
     });
 
-    expect(screen.getByText(/\+2/)).toBeInTheDocument();
+    expect(screen.getByTestId("ai-status-chip")).toBeInTheDocument();
+    expect(screen.getByText(/Anthropic/)).toBeInTheDocument();
+    expect(screen.getByText(/\/ 3/)).toBeInTheDocument();
   });
 });
