@@ -2,6 +2,7 @@
 
 import { useMemo, useState, useRef, useCallback, useEffect } from "react";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 import {
   useManagementRuns,
   useUpdateManagementRun,
@@ -154,9 +155,30 @@ interface RunItemProps {
   onDeleted?: () => void;
 }
 
+function RunProgress({ snap }: { snap: Record<string, unknown> }) {
+  const passed  = (snap.passed  as number) ?? 0;
+  const failed  = (snap.failed  as number) ?? 0;
+  const blocked = (snap.blocked as number) ?? 0;
+  const notRun  = (snap.not_run as number) ?? 0;
+  const total = passed + failed + blocked + notRun;
+  if (total === 0) return null;
+  const donePct = Math.round(((passed + failed + blocked) / total) * 100);
+  return (
+    <div className="mt-1 flex items-center gap-1.5">
+      <div className="flex h-1 flex-1 overflow-hidden rounded-full bg-surface-accent">
+        {passed  > 0 && <div className="bg-emerald-500/80" style={{ width: `${(passed  / total) * 100}%` }} />}
+        {failed  > 0 && <div className="bg-red-500/80"     style={{ width: `${(failed  / total) * 100}%` }} />}
+        {blocked > 0 && <div className="bg-amber-500/60"   style={{ width: `${(blocked / total) * 100}%` }} />}
+      </div>
+      <span className="text-[9px] tabular-nums text-fg-disabled shrink-0">{donePct}%</span>
+    </div>
+  );
+}
+
 function RunItem({ run, selected, onSelect, pid, onDeleted }: RunItemProps) {
   const status = run.status || "not_started";
   const updateRun = useUpdateManagementRun(pid);
+  const snap = run.scope_snapshot ?? {};
 
   const [renaming, setRenaming] = useState(false);
   const [renameVal, setRenameVal] = useState(run.name);
@@ -212,6 +234,7 @@ function RunItem({ run, selected, onSelect, pid, onDeleted }: RunItemProps) {
           {run.environment ? ` · ${run.environment}` : ""}
           {run.created_at ? ` · ${fmtShortDate(run.created_at)}` : ""}
         </p>
+        <RunProgress snap={snap} />
       </div>
       <KebabMenu run={run} pid={pid} onRenameStart={startRename} onDeleted={onDeleted} />
     </div>
@@ -221,6 +244,8 @@ function RunItem({ run, selected, onSelect, pid, onDeleted }: RunItemProps) {
 /* ------------------------------------------------------------------ */
 /* RunList                                                              */
 /* ------------------------------------------------------------------ */
+type RunStatusFilter = "all" | "in_progress" | "not_started" | "completed";
+
 export function RunList({
   pid,
   selectedRunId,
@@ -237,35 +262,96 @@ export function RunList({
   filteredRunIds?: Set<string>;
 }) {
   const { data: runs, isLoading } = useManagementRuns(pid || undefined);
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<RunStatusFilter>("all");
+
   const allRaw = useMemo(() => runs ?? [], [runs]);
   const all = useMemo(
     () => filteredRunIds ? allRaw.filter(r => filteredRunIds.has(r.id)) : allRaw,
     [allRaw, filteredRunIds],
   );
 
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return all.filter(r => {
+      const matchesSearch = !q || r.name.toLowerCase().includes(q) || (r.environment ?? "").toLowerCase().includes(q);
+      const matchesStatus = statusFilter === "all" || r.status === statusFilter || (!r.status && statusFilter === "not_started");
+      return matchesSearch && matchesStatus;
+    });
+  }, [all, search, statusFilter]);
+
   const groups = useMemo(() => {
-    const active = all.filter(r => r.status === "in_progress");
-    const pending = all.filter(r => r.status === "not_started" || !r.status);
-    const done = all.filter(r => r.status === "completed" || r.status === "failed");
+    const active = filtered.filter(r => r.status === "in_progress");
+    const pending = filtered.filter(r => r.status === "not_started" || !r.status);
+    const done = filtered.filter(r => r.status === "completed" || r.status === "failed");
     return [
       { key: "active", label: "Devam Eden", items: active },
       { key: "pending", label: "Bekleyen", items: pending },
       { key: "done", label: "Tamamlanan", items: done },
     ].filter(g => g.items.length > 0);
-  }, [all]);
+  }, [filtered]);
+
+  const activeCount = all.filter(r => r.status === "in_progress").length;
+  const pendingCount = all.filter(r => r.status === "not_started" || !r.status).length;
+  const doneCount = all.filter(r => r.status === "completed" || r.status === "failed").length;
 
   return (
     <div className="flex h-full flex-col">
       <div className="flex items-center justify-between border-b border-border px-3 py-2.5">
         <span className="text-[12px] font-semibold text-fg">Test Runs</span>
-        <button
+        <Button
           type="button"
+          variant="primary"
+          size="sm"
           onClick={onNewRun}
-          className="flex items-center gap-1 rounded-lg bg-brand px-2 py-1 text-[11px] font-semibold text-brand-fg shadow-sm transition-colors hover:brightness-105"
+          className="gap-1 text-[11px] font-semibold"
         >
           <IcPlus /> Yeni
-        </button>
+        </Button>
       </div>
+
+      {/* Search + filter */}
+      {all.length > 3 && (
+        <div className="border-b border-border px-2 py-2 space-y-1.5">
+          <div className="flex items-center gap-1.5 rounded-lg border border-border bg-surface-overlay px-2 py-1 focus-within:border-brand transition-colors">
+            <svg className="h-3 w-3 shrink-0 text-fg-subtle" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><circle cx="11" cy="11" r="8"/><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35"/></svg>
+            <input
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Run ara…"
+              className="flex-1 bg-transparent text-[11px] text-fg placeholder:text-fg-subtle outline-none"
+            />
+            {search && (
+              <button type="button" onClick={() => setSearch("")} className="text-fg-subtle hover:text-fg">
+                <svg className="h-2.5 w-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+              </button>
+            )}
+          </div>
+          <div className="flex gap-1">
+            {([
+              { key: "all",         label: "Tümü",       count: all.length    },
+              { key: "in_progress", label: "Aktif",      count: activeCount   },
+              { key: "not_started", label: "Bekliyor",   count: pendingCount  },
+              { key: "completed",   label: "Bitti",      count: doneCount     },
+            ] as const).map(opt => (
+              <button
+                key={opt.key}
+                type="button"
+                onClick={() => setStatusFilter(opt.key)}
+                className={cn(
+                  "flex-1 rounded px-1 py-0.5 text-[9px] font-medium transition-colors",
+                  statusFilter === opt.key
+                    ? "bg-brand/20 text-brand"
+                    : "text-fg-subtle hover:bg-surface-overlay hover:text-fg",
+                )}
+              >
+                {opt.label}
+                {opt.count > 0 && <span className="ml-0.5 opacity-70">{opt.count}</span>}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="flex-1 overflow-y-auto px-2 py-2 space-y-3">
         {isLoading ? (
@@ -286,6 +372,12 @@ export function RunList({
             >
               İlk run'ı oluştur →
             </button>
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="px-2 py-6 text-center">
+            <p className="text-[12px] text-fg-muted">Sonuç bulunamadı</p>
+            <button type="button" onClick={() => { setSearch(""); setStatusFilter("all"); }}
+              className="mt-1 text-[10px] text-brand">Filtreleri temizle</button>
           </div>
         ) : (
           groups.map(g => (
@@ -311,9 +403,11 @@ export function RunList({
       </div>
 
       <div className="border-t border-border px-4 py-2 text-[10px] text-fg-subtle">
-        {filteredRunIds && filteredRunIds.size !== allRaw.length
-          ? `${all.length} / ${allRaw.length} run`
-          : `${all.length} run`}
+        {(search || statusFilter !== "all")
+          ? `${filtered.length} / ${all.length} run`
+          : filteredRunIds && filteredRunIds.size !== allRaw.length
+            ? `${all.length} / ${allRaw.length} run`
+            : `${all.length} run`}
       </div>
     </div>
   );

@@ -9,6 +9,8 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 const DASHBOARD_URL = process.env.NEXT_PUBLIC_CORTEX_DASHBOARD_URL || "http://localhost:5001";
 
@@ -75,29 +77,34 @@ export function CortexScenarioAuthor({ open, onClose }: Props) {
             <p className="text-xs text-slate-400 mt-0.5">3 yöntem · sonuç projects/cortex/'a yazılır</p>
           </div>
           <div className="flex items-center gap-2">
-            <button
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={() => setExpanded((v) => !v)}
-              className="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors grid place-items-center"
               title={expanded ? "Küçült" : "Tam ekran"}
             >
               {expanded ? "🗗" : "⛶"}
-            </button>
-            <button onClick={onClose} className="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors grid place-items-center">✕</button>
+            </Button>
+            <Button variant="ghost" size="icon" onClick={onClose}>✕</Button>
           </div>
         </div>
 
         <div className="px-6 pt-5">
           <div className="grid grid-cols-3 gap-2 p-1 bg-slate-900 rounded-xl border border-slate-800">
             {(["recorder", "ai", "manual"] as Mode[]).map((m) => (
-              <button
+              <Button
                 key={m}
+                variant="ghost"
                 onClick={() => setMode(m)}
-                className={`px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${
-                  mode === m ? "bg-gradient-to-r from-fuchsia-500 to-purple-600 text-white shadow-lg shadow-fuchsia-500/25" : "text-slate-400 hover:text-white hover:bg-slate-800"
-                }`}
+                className={cn(
+                  "px-4 py-2.5 rounded-lg text-sm font-medium transition-all",
+                  mode === m
+                    ? "bg-gradient-to-r from-fuchsia-500 to-purple-600 text-white shadow-lg shadow-fuchsia-500/25 hover:bg-none"
+                    : "text-slate-400 hover:text-white hover:bg-slate-800"
+                )}
               >
                 {m === "recorder" ? "🎬 Recorder" : m === "ai" ? "🤖 AI Üret" : "✍️ Manuel"}
-              </button>
+              </Button>
             ))}
           </div>
         </div>
@@ -479,14 +486,15 @@ function RecorderTab({ onClose }: { onClose: () => void }) {
 
         {/* Control bar — PAUSE + STOP + UNDO + LOGS */}
         <div className="flex flex-wrap items-center gap-2 pt-1 sticky bottom-0 bg-slate-950 pb-1">
-          <button
+          <Button
+            variant="secondary"
             onClick={undo}
             disabled={busyUndo || phase === "stopping" || (status?.actions ?? 0) === 0}
-            className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-white text-sm font-medium border border-slate-700 disabled:opacity-40 disabled:cursor-not-allowed"
+            className="bg-slate-800 hover:bg-slate-700 text-white border border-slate-700"
             title="Son aksiyonu sil"
           >
             ↶ {busyUndo ? "…" : "Geri Al"}
-          </button>
+          </Button>
           <LogsButton />
           <CleanupButton />
           <a
@@ -515,13 +523,14 @@ function RecorderTab({ onClose }: { onClose: () => void }) {
           >
             {busyPause ? "…" : (status as {paused?: boolean} | null)?.paused ? "▶ Devam Et" : "⏸ Duraklat"}
           </button>
-          <button
+          <Button
+            variant="primary"
             onClick={stop}
             disabled={busyStop || phase === "stopping"}
-            className="px-5 py-2.5 rounded-lg bg-gradient-to-r from-rose-500 to-rose-600 hover:opacity-90 text-white text-sm font-bold shadow-lg shadow-rose-500/30 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="bg-gradient-to-r from-rose-500 to-rose-600 hover:opacity-90 text-white font-bold shadow-lg shadow-rose-500/30"
           >
             {busyStop ? "Gönderiliyor…" : phase === "stopping" ? "Kaydediliyor…" : "⏹ Durdur ve Kaydet"}
-          </button>
+          </Button>
         </div>
       </div>
     );
@@ -640,18 +649,19 @@ function RecorderTab({ onClose }: { onClose: () => void }) {
       )}
 
       <div className="flex justify-end gap-2 pt-2 flex-wrap">
-        <button onClick={onClose} className="px-4 py-2 rounded-lg text-slate-400 hover:text-white text-sm">İptal</button>
-        <button
+        <Button variant="ghost" onClick={onClose} className="text-slate-400 hover:text-white">İptal</Button>
+        <Button
+          variant="secondary"
           onClick={runPolish}
           disabled={polish.loading}
-          className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-fuchsia-300 text-sm font-medium border border-fuchsia-500/30 disabled:opacity-50"
+          className="bg-slate-800 hover:bg-slate-700 text-fuchsia-300 border border-fuchsia-500/30"
           title="Son kaydedilen .feature dosyasını yerel Ollama ile temizle ve açıklamalandır"
         >
           🪄 {polish.loading ? "Polish yapılıyor…" : "AI Polish Son Kayıt"}
-        </button>
-        <button onClick={start} disabled={phase === "starting"} className="px-5 py-2 rounded-lg bg-gradient-to-r from-fuchsia-500 to-purple-600 text-white text-sm font-semibold disabled:opacity-50">
+        </Button>
+        <Button variant="primary" onClick={start} disabled={phase === "starting"} className="bg-gradient-to-r from-fuchsia-500 to-purple-600 text-white">
           {phase === "starting" ? "Başlatılıyor (Maven derleniyor)…" : "🎬 Recorder'ı Başlat"}
-        </button>
+        </Button>
       </div>
 
       {/* 🪄 AI Polish modal — overlays everything when open */}
@@ -677,7 +687,7 @@ function RecorderTab({ onClose }: { onClose: () => void }) {
                   {polish.path ? polish.path.split("/").pop() : "son kayıt"}  ·  Model: <code className="text-fuchsia-300">{polish.model}</code>
                 </p>
               </div>
-              <button onClick={closePolish} className="text-slate-400 hover:text-white text-2xl leading-none">×</button>
+              <Button variant="ghost" size="icon" onClick={closePolish} className="text-slate-400 hover:text-white text-2xl leading-none">×</Button>
             </div>
 
             {polish.loading && (
@@ -703,12 +713,13 @@ function RecorderTab({ onClose }: { onClose: () => void }) {
                   </div>
                 )}
                 <div className="px-4 py-2 border-t border-slate-800 flex justify-end">
-                  <button
+                  <Button
+                    variant="ghost-danger"
                     onClick={cancelPolish}
-                    className="px-4 py-2 rounded-lg bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 text-sm border border-rose-500/30"
+                    className="bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/30"
                   >
                     ✕ İptal Et
-                  </button>
+                  </Button>
                 </div>
               </div>
             )}
@@ -740,14 +751,15 @@ function RecorderTab({ onClose }: { onClose: () => void }) {
                   : ""}
               </span>
               <div className="flex gap-2 ml-auto">
-                <button onClick={closePolish} className="px-4 py-2 rounded-lg text-slate-400 hover:text-white text-sm">Kapat</button>
-                <button
+                <Button variant="ghost" onClick={closePolish} className="text-slate-400 hover:text-white">Kapat</Button>
+                <Button
+                  variant="primary"
                   onClick={acceptPolish}
                   disabled={!polish.enhanced || polish.saving || polish.loading}
-                  className="px-5 py-2 rounded-lg bg-gradient-to-r from-emerald-500 to-emerald-600 text-white text-sm font-bold disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="bg-gradient-to-r from-emerald-500 to-emerald-600 text-white font-bold"
                 >
                   {polish.saving ? "Yazılıyor…" : "✓ Kabul Et & Kaydet"}
-                </button>
+                </Button>
               </div>
             </div>
           </div>
@@ -815,14 +827,15 @@ function CleanupButton() {
 
   return (
     <div className="relative">
-      <button
+      <Button
+        variant="secondary"
         onClick={cleanup}
         disabled={busy}
         title="Açık kalan Chromium pencerelerini öldür (orphan process cleanup)"
-        className="px-4 py-2 rounded-lg bg-amber-900/40 hover:bg-amber-900/60 text-amber-200 text-sm font-medium border border-amber-700/40 disabled:opacity-50"
+        className="bg-amber-900/40 hover:bg-amber-900/60 text-amber-200 border border-amber-700/40"
       >
         {busy ? "Temizleniyor…" : "🧹 Tarayıcıları kapat"}
-      </button>
+      </Button>
       {msg && (
         <div className="absolute top-full mt-1 left-0 z-10 px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-xs text-amber-200 whitespace-nowrap shadow-lg">
           {msg}
@@ -859,13 +872,14 @@ function LogsButton() {
 
   return (
     <>
-      <button
+      <Button
+        variant="secondary"
         onClick={() => setOpen(true)}
-        className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-white text-sm font-medium border border-slate-700"
+        className="bg-slate-800 hover:bg-slate-700 text-white border border-slate-700"
         title="Recorder JVM stdout/stderr"
       >
         📋 Logs
-      </button>
+      </Button>
       {open && (
         <div
           className="fixed inset-0 z-[60] bg-black/80 grid place-items-center p-6"
@@ -886,12 +900,12 @@ function LogsButton() {
                 <p id="logs-modal-title" className="text-sm font-bold text-white">📋 Recorder Log (JVM stdout/stderr)</p>
                 <p className="text-xs text-slate-500">logs/recorder.log · {loading ? "yukleniyor…" : "her 2.5sn yenilenir"}</p>
               </div>
-              <button onClick={() => setOpen(false)} className="w-7 h-7 rounded bg-slate-800 hover:bg-slate-700 text-white">✕</button>
+              <Button variant="ghost" size="icon" onClick={() => setOpen(false)} className="w-7 h-7 bg-slate-800 hover:bg-slate-700 text-white">✕</Button>
             </div>
             <pre className="flex-1 overflow-auto p-4 m-0 text-xs font-mono text-green-300 bg-black whitespace-pre-wrap break-all leading-relaxed">{content}</pre>
             <div className="px-4 py-2 border-t border-slate-800 flex justify-between items-center">
               <span className="text-xs text-slate-500">{content.length} bytes</span>
-              <button onClick={fetchLog} disabled={loading} className="px-3 py-1.5 rounded bg-fuchsia-500/20 text-fuchsia-300 text-xs font-medium hover:bg-fuchsia-500/30 disabled:opacity-50">⟳ Yenile</button>
+              <Button variant="ghost" size="sm" onClick={fetchLog} disabled={loading} className="bg-fuchsia-500/20 text-fuchsia-300 hover:bg-fuchsia-500/30">⟳ Yenile</Button>
             </div>
           </div>
         </div>
@@ -1339,19 +1353,19 @@ function AiTab({ onClose }: { onClose: () => void }) {
       <FormField label="Tag'ler">
         <input type="text" value={tag} onChange={(e) => setTag(e.target.value)} className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-white text-sm focus:border-fuchsia-500 focus:outline-none font-mono" />
       </FormField>
-      <button onClick={generate} disabled={busy || !prompt.trim()} className="w-full px-5 py-2.5 rounded-lg bg-gradient-to-r from-fuchsia-500 to-purple-600 text-white text-sm font-semibold disabled:opacity-50">
+      <Button variant="primary" onClick={generate} disabled={busy || !prompt.trim()} className="w-full bg-gradient-to-r from-fuchsia-500 to-purple-600 text-white">
         {busy ? "Üretiliyor…" : "🤖 AI ile Üret"}
-      </button>
+      </Button>
       {generated && (
         <>
           <FormField label={`Önizleme · ${generated.feature_name}.feature`}>
             <textarea rows={14} value={generated.content} onChange={(e) => setGenerated({ ...generated, content: e.target.value })} className="w-full px-3 py-2 rounded-lg bg-black/50 border border-slate-700 text-fuchsia-100 text-xs focus:border-fuchsia-500 focus:outline-none resize-y font-mono" />
           </FormField>
           <div className="flex gap-2 justify-end">
-            <button onClick={() => save("recordings")} disabled={saving} className="px-4 py-2 rounded-lg bg-slate-800 text-white text-sm font-medium border border-slate-700 hover:bg-slate-700 disabled:opacity-50">recordings/'e kaydet</button>
-            <button onClick={() => save("features")} disabled={saving} className="px-5 py-2 rounded-lg bg-gradient-to-r from-fuchsia-500 to-purple-600 text-white text-sm font-semibold disabled:opacity-50">
+            <Button variant="secondary" onClick={() => save("recordings")} disabled={saving} className="bg-slate-800 text-white border border-slate-700 hover:bg-slate-700">recordings/'e kaydet</Button>
+            <Button variant="primary" onClick={() => save("features")} disabled={saving} className="bg-gradient-to-r from-fuchsia-500 to-purple-600 text-white">
               {saving ? "Kaydediliyor…" : "projects/cortex/'e kaydet"}
-            </button>
+            </Button>
           </div>
         </>
       )}
@@ -1520,10 +1534,10 @@ function ManualTab({ onClose }: { onClose: () => void }) {
         {err && <div className="rounded-xl p-3 bg-rose-500/10 border border-rose-500/30 text-rose-300 text-sm">✗ {err}</div>}
 
         <div className="flex justify-end gap-2">
-          <button onClick={onClose} className="px-4 py-2 rounded-lg text-slate-400 hover:text-white text-sm">İptal</button>
-          <button onClick={save} disabled={saving || !name || !featureContent} className="px-5 py-2 rounded-lg bg-gradient-to-r from-fuchsia-500 to-purple-600 text-white text-sm font-semibold disabled:opacity-50">
+          <Button variant="ghost" onClick={onClose} className="text-slate-400 hover:text-white">İptal</Button>
+          <Button variant="primary" onClick={save} disabled={saving || !name || !featureContent} className="bg-gradient-to-r from-fuchsia-500 to-purple-600 text-white">
             {saving ? "Kaydediliyor…" : "Kaydet"}
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -1698,9 +1712,9 @@ function BuilderPanel({ files, onAdded }: { files: LocatorFile[]; onAdded: () =>
         <p className="text-[10px] text-slate-500 mt-1">Doluysa projects/cortex/locators/&lt;isim&gt;.json olarak yaratılır</p>
       </SmallField>
 
-      <button onClick={submit} disabled={busy} className="w-full px-3 py-2 rounded-md bg-gradient-to-r from-fuchsia-500 to-purple-600 text-white text-xs font-semibold disabled:opacity-50">
+      <Button variant="primary" size="sm" onClick={submit} disabled={busy} className="w-full bg-gradient-to-r from-fuchsia-500 to-purple-600 text-white">
         {busy ? "Ekleniyor…" : "+ Locator JSON'a Ekle"}
-      </button>
+      </Button>
 
       {out && <div className="rounded-md p-2 bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs">{out}</div>}
       {err && <div className="rounded-md p-2 bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs">✗ {err}</div>}

@@ -112,8 +112,20 @@ def seed(db: Session) -> None:
     if roles["admin"] not in test_user.roles:
         test_user.roles.append(roles["admin"])
 
+    # Dev tenant'ı sınırsız plana al — geliştirme/test ortamında billing
+    # plan limitleri (free: 5 proje) proje-yoğun testleri ve demo'yu bloke
+    # etmesin. Idempotent: mevcut aboneliği günceller veya oluşturur.
+    try:
+        from app.domains.billing.service import set_plan
+
+        set_plan(db, _default_tenant, "enterprise")
+        billing_note = "  + billing: dev tenant → enterprise (sınırsız) planına alındı"
+    except Exception as exc:  # pragma: no cover — billing opsiyonel
+        billing_note = f"  ! billing planı ayarlanamadı (atlandı): {exc}"
+
     db.commit()
     print(f"Seed tamam: {email} / (parola env veya varsayılan admin123)")
+    print(billing_note)
     if reset_admin_pw:
         print("  — Mevcut admin parolası SEED_RESET_ADMIN_PASSWORD=1 ile güncellendi.")
     print(f"  + {op_email} (operator), {vw_email} (viewer), {dis_email} (disabled)")

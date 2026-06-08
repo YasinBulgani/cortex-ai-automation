@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouteParam } from "@/lib/use-route-param";
 import { useManagementProjectId } from "@/lib/hooks/use-management-project-id";
 import { useManagementRepository } from "@/lib/hooks/use-management";
 import { apiFetch } from "@/lib/api-client";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -295,20 +296,20 @@ function CreateMobileConfigModal({
           )}
 
           <div className="flex justify-end gap-2 pt-1">
-            <button
+            <Button
               type="button"
+              variant="outline"
               onClick={onClose}
-              className="rounded-xl border border-border px-4 py-2 text-[12px] text-fg-muted hover:text-fg transition-colors"
             >
               İptal
-            </button>
-            <button
+            </Button>
+            <Button
               type="submit"
+              variant="primary"
               disabled={submitting}
-              className="rounded-xl bg-brand px-4 py-2 text-[12px] font-semibold text-brand-fg hover:brightness-105 disabled:opacity-50 transition-colors"
             >
               {submitting ? "Kaydediliyor…" : "Kaydet"}
-            </button>
+            </Button>
           </div>
         </form>
       </div>
@@ -372,8 +373,27 @@ export default function MobileTestAreaPage() {
     total:   Object.keys(results).length,
   };
 
+  // OS version coverage: which versions have at least one mobile-configured case
+  const osVersionCoverage = useMemo(() => {
+    const iosVersions = IOS_VERSIONS.map(v => ({
+      version: v,
+      count: cases.filter(tc => {
+        const m = (tc.custom_fields as Record<string, Record<string, string>>)?.mobile;
+        return m?.platform === "ios" && m?.os_version === v;
+      }).length,
+    }));
+    const androidVersions = ANDROID_VERSIONS.map(v => ({
+      version: v,
+      count: cases.filter(tc => {
+        const m = (tc.custom_fields as Record<string, Record<string, string>>)?.mobile;
+        return m?.platform === "android" && m?.os_version === v;
+      }).length,
+    }));
+    return { ios: iosVersions, android: androidVersions };
+  }, [cases]);
+
   return (
-    <div className="min-h-[calc(100vh-88px)] bg-bg">
+    <div className="min-h-[calc(100vh-88px)] bg-surface-base">
       {/* ── Header ── */}
       <div className="border-b border-border bg-surface-raised px-6 py-4">
         <div className="flex items-center justify-between">
@@ -386,18 +406,19 @@ export default function MobileTestAreaPage() {
               iOS ve Android platformlarına özgü test case yönetimi ve cihaz konfigürasyonları
             </p>
           </div>
-          <button
+          <Button
+            variant="primary"
             onClick={() => {
               const firstCase = cases[0];
               if (firstCase) setConfigTarget({ id: firstCase.id, key: firstCase.case_key });
             }}
-            className="flex items-center gap-1.5 rounded-xl bg-brand px-4 py-2 text-[12px] font-semibold text-brand-fg hover:brightness-105 transition-colors"
+            className="gap-1.5"
           >
             <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4"/>
             </svg>
             Konfigürasyon Ekle
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -416,6 +437,54 @@ export default function MobileTestAreaPage() {
             </div>
           ))}
         </div>
+
+        {/* ── OS Version Coverage ── */}
+        {stats.total > 0 && (
+          <div className="grid gap-4 sm:grid-cols-2">
+            {/* iOS OS Coverage */}
+            {stats.ios > 0 && (
+              <section className="rounded-xl border border-border bg-surface-raised p-4">
+                <p className="mb-3 text-[11px] font-semibold uppercase tracking-widest text-fg-subtle"> iOS Versiyon Kapsamı</p>
+                <div className="space-y-1.5">
+                  {osVersionCoverage.ios.map(({ version, count }) => (
+                    <div key={version} className="flex items-center gap-3">
+                      <span className="w-20 shrink-0 text-[11px] text-fg-muted">{version}</span>
+                      <div className="relative flex-1 h-1.5 overflow-hidden rounded-full bg-surface-overlay">
+                        {count > 0 && (
+                          <div className="absolute inset-y-0 left-0 rounded-full bg-blue-500/70 transition-all" style={{ width: "100%" }} />
+                        )}
+                      </div>
+                      <span className={cn("w-6 text-right text-[10px] tabular-nums", count > 0 ? "text-blue-400" : "text-fg-disabled")}>
+                        {count > 0 ? count : "—"}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
+            {/* Android OS Coverage */}
+            {stats.android > 0 && (
+              <section className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-4">
+                <p className="mb-3 text-[11px] font-semibold uppercase tracking-widest text-emerald-400/70">🤖 Android Versiyon Kapsamı</p>
+                <div className="space-y-1.5">
+                  {osVersionCoverage.android.map(({ version, count }) => (
+                    <div key={version} className="flex items-center gap-3">
+                      <span className="w-28 shrink-0 text-[11px] text-fg-muted">{version}</span>
+                      <div className="relative flex-1 h-1.5 overflow-hidden rounded-full bg-surface-overlay">
+                        {count > 0 && (
+                          <div className="absolute inset-y-0 left-0 rounded-full bg-emerald-500/70 transition-all" style={{ width: "100%" }} />
+                        )}
+                      </div>
+                      <span className={cn("w-6 text-right text-[10px] tabular-nums", count > 0 ? "text-emerald-400" : "text-fg-disabled")}>
+                        {count > 0 ? count : "—"}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
+          </div>
+        )}
 
         {/* ── Platform guidelines ── */}
         <div className="grid gap-4 xl:grid-cols-2">

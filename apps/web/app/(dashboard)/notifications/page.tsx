@@ -200,8 +200,9 @@ function PrefsPanel() {
         </div>
         <button
           type="button"
-          onClick={() => queryClient.setQueryData<NotifPrefs>(notifPrefsQK, p => p ? { ...p, notify_on_complete: !p.notify_on_complete } : p)}
-          className={`relative h-6 w-11 rounded-full transition-colors ${prefs.notify_on_complete ? "bg-blue-600" : "bg-slate-700"}`}
+          disabled={saving}
+          onClick={() => saveMut.mutate({ ...prefs, slack_webhook_url: slack || null, notify_on_complete: !prefs.notify_on_complete })}
+          className={`relative h-6 w-11 rounded-full transition-colors disabled:opacity-50 ${prefs.notify_on_complete ? "bg-blue-600" : "bg-slate-700"}`}
         >
           <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${prefs.notify_on_complete ? "translate-x-5" : "translate-x-0.5"}`} />
         </button>
@@ -214,8 +215,9 @@ function PrefsPanel() {
         </div>
         <button
           type="button"
-          onClick={() => queryClient.setQueryData<NotifPrefs>(notifPrefsQK, p => p ? { ...p, notify_on_failure: !p.notify_on_failure } : p)}
-          className={`relative h-6 w-11 rounded-full transition-colors ${prefs.notify_on_failure ? "bg-blue-600" : "bg-slate-700"}`}
+          disabled={saving}
+          onClick={() => saveMut.mutate({ ...prefs, slack_webhook_url: slack || null, notify_on_failure: !prefs.notify_on_failure })}
+          className={`relative h-6 w-11 rounded-full transition-colors disabled:opacity-50 ${prefs.notify_on_failure ? "bg-blue-600" : "bg-slate-700"}`}
         >
           <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${prefs.notify_on_failure ? "translate-x-5" : "translate-x-0.5"}`} />
         </button>

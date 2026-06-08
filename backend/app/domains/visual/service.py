@@ -20,6 +20,7 @@ _results: Dict[str, Dict[str, Any]] = {}
 def start_comparison(
     name: str,
     actual_bytes: bytes,
+    scope: str,
     threshold_ratio: Optional[float] = None,
     update_baseline: bool = False,
 ) -> Dict[str, Any]:
@@ -28,6 +29,9 @@ def start_comparison(
     Args:
         name: Baseline name identifier (e.g. 'login', 'dashboard').
         actual_bytes: Raw PNG bytes of the candidate screenshot.
+        scope: Tenant/project isolation segment (e.g. tenant_id). Derived
+            server-side; baselines/diffs are namespaced under it to prevent
+            cross-tenant access.
         threshold_ratio: Pixel-difference ratio threshold (0.0–1.0).
         update_baseline: If True, replace the stored baseline.
 
@@ -43,6 +47,7 @@ def start_comparison(
     result = compare_png(
         name=name,
         actual_bytes=actual_bytes,
+        scope=scope,
         threshold_ratio=threshold_ratio,
         update_baseline=update_baseline,
     )

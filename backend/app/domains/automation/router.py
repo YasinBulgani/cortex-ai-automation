@@ -566,19 +566,82 @@ async def create_automation_run(
     return run
 
 
+def _require_run_access(db: Session, user: User, run: AutomationRunOut) -> None:
+    """IDOR koruması — kullanıcı yalnızca üyesi olduğu projedeki run'lara erişebilir.
+
+    Admin '*' yetkisi olan kullanıcılar bypass eder (kendi tenant'larındaki tüm projeler için).
+    """
+    from app.deps import _user_permissions
+    from app.domains.tspm.models import TspmProjectMember
+    from sqlalchemy import func as _sa_func, select as _sa_select
+
+    if not run.project_id:
+        raise HTTPException(status_code=404, detail="Automation run bulunamadı")
+
+    # Admin bypass — proje/üyelik tablolarına dokunmadan önce yetki kontrolü.
+    perms = _user_permissions(user)
+    if "admin.*" in perms:
+        return
+
+    is_member = db.scalar(
+        _sa_select(_sa_func.count()).where(
+            TspmProjectMember.project_id == run.project_id,
+            TspmProjectMember.user_id == user.id,
+        )
+    )
+    if not is_member:
+        raise HTTPException(status_code=403, detail="Bu run'a erişim yetkiniz yok")
+
+
+def _user_project_ids(db: Session, user: User) -> list[str]:
+    """Kullanıcının üye olduğu proje id'lerinin listesi."""
+    from app.domains.tspm.models import TspmProjectMember
+    from sqlalchemy import select as _sa_select
+
+    rows = db.scalars(
+        _sa_select(TspmProjectMember.project_id).where(
+            TspmProjectMember.user_id == user.id,
+        )
+    )
+    return [pid for pid in rows]
+
+
 @router.get(
     "/runs",
     response_model=AutomationRunList,
     dependencies=[Depends(get_current_user)],
 )
 async def list_automation_runs(
+    user: Annotated[User, Depends(get_current_user)],
     project_id: str | None = None,
     limit: int = Query(default=50, ge=1, le=200),
     db: Session = Depends(get_db),
 ):
-    """List normalized automation runs."""
+    """List normalized automation runs (kullanıcının erişebildiği projelerle sınırlı)."""
+    from app.deps import _user_permissions
+
     service = AutomationBrainService(SqlAlchemyAutomationRunStore(db))
-    runs = service.list_runs(project_id=project_id, limit=limit)
+    perms = _user_permissions(user)
+    is_admin = "admin.*" in perms
+
+    if project_id:
+        # Belirli proje istendi → erişim doğrula
+        if not is_admin:
+            allowed = set(_user_project_ids(db, user))
+            if project_id not in allowed:
+                raise HTTPException(status_code=403, detail="Bu projeye erişim yetkiniz yok")
+        runs = service.list_runs(project_id=project_id, limit=limit)
+        return AutomationRunList(
+            items=[_sync_external_run(service, run) for run in runs.items],
+            total=runs.total,
+        )
+
+    # project_id yok → admin tüm tenant'ı, normal kullanıcı sadece üyesi olduğu projeleri görür
+    runs = service.list_runs(project_id=None, limit=limit)
+    if not is_admin:
+        allowed = set(_user_project_ids(db, user))
+        filtered_items = [r for r in runs.items if r.project_id in allowed]
+        runs = AutomationRunList(items=filtered_items, total=len(filtered_items))
     return AutomationRunList(
         items=[_sync_external_run(service, run) for run in runs.items],
         total=runs.total,
@@ -590,12 +653,17 @@ async def list_automation_runs(
     response_model=AutomationRunOut,
     dependencies=[Depends(get_current_user)],
 )
-async def get_automation_run(run_id: str, db: Session = Depends(get_db)):
+async def get_automation_run(
+    run_id: str,
+    user: Annotated[User, Depends(get_current_user)],
+    db: Session = Depends(get_db),
+):
     """Get a normalized automation run."""
     service = AutomationBrainService(SqlAlchemyAutomationRunStore(db))
     run = service.get_run(run_id)
     if run is None:
         raise HTTPException(status_code=404, detail="Automation run bulunamadı")
+    _require_run_access(db, user, run)
     return _sync_external_run(service, run)
 
 
@@ -604,9 +672,17 @@ async def get_automation_run(run_id: str, db: Session = Depends(get_db)):
     response_model=AutomationRunOut,
     dependencies=[Depends(get_current_user)],
 )
-async def cancel_automation_run(run_id: str, db: Session = Depends(get_db)):
+async def cancel_automation_run(
+    run_id: str,
+    user: Annotated[User, Depends(get_current_user)],
+    db: Session = Depends(get_db),
+):
     """Cancel a queued/running automation run."""
     service = AutomationBrainService(SqlAlchemyAutomationRunStore(db))
+    existing = service.get_run(run_id)
+    if existing is None:
+        raise HTTPException(status_code=404, detail="Automation run bulunamadı")
+    _require_run_access(db, user, existing)
     run = service.cancel_run(run_id)
     if run is None:
         raise HTTPException(status_code=404, detail="Automation run bulunamadı")
@@ -631,6 +707,10 @@ async def retry_automation_run(
 ):
     """Create a retry run using the same normalized contract."""
     service = AutomationBrainService(SqlAlchemyAutomationRunStore(db))
+    existing = service.get_run(run_id)
+    if existing is None:
+        raise HTTPException(status_code=404, detail="Automation run bulunamadı")
+    _require_run_access(db, user, existing)
     run = service.retry_run(run_id, created_by=str(user.id))
     if run is None:
         raise HTTPException(status_code=404, detail="Automation run bulunamadı")

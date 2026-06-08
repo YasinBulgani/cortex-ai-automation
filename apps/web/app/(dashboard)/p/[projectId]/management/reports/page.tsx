@@ -26,6 +26,8 @@ import {
 import { useManagementProjectId } from "@/lib/hooks/use-management-project-id";
 import { useRouteParam } from "@/lib/use-route-param";
 import { PageErrorBoundary } from "../_components/PageErrorBoundary";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
@@ -463,8 +465,11 @@ function ExecutionSummaryTab({
 
       {/* Recent Runs Table */}
       <div className="rounded-xl border border-border bg-surface-raised overflow-hidden">
-        <div className="border-b border-border px-5 py-3">
+        <div className="border-b border-border px-5 py-3 flex items-center justify-between">
           <h2 className="text-[11px] font-medium uppercase tracking-wider text-fg-subtle">Son Runlar</h2>
+          {filteredRuns.length > 8 && (
+            <span className="text-[11px] text-fg-subtle">Son 8 / {filteredRuns.length} run gösteriliyor</span>
+          )}
         </div>
         {runsLoading ? (
           <div className="p-6"><SkeletonRows /></div>
@@ -558,8 +563,36 @@ function RegressionReportTab({
     return setRuns[0]?.status ?? "—";
   };
 
+  // KPI aggregates across all sets
+  const totalCases = sets.reduce((s, set) => s + set.cases.length, 0);
+  const allCases = sets.flatMap(s => s.cases);
+  const runCases = allCases.filter(c => c.last_run_status && c.last_run_status !== "not_run");
+  const passedCases = allCases.filter(c => c.last_run_status === "passed");
+  const failedCases = allCases.filter(c => c.last_run_status === "failed");
+  const overallPassPct = runCases.length > 0 ? Math.round((passedCases.length / runCases.length) * 100) : null;
+  const setsWithRuns = sets.filter(s => s.cases.some(c => c.last_run_status && c.last_run_status !== "not_run")).length;
+
   return (
     <div className="space-y-6">
+
+      {/* KPI summary row */}
+      {!regressionLoading && sets.length > 0 && (
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          {[
+            { label: "Toplam Set",      value: String(sets.length),                        color: "text-fg",           sub: `${setsWithRuns} koşuldu` },
+            { label: "Toplam Case",     value: String(totalCases),                          color: "text-fg",           sub: `tüm setlerde` },
+            { label: "Geçme Oranı",     value: overallPassPct !== null ? `${overallPassPct}%` : "—", color: overallPassPct !== null && overallPassPct >= 80 ? "text-emerald-400" : overallPassPct !== null && overallPassPct >= 50 ? "text-amber-400" : "text-red-400", sub: `${passedCases.length} geçti` },
+            { label: "Başarısız Case",  value: String(failedCases.length),                  color: failedCases.length > 0 ? "text-red-400" : "text-fg", sub: `${runCases.length} koşuldu` },
+          ].map(kpi => (
+            <div key={kpi.label} className="rounded-xl border border-border bg-surface-raised px-4 py-3">
+              <p className="text-[9px] font-semibold uppercase tracking-widest text-fg-subtle">{kpi.label}</p>
+              <p className={cn("mt-1 text-[22px] font-bold tabular-nums", kpi.color)}>{kpi.value}</p>
+              <p className="text-[10px] text-fg-muted">{kpi.sub}</p>
+            </div>
+          ))}
+        </div>
+      )}
+
       <div className="rounded-xl border border-border bg-surface-raised overflow-hidden">
         <div className="border-b border-border px-5 py-3 flex items-center justify-between">
           <div>
@@ -577,7 +610,7 @@ function RegressionReportTab({
           <table className="w-full border-collapse">
             <thead>
               <tr className="border-b border-border">
-                {["Set Adı", "Case Sayısı", "Son Run Durumu", "Oluşturulma"].map((h, i) => (
+                {["Set Adı", "Case", "Dağılım", "Geçme", "Son Run", "Oluşturulma"].map((h, i) => (
                   <th key={i} className="px-4 py-2 text-left text-[10px] font-medium uppercase tracking-wider text-fg-subtle">{h}</th>
                 ))}
               </tr>
@@ -589,6 +622,13 @@ function RegressionReportTab({
                   lastStatus === "completed" ? "text-emerald-400" :
                   lastStatus === "failed"    ? "text-red-400"     :
                   lastStatus === "in_progress" ? "text-blue-400"  : "text-fg-subtle";
+                const total   = set.cases.length;
+                const passed  = set.cases.filter(c => c.last_run_status === "passed").length;
+                const failed  = set.cases.filter(c => c.last_run_status === "failed").length;
+                const blocked = set.cases.filter(c => c.last_run_status === "blocked").length;
+                const notRun  = set.cases.filter(c => !c.last_run_status || c.last_run_status === "not_run").length;
+                const runCount = passed + failed + blocked;
+                const passRate = runCount > 0 ? Math.round((passed / runCount) * 100) : null;
                 return (
                   <tr key={set.id} className="border-b border-border hover:bg-surface-overlay transition-colors">
                     <td className="px-4 py-3">
@@ -598,7 +638,26 @@ function RegressionReportTab({
                       </div>
                     </td>
                     <td className="px-4 py-3">
-                      <span className="text-[13px] text-fg-muted">{set.cases.length}</span>
+                      <span className="text-[13px] text-fg-muted tabular-nums">{total}</span>
+                    </td>
+                    <td className="px-4 py-3 w-32">
+                      {total > 0 ? (
+                        <div className="flex h-1.5 w-full overflow-hidden rounded-full bg-surface-overlay">
+                          {passed  > 0 && <div className="bg-emerald-500/70" style={{width:`${(passed/total)*100}%`}} title={`Geçti: ${passed}`}/>}
+                          {failed  > 0 && <div className="bg-red-500/70"     style={{width:`${(failed/total)*100}%`}} title={`Başarısız: ${failed}`}/>}
+                          {blocked > 0 && <div className="bg-amber-500/60"   style={{width:`${(blocked/total)*100}%`}} title={`Engel: ${blocked}`}/>}
+                          {notRun  > 0 && <div className="bg-surface-accent" style={{width:`${(notRun/total)*100}%`}} title={`Koşulmadı: ${notRun}`}/>}
+                        </div>
+                      ) : <span className="text-[10px] text-fg-disabled">—</span>}
+                    </td>
+                    <td className="px-4 py-3">
+                      {passRate !== null ? (
+                        <span className={cn("font-mono text-[12px] font-semibold tabular-nums",
+                          passRate >= 80 ? "text-emerald-400" :
+                          passRate >= 50 ? "text-amber-400" : "text-red-400")}>
+                          {passRate}%
+                        </span>
+                      ) : <span className="text-[11px] text-fg-disabled">—</span>}
                     </td>
                     <td className="px-4 py-3">
                       <span className={`text-[12px] font-medium ${statusColor}`}>{lastStatus}</span>
@@ -667,9 +726,78 @@ function DefectSummaryTab({
     const sev = (d.severity ?? "unknown").toLowerCase();
     severityCounts[sev] = (severityCounts[sev] ?? 0) + 1;
   }
-
   const maxCount = Math.max(...Object.values(severityCounts), 1);
   const orderedSeverities = ["critical", "high", "medium", "low", "trivial"];
+
+  // Priority distribution
+  const priorityCounts: Record<string, number> = {};
+  for (const d of allDefects) {
+    const p = (d.priority ?? "unknown").toLowerCase();
+    priorityCounts[p] = (priorityCounts[p] ?? 0) + 1;
+  }
+  const orderedPriorities = ["p0", "p1", "p2", "p3"];
+  const priorityConfig: Record<string, { label: string; color: string; bar: string }> = {
+    p0: { label: "P0 — Kritik",   color: "text-red-400",    bar: "bg-red-500"    },
+    p1: { label: "P1 — Yüksek",   color: "text-orange-400", bar: "bg-orange-500" },
+    p2: { label: "P2 — Orta",     color: "text-amber-400",  bar: "bg-amber-500"  },
+    p3: { label: "P3 — Düşük",    color: "text-fg-muted",   bar: "bg-slate-500"  },
+  };
+  const maxPriority = Math.max(...Object.values(priorityCounts), 1);
+
+  // Root cause distribution
+  const rootCauseCounts: Record<string, number> = {};
+  for (const d of allDefects) {
+    if (d.root_cause) {
+      const rc = d.root_cause.trim();
+      rootCauseCounts[rc] = (rootCauseCounts[rc] ?? 0) + 1;
+    }
+  }
+  const sortedRootCauses = Object.entries(rootCauseCounts)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 8);
+  const maxRc = sortedRootCauses.length > 0 ? sortedRootCauses[0][1] : 1;
+
+  // MTTR (mean time to resolve) in hours
+  const resolvedDefects = allDefects.filter(d => d.resolved_at && d.created_at);
+  const mttrHours = resolvedDefects.length > 0
+    ? Math.round(resolvedDefects.reduce((acc, d) => {
+        const diff = new Date(d.resolved_at!).getTime() - new Date(d.created_at).getTime();
+        return acc + diff / (1000 * 60 * 60);
+      }, 0) / resolvedDefects.length)
+    : null;
+  const mttrDisplay = mttrHours === null ? "—"
+    : mttrHours < 24  ? `${mttrHours}s`
+    : `${Math.round(mttrHours / 24)}g`;
+
+  // Retest status breakdown
+  const retestCounts: Record<string, number> = {};
+  for (const d of allDefects) {
+    const rs = (d.retest_status ?? "pending").toLowerCase();
+    retestCounts[rs] = (retestCounts[rs] ?? 0) + 1;
+  }
+  const RETEST_CONFIG: Record<string, { label: string; color: string; bar: string; dot: string }> = {
+    passed:       { label: "Geçti",        color: "text-emerald-400", bar: "bg-emerald-500", dot: "bg-emerald-500" },
+    failed:       { label: "Başarısız",    color: "text-red-400",     bar: "bg-red-500",     dot: "bg-red-500"     },
+    pending:      { label: "Bekliyor",     color: "text-amber-400",   bar: "bg-amber-500",   dot: "bg-amber-500"   },
+    not_required: { label: "Gerekmiyor",   color: "text-fg-muted",    bar: "bg-slate-500",   dot: "bg-slate-500"   },
+    in_progress:  { label: "Devam Ediyor", color: "text-blue-400",    bar: "bg-blue-500",    dot: "bg-blue-500"    },
+  };
+  const retestTotal = Object.values(retestCounts).reduce((s, v) => s + v, 0);
+  const retestPassRate = retestTotal > 0 && retestCounts.passed
+    ? Math.round((retestCounts.passed / retestTotal) * 100)
+    : null;
+
+  // Defect aging (open defects only)
+  const now = Date.now();
+  const agingBuckets = { lt7: 0, d7to30: 0, gt30: 0 };
+  for (const d of openDefects) {
+    const age = now - new Date(d.created_at).getTime();
+    const days = age / (1000 * 60 * 60 * 24);
+    if (days < 7)  agingBuckets.lt7++;
+    else if (days < 30) agingBuckets.d7to30++;
+    else agingBuckets.gt30++;
+  }
+  const agingMax = Math.max(agingBuckets.lt7, agingBuckets.d7to30, agingBuckets.gt30, 1);
 
   return (
     <div className="space-y-6">
@@ -716,16 +844,153 @@ function DefectSummaryTab({
       </div>
 
       {/* KPI row */}
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <KpiCard label="Toplam Defect" value={allDefects.length} sub="tüm zamanlar" />
         <KpiCard label="Açık" value={openDefects.length} sub="çözülmemiş" />
         <KpiCard label="Kapalı" value={allDefects.length - openDefects.length} sub="çözüldü/kapatıldı" />
+        <KpiCard label="MTTR" value={mttrDisplay} sub={resolvedDefects.length > 0 ? `${resolvedDefects.length} çözümden` : "çözüm yok"} />
       </div>
+
+      {/* Retest Status & Defect Aging row */}
+      {allDefects.length > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Retest Status */}
+          <div className="rounded-xl border border-border bg-surface-raised p-5">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-[11px] font-medium uppercase tracking-wider text-fg-subtle">Retest Durumu</h2>
+              {retestPassRate !== null && (
+                <span className="text-[11px] font-semibold text-emerald-400 tabular-nums">{retestPassRate}% geçti</span>
+              )}
+            </div>
+            {retestTotal === 0 ? (
+              <p className="text-[12px] text-fg-subtle">Retest verisi yok.</p>
+            ) : (
+              <div className="space-y-2.5">
+                {["pending","failed","passed","in_progress","not_required"].map(rs => {
+                  const count = retestCounts[rs] ?? 0;
+                  if (count === 0) return null;
+                  const cfg = RETEST_CONFIG[rs] ?? { label: rs, color: "text-fg-muted", bar: "bg-slate-500", dot: "bg-slate-500" };
+                  return (
+                    <div key={rs} className="flex items-center gap-3">
+                      <span className={`w-24 text-[11px] font-medium shrink-0 ${cfg.color}`}>{cfg.label}</span>
+                      <div className="flex-1 h-2 rounded-full bg-surface-accent overflow-hidden">
+                        <div className={`h-full rounded-full ${cfg.bar} transition-all duration-500`} style={{ width: `${(count / retestTotal) * 100}%` }} />
+                      </div>
+                      <span className="w-6 text-right text-[12px] text-fg-muted shrink-0 tabular-nums">{count}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+          {/* Defect Aging (open only) */}
+          <div className="rounded-xl border border-border bg-surface-raised p-5">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-[11px] font-medium uppercase tracking-wider text-fg-subtle">Açık Defect Yaşı</h2>
+              {openDefects.length > 0 && (
+                <span className="text-[11px] text-fg-subtle">{openDefects.length} açık</span>
+              )}
+            </div>
+            {openDefects.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-4 gap-1">
+                <span className="text-2xl">🎉</span>
+                <p className="text-[12px] text-emerald-400 font-medium">Açık defect yok</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {[
+                  { label: "< 7 gün",   count: agingBuckets.lt7,    bar: "bg-emerald-500", color: "text-emerald-400" },
+                  { label: "7–30 gün",  count: agingBuckets.d7to30, bar: "bg-amber-500",   color: "text-amber-400"   },
+                  { label: "> 30 gün",  count: agingBuckets.gt30,   bar: "bg-red-500",     color: "text-red-400"     },
+                ].map(({ label, count, bar, color }) => (
+                  <div key={label} className="flex items-center gap-3">
+                    <span className={`w-16 text-[11px] font-medium shrink-0 ${color}`}>{label}</span>
+                    <div className="flex-1 h-2 rounded-full bg-surface-accent overflow-hidden">
+                      <div className={`h-full rounded-full ${bar} transition-all duration-500`} style={{ width: `${(count / agingMax) * 100}%` }} />
+                    </div>
+                    <span className="w-6 text-right text-[12px] text-fg-muted shrink-0 tabular-nums">{count}</span>
+                  </div>
+                ))}
+                {agingBuckets.gt30 > 0 && (
+                  <p className="text-[10px] text-red-400/80 mt-1">
+                    ⚠ {agingBuckets.gt30} defect 30+ gündür çözülmedi
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Priority & Root Cause row */}
+      {allDefects.length > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Priority distribution */}
+          <div className="rounded-xl border border-border bg-surface-raised p-5">
+            <h2 className="mb-4 text-[11px] font-medium uppercase tracking-wider text-fg-subtle">Öncelik Dağılımı</h2>
+            <div className="space-y-3">
+              {orderedPriorities.map(p => {
+                const count = priorityCounts[p] ?? 0;
+                const allOther = !orderedPriorities.includes(p);
+                if (count === 0 && allOther) return null;
+                const cfg = priorityConfig[p] ?? { label: p.toUpperCase(), color: "text-fg-muted", bar: "bg-slate-500" };
+                const widthPct = (count / maxPriority) * 100;
+                return (
+                  <div key={p} className="flex items-center gap-3">
+                    <span className={`w-24 text-[11px] font-medium shrink-0 ${cfg.color}`}>{cfg.label}</span>
+                    <div className="flex-1 h-2 rounded-full bg-surface-accent overflow-hidden">
+                      <div className={`h-full rounded-full ${cfg.bar} transition-all duration-500`} style={{ width: `${widthPct}%` }} />
+                    </div>
+                    <span className="w-6 text-right text-[12px] text-fg-muted shrink-0 tabular-nums">{count}</span>
+                  </div>
+                );
+              })}
+              {Object.entries(priorityCounts)
+                .filter(([k]) => !orderedPriorities.includes(k))
+                .map(([p, count]) => (
+                  <div key={p} className="flex items-center gap-3">
+                    <span className="w-24 text-[11px] font-medium shrink-0 text-fg-muted capitalize">{p}</span>
+                    <div className="flex-1 h-2 rounded-full bg-surface-accent overflow-hidden">
+                      <div className="h-full rounded-full bg-slate-500 transition-all duration-500" style={{ width: `${(count / maxPriority) * 100}%` }} />
+                    </div>
+                    <span className="w-6 text-right text-[12px] text-fg-muted shrink-0 tabular-nums">{count}</span>
+                  </div>
+                ))}
+            </div>
+          </div>
+
+          {/* Root cause distribution */}
+          <div className="rounded-xl border border-border bg-surface-raised p-5">
+            <h2 className="mb-4 text-[11px] font-medium uppercase tracking-wider text-fg-subtle">Kök Neden Analizi</h2>
+            {sortedRootCauses.length === 0 ? (
+              <p className="text-[12px] text-fg-subtle">Kök neden verisi girilmemiş.</p>
+            ) : (
+              <div className="space-y-3">
+                {sortedRootCauses.map(([rc, count]) => {
+                  const widthPct = (count / maxRc) * 100;
+                  return (
+                    <div key={rc} className="flex items-center gap-3">
+                      <span className="w-28 text-[11px] text-fg-muted shrink-0 truncate" title={rc}>{rc}</span>
+                      <div className="flex-1 h-2 rounded-full bg-surface-accent overflow-hidden">
+                        <div className="h-full rounded-full bg-brand/70 transition-all duration-500" style={{ width: `${widthPct}%` }} />
+                      </div>
+                      <span className="w-6 text-right text-[12px] text-fg-muted shrink-0 tabular-nums">{count}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Defect list */}
       <div className="rounded-xl border border-border bg-surface-raised overflow-hidden">
-        <div className="border-b border-border px-5 py-3">
+        <div className="border-b border-border px-5 py-3 flex items-center justify-between">
           <h2 className="text-[11px] font-medium uppercase tracking-wider text-fg-subtle">Defect Listesi</h2>
+          {allDefects.length > 20 && (
+            <span className="text-[11px] text-fg-subtle">20 / {allDefects.length} gösteriliyor — tam listeyi CSV ile dışa aktarın</span>
+          )}
         </div>
         {allDefects.length === 0 ? (
           <p className="px-5 py-6 text-[13px] text-fg-subtle">Defect kaydı yok.</p>
@@ -930,7 +1195,7 @@ function ReleaseReadinessTab({
             rows={2} placeholder="Opsiyonel yorum…"
             className="w-full resize-none rounded-xl border border-border bg-surface-overlay px-3 py-2 text-[13px] text-fg placeholder:text-fg-disabled outline-none focus:border-teal-500/40" />
           <div className="flex justify-end">
-            <button type="button"
+            <Button type="button" variant="primary"
               onClick={async () => {
                 await createSignoff.mutateAsync({
                   decision: signoffDecision,
@@ -939,11 +1204,12 @@ function ReleaseReadinessTab({
                 setSignoffComment("");
               }}
               disabled={createSignoff.isPending}
-              className={`rounded-xl px-4 py-2 text-[13px] font-semibold text-white transition-colors disabled:opacity-40 ${
+              className={cn(
+                "text-[13px] font-semibold text-white",
                 signoffDecision === "approved" ? "bg-emerald-600 hover:bg-emerald-500" : "bg-red-600 hover:bg-red-500"
-              }`}>
+              )}>
               {createSignoff.isPending ? "İmzalanıyor…" : signoffDecision === "approved" ? "Onayla" : "Reddet"}
-            </button>
+            </Button>
           </div>
         </div>
       </div>
@@ -1510,9 +1776,11 @@ export default function ManagementReportsPage() {
   }
 
   const [xlsxExporting, setXlsxExporting] = useState(false);
+  const [xlsxError, setXlsxError] = useState<string | null>(null);
 
   async function handleXLSXExport() {
     setXlsxExporting(true);
+    setXlsxError(null);
     try {
       await downloadXLSX(
         {
@@ -1529,6 +1797,9 @@ export default function ManagementReportsPage() {
         },
         `neurex-report-${new Date().toISOString().slice(0, 10)}.xlsx`,
       );
+    } catch (err) {
+      console.error("[Reports] XLSX export failed:", err);
+      setXlsxError("XLSX dışa aktarma başarısız oldu. Lütfen tekrar deneyin.");
     } finally {
       setXlsxExporting(false);
     }
@@ -1536,7 +1807,7 @@ export default function ManagementReportsPage() {
 
   return (
     <PageErrorBoundary>
-    <div className="min-h-[calc(100vh-88px)] bg-bg text-fg">
+    <div className="min-h-[calc(100vh-88px)] bg-surface-base text-fg">
       {/* Print CSS */}
       <style>{`
         @media print {
@@ -1550,20 +1821,24 @@ export default function ManagementReportsPage() {
         <div className="flex items-center justify-between gap-4">
           <h1 className="text-[13px] font-semibold text-fg">Raporlar</h1>
           <div className="flex items-center gap-2">
-            <button
+            <Button
+              variant="subtle"
+              size="sm"
               onClick={handleCSVExport}
-              className="flex items-center gap-1.5 rounded-lg border border-border bg-surface-overlay px-3 py-1.5 text-[11px] font-medium text-fg-muted transition-colors hover:bg-surface-accent hover:text-fg"
+              className="text-[11px] text-fg-muted hover:bg-surface-accent hover:text-fg"
             >
               <svg className="h-3 w-3" viewBox="0 0 16 16" fill="none">
                 <path d="M8 1v8m0 0L5 6m3 3 3-3M2 11v2a1 1 0 001 1h10a1 1 0 001-1v-2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
               CSV İndir
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="subtle"
+              size="sm"
               onClick={() => { void handleXLSXExport(); }}
               disabled={xlsxExporting}
               title="5 sayfalık kapsamlı Excel raporu"
-              className="flex items-center gap-1.5 rounded-lg border border-emerald-600/30 bg-emerald-600/10 px-3 py-1.5 text-[11px] font-medium text-emerald-400 transition-colors hover:bg-emerald-600/20 disabled:opacity-50"
+              className="border-emerald-600/30 bg-emerald-600/10 text-[11px] text-emerald-400 hover:bg-emerald-600/20"
             >
               <svg className="h-3 w-3" viewBox="0 0 16 16" fill="none">
                 <path d="M9 1H4a1 1 0 00-1 1v12a1 1 0 001 1h8a1 1 0 001-1V5l-4-4z" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -1571,18 +1846,23 @@ export default function ManagementReportsPage() {
                 <path d="M6 9l4 4M10 9l-4 4" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
               </svg>
               {xlsxExporting ? "Hazırlanıyor…" : "XLSX İndir"}
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="subtle"
+              size="sm"
               onClick={() => window.print()}
-              className="flex items-center gap-1.5 rounded-lg border border-border bg-surface-overlay px-3 py-1.5 text-[11px] font-medium text-fg-muted transition-colors hover:bg-surface-accent hover:text-fg"
+              className="text-[11px] text-fg-muted hover:bg-surface-accent hover:text-fg"
             >
               <svg className="h-3 w-3" viewBox="0 0 16 16" fill="none">
                 <path d="M4 6V2h8v4M4 12H2a1 1 0 01-1-1V7a1 1 0 011-1h12a1 1 0 011 1v4a1 1 0 01-1 1h-2m-8 0v3h8v-3H4z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
               PDF İndir
-            </button>
+            </Button>
           </div>
         </div>
+        {xlsxError && (
+          <p className="px-6 pb-2 text-[11px] text-danger" role="alert">{xlsxError}</p>
+        )}
       </div>
 
       <div className="p-6 space-y-6">
@@ -1625,20 +1905,20 @@ export default function ManagementReportsPage() {
                 type="date"
                 value={customRange?.start ?? ""}
                 onChange={e => setCustomRange(prev => ({ start: e.target.value, end: prev?.end ?? "" }))}
-                className="rounded-lg border border-border bg-bg px-2 py-1.5 text-[11px] text-fg-muted focus:outline-none focus:ring-1 focus:ring-emerald-600/50"
+                className="rounded-lg border border-border bg-surface-overlay px-2 py-1.5 text-[11px] text-fg-muted focus:outline-none focus:ring-1 focus:ring-emerald-600/50"
               />
               <span className="text-[11px] text-fg-subtle">–</span>
               <input
                 type="date"
                 value={customRange?.end ?? ""}
                 onChange={e => setCustomRange(prev => ({ start: prev?.start ?? "", end: e.target.value }))}
-                className="rounded-lg border border-border bg-bg px-2 py-1.5 text-[11px] text-fg-muted focus:outline-none focus:ring-1 focus:ring-emerald-600/50"
+                className="rounded-lg border border-border bg-surface-overlay px-2 py-1.5 text-[11px] text-fg-muted focus:outline-none focus:ring-1 focus:ring-emerald-600/50"
               />
             </div>
           )}
 
           <select value={moduleFilter} onChange={e => setModuleFilter(e.target.value)}
-            className="rounded-lg border border-border bg-bg px-3 py-1.5 text-[11px] text-fg-muted focus:outline-none focus:ring-1 focus:ring-emerald-600/50">
+            className="rounded-lg border border-border bg-surface-overlay px-3 py-1.5 text-[11px] text-fg-muted focus:outline-none focus:ring-1 focus:ring-emerald-600/50">
             <option value="">Tüm Modüller</option>
             {moduleOptions.map(mod => (
               <option key={mod} value={mod}>{mod}</option>
@@ -1646,7 +1926,7 @@ export default function ManagementReportsPage() {
           </select>
 
           <select value={platformFilter} onChange={e => setPlatformFilter(e.target.value)}
-            className="rounded-lg border border-border bg-bg px-3 py-1.5 text-[11px] text-fg-muted focus:outline-none focus:ring-1 focus:ring-emerald-600/50">
+            className="rounded-lg border border-border bg-surface-overlay px-3 py-1.5 text-[11px] text-fg-muted focus:outline-none focus:ring-1 focus:ring-emerald-600/50">
             <option value="">Tüm Platformlar</option>
             <option value="web">Web</option>
             <option value="mobile">Mobile</option>

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/api";
+import { Button } from "@/components/ui/button";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -119,12 +120,9 @@ function MfaSetupFlow({ onCancel }: { onCancel: () => void }) {
         <p className="text-sm text-slate-400">
           Hesabınız artık iki faktörlü kimlik doğrulama ile korunmaktadır.
         </p>
-        <button
-          onClick={onCancel}
-          className="mt-2 rounded-lg bg-slate-800 px-4 py-2 text-sm text-white hover:bg-slate-700"
-        >
+        <Button variant="secondary" onClick={onCancel} className="mt-2">
           Kapat
-        </button>
+        </Button>
       </div>
     );
   }
@@ -134,13 +132,13 @@ function MfaSetupFlow({ onCancel }: { onCancel: () => void }) {
       {/* Step 1: Scan/enter secret */}
       {!setup ? (
         <div className="text-center py-4">
-          <button
+          <Button
             onClick={handleInit}
             disabled={setupMutation.isPending}
-            className="rounded-lg bg-violet-600 px-6 py-2.5 text-sm font-semibold text-white hover:bg-violet-500 disabled:opacity-40"
+            className="px-6"
           >
             {setupMutation.isPending ? "Hazırlanıyor…" : "MFA Kurulumunu Başlat"}
-          </button>
+          </Button>
         </div>
       ) : (
         <>
@@ -198,19 +196,16 @@ function MfaSetupFlow({ onCancel }: { onCancel: () => void }) {
                 placeholder="000000"
                 className="w-36 rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-center font-mono text-lg text-white tracking-widest focus:border-violet-500/50 focus:outline-none"
               />
-              <button
+              <Button
                 onClick={handleVerify}
                 disabled={code.length !== 6 || verifyMutation.isPending}
-                className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-500 disabled:opacity-40"
+                className="bg-emerald-600 text-white hover:bg-emerald-500"
               >
                 {verifyMutation.isPending ? "Doğrulanıyor…" : "Doğrula & Etkinleştir"}
-              </button>
-              <button
-                onClick={onCancel}
-                className="rounded-lg border border-slate-700 px-4 py-2 text-sm text-slate-400 hover:bg-slate-800"
-              >
+              </Button>
+              <Button variant="outline" onClick={onCancel}>
                 İptal
-              </button>
+              </Button>
             </div>
             {verifyMutation.isError && (
               <p className="text-xs text-rose-400">Geçersiz kod. Lütfen tekrar deneyin.</p>
@@ -254,16 +249,16 @@ function MfaDisableFlow({ onCancel }: { onCancel: () => void }) {
         className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 font-mono text-sm text-white focus:border-violet-500/50 focus:outline-none"
       />
       <div className="flex gap-2">
-        <button
+        <Button
+          variant="destructive"
           onClick={handleDisable}
           disabled={!password || code.length < 6 || disableMutation.isPending}
-          className="rounded-lg bg-rose-600 px-4 py-2 text-sm font-semibold text-white hover:bg-rose-500 disabled:opacity-40"
         >
           {disableMutation.isPending ? "Devre Dışı Bırakılıyor…" : "MFA'yı Devre Dışı Bırak"}
-        </button>
-        <button onClick={onCancel} className="rounded-lg border border-slate-700 px-4 py-2 text-sm text-slate-400 hover:bg-slate-800">
+        </Button>
+        <Button variant="outline" onClick={onCancel}>
           İptal
-        </button>
+        </Button>
       </div>
       {disableMutation.isError && (
         <p className="text-xs text-rose-400">Hata: Parola veya kod yanlış.</p>
@@ -304,16 +299,16 @@ function RegenerateBackupCodesFlow({ onCancel }: { onCancel: () => void }) {
         </div>
       )}
       <div className="flex gap-2">
-        <button
+        <Button
           onClick={() => regenMutation.mutate(code)}
           disabled={code.length !== 6 || regenMutation.isPending}
-          className="rounded-lg bg-amber-600 px-4 py-2 text-sm font-semibold text-white hover:bg-amber-500 disabled:opacity-40"
+          className="bg-amber-600 text-white hover:bg-amber-500"
         >
           {regenMutation.isPending ? "Yenileniyor…" : "Yedek Kodları Yenile"}
-        </button>
-        <button onClick={onCancel} className="rounded-lg border border-slate-700 px-4 py-2 text-sm text-slate-400 hover:bg-slate-800">
+        </Button>
+        <Button variant="outline" onClick={onCancel}>
           Kapat
-        </button>
+        </Button>
       </div>
     </div>
   );
@@ -371,27 +366,29 @@ export default function SecuritySettingsPage() {
               )}
             </div>
             {!isEnabled && activePanel === "none" && (
-              <button
+              <Button
                 onClick={() => setActivePanel("setup")}
-                className="flex-shrink-0 rounded-lg bg-violet-600 px-4 py-2 text-sm font-semibold text-white hover:bg-violet-500"
+                className="flex-shrink-0"
               >
                 Etkinleştir
-              </button>
+              </Button>
             )}
             {isEnabled && activePanel === "none" && (
               <div className="flex gap-2 flex-shrink-0">
-                <button
+                <Button
+                  variant="outline"
+                  size="sm"
                   onClick={() => setActivePanel("regen-codes")}
-                  className="rounded-lg border border-slate-700 px-3 py-2 text-xs text-slate-400 hover:bg-slate-800"
                 >
                   Yedek Kodlar
-                </button>
-                <button
+                </Button>
+                <Button
+                  variant="ghost-danger"
+                  size="sm"
                   onClick={() => setActivePanel("disable")}
-                  className="rounded-lg border border-rose-500/30 px-3 py-2 text-xs text-rose-400 hover:bg-rose-500/10"
                 >
                   Devre Dışı Bırak
-                </button>
+                </Button>
               </div>
             )}
           </div>

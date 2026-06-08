@@ -27,6 +27,7 @@ type FormErrors = { title?: boolean };
 import { useCreateManagementCase, useManagementRepository, useManagementProjectTags } from "@/lib/hooks/use-management";
 import { useManagementProjectId } from "@/lib/hooks/use-management-project-id";
 import { SharedStepPicker } from "../../_components/SharedStepPicker";
+import { Button } from "@/components/ui/button";
 
 function SortableStepCard({ id, children }: { id: string; children: React.ReactNode }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
@@ -294,7 +295,7 @@ export default function NewManagementCasePage({ params }: { params: { projectId:
   }
 
   return (
-    <div className="min-h-full bg-bg px-5 py-5 space-y-5">
+    <div className="min-h-full bg-surface-base px-5 py-5 space-y-5">
       {/* Template picker */}
       <div className="rounded-xl border border-border bg-surface-raised px-4 py-3">
         <div className="flex items-center justify-between">
@@ -345,7 +346,7 @@ export default function NewManagementCasePage({ params }: { params: { projectId:
                 aria-required="true"
                 aria-describedby={errors.title ? "title-error" : formError ? "form-error-msg" : undefined}
                 aria-invalid={errors.title ? "true" : undefined}
-                className="w-full rounded-lg border border-border bg-bg px-3 py-2 text-sm text-white focus:border-teal-500/50 focus:outline-none"
+                className="w-full rounded-lg border border-border bg-surface-overlay px-3 py-2 text-sm text-fg focus:border-teal-500/50 focus:outline-none"
                 placeholder="Login valid credentials"
               />
               <div className="flex items-center justify-between mt-1">
@@ -362,7 +363,7 @@ export default function NewManagementCasePage({ params }: { params: { projectId:
                     setSuiteId(event.target.value);
                     setFolderId("");
                   }}
-                  className="w-full rounded-lg border border-border bg-bg px-3 py-2 text-sm text-white focus:border-teal-500/50 focus:outline-none"
+                  className="w-full rounded-lg border border-border bg-surface-overlay px-3 py-2 text-sm text-fg focus:border-teal-500/50 focus:outline-none"
                 >
                   <option value="">Suite seç</option>
                   {(repository.data?.suites ?? []).map((suite) => <option key={suite.id} value={suite.id}>{suite.name}</option>)}
@@ -373,7 +374,7 @@ export default function NewManagementCasePage({ params }: { params: { projectId:
                 <select
                   value={folderId}
                   onChange={(event) => setFolderId(event.target.value)}
-                  className="w-full rounded-lg border border-border bg-bg px-3 py-2 text-sm text-white focus:border-teal-500/50 focus:outline-none"
+                  className="w-full rounded-lg border border-border bg-surface-overlay px-3 py-2 text-sm text-fg focus:border-teal-500/50 focus:outline-none"
                 >
                   <option value="">Folder seç</option>
                   {(repository.data?.folders ?? []).filter((folder) => !suiteId || folder.suite_id === suiteId).map((folder) => <option key={folder.id} value={folder.id}>{folder.path}</option>)}
@@ -387,7 +388,7 @@ export default function NewManagementCasePage({ params }: { params: { projectId:
                 <select
                   value={priority}
                   onChange={(event) => setPriority(event.target.value)}
-                  className="w-full rounded-lg border border-border bg-bg px-3 py-2 text-sm text-white focus:border-teal-500/50 focus:outline-none"
+                  className="w-full rounded-lg border border-border bg-surface-overlay px-3 py-2 text-sm text-fg focus:border-teal-500/50 focus:outline-none"
                 >
                   {["P0", "P1", "P2", "P3"].map((item) => <option key={item}>{item}</option>)}
                 </select>
@@ -397,7 +398,7 @@ export default function NewManagementCasePage({ params }: { params: { projectId:
                 <select
                   value={severity}
                   onChange={(event) => setSeverity(event.target.value)}
-                  className="w-full rounded-lg border border-border bg-bg px-3 py-2 text-sm text-white focus:border-teal-500/50 focus:outline-none"
+                  className="w-full rounded-lg border border-border bg-surface-overlay px-3 py-2 text-sm text-fg focus:border-teal-500/50 focus:outline-none"
                 >
                   {["blocker", "critical", "major", "minor"].map((item) => <option key={item}>{item}</option>)}
                 </select>
@@ -407,7 +408,7 @@ export default function NewManagementCasePage({ params }: { params: { projectId:
                 <select
                   value={type}
                   onChange={(event) => setType(event.target.value)}
-                  className="w-full rounded-lg border border-border bg-bg px-3 py-2 text-sm text-white focus:border-teal-500/50 focus:outline-none"
+                  className="w-full rounded-lg border border-border bg-surface-overlay px-3 py-2 text-sm text-fg focus:border-teal-500/50 focus:outline-none"
                 >
                   {["functional", "smoke", "regression", "uat", "exploratory"].map((item) => <option key={item}>{item}</option>)}
                 </select>
@@ -417,7 +418,7 @@ export default function NewManagementCasePage({ params }: { params: { projectId:
                 <select
                   value={status}
                   onChange={(event) => setStatus(event.target.value)}
-                  className="w-full rounded-lg border border-border bg-bg px-3 py-2 text-sm text-white focus:border-teal-500/50 focus:outline-none"
+                  className="w-full rounded-lg border border-border bg-surface-overlay px-3 py-2 text-sm text-fg focus:border-teal-500/50 focus:outline-none"
                 >
                   {["draft", "review", "active"].map((item) => <option key={item}>{item}</option>)}
                 </select>
@@ -426,7 +427,7 @@ export default function NewManagementCasePage({ params }: { params: { projectId:
           <div className="grid gap-4 md:grid-cols-5">
             <label className="space-y-1">
               <span className="text-xs font-semibold uppercase tracking-wide text-fg-subtle">Sahip</span>
-              <select value={ownerId} onChange={(event) => setOwnerId(event.target.value)} className="w-full rounded-lg border border-border bg-bg px-3 py-2 text-sm text-white focus:border-teal-500/50 focus:outline-none">
+              <select value={ownerId} onChange={(event) => setOwnerId(event.target.value)} className="w-full rounded-lg border border-border bg-surface-overlay px-3 py-2 text-sm text-fg focus:border-teal-500/50 focus:outline-none">
                 <option value="">— Atanmamış —</option>
                 {members.map(m => (
                   <option key={m.user_id} value={m.user_id}>
@@ -437,21 +438,21 @@ export default function NewManagementCasePage({ params }: { params: { projectId:
             </label>
             <label className="space-y-1">
               <span className="text-xs font-semibold uppercase tracking-wide text-fg-subtle">Automation</span>
-              <select value={automationStatus} onChange={(event) => setAutomationStatus(event.target.value)} className="w-full rounded-lg border border-border bg-bg px-3 py-2 text-sm text-white focus:border-teal-500/50 focus:outline-none">
+              <select value={automationStatus} onChange={(event) => setAutomationStatus(event.target.value)} className="w-full rounded-lg border border-border bg-surface-overlay px-3 py-2 text-sm text-fg focus:border-teal-500/50 focus:outline-none">
                 {["manual", "candidate", "automated", "deprecated"].map((item) => <option key={item}>{item}</option>)}
               </select>
             </label>
             <label className="space-y-1">
               <span className="text-xs font-semibold uppercase tracking-wide text-fg-subtle">Component</span>
-              <input value={component} onChange={(event) => setComponent(event.target.value)} className="w-full rounded-lg border border-border bg-bg px-3 py-2 text-sm text-white focus:border-teal-500/50 focus:outline-none" placeholder="Auth" />
+              <input value={component} onChange={(event) => setComponent(event.target.value)} className="w-full rounded-lg border border-border bg-surface-overlay px-3 py-2 text-sm text-fg focus:border-teal-500/50 focus:outline-none" placeholder="Auth" />
             </label>
             <label className="space-y-1">
               <span className="text-xs font-semibold uppercase tracking-wide text-fg-subtle">Platform</span>
-              <input value={platform} onChange={(event) => setPlatform(event.target.value)} className="w-full rounded-lg border border-border bg-bg px-3 py-2 text-sm text-white focus:border-teal-500/50 focus:outline-none" placeholder="Web / iOS / Android" />
+              <input value={platform} onChange={(event) => setPlatform(event.target.value)} className="w-full rounded-lg border border-border bg-surface-overlay px-3 py-2 text-sm text-fg focus:border-teal-500/50 focus:outline-none" placeholder="Web / iOS / Android" />
             </label>
             <label className="space-y-1">
               <span className="text-xs font-semibold uppercase tracking-wide text-fg-subtle">Risk Area</span>
-              <input value={riskArea} onChange={(event) => setRiskArea(event.target.value)} className="w-full rounded-lg border border-border bg-bg px-3 py-2 text-sm text-white focus:border-teal-500/50 focus:outline-none" placeholder="Payment, Session" />
+              <input value={riskArea} onChange={(event) => setRiskArea(event.target.value)} className="w-full rounded-lg border border-border bg-surface-overlay px-3 py-2 text-sm text-fg focus:border-teal-500/50 focus:outline-none" placeholder="Payment, Session" />
             </label>
           </div>
           <div className="grid gap-4 md:grid-cols-2">
@@ -462,7 +463,7 @@ export default function NewManagementCasePage({ params }: { params: { projectId:
                 onChange={(event) => setObjective(event.target.value)}
                 maxLength={2000}
                 rows={3}
-                className="w-full resize-none rounded-lg border border-border bg-bg px-3 py-2 text-sm text-white focus:border-teal-500/50 focus:outline-none"
+                className="w-full resize-none rounded-lg border border-border bg-surface-overlay px-3 py-2 text-sm text-fg focus:border-teal-500/50 focus:outline-none"
               />
               <span className={`text-xs ${objective.length >= 1900 ? "text-amber-400" : "text-fg-subtle"}`}>{objective.length}/2000</span>
             </label>
@@ -473,7 +474,7 @@ export default function NewManagementCasePage({ params }: { params: { projectId:
                 onChange={(event) => setPreconditions(event.target.value)}
                 maxLength={2000}
                 rows={3}
-                className="w-full resize-none rounded-lg border border-border bg-bg px-3 py-2 text-sm text-white focus:border-teal-500/50 focus:outline-none"
+                className="w-full resize-none rounded-lg border border-border bg-surface-overlay px-3 py-2 text-sm text-fg focus:border-teal-500/50 focus:outline-none"
               />
               <span className={`text-xs ${preconditions.length >= 1900 ? "text-amber-400" : "text-fg-subtle"}`}>{preconditions.length}/2000</span>
             </label>
@@ -485,7 +486,7 @@ export default function NewManagementCasePage({ params }: { params: { projectId:
               onChange={(event) => setTestData(event.target.value)}
               maxLength={2000}
               rows={3}
-              className="w-full resize-none rounded-lg border border-border bg-bg px-3 py-2 text-sm text-white focus:border-teal-500/50 focus:outline-none"
+              className="w-full resize-none rounded-lg border border-border bg-surface-overlay px-3 py-2 text-sm text-fg focus:border-teal-500/50 focus:outline-none"
               placeholder="Kullanıcı, rol, veri seti, fixture veya özel inputlar"
             />
             <span className={`text-xs ${testData.length >= 1900 ? "text-amber-400" : "text-fg-subtle"}`}>{testData.length}/2000</span>
@@ -501,59 +502,63 @@ export default function NewManagementCasePage({ params }: { params: { projectId:
               list={existingTags.length > 0 ? "case-tags-list" : undefined}
               value={tags}
               onChange={(event) => setTags(event.target.value)}
-              className="w-full rounded-lg border border-border bg-bg px-3 py-2 text-sm text-white focus:border-teal-500/50 focus:outline-none"
+              className="w-full rounded-lg border border-border bg-surface-overlay px-3 py-2 text-sm text-fg focus:border-teal-500/50 focus:outline-none"
               placeholder="login, smoke, auth"
             />
           </label>
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <h2 className="text-sm font-semibold text-white">Steps</h2>
+              <h2 className="text-sm font-semibold text-fg">Steps</h2>
               <div className="flex items-center gap-2">
-                <button
+                <Button
                   type="button"
+                  variant="outline"
+                  size="sm"
                   onClick={() => setShowStepPicker(true)}
-                  className="flex items-center gap-1.5 rounded-lg border border-brand/30 px-3 py-1.5 text-xs text-brand hover:bg-brand-soft transition-colors"
+                  className="border-brand/30 text-brand hover:bg-brand-soft"
                 >
                   <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
                   </svg>
                   Şablondan Ekle
-                </button>
-                <button
+                </Button>
+                <Button
                   type="button"
+                  variant="outline"
+                  size="sm"
                   onClick={addStep}
-                  className="rounded-lg border border-border px-3 py-1.5 text-xs text-fg hover:bg-surface-overlay"
                 >
                   Adım Ekle
-                </button>
+                </Button>
               </div>
             </div>
             <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
               <SortableContext items={steps.map(s => s.id)} strategy={verticalListSortingStrategy}>
                 {steps.map((step, index) => (
                   <SortableStepCard key={step.id} id={step.id}>
-                    <div className="grid gap-3 rounded-lg border border-border bg-bg p-3 md:grid-cols-[2rem_1fr_1fr_auto]">
+                    <div className="grid gap-3 rounded-lg border border-border bg-surface-overlay p-3 md:grid-cols-[2rem_1fr_1fr_auto]">
                       <div className="pt-2 text-center font-mono text-xs text-fg-subtle">{index + 1}</div>
                       <div className="space-y-2">
-                        <textarea value={step.action} onChange={(event) => updateStep(index, { action: event.target.value })} rows={2} aria-label={`Adım ${index + 1} — action`} className="w-full resize-none rounded-lg border border-border bg-surface-raised px-3 py-2 text-sm text-white focus:border-teal-500/50 focus:outline-none" placeholder="Action" />
-                        <input value={step.test_data} onChange={(event) => updateStep(index, { test_data: event.target.value })} aria-label={`Adım ${index + 1} — test data`} className="w-full rounded-lg border border-border bg-surface-raised px-3 py-2 text-xs text-white focus:border-teal-500/50 focus:outline-none" placeholder="Step test data" />
+                        <textarea value={step.action} onChange={(event) => updateStep(index, { action: event.target.value })} rows={2} aria-label={`Adım ${index + 1} — action`} className="w-full resize-none rounded-lg border border-border bg-surface-overlay px-3 py-2 text-sm text-fg focus:border-teal-500/50 focus:outline-none" placeholder="Action" />
+                        <input value={step.test_data} onChange={(event) => updateStep(index, { test_data: event.target.value })} aria-label={`Adım ${index + 1} — test data`} className="w-full rounded-lg border border-border bg-surface-overlay px-3 py-2 text-xs text-fg focus:border-teal-500/50 focus:outline-none" placeholder="Step test data" />
                       </div>
                       <div className="space-y-2">
-                        <textarea value={step.expected_result} onChange={(event) => updateStep(index, { expected_result: event.target.value })} rows={2} aria-label={`Adım ${index + 1} — expected result`} className="w-full resize-none rounded-lg border border-border bg-surface-raised px-3 py-2 text-sm text-white focus:border-teal-500/50 focus:outline-none" placeholder="Expected result / validation" />
-                        <input value={step.notes} onChange={(event) => updateStep(index, { notes: event.target.value })} aria-label={`Adım ${index + 1} — notlar`} className="w-full rounded-lg border border-border bg-surface-raised px-3 py-2 text-xs text-white focus:border-teal-500/50 focus:outline-none" placeholder="Notes" />
+                        <textarea value={step.expected_result} onChange={(event) => updateStep(index, { expected_result: event.target.value })} rows={2} aria-label={`Adım ${index + 1} — expected result`} className="w-full resize-none rounded-lg border border-border bg-surface-overlay px-3 py-2 text-sm text-fg focus:border-teal-500/50 focus:outline-none" placeholder="Expected result / validation" />
+                        <input value={step.notes} onChange={(event) => updateStep(index, { notes: event.target.value })} aria-label={`Adım ${index + 1} — notlar`} className="w-full rounded-lg border border-border bg-surface-overlay px-3 py-2 text-xs text-fg focus:border-teal-500/50 focus:outline-none" placeholder="Notes" />
                       </div>
                       <div className="space-y-2">
                         <label className="flex items-center gap-2 text-xs text-fg-muted">
                           <input type="checkbox" checked={step.is_required} onChange={(event) => updateStep(index, { is_required: event.target.checked })} aria-label={`Adım ${index + 1} zorunlu mu`} />
                           Required
                         </label>
-                        <button
+                        <Button
                           type="button"
+                          variant="ghost-danger"
+                          size="sm"
                           onClick={() => removeStep(index)}
-                          className="rounded-lg border border-border px-3 py-2 text-xs text-fg-subtle hover:bg-surface-overlay hover:text-fg"
                         >
                           Remove
-                        </button>
+                        </Button>
                       </div>
                     </div>
                   </SortableStepCard>
@@ -562,20 +567,19 @@ export default function NewManagementCasePage({ params }: { params: { projectId:
             </DndContext>
           </div>
           <div className="sticky bottom-0 z-10 border-t border-border bg-surface-base px-6 py-3 flex justify-end gap-2">
-            <button
+            <Button
               type="button"
+              variant="outline"
               onClick={() => router.back()}
-              className="rounded-lg border border-border px-4 py-2 text-sm text-fg hover:bg-surface-overlay"
             >
               İptal
-            </button>
-            <button
+            </Button>
+            <Button
               type="submit"
               disabled={!title.trim() || createCase.isPending}
-              className="rounded-lg bg-teal-500 px-5 py-2 text-sm font-semibold text-surface-base hover:bg-teal-400 disabled:opacity-40"
             >
               {createCase.isPending ? "Kaydediliyor..." : "Kaydet"}
-            </button>
+            </Button>
           </div>
         </form>
       </section>

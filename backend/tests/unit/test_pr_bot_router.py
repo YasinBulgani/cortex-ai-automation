@@ -96,6 +96,9 @@ class TestAnalyzeEndpoint:
         assert resp.json()["ok"] is True
 
     def test_analyze_with_coverage_path_passes_path_to_service(self, client):
+        import os
+        from pathlib import Path
+
         mock_summary = MagicMock()
         captured = {}
 
@@ -103,15 +106,23 @@ class TestAnalyzeEndpoint:
             captured["coverage_paths"] = coverage_paths
             return mock_summary
 
+        # A relative path is accepted and resolved to an absolute path confined
+        # inside REPO_ROOT before being handed to the service (path-traversal
+        # protection — see router.analyze).
+        raw = "coverage/cov.xml"
+        repo_root = Path(os.environ.get("REPO_ROOT", ".")).resolve()
+        expected = (repo_root / raw).resolve()
+
         with patch("app.domains.pr_bot.router.build_pr_summary", side_effect=fake_build), \
              patch("app.domains.pr_bot.router._summary_to_dict", return_value={}):
             client.post(
                 "/api/v1/pr-bot/analyze",
-                json={"changed_files": ["a.py"], "coverage_path": "/tmp/cov.xml"},
+                json={"changed_files": ["a.py"], "coverage_path": raw},
             )
 
         assert captured["coverage_paths"] is not None
         assert len(captured["coverage_paths"]) == 1
+        assert captured["coverage_paths"][0] == expected
 
     def test_analyze_with_empty_files_list_returns_200(self, client):
         with patch("app.domains.pr_bot.router.build_pr_summary", return_value=MagicMock()), \

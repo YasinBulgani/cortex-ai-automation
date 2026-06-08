@@ -5,6 +5,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { PageHeader } from "@/components/nexus/PageHeader";
 import { SectionCard } from "@/components/nexus/SectionCard";
 import { EmptyState } from "@/components/nexus/EmptyState";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
   usePlaywrightHealth,
@@ -66,13 +67,14 @@ function Spinner({ className = "" }: { className?: string }) {
 
 function RetryButton({ onClick, label = "Tekrar Dene" }: { onClick: () => void; label?: string }) {
   return (
-    <button
+    <Button
       type="button"
+      variant="ghost-danger"
+      size="sm"
       onClick={onClick}
-      className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-1.5 text-xs font-medium text-red-400 hover:bg-red-500/20 transition-colors"
     >
       {label}
-    </button>
+    </Button>
   );
 }
 
@@ -165,11 +167,11 @@ function SessionTab({
           title="Aktif oturum yok"
           description="Yeni bir browser oturumu başlatarak element kesfine baslayabilirsiniz"
         />
-        <button
+        <Button
           type="button"
           onClick={handleCreate}
           disabled={createSession.isPending}
-          className="flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-500 disabled:opacity-50 transition-colors"
+          className="gap-2 bg-emerald-600 text-white hover:bg-emerald-500"
         >
           {createSession.isPending ? <Spinner /> : (
             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -177,7 +179,7 @@ function SessionTab({
             </svg>
           )}
           Yeni Oturum Başlat
-        </button>
+        </Button>
         {createSession.isError && (
           <p className="text-xs text-red-400">Oturum olusturulamadi. Tekrar deneyin.</p>
         )}
@@ -197,14 +199,14 @@ function SessionTab({
           placeholder="https://ornek.com"
           className="flex-1 rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white placeholder:text-slate-600 focus:border-blue-500 focus:outline-none"
         />
-        <button
+        <Button
           type="button"
           onClick={handleNavigate}
           disabled={navigate.isPending || !url.trim()}
-          className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-500 disabled:opacity-50 transition-colors"
+          className="bg-blue-600 text-white hover:bg-blue-500"
         >
           {navigate.isPending ? <Spinner /> : "Git"}
-        </button>
+        </Button>
       </div>
 
       {navigate.isError && (
@@ -253,14 +255,14 @@ function SelectorTab({ sessionId }: { sessionId: string }) {
             className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 font-mono text-sm text-white placeholder:text-slate-600 focus:border-blue-500 focus:outline-none resize-y"
           />
           <div className="flex items-center gap-3">
-            <button
+            <Button
               type="button"
               onClick={handleValidate}
               disabled={validate.isPending || !input.trim() || !sessionId}
-              className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-500 disabled:opacity-50 transition-colors"
+              className="bg-blue-600 text-white hover:bg-blue-500"
             >
               {validate.isPending ? <Spinner /> : "Dogrula"}
-            </button>
+            </Button>
             {!sessionId && <p className="text-xs text-amber-400">Oncelikle bir oturum baslatmaniz gerekiyor.</p>}
           </div>
           {validate.isError && (
@@ -416,14 +418,14 @@ function DOMTab({ sessionId }: { sessionId: string }) {
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <button
+            <Button
               type="button"
               onClick={handleFetch}
               disabled={domSnapshot.isPending || !sessionId}
-              className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-500 disabled:opacity-50 transition-colors"
+              className="bg-blue-600 text-white hover:bg-blue-500"
             >
               {domSnapshot.isPending ? <Spinner /> : "DOM Al"}
-            </button>
+            </Button>
             {!sessionId && <p className="text-xs text-amber-400">Oncelikle bir oturum baslatmaniz gerekiyor.</p>}
           </div>
           {domSnapshot.isError && (
@@ -598,14 +600,14 @@ function HealTab({ sessionId }: { sessionId: string }) {
               className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 font-mono text-sm text-white placeholder:text-slate-600 focus:border-blue-500 focus:outline-none resize-y"
             />
           </div>
-          <button
+          <Button
             type="button"
             onClick={handleRunPipeline}
             disabled={runPipeline.isPending || !pipelineTestCaseId.trim() || !pipelineSelectors.trim()}
-            className="rounded-lg bg-violet-600 px-4 py-2 text-sm font-medium text-white hover:bg-violet-500 disabled:opacity-50 transition-colors"
+            className="bg-violet-600 text-white hover:bg-violet-500"
           >
             {runPipeline.isPending ? <Spinner /> : "Pipeline Çalıştır"}
-          </button>
+          </Button>
           {runPipeline.isError && (
             <p className="text-xs text-red-400">Pipeline başarısız: {(runPipeline.error as Error).message}</p>
           )}
@@ -698,14 +700,14 @@ function HealTab({ sessionId }: { sessionId: string }) {
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <button
+            <Button
               type="button"
               onClick={handleVerify}
               disabled={verifyHeal.isPending || !original.trim() || !healed.trim() || !sessionId}
-              className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-500 disabled:opacity-50 transition-colors"
+              className="bg-blue-600 text-white hover:bg-blue-500"
             >
               {verifyHeal.isPending ? <Spinner /> : "Dogrula"}
-            </button>
+            </Button>
             {!sessionId && <p className="text-xs text-amber-400">Oncelikle bir oturum baslatmaniz gerekiyor.</p>}
           </div>
           {verifyHeal.isError && (

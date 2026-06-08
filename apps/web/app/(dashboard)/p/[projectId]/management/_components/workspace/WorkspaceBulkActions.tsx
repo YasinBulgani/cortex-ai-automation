@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { type TestSuite, type TestFolder } from "@/lib/hooks/use-management";
+import { Button } from "@/components/ui/button";
 
 export interface WorkspaceBulkActionsProps {
   checkedSize: number;
@@ -78,22 +79,26 @@ export function WorkspaceBulkActions({
         Tümünü Seç
       </button>
       <span className="text-[10px] text-fg-disabled">|</span>
-      <button
+      <Button
+        variant="outline"
+        size="sm"
         type="button"
         onClick={onCreateRun}
         disabled={busy}
-        className="rounded-md border border-brand/25 bg-surface-raised px-2.5 py-1 text-[11px] font-medium text-brand transition-colors hover:bg-surface-overlay disabled:opacity-40"
+        className="border-brand/25 bg-surface-raised px-2.5 text-[11px] font-medium text-brand hover:bg-surface-overlay"
       >
         ▶ Run Oluştur
-      </button>
-      <button
+      </Button>
+      <Button
+        variant="outline"
+        size="sm"
         type="button"
         onClick={onPromote}
         disabled={busy}
-        className="rounded border border-border px-2.5 py-1 text-[11px] text-fg-muted hover:text-fg disabled:opacity-40 transition-colors"
+        className="px-2.5 text-[11px] text-fg-muted hover:text-fg"
       >
         Aktife Al
-      </button>
+      </Button>
 
       {/* Bulk priority */}
       <select
@@ -165,13 +170,15 @@ export function WorkspaceBulkActions({
               if (e.key === "Escape") { setShowTagInput(false); setTagInput(""); }
             }}
           />
-          <button
+          <Button
+            variant="outline"
+            size="sm"
             type="submit"
             disabled={busy}
-            className="rounded border border-brand/30 bg-brand/10 px-2 py-1 text-[11px] text-brand hover:bg-brand/20 disabled:opacity-40 transition-colors"
+            className="border-brand/30 bg-brand/10 px-2 text-[11px] text-brand hover:bg-brand/20"
           >
             Ekle
-          </button>
+          </Button>
           <button
             type="button"
             onClick={() => { setShowTagInput(false); setTagInput(""); }}
@@ -181,48 +188,56 @@ export function WorkspaceBulkActions({
           </button>
         </form>
       ) : (
-        <button
+        <Button
+          variant="outline"
+          size="sm"
           type="button"
           onClick={() => setShowTagInput(true)}
           disabled={busy}
-          className="rounded border border-border px-2.5 py-1 text-[11px] text-fg-muted hover:text-fg disabled:opacity-40 transition-colors"
+          className="px-2.5 text-[11px] text-fg-muted hover:text-fg"
         >
           🏷 Etiket Ekle
-        </button>
+        </Button>
       )}
 
       {/* Bulk Clone */}
-      <button
+      <Button
+        variant="outline"
+        size="sm"
         type="button"
         onClick={() => void handleBulkClone()}
         disabled={busy || activeCloneProgress !== null}
-        className="rounded border border-border px-2.5 py-1 text-[11px] text-fg-muted hover:text-fg disabled:opacity-40 transition-colors"
+        className="px-2.5 text-[11px] text-fg-muted hover:text-fg"
       >
         {activeCloneProgress
           ? `${activeCloneProgress.done}/${activeCloneProgress.total} kopyalandı`
           : "Klonla"}
-      </button>
+      </Button>
 
       {/* Arşiv'den Çıkar — only when archived cases are selected */}
       {checkedArchivedCount > 0 && (
-        <button
+        <Button
+          variant="outline"
+          size="sm"
           type="button"
           onClick={onUnarchiveMany}
           disabled={busy}
-          className="rounded border border-emerald-500/25 px-2.5 py-1 text-[11px] text-emerald-400 hover:bg-emerald-500/10 disabled:opacity-40 transition-colors"
+          className="border-emerald-500/25 px-2.5 text-[11px] text-emerald-400 hover:bg-emerald-500/10"
         >
           Arşiv&apos;den Çıkar ({checkedArchivedCount})
-        </button>
+        </Button>
       )}
 
-      <button
+      <Button
+        variant="ghost-danger"
+        size="sm"
         type="button"
         onClick={onArchiveMany}
         disabled={busy}
-        className="rounded border border-red-500/20 px-2.5 py-1 text-[11px] text-red-400 hover:bg-red-500/10 disabled:opacity-40 transition-colors"
+        className="border border-red-500/20 px-2.5 text-[11px]"
       >
         Arşivle
-      </button>
+      </Button>
       <button
         type="button"
         onClick={() => { onClearChecked(); setShowTagInput(false); setTagInput(""); }}

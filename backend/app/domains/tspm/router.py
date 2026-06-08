@@ -1114,6 +1114,7 @@ def create_scenario(
 @router.get("/projects/{project_id}/scenarios/{scenario_id}", response_model=ScenarioOut)
 def get_scenario(project_id: str, scenario_id: str, db: DB, user: Annotated[User, Depends(get_current_user)]):
     """Test senaryosu detayini getirir."""
+    _get_project(db, project_id, user)  # membership guard
     return scenario_svc.get_scenario_or_404(db, project_id, scenario_id)
 
 
@@ -1156,6 +1157,7 @@ def score_scenario_endpoint(
     project_id: str, scenario_id: str, db: DB, user: Annotated[User, Depends(get_current_user)],
 ):
     """Tek bir senaryoyu LLM-as-Judge ile yeniden skorla ve embedding üret."""
+    _get_project(db, project_id, user)  # membership guard
     s = db.get(TspmScenario, scenario_id)
     if s is None or s.project_id != project_id:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Senaryo bulunamadı")
@@ -1553,6 +1555,7 @@ def update_requirement(
     user: Annotated[User, Depends(require_permission(Permission.REQUIREMENT_MANAGE))],
 ):
     """Gereksinim bilgilerini gunceller."""
+    _get_project(db, project_id, user)  # membership guard
     return scenario_svc.update_requirement_for_project(
         db,
         project_id,
@@ -1923,6 +1926,7 @@ def rerun_execution(
     user: Annotated[User, Depends(require_permission(Permission.EXECUTION_CREATE))],
 ):
     """Mevcut kosuyu yeniden baslatir."""
+    _get_project(db, project_id, user)  # membership guard
     return execution_svc.rerun_execution_for_project(db, project_id, run_id)
 
 
@@ -2148,6 +2152,7 @@ def create_flow(
 @router.get("/projects/{project_id}/flows/{flow_id}", response_model=FlowDetailOut)
 def get_flow(project_id: str, flow_id: str, db: DB, user: Annotated[User, Depends(get_current_user)]):
     """Akis detayini getirir."""
+    _get_project(db, project_id, user)  # membership guard
     return flow_regression_svc.get_flow_or_404(db, project_id, flow_id)
 
 
@@ -2157,6 +2162,7 @@ def update_flow_graph(
     user: Annotated[User, Depends(require_permission(Permission.FLOW_MANAGE))],
 ):
     """Akis grafigini gunceller."""
+    _get_project(db, project_id, user)  # membership guard
     return flow_regression_svc.update_flow_graph_for_project(
         db,
         project_id,
@@ -2211,6 +2217,7 @@ def create_regression_set(
 @router.get("/projects/{project_id}/regression-sets/{set_id}", response_model=RegressionSetDetailOut)
 def get_regression_set(project_id: str, set_id: str, db: DB, user: Annotated[User, Depends(get_current_user)]):
     """Regresyon seti detayini getirir."""
+    _get_project(db, project_id, user)  # membership guard
     return flow_regression_svc.get_regression_set_detail_for_project(
         db,
         project_id,
@@ -2224,6 +2231,7 @@ def add_scenarios_to_regression(
     user: Annotated[User, Depends(require_permission(Permission.SCENARIO_UPDATE))],
 ):
     """Senaryolari regresyon setine ekler."""
+    _get_project(db, project_id, user)  # membership guard
     return flow_regression_svc.add_scenarios_to_regression_set(
         db,
         project_id,
@@ -2320,6 +2328,7 @@ def decide_approval(
     project_id: str, approval_id: str, body: DecideRequest, db: DB,
     user: Annotated[User, Depends(require_permission(Permission.APPROVAL_DECIDE))],
 ):
+    _get_project(db, project_id, user)
     a = db.get(TspmApproval, approval_id)
     if a is None or a.project_id != project_id:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Onay bulunamadı")
@@ -2523,6 +2532,7 @@ def delete_test_data(
 def export_test_data(project_id: str, data_id: str, user: Annotated[User, Depends(get_current_user)],
     format: str = "csv", db: DB = ..., ):
     """Veri setini CSV veya JSON olarak dışa aktarır."""
+    _get_project(db, project_id, user)
     return test_data_svc.export_test_data_for_project(
         db,
         project_id,
@@ -2534,6 +2544,7 @@ def export_test_data(project_id: str, data_id: str, user: Annotated[User, Depend
 @router.post("/projects/{project_id}/test-data/{data_id}/mask")
 def mask_test_data(project_id: str, data_id: str, body: dict, db: DB, user: Annotated[User, Depends(get_current_user)]):
     """Belirtilen sütunlardaki PII verilerini maskeler."""
+    _get_project(db, project_id, user)
     return test_data_svc.mask_test_data_for_project(
         db,
         project_id,
@@ -2755,6 +2766,7 @@ def sync_integration(
     halde UI "sync başarılı" gösterir ama hiçbir şey eşzamanlanmamıştır
     (sessiz kullanıcı aldatması).
     """
+    _get_project(db, project_id, user)  # membership guard
     intg = db.get(TspmIntegration, integration_id)
     if intg is None or intg.project_id != project_id:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Entegrasyon bulunamadı")
@@ -2775,6 +2787,7 @@ def sync_integration(
 @router.post("/projects/{project_id}/integrations/{integration_id}/test-notification")
 def test_notification(project_id: str, integration_id: str, db: DB, user: Annotated[User, Depends(get_current_user)]):
     """Slack veya Teams webhook'una test bildirimi gönderir."""
+    _get_project(db, project_id, user)  # membership guard
     intg = db.get(TspmIntegration, integration_id)
     if intg is None or intg.project_id != project_id:
         raise HTTPException(404, "Entegrasyon bulunamadı")
@@ -2997,6 +3010,7 @@ def delete_api_collection(
     user: Annotated[User, Depends(require_permission(Permission.API_TEST_MANAGE))],
 ):
     """API test koleksiyonunu siler."""
+    _get_project(db, project_id, user)  # membership guard
     from app.infra.cache import cache_delete, make_key
     col = db.get(TspmApiCollection, collection_id)
     if col is None or col.project_id != project_id:
@@ -3217,6 +3231,7 @@ def list_api_runs(
 @router.get("/projects/{project_id}/api-tests/runs/{api_run_id}", response_model=ApiTestRunOut)
 def get_api_run(project_id: str, api_run_id: str, db: DB, user: Annotated[User, Depends(get_current_user)]):
     """API test kosusu detayini getirir."""
+    _get_project(db, project_id, user)  # membership guard
     run = db.get(TspmApiTestRun, api_run_id)
     if run is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Test koşusu bulunamadı")
@@ -3275,6 +3290,7 @@ def remove_project_member(
     user: Annotated[User, Depends(require_permission(Permission.PROJECT_UPDATE))],
 ):
     """Projeden uyeyi kaldirir."""
+    _get_project(db, project_id, user)
     member = db.get(TspmProjectMember, member_id)
     if member is None or member.project_id != project_id:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Üye bulunamadı")
@@ -5751,8 +5767,9 @@ def automation_run(project_id: str, body: dict, db: DB, user: Annotated[User, De
 
 
 @router.delete("/projects/{project_id}/automation/run/{run_id}", status_code=200)
-def automation_cancel(project_id: str, run_id: str, user: Annotated[User, Depends(get_current_user)]):
+def automation_cancel(project_id: str, run_id: str, db: DB, user: Annotated[User, Depends(get_current_user)]):
     """Engine'deki çalışan Playwright koşumunu iptal eder."""
+    _get_project(db, project_id, user)
     try:
         resp = httpx.delete(
             f"{ENGINE_BASE_URL}/api/run/{run_id}/cancel",
@@ -5773,10 +5790,11 @@ def automation_cancel(project_id: str, run_id: str, user: Annotated[User, Depend
 
 
 @router.get("/projects/{project_id}/automation/stream/{run_id}")
-async def automation_stream(project_id: str, run_id: str, user: Annotated[User, Depends(get_current_user)]):
+async def automation_stream(project_id: str, run_id: str, db: DB, user: Annotated[User, Depends(get_current_user)]):
     """
     Engine'in SSE stream'ini /api/run/<run_id>/stream den okuyup tarayıcıya aktarır.
     """
+    _get_project(db, project_id, user)
     stream_url = f"{ENGINE_BASE_URL}/api/run/{run_id}/stream"
 
     async def event_generator():
@@ -5815,15 +5833,26 @@ def global_search(user: Annotated[User, Depends(get_current_user)],
     """Projeler ve senaryolar üzerinde arama."""
     results = []
 
-    projects = list(db.scalars(
-        select(TspmProject).where(TspmProject.name.ilike(f"%{q}%")).limit(5)
-    ))
+    # ── Yetki kontrolü: kullanıcı sadece üye olduğu projeleri arayabilir ──
+    user_perms = {rp.permission for role in user.roles for rp in role.permissions}
+    is_admin = Permission.ADMIN_FULL in user_perms
+    accessible_project_ids = None
+    if not is_admin:
+        accessible_project_ids = list(db.scalars(
+            select(TspmProjectMember.project_id).where(TspmProjectMember.user_id == user.id)
+        ))
+
+    project_stmt = select(TspmProject).where(TspmProject.name.ilike(f"%{q}%"))
+    if accessible_project_ids is not None:
+        project_stmt = project_stmt.where(TspmProject.id.in_(accessible_project_ids))
+    projects = list(db.scalars(project_stmt.limit(5)))
     for p in projects:
         results.append({"type": "project", "id": p.id, "label": p.name, "href": f"/p/{p.id}"})
 
-    scenarios = list(db.scalars(
-        select(TspmScenario).where(TspmScenario.title.ilike(f"%{q}%")).limit(10)
-    ))
+    scenario_stmt = select(TspmScenario).where(TspmScenario.title.ilike(f"%{q}%"))
+    if accessible_project_ids is not None:
+        scenario_stmt = scenario_stmt.where(TspmScenario.project_id.in_(accessible_project_ids))
+    scenarios = list(db.scalars(scenario_stmt.limit(10)))
     for s in scenarios:
         results.append({"type": "scenario", "id": s.id, "label": s.title, "href": f"/p/{s.project_id}/scenarios/{s.id}"})
 
@@ -5846,6 +5875,7 @@ def get_execution_report(project_id: str, run_id: str, user: Annotated[User, Dep
 
     from app.domains.tspm.models import TspmExecution, TspmExecutionResult, TspmScenario
 
+    _get_project(db, project_id, user)  # membership guard
     ex = db.get(TspmExecution, run_id)
     if ex is None or ex.project_id != project_id:
         raise HTTPException(404, "Koşu bulunamadı")

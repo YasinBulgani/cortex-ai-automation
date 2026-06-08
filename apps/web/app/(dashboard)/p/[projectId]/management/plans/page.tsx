@@ -6,6 +6,7 @@ import { apiFetch } from "@/lib/api-client";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 import { RoleGuard } from "../_components/RoleGuard";
 import {
   useManagementPlans,
@@ -202,12 +203,12 @@ function PlanStartRunModal({
             <h2 className="text-[14px] font-semibold text-fg">Koşum Başlat</h2>
             <p className="mt-0.5 text-[11px] text-fg-subtle">{cycle.name} cycle'ı için test koşumu oluştur</p>
           </div>
-          <button type="button" onClick={onClose}
-            className="rounded-lg p-1.5 text-fg-subtle hover:bg-surface-overlay hover:text-fg transition-colors">
+          <Button variant="ghost" size="icon" type="button" onClick={onClose}
+            className="text-fg-subtle hover:text-fg">
             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"/>
             </svg>
-          </button>
+          </Button>
         </div>
 
         {/* Run name + environment */}
@@ -255,16 +256,16 @@ function PlanStartRunModal({
             Senaryolar ({selected.size} seçili / {cases.filter(c => !c.archived).length} toplam)
           </span>
           <div className="flex items-center gap-3">
-            <button type="button"
+            <Button variant="ghost" size="sm" type="button"
               onClick={() => setSelected(new Set(filtered.map(c => c.id)))}
-              className="text-[11px] text-brand hover:underline">
+              className="h-auto px-0 py-0 text-[11px] text-brand hover:underline">
               Tümünü Seç
-            </button>
-            <button type="button"
+            </Button>
+            <Button variant="ghost" size="sm" type="button"
               onClick={() => setSelected(new Set())}
-              className="text-[11px] text-fg-subtle hover:text-fg-muted">
+              className="h-auto px-0 py-0 text-[11px] text-fg-subtle hover:text-fg-muted">
               Hiçbiri
-            </button>
+            </Button>
           </div>
         </div>
 
@@ -318,9 +319,9 @@ function PlanStartRunModal({
                     {suiteCases.map(c => {
                       const on = selected.has(c.id);
                       return (
-                        <button key={c.id} type="button" onClick={() => toggle(c.id)}
+                        <Button variant="ghost" key={c.id} type="button" onClick={() => toggle(c.id)}
                           className={cn(
-                            "flex w-full items-center gap-3 border-b border-border px-5 py-2 text-left transition-colors",
+                            "flex h-auto w-full items-center justify-start gap-3 rounded-none border-b border-border px-5 py-2 text-left",
                             on ? "bg-brand/5" : "hover:bg-surface-overlay"
                           )}>
                           <span className={cn("flex h-4 w-4 shrink-0 items-center justify-center rounded border",
@@ -333,7 +334,7 @@ function PlanStartRunModal({
                             c.priority === "P0" ? "text-red-400" : c.priority === "P1" ? "text-orange-400" : "text-fg-subtle")}>
                             {c.priority}
                           </span>
-                        </button>
+                        </Button>
                       );
                     })}
                   </div>
@@ -352,16 +353,16 @@ function PlanStartRunModal({
             )}
           </p>
           <div className="flex items-center gap-2">
-            <button type="button" onClick={onClose}
-              className="rounded-xl border border-border px-4 py-2 text-[13px] text-fg-muted hover:text-fg transition-colors">
+            <Button variant="outline" type="button" onClick={onClose}
+              className="rounded-xl px-4 py-2 text-[13px] text-fg-muted hover:text-fg">
               İptal
-            </button>
-            <button type="button"
+            </Button>
+            <Button variant="primary" type="button"
               disabled={busy || !name.trim() || selected.size === 0}
               onClick={() => onConfirm(name.trim(), [...selected], environment.trim(), assignedTo)}
-              className="rounded-xl bg-brand px-5 py-2 text-[13px] font-semibold text-brand-fg hover:brightness-105 disabled:opacity-40 transition-colors">
+              className="rounded-xl px-5 py-2 text-[13px] font-semibold">
               {busy ? "Oluşturuluyor…" : "Koşumu Başlat"}
-            </button>
+            </Button>
           </div>
         </div>
       </div>
@@ -434,12 +435,12 @@ function RunRow({
             onKeyDown={e => { if (e.key === "Escape") { setRenaming(false); setRenameVal(run.name); } }}
             className="min-w-[140px] flex-1 rounded-md border border-brand bg-surface-overlay px-2 py-0.5 text-[12px] text-fg outline-none ring-1 ring-brand/20"
           />
-          <button type="submit" disabled={saving || !renameVal.trim()}
-            className="rounded px-1.5 py-0.5 text-[10px] font-semibold text-brand disabled:opacity-40">
+          <Button variant="ghost" size="sm" type="submit" disabled={saving || !renameVal.trim()}
+            className="h-auto px-1.5 py-0.5 text-[10px] font-semibold text-brand">
             {saving ? "…" : "✓"}
-          </button>
-          <button type="button" onClick={() => { setRenaming(false); setRenameVal(run.name); }}
-            className="rounded px-1 py-0.5 text-[10px] text-fg-subtle hover:text-fg">✕</button>
+          </Button>
+          <Button variant="ghost" size="sm" type="button" onClick={() => { setRenaming(false); setRenameVal(run.name); }}
+            className="h-auto px-1 py-0.5 text-[10px] text-fg-subtle hover:text-fg">✕</Button>
         </form>
       ) : (
         <Link
@@ -467,31 +468,37 @@ function RunRow({
       {!renaming && !confirmDel && (
         <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
           {run.status !== "completed" && onComplete && (
-            <button
+            <Button
+              variant="ghost"
+              size="sm"
               type="button"
               title="Koşumu Tamamla ve Rapora Git"
               onClick={e => { e.stopPropagation(); onComplete(run.id); }}
-              className="rounded px-1.5 py-0.5 text-[10px] font-medium text-emerald-400 hover:bg-emerald-500/10 transition-colors"
+              className="h-auto px-1.5 py-0.5 text-[10px] font-medium text-emerald-400 hover:bg-emerald-500/10"
             >
               ✓
-            </button>
+            </Button>
           )}
-          <button
+          <Button
+            variant="ghost"
+            size="icon"
             type="button"
             title="Yeniden Adlandır"
             onClick={e => { e.stopPropagation(); setRenaming(true); }}
-            className="rounded p-1 text-fg-subtle hover:bg-surface-overlay hover:text-fg transition-colors"
+            className="h-auto w-auto p-1 text-fg-subtle hover:bg-surface-overlay hover:text-fg"
           >
             <IcPencil />
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
             type="button"
             title="Koşumu Sil"
             onClick={e => { e.stopPropagation(); setConfirmDel(true); }}
-            className="rounded p-1 text-fg-subtle hover:bg-red-500/10 hover:text-red-400 transition-colors"
+            className="h-auto w-auto p-1 text-fg-subtle hover:bg-red-500/10 hover:text-red-400"
           >
             <IcTrash />
-          </button>
+          </Button>
         </div>
       )}
 
@@ -499,14 +506,14 @@ function RunRow({
       {confirmDel && (
         <div className="flex items-center gap-1.5 ml-auto">
           <span className="text-[10px] text-fg-muted">Koşumu sil?</span>
-          <button type="button" onClick={confirmDelete} disabled={deleting}
-            className="rounded bg-red-600 px-2 py-0.5 text-[10px] text-white hover:bg-red-500 disabled:opacity-40 transition-colors">
+          <Button variant="destructive" size="sm" type="button" onClick={confirmDelete} disabled={deleting}
+            className="h-auto bg-red-600 px-2 py-0.5 text-[10px] text-white hover:bg-red-500">
             {deleting ? "…" : "Evet"}
-          </button>
-          <button type="button" onClick={() => setConfirmDel(false)}
-            className="rounded border border-border px-2 py-0.5 text-[10px] text-fg-muted hover:text-fg transition-colors">
+          </Button>
+          <Button variant="outline" size="sm" type="button" onClick={() => setConfirmDel(false)}
+            className="h-auto px-2 py-0.5 text-[10px] text-fg-muted hover:text-fg">
             Hayır
-          </button>
+          </Button>
         </div>
       )}
     </div>
@@ -576,12 +583,12 @@ function CycleRow({
                 onKeyDown={e => { if (e.key === "Escape") { setRenamingCycle(false); setCycleRenameVal(cycle.name); } }}
                 className="min-w-[160px] rounded-md border border-brand bg-surface-overlay px-2 py-0.5 text-[13px] font-medium text-fg outline-none ring-1 ring-brand/20"
               />
-              <button type="submit" disabled={cycleSaving || !cycleRenameVal.trim()}
-                className="rounded px-1.5 py-0.5 text-[11px] font-semibold text-brand disabled:opacity-40">
+              <Button variant="ghost" size="sm" type="submit" disabled={cycleSaving || !cycleRenameVal.trim()}
+                className="h-auto px-1.5 py-0.5 text-[11px] font-semibold text-brand">
                 {cycleSaving ? "…" : "✓"}
-              </button>
-              <button type="button" onClick={() => { setRenamingCycle(false); setCycleRenameVal(cycle.name); }}
-                className="rounded px-1 py-0.5 text-[11px] text-fg-subtle hover:text-fg">✕</button>
+              </Button>
+              <Button variant="ghost" size="sm" type="button" onClick={() => { setRenamingCycle(false); setCycleRenameVal(cycle.name); }}
+                className="h-auto px-1 py-0.5 text-[11px] text-fg-subtle hover:text-fg">✕</Button>
             </form>
           ) : (
             <p className="truncate text-[13px] text-fg">{cycle.name}</p>
@@ -602,37 +609,43 @@ function CycleRow({
 
         {/* Cycle rename button */}
         {!renamingCycle && (
-          <button
+          <Button
+            variant="ghost"
+            size="icon"
             type="button"
             title="Cycle Adını Değiştir"
             onClick={() => setRenamingCycle(true)}
-            className="shrink-0 rounded-md p-1.5 text-fg-subtle hover:bg-surface-overlay hover:text-fg transition-colors"
+            className="h-auto w-auto shrink-0 p-1.5 text-fg-subtle hover:bg-surface-overlay hover:text-fg"
           >
             <IcPencil />
-          </button>
+          </Button>
         )}
 
         {/* Cycle delete button */}
         {!renamingCycle && (
-          <button
+          <Button
+            variant="ghost"
+            size="icon"
             type="button"
             title="Döngüyü Sil"
             onClick={() => setConfirmDeleteCycle(true)}
-            className="shrink-0 rounded-md p-1.5 text-fg-subtle hover:bg-red-500/10 hover:text-red-400 transition-colors"
+            className="h-auto w-auto shrink-0 p-1.5 text-fg-subtle hover:bg-red-500/10 hover:text-red-400"
           >
             <IcTrash />
-          </button>
+          </Button>
         )}
 
         {/* Start run */}
-        <button
+        <Button
+          variant="outline"
+          size="sm"
           onClick={() => onStartRun(cycle)}
           disabled={loading}
           title="Run Başlat"
-          className="shrink-0 flex items-center gap-1.5 rounded-lg border border-teal-500/25 px-3 py-1.5 text-[11px] font-medium text-teal-400 hover:bg-teal-500/10 hover:border-teal-500/40 disabled:opacity-40 transition-colors"
+          className="shrink-0 gap-1.5 border-teal-500/25 px-3 py-1.5 text-[11px] font-medium text-teal-400 hover:bg-teal-500/10 hover:border-teal-500/40"
         >
           <IcPlay /> Run
-        </button>
+        </Button>
       </div>
 
       {/* Cycle delete confirm modal */}
@@ -644,18 +657,22 @@ function CycleRow({
               Bu döngü altındaki tüm koşumlar da silinecek. Bu işlem geri alınamaz.
             </p>
             <div className="flex gap-2 justify-end">
-              <button
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={() => setConfirmDeleteCycle(false)}
-                className="px-3 py-1.5 rounded-lg border border-border text-xs text-fg-muted hover:text-fg transition-colors"
+                className="h-auto px-3 py-1.5 text-xs text-fg-muted hover:text-fg"
               >
                 İptal
-              </button>
-              <button
+              </Button>
+              <Button
+                variant="destructive"
+                size="sm"
                 onClick={() => { onDeleteCycle(cycle.id); setConfirmDeleteCycle(false); }}
-                className="px-3 py-1.5 rounded-lg bg-red-500 text-white text-xs hover:bg-red-400 transition-colors"
+                className="h-auto bg-red-500 px-3 py-1.5 text-white text-xs hover:bg-red-400"
               >
                 Sil
-              </button>
+              </Button>
             </div>
           </div>
         </div>
@@ -710,14 +727,14 @@ function DeletePlanModal({ plan, onConfirm, onClose, loading, impactLoading, imp
           </div>
         )}
         <div className="mt-5 flex gap-2">
-          <button onClick={onConfirm} disabled={loading}
-            className="flex-1 rounded-lg bg-red-600 py-2 text-[13px] font-medium text-white hover:bg-red-500 disabled:opacity-40 transition-colors">
+          <Button variant="destructive" onClick={onConfirm} disabled={loading}
+            className="flex-1 bg-red-600 py-2 text-[13px] font-medium text-white hover:bg-red-500">
             {loading ? "Siliniyor…" : "Sil"}
-          </button>
-          <button onClick={onClose}
-            className="rounded-lg border border-border px-4 py-2 text-[13px] text-fg-muted hover:text-fg transition-colors">
+          </Button>
+          <Button variant="outline" onClick={onClose}
+            className="px-4 py-2 text-[13px] text-fg-muted hover:text-fg">
             İptal
-          </button>
+          </Button>
         </div>
       </div>
     </div>
@@ -1021,10 +1038,11 @@ function PlanRow({
   return (
     <div className="overflow-hidden rounded-xl border border-border bg-surface-raised">
       {/* Header row */}
-      <button
+      <Button
+        variant="ghost"
         type="button"
         onClick={() => setOpen(v => !v)}
-        className="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-surface-overlay/50 transition-colors"
+        className="flex h-auto w-full items-center justify-start gap-3 rounded-none px-4 py-3 text-left hover:bg-surface-overlay/50"
       >
         <IcChevron open={open} />
 
@@ -1035,12 +1053,12 @@ function PlanRow({
               <input autoFocus value={renameVal} onChange={e => setRenameVal(e.target.value)}
                 onKeyDown={e => { if (e.key === "Escape") { setRenaming(false); setRenameVal(plan.name); } }}
                 className="rounded-lg border border-brand bg-surface-overlay px-2 py-0.5 text-[13px] font-semibold text-fg outline-none ring-2 ring-brand/20 min-w-[180px]" />
-              <button type="submit" disabled={renameSaving || !renameVal.trim()}
-                className="rounded-md bg-brand px-2 py-0.5 text-[11px] font-semibold text-brand-fg disabled:opacity-40">
+              <Button variant="primary" size="sm" type="submit" disabled={renameSaving || !renameVal.trim()}
+                className="h-auto rounded-md px-2 py-0.5 text-[11px] font-semibold">
                 {renameSaving ? "…" : "Kaydet"}
-              </button>
-              <button type="button" onClick={() => { setRenaming(false); setRenameVal(plan.name); }}
-                className="text-[11px] text-fg-subtle hover:text-fg">İptal</button>
+              </Button>
+              <Button variant="ghost" size="sm" type="button" onClick={() => { setRenaming(false); setRenameVal(plan.name); }}
+                className="h-auto px-0 py-0 text-[11px] text-fg-subtle hover:text-fg">İptal</Button>
             </form>
           ) : (
             <p className="text-[13px] font-semibold text-fg truncate">{plan.name}</p>
@@ -1064,25 +1082,29 @@ function PlanRow({
         {/* Meta */}
         <span className="hidden md:inline shrink-0 text-[11px] text-fg-subtle">{fmtDate(plan.created_at)}</span>
         <span className="hidden sm:inline shrink-0 text-[11px] text-fg-subtle">{cycles.length} cycle</span>
-        <button
+        <Button
+          variant="ghost"
+          size="icon"
           type="button"
           onClick={e => { e.stopPropagation(); setRenaming(v => !v); setRenameVal(plan.name); }}
-          className="shrink-0 rounded-md p-1.5 text-fg-subtle hover:bg-surface-overlay hover:text-fg transition-colors"
+          className="h-auto w-auto shrink-0 p-1.5 text-fg-subtle hover:bg-surface-overlay hover:text-fg"
           title="Planı Yeniden Adlandır"
         >
           <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/>
           </svg>
-        </button>
-        <button
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
           type="button"
           onClick={e => { e.stopPropagation(); onDelete(plan); }}
-          className="shrink-0 rounded-md p-1.5 text-fg-subtle hover:bg-red-500/10 hover:text-red-400 transition-colors"
+          className="h-auto w-auto shrink-0 p-1.5 text-fg-subtle hover:bg-red-500/10 hover:text-red-400"
           title="Planı Sil"
         >
           <IcTrash />
-        </button>
-      </button>
+        </Button>
+      </Button>
 
       {/* Expanded cycles */}
       {open && (
@@ -1090,13 +1112,15 @@ function PlanRow({
           {cycles.length === 0 ? (
             <div className="flex items-center justify-between px-6 py-4">
               <p className="text-[11px] text-fg-subtle">Bu plana ait cycle yok.</p>
-              <button
+              <Button
+                variant="outline"
+                size="sm"
                 disabled
                 title="Önce cycle oluşturun"
-                className="flex items-center gap-1.5 rounded-lg border border-teal-500/25 px-3 py-1.5 text-[11px] font-medium text-teal-400 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                className="gap-1.5 border-teal-500/25 px-3 py-1.5 text-[11px] font-medium text-teal-400 disabled:cursor-not-allowed"
               >
                 <IcPlay /> Run Başlat
-              </button>
+              </Button>
             </div>
           ) : (
             cycles.map(cycle => {
@@ -1119,13 +1143,15 @@ function PlanRow({
             })
           )}
           <div className="border-t border-border/50 px-5 py-2">
-            <button
+            <Button
+              variant="ghost"
+              size="sm"
               type="button"
               onClick={() => onAddCycle(plan.id)}
-              className="flex items-center gap-1.5 text-[12px] text-fg-subtle hover:text-fg transition-colors py-1"
+              className="h-auto gap-1.5 px-0 py-1 text-[12px] text-fg-subtle hover:text-fg"
             >
               <IcPlus /> Yeni Cycle
-            </button>
+            </Button>
           </div>
         </div>
       )}
@@ -1332,7 +1358,7 @@ export default function ManagementPlansPage() {
 
   return (
     <PageErrorBoundary>
-    <div className="min-h-[calc(100vh-88px)] bg-bg text-fg">
+    <div className="min-h-[calc(100vh-88px)] bg-surface-base text-fg">
 
       {/* ── Header ─────────────────────────────────────────────────────────── */}
       <div className="flex items-center justify-between border-b border-border bg-surface-raised px-6 py-4">
@@ -1358,31 +1384,35 @@ export default function ManagementPlansPage() {
         <div className="flex items-center gap-2">
           {/* View toggle */}
           <div className="flex rounded-lg border border-border overflow-hidden">
-            <button
+            <Button
+              variant="ghost"
               onClick={() => setViewMode("list")}
-              className={cn("px-2.5 py-1 text-[11px] font-medium transition-colors", viewMode === "list" ? "bg-brand text-brand-fg" : "bg-surface-raised text-fg-muted hover:text-fg")}
+              className={cn("h-auto rounded-none px-2.5 py-1 text-[11px] font-medium", viewMode === "list" ? "bg-brand text-brand-fg" : "bg-surface-raised text-fg-muted hover:text-fg")}
             >
               <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 10h16M4 14h16M4 18h16"/>
               </svg>
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="ghost"
               onClick={() => setViewMode("gantt")}
-              className={cn("px-2.5 py-1 text-[11px] font-medium transition-colors", viewMode === "gantt" ? "bg-brand text-brand-fg" : "bg-surface-raised text-fg-muted hover:text-fg")}
+              className={cn("h-auto rounded-none px-2.5 py-1 text-[11px] font-medium", viewMode === "gantt" ? "bg-brand text-brand-fg" : "bg-surface-raised text-fg-muted hover:text-fg")}
               title="Gantt Görünümü"
             >
               <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M3 6h8M3 14h12M3 18h6"/>
               </svg>
-            </button>
+            </Button>
           </div>
           <RoleGuard minRole="member" projectId={projectId ?? undefined}>
-            <button
+            <Button
+              variant="primary"
+              size="sm"
               onClick={() => setShowPlanForm(v => !v)}
-              className="flex items-center gap-1.5 rounded-lg bg-brand px-3 py-1.5 text-[12px] font-medium text-brand-fg hover:brightness-105 transition-colors"
+              className="gap-1.5 text-[12px] font-medium"
             >
               <IcPlus /> {showPlanForm ? "İptal" : "Yeni Plan"}
-            </button>
+            </Button>
           </RoleGuard>
         </div>
       </div>
@@ -1468,7 +1498,7 @@ export default function ManagementPlansPage() {
                 />
               </div>
               <div className="flex flex-col justify-end">
-                <button type="button"
+                <Button variant="outline" size="sm" type="button"
                   disabled={isLoading || aiGenPlan.isPending || !planRelease.trim()}
                   title={!planRelease.trim() ? "AI önerisi için önce Release adı girin" : "AI ile plan özeti oluştur"}
                   onClick={async () => {
@@ -1476,18 +1506,19 @@ export default function ManagementPlansPage() {
                     if (!planName) setPlanName(res.name);
                     setPlanScope(res.scope_summary);
                   }}
-                  className="flex items-center gap-1.5 rounded-lg border border-teal-500/30 bg-teal-500/10 px-3 py-2 text-[11px] font-medium text-teal-400 hover:bg-brand-soft disabled:opacity-40 transition-colors whitespace-nowrap">
+                  className="gap-1.5 border-teal-500/30 bg-teal-500/10 px-3 py-2 text-[11px] font-medium text-teal-400 hover:bg-brand-soft whitespace-nowrap">
                   {aiGenPlan.isPending ? "AI üretiyor…" : "✦ AI Öner"}
-                </button>
+                </Button>
               </div>
             </div>
-            <button
+            <Button
+              variant="primary"
               type="submit"
               disabled={creating || createPlan.isPending || !planName.trim()}
-              className="rounded-lg bg-brand px-4 py-2 text-[12px] font-medium text-brand-fg hover:brightness-105 disabled:opacity-40 transition-colors"
+              className="px-4 py-2 text-[12px] font-medium"
             >
               {creating || createPlan.isPending ? "Oluşturuluyor…" : "Oluştur"}
-            </button>
+            </Button>
           </form>
         </div>
       )}
@@ -1533,13 +1564,14 @@ export default function ManagementPlansPage() {
               <p className="text-[14px] font-semibold text-fg">Henüz plan oluşturulmadı</p>
               <p className="mt-1 text-[12px] text-fg-subtle max-w-xs">Test planları; release&apos;leri, döngüleri ve koşumları organize eder.</p>
             </div>
-            <button
+            <Button
+              variant="primary"
               onClick={() => setShowPlanForm(true)}
-              className="flex items-center gap-2 rounded-xl bg-brand px-4 py-2 text-[13px] font-semibold text-brand-fg shadow-sm hover:brightness-105 transition-all"
+              className="gap-2 rounded-xl px-4 py-2 text-[13px] font-semibold shadow-sm"
             >
               <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4"/></svg>
               Yeni plan oluştur
-            </button>
+            </Button>
           </div>
         ) : (
           (plans ?? []).map((plan: TestPlan) => {
@@ -1628,19 +1660,21 @@ export default function ManagementPlansPage() {
                 </div>
               </div>
               <div className="flex gap-2 pt-1">
-                <button
+                <Button
+                  variant="primary"
                   onClick={() => void handleCreateCycle(addCycleForPlan)}
                   disabled={!cycleName.trim() || cycleCreating || createCycle.isPending}
-                  className="flex-1 rounded-lg bg-brand py-2 text-[13px] font-medium text-brand-fg hover:brightness-105 disabled:opacity-40 transition-colors"
+                  className="flex-1 py-2 text-[13px] font-medium"
                 >
                   {cycleCreating || createCycle.isPending ? "Oluşturuluyor…" : "Cycle Oluştur"}
-                </button>
-                <button
+                </Button>
+                <Button
+                  variant="outline"
                   onClick={() => { setAddCycleForPlan(null); setCycleName(""); setCycleEnv(""); setCycleBuild(""); }}
-                  className="rounded-lg border border-border px-4 py-2 text-[13px] text-fg-muted hover:text-fg transition-colors"
+                  className="px-4 py-2 text-[13px] text-fg-muted hover:text-fg"
                 >
                   İptal
-                </button>
+                </Button>
               </div>
             </div>
           </div>

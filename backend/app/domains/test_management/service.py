@@ -12,7 +12,7 @@ from datetime import datetime, timezone as _tz
 from pathlib import Path
 from typing import Any, Optional
 
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
 
@@ -20,6 +20,7 @@ from app.domains.test_management.models import (
     DEFAULT_TENANT_ID,
     DefectLink,
     ExecutionEvidence,
+    ExplorationSession,
     RegressionSet,
     RegressionSetCase,
     ReleaseSignoff,
@@ -1366,6 +1367,233 @@ def count_runs(
     return db.scalar(q) or 0
 
 
+def compare_runs(db: Session, project_id: str, base_run_id: str, target_run_id: str) -> dict[str, Any]:
+    """Diff two runs by matching run-cases on case_id.
+
+    Buckets (from the target run's perspective vs the base run):
+      newly_failed  — passed/blocked/etc in base, failed in target  (regressions)
+      fixed         — failed in base, passed in target
+      still_failing — failed in both
+      new_cases     — present in target, absent from base
+      removed_cases — present in base, absent from target
+    Also returns per-run pass-rate summary.
+    """
+    base = get_run(db, project_id, base_run_id)
+    target = get_run(db, project_id, target_run_id)
+
+    def _index(run: TestRun) -> dict[str, TestRunCase]:
+        idx: dict[str, TestRunCase] = {}
+        for rc in run.run_cases:
+            key = rc.case_id or (rc.case_snapshot or {}).get("case", {}).get("id")
+            if key:
+                idx[str(key)] = rc
+        return idx
+
+    def _meta(rc: TestRunCase) -> dict[str, Any]:
+        snap = (rc.case_snapshot or {}).get("case", {}) if rc.case_snapshot else {}
+        case = rc.case
+        return {
+            "case_id": rc.case_id,
+            "case_key": (case.case_key if case else None) or snap.get("case_key"),
+            "title": (case.title if case else None) or snap.get("title") or "(silinmiş case)",
+            "priority": (case.priority if case else None) or snap.get("priority"),
+        }
+
+    base_idx = _index(base)
+    target_idx = _index(target)
+
+    newly_failed: list[dict[str, Any]] = []
+    fixed: list[dict[str, Any]] = []
+    still_failing: list[dict[str, Any]] = []
+    new_cases: list[dict[str, Any]] = []
+    removed_cases: list[dict[str, Any]] = []
+
+    for key, t_rc in target_idx.items():
+        b_rc = base_idx.get(key)
+        if b_rc is None:
+            new_cases.append({**_meta(t_rc), "base_status": None, "target_status": t_rc.status})
+            continue
+        row = {**_meta(t_rc), "base_status": b_rc.status, "target_status": t_rc.status}
+        if t_rc.status == "failed" and b_rc.status != "failed":
+            newly_failed.append(row)
+        elif t_rc.status != "failed" and b_rc.status == "failed":
+            if t_rc.status in ("passed",):
+                fixed.append(row)
+        elif t_rc.status == "failed" and b_rc.status == "failed":
+            still_failing.append(row)
+
+    for key, b_rc in base_idx.items():
+        if key not in target_idx:
+            removed_cases.append({**_meta(b_rc), "base_status": b_rc.status, "target_status": None})
+
+    def _summary(run: TestRun) -> dict[str, Any]:
+        total = len(run.run_cases)
+        passed = sum(1 for rc in run.run_cases if rc.status == "passed")
+        failed = sum(1 for rc in run.run_cases if rc.status == "failed")
+        return {
+            "id": run.id,
+            "name": run.name,
+            "status": run.status,
+            "environment": run.environment,
+            "total": total,
+            "passed": passed,
+            "failed": failed,
+            "pass_rate": round(passed / total * 100, 1) if total else 0.0,
+        }
+
+    return {
+        "base": _summary(base),
+        "target": _summary(target),
+        "newly_failed": newly_failed,
+        "fixed": fixed,
+        "still_failing": still_failing,
+        "new_cases": new_cases,
+        "removed_cases": removed_cases,
+    }
+
+
+def list_my_work(
+    db: Session,
+    project_id: str,
+    user_id: str,
+    scope: str = "open",
+) -> list[dict[str, Any]]:
+    """Return run-cases assigned to a given user across all runs in a project.
+
+    scope="open"  → only actionable items (run-case status not_run/running and run not completed)
+    scope="all"   → every assigned run-case regardless of status
+    """
+    project_id = resolve_project_id(db, project_id)
+    q = (
+        select(TestRunCase, TestRun)
+        .join(TestRun, TestRunCase.run_id == TestRun.id)
+        .join(TestCycle, TestRun.cycle_id == TestCycle.id)
+        .join(TestPlan, TestCycle.plan_id == TestPlan.id)
+        .where(TestPlan.project_id == project_id)
+        .where(TestRunCase.assigned_to == user_id)
+    )
+    if scope == "open":
+        q = q.where(TestRunCase.status.in_(("not_run", "running")))
+        q = q.where(TestRun.status != "completed")
+    rows = db.execute(
+        q.order_by(TestRun.created_at.desc(), TestRunCase.id)
+    ).all()
+
+    items: list[dict[str, Any]] = []
+    for run_case, run in rows:
+        snap = (run_case.case_snapshot or {}).get("case", {}) if run_case.case_snapshot else {}
+        case = run_case.case
+        items.append(
+            {
+                "run_case_id": run_case.id,
+                "run_id": run.id,
+                "run_name": run.name,
+                "run_status": run.status,
+                "environment": run.environment,
+                "case_id": run_case.case_id,
+                "case_key": (case.case_key if case else None) or snap.get("case_key"),
+                "case_title": (case.title if case else None) or snap.get("title") or "(silinmiş case)",
+                "priority": (case.priority if case else None) or snap.get("priority"),
+                "type": (case.type if case else None) or snap.get("type"),
+                "status": run_case.status,
+                "started_at": run_case.started_at,
+                "completed_at": run_case.completed_at,
+            }
+        )
+    return items
+
+
+# ── Exploratory testing sessions ────────────────────────────────────────────────
+
+def list_exploration_sessions(db: Session, project_id: str) -> list[ExplorationSession]:
+    project_id = resolve_project_id(db, project_id)
+    return list(
+        db.scalars(
+            select(ExplorationSession)
+            .where(ExplorationSession.project_id == project_id)
+            .order_by(ExplorationSession.created_at.desc())
+        ).all()
+    )
+
+
+def get_exploration_session(db: Session, project_id: str, session_id: str) -> ExplorationSession:
+    project_id = resolve_project_id(db, project_id)
+    sess = db.get(ExplorationSession, session_id)
+    if sess is None or sess.project_id != project_id:
+        raise KeyError("Keşif oturumu bulunamadı")
+    return sess
+
+
+def create_exploration_session(db: Session, project_id: str, payload: Any, user: Any | None) -> ExplorationSession:
+    project_id = resolve_project_id(db, project_id)
+    sess = ExplorationSession(
+        project_id=project_id,
+        title=payload.title,
+        charter=payload.charter,
+        areas=payload.areas,
+        environment=payload.environment,
+        timebox_minutes=payload.timebox_minutes,
+        tester_id=_actor_id(user),
+    )
+    db.add(sess)
+    db.flush()
+    audit(db, "exploration.created", "exploration_session", sess.id, project_id, user)
+    db.commit()
+    db.refresh(sess)
+    return sess
+
+
+def update_exploration_session(db: Session, project_id: str, session_id: str, payload: Any, user: Any | None) -> ExplorationSession:
+    sess = get_exploration_session(db, project_id, session_id)
+    data = payload.model_dump(exclude_unset=True)
+    new_status = data.get("status")
+    if new_status == "active" and sess.started_at is None:
+        sess.started_at = utcnow()
+    if new_status in ("completed", "aborted") and sess.ended_at is None:
+        sess.ended_at = utcnow()
+    for key, value in data.items():
+        setattr(sess, key, value)
+    db.flush()
+    audit(db, "exploration.updated", "exploration_session", sess.id, sess.project_id, user, {"fields": list(data.keys())})
+    db.commit()
+    db.refresh(sess)
+    return sess
+
+
+def add_exploration_note(db: Session, project_id: str, session_id: str, payload: Any, user: Any | None) -> ExplorationSession:
+    import uuid as _uuid_mod
+
+    sess = get_exploration_session(db, project_id, session_id)
+    note = {
+        "id": _uuid_mod.uuid4().hex,
+        "ts": utcnow().isoformat(),
+        "kind": payload.kind,
+        "text": payload.text,
+    }
+    # JSONB column: reassign a new list so SQLAlchemy detects the change.
+    sess.notes = [*(sess.notes or []), note]
+    db.flush()
+    db.commit()
+    db.refresh(sess)
+    return sess
+
+
+def delete_exploration_note(db: Session, project_id: str, session_id: str, note_id: str, user: Any | None) -> ExplorationSession:
+    sess = get_exploration_session(db, project_id, session_id)
+    sess.notes = [n for n in (sess.notes or []) if n.get("id") != note_id]
+    db.flush()
+    db.commit()
+    db.refresh(sess)
+    return sess
+
+
+def delete_exploration_session(db: Session, project_id: str, session_id: str, user: Any | None) -> None:
+    sess = get_exploration_session(db, project_id, session_id)
+    db.delete(sess)
+    audit(db, "exploration.deleted", "exploration_session", session_id, sess.project_id, user)
+    db.commit()
+
+
 def create_run(db: Session, project_id: str, payload: TestRunCreate, user: Any | None) -> TestRun:
     project_id = resolve_project_id(db, project_id)
     cycle_id = payload.cycle_id
@@ -2059,6 +2287,100 @@ def list_defect_links(db: Session, project_id: str, case_id: str | None = None) 
         stmt = stmt.where(TestRunCase.case_id == case_id)
     stmt = stmt.order_by(DefectLink.created_at.desc())
     return list(db.scalars(stmt).all())
+
+
+def search_defects(db: Session, project_id: str, q: str | None = None, limit: int = 20) -> list[dict[str, Any]]:
+    """Return distinct defects in a project (deduped by external_key) for the 'link existing' picker.
+
+    Each entry keeps the most recent DefectLink row as the representative and counts how many
+    run-cases share the same external_key.
+    """
+    project_id = resolve_project_id(db, project_id)
+    stmt = (
+        select(DefectLink)
+        .join(TestRunCase, DefectLink.run_case_id == TestRunCase.id)
+        .join(TestCase, TestRunCase.case_id == TestCase.id)
+        .where(TestCase.project_id == project_id)
+    )
+    if q:
+        like = f"%{q.strip()}%"
+        stmt = stmt.where(or_(DefectLink.title.ilike(like), DefectLink.external_key.ilike(like)))
+    stmt = stmt.order_by(DefectLink.created_at.desc())
+    rows = list(db.scalars(stmt).all())
+
+    by_key: dict[str, dict[str, Any]] = {}
+    for d in rows:
+        entry = by_key.get(d.external_key)
+        if entry is None:
+            by_key[d.external_key] = {
+                "defect_id": d.id,
+                "external_key": d.external_key,
+                "external_source": d.external_source,
+                "title": d.title,
+                "status": d.status,
+                "severity": d.severity,
+                "priority": d.priority,
+                "url": d.url,
+                "root_cause": d.root_cause,
+                "link_count": 1,
+            }
+        else:
+            entry["link_count"] += 1
+    return list(by_key.values())[:limit]
+
+
+def link_existing_defect(
+    db: Session,
+    project_id: str,
+    run_case_id: str,
+    defect_id: str,
+    step_result_id: str | None,
+    user: Any | None,
+) -> DefectLink:
+    """Attach an already-recorded defect to another failed run-case.
+
+    Creates a new DefectLink row for ``run_case_id`` that reuses the source defect's
+    external_key, title and metadata. Idempotent: if this run-case already references
+    the same external_key, the existing link is returned untouched.
+    """
+    project_id = resolve_project_id(db, project_id)
+    run_case = db.get(TestRunCase, run_case_id)
+    if run_case is None or run_case.case is None or run_case.case.project_id != project_id:
+        raise KeyError("Run case bulunamadı")
+    source = db.get(DefectLink, defect_id)
+    if source is None:
+        raise KeyError("Defect bulunamadı")
+    # Verify the source defect belongs to the same project.
+    src_rc = db.get(TestRunCase, source.run_case_id)
+    if src_rc is None or src_rc.case is None or src_rc.case.project_id != project_id:
+        raise KeyError("Defect bulunamadı")
+    # Idempotency: same defect already linked to this run-case.
+    existing = db.scalar(
+        select(DefectLink).where(
+            DefectLink.run_case_id == run_case_id,
+            DefectLink.external_key == source.external_key,
+        )
+    )
+    if existing is not None:
+        return existing
+    link = DefectLink(
+        run_case_id=run_case_id,
+        step_result_id=step_result_id,
+        external_source=source.external_source,
+        external_key=source.external_key,
+        title=source.title,
+        status=source.status,
+        severity=source.severity,
+        priority=source.priority,
+        root_cause=source.root_cause,
+        url=source.url,
+    )
+    db.add(link)
+    db.flush()
+    audit(db, "defect_link.linked_existing", "defect_link", link.id, project_id, user, {"external_key": source.external_key})
+    db.commit()
+    db.refresh(link)
+    return link
 
 
 def create_defect_link(db: Session, project_id: str, payload: DefectLinkCreate, user: Any | None) -> DefectLink:
@@ -3073,24 +3395,29 @@ def list_flaky_cases(
     threshold: float = 0.2,
     min_runs: int = 3,
     limit: int = 50,
+    include_manual: bool = False,
 ) -> dict:
-    """Return test cases above the flakiness threshold, ordered by score desc."""
+    """Return test cases above the flakiness threshold, ordered by score desc.
+
+    Flakiness is an automation-stability signal; for purely manual cases a non-zero
+    score usually reflects human inconsistency rather than a flaky test, so by default
+    manual-only cases are excluded. Pass include_manual=True to keep them.
+    """
     real_pid = resolve_project_id(db, project_id)
-    cases = (
-        db.execute(
-            select(TestCase)
-            .where(
-                TestCase.project_id == real_pid,
-                TestCase.flakiness_score >= threshold,
-                TestCase.run_count >= min_runs,
-                TestCase.archived.is_(False),
-            )
-            .order_by(TestCase.flakiness_score.desc())
-            .limit(limit)
+    stmt = (
+        select(TestCase)
+        .where(
+            TestCase.project_id == real_pid,
+            TestCase.flakiness_score >= threshold,
+            TestCase.run_count >= min_runs,
+            TestCase.archived.is_(False),
         )
-        .scalars()
-        .all()
+        .order_by(TestCase.flakiness_score.desc())
+        .limit(limit)
     )
+    if not include_manual:
+        stmt = stmt.where(TestCase.automation_status.in_(("automated", "in_progress")))
+    cases = db.execute(stmt).scalars().all()
     return {"items": cases, "total": len(cases), "threshold": threshold}
 
 

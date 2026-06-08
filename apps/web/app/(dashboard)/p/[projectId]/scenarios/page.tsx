@@ -4,6 +4,7 @@ import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import { useRouteParam } from "@/lib/use-route-param";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 import {
   DndContext,
   DragOverlay,
@@ -158,20 +159,22 @@ function RepositoryEditorRow({
         />
       </div>
       <div className="mt-2 flex items-center justify-end gap-1.5">
-        <button
+        <Button
           type="button"
           onClick={onSave}
-          className="inline-flex h-7 items-center rounded-md bg-brand px-2 text-[11px] font-semibold text-brand-fg shadow-xs transition-colors hover:brightness-105"
+          variant="primary"
+          size="sm"
         >
           Kaydet
-        </button>
-        <button
+        </Button>
+        <Button
           type="button"
           onClick={onCancel}
-          className="inline-flex h-7 items-center rounded-md border border-border bg-surface-raised px-2 text-[11px] font-medium text-fg-subtle transition-colors hover:bg-surface-overlay hover:text-fg"
+          variant="outline"
+          size="sm"
         >
           İptal
-        </button>
+        </Button>
       </div>
     </div>
   );
@@ -241,42 +244,48 @@ function FolderNode({
     <div>
       <div className="group flex items-center gap-0.5" style={{ paddingLeft: depth * 12 }}>
         {children.length > 0 ? (
-          <button type="button" onClick={() => setOpen(p => !p)}
-            className="flex h-5 w-4 shrink-0 items-center justify-center rounded text-fg-subtle transition-colors hover:bg-surface-overlay hover:text-fg">
+          <Button type="button" onClick={() => setOpen(p => !p)}
+            variant="ghost" size="icon"
+            className="h-5 w-4 shrink-0 rounded text-fg-subtle hover:bg-surface-overlay hover:text-fg">
             <IcChevron open={open}/>
-          </button>
+          </Button>
         ) : (
           <span className="w-4 shrink-0"/>
         )}
-        <button type="button" onClick={() => onSelect({ type: "folder", id: folder.id, suiteId: folder.suite_id })}
-          className={cn("flex flex-1 min-w-0 items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs transition-colors",
+        <Button type="button" onClick={() => onSelect({ type: "folder", id: folder.id, suiteId: folder.suite_id })}
+          variant="ghost" size="sm"
+          className={cn("flex flex-1 min-w-0 items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs",
             isSel ? "border border-brand/20 bg-brand-soft text-brand shadow-xs"
                   : "text-fg-muted hover:bg-surface-overlay hover:text-fg")}>
           {open && children.length > 0 ? <IcFolderOpen/> : <IcFolder/>}
           <span className="flex-1 truncate text-left">{folder.name}</span>
           <span className="shrink-0 rounded bg-surface-overlay px-1 py-0.5 text-[10px] font-medium text-fg-subtle">{fc}</span>
-        </button>
+        </Button>
         <div className="opacity-0 group-hover:opacity-100 flex items-center gap-0 transition-all">
-          <button type="button" title="Alt klasör ekle"
+          <Button type="button" title="Alt klasör ekle"
             onClick={() => { setAddTarget({ suiteId: folder.suite_id, parentFolderId: folder.id }); setOpen(true); }}
-            className="flex h-5 w-5 items-center justify-center rounded text-fg-subtle transition-colors hover:bg-surface-overlay hover:text-brand">
+            variant="ghost" size="icon"
+            className="h-5 w-5 text-fg-subtle hover:bg-surface-overlay hover:text-brand">
             <IcPlus/>
-          </button>
-          <button type="button" title="Yeniden adlandır"
+          </Button>
+          <Button type="button" title="Yeniden adlandır"
             onClick={() => onRename({ type: "folder", id: folder.id, name: folder.name })}
-            className="flex h-5 w-5 items-center justify-center rounded text-fg-subtle transition-colors hover:bg-surface-overlay hover:text-fg">
+            variant="ghost" size="icon"
+            className="h-5 w-5 text-fg-subtle hover:bg-surface-overlay hover:text-fg">
             <IcPencil/>
-          </button>
-          <button type="button" title="Taşı"
+          </Button>
+          <Button type="button" title="Taşı"
             onClick={() => onMove({ folder })}
-            className="flex h-5 w-5 items-center justify-center rounded text-fg-subtle transition-colors hover:bg-surface-overlay hover:text-brand">
+            variant="ghost" size="icon"
+            className="h-5 w-5 text-fg-subtle hover:bg-surface-overlay hover:text-brand">
             <IcMove/>
-          </button>
-          <button type="button" title="Sil"
+          </Button>
+          <Button type="button" title="Sil"
             onClick={() => onDelete({ type: "folder", id: folder.id, name: folder.name })}
-            className="flex h-5 w-5 items-center justify-center rounded text-fg-subtle transition-colors hover:bg-danger-subtle hover:text-danger">
+            variant="ghost-danger" size="icon"
+            className="h-5 w-5">
             <IcTrash/>
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -393,14 +402,15 @@ function SuiteTree({ suites, folders, cases, selected, onSelect, projectId }: {
           <IcSearch/>
           <input type="text" value={treeSearch} onChange={e => setTreeSearch(e.target.value)}
             placeholder="Suite ara…" className="flex-1 bg-transparent text-xs font-medium text-fg placeholder:text-fg-subtle outline-none"/>
-          {treeSearch && <button type="button" onClick={() => setTreeSearch("")} className="text-fg-subtle transition-colors hover:text-fg"><IcClose/></button>}
+          {treeSearch && <Button type="button" onClick={() => setTreeSearch("")} variant="ghost" size="icon" className="h-auto w-auto text-fg-subtle hover:text-fg"><IcClose/></Button>}
         </div>
       </div>
 
       {/* All Cases */}
       <div className="px-2 pt-2">
-        <button type="button" onClick={() => onSelect({ type: "all" })}
-          className={cn("flex w-full items-center gap-2.5 rounded-xl px-3 py-2 transition-colors",
+        <Button type="button" onClick={() => onSelect({ type: "all" })}
+          variant="ghost"
+          className={cn("flex w-full items-center gap-2.5 rounded-xl px-3 py-2",
             selected.type === "all"
               ? "border border-brand/20 bg-brand-soft text-brand shadow-xs"
               : "text-fg-muted hover:bg-surface-overlay hover:text-fg")}>
@@ -408,7 +418,7 @@ function SuiteTree({ suites, folders, cases, selected, onSelect, projectId }: {
           <span className="flex-1 text-left text-xs font-semibold">Tüm Senaryolar</span>
           <span className={cn("rounded-full px-1.5 py-0.5 text-[10px] font-semibold",
             selected.type === "all" ? "bg-surface-raised text-brand" : "bg-surface-overlay text-fg-muted")}>{totalActive}</span>
-        </button>
+        </Button>
       </div>
 
       {/* Suites */}
@@ -429,35 +439,40 @@ function SuiteTree({ suites, folders, cases, selected, onSelect, projectId }: {
             <div key={suite.id}>
               {/* Suite row */}
               <div className="group flex items-center gap-0.5">
-                <button type="button" onClick={() => toggle(suite.id)}
-                  className="flex h-6 w-5 items-center justify-center rounded text-fg-subtle transition-colors hover:bg-surface-overlay hover:text-fg">
+                <Button type="button" onClick={() => toggle(suite.id)}
+                  variant="ghost" size="icon"
+                  className="h-6 w-5 rounded text-fg-subtle hover:bg-surface-overlay hover:text-fg">
                   <IcChevron open={isExp}/>
-                </button>
-                <button type="button" onClick={() => onSelect({ type: "suite", id: suite.id })}
-                  className={cn("flex flex-1 min-w-0 items-center gap-2 rounded-xl px-2 py-1.5 transition-colors",
+                </Button>
+                <Button type="button" onClick={() => onSelect({ type: "suite", id: suite.id })}
+                  variant="ghost"
+                  className={cn("flex flex-1 min-w-0 items-center gap-2 rounded-xl px-2 py-1.5",
                     isSel ? "border border-brand/20 bg-brand-soft text-brand shadow-xs"
                            : "text-fg-muted hover:bg-surface-overlay hover:text-fg")}>
                   <span className={cn("flex h-5 w-5 shrink-0 items-center justify-center rounded-md text-[9px] font-bold",
                     isSel ? "border border-brand/20 bg-surface-raised text-brand" : "bg-surface-overlay text-fg-muted")}>S</span>
                   <span className="flex-1 truncate text-left text-xs font-semibold">{suite.name}</span>
                   <span className="shrink-0 rounded bg-surface-overlay px-1 py-0.5 text-[10px] font-medium text-fg-subtle">{sc}</span>
-                </button>
+                </Button>
                 <div className="opacity-0 group-hover:opacity-100 flex items-center gap-0 transition-all">
-                  <button type="button" title="Klasör ekle"
+                  <Button type="button" title="Klasör ekle"
                     onClick={() => { setAddTarget({ suiteId: suite.id }); setExpanded(p => new Set([...p, suite.id])); }}
-                    className="flex h-5 w-5 items-center justify-center rounded text-fg-subtle transition-colors hover:bg-surface-overlay hover:text-brand">
+                    variant="ghost" size="icon"
+                    className="h-5 w-5 rounded text-fg-subtle hover:bg-surface-overlay hover:text-brand">
                     <IcPlus/>
-                  </button>
-                  <button type="button" title="Yeniden adlandır"
+                  </Button>
+                  <Button type="button" title="Yeniden adlandır"
                     onClick={() => openRename({ type: "suite", id: suite.id, name: suite.name })}
-                    className="flex h-5 w-5 items-center justify-center rounded text-fg-subtle transition-colors hover:bg-surface-overlay hover:text-fg">
+                    variant="ghost" size="icon"
+                    className="h-5 w-5 rounded text-fg-subtle hover:bg-surface-overlay hover:text-fg">
                     <IcPencil/>
-                  </button>
-                  <button type="button" title="Sil"
+                  </Button>
+                  <Button type="button" title="Sil"
                     onClick={() => setConfirmDelete({ type: "suite", id: suite.id, name: suite.name })}
-                    className="flex h-5 w-5 items-center justify-center rounded text-fg-subtle transition-colors hover:bg-danger-subtle hover:text-danger">
+                    variant="ghost-danger" size="icon"
+                    className="h-5 w-5 rounded">
                     <IcTrash/>
-                  </button>
+                  </Button>
                 </div>
               </div>
 
@@ -496,10 +511,11 @@ function SuiteTree({ suites, folders, cases, selected, onSelect, projectId }: {
             value={suiteName} setValue={setSuiteName} placeholder="Suite adı" marker="S"
             onSave={saveSuite} onCancel={() => { setShowSuiteInput(false); setSuiteName(""); }}/>
         ) : (
-          <button type="button" onClick={() => setShowSuiteInput(true)}
-            className="mt-1 flex w-full items-center gap-2 rounded-xl border border-dashed border-border bg-surface-raised/60 px-3 py-2 text-xs font-medium text-fg-muted transition-colors hover:border-brand/35 hover:bg-brand-soft/60 hover:text-brand">
+          <Button type="button" onClick={() => setShowSuiteInput(true)}
+            variant="ghost"
+            className="mt-1 flex w-full items-center gap-2 rounded-xl border border-dashed border-border bg-surface-raised/60 px-3 py-2 text-xs font-medium text-fg-muted hover:border-brand/35 hover:bg-brand-soft/60 hover:text-brand">
             <IcPlus/> Yeni Suite
-          </button>
+          </Button>
         )}
       </div>
 
@@ -524,15 +540,17 @@ function SuiteTree({ suites, folders, cases, selected, onSelect, projectId }: {
               onKeyDown={e => { if (e.key === "Enter") commitRename(); if (e.key === "Escape") setRenaming(null); }}
               className="w-full rounded-xl border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white outline-none focus:border-slate-600 transition-colors"/>
             <div className="mt-4 flex justify-end gap-2">
-              <button type="button" onClick={() => setRenaming(null)}
-                className="rounded-xl border border-slate-700 px-3 py-1.5 text-xs text-slate-400 hover:text-slate-200 transition-colors">
+              <Button type="button" onClick={() => setRenaming(null)}
+                variant="outline" size="sm"
+                className="rounded-xl border-slate-700 px-3 text-slate-400 hover:text-slate-200">
                 İptal
-              </button>
-              <button type="button" onClick={commitRename}
+              </Button>
+              <Button type="button" onClick={commitRename}
                 disabled={!renameDraft.trim() || updateSuite.isPending || updateFolder.isPending}
-                className="rounded-xl bg-blue-600 px-4 py-1.5 text-xs font-semibold text-white hover:bg-blue-500 disabled:opacity-40 transition-colors">
+                variant="primary" size="sm"
+                className="rounded-xl bg-blue-600 px-4 font-semibold text-white hover:bg-blue-500">
                 Kaydet
-              </button>
+              </Button>
             </div>
           </div>
         </div>
@@ -553,15 +571,17 @@ function SuiteTree({ suites, folders, cases, selected, onSelect, projectId }: {
                 : " klasörünü silmek istediğinize emin misiniz?"}
             </p>
             <div className="flex justify-end gap-2">
-              <button type="button" onClick={() => setConfirmDelete(null)}
-                className="rounded-xl border border-slate-700 px-3 py-1.5 text-xs text-slate-400 hover:text-slate-200 transition-colors">
+              <Button type="button" onClick={() => setConfirmDelete(null)}
+                variant="outline" size="sm"
+                className="rounded-xl border-slate-700 px-3 text-slate-400 hover:text-slate-200">
                 İptal
-              </button>
-              <button type="button" onClick={commitDelete}
+              </Button>
+              <Button type="button" onClick={commitDelete}
                 disabled={deleteSuite.isPending || deleteFolder.isPending}
-                className="rounded-xl bg-red-600 px-4 py-1.5 text-xs font-semibold text-white hover:bg-red-500 disabled:opacity-40 transition-colors">
+                variant="destructive" size="sm"
+                className="rounded-xl bg-red-600 px-4 font-semibold text-white hover:bg-red-500">
                 {deleteSuite.isPending || deleteFolder.isPending ? "Siliniyor…" : "Sil"}
-              </button>
+              </Button>
             </div>
           </div>
         </div>
@@ -578,26 +598,29 @@ function SuiteTree({ suites, folders, cases, selected, onSelect, projectId }: {
             </p>
             <div className="max-h-48 overflow-y-auto space-y-1.5">
               {suites.filter(s => s.id !== moveFolder.folder.suite_id).map(s => (
-                <button key={s.id} type="button" onClick={() => setMoveSuiteId(s.id)}
-                  className={cn("flex w-full items-center gap-2 rounded-xl px-3 py-2 text-xs transition-colors border",
+                <Button key={s.id} type="button" onClick={() => setMoveSuiteId(s.id)}
+                  variant="ghost"
+                  className={cn("flex w-full items-center gap-2 rounded-xl px-3 py-2 text-xs border",
                     moveSuiteId === s.id
                       ? "bg-blue-500/10 text-blue-300 border-blue-500/20"
                       : "text-slate-300 hover:bg-slate-800 border-transparent")}>
                   <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-slate-700 text-[9px] font-bold">S</span>
                   {s.name}
-                </button>
+                </Button>
               ))}
             </div>
             <div className="mt-4 flex justify-end gap-2">
-              <button type="button" onClick={() => setMoveFolder(null)}
-                className="rounded-xl border border-slate-700 px-3 py-1.5 text-xs text-slate-400 hover:text-slate-200 transition-colors">
+              <Button type="button" onClick={() => setMoveFolder(null)}
+                variant="outline" size="sm"
+                className="rounded-xl border-slate-700 px-3 text-slate-400 hover:text-slate-200">
                 İptal
-              </button>
-              <button type="button" onClick={commitMove}
+              </Button>
+              <Button type="button" onClick={commitMove}
                 disabled={!moveSuiteId || updateFolder.isPending}
-                className="rounded-xl bg-blue-600 px-4 py-1.5 text-xs font-semibold text-white hover:bg-blue-500 disabled:opacity-40 transition-colors">
+                variant="primary" size="sm"
+                className="rounded-xl bg-blue-600 px-4 font-semibold text-white hover:bg-blue-500">
                 {updateFolder.isPending ? "Taşınıyor…" : "Taşı"}
-              </button>
+              </Button>
             </div>
           </div>
         </div>
@@ -618,15 +641,16 @@ function StepRow({ step, index, onChange, onRemove }: {
       style={{ transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.35 : 1 }}
       className="rounded-xl border border-slate-800 bg-slate-950/60 p-3">
       <div className="flex items-center gap-2 mb-2">
-        <button type="button" {...attributes} {...listeners}
-          className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-slate-800 font-mono text-[10px] font-bold text-slate-400 cursor-grab active:cursor-grabbing touch-none">
+        <Button type="button" {...attributes} {...listeners}
+          variant="ghost" size="icon"
+          className="h-6 w-6 shrink-0 rounded-full bg-slate-800 font-mono text-[10px] font-bold text-slate-400 cursor-grab active:cursor-grabbing touch-none">
           {index + 1}
-        </button>
+        </Button>
         <label className="ml-auto flex items-center gap-1.5 text-[10px] text-slate-500">
           <input type="checkbox" checked={step.is_required} onChange={e => onChange({ ...step, is_required: e.target.checked })} className="h-3 w-3 accent-blue-500 rounded"/>
           Zorunlu
         </label>
-        <button type="button" onClick={onRemove} className="text-slate-700 hover:text-red-400 transition-colors"><IcClose/></button>
+        <Button type="button" onClick={onRemove} variant="ghost" size="icon" className="h-auto w-auto text-slate-700 hover:text-red-400"><IcClose/></Button>
       </div>
       <div className="grid gap-2 sm:grid-cols-2">
         <textarea value={step.action} onChange={e => onChange({ ...step, action: e.target.value })}
@@ -682,10 +706,11 @@ function DetailPanel({ tc, suites, folders, onClose, projectId, mgmtProjectId }:
           </div>
           <h2 className="mt-1.5 text-sm font-semibold text-white leading-snug">{tc.title}</h2>
         </div>
-        <button type="button" onClick={onClose}
-          className="shrink-0 rounded-lg p-1.5 text-slate-600 hover:bg-slate-800 hover:text-slate-200 transition-colors">
+        <Button type="button" onClick={onClose}
+          variant="ghost" size="icon"
+          className="shrink-0 rounded-lg p-1.5 text-slate-600 hover:bg-slate-800 hover:text-slate-200">
           <IcClose/>
-        </button>
+        </Button>
       </div>
 
       {/* Actions */}
@@ -694,26 +719,28 @@ function DetailPanel({ tc, suites, folders, onClose, projectId, mgmtProjectId }:
           className="flex items-center gap-1.5 rounded-lg border border-slate-700 px-2.5 py-1.5 text-xs text-slate-300 hover:bg-slate-800 hover:text-white transition-colors">
           <IcEdit/> Düzenle
         </Link>
-        <button type="button" disabled={clone.isPending}
+        <Button type="button" disabled={clone.isPending}
           onClick={async () => {
             const cloned = await clone.mutateAsync({ caseId: tc.id });
             setCloneMsg(cloned.case_key ?? cloned.title);
             setTimeout(() => setCloneMsg(null), 3000);
           }}
-          className="flex items-center gap-1.5 rounded-lg border border-slate-700 px-2.5 py-1.5 text-xs text-slate-400 hover:bg-slate-800 disabled:opacity-40 transition-colors">
+          variant="outline" size="sm"
+          className="flex items-center gap-1.5 rounded-lg border-slate-700 px-2.5 text-slate-400 hover:bg-slate-800">
           <IcCopy/> {clone.isPending ? "Kopyalanıyor…" : "Kopyala"}
-        </button>
+        </Button>
         {cloneMsg && (
           <span className="text-[10px] text-emerald-400">✓ {cloneMsg}</span>
         )}
-        <button type="button" disabled={improve.isPending}
+        <Button type="button" disabled={improve.isPending}
           onClick={async () => {
             const res = await improve.mutateAsync({ caseId: tc.id, focus: "all" });
             setImproveResult(res);
           }}
-          className="ml-auto flex items-center gap-1.5 rounded-lg border border-blue-500/20 bg-slate-800/60 px-2.5 py-1.5 text-xs text-blue-400 hover:bg-blue-500/8 disabled:opacity-40 transition-colors">
+          variant="primary" size="sm"
+          className="ml-auto flex items-center gap-1.5 rounded-lg border border-blue-500/20 bg-slate-800/60 px-2.5 text-blue-400 hover:bg-blue-500/8">
           <IcSparkle/> {improve.isPending ? "İyileştiriliyor…" : "AI İyileştir"}
-        </button>
+        </Button>
       </div>
 
       {/* AI Improve result */}
@@ -721,7 +748,7 @@ function DetailPanel({ tc, suites, folders, onClose, projectId, mgmtProjectId }:
         <div className="border-b border-slate-800 bg-blue-500/5 px-4 py-3 space-y-2">
           <div className="flex items-center justify-between">
             <p className="text-[10px] font-semibold uppercase tracking-widest text-blue-400">AI Önerileri</p>
-            <button type="button" onClick={() => setImproveResult(null)} className="text-[10px] text-slate-600 hover:text-slate-300">✕</button>
+            <Button type="button" onClick={() => setImproveResult(null)} variant="ghost" size="icon" className="h-auto w-auto text-[10px] text-slate-600 hover:text-slate-300">✕</Button>
           </div>
           {improveResult.suggestions.length > 0 && (
             <ul className="space-y-0.5">
@@ -744,11 +771,12 @@ function DetailPanel({ tc, suites, folders, onClose, projectId, mgmtProjectId }:
           { key: "history"       as const, label: "Geçmiş" },
           { key: "requirements"  as const, label: `Gereksinimler (${caseReqs.length})` },
         ]).map(t => (
-          <button key={t.key} type="button" onClick={() => setTab(t.key)}
-            className={cn("shrink-0 px-3 py-2.5 text-xs font-medium border-b-2 -mb-px transition-colors",
+          <Button key={t.key} type="button" onClick={() => setTab(t.key)}
+            variant="ghost" size="sm"
+            className={cn("shrink-0 rounded-none px-3 py-2.5 text-xs font-medium border-b-2 -mb-px",
               tab === t.key ? "border-blue-500 text-blue-400" : "border-transparent text-slate-500 hover:text-slate-300")}>
             {t.label}
-          </button>
+          </Button>
         ))}
       </div>
 
@@ -959,17 +987,19 @@ function NewCaseModal({ projectId, suites, folders, defSuiteId, defFolderId, onC
             <p className="mt-0.5 text-[10px] text-slate-500">Manuel test case oluştur</p>
           </div>
           <div className="flex items-center gap-2">
-            <button type="button" onClick={() => setShowAI(v => !v)}
-              className={cn("flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs transition-colors",
+            <Button type="button" onClick={() => setShowAI(v => !v)}
+              variant="ghost" size="sm"
+              className={cn("flex items-center gap-1.5 rounded-xl border px-3 text-xs",
                 showAI
                   ? "border-blue-500/40 bg-blue-500/10 text-blue-400"
                   : "border-blue-500/20 bg-slate-800/60 text-blue-400 hover:bg-blue-500/8")}>
               <IcSparkle/> AI ile Üret
-            </button>
-            <button type="button" onClick={onClose}
-              className="rounded-lg p-1.5 text-slate-600 hover:bg-slate-800 hover:text-slate-200 transition-colors">
+            </Button>
+            <Button type="button" onClick={onClose}
+              variant="ghost" size="icon"
+              className="rounded-lg p-1.5 text-slate-600 hover:bg-slate-800 hover:text-slate-200">
               <IcClose/>
-            </button>
+            </Button>
           </div>
         </div>
 
@@ -986,21 +1016,22 @@ function NewCaseModal({ projectId, suites, folders, defSuiteId, defFolderId, onC
               className="w-full resize-none rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-xs text-white placeholder-slate-600 focus:border-slate-600 focus:outline-none"
             />
             <div className="flex items-center gap-2">
-              <button type="button"
+              <Button type="button"
                 onClick={async () => {
                   if (!aiPrompt.trim()) return;
                   const res = await generateAI.mutateAsync({ prompt: aiPrompt.trim(), count: 3, suite_id: suiteId || null, folder_id: folderId || null, save: false });
                   setAiResults(res.cases);
                 }}
                 disabled={!aiPrompt.trim() || generateAI.isPending}
-                className="flex items-center gap-1.5 rounded-xl bg-blue-600 px-3 py-1.5 text-[10px] font-semibold text-white hover:bg-blue-500 disabled:opacity-40">
+                variant="primary" size="sm"
+                className="flex items-center gap-1.5 rounded-xl bg-blue-600 px-3 text-[10px] font-semibold text-white hover:bg-blue-500">
                 {generateAI.isPending ? "Üretiliyor…" : <><IcSparkle/> Üret (3 senaryo)</>}
-              </button>
+              </Button>
             </div>
             {aiResults.length > 0 && (
               <div className="space-y-1.5 max-h-48 overflow-y-auto">
                 {aiResults.map((gc, i) => (
-                  <button key={i} type="button"
+                  <Button key={i} type="button"
                     onClick={() => {
                       if (!title) setTitle(gc.title);
                       if (!objective) setObjective(gc.objective);
@@ -1009,14 +1040,15 @@ function NewCaseModal({ projectId, suites, folders, defSuiteId, defFolderId, onC
                       if (gc.steps.length) setSteps(gc.steps.map(s => makeStep({ action: s.action, expected_result: s.expected_result, is_required: s.is_required })));
                       setShowAI(false);
                     }}
-                    className="flex w-full items-start gap-2 rounded-lg border border-slate-700 bg-slate-800/60 px-3 py-2 text-left hover:border-blue-500/30 transition-colors">
+                    variant="ghost"
+                    className="flex h-auto w-full items-start gap-2 rounded-lg border border-slate-700 bg-slate-800/60 px-3 py-2 text-left hover:border-blue-500/30">
                     <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-slate-700 text-[9px] font-bold text-slate-300">{i+1}</span>
                     <div className="min-w-0 flex-1">
                       <p className="text-xs font-medium text-slate-200 line-clamp-1">{gc.title}</p>
                       <p className="text-[10px] text-slate-500">{gc.steps.length} adım · {gc.priority}</p>
                     </div>
                     <span className="shrink-0 text-[10px] text-blue-400">Uygula →</span>
-                  </button>
+                  </Button>
                 ))}
               </div>
             )}
@@ -1096,10 +1128,11 @@ function NewCaseModal({ projectId, suites, folders, defSuiteId, defFolderId, onC
           <div>
             <div className="mb-2 flex items-center justify-between">
               <label className="text-[10px] font-medium uppercase tracking-wide text-slate-500">Test Adımları</label>
-              <button type="button" onClick={() => setSteps(s => [...s, makeStep()])}
-                className="flex items-center gap-1 rounded-lg border border-slate-700 px-2 py-1 text-[10px] text-slate-400 hover:text-slate-300 transition-colors">
+              <Button type="button" onClick={() => setSteps(s => [...s, makeStep()])}
+                variant="outline" size="sm"
+                className="flex items-center gap-1 rounded-lg border-slate-700 px-2 text-[10px] text-slate-400 hover:text-slate-300">
                 <IcPlus/> Adım Ekle
-              </button>
+              </Button>
             </div>
             <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onStepDragEnd}>
               <SortableContext items={steps.map(s => s.id)} strategy={verticalListSortingStrategy}>
@@ -1119,14 +1152,16 @@ function NewCaseModal({ projectId, suites, folders, defSuiteId, defFolderId, onC
 
         {/* Footer */}
         <div className="flex items-center justify-between border-t border-slate-800 px-6 py-4">
-          <button type="button" onClick={onClose}
-            className="rounded-xl border border-slate-700 px-4 py-2 text-xs text-slate-400 hover:border-slate-600 hover:text-slate-200 transition-colors">
+          <Button type="button" onClick={onClose}
+            variant="outline"
+            className="rounded-xl border-slate-700 px-4 text-xs text-slate-400 hover:border-slate-600 hover:text-slate-200">
             İptal
-          </button>
-          <button type="button" onClick={save} disabled={!title.trim() || createCase.isPending}
-            className="rounded-xl bg-blue-600 px-5 py-2 text-xs font-semibold text-white hover:bg-blue-500 disabled:opacity-40 transition-colors">
+          </Button>
+          <Button type="button" onClick={save} disabled={!title.trim() || createCase.isPending}
+            variant="primary"
+            className="rounded-xl bg-blue-600 px-5 text-xs font-semibold text-white hover:bg-blue-500">
             {createCase.isPending ? "Kaydediliyor…" : "Kaydet"}
-          </button>
+          </Button>
         </div>
       </div>
     </div>
@@ -1429,15 +1464,17 @@ export default function ScenariosPage() {
             </button>
           </div>
           {hasFilter && (
-            <button type="button" onClick={clearFilters}
-              className="rounded-xl border border-danger/20 px-2 py-1.5 text-[10px] font-semibold text-danger transition-colors hover:bg-danger-subtle">
+            <Button type="button" onClick={clearFilters}
+              variant="ghost-danger" size="sm"
+              className="rounded-xl border border-danger/20 px-2 text-[10px] font-semibold">
               Temizle
-            </button>
+            </Button>
           )}
-          <button type="button" onClick={() => setShowModal(true)}
-            className="flex items-center gap-1.5 rounded-xl bg-brand px-3 py-1.5 text-xs font-semibold text-brand-fg shadow-sm transition-colors hover:brightness-105">
+          <Button type="button" onClick={() => setShowModal(true)}
+            variant="primary" size="sm"
+            className="gap-1.5 rounded-xl bg-brand px-3 text-xs font-semibold text-brand-fg shadow-sm hover:brightness-105">
             <IcPlus/> Yeni Senaryo
-          </button>
+          </Button>
         </div>
 
         {/* Bulk actions */}
@@ -1445,12 +1482,13 @@ export default function ScenariosPage() {
           <div className="flex flex-wrap items-center gap-2 border-b border-brand/15 bg-brand-soft/70 px-4 py-1.5">
             <span className="text-[10px] font-semibold text-brand">{checkedIds.size} seçili</span>
             {["Aktife Al","Arşivle"].map(lbl => (
-              <button key={lbl} type="button"
-                className={cn("rounded-lg border px-2.5 py-1 text-[10px] transition-colors",
+              <Button key={lbl} type="button"
+                variant="ghost" size="sm"
+                className={cn("rounded-lg border px-2.5 text-[10px]",
                   lbl === "Arşivle" ? "border-danger/20 text-danger hover:bg-danger-subtle"
                                    : "border-border bg-surface-raised text-fg-muted hover:border-brand/25 hover:text-fg")}>
                 {lbl}
-              </button>
+              </Button>
             ))}
             {/* Bulk priority */}
             <select onChange={async e => {
@@ -1495,7 +1533,7 @@ export default function ScenariosPage() {
                   <svg className="mb-4 h-14 w-14 text-fg-subtle" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}><circle cx="11" cy="11" r="8"/><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35"/></svg>
                   <h3 className="text-sm font-semibold text-fg">Senaryo bulunamadı</h3>
                   <p className="mt-1 text-xs text-fg-muted">Filtre veya arama terimini değiştirin</p>
-                  <button type="button" onClick={clearFilters} className="mt-4 rounded-xl border border-border bg-surface-raised px-4 py-2 text-xs font-medium text-fg-muted transition-colors hover:bg-surface-overlay hover:text-fg">Filtreleri Temizle</button>
+                  <Button type="button" onClick={clearFilters} variant="outline" className="mt-4 rounded-xl border-border bg-surface-raised px-4 text-xs font-medium text-fg-muted hover:bg-surface-overlay hover:text-fg">Filtreleri Temizle</Button>
                 </>
               ) : (
                 <>
@@ -1525,10 +1563,11 @@ export default function ScenariosPage() {
                   </div>
                   <h3 className="text-sm font-semibold text-fg">Test senaryosu yok</h3>
                   <p className="mt-1 max-w-xs text-xs text-fg-muted">Suite ve folder oluşturun, ardından ilk test senaryonuzu ekleyin</p>
-                  <button type="button" onClick={() => setShowModal(true)}
-                    className="mt-5 flex items-center gap-1.5 rounded-xl bg-brand px-5 py-2.5 text-xs font-semibold text-brand-fg shadow-sm transition-colors hover:brightness-105">
+                  <Button type="button" onClick={() => setShowModal(true)}
+                    variant="primary" size="lg"
+                    className="mt-5 gap-1.5 rounded-xl bg-brand px-5 text-xs font-semibold text-brand-fg shadow-sm hover:brightness-105">
                     <IcPlus/> İlk Senaryoyu Oluştur
-                  </button>
+                  </Button>
                 </>
               )}
             </div>

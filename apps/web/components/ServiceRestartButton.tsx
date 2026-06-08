@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
 type RestartResponse = {
@@ -64,28 +65,24 @@ export function ServiceRestartButton() {
     }
   }
 
-  const statusColor =
-    status === "success"
-      ? "text-emerald-400"
-      : status === "error"
-        ? "text-red-400"
-        : "text-slate-500";
-
   return (
-    <button
+    <Button
       type="button"
+      variant="ghost"
+      size="icon"
       onClick={handleRestart}
       disabled={status === "loading"}
       title={message || buttonLabel}
       aria-label={buttonLabel}
       data-testid="header-btn-restart-services"
-      className={`flex h-8 w-8 items-center justify-center rounded-lg transition-colors ${
+      className={cn(
+        "rounded-lg",
         status === "success"
           ? "text-emerald-400 hover:bg-emerald-500/10"
           : status === "error"
           ? "text-red-400 hover:bg-red-500/10"
           : "text-amber-400/70 hover:bg-amber-500/10 hover:text-amber-300"
-      }`}
+      )}
     >
       {status === "loading" ? (
         <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -105,6 +102,6 @@ export function ServiceRestartButton() {
           <path strokeLinecap="round" strokeLinejoin="round" d="M20 9a8 8 0 00-13.657-3.657L4 7m16 10-2.343 2.343A8 8 0 014 15"/>
         </svg>
       )}
-    </button>
+    </Button>
   );
 }

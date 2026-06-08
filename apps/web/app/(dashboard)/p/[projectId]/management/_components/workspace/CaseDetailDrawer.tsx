@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 import { apiFetch } from "@/lib/api-client";
 import {
   useManagementCase,
@@ -27,6 +28,7 @@ interface Member { user_id: string; email: string; full_name?: string; }
 import { P_BADGE, SB_BADGE, STATUS_LABEL_TR } from "./shared";
 import { CommentThread } from "../CommentThread";
 import { ParameterizedCasesPanel } from "../ParameterizedCasesPanel";
+import { useProfile } from "@/lib/hooks/use-profile";
 
 type Tab = "detail" | "runs" | "defects" | "files" | "comments" | "history" | "parametric";
 
@@ -77,6 +79,12 @@ export function CaseDetailDrawer({ caseId, pid, projectId, onClose }: {
   const [reviewComment,     setReviewComment]     = useState("");
   const [showReviewPanel,   setShowReviewPanel]   = useState(false);
   const [uploadError,       setUploadError]       = useState<string | null>(null);
+  const [showQuickStep,     setShowQuickStep]     = useState(false);
+  const [quickStepAction,   setQuickStepAction]   = useState("");
+  const [quickStepExpected, setQuickStepExpected] = useState("");
+  const [quickStepSaving,   setQuickStepSaving]   = useState(false);
+  const [quickStepErr,      setQuickStepErr]      = useState<string | null>(null);
+  const [deleteErr,         setDeleteErr]         = useState<string | null>(null);
 
   const [tab, setTab] = useState<Tab>("detail");
   const [editing,      setEditing]      = useState(false);
@@ -103,7 +111,19 @@ export function CaseDetailDrawer({ caseId, pid, projectId, onClose }: {
     return map;
   }, [members]);
 
+  const profile = useProfile();
+  const currentUserId = profile.data ? String(profile.data.id) : null;
+
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!showDeleteConfirm) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && !del.isPending) setShowDeleteConfirm(false);
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [showDeleteConfirm, del.isPending]);
 
   useEffect(() => {
     if (!tc) return;
@@ -187,7 +207,7 @@ export function CaseDetailDrawer({ caseId, pid, projectId, onClose }: {
                     type="button"
                     title="Kalıcı Sil"
                     disabled={del.isPending}
-                    onClick={() => setShowDeleteConfirm(true)}
+                    onClick={() => { setDeleteErr(null); setShowDeleteConfirm(true); }}
                     className="rounded-md p-1.5 text-red-400/60 transition-colors hover:bg-red-500/10 hover:text-red-400 disabled:opacity-40"
                   >
                     <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -271,6 +291,8 @@ export function CaseDetailDrawer({ caseId, pid, projectId, onClose }: {
               entityType="case"
               entityId={caseId}
               projectId={pid}
+              currentUserId={currentUserId}
+              userDirectory={userIdMap}
             />
           </div>
 
@@ -378,8 +400,9 @@ export function CaseDetailDrawer({ caseId, pid, projectId, onClose }: {
                   );
                 })()}
 
-                {/* Flakiness */}
-                {(tc.flakiness_score ?? 0) > 0 && (
+                {/* Flakiness — only meaningful for automated cases (manual variance is human, not test flakiness) */}
+                {(tc.flakiness_score ?? 0) > 0 &&
+                  (tc.automation_status === "automated" || tc.automation_status === "in_progress") && (
                   <div className={cn("rounded-xl border p-3",
                     (tc.flakiness_score ?? 0) >= 0.5 ? "border-red-500/30 bg-red-500/5" :
                     (tc.flakiness_score ?? 0) >= 0.3 ? "border-amber-500/30 bg-amber-500/5" :
@@ -530,8 +553,17 @@ export function CaseDetailDrawer({ caseId, pid, projectId, onClose }: {
               </div>
             ) : !attachments || attachments.length === 0 ? (
               <div
-                className="flex flex-col items-center gap-3 rounded-xl border-2 border-dashed border-border py-8 text-center cursor-pointer hover:border-brand/40 transition-colors"
+                role="button"
+                tabIndex={0}
+                aria-label="Dosya yükle"
+                className="flex flex-col items-center gap-3 rounded-xl border-2 border-dashed border-border py-8 text-center cursor-pointer hover:border-brand/40 focus:border-brand/60 focus:outline-none transition-colors"
                 onClick={() => fileInputRef.current?.click()}
+                onKeyDown={e => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    fileInputRef.current?.click();
+                  }
+                }}
               >
                 <svg className="h-8 w-8 text-fg-subtle/40" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M18.375 12.739l-7.693 7.693a4.5 4.5 0 01-6.364-6.364l10.94-10.94A3 3 0 1119.5 7.372L8.552 18.32m.009-.01l-.01.01m5.699-9.941l-7.81 7.81a1.5 1.5 0 002.112 2.13"/>
@@ -645,14 +677,14 @@ export function CaseDetailDrawer({ caseId, pid, projectId, onClose }: {
               </div>
             )}
             <div className="flex gap-2 pt-1">
-              <button type="button" onClick={save} disabled={update.isPending}
-                className="flex-1 rounded-xl bg-brand py-2 text-[13px] font-semibold text-brand-fg shadow-sm transition-colors hover:brightness-105 disabled:opacity-40">
+              <Button type="button" variant="primary" onClick={save} disabled={update.isPending}
+                className="flex-1 rounded-xl">
                 {update.isPending ? "Kaydediliyor…" : "Kaydet"}
-              </button>
-              <button type="button" onClick={() => setEditing(false)}
-                className="rounded-xl border border-border px-4 py-2 text-[13px] font-medium text-fg-muted transition-colors hover:bg-surface-overlay hover:text-fg">
+              </Button>
+              <Button type="button" variant="outline" onClick={() => setEditing(false)}
+                className="rounded-xl">
                 İptal
-              </button>
+              </Button>
             </div>
           </div>
         ) : (
@@ -691,7 +723,10 @@ export function CaseDetailDrawer({ caseId, pid, projectId, onClose }: {
                 ["Adım Sayısı", String(tc.steps?.length ?? 0)],
                 ["Versiyon", `v${tc.current_version}`],
                 ["Otomasyon", tc.automation_status],
-                ...(tc.run_count ? [["Koşum Sayısı", String(tc.run_count)], ["Flakiness", `${Math.round((tc.flakiness_score ?? 0) * 100)}%`]] : []),
+                ...(tc.run_count ? [["Koşum Sayısı", String(tc.run_count)]] : []),
+                // Flakiness yalnızca otomasyonlu case'lerde anlamlı
+                ...(tc.run_count && (tc.automation_status === "automated" || tc.automation_status === "in_progress")
+                  ? [["Flakiness", `${Math.round((tc.flakiness_score ?? 0) * 100)}%`]] : []),
               ] as [string, string][]).map(([k, v]) => (
                 <div key={k}>
                   <p className="text-fg-subtle">{k}</p>
@@ -772,23 +807,26 @@ export function CaseDetailDrawer({ caseId, pid, projectId, onClose }: {
                         className="w-full rounded-lg border border-border bg-surface-raised px-2.5 py-1.5 text-[12px] text-fg-muted placeholder:text-fg-disabled outline-none resize-none focus:border-purple-500/50"
                       />
                       <div className="flex gap-1.5">
-                        <button
+                        <Button
+                          size="sm"
                           disabled={submitReview.isPending}
                           onClick={async () => {
                             await submitReview.mutateAsync({ caseId: tc.id, comment: reviewComment || undefined });
                             setReviewComment("");
                             setShowReviewPanel(false);
                           }}
-                          className="flex-1 rounded-lg bg-purple-600 py-1.5 text-[11px] font-semibold text-white hover:bg-purple-500 disabled:opacity-50 transition-colors"
+                          className="flex-1 rounded-lg bg-purple-600 text-white hover:bg-purple-500"
                         >
                           {submitReview.isPending ? "Gönderiliyor…" : "İncelemeye Gönder"}
-                        </button>
-                        <button
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
                           onClick={() => setShowReviewPanel(false)}
-                          className="rounded-lg border border-border px-2.5 py-1.5 text-[11px] text-fg-muted hover:text-fg transition-colors"
+                          className="rounded-lg"
                         >
                           İptal
-                        </button>
+                        </Button>
                       </div>
                     </div>
                   )}
@@ -816,46 +854,129 @@ export function CaseDetailDrawer({ caseId, pid, projectId, onClose }: {
               </div>
             )}
 
-            {tc.steps && tc.steps.length > 0 && (
+            {(tc.steps && tc.steps.length > 0 || true) && (
               <div>
-                <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-fg-subtle">
-                  Test Adımları
-                  <span className="ml-1 text-fg-disabled normal-case">({tc.steps.length})</span>
-                </p>
-                <div className="space-y-1.5">
-                  {tc.steps.map((s, i) => (
-                    <div key={s.id ?? i} className="rounded-xl border border-border bg-surface-raised p-3 shadow-xs">
-                      <div className="flex items-start gap-2.5">
-                        <span className="mt-0.5 flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full border border-border bg-surface-overlay font-mono text-[10px] font-bold text-fg-muted">
-                          {s.step_no}
-                        </span>
-                        <div className="flex-1 min-w-0 space-y-1">
-                          <p className="text-[12px] leading-relaxed text-fg-muted">{s.action}</p>
-                          {s.expected_result && (
-                            <p className="text-[11px] leading-relaxed text-fg-subtle">
-                              <span className="text-fg-disabled">→ </span>{s.expected_result}
-                            </p>
-                          )}
+                <div className="mb-2 flex items-center justify-between">
+                  <p className="text-[10px] font-semibold uppercase tracking-widest text-fg-subtle">
+                    Test Adımları
+                    {tc.steps && tc.steps.length > 0 && (
+                      <span className="ml-1 text-fg-disabled normal-case">({tc.steps.length})</span>
+                    )}
+                  </p>
+                  <button type="button" onClick={() => setShowQuickStep(v => !v)}
+                    className="flex items-center gap-1 rounded-lg border border-border px-2 py-0.5 text-[10px] text-fg-muted hover:bg-surface-raised hover:text-fg transition-colors">
+                    <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 5v14M5 12h14"/>
+                    </svg>
+                    Adım Ekle
+                  </button>
+                </div>
+                {tc.steps && tc.steps.length > 0 && (
+                  <div className="space-y-1.5">
+                    {tc.steps.map((s, i) => (
+                      <div key={s.id ?? i} className="rounded-xl border border-border bg-surface-raised p-3 shadow-xs">
+                        <div className="flex items-start gap-2.5">
+                          <span className="mt-0.5 flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full border border-border bg-surface-overlay font-mono text-[10px] font-bold text-fg-muted">
+                            {s.step_no}
+                          </span>
+                          <div className="flex-1 min-w-0 space-y-1">
+                            <p className="text-[12px] leading-relaxed text-fg-muted">{s.action}</p>
+                            {s.expected_result && (
+                              <p className="text-[11px] leading-relaxed text-fg-subtle">
+                                <span className="text-fg-disabled">→ </span>{s.expected_result}
+                              </p>
+                            )}
+                          </div>
                         </div>
                       </div>
+                    ))}
+                  </div>
+                )}
+                {showQuickStep && (
+                  <div className="mt-2 rounded-xl border border-brand/20 bg-brand/5 p-3 space-y-2">
+                    <p className="text-[10px] font-semibold uppercase tracking-widest text-brand/70">Yeni Adım</p>
+                    <div>
+                      <label className="mb-1 block text-[10px] text-fg-subtle">Aksiyon *</label>
+                      <input
+                        autoFocus
+                        value={quickStepAction}
+                        onChange={e => setQuickStepAction(e.target.value)}
+                        placeholder="Bu adımda ne yapılacak?"
+                        className="w-full rounded-lg border border-border bg-surface-overlay px-2.5 py-1.5 text-[12px] text-fg placeholder-fg-subtle outline-none focus:border-brand/50"
+                      />
                     </div>
-                  ))}
-                </div>
+                    <div>
+                      <label className="mb-1 block text-[10px] text-fg-subtle">Beklenen Sonuç</label>
+                      <input
+                        value={quickStepExpected}
+                        onChange={e => setQuickStepExpected(e.target.value)}
+                        placeholder="Ne olması bekleniyor?"
+                        className="w-full rounded-lg border border-border bg-surface-overlay px-2.5 py-1.5 text-[12px] text-fg placeholder-fg-subtle outline-none focus:border-brand/50"
+                      />
+                    </div>
+                    <div className="flex items-center gap-2 pt-1">
+                      <Button
+                        type="button"
+                        size="sm"
+                        disabled={!quickStepAction.trim() || quickStepSaving}
+                        onClick={async () => {
+                          if (!quickStepAction.trim()) return;
+                          setQuickStepSaving(true);
+                          setQuickStepErr(null);
+                          try {
+                            const existingSteps = (tc.steps ?? []).map(s => ({
+                              step_no: s.step_no,
+                              action: s.action,
+                              expected_result: s.expected_result ?? "",
+                              test_data: s.test_data ?? undefined,
+                              notes: s.notes ?? undefined,
+                            }));
+                            const nextNo = existingSteps.length > 0 ? Math.max(...existingSteps.map(s => s.step_no)) + 1 : 1;
+                            await update.mutateAsync({
+                              caseId: tc.id,
+                              steps: [
+                                ...existingSteps,
+                                { step_no: nextNo, action: quickStepAction.trim(), expected_result: quickStepExpected.trim() },
+                              ],
+                            });
+                            setQuickStepAction("");
+                            setQuickStepExpected("");
+                            setShowQuickStep(false);
+                          } catch {
+                            setQuickStepErr("Adım kaydedilemedi. Lütfen tekrar deneyin.");
+                          } finally {
+                            setQuickStepSaving(false);
+                          }
+                        }}
+                        className="flex-1 rounded-lg"
+                      >
+                        {quickStepSaving ? "Kaydediliyor…" : "Adımı Kaydet"}
+                      </Button>
+                      <Button type="button" variant="outline" size="sm" onClick={() => { setShowQuickStep(false); setQuickStepAction(""); setQuickStepExpected(""); setQuickStepErr(null); }}
+                        className="rounded-lg">
+                        İptal
+                      </Button>
+                    </div>
+                    {quickStepErr && (
+                      <p className="text-[11px] text-danger" role="alert">{quickStepErr}</p>
+                    )}
+                  </div>
+                )}
               </div>
             )}
 
             {/* AI İyileştir */}
             <div className="border-t border-border pt-3">
-              <button type="button"
+              <Button type="button" variant="outline"
                 onClick={async () => {
                   setShowImprove(true);
                   const res = await improve.mutateAsync({ caseId: tc.id, focus: "all" });
                   setImproveResult(res);
                 }}
                 disabled={improve.isPending}
-                className="w-full rounded-xl border border-purple-500/20 bg-purple-500/5 py-2 text-[12px] text-purple-400 hover:bg-purple-500/10 disabled:opacity-40 transition-colors">
+                className="w-full rounded-xl border-purple-500/20 bg-purple-500/5 text-purple-400 hover:bg-purple-500/10">
                 {improve.isPending ? "✦ AI İyileştiriyor…" : "✦ AI İyileştir"}
-              </button>
+              </Button>
 
               {showImprove && improveResult && (
                 <div className="mt-2 rounded-xl border border-purple-500/20 bg-purple-500/5 p-3 space-y-2">
@@ -872,7 +993,7 @@ export function CaseDetailDrawer({ caseId, pid, projectId, onClose }: {
                     </ul>
                   )}
                   {(improveResult.title || improveResult.objective) && (
-                    <button type="button"
+                    <Button type="button" size="sm"
                       onClick={async () => {
                         await update.mutateAsync({
                           caseId: tc.id,
@@ -883,9 +1004,9 @@ export function CaseDetailDrawer({ caseId, pid, projectId, onClose }: {
                         setShowImprove(false); setImproveResult(null);
                       }}
                       disabled={update.isPending}
-                      className="w-full rounded-lg bg-purple-600 py-1.5 text-[11px] font-semibold text-white hover:bg-purple-500 disabled:opacity-40 transition-colors">
+                      className="w-full rounded-lg bg-purple-600 text-white hover:bg-purple-500">
                       {update.isPending ? "Uygulanıyor…" : "Önerileri Uygula"}
-                    </button>
+                    </Button>
                   )}
                 </div>
               )}
@@ -897,15 +1018,15 @@ export function CaseDetailDrawer({ caseId, pid, projectId, onClose }: {
                   Kopyalandı: {cloneSuccess}
                 </p>
               )}
-              <button type="button" disabled={clone.isPending}
+              <Button type="button" variant="outline" disabled={clone.isPending}
                 onClick={async () => {
                   const cloned = await clone.mutateAsync({ caseId: tc.id });
                   setCloneSuccess(cloned.case_key ?? cloned.title);
                   setTimeout(() => setCloneSuccess(null), 3000);
                 }}
-                className="w-full rounded-xl border border-border py-2 text-[12px] text-fg-muted hover:bg-surface-overlay hover:text-fg disabled:opacity-40 transition-colors">
+                className="w-full rounded-xl">
                 {clone.isPending ? "Kopyalanıyor…" : "Kopyala (Clone)"}
-              </button>
+              </Button>
             </div>
           </div>
         )}
@@ -913,8 +1034,14 @@ export function CaseDetailDrawer({ caseId, pid, projectId, onClose }: {
 
       {/* ── Kalıcı Silme Onay Diyaloğu ──────────────────────────────────── */}
       {showDeleteConfirm && tc && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-          <div className="w-full max-w-sm rounded-2xl border border-border bg-surface-raised p-6 shadow-2xl">
+        <div
+          className="fixed inset-0 z-[200] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="case-delete-title"
+          onClick={() => !del.isPending && setShowDeleteConfirm(false)}
+        >
+          <div className="w-full max-w-sm rounded-2xl border border-border bg-surface-raised p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
             <div className="mb-3 flex items-center gap-3">
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-500/10">
                 <svg className="h-5 w-5 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -922,7 +1049,7 @@ export function CaseDetailDrawer({ caseId, pid, projectId, onClose }: {
                 </svg>
               </div>
               <div>
-                <h3 className="text-[14px] font-semibold text-fg">Senaryoyu Kalıcı Sil</h3>
+                <h3 id="case-delete-title" className="text-[14px] font-semibold text-fg">Senaryoyu Kalıcı Sil</h3>
                 <p className="text-[11px] text-fg-subtle">{tc.case_key}</p>
               </div>
             </div>
@@ -930,26 +1057,35 @@ export function CaseDetailDrawer({ caseId, pid, projectId, onClose }: {
               <span className="font-medium text-fg">{tc.title}</span> senaryosu kalıcı olarak silinecek.
               Bu işlem geri alınamaz. Run geçmişindeki bu senaryoya ait tüm veriler de silinir.
             </p>
+            {deleteErr && (
+              <p className="mb-3 text-[12px] text-danger" role="alert">{deleteErr}</p>
+            )}
             <div className="flex gap-2">
-              <button
+              <Button
                 type="button"
+                variant="destructive"
                 disabled={del.isPending}
                 onClick={async () => {
-                  await del.mutateAsync(tc.id);
-                  setShowDeleteConfirm(false);
-                  onClose();
+                  try {
+                    await del.mutateAsync(tc.id);
+                    setShowDeleteConfirm(false);
+                    onClose();
+                  } catch {
+                    setDeleteErr("Senaryo silinemedi. Lütfen tekrar deneyin.");
+                  }
                 }}
-                className="flex-1 rounded-xl bg-red-600 py-2 text-[13px] font-semibold text-white hover:bg-red-500 disabled:opacity-40 transition-colors"
+                className="flex-1 rounded-xl"
               >
                 {del.isPending ? "Siliniyor…" : "Evet, Kalıcı Sil"}
-              </button>
-              <button
+              </Button>
+              <Button
                 type="button"
+                variant="outline"
                 onClick={() => setShowDeleteConfirm(false)}
-                className="rounded-xl border border-border px-4 py-2 text-[13px] text-fg-muted hover:text-fg transition-colors"
+                className="rounded-xl"
               >
                 İptal
-              </button>
+              </Button>
             </div>
           </div>
         </div>

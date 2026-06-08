@@ -7,6 +7,7 @@ from typing import Annotated, Optional
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.deps import get_current_user
+from app.domains.api_testing.network_security import UnsafeTargetError
 from app.infra.models import User
 
 from .schemas import (
@@ -177,6 +178,10 @@ async def navigate(
             timeout_ms=body.timeout_ms,
         )
         return NavigateResponse(**result)
+    except UnsafeTargetError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)
+        ) from exc
     except KeyError as exc:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)

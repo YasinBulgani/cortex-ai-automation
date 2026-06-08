@@ -58,7 +58,7 @@ export default function ManagementError({
         <button
           type="button"
           onClick={() => reset()}
-          className="rounded-xl border border-border bg-surface-raised px-4 py-2 text-sm font-medium text-fg hover:border-border-strong hover:text-white transition-colors"
+          className="rounded-xl border border-border bg-surface-raised px-4 py-2 text-sm font-medium text-fg hover:border-border-strong hover:text-fg transition-colors"
           data-testid="management-error-btn-retry"
         >
           Tekrar Dene
@@ -85,7 +85,7 @@ export default function ManagementError({
             <button
               type="button"
               onClick={() => void onCopy()}
-              className="text-xs text-fg-muted underline hover:text-white transition-colors"
+              className="text-xs text-fg-muted underline hover:text-fg transition-colors"
               data-testid="management-error-btn-copy"
             >
               {copied ? "Kopyalandı" : "Kopyala"}

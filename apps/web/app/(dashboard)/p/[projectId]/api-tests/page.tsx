@@ -25,6 +25,7 @@ import {
 } from "@/components/nexus";
 import { ServiceTestingGuide } from "@/components/ServiceTestingGuide";
 import { PageFeedbackWidget } from "@/components/PageFeedbackWidget";
+import { Button } from "@/components/ui/button";
 
 type Collection = { id: string; name: string; base_url: string };
 type ApiRequest = { id: string; name: string; method: string; path: string };
@@ -295,13 +296,13 @@ export default function ApiTestsPage() {
             <div className="border-b border-slate-800 p-3 space-y-2">
               <input placeholder="İsim" value={newCol.name} onChange={(e) => setNewCol({ ...newCol, name: e.target.value })} className={`${inputCls} w-full text-xs`} />
               <input placeholder="Base URL" value={newCol.base_url} onChange={(e) => setNewCol({ ...newCol, base_url: e.target.value })} className={`${inputCls} w-full text-xs`} />
-              <button onClick={createCollection} className="w-full px-3 py-1.5 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-500 rounded-lg transition-colors">Oluştur</button>
+              <Button onClick={createCollection} size="sm" className="w-full">Oluştur</Button>
             </div>
           )}
 
           <div className="flex-1 overflow-auto">
             {collections.length === 0 && !showColForm ? (
-              <div className="p-4"><EmptyState icon="🧰" title="Koleksiyon yok" description="İlk koleksiyonu oluşturun" action={<button onClick={() => setShowColForm(true)} className="rounded-lg bg-blue-600 px-3 py-2 text-xs font-semibold text-white hover:bg-blue-500 transition-colors">Koleksiyon Oluştur</button>} /></div>
+              <div className="p-4"><EmptyState icon="🧰" title="Koleksiyon yok" description="İlk koleksiyonu oluşturun" action={<Button onClick={() => setShowColForm(true)} size="sm">Koleksiyon Oluştur</Button>} /></div>
             ) : (
               collections.map((c) => (
                 <button key={c.id} onClick={() => setSelectedId(c.id)} className={`flex w-full flex-col gap-0.5 border-b border-slate-800 px-4 py-3 text-left transition-all hover:bg-slate-800/50 ${selectedId === c.id ? "bg-blue-500/10 border-l-2 border-l-blue-500" : ""}`}>
@@ -325,10 +326,10 @@ export default function ApiTestsPage() {
                   <h2 className="text-lg font-bold text-white">{selected.name}</h2>
                   <p className="text-xs text-slate-500 font-mono mt-0.5">{selected.base_url || "Base URL yok"}</p>
                 </div>
-                <button onClick={runCollection} disabled={running || requests.length === 0} className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-500 rounded-xl transition-colors disabled:opacity-50" data-testid="api-tests-btn-run">
+                <Button onClick={runCollection} disabled={running || requests.length === 0} className="gap-2 rounded-xl bg-emerald-600 text-white hover:bg-emerald-500" data-testid="api-tests-btn-run">
                   {running ? <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : "▶"}
                   {running ? "Çalışıyor…" : "Çalıştır"}
-                </button>
+                </Button>
               </div>
 
               {workspaceMode === "setup" && (
@@ -374,10 +375,8 @@ export default function ApiTestsPage() {
                         <textarea placeholder="Assertions (JSON dizisi) — opsiyonel" value={newReq.assertions} onChange={e => setNewReq({...newReq, assertions: e.target.value})}
                           rows={2} className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 font-mono text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500/50 resize-none" />
                         <div className="flex gap-2">
-                          <button onClick={createRequest}
-                            className="px-4 py-2 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-500 rounded-xl transition-colors">Kaydet</button>
-                          <button onClick={() => setShowReqForm(false)}
-                            className="px-4 py-2 text-sm text-slate-400 hover:text-white transition-colors">Iptal</button>
+                          <Button onClick={createRequest} className="rounded-xl">Kaydet</Button>
+                          <Button onClick={() => setShowReqForm(false)} variant="ghost">Iptal</Button>
                         </div>
                       </div>
                     </SectionCard>
@@ -411,15 +410,15 @@ export default function ApiTestsPage() {
                           description="Koleksiyona ilk istegi ekleyin veya Chain Builder ile bu akis icin zincir tasarlayin."
                           action={
                             <div className="flex flex-wrap items-center justify-center gap-2">
-                              <button
+                              <Button
                                 onClick={() => {
                                   setWorkspaceMode("setup");
                                   setShowReqForm(true);
                                 }}
-                                className="rounded-lg bg-blue-600 px-3 py-2 text-xs font-semibold text-white hover:bg-blue-500 transition-colors"
+                                size="sm"
                               >
                                 Ilk Istegi Ekle
-                              </button>
+                              </Button>
                               <Link
                                 href={`/p/${projectId}/chain-builder`}
                                 className="rounded-lg border border-slate-700 px-3 py-2 text-xs text-slate-300 hover:border-slate-500 hover:text-white transition-colors"
@@ -481,19 +480,20 @@ export default function ApiTestsPage() {
                       <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500">Sonraki Adim</p>
                       <p className="mt-2 text-sm text-slate-300">Calistirdiktan sonra sonuc moduna gecip cevaplari okuyacagiz.</p>
                       <div className="mt-4 flex flex-wrap gap-2">
-                        <button
+                        <Button
                           onClick={runCollection}
                           disabled={running || requests.length === 0}
-                          className="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-500 disabled:opacity-50"
+                          className="rounded-xl bg-emerald-600 text-white hover:bg-emerald-500"
                         >
                           {running ? "Calisiyor…" : "Koleksiyonu Calistir"}
-                        </button>
-                        <button
+                        </Button>
+                        <Button
                           onClick={() => setWorkspaceMode("results")}
-                          className="rounded-xl border border-slate-700 px-4 py-2 text-sm text-slate-300 hover:border-slate-500 hover:text-white"
+                          variant="outline"
+                          className="rounded-xl"
                         >
                           Sonuclar
-                        </button>
+                        </Button>
                       </div>
                     </div>
                   </div>

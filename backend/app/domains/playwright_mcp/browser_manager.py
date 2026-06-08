@@ -8,6 +8,8 @@ import time
 import uuid
 from typing import Any
 
+from app.domains.api_testing.network_security import validate_outbound_url
+
 logger = logging.getLogger(__name__)
 
 # ── Graceful import ──────────────────────────────────────────────────────────
@@ -239,6 +241,10 @@ class BrowserManager:
         timeout_ms: int = 30000,
     ) -> dict[str, Any]:
         """Navigate to a URL. Returns url, title, status_code, load_time_ms."""
+        # SSRF guard (defense in depth): block non-http(s) schemes and
+        # loopback / link-local / metadata / RFC1918 private targets.
+        validate_outbound_url(url)
+
         async with self._lock:
             data = self._get_session_data(session_id)
         page: Any = data["page"]

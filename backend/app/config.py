@@ -177,8 +177,10 @@ class Settings(BaseSettings):
     sso_azure_tenant_id: str = ""
     sso_azure_client_id: str = ""
     sso_azure_client_secret: str = ""
-    # Allow auto-provisioning new users from SSO (true) or require existing acct (false)
-    sso_auto_provision: bool = True
+    # Allow auto-provisioning new users from SSO (true) or require existing acct (false).
+    # Fail-closed default: provisioning is OFF unless explicitly enabled AND an email
+    # domain allow-list is configured (see sso_allowed_email_domains).
+    sso_auto_provision: bool = False
     # If set, restrict SSO login to these email domains (comma-sep)
     sso_allowed_email_domains: str = ""
 

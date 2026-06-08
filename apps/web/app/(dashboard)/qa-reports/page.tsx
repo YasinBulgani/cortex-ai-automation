@@ -137,7 +137,7 @@ export default function QaReportsPage() {
   );
 
   return (
-    <div className="min-h-screen bg-bg px-6 py-6">
+    <div className="min-h-screen bg-surface-base px-6 py-6">
       <div className="mx-auto max-w-6xl space-y-6">
 
         {/* Header */}

@@ -25,6 +25,7 @@ import {
   METHOD_COLORS,
 } from "./_components/constants";
 import { Badge } from "./_components/Badge";
+import { Button } from "@/components/ui/button";
 
 /* ── Stats Cards ─────────────────────────────────────────────────────── */
 function StatsGrid({ projectId }: { projectId: string }) {
@@ -135,14 +136,15 @@ function SpecImportPanel({ projectId }: { projectId: string }) {
             className="flex-1 rounded-lg border border-slate-700 bg-slate-800/60 px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500/60"
             data-testid="spec-import-url"
           />
-          <button
+          <Button
+            variant="primary"
             onClick={handleImportUrl}
             disabled={importSpec.isPending || !url.trim()}
-            className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-500 disabled:opacity-50 transition-colors whitespace-nowrap"
+            className="whitespace-nowrap"
             data-testid="spec-import-btn"
           >
             {importSpec.isPending ? "Yükleniyor..." : "Import"}
-          </button>
+          </Button>
         </div>
       )}
 
@@ -190,13 +192,13 @@ function SpecImportPanel({ projectId }: { projectId: string }) {
             className="w-full rounded-lg border border-slate-700 bg-slate-800/60 px-3 py-2 text-xs text-slate-300 font-mono placeholder-slate-500 focus:outline-none focus:border-blue-500/60"
             placeholder={'{\n  "openapi": "3.0.3",\n  "info": { "title": "My API", "version": "1.0" },\n  "paths": { ... }\n}'}
           />
-          <button
+          <Button
+            variant="primary"
             onClick={handleImportContent}
             disabled={importSpec.isPending || !rawContent.trim()}
-            className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-500 disabled:opacity-50 transition-colors"
           >
             {importSpec.isPending ? "Yükleniyor..." : "Import Et"}
-          </button>
+          </Button>
         </div>
       )}
 
@@ -509,18 +511,20 @@ function TestCaseEditModal({
 
         {/* Footer */}
         <div className="flex items-center justify-end gap-2 border-t border-slate-800 px-5 py-3">
-          <button
+          <Button
+            variant="outline"
+            size="sm"
             onClick={onClose}
-            className="rounded-lg border border-slate-700 px-4 py-2 text-xs font-medium text-slate-400 hover:bg-slate-800 transition-colors"
           >
             Kapat
-          </button>
-          <button
+          </Button>
+          <Button
+            size="sm"
             onClick={handleQuickRun}
-            className="rounded-lg bg-emerald-600 px-4 py-2 text-xs font-semibold text-white hover:bg-emerald-500 transition-colors"
+            className="bg-emerald-600 text-white hover:bg-emerald-500"
           >
             Çalıştır
-          </button>
+          </Button>
         </div>
       </div>
     </div>
@@ -587,14 +591,15 @@ function TestCaseList({ projectId, endpointId }: { projectId: string; endpointId
             {statuses.map((s) => <option key={s} value={s!}>{s}</option>)}
           </select>
         </div>
-        <button
+        <Button
+          size="sm"
           onClick={handleRunAll}
           disabled={execute.isPending}
           data-testid="run-tests-btn"
-          className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-500 disabled:opacity-50"
+          className="bg-emerald-600 text-white hover:bg-emerald-500"
         >
           {execute.isPending ? "Çalışiyor..." : `${filtered.length} Testi Çalıştır`}
-        </button>
+        </Button>
       </div>
 
       {execute.data && (
@@ -642,18 +647,20 @@ function TestCaseList({ projectId, endpointId }: { projectId: string; endpointId
                 </div>
                 {/* Action Buttons */}
                 <div className="flex gap-2 pt-1">
-                  <button
+                  <Button
+                    size="sm"
                     onClick={(e) => { e.stopPropagation(); handleRunSingle(tc); }}
-                    className="rounded-lg bg-emerald-600/80 px-3 py-1 text-[10px] font-semibold text-white hover:bg-emerald-500 transition-colors"
+                    className="h-auto px-3 py-1 text-[10px] bg-emerald-600/80 text-white hover:bg-emerald-500"
                   >
                     Çalıştır
-                  </button>
-                  <button
+                  </Button>
+                  <Button
+                    size="sm"
                     onClick={(e) => { e.stopPropagation(); setEditingTc(tc); }}
-                    className="rounded-lg bg-blue-600/80 px-3 py-1 text-[10px] font-semibold text-white hover:bg-blue-500 transition-colors"
+                    className="h-auto px-3 py-1 text-[10px] bg-blue-600/80 text-white hover:bg-blue-500"
                   >
                     Düzenle / Detay
-                  </button>
+                  </Button>
                 </div>
               </div>
             )}
@@ -719,14 +726,15 @@ function RequestBuilder({ projectId }: { projectId: string }) {
           className="flex-1 rounded-lg border border-slate-700 bg-slate-800/60 px-3 py-2 text-sm text-white font-mono placeholder-slate-500 focus:outline-none focus:border-blue-500/60"
           data-testid="request-url"
         />
-        <button
+        <Button
+          variant="primary"
           onClick={handleSend}
           disabled={executeMut.isPending || !url.trim()}
-          className="rounded-lg bg-blue-600 px-5 py-2 text-sm font-bold text-white hover:bg-blue-500 disabled:opacity-50 transition-colors"
+          className="px-5 font-bold"
           data-testid="request-send"
         >
           {executeMut.isPending ? "..." : "Send"}
-        </button>
+        </Button>
       </div>
 
       {/* Tabs */}

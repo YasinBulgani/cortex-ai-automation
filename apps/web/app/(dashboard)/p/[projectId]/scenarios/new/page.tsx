@@ -6,6 +6,7 @@ import { useRouteParam } from "@/lib/use-route-param";
 import { apiFetch } from "@/lib/api";
 import { useQueryClient } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -169,9 +170,9 @@ function TagInput({ tags, onChange }: { tags: string[]; onChange: (t: string[]) 
           placeholder="etiket ekle…"
           className={cn(INP, "flex-1 h-9")}
         />
-        <button type="button" onClick={() => add(input)} className="rounded-xl border border-slate-700 bg-slate-800 px-3 py-2 text-[12px] text-slate-300 hover:border-teal-500/40 hover:text-teal-300 transition-colors">
+        <Button type="button" variant="secondary" size="sm" onClick={() => add(input)} className="rounded-xl border border-slate-700 bg-slate-800 px-3 py-2 text-[12px] text-slate-300 hover:border-teal-500/40 hover:text-teal-300">
           + Ekle
-        </button>
+        </Button>
       </div>
       <div className="mt-2 flex flex-wrap gap-1">
         {TAG_SUGGESTIONS.filter(t => !tags.includes(t)).map(t => (
@@ -497,10 +498,10 @@ function QuickCreate({ projectId }: { projectId: string }) {
 
         {err && <p className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-[13px] text-red-400">{err}</p>}
 
-        <button type="submit" disabled={saving}
-          className="flex items-center gap-2 rounded-xl bg-teal-600 px-6 py-2.5 text-[13px] font-semibold text-white hover:bg-teal-500 disabled:opacity-40 transition-colors shadow-lg shadow-teal-900/20">
+        <Button type="submit" disabled={saving}
+          className="gap-2 rounded-xl bg-teal-600 px-6 py-2.5 text-[13px] font-semibold text-white hover:bg-teal-500 shadow-lg shadow-teal-900/20">
           {saving ? <><IcSpinner /> Kaydediliyor…</> : "✓ Kaydet"}
-        </button>
+        </Button>
       </form>
 
       {/* Sağ: Preview */}
@@ -719,7 +720,7 @@ function AiWorkshop({ projectId }: { projectId: string }) {
               <input value={urlInput} onChange={e => setUrlInput(e.target.value)}
                 placeholder="https://app.example.com/login"
                 className={cn(INP, "flex-1")} />
-              <button type="button"
+              <Button type="button" variant="secondary"
                 onClick={async () => {
                   if (!urlInput.trim()) return;
                   setAnalyzing(true); setErr(null); setProgress("Sayfa taranıyor…");
@@ -737,9 +738,9 @@ function AiWorkshop({ projectId }: { projectId: string }) {
                   } finally { setAnalyzing(false); }
                 }}
                 disabled={analyzing}
-                className="rounded-xl bg-slate-800 px-4 py-2.5 text-[12px] font-medium text-slate-300 border border-slate-700 hover:border-teal-500/40 hover:text-teal-300 disabled:opacity-40 transition-colors">
+                className="rounded-xl bg-slate-800 px-4 py-2.5 text-[12px] font-medium text-slate-300 border border-slate-700 hover:border-teal-500/40 hover:text-teal-300">
                 {analyzing ? <IcSpinner /> : "Tara"}
-              </button>
+              </Button>
             </div>
             {text && (
               <div className="mt-3 rounded-lg border border-slate-800 bg-slate-950 p-3">
@@ -792,10 +793,10 @@ function AiWorkshop({ projectId }: { projectId: string }) {
         </div>
 
         {/* Analiz Butonu */}
-        <button type="button" onClick={analyze} disabled={analyzing}
-          className="flex items-center gap-2.5 rounded-xl bg-gradient-to-r from-violet-600 to-teal-600 px-6 py-3 text-[13px] font-semibold text-white hover:from-violet-500 hover:to-teal-500 disabled:opacity-40 transition-all shadow-lg shadow-violet-900/20">
+        <Button type="button" onClick={analyze} disabled={analyzing}
+          className="gap-2.5 rounded-xl bg-gradient-to-r from-violet-600 to-teal-600 px-6 py-3 text-[13px] font-semibold text-white hover:from-violet-500 hover:to-teal-500 shadow-lg shadow-violet-900/20">
           {analyzing ? <><IcSpinner /> {progress || "Analiz ediliyor…"}</> : <><IcWand /> AI ile Analiz Et & Senaryo Üret</>}
-        </button>
+        </Button>
       </div>
 
       {/* Hata */}
@@ -819,26 +820,26 @@ function AiWorkshop({ projectId }: { projectId: string }) {
               )}
             </div>
             <div className="flex gap-2">
-              <button type="button"
+              <Button type="button" variant="secondary" size="sm"
                 onClick={() => setScenarios(s => s.map(x => ({ ...x, selected: true })))}
-                className="rounded-xl border border-slate-700 px-3 py-1.5 text-[11px] text-slate-400 hover:border-teal-500/30 hover:text-teal-300 transition-colors">
+                className="rounded-xl border border-slate-700 px-3 py-1.5 text-[11px] text-slate-400 hover:border-teal-500/30 hover:text-teal-300">
                 Tümünü Seç
-              </button>
-              <button type="button"
+              </Button>
+              <Button type="button" variant="secondary" size="sm"
                 onClick={() => setScenarios(s => s.map(x => ({ ...x, selected: false })))}
-                className="rounded-xl border border-slate-700 px-3 py-1.5 text-[11px] text-slate-400 hover:text-slate-300 transition-colors">
+                className="rounded-xl border border-slate-700 px-3 py-1.5 text-[11px] text-slate-400 hover:text-slate-300">
                 Seçimi Kaldır
-              </button>
-              <button type="button" onClick={saveSelected}
+              </Button>
+              <Button type="button" onClick={saveSelected}
                 disabled={saving || selectedCount === 0 || saved}
                 className={cn(
-                  "flex items-center gap-2 rounded-xl px-5 py-2 text-[12px] font-semibold transition-all",
+                  "gap-2 rounded-xl px-5 py-2 text-[12px] font-semibold",
                   saved
                     ? "bg-emerald-600/20 border border-emerald-500/40 text-emerald-400"
-                    : "bg-teal-600 text-white hover:bg-teal-500 disabled:opacity-40 shadow-lg shadow-teal-900/20"
+                    : "bg-teal-600 text-white hover:bg-teal-500 shadow-lg shadow-teal-900/20"
                 )}>
                 {saved ? <><IcCheck /> Kaydedildi</> : saving ? <><IcSpinner /> Kaydediliyor…</> : `Seçilenleri Kaydet (${selectedCount})`}
-              </button>
+              </Button>
             </div>
           </div>
 
@@ -972,10 +973,10 @@ function PilotPipeline({ projectId }: { projectId: string }) {
               className={cn(INP, "resize-none")} />
           </div>
           {err && <p className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-[13px] text-red-400">{err}</p>}
-          <button type="button" onClick={runPipeline}
-            className="flex items-center gap-2.5 rounded-xl bg-gradient-to-r from-violet-600 to-purple-600 px-8 py-3 text-[13px] font-semibold text-white hover:from-violet-500 hover:to-purple-500 transition-all shadow-lg shadow-violet-900/20">
+          <Button type="button" onClick={runPipeline}
+            className="gap-2.5 rounded-xl bg-gradient-to-r from-violet-600 to-purple-600 px-8 py-3 text-[13px] font-semibold text-white hover:from-violet-500 hover:to-purple-500 shadow-lg shadow-violet-900/20">
             🚀 Pipeline'ı Başlat
-          </button>
+          </Button>
         </div>
       )}
 
@@ -1015,17 +1016,17 @@ function PilotPipeline({ projectId }: { projectId: string }) {
           {/* Tamamlandı aksiyonlar */}
           {done && anyComplete && (
             <div className="flex flex-wrap gap-3">
-              <button type="button"
+              <Button type="button"
                 onClick={() => router.push(`/p/${projectId}/scenarios`)}
-                className="rounded-xl bg-teal-600 px-5 py-2.5 text-[13px] font-semibold text-white hover:bg-teal-500 transition-colors">
+                className="rounded-xl bg-teal-600 px-5 py-2.5 text-[13px] font-semibold text-white hover:bg-teal-500">
                 Senaryoları Görüntüle
-              </button>
+              </Button>
               {sessionId && (
-                <button type="button"
+                <Button type="button" variant="secondary"
                   onClick={() => router.push(`/p/${projectId}/sifir-bilgi?session=${sessionId}`)}
-                  className="rounded-xl border border-violet-500/40 bg-violet-500/10 px-5 py-2.5 text-[13px] font-medium text-violet-300 hover:bg-violet-500/20 transition-colors">
+                  className="rounded-xl border border-violet-500/40 bg-violet-500/10 px-5 py-2.5 text-[13px] font-medium text-violet-300 hover:bg-violet-500/20">
                   Pipeline Detayı →
-                </button>
+                </Button>
               )}
             </div>
           )}
@@ -1081,10 +1082,10 @@ export default function NewScenarioPage() {
           <h1 className="text-[22px] font-bold tracking-tight text-slate-100">Yeni Senaryo</h1>
           <p className="mt-1 text-[13px] text-slate-500">Hızlı oluştur, AI destekli üret veya tam otonom pipeline çalıştır</p>
         </div>
-        <button type="button" onClick={() => router.back()}
-          className="rounded-xl border border-slate-700/60 px-4 py-2 text-[12px] text-slate-400 hover:border-slate-600 hover:text-slate-300 transition-colors">
+        <Button type="button" variant="secondary" onClick={() => router.back()}
+          className="rounded-xl border border-slate-700/60 px-4 py-2 text-[12px] text-slate-400 hover:border-slate-600 hover:text-slate-300">
           ← Geri
-        </button>
+        </Button>
       </div>
 
       {/* Mod seçici */}

@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { apiFetch, ApiError } from "@/lib/api-client";
 import { useProjects } from "@/lib/hooks/use-projects";
+import { useProject as useActiveProject } from "@/lib/useProject";
 
 // Hits Next.js /api/engine/* proxy which adds X-Internal-Key server-side
 async function engineProxy<T>(
@@ -127,6 +128,7 @@ function GherkinPreview({
 
 export function ConversationalTestCreator() {
   const { data: projects } = useProjects();
+  const { project, projectId } = useActiveProject();
   const [selectedProjectId, setSelectedProjectId] = useState<string>("");
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
@@ -138,6 +140,18 @@ export function ConversationalTestCreator() {
   const [input, setInput] = useState("");
   const [generating, setGenerating] = useState(false);
   const [savingId, setSavingId] = useState<string | null>(null);
+
+  const projectOptions = useMemo(() => {
+    const list = projects ?? [];
+    if (!projectId || list.some((p) => p.id === projectId)) return list;
+    return [{ id: projectId, name: project?.name ?? `Proje ${projectId}` }, ...list];
+  }, [project?.name, projectId, projects]);
+
+  useEffect(() => {
+    if (!selectedProjectId && projectId) {
+      setSelectedProjectId(projectId);
+    }
+  }, [projectId, selectedProjectId]);
 
   const send = async (text: string) => {
     if (!text.trim() || generating) return;
@@ -229,7 +243,7 @@ export function ConversationalTestCreator() {
           className="bg-slate-950 border border-slate-700 rounded-lg px-2 py-1 text-[11px] text-slate-300 max-w-[140px] truncate focus:outline-none focus:border-emerald-500/50"
         >
           <option value="">Hedef proje seç…</option>
-          {projects?.map((p) => (
+          {projectOptions.map((p) => (
             <option key={p.id} value={p.id}>{p.name}</option>
           ))}
         </select>

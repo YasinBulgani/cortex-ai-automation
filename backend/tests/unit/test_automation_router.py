@@ -15,6 +15,7 @@ try:
 
     from app.domains.automation.router import router as automation_router
     from app.deps import get_current_user
+    from app.infra.database import get_db
     from app.infra.models import User
 
     _IMPORT_OK = True
@@ -24,9 +25,16 @@ except Exception:
 
 def _mock_user():
     u = MagicMock(spec=User)
-    u.id = "test-user-id"
+    # Geçerli UUID — RBAC sorgularında "user_id::UUID" cast'i hatasız çalışsın.
+    u.id = "550e8400-e29b-41d4-a716-446655440000"
     u.email = "test@example.com"
-    u.roles = []
+    u.tenant_id = "00000000-0000-0000-0000-000000000001"
+    # Admin yetkisi — automation run authorization (project membership) bypass eder.
+    admin_perm = MagicMock()
+    admin_perm.permission = "admin.*"
+    admin_role = MagicMock()
+    admin_role.permissions = [admin_perm]
+    u.roles = [admin_role]
     return u
 
 pytestmark = pytest.mark.skipif(not _IMPORT_OK, reason="import failed")
@@ -397,3 +405,98 @@ def test_proxy_forbidden_path_403() -> None:
     with patch("app.domains.automation.router.get_current_user", return_value=_fake_user()):
         r = client.get("/api/v1/automation/proxy/admin/secrets")
     assert r.status_code == 403
+
+
+# ---------------------------------------------------------------------------
+# IDOR / project membership authorization (NON-admin user)
+#
+# _mock_user() above grants "admin.*", so all preceding tests take the admin
+# bypass branch in _require_run_access / list_automation_runs. The user below
+# has roles=[] (no permissions), forcing the real membership check that queries
+# the DB via db.scalar() / db.scalars().
+# ---------------------------------------------------------------------------
+
+
+def _mock_nonadmin_user():
+    """User with no roles → no permissions → membership check is enforced."""
+    u = MagicMock(spec=User)
+    u.id = "550e8400-e29b-41d4-a716-446655440000"
+    u.email = "member@example.com"
+    u.tenant_id = "00000000-0000-0000-0000-000000000001"
+    u.roles = []
+    return u
+
+
+def _app_nonadmin(mock_db) -> TestClient:
+    """App wired to a non-admin user and a mocked DB session via dependency_overrides."""
+    app = FastAPI()
+    app.dependency_overrides[get_current_user] = _mock_nonadmin_user
+    app.dependency_overrides[get_db] = lambda: mock_db
+    app.include_router(automation_router, prefix="/api/v1")
+    return TestClient(app, raise_server_exceptions=False)
+
+
+def test_get_run_non_member_forbidden_403() -> None:
+    """GET run → 403 when the non-admin user is not a member of the run's project."""
+    mock_db = MagicMock()
+    mock_db.scalar.return_value = 0  # not a member
+    client = _app_nonadmin(mock_db)
+
+    run = _fake_run("run-100")
+    mock_service = MagicMock()
+    mock_service.get_run.return_value = run
+
+    with patch("app.domains.automation.router.AutomationBrainService", return_value=mock_service), \
+         patch("app.domains.automation.router.SqlAlchemyAutomationRunStore", return_value=MagicMock()):
+        r = client.get("/api/v1/automation/runs/run-100")
+    assert r.status_code == 403
+
+
+def test_get_run_member_allowed_200() -> None:
+    """GET run → 200 when the non-admin user IS a member of the run's project."""
+    mock_db = MagicMock()
+    mock_db.scalar.return_value = 1  # is a member
+    client = _app_nonadmin(mock_db)
+
+    run = _fake_run("run-101")
+    mock_service = MagicMock()
+    mock_service.get_run.return_value = run
+
+    with patch("app.domains.automation.router.AutomationBrainService", return_value=mock_service), \
+         patch("app.domains.automation.router.SqlAlchemyAutomationRunStore", return_value=MagicMock()):
+        r = client.get("/api/v1/automation/runs/run-101")
+    assert r.status_code == 200
+
+
+def test_cancel_run_non_member_forbidden_403() -> None:
+    """POST cancel → 403 when the non-admin user is not a member of the run's project."""
+    mock_db = MagicMock()
+    mock_db.scalar.return_value = 0  # not a member
+    client = _app_nonadmin(mock_db)
+
+    run = _fake_run("run-102")
+    mock_service = MagicMock()
+    mock_service.get_run.return_value = run
+
+    with patch("app.domains.automation.router.AutomationBrainService", return_value=mock_service), \
+         patch("app.domains.automation.router.SqlAlchemyAutomationRunStore", return_value=MagicMock()):
+        r = client.post("/api/v1/automation/runs/run-102/cancel")
+    assert r.status_code == 403
+    # Membership is rejected before cancellation is attempted.
+    mock_service.cancel_run.assert_not_called()
+
+
+def test_list_runs_project_id_not_member_forbidden_403() -> None:
+    """GET /runs?project_id=proj-1 → 403 when proj-1 is not in the user's member projects."""
+    mock_db = MagicMock()
+    mock_db.scalars.return_value = []  # user is a member of no projects
+    client = _app_nonadmin(mock_db)
+
+    mock_service = MagicMock()
+
+    with patch("app.domains.automation.router.AutomationBrainService", return_value=mock_service), \
+         patch("app.domains.automation.router.SqlAlchemyAutomationRunStore", return_value=MagicMock()):
+        r = client.get("/api/v1/automation/runs", params={"project_id": "proj-1"})
+    assert r.status_code == 403
+    # Access is denied before any runs are listed.
+    mock_service.list_runs.assert_not_called()

@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { apiFetch } from "@/lib/api";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { DocumentUploader, type UploadedDocument } from "@/components/DocumentUploader";
 import {
   DEFAULT_PRODUCT_FAMILY_ID,
@@ -1120,16 +1122,18 @@ export default function NewProjectPage() {
     <div className="min-h-screen bg-slate-950 text-white">
       <div className="border-b border-slate-800 bg-slate-900/80 backdrop-blur-sm">
         <div className="mx-auto flex w-full max-w-[1600px] items-center gap-4 px-8 py-3">
-          <button
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={() => router.push("/")}
-            className="flex items-center gap-2 text-sm text-slate-400 transition hover:text-white"
+            className="gap-2 text-slate-400 hover:text-white"
             data-testid="new-project-back"
           >
             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
             </svg>
             Ana Sayfa
-          </button>
+          </Button>
           <span className="text-slate-700">/</span>
           <span className="text-sm font-medium">Yeni Proje</span>
           <span className="ml-auto flex items-center gap-3 text-xs text-slate-500">
@@ -1151,7 +1155,7 @@ export default function NewProjectPage() {
         {error && (
           <div className="mb-6 rounded-xl border border-red-800 bg-red-950/50 px-4 py-3 text-sm text-red-400">
             ⚠️ {error}
-            <button className="ml-3 opacity-60 hover:opacity-100" onClick={() => setError(null)}>✕</button>
+            <Button variant="ghost" size="sm" className="ml-3 h-auto px-1 py-0 text-red-400 opacity-60 hover:bg-transparent hover:opacity-100" onClick={() => setError(null)}>✕</Button>
           </div>
         )}
         {success && (
@@ -1232,13 +1236,14 @@ export default function NewProjectPage() {
                 />
               </div>
             </div>
-            <button
+            <Button
+              variant="primary"
               onClick={createProject}
               disabled={loading}
-              className="rounded-xl bg-blue-600 px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-500 disabled:opacity-40"
+              className="rounded-xl px-6"
             >
               {loading ? "Oluşturuluyor…" : "Projeyi Oluştur →"}
-            </button>
+            </Button>
           </div>
         )}
 
@@ -1269,32 +1274,36 @@ export default function NewProjectPage() {
 
             {/* Mod Seçici */}
             <div className="flex rounded-xl border border-slate-800 bg-slate-900/60 p-1">
-              <button
+              <Button
+                variant="ghost"
                 onClick={() => setAnalyzeMode("upload")}
-                className={`flex flex-1 items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-medium transition ${
+                className={cn(
+                  "flex-1 gap-2 rounded-lg",
                   analyzeMode === "upload"
-                    ? "bg-blue-600 text-white shadow"
-                    : "text-slate-400 hover:text-white"
-                }`}
+                    ? "bg-blue-600 text-white shadow hover:bg-blue-600"
+                    : "text-slate-400 hover:text-white",
+                )}
               >
                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
                 </svg>
                 Dosya Yükle
-              </button>
-              <button
+              </Button>
+              <Button
+                variant="ghost"
                 onClick={() => setAnalyzeMode("paste")}
-                className={`flex flex-1 items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-medium transition ${
+                className={cn(
+                  "flex-1 gap-2 rounded-lg",
                   analyzeMode === "paste"
-                    ? "bg-blue-600 text-white shadow"
-                    : "text-slate-400 hover:text-white"
-                }`}
+                    ? "bg-blue-600 text-white shadow hover:bg-blue-600"
+                    : "text-slate-400 hover:text-white",
+                )}
               >
                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25zM6.75 12h.008v.008H6.75V12zm0 3h.008v.008H6.75V15zm0 3h.008v.008H6.75V18z" />
                 </svg>
                 Metin Yapıştır
-              </button>
+              </Button>
             </div>
 
             {/* Dosya Yükleme Modu */}
@@ -1367,10 +1376,11 @@ export default function NewProjectPage() {
 
             {/* Analiz Butonu */}
             <div className="flex items-center gap-3">
-              <button
+              <Button
+                variant="primary"
                 onClick={runAnalysis}
                 disabled={loading || (analyzeMode === "upload" ? !uploadedDoc : !docText.trim())}
-                className="flex items-center gap-2 rounded-xl bg-blue-600 px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-500 disabled:opacity-40"
+                className="gap-2 rounded-xl px-6"
               >
                 {loading ? (
                   <>
@@ -1386,7 +1396,7 @@ export default function NewProjectPage() {
                     AI ile Analiz Et →
                   </>
                 )}
-              </button>
+              </Button>
               {uploadedDoc && (
                 <span className="text-xs text-emerald-400">
                   ✓ {uploadedDoc.filename} ({uploadedDoc.word_count.toLocaleString()} kelime)
@@ -1407,13 +1417,14 @@ export default function NewProjectPage() {
                   <span className="text-purple-400 font-medium">{bddScenarios.length} BDD senaryo</span> üretti.
                 </p>
               </div>
-              <button
+              <Button
+                variant="primary"
                 onClick={saveAllScenarios}
                 disabled={loading}
-                className="rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-500 disabled:opacity-40"
+                className="rounded-xl bg-emerald-600 px-5 text-white hover:bg-emerald-500"
               >
                 {loading ? "Kaydediliyor…" : `Tümünü Kaydet (${manualTests.length + bddScenarios.length})`}
-              </button>
+              </Button>
             </div>
 
             {/* Manuel testler */}
@@ -1478,10 +1489,11 @@ export default function NewProjectPage() {
                   <p className="text-sm font-medium text-white">AI ile Regresyon Seti Öner</p>
                   <p className="mt-1 text-xs text-slate-500">Senaryolarını önceliğe göre gruplandırıyor</p>
                 </div>
-                <button
+                <Button
+                  variant="primary"
                   onClick={suggestRegSets}
                   disabled={loading}
-                  className="flex items-center gap-2 rounded-xl bg-blue-600 px-5 py-2 text-sm font-semibold text-white transition hover:bg-blue-500 disabled:opacity-40"
+                  className="gap-2 rounded-xl px-5"
                 >
                   {loading ? (
                     <>
@@ -1492,20 +1504,23 @@ export default function NewProjectPage() {
                       AI Gruplandırıyor…
                     </>
                   ) : "Regresyon Setleri Öner"}
-                </button>
+                </Button>
               </div>
             ) : (
               <div className="space-y-4">
                 {regSets.map((set, i) => {
                   const isSelected = acceptedSets.some((s) => s.name === set.name);
                   return (
-                    <button
+                    <Button
                       key={i}
+                      variant="ghost"
                       onClick={() => toggleSet(set)}
-                      className={`w-full rounded-xl border p-5 text-left transition-all
-                        ${isSelected
-                          ? "border-blue-500 bg-blue-950/30"
-                          : "border-slate-800 bg-slate-900 hover:border-slate-600"}`}
+                      className={cn(
+                        "h-auto w-full justify-start rounded-xl border p-5 text-left",
+                        isSelected
+                          ? "border-blue-500 bg-blue-950/30 hover:bg-blue-950/30"
+                          : "border-slate-800 bg-slate-900 hover:border-slate-600 hover:bg-slate-900",
+                      )}
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div>
@@ -1527,32 +1542,37 @@ export default function NewProjectPage() {
                           )}
                         </div>
                       </div>
-                    </button>
+                    </Button>
                   );
                 })}
 
                 <div className="flex gap-3">
-                  <button
+                  <Button
+                    variant="ghost"
+                    size="sm"
                     onClick={() => setAcceptedSets(regSets)}
-                    className="text-xs text-blue-400 hover:underline"
+                    className="h-auto px-0 py-0 text-blue-400 hover:bg-transparent hover:underline"
                   >
                     Tümünü Seç
-                  </button>
-                  <button
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
                     onClick={() => setAcceptedSets([])}
-                    className="text-xs text-slate-500 hover:underline"
+                    className="h-auto px-0 py-0 text-slate-500 hover:bg-transparent hover:underline"
                   >
                     Tümünü Kaldır
-                  </button>
+                  </Button>
                 </div>
 
-                <button
+                <Button
+                  variant="primary"
                   onClick={acceptSets}
                   disabled={loading || acceptedSets.length === 0}
-                  className="rounded-xl bg-blue-600 px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-500 disabled:opacity-40"
+                  className="rounded-xl px-6"
                 >
                   {loading ? "Kaydediliyor…" : `Seçilenleri Kaydet (${acceptedSets.length}) →`}
-                </button>
+                </Button>
               </div>
             )}
           </div>
@@ -1575,19 +1595,22 @@ export default function NewProjectPage() {
               </div>
             )}
             <div className="flex gap-3">
-              <button onClick={selectAll}   className="text-xs text-blue-400 hover:underline">Tümünü Seç</button>
-              <button onClick={deselectAll} className="text-xs text-slate-500 hover:underline">Tümünü Kaldır</button>
+              <Button variant="ghost" size="sm" onClick={selectAll} className="h-auto px-0 py-0 text-blue-400 hover:bg-transparent hover:underline">Tümünü Seç</Button>
+              <Button variant="ghost" size="sm" onClick={deselectAll} className="h-auto px-0 py-0 text-slate-500 hover:bg-transparent hover:underline">Tümünü Kaldır</Button>
               <span className="text-xs text-slate-600">{selectedIds.size} / {savedScenarios.length} seçili</span>
             </div>
             <div className="space-y-2 rounded-2xl border border-slate-800 bg-slate-900 p-4">
               {savedScenarios.map((s) => {
                 const isSelected = selectedIds.has(s.id);
                 return (
-                  <button
+                  <Button
                     key={s.id}
+                    variant="ghost"
                     onClick={() => toggleScenario(s.id)}
-                    className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm transition
-                      ${isSelected ? "bg-blue-950/40 text-white" : "text-slate-400 hover:bg-slate-800"}`}
+                    className={cn(
+                      "h-auto w-full justify-start gap-3 rounded-lg px-3 py-2.5 text-left",
+                      isSelected ? "bg-blue-950/40 text-white hover:bg-blue-950/40" : "text-slate-400 hover:bg-slate-800",
+                    )}
                   >
                     <div className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border transition
                       ${isSelected ? "border-blue-500 bg-blue-500" : "border-slate-600"}`}>
@@ -1598,26 +1621,28 @@ export default function NewProjectPage() {
                       )}
                     </div>
                     {s.title}
-                  </button>
+                  </Button>
                 );
               })}
             </div>
             <div className="flex flex-wrap gap-3">
               {!wizardProfile.automationPrimary && (
-                <button
+                <Button
+                  variant="primary"
                   onClick={() => setStep(9)}
-                  className="rounded-xl bg-blue-600 px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-500"
+                  className="rounded-xl px-6"
                 >
                   {selectedProduct.shortName} odagiyla kurulumu tamamla →
-                </button>
+                </Button>
               )}
-              <button
+              <Button
+                variant="outline"
                 onClick={goToMaviyaka}
                 disabled={selectedIds.size === 0}
-                className="flex items-center gap-2 rounded-xl border border-slate-700 px-6 py-2.5 text-sm font-semibold text-white transition hover:border-blue-500 hover:text-blue-300 disabled:opacity-40 disabled:hover:border-slate-700 disabled:hover:text-white"
+                className="gap-2 rounded-xl border-slate-700 px-6 text-white hover:border-blue-500 hover:text-blue-300 disabled:hover:border-slate-700 disabled:hover:text-white"
               >
                 🚀 Web otomasyonuna gec ({selectedIds.size} senaryo)
-              </button>
+              </Button>
             </div>
           </div>
         )}
@@ -1688,11 +1713,12 @@ export default function NewProjectPage() {
                   <input type="file" accept=".json" multiple onChange={handleLocatorUpload} className="hidden" />
                 </label>
                 <span className="text-xs text-slate-600">veya</span>
-                <button
+                <Button
                   type="button"
+                  variant="outline"
                   onClick={crawlLocators}
                   disabled={crawling || !maviyakaUrl.trim()}
-                  className="flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-800 px-4 py-2 text-sm text-slate-300 transition hover:border-blue-500 hover:text-blue-400 disabled:opacity-40"
+                  className="gap-2 rounded-lg border-slate-700 bg-slate-800 text-slate-300 hover:border-blue-500 hover:text-blue-400"
                 >
                   {crawling ? (
                     <>
@@ -1703,24 +1729,27 @@ export default function NewProjectPage() {
                       Tarıyor…
                     </>
                   ) : "🕷 URL'yi Otomatik Tara"}
-                </button>
+                </Button>
               </div>
 
               {locatorFiles.length > 0 && (
                 <div className="space-y-2">
                   {locatorFiles.map((lf, i) => (
-                    <button
+                    <Button
                       key={i}
                       type="button"
+                      variant="ghost"
                       onClick={() => setActiveLocatorFile(lf)}
-                      className={`flex w-full items-center justify-between rounded-lg border px-3 py-2 text-sm transition
-                        ${activeLocatorFile?.name === lf.name
-                          ? "border-blue-500 bg-blue-950/20 text-blue-400"
-                          : "border-slate-700 bg-slate-800 text-slate-300 hover:border-slate-500"}`}
+                      className={cn(
+                        "h-auto w-full justify-between rounded-lg border px-3 py-2",
+                        activeLocatorFile?.name === lf.name
+                          ? "border-blue-500 bg-blue-950/20 text-blue-400 hover:bg-blue-950/20"
+                          : "border-slate-700 bg-slate-800 text-slate-300 hover:border-slate-500",
+                      )}
                     >
                       <span>📋 {lf.name}</span>
                       <span className="text-xs text-slate-500">{lf.locators.length} lokator</span>
-                    </button>
+                    </Button>
                   ))}
                 </div>
               )}
@@ -1791,30 +1820,36 @@ export default function NewProjectPage() {
                   </div>
                   {locatorMatches.length > 0 && !matching && (
                     <div className="flex flex-wrap gap-2">
-                      <button
+                      <Button
                         type="button"
+                        variant="outline"
+                        size="sm"
                         onClick={approveAllMatches}
-                        className="rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-3 py-1.5 text-xs font-semibold text-emerald-300 hover:bg-emerald-500/20"
+                        className="border-emerald-500/40 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20"
                       >
                         ✓ Hepsini Onayla
-                      </button>
-                      <button
+                      </Button>
+                      <Button
                         type="button"
+                        variant="outline"
+                        size="sm"
                         onClick={rejectAllMatches}
-                        className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-1.5 text-xs font-semibold text-slate-400 hover:border-slate-600"
+                        className="border-slate-700 bg-slate-800 text-slate-400 hover:border-slate-600"
                       >
                         ✗ Hepsini Reddet
-                      </button>
-                      <button
+                      </Button>
+                      <Button
                         type="button"
+                        variant="outline"
+                        size="sm"
                         onClick={() => {
                           const all = locatorFiles.flatMap((f) => f.locators);
                           void matchLocatorsToScenarios(all);
                         }}
-                        className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-1.5 text-xs font-semibold text-slate-400 hover:border-blue-500 hover:text-blue-300"
+                        className="border-slate-700 bg-slate-800 text-slate-400 hover:border-blue-500 hover:text-blue-300"
                       >
                         ↻ Tekrar Eşleştir
-                      </button>
+                      </Button>
                     </div>
                   )}
                 </div>
@@ -2162,11 +2197,12 @@ export default function NewProjectPage() {
 
             {/* Feature Üret + Manuel Senaryo Eşleştirme Butonları */}
             <div className="flex flex-wrap items-center gap-3">
-              <button
+              <Button
                 type="button"
+                variant="primary"
                 onClick={generateMaviyakaFeatures}
                 disabled={loading || matchingFull || !maviyakaUrl.trim()}
-                className="flex items-center gap-2 rounded-xl bg-blue-600 px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-500 disabled:opacity-40"
+                className="gap-2 rounded-xl bg-blue-600 px-6 text-white hover:bg-blue-500"
               >
                 {loading ? (
                   <>
@@ -2177,13 +2213,14 @@ export default function NewProjectPage() {
                     Üretiliyor…
                   </>
                 ) : "🤖 Feature Dosyaları Üret"}
-              </button>
-              <button
+              </Button>
+              <Button
                 type="button"
+                variant="outline"
                 onClick={matchAndGenerateFromManual}
                 disabled={matchingFull || loading || !maviyakaUrl.trim()}
                 title="Mevcut manuel senaryoların her adımını locator kataloğundaki key + XPath ile LLM üzerinden eşler. Sonuç: feature + adım→XPath raporu."
-                className="flex items-center gap-2 rounded-xl border border-purple-500/50 bg-purple-600/20 px-6 py-2.5 text-sm font-semibold text-purple-200 transition hover:bg-purple-600/30 disabled:opacity-40"
+                className="gap-2 rounded-xl border-purple-500/50 bg-purple-600/20 px-6 text-purple-200 hover:bg-purple-600/30"
               >
                 {matchingFull ? (
                   <>
@@ -2194,7 +2231,7 @@ export default function NewProjectPage() {
                     Eşleştiriliyor…
                   </>
                 ) : "🔗 Mevcut Manuel Senaryolarla Eşleştir"}
-              </button>
+              </Button>
               {stepMappings.length > 0 && (
                 <span className="text-xs text-slate-500">
                   {stepMappings.length} senaryo · {stepMappings.reduce((a, m) => a + m.steps.length, 0)} adım bağlandı
@@ -2467,21 +2504,23 @@ export default function NewProjectPage() {
 
                 {/* Başlat / Atla */}
                 <div className="flex flex-wrap gap-3 pt-2">
-                  <button
+                  <Button
                     type="button"
+                    variant="primary"
                     onClick={openIdeForRun}
                     disabled={running || ideRunning}
-                    className="flex items-center gap-2 rounded-xl bg-emerald-600 px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-500 disabled:opacity-40"
+                    className="gap-2 rounded-xl bg-emerald-600 px-6 text-white hover:bg-emerald-500"
                   >
                     💻 Testleri Başlat — IDE&apos;de aç
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     type="button"
+                    variant="outline"
                     onClick={() => setStep(9)}
-                    className="rounded-xl border border-slate-700 px-6 py-2.5 text-sm font-medium text-slate-400 transition hover:border-slate-500 hover:text-white"
+                    className="rounded-xl border-slate-700 px-6 text-slate-400 hover:border-slate-500 hover:text-white"
                   >
                     Atla & Bitir →
-                  </button>
+                  </Button>
                 </div>
               </div>
             )}
@@ -2489,20 +2528,22 @@ export default function NewProjectPage() {
             {/* Geri butonu (feature üretilmediyse) */}
             {maviyakaFeatures.length === 0 && (
               <div className="flex gap-3 pt-2">
-                <button
+                <Button
                   type="button"
+                  variant="outline"
                   onClick={() => setStep(6)}
-                  className="rounded-xl border border-slate-700 px-5 py-2.5 text-sm font-medium text-slate-400 transition hover:border-slate-500 hover:text-white"
+                  className="rounded-xl border-slate-700 px-5 text-slate-400 hover:border-slate-500 hover:text-white"
                 >
                   ← Geri
-                </button>
-                <button
+                </Button>
+                <Button
                   type="button"
+                  variant="outline"
                   onClick={() => setStep(9)}
-                  className="rounded-xl border border-slate-700 px-5 py-2.5 text-sm font-medium text-slate-400 transition hover:border-slate-500 hover:text-white"
+                  className="rounded-xl border-slate-700 px-5 text-slate-400 hover:border-slate-500 hover:text-white"
                 >
                   Atla →
-                </button>
+                </Button>
               </div>
             )}
           </div>
@@ -2568,12 +2609,13 @@ export default function NewProjectPage() {
                 <p className="text-sm text-slate-400">
                   Dosyalar yüklenemedi. Tekrar denemek için aşağıdaki butonu kullanın.
                 </p>
-                <button
+                <Button
+                  variant="outline"
                   onClick={() => setStep(6)}
-                  className="rounded-xl border border-slate-700 px-5 py-2 text-sm font-medium text-slate-300 transition hover:border-slate-500 hover:text-white"
+                  className="rounded-xl border-slate-700 px-5 text-slate-300 hover:border-slate-500 hover:text-white"
                 >
                   ← Otomasyon adımına dön
-                </button>
+                </Button>
               </div>
             )}
 
@@ -2640,30 +2682,34 @@ export default function NewProjectPage() {
 
             {/* CTA butonları */}
             <div className="flex flex-wrap gap-3">
-              <button
+              <Button
+                variant="primary"
                 onClick={() => router.push(projectEntryHref(projectId, selectedProduct.id))}
-                className="rounded-xl bg-blue-600 px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-500"
+                className="rounded-xl bg-blue-600 px-6 text-white hover:bg-blue-500"
               >
                 {selectedProduct.shortName} çalışma alanini ac →
-              </button>
-              <button
+              </Button>
+              <Button
+                variant="outline"
                 onClick={() => router.push(`/p/${projectId}`)}
-                className="rounded-xl border border-slate-700 px-6 py-2.5 text-sm font-medium text-slate-300 transition hover:border-slate-500 hover:text-white"
+                className="rounded-xl border-slate-700 px-6 text-slate-300 hover:border-slate-500 hover:text-white"
               >
                 Proje Özetine git
-              </button>
-              <button
+              </Button>
+              <Button
+                variant="outline"
                 onClick={() => router.push(`/p/${projectId}/${productGuide.recommendedPath}`)}
-                className="rounded-xl border border-violet-500/20 bg-violet-500/10 px-6 py-2.5 text-sm font-medium text-violet-100 transition hover:border-violet-400/30 hover:bg-violet-500/15"
+                className="rounded-xl border-violet-500/20 bg-violet-500/10 px-6 text-violet-100 hover:border-violet-400/30 hover:bg-violet-500/15"
               >
                 Önerilen adım: {selectedProduct.shortName}
-              </button>
-              <button
+              </Button>
+              <Button
+                variant="outline"
                 onClick={() => router.push("/")}
-                className="rounded-xl border border-slate-700 px-6 py-2.5 text-sm font-medium text-slate-400 transition hover:border-slate-500 hover:text-white"
+                className="rounded-xl border-slate-700 px-6 text-slate-400 hover:border-slate-500 hover:text-white"
               >
                 Ana Sayfa
-              </button>
+              </Button>
             </div>
           </div>
         )}
@@ -2762,22 +2808,24 @@ export default function NewProjectPage() {
                 let entry: LocatorEntry | null = null;
                 try { entry = JSON.parse(locatorModal.aiSuggestion); } catch { /* */ }
                 return entry ? (
-                  <button
+                  <Button
                     type="button"
+                    variant="primary"
                     onClick={() => confirmLocator(entry!)}
-                    className="flex-1 rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-500"
+                    className="flex-1 rounded-xl bg-emerald-600 text-white hover:bg-emerald-500"
                   >
                     ✓ Onayla & Kaydet
-                  </button>
+                  </Button>
                 ) : null;
               })()}
-              <button
+              <Button
                 type="button"
+                variant="outline"
                 onClick={() => setLocatorModal(null)}
-                className="rounded-xl border border-slate-700 px-4 py-2 text-sm text-slate-400 transition hover:border-slate-500 hover:text-white"
+                className="rounded-xl border-slate-700 text-slate-400 hover:border-slate-500 hover:text-white"
               >
                 Kapat
-              </button>
+              </Button>
             </div>
           </div>
         </div>

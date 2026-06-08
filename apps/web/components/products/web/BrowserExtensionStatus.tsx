@@ -23,7 +23,7 @@ const BROWSERS = [
 ];
 
 export function BrowserExtensionStatus() {
-  const [connected, setConnected] = useState(true);
+  const [connected, setConnected] = useState(false);
 
   return (
     <div className="rounded-2xl bg-gradient-to-br from-slate-900 via-slate-900 to-emerald-950/20 border border-emerald-500/20 p-5">
@@ -49,10 +49,12 @@ export function BrowserExtensionStatus() {
           </div>
         </div>
         <button
-          onClick={() => setConnected((c) => !c)}
-          className="text-[11px] text-slate-400 hover:text-white"
+          className="text-[11px] text-slate-500 cursor-not-allowed"
+          type="button"
+          disabled
+          title="Gerçek eklenti handshake'i henüz bağlı değil; bu kontrol sadece UI durumunu gösterir."
         >
-          {connected ? "Bağlantıyı Kes" : "Yeniden Bağla"}
+          Handshake bekliyor
         </button>
       </div>
 
@@ -114,9 +116,14 @@ export function BrowserExtensionStatus() {
       {/* Footer CTA */}
       <div className="mt-4 pt-3 border-t border-slate-800 flex items-center justify-between">
         <span className="text-[11px] text-slate-500">
-          Bu sprint: <span className="text-emerald-300 font-semibold">38 test</span> tarayıcıdan üretildi
+          Demo sprint: <span className="text-emerald-300 font-semibold">38 test</span> tarayıcıdan üretildi
         </span>
-        <button className="text-[11px] text-emerald-400 hover:text-emerald-300 font-semibold">
+        <button
+          className="text-[11px] text-slate-500 font-semibold"
+          type="button"
+          disabled
+          title="Eklenti paketleme/indirme akışı henüz bağlanmadı"
+        >
           Eklentiyi İndir →
         </button>
       </div>

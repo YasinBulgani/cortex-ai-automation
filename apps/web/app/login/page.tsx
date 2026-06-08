@@ -10,6 +10,7 @@ import {
   Activity, FileCheck2,
 } from "lucide-react";
 import { API_BASE, ENGINE_BASE, apiFetch, setTokens, migrateToCookieAuth, getToken, hasSession } from "@/lib/api-client";
+import { Button } from "@/components/ui/button";
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
@@ -501,13 +502,14 @@ function LoginPageContent() {
                     {mfaError}
                   </p>
                 )}
-                <button
+                <Button
                   type="submit"
+                  variant="primary"
                   disabled={mfaLoading || mfaCode.length < 6}
-                  className="w-full rounded-xl bg-violet-600 py-3 text-sm font-semibold text-white hover:bg-violet-500 disabled:opacity-40 transition"
+                  className="w-full rounded-xl bg-violet-600 py-3 text-sm font-semibold text-white hover:bg-violet-500"
                 >
                   {mfaLoading ? "Doğrulanıyor…" : "Doğrula & Giriş Yap"}
-                </button>
+                </Button>
                 <button
                   type="button"
                   onClick={() => { setMfaSessionToken(null); setMfaCode(""); setMfaError(null); }}
@@ -572,14 +574,14 @@ function LoginPageContent() {
                 )}
 
                 {/* submit */}
-                <button
-                  type="submit" disabled={!uiReady || loading} data-testid="login-btn-submit"
-                  className="flex w-full items-center justify-center gap-2 rounded-lg bg-slate-950 py-3 font-semibold text-white shadow-lg shadow-slate-200/80 transition-colors hover:bg-slate-800 disabled:opacity-50 dark:bg-indigo-500 dark:shadow-indigo-950/30 dark:hover:bg-indigo-400"
+                <Button
+                  type="submit" variant="primary" disabled={!uiReady || loading} data-testid="login-btn-submit"
+                  className="w-full gap-2 rounded-lg bg-slate-950 py-3 font-semibold text-white shadow-lg shadow-slate-200/80 hover:bg-slate-800 dark:bg-indigo-500 dark:shadow-indigo-950/30 dark:hover:bg-indigo-400"
                 >
                   {loading ? (
                     <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Giriş yapılıyor…</>
                   ) : "Giriş Yap"}
-                </button>
+                </Button>
 
                 {/* SSO providers */}
                 <SsoButtons />
@@ -608,14 +610,14 @@ function LoginPageContent() {
                         className={`${inputBase} px-4`}
                       />
                       <div className="flex gap-2">
-                        <button type="submit" disabled={forgotLoading} data-testid="login-btn-forgot-submit"
-                          className="flex-1 rounded-lg bg-slate-950 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-slate-800 disabled:opacity-50 dark:bg-indigo-500 dark:hover:bg-indigo-400">
+                        <Button type="submit" variant="primary" size="sm" disabled={forgotLoading} data-testid="login-btn-forgot-submit"
+                          className="flex-1 rounded-lg bg-slate-950 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800 dark:bg-indigo-500 dark:hover:bg-indigo-400">
                           {forgotLoading ? "Gönderiliyor…" : "Gönder"}
-                        </button>
-                        <button type="button" onClick={() => setForgotOpen(false)} data-testid="login-btn-forgot-cancel"
-                          className="rounded-lg border border-slate-200 px-4 py-2 text-sm text-slate-500 transition-colors hover:border-slate-300 hover:text-slate-700 dark:border-slate-600 dark:text-slate-400 dark:hover:border-slate-500 dark:hover:text-white">
+                        </Button>
+                        <Button type="button" variant="outline" size="sm" onClick={() => setForgotOpen(false)} data-testid="login-btn-forgot-cancel"
+                          className="rounded-lg border border-slate-200 px-4 py-2 text-sm text-slate-500 hover:border-slate-300 hover:text-slate-700 dark:border-slate-600 dark:text-slate-400 dark:hover:border-slate-500 dark:hover:text-white">
                           İptal
-                        </button>
+                        </Button>
                       </div>
                     </form>
                     {forgotMsg && <p className="mt-2 text-xs text-blue-600 dark:text-blue-400" data-testid="login-forgot-msg">{forgotMsg}</p>}
@@ -745,14 +747,14 @@ function LoginPageContent() {
                 )}
 
                 {/* submit */}
-                <button
-                  type="submit" disabled={regLoading || !regEmail || !regPassword || !regConfirm}
-                  className="flex w-full items-center justify-center gap-2 rounded-lg bg-slate-950 py-3 font-semibold text-white shadow-lg shadow-slate-200/80 transition-colors hover:bg-slate-800 disabled:opacity-50 dark:bg-indigo-500 dark:shadow-indigo-950/30 dark:hover:bg-indigo-400"
+                <Button
+                  type="submit" variant="primary" disabled={regLoading || !regEmail || !regPassword || !regConfirm}
+                  className="w-full gap-2 rounded-lg bg-slate-950 py-3 font-semibold text-white shadow-lg shadow-slate-200/80 hover:bg-slate-800 dark:bg-indigo-500 dark:shadow-indigo-950/30 dark:hover:bg-indigo-400"
                 >
                   {regLoading
                     ? <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Hesap oluşturuluyor…</>
                     : "Hesap Oluştur"}
-                </button>
+                </Button>
               </form>
             )}
 

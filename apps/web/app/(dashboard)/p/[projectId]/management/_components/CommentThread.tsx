@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 
+import { Button } from "@/components/ui/button";
 import {
   buildCommentTree,
   type CommentEntityType,
@@ -43,7 +44,7 @@ export function CommentThread({
   projectId = null,
   currentUserId = null,
   userDirectory,
-  title = "Comments",
+  title = "Yorumlar",
 }: CommentThreadProps) {
   const { data, isLoading, isError, error } = useComments(entityType, entityId);
   const tree = useMemo(() => buildCommentTree(data ?? []), [data]);
@@ -92,23 +93,23 @@ export function CommentThread({
       {summaryOpen ? (
         <div className="mb-4 rounded-md border border-teal-500/30 bg-teal-500/5 p-3">
           <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-teal-300">
-            AI thread summary
+            AI başlık özeti
           </p>
           {summary.isLoading ? (
-            <p className="text-xs text-fg-muted">Generating…</p>
+            <p className="text-xs text-fg-muted">Oluşturuluyor…</p>
           ) : summary.isError ? (
             <p className="text-xs text-danger">
-              Summary unavailable: {(summary.error as Error)?.message ?? "unknown error"}
+              Özet kullanılamıyor: {(summary.error as Error)?.message ?? "bilinmeyen hata"}
             </p>
           ) : summary.data ? (
             <div className="space-y-2 text-xs text-fg">
               <p>
-                <span className="font-semibold text-brand">TL;DR — </span>
-                {summary.data.tldr || "(no summary)"}
+                <span className="font-semibold text-brand">Özet — </span>
+                {summary.data.tldr || "(özet yok)"}
               </p>
               {summary.data.decisions.length > 0 ? (
                 <div>
-                  <p className="font-semibold text-brand">Decisions</p>
+                  <p className="font-semibold text-brand">Kararlar</p>
                   <ul className="ml-4 list-disc space-y-0.5">
                     {summary.data.decisions.map((d, i) => (
                       <li key={`d-${i}`}>{d}</li>
@@ -118,7 +119,7 @@ export function CommentThread({
               ) : null}
               {summary.data.openQuestions.length > 0 ? (
                 <div>
-                  <p className="font-semibold text-brand">Open questions</p>
+                  <p className="font-semibold text-brand">Açık sorular</p>
                   <ul className="ml-4 list-disc space-y-0.5">
                     {summary.data.openQuestions.map((q, i) => (
                       <li key={`q-${i}`}>{q}</li>
@@ -138,15 +139,15 @@ export function CommentThread({
 
       {isError ? (
         <p className="rounded border border-red-800 bg-red-950/40 p-3 text-xs text-red-200">
-          Failed to load comments: {(error as Error)?.message ?? "unknown error"}
+          Yorumlar yüklenemedi: {(error as Error)?.message ?? "bilinmeyen hata"}
         </p>
       ) : null}
 
       {isLoading ? (
-        <p className="text-xs text-fg-subtle">Loading…</p>
+        <p className="text-xs text-fg-subtle">Yükleniyor…</p>
       ) : tree.length === 0 ? (
         <p className="rounded border border-dashed border-border bg-surface-overlay p-3 text-xs text-fg-subtle">
-          No comments yet.
+          Henüz yorum yok.
         </p>
       ) : (
         <ul className="space-y-3">
@@ -186,22 +187,23 @@ export function CommentThread({
         <textarea
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
-          placeholder="Write a comment… Use @<user-uuid> to mention a teammate."
+          placeholder="Yorum yazın… Bir takım arkadaşını etiketlemek için @<kullanıcı-uuid> kullanın."
           rows={3}
           className="w-full resize-y rounded-md border border-border bg-surface-overlay p-2 text-sm text-fg outline-none focus:border-brand/50 placeholder:text-fg-disabled"
         />
         <div className="mt-2 flex items-center justify-between">
           <span className="text-[11px] text-fg-subtle">
-            Markdown supported. Mentions trigger notifications.
+            Markdown desteklenir. Etiketlemeler bildirim tetikler.
           </span>
-          <button
+          <Button
             type="button"
+            variant="primary"
+            size="sm"
             onClick={() => void submitRoot()}
             disabled={!draft.trim() || createMutation.isPending}
-            className="rounded-md bg-brand px-3 py-1.5 text-xs font-semibold text-brand-fg transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {createMutation.isPending ? "Posting…" : "Post comment"}
-          </button>
+            {createMutation.isPending ? "Gönderiliyor…" : "Yorum Ekle"}
+          </Button>
         </div>
       </div>
     </section>
@@ -241,6 +243,7 @@ function CommentItem({
 }: CommentItemProps) {
   const [replying, setReplying] = useState(false);
   const [editing, setEditing] = useState(false);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [draft, setDraft] = useState("");
   const [editDraft, setEditDraft] = useState(node.body_md);
 
@@ -251,7 +254,7 @@ function CommentItem({
 
   return (
     <div
-      className="rounded-md border border-border bg-bg p-3"
+      className="rounded-md border border-border bg-surface-overlay p-3"
       style={{ marginLeft: depth > 0 ? Math.min(depth, 4) * 16 : 0 }}
     >
       <div className="flex items-start justify-between gap-3">
@@ -261,7 +264,7 @@ function CommentItem({
             <span className="text-fg-subtle">
               · {new Date(node.created_at).toLocaleString()}
               {node.edited_at ? " · edited" : ""}
-              {isDeleted ? " · deleted" : ""}
+              {isDeleted ? " · silindi" : ""}
             </span>
           </p>
           {editing ? (
@@ -273,9 +276,10 @@ function CommentItem({
                 className="w-full resize-y rounded-md border border-border bg-surface-overlay p-2 text-sm text-fg outline-none focus:border-brand/50"
               />
               <div className="mt-2 flex gap-2">
-                <button
+                <Button
                   type="button"
-                  className="rounded-md bg-brand px-2.5 py-1 text-[11px] font-semibold text-brand-fg hover:brightness-105"
+                  variant="primary"
+                  size="sm"
                   onClick={async () => {
                     const trimmed = editDraft.trim();
                     if (!trimmed) return;
@@ -283,18 +287,19 @@ function CommentItem({
                     setEditing(false);
                   }}
                 >
-                  Save
-                </button>
-                <button
+                  Kaydet
+                </Button>
+                <Button
                   type="button"
-                  className="rounded-md border border-border px-2.5 py-1 text-[11px] text-fg-muted hover:bg-surface-raised"
+                  variant="outline"
+                  size="sm"
                   onClick={() => {
                     setEditing(false);
                     setEditDraft(node.body_md);
                   }}
                 >
-                  Cancel
-                </button>
+                  Vazgeç
+                </Button>
               </div>
             </div>
           ) : (
@@ -303,7 +308,7 @@ function CommentItem({
                 isDeleted ? "italic text-fg-subtle" : "text-fg"
               }`}
             >
-              {isDeleted ? "[comment removed]" : renderBody(node.body_md, userDirectory)}
+              {isDeleted ? "[yorum kaldırıldı]" : renderBody(node.body_md, userDirectory)}
             </p>
           )}
         </div>
@@ -338,7 +343,7 @@ function CommentItem({
             className="ml-auto text-[11px] text-fg-muted hover:text-fg"
             onClick={() => setReplying((v) => !v)}
           >
-            {replying ? "Cancel reply" : "Reply"}
+            {replying ? "Yanıtı iptal et" : "Yanıtla"}
           </button>
           {isAuthor ? (
             <>
@@ -350,33 +355,54 @@ function CommentItem({
                   setEditDraft(node.body_md);
                 }}
               >
-                Edit
+                Düzenle
               </button>
-              <button
-                type="button"
-                className="text-[11px] text-red-300 hover:text-red-100"
-                onClick={() => void onDelete(node.id)}
-              >
-                Delete
-              </button>
+              {confirmingDelete ? (
+                <span className="inline-flex items-center gap-1.5">
+                  <span className="text-[11px] text-fg-muted">Emin misiniz?</span>
+                  <button
+                    type="button"
+                    className="text-[11px] font-semibold text-red-300 hover:text-red-100"
+                    onClick={() => { setConfirmingDelete(false); void onDelete(node.id); }}
+                  >
+                    Evet, sil
+                  </button>
+                  <button
+                    type="button"
+                    className="text-[11px] text-fg-subtle hover:text-fg"
+                    onClick={() => setConfirmingDelete(false)}
+                  >
+                    Vazgeç
+                  </button>
+                </span>
+              ) : (
+                <button
+                  type="button"
+                  className="text-[11px] text-red-300 hover:text-red-100"
+                  onClick={() => setConfirmingDelete(true)}
+                >
+                  Sil
+                </button>
+              )}
             </>
           ) : null}
         </div>
       ) : null}
 
       {replying ? (
-        <div className="mt-2 rounded border border-border bg-bg p-2">
+        <div className="mt-2 rounded border border-border bg-surface-overlay p-2">
           <textarea
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             rows={2}
-            placeholder="Write a reply…"
+            placeholder="Yanıt yazın…"
             className="w-full resize-y rounded-md border border-border bg-surface-overlay p-2 text-sm text-fg outline-none focus:border-brand/50 placeholder:text-fg-disabled"
           />
           <div className="mt-2 flex gap-2">
-            <button
+            <Button
               type="button"
-              className="rounded-md bg-brand px-2.5 py-1 text-[11px] font-semibold text-brand-fg hover:brightness-105"
+              variant="primary"
+              size="sm"
               onClick={async () => {
                 const trimmed = draft.trim();
                 if (!trimmed) return;
@@ -385,8 +411,8 @@ function CommentItem({
                 setReplying(false);
               }}
             >
-              Reply
-            </button>
+              Yanıtla
+            </Button>
           </div>
         </div>
       ) : null}

@@ -34,7 +34,7 @@ from app.domains.auth.service import (
     hash_password,
 )
 from app.infra.database import get_db
-from app.infra.models import User
+from app.infra.models import _DEFAULT_TENANT_ID, User
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/sso", tags=["sso"])
@@ -147,9 +147,17 @@ def _provider_config(provider: str) -> dict:
             "scope": "openid email profile",
         }
     if provider == "azure":
-        tenant = settings.sso_azure_tenant_id or "common"
         if not settings.sso_azure_client_id or not settings.sso_azure_client_secret:
             raise HTTPException(503, detail="Azure SSO yapilandirilmamis")
+        # SECURITY: do NOT default to the multi-tenant "common" endpoint — that
+        # accepts logins from ANY (incl. attacker-created) Azure tenant, enabling
+        # cross-tenant account takeover. Require an explicit, pinned tenant id.
+        tenant = (settings.sso_azure_tenant_id or "").strip()
+        if not tenant or tenant.lower() in {"common", "organizations", "consumers"}:
+            raise HTTPException(
+                503,
+                detail="Azure SSO icin sabit bir tenant id yapilandirilmalidir (multi-tenant reddedildi)",
+            )
         return {
             "auth_url": f"https://login.microsoftonline.com/{tenant}/oauth2/v2.0/authorize",
             "token_url": f"https://login.microsoftonline.com/{tenant}/oauth2/v2.0/token",
@@ -245,11 +253,13 @@ def sso_callback(
     if user is None:
         if not settings.sso_auto_provision:
             raise HTTPException(403, detail="Hesabiniz yok; yoneticinizden davet isteyin")
-        # Auto-provision with random password (user can reset)
+        # Auto-provision with random password (user can reset). Assign the tenant
+        # explicitly rather than relying on the column default.
         user = User(
             email=email,
             password_hash=hash_password(secrets.token_urlsafe(24)),
             full_name=full_name,
+            tenant_id=_DEFAULT_TENANT_ID,
             is_active=True,
         )
         db.add(user)

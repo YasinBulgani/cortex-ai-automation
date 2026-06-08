@@ -66,6 +66,7 @@ def _require_admin(user: User) -> None:
 def _build_query(
     db: Session,
     *,
+    tenant_id: Optional[str] = None,
     action: Optional[str] = None,
     resource_type: Optional[str] = None,
     actor_user_id: Optional[str] = None,
@@ -73,6 +74,13 @@ def _build_query(
     date_to: Optional[str] = None,
 ):
     stmt = select(AuditEvent).order_by(AuditEvent.ts.asc())
+    # Tenant izolasyonu — bir tenant'ın admin'i diğer tenant'ların audit kayıtlarını göremez.
+    # NULL tenant_id taşıyan kayıtlar (legacy / tenant-agnostik global olaylar; üretimde
+    # log_audit çağrıları tenant_id geçmediği için bunlar NULL'dır) gizlenmemeli.
+    if tenant_id:
+        stmt = stmt.where(
+            (AuditEvent.tenant_id == tenant_id) | (AuditEvent.tenant_id.is_(None))
+        )
     if action:
         stmt = stmt.where(AuditEvent.action.ilike(f"%{action}%"))
     if resource_type:
@@ -144,6 +152,7 @@ def list_audit_events(
     _require_admin(user)
     stmt = _build_query(
         db,
+        tenant_id=user.tenant_id,
         action=action,
         resource_type=resource_type,
         actor_user_id=actor_user_id,
@@ -175,6 +184,7 @@ def export_audit_json(
     _require_admin(user)
     stmt = _build_query(
         db,
+        tenant_id=user.tenant_id,
         action=action,
         resource_type=resource_type,
         actor_user_id=actor_user_id,
@@ -225,6 +235,7 @@ def export_audit_csv(
     _require_admin(user)
     stmt = _build_query(
         db,
+        tenant_id=user.tenant_id,
         action=action,
         resource_type=resource_type,
         actor_user_id=actor_user_id,
@@ -275,6 +286,10 @@ def verify_audit_integrity(
         db.scalars(
             select(AuditEvent)
             .where(AuditEvent.hash.is_not(None))
+            .where(
+                (AuditEvent.tenant_id == user.tenant_id)
+                | (AuditEvent.tenant_id.is_(None))
+            )
             .order_by(AuditEvent.seq.asc())
             .limit(limit)
         )
@@ -314,7 +329,7 @@ def export_audit_summary(
 ):
     """Export metadata — toplam kayıt sayısı ve tarih aralığı."""
     _require_admin(user)
-    stmt = _build_query(db, date_from=date_from, date_to=date_to)
+    stmt = _build_query(db, tenant_id=user.tenant_id, date_from=date_from, date_to=date_to)
     count = len(list(db.scalars(stmt)))
     return AuditExportSummary(
         exported_at=datetime.now(_tz.utc).isoformat(),

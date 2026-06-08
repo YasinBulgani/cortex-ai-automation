@@ -195,10 +195,25 @@ def _clone_repo(
     clone_url, env_extra = _resolve_clone_url(repo_url, credential_ref)
     ssh_key_dir = env_extra.pop("_ssh_key_dir", None)
 
-    git_env = {**os.environ, **env_extra}
+    # Minimal/sanitize edilmiş env — tüm os.environ sızdırılmaz, yalnızca git
+    # için gereken değişkenler ve klonlama kimlik bilgileri aktarılır.
+    git_env: dict[str, str] = {
+        "PATH": os.environ.get("PATH", "/usr/bin:/bin"),
+        "HOME": os.environ.get("HOME", "/tmp"),
+        "GIT_TERMINAL_PROMPT": "0",  # kimlik bilgisi sormasın, takılmasın
+        "GIT_ALLOW_PROTOCOL": "https:ssh",  # ext/file/git transport'ları engelle
+    }
+    git_env.update(env_extra)
+
+    # git transport helper RCE/SSRF engelleme: tehlikeli protokolleri kapat
+    _hardening = [
+        "-c", "protocol.ext.allow=never",
+        "-c", "protocol.file.allow=never",
+        "-c", "protocol.git.allow=never",
+    ]
 
     def _run_clone(url: str, extra_args: list[str] | None = None) -> int:
-        cmd = ["git", "clone", "--depth", "1"] + (extra_args or []) + [url, target_dir]
+        cmd = ["git"] + _hardening + ["clone", "--depth", "1"] + (extra_args or []) + [url, target_dir]
         r = subprocess.run(cmd, capture_output=True, text=True, timeout=120, env=git_env)
         return r.returncode
 

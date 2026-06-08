@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import type React from "react";
+import { Button } from "@/components/ui/button";
 import type { IdeFile, IdeFileKind } from "./types";
 
 // ── IDE Workbench (IntelliJ benzeri otomasyon IDE) ──────────────────────────
@@ -514,20 +515,20 @@ function IdeWorkbench({
 
       {/* Altta adım kontrolleri */}
       <div className="flex flex-wrap gap-3 pt-2">
-        <button
+        <Button
           type="button"
+          variant="outline"
           onClick={goBack}
-          className="rounded-xl border border-slate-700 px-5 py-2.5 text-sm font-medium text-slate-400 transition hover:border-slate-500 hover:text-white"
         >
           ← Kuruluma dön
-        </button>
-        <button
+        </Button>
+        <Button
           type="button"
+          variant="primary"
           onClick={goFinish}
-          className="rounded-xl bg-blue-600 px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-500"
         >
           Bitir & Projeye git →
-        </button>
+        </Button>
       </div>
     </div>
   );

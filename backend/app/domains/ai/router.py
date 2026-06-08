@@ -881,10 +881,19 @@ class KnowledgeIngestRequest(BaseModel):
 
 
 @router.post("/knowledge/ingest")
-def knowledge_ingest(body: KnowledgeIngestRequest, user: Annotated[User, Depends(get_current_user)], project_id: str = ""):
-    """Dışarıdan bilgi ekle — git hook, CI/CD, veya diğer araçlar için."""
+def knowledge_ingest(
+    body: KnowledgeIngestRequest,
+    db: DB,
+    user: Annotated[User, Depends(get_current_user)],
+    project_id: str = "",
+):
+    """Dışarıdan bilgi ekle — git hook, CI/CD, veya diğer araçlar için.
+
+    Yalnızca projeye erişim yetkisi olan kullanıcılar ingest edebilir (cross-tenant koruması).
+    """
     if not project_id:
         raise HTTPException(400, "project_id query parametresi gerekli")
+    _require_project_access(db, user, project_id)
     allowed_sources = {"code_change", "execution", "error_pattern", "insight", "feature_file", "docs", "chat_history"}
     if body.source not in allowed_sources:
         raise HTTPException(400, f"Geçersiz source. İzin verilen: {allowed_sources}")
@@ -898,10 +907,15 @@ def knowledge_ingest(body: KnowledgeIngestRequest, user: Annotated[User, Depends
 
 
 @router.get("/knowledge/stats")
-def knowledge_stats(user: Annotated[User, Depends(get_current_user)], project_id: str = ""):
+def knowledge_stats(
+    db: DB,
+    user: Annotated[User, Depends(get_current_user)],
+    project_id: str = "",
+):
     """KnowledgeStore istatistiklerini döndürür — UI hafıza göstergesi için."""
     if not project_id:
         raise HTTPException(400, "project_id query parametresi gerekli")
+    _require_project_access(db, user, project_id)
     from app.domains.ai.knowledge_store import KnowledgeStore
     store = KnowledgeStore(project_id=project_id)
     try:
@@ -964,10 +978,16 @@ class BatchEmbedResponse(BaseModel):
 
 
 @router.post("/knowledge/batch-ingest", response_model=BatchEmbedResponse)
-def batch_ingest(body: BatchEmbedRequest, user: Annotated[User, Depends(get_current_user)], project_id: str = ""):
+def batch_ingest(
+    body: BatchEmbedRequest,
+    db: DB,
+    user: Annotated[User, Depends(get_current_user)],
+    project_id: str = "",
+):
     """Toplu bilgi ingestion — embedding + KnowledgeStore kayit."""
     if not project_id:
         raise HTTPException(400, "project_id query parametresi gerekli")
+    _require_project_access(db, user, project_id)
     try:
         from app.domains.ai.knowledge_store import KnowledgeStore
         store = KnowledgeStore(project_id=project_id)
@@ -981,10 +1001,16 @@ def batch_ingest(body: BatchEmbedRequest, user: Annotated[User, Depends(get_curr
 
 
 @router.post("/knowledge/search")
-def knowledge_search(body: dict, user: Annotated[User, Depends(get_current_user)], project_id: str = ""):
+def knowledge_search(
+    body: dict,
+    db: DB,
+    user: Annotated[User, Depends(get_current_user)],
+    project_id: str = "",
+):
     """KnowledgeStore'da semantik arama."""
     if not project_id:
         raise HTTPException(400, "project_id query parametresi gerekli")
+    _require_project_access(db, user, project_id)
     query = body.get("query", "")
     if not query:
         raise HTTPException(400, "query alani gerekli")
@@ -1022,14 +1048,20 @@ def knowledge_search(body: dict, user: Annotated[User, Depends(get_current_user)
 
 
 @router.delete("/knowledge/clear")
-def knowledge_clear(user: Annotated[User, Depends(get_current_user)], project_id: str = ""):
-    """KnowledgeStore temizle (admin only)."""
+def knowledge_clear(
+    db: DB,
+    user: Annotated[User, Depends(get_current_user)],
+    project_id: str = "",
+):
+    """KnowledgeStore temizle — admin yetkisi + projeye erişim gerekli (cross-tenant koruma)."""
     if not project_id:
         raise HTTPException(400, "project_id query parametresi gerekli")
     from app.deps import _user_permissions
     perms = _user_permissions(user)
     if "admin.*" not in perms:
         raise HTTPException(403, "Admin yetkisi gerekli")
+    # require_project_access — proje gerçekten bu tenant'a ait mi ve user üye mi
+    _require_project_access(db, user, project_id)
     try:
         from app.domains.ai.knowledge_store import KnowledgeStore
         store = KnowledgeStore(project_id=project_id)

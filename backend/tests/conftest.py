@@ -308,6 +308,31 @@ def pytest_configure(config: pytest.Config) -> None:
     config.addinivalue_line("markers", "P0: En yüksek öncelik")
     config.addinivalue_line("markers", "P1: Yüksek öncelik")
 
+    # BDD scenario tags (@TC-AUTH-001, @pozitif, @negatif, …) become pytest
+    # markers via pytest-bdd. With --strict-markers every one must be registered,
+    # otherwise collection fails. Rather than hand-listing each test-case ID,
+    # scan the .feature files and auto-register every tag found, so adding a new
+    # scenario never requires touching this file.
+    import re
+    from pathlib import Path
+
+    _features_dir = Path(__file__).parent / "bdd" / "features"
+    _tag_re = re.compile(r"^\s*(@[\w-]+(?:\s+@[\w-]+)*)\s*$")
+    _seen_tags: set[str] = set()
+    if _features_dir.is_dir():
+        for _feature in _features_dir.glob("*.feature"):
+            try:
+                for _line in _feature.read_text(encoding="utf-8").splitlines():
+                    _m = _tag_re.match(_line)
+                    if not _m:
+                        continue
+                    for _tag in _m.group(1).split():
+                        _seen_tags.add(_tag.lstrip("@"))
+            except OSError:
+                continue
+    for _tag in sorted(_seen_tags):
+        config.addinivalue_line("markers", f"{_tag}: BDD senaryo etiketi (feature dosyasindan)")
+
 
 def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:
     """Auto-tag tests based on file path conventions."""

@@ -56,14 +56,14 @@ def _make_compare_result(
 
 def test_start_comparison_empty_bytes_raises_value_error():
     with pytest.raises(ValueError, match="boş olamaz"):
-        visual_svc.start_comparison(name="login", actual_bytes=b"")
+        visual_svc.start_comparison(name="login", actual_bytes=b"", scope="t1")
 
 
 def test_start_comparison_pillow_unavailable_raises_value_error():
     mock_result = _make_compare_result(ok=False, status="pillow_unavailable", reason="Pillow kurulu değil")
     with patch("app.domains.visual.service.compare_png", return_value=mock_result):
         with pytest.raises(ValueError, match="Pillow"):
-            visual_svc.start_comparison(name="login", actual_bytes=b"\x89PNG\r\n\x1a\n")
+            visual_svc.start_comparison(name="login", actual_bytes=b"\x89PNG\r\n\x1a\n", scope="t1")
 
 
 # ── start_comparison — success path ─────────────────────────────────────
@@ -72,7 +72,7 @@ def test_start_comparison_pillow_unavailable_raises_value_error():
 def test_start_comparison_success_returns_dict_with_required_keys():
     mock_result = _make_compare_result()
     with patch("app.domains.visual.service.compare_png", return_value=mock_result):
-        entry = visual_svc.start_comparison(name="login", actual_bytes=b"\x89PNG\r\n\x1a\n")
+        entry = visual_svc.start_comparison(name="login", actual_bytes=b"\x89PNG\r\n\x1a\n", scope="t1")
     assert isinstance(entry, dict)
     assert "result_id" in entry
     assert "ok" in entry
@@ -81,7 +81,7 @@ def test_start_comparison_success_returns_dict_with_required_keys():
 def test_start_comparison_result_id_stored_in_results():
     mock_result = _make_compare_result()
     with patch("app.domains.visual.service.compare_png", return_value=mock_result):
-        entry = visual_svc.start_comparison(name="dashboard", actual_bytes=b"\x89PNG\r\n\x1a\n")
+        entry = visual_svc.start_comparison(name="dashboard", actual_bytes=b"\x89PNG\r\n\x1a\n", scope="t1")
     result_id = entry["result_id"]
     # Must be retrievable immediately
     retrieved = visual_svc.get_result(result_id)
@@ -91,7 +91,7 @@ def test_start_comparison_result_id_stored_in_results():
 def test_start_comparison_ok_field_matches_compare_result():
     mock_result = _make_compare_result(ok=True, status="ok")
     with patch("app.domains.visual.service.compare_png", return_value=mock_result):
-        entry = visual_svc.start_comparison(name="sidebar", actual_bytes=b"\x89PNG\r\n\x1a\n")
+        entry = visual_svc.start_comparison(name="sidebar", actual_bytes=b"\x89PNG\r\n\x1a\n", scope="t1")
     assert entry["ok"] is True
 
 
@@ -106,7 +106,7 @@ def test_get_result_unknown_id_raises_key_error():
 def test_get_result_known_id_returns_entry():
     mock_result = _make_compare_result()
     with patch("app.domains.visual.service.compare_png", return_value=mock_result):
-        entry = visual_svc.start_comparison(name="header", actual_bytes=b"\x89PNG\r\n\x1a\n")
+        entry = visual_svc.start_comparison(name="header", actual_bytes=b"\x89PNG\r\n\x1a\n", scope="t1")
     fetched = visual_svc.get_result(entry["result_id"])
     assert fetched["name"] == "header"
 
@@ -123,7 +123,7 @@ def test_list_results_name_filter_narrows_results():
     mock_result = _make_compare_result()
     unique_name = "unique_screen_xyz_abc"
     with patch("app.domains.visual.service.compare_png", return_value=mock_result):
-        visual_svc.start_comparison(name=unique_name, actual_bytes=b"\x89PNG\r\n\x1a\n")
+        visual_svc.start_comparison(name=unique_name, actual_bytes=b"\x89PNG\r\n\x1a\n", scope="t1")
 
     filtered = visual_svc.list_results(name_filter=unique_name)
     assert all(r["name"] == unique_name for r in filtered)

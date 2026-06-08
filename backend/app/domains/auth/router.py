@@ -860,6 +860,7 @@ def mfa_verify(
 @router.post("/mfa/disable", tags=["auth", "mfa"])
 @_limit("3/minute")
 def mfa_disable(
+    request: Request,
     req: MfaDisableRequest,
     user: Annotated[User, Depends(get_current_user)],
     db: Session = Depends(get_db),
@@ -892,6 +893,7 @@ def mfa_disable(
 @router.post("/mfa/backup-codes/regenerate", tags=["auth", "mfa"])
 @_limit("2/minute")
 def mfa_regenerate_backup_codes(
+    request: Request,
     req: MfaVerifyRequest,  # require TOTP confirmation before regenerating
     user: Annotated[User, Depends(get_current_user)],
     db: Session = Depends(get_db),

@@ -13,20 +13,25 @@ from app.config import settings
 from app.infra.models import AgentV2Run
 
 
-def build_user_dsar_export(db: Session, *, user_id: str) -> dict[str, Any]:
+def build_user_dsar_export(
+    db: Session, *, user_id: str, tenant_id: str | None = None
+) -> dict[str, Any]:
     user_uuid = _uuid_or_none(user_id)
     workflows = []
     if user_uuid:
+        conditions = [AgentV2Run.user_id == user_uuid]
+        if tenant_id is not None:
+            conditions.append(AgentV2Run.tenant_id == tenant_id)
         runs = list(
             db.scalars(
                 select(AgentV2Run)
-                .where(AgentV2Run.user_id == user_uuid)
+                .where(*conditions)
                 .order_by(AgentV2Run.created_at.desc())
             ).all()
         )
         workflows = [_workflow_export(run) for run in runs]
 
-    traces = _select_llm_traces(db, user_id=user_id, limit=1000)
+    traces = _select_llm_traces(db, user_id=user_id, tenant_id=tenant_id, limit=1000)
     artifact_count = sum(len(item.get("artifacts", [])) for item in workflows)
     return {
         "user_id": user_id,
@@ -47,11 +52,19 @@ def delete_user_ai_data(
     user_id: str,
     dry_run: bool,
     purge_artifact_files: bool,
+    tenant_id: str | None = None,
 ) -> dict[str, Any]:
     user_uuid = _uuid_or_none(user_id)
     runs: list[AgentV2Run] = []
     if user_uuid:
-        runs = list(db.scalars(select(AgentV2Run).where(AgentV2Run.user_id == user_uuid)).all())
+        conditions = [AgentV2Run.user_id == user_uuid]
+        if tenant_id is not None:
+            conditions.append(AgentV2Run.tenant_id == tenant_id)
+        runs = list(
+            db.scalars(
+                select(AgentV2Run).where(*conditions)
+            ).all()
+        )
 
     artifact_paths = [
         artifact.storage_path
@@ -59,7 +72,7 @@ def delete_user_ai_data(
         for artifact in run.artifacts
         if artifact.storage_path
     ]
-    llm_trace_count = _count_llm_traces(db, user_id=user_id)
+    llm_trace_count = _count_llm_traces(db, user_id=user_id, tenant_id=tenant_id)
 
     response = {
         "user_id": user_id,
@@ -85,9 +98,12 @@ def delete_user_ai_data(
     else:
         response["artifact_files_skipped"] = list(artifact_paths)
 
-    _delete_llm_traces(db, user_id=user_id)
+    _delete_llm_traces(db, user_id=user_id, tenant_id=tenant_id)
     if user_uuid:
-        db.execute(delete(AgentV2Run).where(AgentV2Run.user_id == user_uuid))
+        delete_conditions = [AgentV2Run.user_id == user_uuid]
+        if tenant_id is not None:
+            delete_conditions.append(AgentV2Run.tenant_id == tenant_id)
+        db.execute(delete(AgentV2Run).where(*delete_conditions))
     db.commit()
     return response
 
@@ -135,41 +151,58 @@ def _workflow_export(run: AgentV2Run) -> dict[str, Any]:
     }
 
 
-def _select_llm_traces(db: Session, *, user_id: str, limit: int) -> list[dict[str, Any]]:
+def _select_llm_traces(
+    db: Session, *, user_id: str, limit: int, tenant_id: str | None = None
+) -> list[dict[str, Any]]:
     if not _table_exists(db, "llm_traces"):
         return []
+    where = "WHERE user_id = :user_id"
+    params: dict[str, Any] = {"user_id": user_id, "limit": limit}
+    if tenant_id is not None:
+        where += " AND tenant_id = :tenant_id"
+        params["tenant_id"] = tenant_id
     rows = db.execute(
         text(
-            """
+            f"""
             SELECT id, run_id, agent_name, model, provider, task_type, status,
                    prompt_id, prompt_version, created_at
             FROM llm_traces
-            WHERE user_id = :user_id
+            {where}
             ORDER BY created_at DESC
             LIMIT :limit
             """
         ),
-        {"user_id": user_id, "limit": limit},
+        params,
     ).mappings()
     return [dict(row) for row in rows]
 
 
-def _count_llm_traces(db: Session, *, user_id: str) -> int:
+def _count_llm_traces(db: Session, *, user_id: str, tenant_id: str | None = None) -> int:
     if not _table_exists(db, "llm_traces"):
         return 0
+    where = "WHERE user_id = :user_id"
+    params: dict[str, Any] = {"user_id": user_id}
+    if tenant_id is not None:
+        where += " AND tenant_id = :tenant_id"
+        params["tenant_id"] = tenant_id
     return int(
         db.execute(
-            text("SELECT count(*) FROM llm_traces WHERE user_id = :user_id"),
-            {"user_id": user_id},
+            text(f"SELECT count(*) FROM llm_traces {where}"),
+            params,
         ).scalar()
         or 0
     )
 
 
-def _delete_llm_traces(db: Session, *, user_id: str) -> None:
+def _delete_llm_traces(db: Session, *, user_id: str, tenant_id: str | None = None) -> None:
     if not _table_exists(db, "llm_traces"):
         return
-    db.execute(text("DELETE FROM llm_traces WHERE user_id = :user_id"), {"user_id": user_id})
+    where = "WHERE user_id = :user_id"
+    params: dict[str, Any] = {"user_id": user_id}
+    if tenant_id is not None:
+        where += " AND tenant_id = :tenant_id"
+        params["tenant_id"] = tenant_id
+    db.execute(text(f"DELETE FROM llm_traces {where}"), params)
 
 
 def _table_exists(db: Session, table_name: str) -> bool:

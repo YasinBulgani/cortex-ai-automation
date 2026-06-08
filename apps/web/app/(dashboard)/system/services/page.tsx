@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { type CoreServiceStatus, useCoreRuntime } from "@/lib/core-runtime";
+import { Button } from "@/components/ui/button";
 
 type PendingAction = {
   action: "start" | "restart" | "stop";
@@ -82,13 +83,14 @@ export default function SystemServicesPage() {
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <button
+            <Button
               type="button"
+              variant="secondary"
               onClick={() => void runtime.refresh()}
-              className="rounded-xl border border-slate-700 bg-slate-900/70 px-4 py-2 text-sm font-medium text-slate-200 transition hover:border-slate-500"
+              className="rounded-xl border border-slate-700 bg-slate-900/70 text-slate-200 hover:border-slate-500"
             >
               Yenile
-            </button>
+            </Button>
             <Link
               href="/products/one"
               className="rounded-xl border border-slate-700 bg-slate-900/70 px-4 py-2 text-sm font-medium text-slate-200 transition hover:border-slate-500"
@@ -125,9 +127,9 @@ export default function SystemServicesPage() {
           <div className="flex flex-wrap items-center justify-between gap-3">
             <h2 className="text-xl font-semibold text-white">Servisler</h2>
             <div className="flex flex-wrap gap-2">
-              <button onClick={() => setPending({ action: "start", services: serviceNames })} className="rounded-xl border border-emerald-400/20 bg-emerald-500/10 px-4 py-2 text-sm font-semibold text-emerald-100">Start all</button>
-              <button onClick={() => setPending({ action: "restart", services: serviceNames })} className="rounded-xl border border-blue-400/20 bg-blue-500/10 px-4 py-2 text-sm font-semibold text-blue-100">Restart all</button>
-              <button onClick={() => setPending({ action: "stop", services: serviceNames })} className="rounded-xl border border-red-400/20 bg-red-500/10 px-4 py-2 text-sm font-semibold text-red-100">Stop all</button>
+              <Button variant="ghost" onClick={() => setPending({ action: "start", services: serviceNames })} className="rounded-xl border border-emerald-400/20 bg-emerald-500/10 font-semibold text-emerald-100">Start all</Button>
+              <Button variant="ghost" onClick={() => setPending({ action: "restart", services: serviceNames })} className="rounded-xl border border-blue-400/20 bg-blue-500/10 font-semibold text-blue-100">Restart all</Button>
+              <Button variant="ghost" onClick={() => setPending({ action: "stop", services: serviceNames })} className="rounded-xl border border-red-400/20 bg-red-500/10 font-semibold text-red-100">Stop all</Button>
             </div>
           </div>
 
@@ -145,9 +147,9 @@ export default function SystemServicesPage() {
                 </div>
                 <p className="mt-3 text-sm text-slate-400">Health: {service.healthDetail}</p>
                 <div className="mt-4 flex flex-wrap gap-2">
-                  <button onClick={() => setPending({ action: "start", services: [service.name] })} className="rounded-lg border border-slate-700 px-3 py-1.5 text-xs text-slate-200">Start</button>
-                  <button onClick={() => setPending({ action: "restart", services: [service.name] })} className="rounded-lg border border-slate-700 px-3 py-1.5 text-xs text-slate-200">Restart</button>
-                  <button onClick={() => setPending({ action: "stop", services: [service.name] })} className="rounded-lg border border-slate-700 px-3 py-1.5 text-xs text-slate-200">Stop</button>
+                  <Button variant="outline" size="sm" onClick={() => setPending({ action: "start", services: [service.name] })} className="rounded-lg border-slate-700 text-slate-200">Start</Button>
+                  <Button variant="outline" size="sm" onClick={() => setPending({ action: "restart", services: [service.name] })} className="rounded-lg border-slate-700 text-slate-200">Restart</Button>
+                  <Button variant="outline" size="sm" onClick={() => setPending({ action: "stop", services: [service.name] })} className="rounded-lg border-slate-700 text-slate-200">Stop</Button>
                 </div>
               </div>
             ))}
@@ -170,10 +172,10 @@ export default function SystemServicesPage() {
               Bu işlem local Docker Compose üzerinden şu servisleri etkileyecek: {pending.services.join(", ")}.
             </p>
             <div className="mt-5 flex justify-end gap-2">
-              <button disabled={runningAction} onClick={() => setPending(null)} className="rounded-xl border border-slate-700 px-4 py-2 text-sm text-slate-200">Vazgeç</button>
-              <button disabled={runningAction} onClick={() => void runAction()} className="rounded-xl border border-violet-300/30 bg-violet-500/15 px-4 py-2 text-sm font-semibold text-violet-50">
+              <Button variant="outline" disabled={runningAction} onClick={() => setPending(null)} className="rounded-xl border-slate-700 text-slate-200">Vazgeç</Button>
+              <Button variant="primary" disabled={runningAction} onClick={() => void runAction()} className="rounded-xl border border-violet-300/30 bg-violet-500/15 font-semibold text-violet-50">
                 {runningAction ? "Çalışıyor..." : "Onayla"}
-              </button>
+              </Button>
             </div>
           </div>
         </div>

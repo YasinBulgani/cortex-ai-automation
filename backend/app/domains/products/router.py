@@ -223,51 +223,134 @@ AI_INSIGHTS: dict[str, list[dict[str, Any]]] = {
 }
 
 
-# TODO: SELECT stat_key, agg_value, trend, severity
-#        FROM products_metrics
-#        WHERE product_id = :product_id
-#          AND recorded_at >= NOW() - INTERVAL '7 days'
-#        ORDER BY recorded_at DESC;
+def _real_management_stats(db: Session) -> list[dict[str, Any]] | None:
+    """'management' ürünü için canlı QA telemetrisini test_management tablolarından hesaplar.
+
+    Sorgu başarısız olursa (tablo yok, DB erişilemez) None döner; çağıran demo
+    şablonuna düşer. Tenant izolasyonu DB session'ındaki RLS context ile sağlanır.
+    """
+    try:
+        from app.domains.test_management.models import (
+            Requirement,
+            RequirementLink,
+            TestCase,
+            TestRun,
+            TestRunCase,
+        )
+
+        # Manuel test case sayısı (arşivlenmemiş)
+        cases = db.scalar(
+            select(func.count(TestCase.id)).where(TestCase.archived.is_(False))
+        ) or 0
+
+        # Şu an çalışan run'lar
+        active_runs = db.scalar(
+            select(func.count(TestRun.id)).where(TestRun.status == "running")
+        ) or 0
+
+        # Pass rate: passed / (passed + failed) — yürütülmüş run-case'ler üzerinden
+        passed = db.scalar(
+            select(func.count(TestRunCase.id)).where(TestRunCase.status == "passed")
+        ) or 0
+        failed = db.scalar(
+            select(func.count(TestRunCase.id)).where(TestRunCase.status == "failed")
+        ) or 0
+        executed = passed + failed
+        pass_rate = round(passed / executed * 100) if executed else 0
+
+        # Blocked run-case'ler
+        blocked = db.scalar(
+            select(func.count(TestRunCase.id)).where(TestRunCase.status == "blocked")
+        ) or 0
+
+        # Requirement coverage: en az bir 'covered' link'i olan gereksinim / toplam
+        total_reqs = db.scalar(select(func.count(Requirement.id))) or 0
+        covered_reqs = db.scalar(
+            select(func.count(func.distinct(RequirementLink.requirement_id))).where(
+                RequirementLink.coverage_status == "covered",
+                RequirementLink.requirement_id.isnot(None),
+            )
+        ) or 0
+        coverage = round(covered_reqs / total_reqs * 100) if total_reqs else 0
+
+        # Tester iş yükü: henüz koşulmamış case'lere atanmış farklı tester sayısı
+        workload = db.scalar(
+            select(func.count(func.distinct(TestRunCase.assigned_to))).where(
+                TestRunCase.assigned_to.isnot(None),
+                TestRunCase.status == "not_run",
+            )
+        ) or 0
+
+        return [
+            {"key": "cases",       "label": "Manuel Test Case", "value": int(cases),       "unit": None, "trend": "flat", "severity": "ok"},
+            {"key": "active_runs", "label": "Aktif Run",        "value": int(active_runs), "unit": None, "trend": "flat", "severity": "ok"},
+            {"key": "pass_rate",   "label": "Pass Rate",        "value": int(pass_rate),   "unit": "%",  "trend": "flat", "severity": "ok" if pass_rate >= 85 else "warning"},
+            {"key": "blocked",     "label": "Blocked",          "value": int(blocked),     "unit": None, "trend": "flat", "severity": "warning" if blocked else "ok"},
+            {"key": "coverage",    "label": "Req. Coverage",    "value": int(coverage),    "unit": "%",  "trend": "flat", "severity": "ok" if coverage >= 80 else "warning"},
+            {"key": "workload",    "label": "Tester İş Yükü",   "value": int(workload),    "unit": None, "trend": "flat", "severity": "ok"},
+        ]
+    except Exception as exc:
+        _logger.warning("Products management gerçek telemetri sorgusu başarısız: %s", exc)
+        return None
+
+
+# TODO: Diğer ürünler (one/studio/service/web/mobile/data/intelligence/nexus-code)
+#        için de gerçek aggregation eklenecek. 'management' canlı veriye bağlandı.
 #       AI insights icin: SELECT * FROM ai_insights WHERE product_id = :product_id AND dismissed = FALSE;
 @router.get("/{product_id}/telemetry", summary="Ürün telemetri verisi")
 def get_product_telemetry(
     product_id: str,
     _: Annotated[User, Depends(get_current_user)],
+    db: Session = Depends(get_db),
 ) -> JSONResponse:
-    # DEMO MODE: Gercek DB aggregation yerine PRODUCT_STATS sabit verisini kullanir.
     if product_id not in VALID_PRODUCT_IDS:
         raise HTTPException(status_code=404, detail=f"Geçersiz product_id: {product_id}")
 
-    stats_template = PRODUCT_STATS.get(product_id, [])
-    insights = AI_INSIGHTS.get(product_id, [])
-
     now = datetime.now(_tz.utc).isoformat()
 
-    stats = [
-        {
-            **s,
-            "value": s["value"] + random.randint(-2, 3),
-            "sparkline": _sparkline(int(s["value"])),
-            "delta": random.choice([-1, 0, 1, 2]),
-            "deltaLabel": "bu hafta",
-        }
-        for s in stats_template
-    ]
+    # Demo modu kapalıysa, gerçek aggregation'ı destekleyen ürünler için canlı
+    # veri çek. Şu an yalnızca 'management' ürünü test_management tablolarına bağlı.
+    real_stats: list[dict[str, Any]] | None = None
+    if not _DEMO_MODE and product_id == "management":
+        real_stats = _real_management_stats(db)
+
+    if real_stats is not None:
+        # Gerçek veri: sparkline'ı düz (sabit) tut, rastgele jitter ekleme.
+        stats = [
+            {**s, "sparkline": [s["value"]] * 7, "delta": 0, "deltaLabel": "bu hafta"}
+            for s in real_stats
+        ]
+        is_demo = False
+        # Gerçek AI insight kaynağı henüz yok — sahte insight döndürmemek için boş bırak.
+        ai_insights: list[dict[str, Any]] = []
+    else:
+        stats = [
+            {
+                **s,
+                "value": s["value"] + random.randint(-2, 3),
+                "sparkline": _sparkline(int(s["value"])),
+                "delta": random.choice([-1, 0, 1, 2]),
+                "deltaLabel": "bu hafta",
+            }
+            for s in PRODUCT_STATS.get(product_id, [])
+        ]
+        is_demo = _DEMO_MODE
+        ai_insights = [
+            {**ins, "createdAt": now, "dismissed": False}
+            for ins in AI_INSIGHTS.get(product_id, [])
+        ]
 
     payload = {
         "productId": product_id,
         "stats": stats,
-        "aiInsights": [
-            {**ins, "createdAt": now, "dismissed": False}
-            for ins in insights
-        ],
+        "aiInsights": ai_insights,
         "recentActivity": [],
         "onboarding": [],
         "lastUpdated": now,
-        "isDemo": _DEMO_MODE,
-        "demo_mode": _DEMO_MODE,
+        "isDemo": is_demo,
+        "demo_mode": is_demo,
     }
-    headers = {"X-Data-Mode": "demo"} if _DEMO_MODE else {}
+    headers = {"X-Data-Mode": "demo"} if is_demo else {}
     return JSONResponse(content=payload, headers=headers)
 
 
@@ -517,13 +600,18 @@ def get_web_my_inbox(
     current_user: Any = Depends(get_current_user),
 ) -> dict[str, Any]:
     try:
+        from app.deps import _user_permissions
+        from app.domains.tspm.models import TspmProject, TspmProjectMember
+        from sqlalchemy import func, select as _select
+
+        is_admin = "admin.*" in _user_permissions(current_user)
+        # Kullanıcının erişebildiği proje seti — None ise kısıtlama yok (admin).
+        allowed_project_ids: set[str] | None = None
+
         if project_id:
-            from app.deps import _user_permissions
-            from app.domains.tspm.models import TspmProject, TspmProjectMember
-            from sqlalchemy import func, select as _select
             if db.get(TspmProject, project_id) is None:
                 return {"items": [], "total": 0, "updatedAt": _now_iso()}
-            if "admin.*" not in _user_permissions(current_user):
+            if not is_admin:
                 is_member = db.scalar(
                     _select(func.count()).where(
                         TspmProjectMember.project_id == project_id,
@@ -532,6 +620,19 @@ def get_web_my_inbox(
                 )
                 if not is_member:
                     return {"items": [], "total": 0, "updatedAt": _now_iso()}
+            allowed_project_ids = {project_id}
+        elif not is_admin:
+            # project_id verilmediyse: list_defects(project_id=None) TÜM tenant'ların
+            # defect'lerini döndürür. Cross-tenant sızıntıyı önlemek için sonuçları
+            # kullanıcının üye olduğu projelere kısıtla.
+            member_rows = db.execute(
+                _select(TspmProjectMember.project_id).where(
+                    TspmProjectMember.user_id == current_user.id,
+                )
+            ).all()
+            allowed_project_ids = {row[0] for row in member_rows}
+            if not allowed_project_ids:
+                return {"items": [], "total": 0, "updatedAt": _now_iso()}
 
         from app.domains.defects import service as defect_svc
 
@@ -544,6 +645,8 @@ def get_web_my_inbox(
             status="awaiting_fix",
         )
         all_defects = open_defects + awaiting
+        if allowed_project_ids is not None:
+            all_defects = [d for d in all_defects if d.project_id in allowed_project_ids]
         # dedupe by id (list_defects filtreli sonuç döner, birleşimde tekrar olabilir)
         seen: set[str] = set()
         deduped = []
@@ -633,16 +736,20 @@ def post_web_inbox_action(
             from sqlalchemy import func, select as _select
             defect = defect_svc.get_defect(item_id)
             if defect is not None:
-                if defect.project_id and db.get(TspmProject, defect.project_id):
-                    if "admin.*" not in _user_permissions(current_user):
-                        is_member = db.scalar(
-                            _select(func.count()).where(
-                                TspmProjectMember.project_id == defect.project_id,
-                                TspmProjectMember.user_id == current_user.id,
-                            )
+                # Deny by default: admin'ler dışındaki kullanıcılar yalnızca
+                # erişimi doğrulanabilen (geçerli proje + üyelik) defect'leri kapatabilir.
+                if "admin.*" not in _user_permissions(current_user):
+                    project = db.get(TspmProject, defect.project_id) if defect.project_id else None
+                    if project is None:
+                        raise HTTPException(status_code=403, detail="Bu defect'e erişim yetkiniz yok")
+                    is_member = db.scalar(
+                        _select(func.count()).where(
+                            TspmProjectMember.project_id == defect.project_id,
+                            TspmProjectMember.user_id == current_user.id,
                         )
-                        if not is_member:
-                            raise HTTPException(status_code=403, detail="Bu defect'e erişim yetkiniz yok")
+                    )
+                    if not is_member:
+                        raise HTTPException(status_code=403, detail="Bu defect'e erişim yetkiniz yok")
                 if defect.status not in ("closed", "verified"):
                     defect_svc.verify_and_close(
                         item_id,

@@ -42,7 +42,7 @@ function SkeletonCard() {
 
 export function TodayVsYesterdayStrip() {
   const { projectId } = useProject();
-  const { data, isLoading } = useDayOverDay(projectId);
+  const { data, isLoading, isError } = useDayOverDay(projectId);
   const metrics = data?.metrics ?? DEMO_METRICS;
   const windowHours = data?.windowHours ?? 24;
   const isDemo = !data && !isLoading;
@@ -81,7 +81,7 @@ export function TodayVsYesterdayStrip() {
           <p className="text-xs font-semibold text-sky-400 uppercase tracking-widest">📊 Bugün vs Dün</p>
           {isDemo && (
             <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/25">
-              Demo
+              {isError ? "Fallback" : "Demo"}
             </span>
           )}
           <p className="text-xs text-slate-500">· Son {windowHours} saat — önceki {windowHours} saate göre delta</p>

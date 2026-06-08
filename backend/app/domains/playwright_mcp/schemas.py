@@ -1,7 +1,12 @@
 """Playwright MCP — Pydantic semalari."""
 from typing import Dict, List, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
+
+from app.domains.api_testing.network_security import (
+    UnsafeTargetError,
+    validate_outbound_url,
+)
 
 
 class BrowserSessionCreate(BaseModel):
@@ -29,6 +34,15 @@ class NavigateRequest(BaseModel):
         description="load|domcontentloaded|networkidle",
     )
     timeout_ms: int = Field(default=30000, ge=1000, le=120000)
+
+    @field_validator("url")
+    @classmethod
+    def _validate_url(cls, value: str) -> str:
+        try:
+            validate_outbound_url(value)
+        except UnsafeTargetError as exc:
+            raise ValueError(str(exc)) from exc
+        return value
 
 
 class NavigateResponse(BaseModel):

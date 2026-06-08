@@ -13,6 +13,8 @@ import {
   MetricRow,
   ToolbarActions,
 } from "@/components/nexus";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 type Schedule = {
   id: string;
@@ -119,17 +121,20 @@ function ScheduleCard({
           <div className="flex items-center gap-2 mb-1 flex-wrap">
             <h3 className="text-sm font-semibold text-white truncate">{schedule.name}</h3>
             {schedule.platform && <PlatformBadge platform={schedule.platform} />}
-            <button
+            <Button
               onClick={onToggle}
-              className={`shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border transition-all cursor-pointer ${
+              variant="ghost"
+              size="sm"
+              className={cn(
+                "shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border transition-all cursor-pointer h-auto",
                 schedule.is_active
                   ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20"
                   : "bg-slate-800 border-slate-700 text-slate-400 hover:border-slate-500"
-              }`}
+              )}
             >
               <span className={`w-1.5 h-1.5 rounded-full ${schedule.is_active ? "bg-emerald-400" : "bg-slate-500"}`} />
               {schedule.is_active ? "Aktif" : "Pasif"}
-            </button>
+            </Button>
           </div>
           <p className="font-mono text-xs text-blue-400 mb-1">{schedule.cron_expression}</p>
           <p className="text-xs text-slate-400">{cronHuman(schedule.cron_expression)}</p>
@@ -138,10 +143,12 @@ function ScheduleCard({
           )}
         </div>
         <div className="flex gap-1 shrink-0">
-          <button
+          <Button
             onClick={onTrigger}
             disabled={triggering}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-emerald-300 border border-emerald-500/30 rounded-lg hover:bg-emerald-500/10 transition-all disabled:opacity-50"
+            variant="outline"
+            size="sm"
+            className="flex items-center gap-1.5 text-emerald-300 border-emerald-500/30 hover:bg-emerald-500/10"
           >
             {triggering ? (
               <div className="w-3 h-3 border border-emerald-400 border-t-transparent rounded-full animate-spin" />
@@ -151,15 +158,17 @@ function ScheduleCard({
               </svg>
             )}
             Çalıştır
-          </button>
-          <button
+          </Button>
+          <Button
             onClick={onDelete}
-            className="px-2 py-1.5 text-xs text-red-400 border border-red-500/20 rounded-lg hover:bg-red-500/10 transition-all"
+            variant="ghost-danger"
+            size="icon"
+            className="border border-red-500/20 hover:bg-red-500/10 w-auto px-2 py-1.5 h-auto"
           >
             <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
             </svg>
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -241,12 +250,13 @@ function MobileSchedulePanel({
           title="Henüz mobil zamanlayıcı yok"
           description="Neurex Farm cihazlarında periyodik koşum ekleyin"
           action={
-            <button
+            <Button
               onClick={() => setOpen(true)}
-              className="px-4 py-2 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-500 rounded-xl transition-colors"
+              variant="primary"
+              className="text-white bg-indigo-600 hover:bg-indigo-500 rounded-xl"
             >
               Mobil Zamanlayıcı Ekle
-            </button>
+            </Button>
           }
         />
       ) : (
@@ -357,20 +367,22 @@ function MobileSchedulePanel({
             </div>
 
             <div className="flex gap-2">
-              <button
+              <Button
                 type="submit"
                 disabled={saving}
-                className="px-4 py-2 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-500 rounded-xl transition-colors disabled:opacity-50"
+                variant="primary"
+                className="text-white bg-indigo-600 hover:bg-indigo-500 rounded-xl"
               >
                 {saving ? "Oluşturuluyor…" : "📱 Zamanlayıcı Oluştur"}
-              </button>
-              <button
+              </Button>
+              <Button
                 type="button"
                 onClick={() => setOpen(false)}
-                className="px-4 py-2 text-sm text-slate-400 hover:text-white transition-colors"
+                variant="ghost"
+                className="text-slate-400 hover:text-white"
               >
                 İptal
-              </button>
+              </Button>
             </div>
           </form>
         )}
@@ -543,10 +555,10 @@ function EngineSchedulerPanel({ projectId }: { projectId: string }) {
                 </button>
               ))}
             </div>
-            <button type="submit" disabled={loading}
-              className="px-4 py-2 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-500 rounded-xl transition-colors disabled:opacity-50">
+            <Button type="submit" disabled={loading} variant="primary"
+              className="text-white bg-blue-600 hover:bg-blue-500 rounded-xl">
               {loading ? "Oluşturuluyor…" : "Oluştur"}
-            </button>
+            </Button>
           </form>
         )}
       </div>
@@ -636,16 +648,17 @@ export default function SchedulesPage() {
         description="Cron tabanlı test koşu zamanlamaları"
         right={
           <ToolbarActions>
-            <button
+            <Button
               onClick={() => setShowForm(f => !f)}
-              className="flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-1.5 text-sm font-semibold text-white transition-colors hover:bg-blue-500"
+              variant="primary"
+              className="gap-2 rounded-xl bg-blue-600 text-white hover:bg-blue-500"
               data-testid="schedules-btn-new"
             >
               <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
               </svg>
               {showForm ? "İptal" : "Yeni Zamanlayıcı"}
-            </button>
+            </Button>
           </ToolbarActions>
         }
       />
@@ -675,10 +688,10 @@ export default function SchedulesPage() {
               ))}
             </div>
             <div className="flex gap-2">
-              <button type="submit" disabled={loading} data-testid="schedules-btn-create" className="px-4 py-2 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-500 rounded-xl transition-colors disabled:opacity-50">
+              <Button type="submit" disabled={loading} variant="primary" data-testid="schedules-btn-create" className="text-white bg-blue-600 hover:bg-blue-500 rounded-xl">
                 {loading ? "Oluşturuluyor…" : "Oluştur"}
-              </button>
-              <button type="button" onClick={() => setShowForm(false)} className="px-4 py-2 text-sm text-slate-400 hover:text-white transition-colors">İptal</button>
+              </Button>
+              <Button type="button" onClick={() => setShowForm(false)} variant="ghost" className="text-slate-400 hover:text-white">İptal</Button>
             </div>
           </form>
         </SectionCard>
@@ -686,7 +699,7 @@ export default function SchedulesPage() {
 
       <SectionCard title="Zamanlayıcılar">
         {schedules.length === 0 ? (
-          <EmptyState icon="⏰" title="Henüz zamanlayıcı yok" description="Cron tabanlı test koşu zamanlamaları oluşturun" action={<button onClick={() => setShowForm(true)} className="px-4 py-2 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-500 rounded-xl transition-colors">Zamanlayıcı Ekle</button>} />
+          <EmptyState icon="⏰" title="Henüz zamanlayıcı yok" description="Cron tabanlı test koşu zamanlamaları oluşturun" action={<Button onClick={() => setShowForm(true)} variant="primary" className="text-white bg-blue-600 hover:bg-blue-500 rounded-xl">Zamanlayıcı Ekle</Button>} />
         ) : (
           <div className="grid gap-3 sm:grid-cols-2">
             {schedules.map((s) => (

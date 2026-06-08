@@ -3,12 +3,14 @@
 from __future__ import annotations
 
 import base64
+import re
 import threading
 from typing import Annotated, Optional
+from urllib.parse import quote, urlsplit
 
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -403,6 +405,11 @@ def download_export(
 # Frontend'den gelen Bitbucket API isteklerini backend üzerinden proxy'ler.
 # Böylece kullanıcı kimlik bilgileri tarayıcı network loglarında görünmez.
 
+# Bitbucket workspace/repo/branch slug'ları: harf, rakam, nokta, alt çizgi, tire.
+# '/', '..' ve URL-encode ayraçları reddedilir (SSRF / path manipülasyonu önlemi).
+_BB_SLUG_RE = re.compile(r"^[A-Za-z0-9._-]+$")
+
+
 class BitbucketFetchRequest(BaseModel):
     workspace: str
     repo: str
@@ -410,6 +417,26 @@ class BitbucketFetchRequest(BaseModel):
     path: str = ""
     username: str
     app_password: str
+
+    @field_validator("workspace", "repo", "branch")
+    @classmethod
+    def _validate_slug(cls, v: str, info) -> str:
+        if not _BB_SLUG_RE.match(v):
+            raise ValueError(f"Geçersiz {info.field_name}: yalnızca harf, rakam, '.', '_', '-' kabul edilir")
+        return v
+
+    @field_validator("path")
+    @classmethod
+    def _validate_path(cls, v: str) -> str:
+        # Boş path izinli (kök dizin). Aksi halde her segment slug kuralına uymalı.
+        if v == "":
+            return v
+        if ".." in v or v.startswith("/") or "%" in v:
+            raise ValueError("Geçersiz path: '..', baştaki '/' veya URL-encode karakter içeremez")
+        for segment in v.split("/"):
+            if segment and not _BB_SLUG_RE.match(segment):
+                raise ValueError("Geçersiz path segmenti")
+        return v
 
 
 @router.post(
@@ -424,12 +451,22 @@ async def bitbucket_proxy_fetch(
 
     Kimlik bilgileri tarayıcıya hiçbir zaman döndürülmez — sadece içerik iletilir.
     """
-    base = (
-        f"https://api.bitbucket.org/2.0/repositories/"
-        f"{body.workspace}/{body.repo}"
-    )
-    src_path = f"{body.branch}/{body.path}" if body.path else body.branch
+    ws = quote(body.workspace, safe="")
+    repo = quote(body.repo, safe="")
+    branch = quote(body.branch, safe="")
+    expected_prefix = f"/2.0/repositories/{ws}/{repo}/src/"
+    base = f"https://api.bitbucket.org/2.0/repositories/{ws}/{repo}"
+    if body.path:
+        path_part = "/".join(quote(seg, safe="") for seg in body.path.split("/"))
+        src_path = f"{branch}/{path_part}"
+    else:
+        src_path = branch
     url = f"{base}/src/{src_path}"
+
+    # Savunma derinliği: oluşan URL beklenen repo src kapsamından çıkamaz.
+    split = urlsplit(url)
+    if split.netloc != "api.bitbucket.org" or not split.path.startswith(expected_prefix):
+        raise HTTPException(400, "Geçersiz Bitbucket istek parametreleri")
     credentials = base64.b64encode(
         f"{body.username}:{body.app_password}".encode()
     ).decode()

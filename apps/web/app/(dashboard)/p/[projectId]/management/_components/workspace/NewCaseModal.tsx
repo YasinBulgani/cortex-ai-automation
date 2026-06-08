@@ -18,6 +18,7 @@ import {
   type TestCase, type TestFolder, type TestSuite,
 } from "@/lib/hooks/use-management";
 import { IcClose, IcPlus, TYPE_OPTIONS } from "./shared";
+import { Button } from "@/components/ui/button";
 
 type DraftStep = { id: string; action: string; expected_result: string; test_data: string; is_required: boolean };
 
@@ -162,8 +163,8 @@ function AIGeneratePanel({
             {n}
           </button>
         ))}
-        <button type="button" onClick={run} disabled={!prompt.trim() || generate.isPending}
-          className="ml-auto flex items-center gap-1.5 rounded-xl bg-brand px-3 py-1.5 text-[12px] font-semibold text-brand-fg shadow-sm transition-colors hover:brightness-105 disabled:opacity-40">
+        <Button type="button" variant="primary" size="sm" onClick={run} disabled={!prompt.trim() || generate.isPending}
+          className="ml-auto gap-1.5">
           {generate.isPending ? (
             <>
               <span className="h-3 w-3 animate-spin rounded-full border-2 border-brand-fg border-t-transparent" />
@@ -172,7 +173,7 @@ function AIGeneratePanel({
           ) : (
             <><IcSparkle /> Üret</>
           )}
-        </button>
+        </Button>
       </div>
 
       {results.length > 0 && (
@@ -193,14 +194,14 @@ function AIGeneratePanel({
                   </div>
                 </div>
                 <div className="flex shrink-0 flex-col gap-1">
-                  <button type="button" onClick={() => applyToForm(gc)}
-                    className="flex items-center gap-1 rounded-lg border border-brand/30 bg-brand-soft px-2 py-1 text-[11px] text-brand transition-colors hover:bg-brand/15">
+                  <Button type="button" variant="outline" size="sm" onClick={() => applyToForm(gc)}
+                    className="gap-1 border-brand/30 bg-brand-soft text-brand hover:bg-brand/15">
                     <IcChevronRight /> Forma uygula
-                  </button>
-                  <button type="button" onClick={() => saveOne(gc)} disabled={saving === gc.title}
-                    className="flex items-center gap-1 rounded-lg bg-brand px-2 py-1 text-[11px] font-semibold text-brand-fg transition-colors hover:brightness-105 disabled:opacity-40">
+                  </Button>
+                  <Button type="button" variant="primary" size="sm" onClick={() => saveOne(gc)} disabled={saving === gc.title}
+                    className="gap-1">
                     {saving === gc.title ? "Kaydediliyor…" : "Kaydet"}
-                  </button>
+                  </Button>
                 </div>
               </div>
               {gc.steps.length > 0 && (
@@ -433,10 +434,10 @@ export function NewCaseModal({ pid, suites, folders, defSuiteId, defFolderId, on
             <div>
               <div className="mb-2 flex items-center justify-between">
                 <label className="text-[10px] font-semibold uppercase tracking-widest text-fg-subtle">Test Adımları</label>
-                <button type="button" onClick={() => setSteps(s => [...s, step()])}
-                  className="flex items-center gap-1 rounded-lg border border-border px-2 py-1 text-[11px] text-fg-muted transition-colors hover:bg-surface-overlay hover:text-fg">
+                <Button type="button" variant="outline" size="sm" onClick={() => setSteps(s => [...s, step()])}
+                  className="gap-1">
                   <IcPlus /> Adım
-                </button>
+                </Button>
               </div>
               <DndContext sensors={sensors} collisionDetection={closestCenter}
                 onDragEnd={e => {
@@ -460,14 +461,12 @@ export function NewCaseModal({ pid, suites, folders, defSuiteId, defFolderId, on
           </div>
 
           <div className="flex items-center justify-between border-t border-border px-6 py-4">
-            <button type="button" onClick={onClose}
-              className="rounded-xl border border-border px-4 py-2 text-[13px] font-medium text-fg-muted transition-colors hover:bg-surface-overlay hover:text-fg">
+            <Button type="button" variant="outline" onClick={onClose}>
               İptal
-            </button>
-            <button type="button" onClick={save} disabled={!title.trim() || createCase.isPending}
-              className="rounded-xl bg-brand px-5 py-2 text-[13px] font-semibold text-brand-fg shadow-sm transition-colors hover:brightness-105 disabled:opacity-40">
+            </Button>
+            <Button type="button" variant="primary" onClick={save} disabled={!title.trim() || createCase.isPending}>
               {createCase.isPending ? "Kaydediliyor…" : "Kaydet"}
-            </button>
+            </Button>
           </div>
         </div>
       </div>

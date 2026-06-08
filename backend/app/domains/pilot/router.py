@@ -14,8 +14,10 @@ from typing import Annotated, Any, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, Field
+from sqlalchemy.orm import Session
 
-from app.deps import get_current_user
+from app.deps import get_current_user, resolve_project_permissions
+from app.infra.database import get_db
 from app.infra.models import User
 from app.domains.pilot import service as svc
 
@@ -37,7 +39,15 @@ class ClarifyIn(BaseModel):
 
 
 @router.post("/sessions", status_code=status.HTTP_201_CREATED)
-def create_session_endpoint(body: CreateSessionIn, user: Annotated[User, Depends(get_current_user)]) -> dict:
+def create_session_endpoint(
+    body: CreateSessionIn,
+    user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[Session, Depends(get_db)],
+) -> dict:
+    # Proje üyeliği doğrula — başka tenant/proje'ye session bağlamayı engelle.
+    perms = resolve_project_permissions(db, user, body.project_id)
+    if "admin.*" not in perms and "project.read" not in perms:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Bu proje icin yetkiniz yok")
     s = svc.create_session(project_id=body.project_id, user_id=user.id)
     return s.to_dict()
 

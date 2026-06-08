@@ -21,6 +21,8 @@ import {
 import { useManagementProjectId } from "@/lib/hooks/use-management-project-id";
 import { useRouteParam } from "@/lib/use-route-param";
 import { apiFetch } from "@/lib/api-client";
+import { useProjectRole } from "@/lib/hooks/use-management-role";
+import { Button } from "@/components/ui/button";
 
 const ENTITY_LABELS: Record<string, string> = {
   suites: "Suite",
@@ -101,7 +103,7 @@ export default function ManagementIntegrationsPage() {
   };
 
   return (
-    <div className="min-h-[calc(100vh-88px)] bg-bg text-fg">
+    <div className="min-h-[calc(100vh-88px)] bg-surface-base text-fg">
       {/* Header */}
       <div className="border-b border-border bg-surface-raised px-6 py-4">
         <h1 className="text-[13px] font-semibold text-fg">Entegrasyonlar</h1>
@@ -199,20 +201,20 @@ export default function ManagementIntegrationsPage() {
               )}
 
               <div className="flex items-center gap-2 pt-1">
-                <button
+                <Button
+                  variant="primary"
                   onClick={handleSave}
                   disabled={!canSave || saveConn.isPending}
-                  className="rounded-lg bg-brand px-4 py-2 text-[13px] font-semibold text-white transition hover:bg-teal-500 disabled:opacity-40"
                 >
                   {saveConn.isPending ? "Kaydediliyor…" : "Kaydet"}
-                </button>
-                <button
+                </Button>
+                <Button
+                  variant="outline"
                   onClick={handleTest}
                   disabled={!isConfigured || testConn.isPending}
-                  className="rounded-lg border border-border px-4 py-2 text-[13px] font-medium text-fg transition hover:bg-surface-overlay disabled:opacity-40"
                 >
                   {testConn.isPending ? "Test ediliyor…" : "Bağlantıyı test et"}
-                </button>
+                </Button>
                 {testConn.data?.ok && (
                   <span className="text-[11px] text-emerald-400">{testConn.data.product_count} ürün bulundu</span>
                 )}
@@ -255,24 +257,25 @@ export default function ManagementIntegrationsPage() {
           ) : (
             <div className="space-y-3">
               <div className="flex items-center gap-3">
-                <button
+                <Button
+                  variant="outline"
                   onClick={() => preview.mutate()}
                   disabled={preview.isPending}
-                  className="rounded-lg border border-border px-4 py-2 text-[13px] font-medium text-fg transition hover:bg-surface-overlay disabled:opacity-40"
                 >
                   {preview.isPending ? "Hesaplanıyor…" : "Önizleme (dry-run)"}
-                </button>
+                </Button>
                 <label className="flex items-center gap-2 text-[12px] text-fg-muted">
                   <input type="checkbox" checked={dryRun} onChange={e => setDryRun(e.target.checked)} />
                   Sadece dene (yazma)
                 </label>
-                <button
+                <Button
+                  variant="primary"
                   onClick={() => startSync.mutate({ dry_run: dryRun })}
                   disabled={startSync.isPending}
-                  className="ml-auto rounded-lg bg-brand px-4 py-2 text-[13px] font-semibold text-white transition hover:bg-teal-500 disabled:opacity-40"
+                  className="ml-auto"
                 >
                   {startSync.isPending ? "Başlatılıyor…" : "Senkronu başlat"}
-                </button>
+                </Button>
               </div>
 
               {preview.data?.ok && (
@@ -451,22 +454,22 @@ function SsoPanel({ projectId }: { projectId: string }) {
           </div>
 
           <div className="flex items-center gap-2 pt-1">
-            <button
+            <Button
               type="button"
+              variant="outline"
               onClick={handleTest}
               disabled={testing}
-              className="rounded-xl border border-border px-4 py-2 text-[12px] font-medium text-fg-muted transition-colors hover:bg-surface-overlay hover:text-fg disabled:opacity-40"
             >
               {testing ? "Test ediliyor…" : "Test Et"}
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
+              variant="primary"
               onClick={handleSave}
               disabled={saveSso.isPending}
-              className="rounded-xl bg-brand px-5 py-2 text-[12px] font-semibold text-brand-fg transition-colors hover:brightness-105"
             >
               {saveSso.isPending ? "Kaydediliyor…" : "Kaydet"}
-            </button>
+            </Button>
           </div>
         </div>
       </section>
@@ -518,6 +521,8 @@ function WebhookNotificationsPanel({ projectId }: { projectId: string }) {
   const [showModal, setShowModal] = useState(false);
   const [toast, setToast] = useState<{ type: "ok" | "error"; msg: string } | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+  const currentRole = useProjectRole(projectId);
+  const canEdit = currentRole === "owner" || currentRole === "admin";
 
   const showToast = (type: "ok" | "error", msg: string) => {
     setToast({ type, msg });
@@ -591,17 +596,21 @@ function WebhookNotificationsPanel({ projectId }: { projectId: string }) {
             <h3 className="text-[13px] font-semibold text-fg">Webhook Bildirimleri</h3>
             <p className="mt-0.5 text-[11px] text-fg-subtle">Olaylar gerçekleştiğinde dış sistemlere bildirim gönder</p>
           </div>
-          <button
-            type="button"
-            onClick={() => setShowModal(true)}
-            disabled={isLoading || isBusy}
-            className="flex items-center gap-1.5 rounded-xl bg-brand px-3 py-1.5 text-[12px] font-semibold text-brand-fg transition-colors hover:brightness-105"
-          >
-            <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 5v14M5 12h14"/>
-            </svg>
-            Yeni Webhook
-          </button>
+          {canEdit && (
+            <Button
+              type="button"
+              variant="primary"
+              size="sm"
+              onClick={() => setShowModal(true)}
+              disabled={isLoading || isBusy}
+              className="gap-1.5"
+            >
+              <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 5v14M5 12h14"/>
+              </svg>
+              Yeni Webhook
+            </Button>
+          )}
         </div>
 
         {/* Webhook list */}
@@ -628,41 +637,47 @@ function WebhookNotificationsPanel({ projectId }: { projectId: string }) {
                   </div>
                 </div>
                 <div className="flex items-center gap-1 shrink-0">
-                  <button
+                  <Button
                     type="button"
+                    variant="outline"
+                    size="sm"
                     onClick={() => handleTest(w)}
                     disabled={isBusy}
-                    className="rounded-lg border border-border px-2.5 py-1 text-[11px] text-fg-muted transition-colors hover:bg-surface-raised hover:text-fg"
                   >
                     Test
-                  </button>
-                  {confirmDelete === w.id ? (
+                  </Button>
+                  {canEdit && (confirmDelete === w.id ? (
                     <div className="flex items-center gap-1">
-                      <button
+                      <Button
                         type="button"
+                        variant="ghost-danger"
+                        size="sm"
                         onClick={() => handleDelete(w.id)}
                         disabled={deleteWebhook.isPending}
-                        className="rounded-lg border border-danger/30 bg-danger-subtle px-2.5 py-1 text-[11px] text-danger transition-colors hover:bg-danger/15 disabled:opacity-40"
+                        className="border border-danger/30 bg-danger-subtle"
                       >
                         {deleteWebhook.isPending ? "Siliniyor…" : "Sil"}
-                      </button>
-                      <button
+                      </Button>
+                      <Button
                         type="button"
+                        variant="outline"
+                        size="sm"
                         onClick={() => setConfirmDelete(null)}
-                        className="rounded-lg border border-border px-2.5 py-1 text-[11px] text-fg-muted transition-colors hover:bg-surface-raised"
                       >
                         İptal
-                      </button>
+                      </Button>
                     </div>
                   ) : (
-                    <button
+                    <Button
                       type="button"
+                      variant="outline"
+                      size="sm"
                       onClick={() => setConfirmDelete(w.id)}
-                      className="rounded-lg border border-border px-2.5 py-1 text-[11px] text-fg-muted transition-colors hover:border-danger/30 hover:bg-danger-subtle hover:text-danger"
+                      className="hover:border-danger/30 hover:bg-danger-subtle hover:text-danger"
                     >
                       Sil
-                    </button>
-                  )}
+                    </Button>
+                  ))}
                 </div>
               </div>
             ))}
@@ -777,14 +792,12 @@ function AddWebhookModal({
 
         {/* Footer */}
         <div className="flex items-center justify-end gap-2 border-t border-border px-5 py-4">
-          <button type="button" onClick={onClose}
-            className="rounded-xl border border-border px-4 py-2 text-[12px] font-medium text-fg-muted transition-colors hover:bg-surface-overlay hover:text-fg">
+          <Button type="button" variant="outline" onClick={onClose}>
             İptal
-          </button>
-          <button type="button" onClick={handleAdd}
-            className="rounded-xl bg-brand px-5 py-2 text-[12px] font-semibold text-brand-fg transition-colors hover:brightness-105">
+          </Button>
+          <Button type="button" variant="primary" onClick={handleAdd}>
             Ekle
-          </button>
+          </Button>
         </div>
       </div>
     </div>
@@ -941,16 +954,14 @@ function JiraIntegrationPanel({ projectId: _projectId, mpid }: { projectId: stri
         </div>
 
         <div className="flex items-center gap-2 pt-1">
-          <button type="button" onClick={handleTest}
-            disabled={(!isConfigured && !token.trim()) || !url.trim() || !email.trim() || status === "testing"}
-            className="rounded-xl border border-border px-4 py-2 text-[12px] font-medium text-fg-muted transition-colors hover:bg-surface-overlay hover:text-fg disabled:opacity-40">
+          <Button type="button" variant="outline" onClick={handleTest}
+            disabled={(!isConfigured && !token.trim()) || !url.trim() || !email.trim() || status === "testing"}>
             {status === "testing" ? "Test ediliyor…" : "Bağlantıyı Test Et"}
-          </button>
-          <button type="button" onClick={handleSave}
-            disabled={saving || !url.trim() || !email.trim()}
-            className="rounded-xl bg-brand px-5 py-2 text-[12px] font-semibold text-brand-fg transition-colors hover:brightness-105 disabled:opacity-40">
+          </Button>
+          <Button type="button" variant="primary" onClick={handleSave}
+            disabled={saving || !url.trim() || !email.trim()}>
             {saving ? "Kaydediliyor…" : "Kaydet"}
-          </button>
+          </Button>
         </div>
       </section>
 
@@ -1069,10 +1080,9 @@ function CiCdWebhookPanel({ projectId, mpid }: { projectId: string; mpid: string
           <label className="mb-1 block text-[11px] font-medium text-fg-muted">Webhook Endpoint</label>
           <div className="flex items-center gap-2">
             <div className={codeStyle}>{inboundUrl || "URL yükleniyor…"}</div>
-            <button type="button" onClick={copyInboundUrl}
-              className="shrink-0 rounded-xl border border-border px-3 py-2 text-[12px] text-fg-muted transition-colors hover:bg-surface-overlay hover:text-fg">
+            <Button type="button" variant="outline" onClick={copyInboundUrl} className="shrink-0">
               {copied ? "✓ Kopyalandı" : "Kopyala"}
-            </button>
+            </Button>
           </div>
         </div>
 
@@ -1134,16 +1144,14 @@ function CiCdWebhookPanel({ projectId, mpid }: { projectId: string; mpid: string
 
         <div className="flex flex-col gap-2">
           <div className="flex items-center gap-2">
-            <button type="button" onClick={testWebhook}
-              disabled={!projectId || !webhookUrl.trim() || testing}
-              className="rounded-xl border border-border px-4 py-2 text-[12px] font-medium text-fg-muted transition-colors hover:bg-surface-overlay hover:text-fg disabled:opacity-40">
+            <Button type="button" variant="outline" onClick={testWebhook}
+              disabled={!projectId || !webhookUrl.trim() || testing}>
               {testing ? "Gönderiliyor…" : "Test Gönder"}
-            </button>
-            <button type="button" onClick={saveWebhook}
-              disabled={!settingsProjectId || !webhookUrl.trim() || saveCicd.isPending}
-              className="rounded-xl bg-brand px-5 py-2 text-[12px] font-semibold text-brand-fg transition-colors hover:brightness-105 disabled:opacity-40">
+            </Button>
+            <Button type="button" variant="primary" onClick={saveWebhook}
+              disabled={!settingsProjectId || !webhookUrl.trim() || saveCicd.isPending}>
               {saveCicd.isPending ? "Kaydediliyor…" : saved ? "Kaydedildi ✓" : "Webhook Kaydet"}
-            </button>
+            </Button>
           </div>
           {testResult && (
             <div className={`flex items-center gap-2 rounded-xl border px-3 py-2 text-[12px] ${

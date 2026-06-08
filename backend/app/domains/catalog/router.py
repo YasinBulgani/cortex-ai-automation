@@ -192,10 +192,12 @@ def get_schema_for_version(
 ) -> SchemaSnapshot:
     """Belirtilen surume ait sema bilgisini getirir."""
     try:
-        _get_dataset_or_403(dataset_id, db, user)
+        # Surumu once dogrula: istenen dataset_id kapsamina ait degilse
+        # (baska bir veri setine aitse) varligini sizdirmadan 404 don.
         ver = db.get(DatasetVersion, version_id)
         if ver is None or ver.dataset_id != dataset_id:
             raise HTTPException(status_code=404, detail="Sürüm bulunamadı")
+        _get_dataset_or_403(dataset_id, db, user)
         snap = db.scalar(
             select(SchemaSnapshot).where(SchemaSnapshot.dataset_version_id == version_id)
         )

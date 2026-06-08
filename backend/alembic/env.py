@@ -1,8 +1,14 @@
+import os
+import sys
 from logging.config import fileConfig
 
 from sqlalchemy import create_engine, pool
 
 from alembic import context
+
+# Make the migration idempotency helper (alembic/_idempotent.py) importable
+# from within individual migration scripts.
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from app.config import settings
 from app.infra.database import Base

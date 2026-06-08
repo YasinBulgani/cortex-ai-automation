@@ -156,9 +156,13 @@ class TestExceptionHandlers:
 
         exc = RateLimitError("too many requests", retry_after_seconds=42)
 
-        response = asyncio.get_event_loop().run_until_complete(
-            handlers.rate_limit_error_handler(request, exc)
-        )
+        _loop = asyncio.new_event_loop()
+        try:
+            response = _loop.run_until_complete(
+                handlers.rate_limit_error_handler(request, exc)
+            )
+        finally:
+            _loop.close()
 
         assert response.status_code == 429
         assert "Retry-After" in response.headers

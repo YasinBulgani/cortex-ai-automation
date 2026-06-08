@@ -51,6 +51,7 @@ def test_first_run_creates_baseline(tmp_path: Path) -> None:
     r = compare_png(
         name="login",
         actual_bytes=_png_bytes(),
+        scope="t1",
         baseline_dir=tmp_path / "base",
         diff_dir=tmp_path / "diff",
     )
@@ -66,12 +67,14 @@ def test_identical_image_passes(tmp_path: Path) -> None:
     compare_png(
         name="same",
         actual_bytes=same,
+        scope="t1",
         baseline_dir=tmp_path / "base",
         diff_dir=tmp_path / "diff",
     )
     r = compare_png(
         name="same",
         actual_bytes=same,
+        scope="t1",
         baseline_dir=tmp_path / "base",
         diff_dir=tmp_path / "diff",
     )
@@ -89,12 +92,14 @@ def test_small_diff_below_threshold_ok(tmp_path: Path) -> None:
     compare_png(
         name="close",
         actual_bytes=base,
+        scope="t1",
         baseline_dir=tmp_path / "base",
         diff_dir=tmp_path / "diff",
     )
     r = compare_png(
         name="close",
         actual_bytes=actual,
+        scope="t1",
         baseline_dir=tmp_path / "base",
         diff_dir=tmp_path / "diff",
         threshold_ratio=0.01,  # %1 tolerans
@@ -112,12 +117,14 @@ def test_big_diff_fails_and_writes_diff_image(tmp_path: Path) -> None:
     compare_png(
         name="big",
         actual_bytes=base,
+        scope="t1",
         baseline_dir=tmp_path / "base",
         diff_dir=tmp_path / "diff",
     )
     r = compare_png(
         name="big",
         actual_bytes=actual,
+        scope="t1",
         baseline_dir=tmp_path / "base",
         diff_dir=tmp_path / "diff",
         threshold_ratio=0.01,
@@ -135,12 +142,14 @@ def test_size_mismatch_reported(tmp_path: Path) -> None:
     compare_png(
         name="resized",
         actual_bytes=base,
+        scope="t1",
         baseline_dir=tmp_path / "base",
         diff_dir=tmp_path / "diff",
     )
     r = compare_png(
         name="resized",
         actual_bytes=actual,
+        scope="t1",
         baseline_dir=tmp_path / "base",
         diff_dir=tmp_path / "diff",
     )
@@ -153,12 +162,14 @@ def test_update_baseline_overwrites(tmp_path: Path) -> None:
     compare_png(
         name="u",
         actual_bytes=_png_bytes(color=(0, 0, 0)),
+        scope="t1",
         baseline_dir=tmp_path / "base",
         diff_dir=tmp_path / "diff",
     )
     r = compare_png(
         name="u",
         actual_bytes=_png_bytes(color=(255, 255, 255)),
+        scope="t1",
         baseline_dir=tmp_path / "base",
         diff_dir=tmp_path / "diff",
         update_baseline=True,
@@ -172,11 +183,50 @@ def test_path_traversal_rejected(tmp_path: Path) -> None:
     r = compare_png(
         name="../evil",
         actual_bytes=b"xxx",
+        scope="t1",
         baseline_dir=tmp_path / "base",
         diff_dir=tmp_path / "diff",
     )
     # Pillow yoksa "pillow_unavailable" dönse de güvenli; varsa invalid_image
     assert r.ok is False
+
+
+@requires_pil
+def test_tenant_isolation_baselines_are_scoped(tmp_path: Path) -> None:
+    """Aynı name farklı scope → ayrı baseline; cross-tenant okuma/yazma yok."""
+    png = _png_bytes()
+    ra = compare_png(
+        name="login",
+        actual_bytes=png,
+        scope="tenant-a",
+        baseline_dir=tmp_path / "base",
+        diff_dir=tmp_path / "diff",
+    )
+    assert ra.status == "new_baseline"
+    rb = compare_png(
+        name="login",
+        actual_bytes=png,
+        scope="tenant-b",
+        baseline_dir=tmp_path / "base",
+        diff_dir=tmp_path / "diff",
+    )
+    assert rb.status == "new_baseline"
+    assert "tenant-a" in (ra.baseline_path or "")
+    assert "tenant-b" in (rb.baseline_path or "")
+    assert ra.baseline_path != rb.baseline_path
+
+
+def test_scope_path_traversal_rejected(tmp_path: Path) -> None:
+    """scope ile prefix'ten kaçış engellenir (cross-tenant IDOR guard)."""
+    for bad in ("../evil", "/abs", "a/../../b", "a/../b", ""):
+        r = compare_png(
+            name="x",
+            actual_bytes=b"x",
+            scope=bad,
+            baseline_dir=tmp_path / "base",
+            diff_dir=tmp_path / "diff",
+        )
+        assert r.ok is False
 
 
 def test_invalid_png_bytes(tmp_path: Path) -> None:
@@ -185,6 +235,7 @@ def test_invalid_png_bytes(tmp_path: Path) -> None:
     r = compare_png(
         name="bad",
         actual_bytes=b"not a png",
+        scope="t1",
         baseline_dir=tmp_path / "base",
         diff_dir=tmp_path / "diff",
     )

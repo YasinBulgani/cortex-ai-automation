@@ -11,6 +11,7 @@ import {
 } from "@/lib/hooks/use-management";
 import { useManagementProjectId } from "@/lib/hooks/use-management-project-id";
 import { useRouteParam } from "@/lib/use-route-param";
+import { Button } from "@/components/ui/button";
 
 type ColumnKey =
   | "case_key"
@@ -163,9 +164,9 @@ function ImportJobDetailPanel({
   return (
     <section className="rounded-xl border border-border bg-surface-raised p-5">
       <div className="mb-5 grid gap-3 md:grid-cols-4">
-        <div className="rounded-lg border border-border bg-bg p-3">
+        <div className="rounded-lg border border-border bg-surface-overlay p-3">
           <p className="text-xs uppercase text-fg-subtle">Dry-run checked</p>
-          <p className="mt-1 text-xl font-semibold text-white">{checkedRows}</p>
+          <p className="mt-1 text-xl font-semibold text-fg">{checkedRows}</p>
         </div>
         <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/5 p-3">
           <p className="text-xs uppercase text-emerald-300/70">Ready</p>
@@ -181,7 +182,7 @@ function ImportJobDetailPanel({
         </div>
       </div>
 
-      <div className="mb-4 flex flex-wrap items-center gap-3 rounded-lg border border-border bg-bg px-3 py-2 text-sm text-fg-muted">
+      <div className="mb-4 flex flex-wrap items-center gap-3 rounded-lg border border-border bg-surface-overlay px-3 py-2 text-sm text-fg-muted">
         <JobStatusBadge status={job.status} />
         <span>
           Mapping:{" "}
@@ -196,7 +197,7 @@ function ImportJobDetailPanel({
       {/* Row table */}
       <div className="overflow-x-auto rounded-lg border border-border">
         <table className="w-full text-sm">
-          <thead className="bg-bg text-xs text-fg-subtle">
+          <thead className="bg-surface-overlay text-xs text-fg-subtle">
             <tr>
               <th className="px-3 py-2 text-left">Row</th>
               <th className="px-3 py-2 text-left">Title / Data</th>
@@ -239,20 +240,21 @@ function ImportJobDetailPanel({
 
       {/* Actions */}
       <div className="mt-4 flex items-center justify-between">
-        <button
+        <Button
+          variant="outline"
           onClick={onClose}
-          className="rounded-lg border border-border px-4 py-2 text-sm text-fg-muted hover:bg-surface-overlay"
+          className="text-sm text-fg-muted"
         >
           ← Listeye dön
-        </button>
+        </Button>
         {job.status === "preview" && (
-          <button
+          <Button
             onClick={handleCommit}
             disabled={committing || readyRows === 0}
-            className="rounded-lg bg-brand px-5 py-2 text-sm font-semibold text-white transition hover:bg-teal-500 disabled:opacity-40"
+            className="bg-brand px-5 py-2 text-sm font-semibold text-brand-fg hover:brightness-105"
           >
             {committing ? "Commit ediliyor…" : `${readyRows} satırı Commit Et`}
-          </button>
+          </Button>
         )}
         {job.status === "committed" && (
           <span className="text-sm text-emerald-400">✓ Commit tamamlandı</span>
@@ -697,7 +699,13 @@ export default function ManagementImportExportPage() {
 
   if (selectedJobId) {
     return (
-    <div className="min-h-full bg-bg px-5 py-5 space-y-5">
+      <div className="min-h-full bg-surface-base px-5 py-5 space-y-5">
+        <button
+          onClick={() => setSelectedJobId(null)}
+          className="flex items-center gap-1.5 text-[12px] text-fg-muted hover:text-fg transition-colors"
+        >
+          ← Import listesine dön
+        </button>
         <ImportJobDetailPanel
           jobId={selectedJobId}
           projectId={mpid || ""}
@@ -708,7 +716,50 @@ export default function ManagementImportExportPage() {
   }
 
   return (
-    <div className="min-h-full bg-bg px-5 py-5 space-y-5">
+    <div className="min-h-full bg-surface-base px-5 py-6 space-y-5">
+      {/* Page header */}
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <p className="text-[11px] font-semibold uppercase tracking-widest text-fg-subtle">Management</p>
+          <h1 className="mt-1 text-[20px] font-semibold tracking-normal text-fg">Import / Export</h1>
+          <p className="mt-1 text-[12px] text-fg-muted">
+            CSV, Excel veya JSON formatında test case içe/dışa aktarın. Dry-run önizleme ile güvenli import.
+          </p>
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleTemplateDownload}
+          className="text-[12px] font-semibold text-fg-muted hover:text-fg"
+        >
+          Template CSV İndir
+        </Button>
+      </div>
+
+      {/* Import flow guide */}
+      <div className="rounded-xl border border-blue-500/20 bg-blue-500/5 px-4 py-3">
+        <div className="flex flex-wrap items-center gap-6 text-[11px] text-fg-muted">
+          {[
+            { step: "1", label: "Dosya yükle", desc: "CSV/XLSX/JSON" },
+            { step: "2", label: "Kolon eşle", desc: "Otomatik tahmin" },
+            { step: "3", label: "Dry-run doğrula", desc: "Hata kontrolü" },
+            { step: "4", label: "Job oluştur", desc: "Preview modu" },
+            { step: "5", label: "Commit et", desc: "Repository'ye yaz" },
+          ].map((s, i) => (
+            <div key={s.step} className="flex items-center gap-2">
+              {i > 0 && <span className="text-fg-disabled">→</span>}
+              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-blue-500/20 text-[10px] font-bold text-blue-400">
+                {s.step}
+              </span>
+              <span>
+                <span className="text-fg font-medium">{s.label}</span>
+                <span className="ml-1 text-fg-subtle">{s.desc}</span>
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+
       {/* Stats */}
       <div className="grid gap-4 md:grid-cols-3">
         <div className="rounded-xl border border-border bg-surface-raised px-4 py-3">
@@ -738,18 +789,19 @@ export default function ManagementImportExportPage() {
               </p>
               <div className="mt-3 flex flex-wrap gap-2">
                 {TEMPLATE_COLUMNS.slice(0, 8).map((column) => (
-                  <span key={column} className="rounded border border-border bg-bg px-2 py-1 text-xs text-fg-muted">
+                  <span key={column} className="rounded border border-border bg-surface-overlay px-2 py-1 text-xs text-fg-muted">
                     {column}
                   </span>
                 ))}
               </div>
             </div>
-            <button
+            <Button
+              variant="outline"
               onClick={handleTemplateDownload}
-              className="rounded-lg border border-border px-4 py-2 text-sm font-semibold text-fg hover:bg-surface-overlay"
+              className="text-sm font-semibold text-fg"
             >
               Template CSV
-            </button>
+            </Button>
           </div>
         </section>
 
@@ -776,13 +828,13 @@ export default function ManagementImportExportPage() {
                   {fmt.toUpperCase()}
                 </button>
               ))}
-              <button
+              <Button
                 onClick={handleExport}
                 disabled={exporting || !mpid}
-                className="rounded-lg border border-teal-500/30 bg-teal-500/10 px-4 py-1.5 text-sm font-semibold text-teal-200 hover:bg-brand-soft disabled:opacity-40 transition-colors"
+                className="border border-teal-500/30 bg-teal-500/10 px-4 py-1.5 text-sm font-semibold text-teal-200 hover:bg-brand-soft"
               >
                 {exporting ? "İndiriliyor…" : "Dışa Aktar"}
-              </button>
+              </Button>
             </div>
           </div>
         </section>
@@ -830,7 +882,7 @@ export default function ManagementImportExportPage() {
 
         <section className="rounded-xl border border-border bg-surface-raised p-5">
           {!stagedImport ? (
-            <div className="flex min-h-56 items-center justify-center rounded-lg border border-border bg-bg px-6 text-center">
+            <div className="flex min-h-56 items-center justify-center rounded-lg border border-border bg-surface-overlay px-6 text-center">
               <div>
                 <p className="text-sm font-medium text-fg">Henüz staged dosya yok</p>
                 <p className="mt-2 max-w-md text-xs text-fg-subtle">
@@ -840,9 +892,9 @@ export default function ManagementImportExportPage() {
             </div>
           ) : (
             <div className="space-y-5">
-              <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-bg px-3 py-2">
+              <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-surface-overlay px-3 py-2">
                 <div>
-                  <p className="text-sm font-medium text-white">{stagedImport.filename}</p>
+                  <p className="text-sm font-medium text-fg">{stagedImport.filename}</p>
                   <p className="text-xs text-fg-subtle">
                     {stagedImport.rows.length} rows, {stagedImport.headers.length} source columns, {formatFileSize(stagedImport.fileSize)}
                   </p>
@@ -856,9 +908,9 @@ export default function ManagementImportExportPage() {
               </div>
 
               <div className="grid gap-3 md:grid-cols-4">
-                <div className="rounded-lg border border-border bg-bg p-3">
+                <div className="rounded-lg border border-border bg-surface-overlay p-3">
                   <p className="text-xs uppercase text-fg-subtle">Mapped</p>
-                  <p className="mt-1 text-lg font-semibold text-white">{mappedColumnCount}</p>
+                  <p className="mt-1 text-lg font-semibold text-fg">{mappedColumnCount}</p>
                 </div>
                 <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/5 p-3">
                   <p className="text-xs uppercase text-emerald-300/70">Ready rows</p>
@@ -876,7 +928,7 @@ export default function ManagementImportExportPage() {
 
               <div className="overflow-x-auto rounded-lg border border-border">
                 <table className="w-full text-sm">
-                  <thead className="bg-bg text-xs text-fg-subtle">
+                  <thead className="bg-surface-overlay text-xs text-fg-subtle">
                     <tr>
                       <th className="px-3 py-2 text-left">Source column</th>
                       <th className="px-3 py-2 text-left">Maps to</th>
@@ -900,7 +952,7 @@ export default function ManagementImportExportPage() {
                                   [header]: e.target.value as ColumnKey,
                                 }))
                               }
-                              className={`w-44 rounded border bg-bg px-2 py-1.5 text-xs text-fg outline-none focus:border-teal-400 ${
+                              className={`w-44 rounded border bg-surface-base px-2 py-1.5 text-xs text-fg outline-none focus:border-teal-400 ${
                                 isDuplicateTarget ? "border-amber-500/60" : "border-border"
                               }`}
                             >
@@ -931,7 +983,7 @@ export default function ManagementImportExportPage() {
               </div>
 
               <div className="grid gap-3 md:grid-cols-3">
-                <label className="flex items-start gap-3 rounded-lg border border-border bg-bg p-3">
+                <label className="flex items-start gap-3 rounded-lg border border-border bg-surface-overlay p-3">
                   <input
                     type="checkbox"
                     checked={updateExisting}
@@ -944,12 +996,12 @@ export default function ManagementImportExportPage() {
                   </span>
                 </label>
 
-                <label className="rounded-lg border border-border bg-bg p-3">
+                <label className="rounded-lg border border-border bg-surface-overlay p-3">
                   <span className="block text-sm text-fg">Conflict handling</span>
                   <select
                     value={conflictMode}
                     onChange={(e) => setConflictMode(e.target.value as "skip" | "flag" | "overwrite")}
-                    className="mt-2 w-full rounded border border-border bg-surface-raised px-2 py-1.5 text-xs text-fg outline-none focus:border-teal-400"
+                    className="mt-2 w-full rounded border border-border bg-surface-overlay px-2 py-1.5 text-xs text-fg outline-none focus:border-teal-400"
                   >
                     <option value="flag">Flag for review</option>
                     <option value="skip">Skip conflicts</option>
@@ -957,7 +1009,7 @@ export default function ManagementImportExportPage() {
                   </select>
                 </label>
 
-                <div className="rounded-lg border border-border bg-bg p-3">
+                <div className="rounded-lg border border-border bg-surface-overlay p-3">
                   <span className="block text-sm text-fg">Validation</span>
                   <span className={hasBlockingValidation ? "mt-2 block text-xs text-red-400" : "mt-2 block text-xs text-emerald-400"}>
                     {hasBlockingValidation ? "Mapping veya satır kontrolü gerekiyor" : "Dry-run için hazır"}
@@ -999,7 +1051,7 @@ export default function ManagementImportExportPage() {
 
               <div className="overflow-x-auto rounded-lg border border-border">
                 <table className="w-full text-xs">
-                  <thead className="bg-bg text-fg-subtle">
+                  <thead className="bg-surface-overlay text-fg-subtle">
                     <tr>
                       <th className="px-3 py-2 text-left">#</th>
                       <th className="px-3 py-2 text-left">Preview</th>
@@ -1042,13 +1094,13 @@ export default function ManagementImportExportPage() {
               )}
 
               <div className="flex flex-wrap items-center justify-end gap-3">
-                <button
+                <Button
                   onClick={handleCreateImportJob}
                   disabled={createJob.isPending || hasBlockingValidation || mappedRows.length === 0}
-                  className="rounded-lg bg-brand px-5 py-2 text-sm font-semibold text-white transition hover:bg-teal-500 disabled:opacity-40"
+                  className="bg-brand px-5 py-2 text-sm font-semibold text-brand-fg hover:brightness-105"
                 >
                   {createJob.isPending ? "Job oluşturuluyor…" : "Import Job Oluştur"}
-                </button>
+                </Button>
               </div>
             </div>
           )}
@@ -1064,7 +1116,7 @@ export default function ManagementImportExportPage() {
                 <button
                   key={job.id}
                   onClick={() => setSelectedJobId(job.id)}
-                  className="rounded-lg border border-border bg-bg p-3 text-left transition hover:border-border hover:bg-surface-raised"
+                  className="rounded-lg border border-border bg-surface-overlay p-3 text-left transition hover:border-border-strong hover:bg-surface-raised"
                 >
                   <span className="block truncate text-xs font-medium text-fg">{job.filename}</span>
                   <span className="mt-2 flex items-center justify-between gap-2">
@@ -1080,7 +1132,7 @@ export default function ManagementImportExportPage() {
           {importsQuery.isLoading ? (
             <div className="space-y-2 py-2">
               {Array.from({ length: 3 }).map((_, i) => (
-                <div key={i} className="flex items-center gap-3 rounded-lg border border-border bg-bg px-3 py-2.5"
+                <div key={i} className="flex items-center gap-3 rounded-lg border border-border bg-surface-overlay px-3 py-2.5"
                   style={{ opacity: Math.max(0.3, 1 - i * 0.25) }}>
                   <div className="h-3 w-32 animate-pulse rounded bg-surface-overlay"/>
                   <div className="h-5 w-16 animate-pulse rounded-full bg-surface-overlay"/>

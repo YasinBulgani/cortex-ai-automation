@@ -153,7 +153,11 @@ def progress(
     response_model=OnboardingProgress,
     summary="Tek bir adımın tamamlanma durumunu güncelle",
 )
-def update(req: ProgressUpdateRequest, user: Annotated[User, Depends(get_current_user)]):
+def update(
+    req: ProgressUpdateRequest,
+    user: Annotated[User, Depends(get_current_user)],
+    db: Session = Depends(get_db),
+):
     try:
         # Adım ID doğrula — uydurma step_id kabul etme
         valid_ids = {s.id for s in DEFAULT_STEPS}
@@ -163,6 +167,7 @@ def update(req: ProgressUpdateRequest, user: Annotated[User, Depends(get_current
                 detail=f"Bilinmeyen step_id: {req.step_id}. "
                        f"Geçerli: {sorted(valid_ids)}",
             )
+        _check_project_access(req.project_id, db, user)
         progress_store.set(req.project_id, req.step_id, req.done)
         completed = progress_store.get(req.project_id)
         return compute_progress(project_id=req.project_id, completed=completed)

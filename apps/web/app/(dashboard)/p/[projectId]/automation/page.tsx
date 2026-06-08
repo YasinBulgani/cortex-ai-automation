@@ -536,22 +536,24 @@ export default function AutomationPage() {
                     </p>
                   </div>
                   {run.next_action?.href && (
-                    <button
+                    <Button
                       type="button"
+                      variant="outline"
+                      size="sm"
                       onClick={() => router.push(run.next_action?.href ?? `/p/${projectId}/automation`)}
-                      className="rounded border border-slate-700 px-2.5 py-1 text-xs text-slate-300 hover:border-slate-500 hover:text-white"
                     >
                       Aç
-                    </button>
+                    </Button>
                   )}
                   {run.status !== "cancelled" && run.status !== "passed" && run.status !== "failed" && (
-                    <button
+                    <Button
                       type="button"
+                      variant="ghost-danger"
+                      size="sm"
                       onClick={() => void cancelBrainRun(run.id)}
-                      className="rounded border border-red-500/30 px-2.5 py-1 text-xs text-red-300 hover:bg-red-500/10"
                     >
                       İptal
-                    </button>
+                    </Button>
                   )}
                 </div>
               ))}

@@ -3,6 +3,7 @@
 import { useState, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 import {
   useCreateManagementSuite,
   useCreateManagementFolder,
@@ -359,14 +360,12 @@ export function QuickSetupWizard({ projectId, mpid }: { projectId: string; mpid:
                 <p className="mt-1 text-[12px] text-fg-muted">Suite, klasörler, plan ve döngünüz oluşturuldu. Run başlatıldı.</p>
               </div>
               <div className="flex gap-2 mt-2">
-                <button onClick={() => router.push(`/p/${projectId}/management/repository`)}
-                  className="rounded-xl border border-border px-4 py-2 text-[12px] font-medium text-fg-muted hover:text-fg">
+                <Button variant="outline" size="sm" onClick={() => router.push(`/p/${projectId}/management/repository`)}>
                   Repository'e Git
-                </button>
-                <button onClick={() => router.push(`/p/${projectId}/management/plans`)}
-                  className="rounded-xl bg-brand px-4 py-2 text-[12px] font-semibold text-brand-fg hover:brightness-105">
+                </Button>
+                <Button variant="primary" size="sm" onClick={() => router.push(`/p/${projectId}/management/plans`)}>
                   Planları Gör
-                </button>
+                </Button>
               </div>
             </div>
 
@@ -598,58 +597,52 @@ export function QuickSetupWizard({ projectId, mpid }: { projectId: string; mpid:
                 {/* Action buttons */}
                 <div className="flex items-center gap-2 pt-2">
                   {step !== "suite" && (
-                    <button type="button"
-                      onClick={() => { const i = STEPS.findIndex(s => s.id === step); if (i > 0) setStep(STEPS[i - 1].id); }}
-                      className="rounded-xl border border-border px-4 py-2 text-[12px] text-fg-muted hover:text-fg transition-colors">
+                    <Button type="button" variant="outline" size="sm"
+                      onClick={() => { const i = STEPS.findIndex(s => s.id === step); if (i > 0) setStep(STEPS[i - 1].id); }}>
                       Geri
-                    </button>
+                    </Button>
                   )}
 
                   {step === "suite" && (
-                    <button type="button" onClick={handleCreateSuite}
-                      disabled={!suiteName.trim() || busy}
-                      className="rounded-xl bg-brand px-5 py-2 text-[12px] font-semibold text-brand-fg hover:brightness-105 disabled:opacity-40 transition-all shadow-sm">
+                    <Button type="button" variant="primary" size="sm" onClick={handleCreateSuite}
+                      disabled={!suiteName.trim() || busy}>
                       {busy ? "Oluşturuluyor…" : "Suite Oluştur →"}
-                    </button>
+                    </Button>
                   )}
 
                   {step === "folder" && (
                     <>
-                      <button type="button" onClick={() => { markDone("folder"); setStep("plan"); }}
-                        className="rounded-xl border border-border px-4 py-2 text-[12px] text-fg-muted hover:text-fg">
+                      <Button type="button" variant="outline" size="sm" onClick={() => { markDone("folder"); setStep("plan"); }}>
                         Klasör Eklemeden Devam
-                      </button>
+                      </Button>
                       {folders.length > 0 && (
-                        <button type="button" onClick={handleCreateFolders} disabled={busy}
-                          className="rounded-xl bg-brand px-5 py-2 text-[12px] font-semibold text-brand-fg hover:brightness-105 disabled:opacity-40 shadow-sm">
+                        <Button type="button" variant="primary" size="sm" onClick={handleCreateFolders} disabled={busy}>
                           {busy ? "Oluşturuluyor…" : `${folders.length} Klasör Oluştur →`}
-                        </button>
+                        </Button>
                       )}
                     </>
                   )}
 
                   {step === "plan" && (
-                    <button type="button" onClick={handleCreatePlan}
-                      disabled={!planName.trim() || busy}
-                      className="rounded-xl bg-brand px-5 py-2 text-[12px] font-semibold text-brand-fg hover:brightness-105 disabled:opacity-40 shadow-sm">
+                    <Button type="button" variant="primary" size="sm" onClick={handleCreatePlan}
+                      disabled={!planName.trim() || busy}>
                       {busy ? "Oluşturuluyor…" : "Plan Oluştur →"}
-                    </button>
+                    </Button>
                   )}
 
                   {step === "cycle" && (
-                    <button type="button" onClick={handleCreateCycle}
-                      disabled={!cycleName.trim() || busy}
-                      className="rounded-xl bg-brand px-5 py-2 text-[12px] font-semibold text-brand-fg hover:brightness-105 disabled:opacity-40 shadow-sm">
+                    <Button type="button" variant="primary" size="sm" onClick={handleCreateCycle}
+                      disabled={!cycleName.trim() || busy}>
                       {busy ? "Oluşturuluyor…" : "Döngü Oluştur →"}
-                    </button>
+                    </Button>
                   )}
 
                   {step === "run" && (
-                    <button type="button" onClick={handleStartRun}
+                    <Button type="button" size="sm" onClick={handleStartRun}
                       disabled={!runName.trim() || busy}
-                      className="rounded-xl bg-emerald-600 px-5 py-2 text-[12px] font-semibold text-white hover:bg-emerald-500 disabled:opacity-40 shadow-sm">
+                      className="bg-emerald-600 text-white hover:bg-emerald-500">
                       {busy ? "Başlatılıyor…" : "Run Başlat →"}
-                    </button>
+                    </Button>
                   )}
                 </div>
               </div>

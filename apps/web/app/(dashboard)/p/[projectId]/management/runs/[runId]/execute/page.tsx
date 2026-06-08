@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouteParam } from "@/lib/use-route-param";
 import { useManagementProjectId } from "@/lib/hooks/use-management-project-id";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 import {
   useManagementRun,
   useRunProgress,
@@ -12,6 +13,8 @@ import {
   useUpdateManagementRunCase,
   useUpdateManagementStepResult,
   useCreateManagementDefect,
+  useSearchDefects,
+  useLinkExistingDefect,
   useManagementEvidence,
   useUploadEvidence,
   useCaseDependencies,
@@ -186,7 +189,7 @@ function StepCard({ step, result, onChange, projectId, runCaseId, runId, onDefec
           rows={2}
           aria-label={`Adım ${step.step_no} gerçekleşen sonuç`}
           placeholder="Gerçekleşen sonucu girin…"
-          className="w-full rounded-lg border border-border bg-surface-raised px-3 py-2 text-xs text-white placeholder:text-fg-disabled focus:border-border-strong focus:outline-none resize-none"/>
+          className="w-full rounded-lg border border-border bg-surface-raised px-3 py-2 text-xs text-fg placeholder:text-fg-disabled focus:border-border-strong focus:outline-none resize-none"/>
       </div>
     </div>
   );
@@ -228,17 +231,94 @@ const CASE_RESULT_BTNS: { key: TestRunStatus; label: string; shortcut: string; a
     key: "not_run",
     label: "Retest",
     shortcut: "R",
-    activeCls: "bg-brand border-teal-600 text-white",
+    activeCls: "bg-brand border-teal-600 text-brand-fg",
     idleCls:   "border-teal-500/25 text-teal-500 hover:bg-teal-500/10 hover:border-teal-500/40",
   },
 ];
 
 // ─── Quick Defect Modal ───────────────────────────────────────────────────────
 
+function LinkExistingDefectPanel({ mpid, runCaseId, onClose }: {
+  mpid: string; runCaseId: string; onClose: () => void;
+}) {
+  const [query, setQuery] = useState("");
+  const [debounced, setDebounced] = useState("");
+  useEffect(() => {
+    const t = setTimeout(() => setDebounced(query), 250);
+    return () => clearTimeout(t);
+  }, [query]);
+
+  const { data: results = [], isLoading } = useSearchDefects(mpid, debounced);
+  const link = useLinkExistingDefect(mpid);
+  const [linkingId, setLinkingId] = useState<string | null>(null);
+
+  const SEV_COLOR: Record<string, string> = {
+    blocker: "text-red-400", critical: "text-red-400", major: "text-orange-400",
+    minor: "text-amber-400", trivial: "text-fg-muted",
+  };
+
+  const handleLink = async (defectId: string) => {
+    setLinkingId(defectId);
+    try {
+      await link.mutateAsync({ run_case_id: runCaseId, defect_id: defectId });
+      onClose();
+    } finally {
+      setLinkingId(null);
+    }
+  };
+
+  const inp = "w-full rounded-xl border border-border bg-surface-overlay px-3 py-2 text-[13px] text-fg placeholder:text-fg-disabled outline-none focus:border-teal-500/40";
+
+  return (
+    <div className="p-5 space-y-3">
+      <div className="relative">
+        <input
+          autoFocus
+          value={query}
+          onChange={e => setQuery(e.target.value)}
+          placeholder="Defect başlığı veya anahtarı ara…"
+          className={inp}
+        />
+      </div>
+      <div className="max-h-72 space-y-1.5 overflow-y-auto">
+        {isLoading ? (
+          <div className="py-6 text-center text-[12px] text-fg-subtle">Aranıyor…</div>
+        ) : results.length === 0 ? (
+          <div className="py-6 text-center text-[12px] text-fg-subtle">
+            {debounced ? "Eşleşen defect yok." : "Bağlanacak mevcut defect'leri görmek için arayın."}
+          </div>
+        ) : (
+          results.map(d => (
+            <button
+              key={d.defect_id}
+              onClick={() => handleLink(d.defect_id)}
+              disabled={link.isPending}
+              className="flex w-full items-center gap-3 rounded-lg border border-border bg-surface-overlay px-3 py-2 text-left transition-colors hover:border-teal-500/40 disabled:opacity-50"
+            >
+              <span className="shrink-0 font-mono text-[10px] text-fg-subtle">{d.external_key}</span>
+              <span className="min-w-0 flex-1 truncate text-[12px] text-fg">{d.title}</span>
+              <span className={cn("shrink-0 text-[10px] font-semibold", SEV_COLOR[d.severity] ?? "text-fg-muted")}>{d.severity}</span>
+              <span className="shrink-0 rounded bg-surface-raised px-1.5 py-0.5 text-[9px] text-fg-subtle">{d.status}</span>
+              {d.link_count > 1 && (
+                <span className="shrink-0 text-[9px] text-fg-disabled" title="Bu defect kaç case'e bağlı">×{d.link_count}</span>
+              )}
+              {linkingId === d.defect_id && <span className="shrink-0 text-[10px] text-teal-400">…</span>}
+            </button>
+          ))
+        )}
+      </div>
+      <div className="flex justify-end pt-1">
+        <Button type="button" variant="outline" onClick={onClose} className="text-[13px] text-fg-subtle hover:text-fg">Kapat</Button>
+      </div>
+    </div>
+  );
+}
+
 function QuickDefectModal({ mpid, caseTitle, caseKey, runCaseId, onClose }: {
   mpid: string; caseTitle: string; caseKey: string; runCaseId: string; onClose: () => void;
 }) {
   const create = useCreateManagementDefect(mpid);
+  const [mode,     setMode]     = useState<"new" | "existing">("new");
   const [title,    setTitle]    = useState(`[${caseKey}] ${caseTitle} - Hata`);
   const [severity, setSeverity] = useState("major");
   const [priority, setPriority] = useState("P2");
@@ -273,11 +353,29 @@ function QuickDefectModal({ mpid, caseTitle, caseKey, runCaseId, onClose }: {
         className="w-full max-w-lg rounded-xl border border-border bg-[#0d1117] shadow-2xl overflow-hidden"
       >
         <div className="flex items-center justify-between border-b border-border px-5 py-4">
-          <h2 id="defect-modal-title" className="text-[14px] font-semibold text-fg">Defect Oluştur</h2>
+          <h2 id="defect-modal-title" className="text-[14px] font-semibold text-fg">Defect</h2>
           <button onClick={onClose} aria-label="Defect modalını kapat" className="rounded-lg p-1.5 text-fg-disabled hover:text-fg">
             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
           </button>
         </div>
+        {/* Mode tabs */}
+        <div className="flex gap-1 border-b border-border px-5 pt-3">
+          {([["new", "Yeni Oluştur"], ["existing", "Mevcuta Bağla"]] as const).map(([m, label]) => (
+            <button
+              key={m}
+              onClick={() => setMode(m)}
+              className={cn(
+                "rounded-t-lg px-3 py-1.5 text-[12px] font-semibold transition-colors",
+                mode === m ? "border-b-2 border-teal-500 text-fg" : "text-fg-subtle hover:text-fg",
+              )}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        {mode === "existing" ? (
+          <LinkExistingDefectPanel mpid={mpid} runCaseId={runCaseId} onClose={onClose} />
+        ) : (
         <form onSubmit={submit} className="p-5 space-y-4">
           <div>
             <label htmlFor="defect-title" className="mb-1 block text-[10px] uppercase tracking-widest text-fg-disabled">Başlık *</label>
@@ -307,14 +405,15 @@ function QuickDefectModal({ mpid, caseTitle, caseKey, runCaseId, onClose }: {
               className={cn(inp, "resize-none")} />
           </div>
           <div className="flex items-center justify-between pt-1">
-            <button type="button" onClick={onClose}
-              className="rounded-xl border border-border px-4 py-2 text-[13px] text-fg-subtle hover:text-fg">İptal</button>
-            <button type="submit" disabled={create.isPending}
-              className="rounded-xl bg-red-600 px-5 py-2 text-[13px] font-medium text-white hover:bg-red-500 disabled:opacity-40">
+            <Button type="button" variant="outline" onClick={onClose}
+              className="text-[13px] text-fg-subtle hover:text-fg">İptal</Button>
+            <Button type="submit" variant="destructive" disabled={create.isPending}
+              className="text-[13px]">
               {create.isPending ? "Oluşturuluyor…" : "Defect Oluştur"}
-            </button>
+            </Button>
           </div>
         </form>
+        )}
       </div>
     </div>
   );
@@ -604,7 +703,7 @@ function ExecutionPanel({ rc, projectId, runId, onNext, onPrev, mpid }: {
             <span className="text-[10px] text-fg-subtle">{STATUS_LABEL[rc.status] ?? rc.status}</span>
           </div>
         </div>
-        <h2 className="mt-1.5 text-sm font-semibold text-white">{caseInfo.title ?? rc.case_id}</h2>
+        <h2 className="mt-1.5 text-sm font-semibold text-fg">{caseInfo.title ?? rc.case_id}</h2>
 
         {/* Progress bar */}
         {steps.length > 0 && (
@@ -785,7 +884,7 @@ function ExecutionPanel({ rc, projectId, runId, onNext, onPrev, mpid }: {
           <textarea id="execution-notes" value={notes} onChange={e => setNotes(e.target.value)} rows={3}
             aria-label="Koşum notları ve gözlemler"
             placeholder="Koşum notları, gözlemler…"
-            className="w-full rounded-xl border border-border bg-surface-raised px-3 py-2 text-xs text-white placeholder:text-fg-disabled focus:border-border-strong focus:outline-none resize-none"/>
+            className="w-full rounded-xl border border-border bg-surface-raised px-3 py-2 text-xs text-fg placeholder:text-fg-disabled focus:border-border-strong focus:outline-none resize-none"/>
         </div>
 
         {/* Evidence */}
@@ -817,15 +916,16 @@ function ExecutionPanel({ rc, projectId, runId, onNext, onPrev, mpid }: {
             {passedCount}/{steps.length} adım tamamlandı
           </div>
           <div className="flex items-center gap-2">
-            <button
+            <Button
               type="button"
+              variant="outline"
               disabled={onPrev === null || saving}
               onClick={() => onPrev?.()}
-              className="px-3 py-2 rounded-lg border border-border text-sm text-fg-subtle disabled:opacity-30"
+              className="text-sm text-fg-subtle"
             >
               ← Önceki
-            </button>
-            <button type="button"
+            </Button>
+            <Button type="button"
               disabled={saving || updateCase.isPending}
               onClick={async () => {
                 if (notes !== (rc.execution_notes ?? "")) {
@@ -833,9 +933,9 @@ function ExecutionPanel({ rc, projectId, runId, onNext, onPrev, mpid }: {
                 }
                 onNext();
               }}
-              className="flex items-center gap-1.5 rounded-xl bg-brand px-4 py-2 text-xs font-semibold text-white hover:brightness-105 transition-colors shadow-lg shadow-blue-900/20 disabled:opacity-40">
+              className="gap-1.5 text-xs font-semibold shadow-lg shadow-blue-900/20">
               <IcSave/> Kaydet & İleri
-            </button>
+            </Button>
           </div>
         </div>
       </div>
@@ -874,6 +974,19 @@ export default function ManagementRunExecutePage() {
     if (next) setSelectedRcId(next.id);
   };
 
+  // Smart advance: skip already-completed cases when auto-advancing after marking
+  const goNextNotRun = () => {
+    const idx = runCases.findIndex(rc => rc.id === (selectedRc?.id ?? ""));
+    // Look for the next not_run case after current position
+    const nextNotRun = runCases.slice(idx + 1).find(rc => rc.status === "not_run");
+    if (nextNotRun) { setSelectedRcId(nextNotRun.id); return; }
+    // If none after, look from the beginning
+    const anyNotRun = runCases.find(rc => rc.status === "not_run");
+    if (anyNotRun && anyNotRun.id !== selectedRc?.id) { setSelectedRcId(anyNotRun.id); return; }
+    // All done — just go to the literal next
+    if (runCases[idx + 1]) setSelectedRcId(runCases[idx + 1].id);
+  };
+
   const activeCaseIndex = runCases.findIndex(rc => rc.id === (selectedRc?.id ?? ""));
   const prevCaseIndex   = activeCaseIndex > 0 ? activeCaseIndex - 1 : null;
 
@@ -909,6 +1022,17 @@ export default function ManagementRunExecutePage() {
     activeCaseRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
   }, [activeCaseId]);
 
+  // Warn before leaving an in-progress run
+  useEffect(() => {
+    if (!run || run.status === "completed") return;
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [run]);
+
   const loading = runQuery.isLoading;
 
   // ── Run completion summary overlay ────────────────────────────────────────
@@ -916,7 +1040,7 @@ export default function ManagementRunExecutePage() {
     const passRate = total > 0 ? Math.round((passed / total) * 100) : 0;
     const failRate = total > 0 ? Math.round((failed / total) * 100) : 0;
     return (
-      <div className="flex flex-col items-center justify-center min-h-[calc(100vh-48px)] bg-bg px-6 py-12 text-center">
+      <div className="flex flex-col items-center justify-center min-h-[calc(100vh-48px)] bg-surface-base px-6 py-12 text-center">
         <div className={cn(
           "flex h-20 w-20 items-center justify-center rounded-full mb-6",
           passRate >= 80 ? "bg-emerald-500/15 ring-4 ring-emerald-500/20" :
@@ -991,7 +1115,7 @@ export default function ManagementRunExecutePage() {
 
   return (
     <>
-    <div className="flex bg-bg" style={{ height: "calc(100vh - 48px)" }}>
+    <div className="flex bg-surface-base" style={{ height: "calc(100vh - 48px)" }}>
 
       {/* LEFT: Case List / AI Sidebar */}
       <aside className="hidden w-64 flex-none flex-col border-r border-border bg-surface-raised md:flex overflow-hidden">
@@ -1219,7 +1343,7 @@ export default function ManagementRunExecutePage() {
                 <p className="text-[11px] text-emerald-500/70">Koşumu tamamlamak için butona tıklayın.</p>
               </div>
             )}
-            <ExecutionPanel rc={selectedRc} projectId={projectId} runId={runId} onNext={goNext} onPrev={goPrev} mpid={mpid}/>
+            <ExecutionPanel rc={selectedRc} projectId={projectId} runId={runId} onNext={goNextNotRun} onPrev={goPrev} mpid={mpid}/>
           </>
         )}
 
@@ -1261,16 +1385,16 @@ export default function ManagementRunExecutePage() {
             </div>
           </div>
           <div className="mt-5 flex gap-2 justify-end">
-            <button type="button" onClick={() => setShowEarlyComplete(false)}
-              className="rounded-xl border border-border px-4 py-2 text-[12px] text-fg-muted hover:text-fg transition-colors">
+            <Button type="button" variant="outline" onClick={() => setShowEarlyComplete(false)}
+              className="text-[12px] text-fg-muted hover:text-fg">
               Vazgeç
-            </button>
-            <button type="button"
+            </Button>
+            <Button type="button"
               onClick={() => { setShowEarlyComplete(false); void completeRun.mutateAsync(runId); }}
               disabled={completeRun.isPending}
-              className="rounded-xl bg-amber-600 px-5 py-2 text-[12px] font-semibold text-white hover:bg-amber-500 disabled:opacity-40 transition-colors">
+              className="bg-amber-600 px-5 text-[12px] font-semibold text-white hover:bg-amber-500">
               {completeRun.isPending ? "Tamamlanıyor…" : "Evet, Tamamla"}
-            </button>
+            </Button>
           </div>
         </div>
       </div>

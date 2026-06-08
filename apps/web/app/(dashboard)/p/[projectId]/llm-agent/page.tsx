@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouteParam } from "@/lib/use-route-param";
 import { ensureValidToken } from "@/lib/api-client";
+import { Button } from "@/components/ui/button";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -737,16 +738,16 @@ export default function LlmAgentPage() {
           )}
           <PhaseBadge phase={phase} />
           {isRunning && (
-            <button onClick={handleAbort}
-              className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-1.5 text-xs font-semibold text-red-300 hover:bg-red-500/20">
+            <Button variant="ghost-danger" size="sm" onClick={handleAbort}
+              className="border border-red-500/30 bg-red-500/10 text-xs font-semibold text-red-300 hover:bg-red-500/20 hover:text-red-300">
               ⏹ Durdur
-            </button>
+            </Button>
           )}
           {(isDone || phase === "error") && (
-            <button onClick={handleReset}
-              className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-1.5 text-xs font-semibold text-slate-300 hover:bg-slate-700">
+            <Button variant="secondary" size="sm" onClick={handleReset}
+              className="border-slate-700 bg-slate-800 text-xs font-semibold text-slate-300 hover:bg-slate-700 hover:border-slate-700">
               ↺ Yeniden Başlat
-            </button>
+            </Button>
           )}
         </div>
       </header>
@@ -794,11 +795,12 @@ export default function LlmAgentPage() {
                 Dry Run (önizleme)
               </span>
             </div>
-            <button
+            <Button
+              variant="primary"
               onClick={handleStart}
               disabled={!config.targetUrl}
               className={cn(
-                "flex items-center gap-2 rounded-lg border px-5 py-2 text-sm font-bold transition-all disabled:opacity-40 disabled:cursor-not-allowed",
+                "gap-2 border px-5 text-sm font-bold disabled:opacity-40 disabled:cursor-not-allowed",
                 config.dryRun
                   ? "border-amber-500/40 bg-amber-500/20 text-amber-100 hover:bg-amber-500/30"
                   : "border-violet-500/40 bg-violet-500/20 text-violet-100 hover:bg-violet-500/30"
@@ -806,7 +808,7 @@ export default function LlmAgentPage() {
             >
               <span className="text-base">{config.dryRun ? "🔍" : "🤖"}</span>
               {config.dryRun ? "Plan Önizle" : "Ajanı Başlat"}
-            </button>
+            </Button>
           </div>
 
           {/* Advanced */}
@@ -1398,7 +1400,8 @@ export default function LlmAgentPage() {
                   <div><p className="text-[9px] text-slate-600">Bulgu</p><p className="text-xs font-bold text-slate-300">{findings.length}</p></div>
                   <div><p className="text-[9px] text-slate-600">Süre</p><p className="text-xs font-bold font-mono text-slate-300">{Math.floor(duration/60)}:{String(duration%60).padStart(2,"0")}</p></div>
                 </div>
-                <button
+                <Button
+                  variant="ghost"
                   onClick={() => {
                     const techLine = techStack.length > 0 ? `Teknoloji: ${techStack.map(t => t.name).join(", ")}\n` : "";
                     const covLine = coverage ? `Kapsam: %${coverage.coverage_pct} (${coverage.tested_areas.join(", ")})\n` : "";
@@ -1422,11 +1425,12 @@ export default function LlmAgentPage() {
                     a.href = url; a.download = `llm_agent_${Date.now()}.md`; a.click();
                     URL.revokeObjectURL(url);
                   }}
-                  className="w-full rounded-lg border border-emerald-500/25 bg-emerald-500/10 py-1.5 text-[11px] font-semibold text-emerald-300 hover:bg-emerald-500/20"
+                  className="w-full border border-emerald-500/25 bg-emerald-500/10 py-1.5 text-[11px] font-semibold text-emerald-300 hover:bg-emerald-500/20 hover:text-emerald-300"
                 >
                   ↓ Rapor İndir (.md)
-                </button>
-                <button
+                </Button>
+                <Button
+                  variant="ghost"
                   type="button"
                   onClick={() => {
                     // Tam veri JSON — Jira/Slack/diğer sistemlere entegrasyon için
@@ -1455,10 +1459,10 @@ export default function LlmAgentPage() {
                     a.href = url; a.download = `llm_agent_${Date.now()}.json`; a.click();
                     URL.revokeObjectURL(url);
                   }}
-                  className="mt-1.5 w-full rounded-lg border border-sky-500/25 bg-sky-500/10 py-1.5 text-[11px] font-semibold text-sky-300 hover:bg-sky-500/20"
+                  className="mt-1.5 w-full border border-sky-500/25 bg-sky-500/10 py-1.5 text-[11px] font-semibold text-sky-300 hover:bg-sky-500/20 hover:text-sky-300"
                 >
                   ↓ Tam Veri (.json)
-                </button>
+                </Button>
               </div>
             )}
           </div>

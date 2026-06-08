@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouteParam } from "@/lib/use-route-param";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 import {
   type DesignFieldSpec,
   type DesignRun,
@@ -59,7 +60,7 @@ export default function PairwisePage() {
   const cases = run?.generated_cases ?? [];
 
   return (
-    <div className="min-h-full bg-bg px-6 py-6 space-y-5">
+    <div className="min-h-full bg-surface-base px-6 py-6 space-y-5">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -163,13 +164,14 @@ export default function PairwisePage() {
             );
           })}
 
-          <button
+          <Button
+            variant="outline"
             type="button"
             onClick={() => setFields(p => [...p, emptyField()])}
-            className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-border py-2 text-[12px] text-fg-disabled hover:text-fg-muted transition-colors"
+            className="w-full gap-1.5 border-dashed border-border py-2 text-[12px] text-fg-disabled hover:text-fg-muted"
           >
             + Parametre Ekle
-          </button>
+          </Button>
 
           {/* Complexity preview */}
           {isReady && (
@@ -187,14 +189,15 @@ export default function PairwisePage() {
             className={cn(INP, "resize-none")}
           />
 
-          <button
+          <Button
+            variant="primary"
             type="button"
             onClick={submit}
             disabled={!isReady || runMut.isPending}
-            className="w-full rounded-xl bg-brand py-2.5 text-[13px] font-medium text-brand-fg hover:brightness-105 disabled:opacity-40 transition-colors"
+            className="w-full rounded-xl py-2.5 text-[13px] font-medium"
           >
             {runMut.isPending ? "Üretiliyor…" : "Pairwise Çalıştır"}
-          </button>
+          </Button>
 
           {runMut.isError && (
             <p className="text-[11px] text-red-400">Hata oluştu — backend bağlantısını kontrol edin.</p>
@@ -283,14 +286,16 @@ export default function PairwisePage() {
                             promoted.has(i) ? (
                               <span className="text-[11px] text-emerald-500/70 shrink-0 mt-0.5">✓ Kaydedildi</span>
                             ) : (
-                              <button
+                              <Button
+                                variant="outline"
+                                size="sm"
                                 type="button"
                                 onClick={() => promote([i])}
                                 disabled={promoteMut.isPending}
-                                className="shrink-0 rounded border border-border px-2 py-0.5 text-[11px] text-fg-subtle hover:text-brand transition-colors disabled:opacity-40 mt-0.5"
+                                className="shrink-0 border-border px-2 py-0.5 text-[11px] text-fg-subtle hover:text-brand mt-0.5"
                               >
                                 Kaydet
-                              </button>
+                              </Button>
                             )
                           )}
                         </div>
@@ -347,14 +352,15 @@ export default function PairwisePage() {
                   </div>
                 )}
                 {!selectedHistory && (
-                  <button
+                  <Button
+                    variant="outline"
                     type="button"
                     onClick={() => promote(cases.map((_, i) => i).filter(i => !promoted.has(i)))}
                     disabled={promoteMut.isPending || promoted.size === cases.length}
-                    className="w-full rounded-xl border border-border py-2 text-[12px] text-fg-muted hover:text-fg disabled:opacity-40 transition-colors"
+                    className="w-full rounded-xl border-border py-2 text-[12px] text-fg-muted hover:text-fg"
                   >
                     {promoteMut.isPending ? "Kaydediliyor…" : promoted.size === cases.length ? "Tümü Kaydedildi ✓" : `Tümünü Kaydet (${cases.length - promoted.size})`}
-                  </button>
+                  </Button>
                 )}
               </>
             )}

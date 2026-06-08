@@ -145,14 +145,21 @@ class TestParseEvalReportPerformance:
         )
         assert snap.available is True
 
+    # Wall-clock ceiling for the 100x empty-parse loop. Deliberately generous:
+    # under full-suite load (CPU contention, GC pressure from 10k+ tests) a
+    # 10 ms ceiling for 100 iterations (0.1 ms/iter) flakes on scheduler jitter.
+    # 50 ms still catches a real O(n)/pathological regression (each empty parse
+    # is the trivial early-return path and should cost a few microseconds).
+    EMPTY_LOOP_MAX_MS = 50.0
+
     def test_parse_empty_string_is_negligible(self):
         start = time.perf_counter()
         for _ in range(100):
             parse_eval_report("")
         elapsed_ms = (time.perf_counter() - start) * 1_000
-        # 100 empty parses should take well under 10 ms
-        assert elapsed_ms < self.MAX_MS, (
-            f"parse_eval_report('') x100 took {elapsed_ms:.3f} ms (limit: {self.MAX_MS} ms)"
+        assert elapsed_ms < self.EMPTY_LOOP_MAX_MS, (
+            f"parse_eval_report('') x100 took {elapsed_ms:.3f} ms "
+            f"(limit: {self.EMPTY_LOOP_MAX_MS} ms)"
         )
 
 

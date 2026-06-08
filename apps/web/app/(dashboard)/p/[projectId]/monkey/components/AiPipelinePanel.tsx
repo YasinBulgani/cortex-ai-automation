@@ -1,5 +1,7 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
+
 // ── Types ────────────────────────────────────────────────────────────────────
 
 type AiPhase = "idle" | "scenarios" | "karate" | "done" | "error";
@@ -71,14 +73,15 @@ export function AiPipelinePanel({
 
         <div className="flex flex-col gap-2">
           <div className="flex flex-wrap items-center gap-2">
-            <button
+            <Button
+              variant="outline"
               type="button"
               onClick={onExtractScenarios}
               disabled={aiLoading}
               className={cn(
-                "flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-semibold transition-all",
+                "gap-2 border px-4 py-2 text-sm font-semibold",
                 aiLoading
-                  ? "cursor-not-allowed border-slate-700 bg-slate-900/40 text-slate-500"
+                  ? "border-slate-700 bg-slate-900/40 text-slate-500"
                   : "border-violet-400/30 bg-violet-500/15 text-violet-100 hover:bg-violet-500/25",
               )}
             >
@@ -90,16 +93,18 @@ export function AiPipelinePanel({
                   <span>AI Senaryo Çıkar</span>
                 </>
               )}
-            </button>
+            </Button>
 
             {scenariosText && (
-              <button
+              <Button
+                variant="outline"
+                size="sm"
                 type="button"
                 onClick={onExportScenarios}
-                className="flex items-center gap-1.5 rounded-lg border border-slate-600 bg-slate-800/50 px-3 py-1.5 text-xs font-semibold text-slate-300 hover:bg-slate-700/50"
+                className="gap-1.5 border border-slate-600 bg-slate-800/50 text-xs font-semibold text-slate-300 hover:bg-slate-700/50"
               >
                 ↓ Senaryolar (.md)
-              </button>
+              </Button>
             )}
           </div>
 
@@ -115,14 +120,15 @@ export function AiPipelinePanel({
         {scenariosText && (
           <div className="flex flex-col gap-2 border-t border-slate-700/50 pt-4">
             <div className="flex flex-wrap items-center gap-2">
-              <button
+              <Button
+                variant="outline"
                 type="button"
                 onClick={onGenerateKarate}
                 disabled={aiLoading}
                 className={cn(
-                  "flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-semibold transition-all",
+                  "gap-2 border px-4 py-2 text-sm font-semibold",
                   aiLoading
-                    ? "cursor-not-allowed border-slate-700 bg-slate-900/40 text-slate-500"
+                    ? "border-slate-700 bg-slate-900/40 text-slate-500"
                     : "border-sky-400/30 bg-sky-500/15 text-sky-100 hover:bg-sky-500/25",
                 )}
               >
@@ -134,16 +140,18 @@ export function AiPipelinePanel({
                     <span>Karate DSL Üret</span>
                   </>
                 )}
-              </button>
+              </Button>
 
               {karateText && (
-                <button
+                <Button
+                  variant="outline"
+                  size="sm"
                   type="button"
                   onClick={onExportKarate}
-                  className="flex items-center gap-1.5 rounded-lg border border-emerald-400/25 bg-emerald-500/10 px-3 py-1.5 text-xs font-semibold text-emerald-200 hover:bg-emerald-500/20"
+                  className="gap-1.5 border border-emerald-400/25 bg-emerald-500/10 text-xs font-semibold text-emerald-200 hover:bg-emerald-500/20"
                 >
                   ↓ İndir (.feature)
-                </button>
+                </Button>
               )}
             </div>
 
@@ -179,29 +187,34 @@ export function AiPipelinePanel({
           </div>
           <div className="flex items-center gap-2">
             {analysisDone && (
-              <button
+              <Button
+                variant="outline"
+                size="sm"
                 type="button"
                 onClick={onExportAnalysis}
-                className="flex items-center gap-1.5 rounded-lg border border-sky-400/25 bg-sky-500/10 px-3 py-1.5 text-xs font-semibold text-sky-200 hover:bg-sky-500/20"
+                className="gap-1.5 border border-sky-400/25 bg-sky-500/10 text-xs font-semibold text-sky-200 hover:bg-sky-500/20"
               >
                 ↓ Analizi İndir (.md)
-              </button>
+              </Button>
             )}
             {analysisStreaming && (
-              <button
+              <Button
+                variant="ghost-danger"
+                size="sm"
                 type="button"
                 onClick={onAbortAnalysis}
-                className="rounded-lg border border-red-400/30 bg-red-500/15 px-3 py-1.5 text-xs font-semibold text-red-200 hover:bg-red-500/25"
+                className="border border-red-400/30 bg-red-500/15 text-xs font-semibold text-red-200 hover:bg-red-500/25"
               >
                 ⏹ Durdur
-              </button>
+              </Button>
             )}
             {!analysisStreaming && (
-              <button
+              <Button
+                variant="outline"
                 type="button"
                 onClick={onStartAnalysis}
                 className={cn(
-                  "flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-semibold transition-all",
+                  "gap-2 border px-4 py-2 text-sm font-semibold",
                   analysisDone
                     ? "border-slate-600 bg-slate-800/50 text-slate-300 hover:bg-slate-700/50"
                     : "border-sky-400/40 bg-sky-500/20 text-sky-50 hover:bg-sky-500/30",
@@ -209,7 +222,7 @@ export function AiPipelinePanel({
               >
                 <span>🔬</span>
                 <span>{analysisDone ? "Yeniden Analiz Et" : "Senaryoları Analiz Et"}</span>
-              </button>
+              </Button>
             )}
           </div>
         </div>

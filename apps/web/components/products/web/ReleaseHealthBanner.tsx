@@ -58,7 +58,7 @@ const STATUS_ICON = {
 
 export function ReleaseHealthBanner() {
   const { projectId } = useProject();
-  const { data, isLoading } = useReleaseHealth(projectId);
+  const { data, isLoading, isError, error } = useReleaseHealth(projectId);
 
   if (isLoading) {
     return (
@@ -107,12 +107,14 @@ export function ReleaseHealthBanner() {
               <span className="text-[11px] text-slate-400">Release Sağlığı · {release}</span>
               {isDemo && (
                 <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/25">
-                  Demo
+                  {isError ? "Fallback" : "Demo"}
                 </span>
               )}
             </div>
             <h2 className="text-xl font-bold text-white mt-1">{v.title}</h2>
-            <p className="text-xs text-slate-400">{v.sub}</p>
+            <p className="text-xs text-slate-400">
+              {isError && error instanceof Error ? `Canlı release verisi alınamadı: ${error.message}` : v.sub}
+            </p>
           </div>
         </div>
 
@@ -140,20 +142,23 @@ export function ReleaseHealthBanner() {
         <div className="lg:min-w-[140px] flex lg:flex-col lg:items-stretch items-center gap-2">
           <button
             type="button"
-            disabled={verdict === "block"}
+            title={isDemo ? "Canlı release verisi olmadan ship aksiyonu devre dışı" : undefined}
+            disabled={verdict === "block" || isDemo}
             className={`flex-1 lg:flex-initial px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
-              verdict === "block"
+              verdict === "block" || isDemo
                 ? "bg-rose-500/15 text-rose-300 border border-rose-500/30 cursor-not-allowed"
                 : verdict === "caution"
                   ? "bg-amber-500/15 text-amber-200 border border-amber-500/30 hover:bg-amber-500/25"
                   : "bg-emerald-500 text-white hover:bg-emerald-400 shadow-lg shadow-emerald-500/20"
             }`}
           >
-            {verdict === "block" ? "Ship'lenemez" : verdict === "caution" ? "Yine de ship et" : "Ship'e başla →"}
+            {verdict === "block" || isDemo ? "Ship'lenemez" : verdict === "caution" ? "Yine de ship et" : "Ship'e başla →"}
           </button>
           <button
             type="button"
-            className="px-3 py-2 rounded-lg text-xs text-slate-400 hover:text-white hover:bg-slate-800/60"
+            title="Detay raporu ekranı henüz bağlanmadı"
+            disabled
+            className="px-3 py-2 rounded-lg text-xs text-slate-500 cursor-not-allowed"
           >
             Detay raporu
           </button>

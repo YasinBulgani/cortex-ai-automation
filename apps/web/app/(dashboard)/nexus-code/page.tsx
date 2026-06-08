@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { nexusCodeStream, type NexusCodeInput } from "@/lib/ai-gateway";
 import { apiFetch } from "@/lib/api-client";
+import { Button } from "@/components/ui/button";
 // xlsx dinamik yükleme — dışa aktarma butonu tıklandığında ~1MB paket yüklenir,
 // sayfa ilk açıldığında değil. Bu sayfa yüklenme süresi önemli ölçüde iyileşir.
 
@@ -546,11 +547,13 @@ export default function NexusCodePage() {
                   </div>
                 </div>
 
-                <button
+                <Button
                   type="button"
+                  variant="primary"
+                  size="lg"
                   onClick={fetchFromBitbucket}
                   disabled={!bbUsername || !bbPassword || !bbWorkspace || !bbRepo || isFetching}
-                  className="w-full rounded-xl border border-sky-400/20 bg-sky-500/10 px-4 py-3 text-sm font-semibold text-sky-100 transition hover:bg-sky-500/20 disabled:cursor-not-allowed disabled:opacity-40"
+                  className="w-full border border-sky-400/20 bg-sky-500/10 text-sm font-semibold text-sky-100 hover:bg-sky-500/20"
                 >
                   {isFetching ? (
                     <span className="flex items-center justify-center gap-2">
@@ -558,7 +561,7 @@ export default function NexusCodePage() {
                       Bitbucket'tan çekiliyor...
                     </span>
                   ) : bbFetched ? "Tekrar Çek" : "Dosyaları Getir"}
-                </button>
+                </Button>
 
                 {bbFetched && content && (
                   <div className="rounded-xl border border-slate-700/60 bg-slate-950/60 p-3">
@@ -596,31 +599,37 @@ export default function NexusCodePage() {
           {/* Aksiyon */}
           <div className="flex gap-2">
             {isRunning ? (
-              <button
+              <Button
                 type="button"
+                variant="ghost-danger"
+                size="lg"
                 onClick={stopAnalysis}
-                className="flex-1 rounded-xl border border-red-400/30 bg-red-500/10 px-4 py-3.5 text-sm font-semibold text-red-200 transition hover:bg-red-500/20"
+                className="flex-1 border border-red-400/30 bg-red-500/10 text-sm font-semibold text-red-200 hover:bg-red-500/20"
               >
                 ■ Durdur
-              </button>
+              </Button>
             ) : (
-              <button
+              <Button
                 type="button"
+                variant="primary"
+                size="lg"
                 onClick={startAnalysis}
                 disabled={!canAnalyze}
-                className="flex-1 rounded-xl border border-violet-300/40 bg-gradient-to-r from-violet-600/20 to-violet-500/10 px-4 py-3.5 text-sm font-semibold text-violet-50 shadow-[0_0_20px_rgba(139,92,246,0.15)] transition hover:from-violet-600/30 hover:to-violet-500/20 disabled:cursor-not-allowed disabled:opacity-40"
+                className="flex-1 border border-violet-300/40 bg-gradient-to-r from-violet-600/20 to-violet-500/10 text-sm font-semibold text-violet-50 shadow-[0_0_20px_rgba(139,92,246,0.15)] hover:from-violet-600/30 hover:to-violet-500/20"
               >
                 ▶ Analizi Başlat
-              </button>
+              </Button>
             )}
             {(hasOutput || content) && (
-              <button
+              <Button
                 type="button"
+                variant="secondary"
+                size="lg"
                 onClick={clearAll}
-                className="rounded-xl border border-slate-700 bg-slate-900/40 px-4 py-3.5 text-sm font-medium text-slate-400 transition hover:border-slate-500 hover:text-slate-200"
+                className="border border-slate-700 bg-slate-900/40 text-sm font-medium text-slate-400 hover:border-slate-500 hover:text-slate-200"
               >
                 Temizle
-              </button>
+              </Button>
             )}
           </div>
 
@@ -661,27 +670,33 @@ export default function NexusCodePage() {
               )}
               {hasOutput && (
                 <>
-                  <button
+                  <Button
                     type="button"
+                    variant="primary"
+                    size="sm"
                     onClick={exportMarkdown}
-                    className="flex items-center gap-1.5 rounded-lg border border-violet-500/30 bg-violet-500/10 px-3 py-1.5 text-xs font-semibold text-violet-200 transition hover:bg-violet-500/20"
+                    className="gap-1.5 border border-violet-500/30 bg-violet-500/10 text-xs font-semibold text-violet-200 hover:bg-violet-500/20"
                   >
                     ↓ .md
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     type="button"
+                    variant="primary"
+                    size="sm"
                     onClick={exportExcel}
-                    className="flex items-center gap-1.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-1.5 text-xs font-semibold text-emerald-200 transition hover:bg-emerald-500/20"
+                    className="gap-1.5 border border-emerald-500/30 bg-emerald-500/10 text-xs font-semibold text-emerald-200 hover:bg-emerald-500/20"
                   >
                     ↓ Excel
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     type="button"
+                    variant="secondary"
+                    size="sm"
                     onClick={copyOutput}
-                    className="rounded-lg border border-slate-700 bg-slate-900/40 px-3 py-1.5 text-xs font-medium text-slate-300 transition hover:border-slate-500 hover:text-white"
+                    className="border border-slate-700 bg-slate-900/40 text-xs font-medium text-slate-300 hover:border-slate-500 hover:text-white"
                   >
                     Kopyala
-                  </button>
+                  </Button>
                 </>
               )}
             </div>

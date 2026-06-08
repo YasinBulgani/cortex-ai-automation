@@ -69,7 +69,7 @@ export function MyInbox() {
   const { projectId } = useProject();
   const qc = useQueryClient();
   const { toast } = useToast();
-  const { data, isLoading } = useMyInbox(projectId);
+  const { data, isLoading, isError, error } = useMyInbox(projectId);
   const items = data?.items ?? DEMO_ITEMS;
   const isDemo = !data && !isLoading;
   const [openItem, setOpenItem] = useState<InboxItem | null>(null);
@@ -98,13 +98,21 @@ export function MyInbox() {
               <h2 className="text-sm font-semibold text-white truncate">My Inbox</h2>
               {isDemo && (
                 <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/25">
-                  Demo
+                  {isError ? "Fallback" : "Demo"}
                 </span>
               )}
             </div>
             <p className="text-[11px] text-slate-400 truncate">
-              <span className="text-rose-300 font-semibold">{items.filter((i) => i.priority === "high").length} yüksek</span>
-              {" · "}sana atanmış {items.length} açık iş
+              {isError ? (
+                <span className="text-amber-300 font-semibold">
+                  Canlı inbox alınamadı: {error instanceof Error ? error.message : "bilinmeyen hata"}
+                </span>
+              ) : (
+                <>
+                  <span className="text-rose-300 font-semibold">{items.filter((i) => i.priority === "high").length} yüksek</span>
+                  {" · "}sana atanmış {items.length} açık iş
+                </>
+              )}
             </p>
           </div>
         </div>
@@ -160,8 +168,10 @@ export function MyInbox() {
       </ul>
 
       <div className="px-5 py-2 border-t border-slate-800/60 flex items-center justify-between text-[11px] text-slate-500">
-        <span>Son güncelleme: 2 dk önce</span>
-        <button className="text-rose-300 hover:underline">Inbox kurallarını düzenle</button>
+        <span>Son güncelleme: {data?.updatedAt ? new Date(data.updatedAt).toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" }) : "fallback veri"}</span>
+        <button className="text-rose-300 hover:underline" type="button" title="Bu aksiyon henüz kurallar ekranına bağlı değil">
+          Inbox kurallarını düzenle
+        </button>
       </div>
 
       <InboxItemDrawer

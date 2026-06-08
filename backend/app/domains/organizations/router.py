@@ -46,6 +46,32 @@ def _require_org_admin(user: User) -> None:
         )
 
 
+def _assert_project_in_tenant(
+    db: Session, *, project_id: str, user: User, require_existing: bool = False
+) -> None:
+    """Verify the project belongs to the caller's tenant.
+
+    prj_projects has no tenant_id column, so tenancy is inferred from the
+    project's existing members. A project is "foreign" if it has members but
+    none share the caller's tenant_id — in that case mutating it would be a
+    cross-tenant privilege grant (IDOR), so we 404.
+
+    When ``require_existing`` is False (e.g. adding the first member of a
+    freshly created project) a project with zero members is allowed, since it
+    has not yet been claimed by any tenant. When True (role change / removal)
+    the target member must already exist, so the project must have at least one
+    member in the caller's tenant.
+    """
+    rows = service.list_project_members_with_user(db, project_id)
+    if not rows:
+        if require_existing:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "Proje bulunamadi")
+        return
+    if not any(u.tenant_id == user.tenant_id for _pm, u in rows):
+        # Project is owned by another tenant — deny without leaking existence.
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Proje bulunamadi")
+
+
 def _invite_accept_url(token: str) -> str:
     base = (settings.app_public_url or "http://localhost:3000").rstrip("/")
     return f"{base}/accept-invite?token={quote(token)}"
@@ -363,6 +389,7 @@ def add_project_member_endpoint(
     db: Annotated[Session, Depends(get_db)],
 ):
     _require_org_admin(user)
+    _assert_project_in_tenant(db, project_id=project_id, user=user)
     target = db.get(User, body.user_id)
     if not target or target.tenant_id != user.tenant_id:
         raise HTTPException(404, detail="Kullanici bu organizasyonda degil")
@@ -389,6 +416,12 @@ def update_project_member_role_endpoint(
         requester_pm = db.get(ProjectMember, (project_id, user.id))
         if not requester_pm or requester_pm.role not in ("owner", "admin"):
             raise HTTPException(status.HTTP_403_FORBIDDEN, "Bu işlem için Admin yetkisi gereklidir")
+    else:
+        # Org admins are not bound to a specific project; ensure the project
+        # belongs to their tenant to prevent cross-tenant IDOR.
+        _assert_project_in_tenant(
+            db, project_id=project_id, user=user, require_existing=True
+        )
     target_pm = db.get(ProjectMember, (project_id, user_id))
     if not target_pm:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Üye bu projede bulunamadı")
@@ -418,6 +451,9 @@ def remove_project_member_endpoint(
     db: Annotated[Session, Depends(get_db)],
 ):
     _require_org_admin(user)
+    _assert_project_in_tenant(
+        db, project_id=project_id, user=user, require_existing=True
+    )
     ok = service.remove_project_member(db, project_id=project_id, user_id=user_id)
     db.commit()
     log_audit(db, actor_user_id=user.id, action="project.member.remove", resource_type="project", resource_id=f"{project_id}:{user_id}", payload=None, ip=None)

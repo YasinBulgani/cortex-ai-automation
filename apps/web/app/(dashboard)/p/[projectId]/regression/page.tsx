@@ -24,6 +24,7 @@ import {
   MetricRow,
   ToolbarActions,
 } from "@/components/nexus";
+import { Button } from "@/components/ui/button";
 
 type SetRow = {
   id: string;
@@ -253,10 +254,12 @@ export default function RegressionSetsPage() {
         description="Test regresyon setlerini yönetin, önceliklendirin ve AI ile keşfedin"
         right={
           <ToolbarActions>
-            <button
+            <Button
+              variant="outline"
+              size="sm"
               onClick={handleSuggest}
               disabled={suggesting}
-              className="flex items-center gap-2 rounded-lg border border-slate-700 px-3 py-1.5 text-sm font-medium text-slate-300 transition-all hover:border-violet-500/50 hover:text-violet-300 disabled:opacity-50"
+              className="gap-2 border-slate-700 text-slate-300 hover:border-violet-500/50 hover:text-violet-300"
               data-testid="regression-btn-suggest"
             >
               {suggesting ? (
@@ -267,7 +270,7 @@ export default function RegressionSetsPage() {
                 </svg>
               )}
               AI Öner
-            </button>
+            </Button>
           </ToolbarActions>
         }
       />
@@ -293,13 +296,13 @@ export default function RegressionSetsPage() {
             className="flex-1 rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white placeholder-slate-500 transition-colors focus:border-slate-500 focus:outline-none"
             data-testid="regression-input-name"
           />
-          <button
+          <Button
             type="submit"
-            className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-500"
+            variant="primary"
             data-testid="regression-btn-create"
           >
             Oluştur
-          </button>
+          </Button>
         </form>
         {err && <p className="mt-2 text-sm text-red-400">{err}</p>}
       </SectionCard>
@@ -312,19 +315,23 @@ export default function RegressionSetsPage() {
           className="mb-4 border-violet-500/20"
           right={
             <div className="flex items-center gap-2">
-              <button
+              <Button
+                variant="ghost"
+                size="sm"
                 onClick={() => { setSuggestions(null); setSelected(new Set()); }}
-                className="rounded px-2 py-1 text-xs text-slate-400 transition-colors hover:text-white"
+                className="text-slate-400 hover:text-white"
               >
                 Kapat
-              </button>
-              <button
+              </Button>
+              <Button
+                variant="primary"
+                size="sm"
                 onClick={acceptSelected}
                 disabled={selected.size === 0 || accepting}
-                className="rounded-lg bg-violet-600 px-3 py-1 text-xs font-medium text-white transition-colors hover:bg-violet-500 disabled:opacity-50"
+                className="bg-violet-600 hover:bg-violet-500"
               >
                 {accepting ? "Oluşturuluyor..." : `Seçilenleri Oluştur (${selected.size})`}
-              </button>
+              </Button>
             </div>
           }
         >
@@ -337,13 +344,15 @@ export default function RegressionSetsPage() {
               placeholder="Ek talimat (opsiyonel)"
               className="flex-1 rounded-lg border border-slate-700 bg-slate-800 px-3 py-1.5 text-sm text-white placeholder-slate-500 transition-colors focus:border-slate-500 focus:outline-none"
             />
-            <button
+            <Button
+              variant="outline"
+              size="sm"
               onClick={handleSuggest}
               disabled={suggesting}
-              className="rounded-lg border border-violet-500/30 px-3 py-1.5 text-xs font-medium text-violet-300 transition-all hover:bg-violet-500/10 disabled:opacity-50"
+              className="border-violet-500/30 text-violet-300 hover:bg-violet-500/10"
             >
               Tekrar Öner
-            </button>
+            </Button>
           </div>
 
           <div className="grid gap-3 sm:grid-cols-2">
@@ -446,12 +455,12 @@ export default function RegressionSetsPage() {
                         title="Henüz regresyon seti yok"
                         description="Yeni set oluşturun veya AI ile otomatik öneriler alın"
                         action={
-                          <button
+                          <Button
+                            variant="primary"
                             onClick={() => document.querySelector<HTMLInputElement>('[data-testid="regression-input-name"]')?.focus()}
-                            className="px-4 py-2 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-500 rounded-xl transition-colors"
                           >
                             Set Oluştur
-                          </button>
+                          </Button>
                         }
                       />
                     </td>

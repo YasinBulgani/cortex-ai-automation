@@ -10,6 +10,7 @@ import { useI18n } from "@/lib/i18n";
 import { useManagementProjectId } from "@/lib/hooks/use-management-project-id";
 import { GlobalSearch } from "./_components/GlobalSearch";
 import { NotificationBell } from "@/components/management/NotificationBell";
+import { Button } from "@/components/ui/button";
 
 // ─── Management Error Boundary ───────────────────────────────────────────────
 
@@ -37,12 +38,13 @@ class ManagementErrorBoundary extends React.Component<
             <h3 className="text-[14px] font-semibold text-fg">Sayfa Yüklenemedi</h3>
             <p className="mt-1 text-[12px] text-fg-subtle">{this.state.error?.message ?? "Beklenmeyen bir hata oluştu."}</p>
           </div>
-          <button
+          <Button
+            variant="outline"
+            size="sm"
             onClick={() => this.setState({ hasError: false, error: null })}
-            className="rounded-xl border border-border px-4 py-2 text-[12px] text-fg-muted transition-colors hover:bg-surface-overlay hover:text-fg"
           >
             Tekrar Dene
-          </button>
+          </Button>
         </div>
       );
     }
@@ -131,6 +133,14 @@ function IcUpload() {
     </svg>
   );
 }
+function IcInbox() {
+  return (
+    <svg className="h-[15px] w-[15px] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M22 12h-6l-2 3h-4l-2-3H2"/>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M5.45 5.11L2 12v6a2 2 0 002 2h16a2 2 0 002-2v-6l-3.45-6.89A2 2 0 0016.76 4H7.24a2 2 0 00-1.79 1.11z"/>
+    </svg>
+  );
+}
 function IcGrid() {
   return (
     <svg className="h-[15px] w-[15px] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
@@ -216,10 +226,13 @@ const NAV_GROUPS: NavGroup[] = [
     label: "QA Akışı",
     items: [
       { label: "Dashboard",       segment: "management/dashboard",    Icon: IcHome     },
+      { label: "İşlerim",         segment: "management/my-work",      Icon: IcInbox    },
       { label: "Workspace",       segment: "management/workspace",    Icon: IcGrid     },
       { label: "Test Deposu",     segment: "management/repository",   Icon: IcDatabase },
       { label: "Planlar",         segment: "management/plans",        Icon: IcCalendar },
       { label: "Test Koşuları",   segment: "management/runs",         Icon: IcPlay     },
+      { label: "Koşu Farkı",      segment: "management/runs/compare", Icon: IcMatrix   },
+      { label: "Keşif Testi",     segment: "management/exploratory",  Icon: IcPulse    },
       { label: "Regresyon",       segment: "management/regression",   Icon: IcRefresh  },
     ],
   },
@@ -239,12 +252,8 @@ const NAV_GROUPS: NavGroup[] = [
   {
     label: "Test Tasarımı",
     items: [
-      { label: "BVA",                    segment: "management/design/bva",        Icon: IcGrid },
-      { label: "Eşdeğerlik Bölümü",      segment: "management/design/eq",        Icon: IcGrid },
-      { label: "Karar Tablosu",          segment: "management/design/dt",        Icon: IcGrid },
-      { label: "BDD/Gherkin",            segment: "management/design/gherkin",   Icon: IcCode },
-      { label: "Pairwise",              segment: "management/design/pairwise",  Icon: IcGrid },
-      { label: "Paylaşılan Adımlar",    segment: "management/shared-steps",    Icon: IcCopy },
+      { label: "Tasarım Teknikleri",    segment: "management/design",        Icon: IcGrid },
+      { label: "Paylaşılan Adımlar",    segment: "management/shared-steps",  Icon: IcCopy },
     ],
   },
 ];
@@ -485,10 +494,22 @@ export default function ManagementLayout({
   const hideSidebar = HIDE_SIDEBAR_PATTERNS.some(p => pathname.includes(p));
   const { locale, setLocale } = useI18n();
 
+  // The single most-specific (longest) nav segment that matches the current path.
+  // Prevents a parent item (e.g. "Test Koşuları" → management/runs) from also
+  // highlighting when a child route ("Koşu Farkı" → management/runs/compare) is active.
+  const activeSegment = useMemo(() => {
+    const allItems = [...NAV_GROUPS.flatMap(g => g.items), ...NAV_UTILITY];
+    const base = `/p/${projectId}/`;
+    const matches = allItems
+      .map(i => i.segment)
+      .filter(seg => pathname === `${base}${seg}` || pathname.startsWith(`${base}${seg}/`));
+    return matches.sort((a, b) => b.length - a.length)[0] ?? null;
+  }, [pathname, projectId]);
+
   const currentLabel = useMemo(() => {
     const allItems = [...NAV_GROUPS.flatMap(g => g.items), ...NAV_UTILITY];
-    return allItems.find(item => pathname.includes(item.segment))?.label ?? "Management";
-  }, [pathname]);
+    return allItems.find(item => item.segment === activeSegment)?.label ?? "Management";
+  }, [activeSegment]);
 
   useEffect(() => {
     if (isRoot) {
@@ -499,6 +520,7 @@ export default function ManagementLayout({
   // ── Keyboard shortcuts (chord navigation) ──────────────────────────────────
   useKeyboardShortcuts(useMemo(() => [
     { combo: "g d", description: "Dashboard'a git", handler: () => router.push(`/p/${projectId}/management/dashboard`) },
+    { combo: "g m", description: "İşlerim'e git", handler: () => router.push(`/p/${projectId}/management/my-work`) },
     { combo: "g w", description: "Workspace'e git", handler: () => router.push(`/p/${projectId}/management/workspace`) },
     { combo: "g r", description: "Test Deposu'na git", handler: () => router.push(`/p/${projectId}/management/repository`) },
     { combo: "g p", description: "Planlar'a git", handler: () => router.push(`/p/${projectId}/management/plans`) },
@@ -518,7 +540,7 @@ export default function ManagementLayout({
 
   if (isRoot) {
     return (
-      <div className="flex h-[calc(100vh-48px)] items-center justify-center bg-bg">
+      <div className="flex h-[calc(100vh-48px)] items-center justify-center bg-surface-base">
         <div className="h-4 w-4 rounded-full border-2 border-border border-t-blue-500 animate-spin" />
       </div>
     );
@@ -526,14 +548,14 @@ export default function ManagementLayout({
 
   if (hideSidebar) {
     return (
-      <div className="flex h-[calc(100vh-48px)] flex-col bg-bg">
+      <div className="flex h-[calc(100vh-48px)] flex-col bg-surface-base">
         {children}
       </div>
     );
   }
 
   return (
-    <div className="flex h-[calc(100vh-48px)] bg-bg">
+    <div className="flex h-[calc(100vh-48px)] bg-surface-base">
 
       {/* ── Mobile backdrop ───────────────────────────────────────────────── */}
       {sidebarOpen && (
@@ -569,7 +591,7 @@ export default function ManagementLayout({
         </div>
 
         {/* Primary nav — grouped */}
-        <nav className="flex-1 overflow-y-auto p-2">
+        <nav aria-label="Yönetim navigasyonu" className="flex-1 overflow-y-auto p-2">
           {NAV_GROUPS.map(group => (
             <div key={group.label}>
               <p className="px-3 pt-3 pb-1 text-[9px] font-semibold uppercase tracking-widest text-fg-subtle first:pt-1">
@@ -577,9 +599,10 @@ export default function ManagementLayout({
               </p>
               {group.items.map(({ label, segment, Icon }) => {
                 const href     = `/p/${projectId}/${segment}`;
-                const isActive = pathname === `/p/${projectId}/${segment}` || pathname.startsWith(`/p/${projectId}/${segment}/`);
+                const isActive = segment === activeSegment;
                 return (
                   <Link key={segment} href={href} onClick={() => setSidebarOpen(false)}
+                    aria-current={isActive ? "page" : undefined}
                     className={cn(
                       "relative flex items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] font-medium transition-colors",
                       isActive
@@ -601,7 +624,7 @@ export default function ManagementLayout({
         <div className="border-t border-border p-2 space-y-0.5">
           {NAV_UTILITY.map(({ label, segment, Icon }) => {
             const href     = `/p/${projectId}/${segment}`;
-            const isActive = pathname === `/p/${projectId}/${segment}` || pathname.startsWith(`/p/${projectId}/${segment}/`);
+            const isActive = segment === activeSegment;
             return (
               <Link key={segment} href={href} onClick={() => setSidebarOpen(false)}
                 className={cn(

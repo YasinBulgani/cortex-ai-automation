@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 import { useDroppable } from "@dnd-kit/core";
 import { SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
@@ -69,24 +70,28 @@ function TreeEditorRow({
         />
       </div>
       <div className="mt-2 flex items-center justify-end gap-1.5">
-        <button
+        <Button
+          variant="primary"
+          size="sm"
           type="button"
           onClick={onSave}
           aria-label="Kaydet"
-          className="inline-flex h-7 items-center gap-1 rounded-md bg-brand px-2 text-[11px] font-semibold text-brand-fg shadow-xs transition-colors hover:brightness-105"
+          className="gap-1 px-2 text-[11px]"
         >
           <IcCheckMini />
           Kaydet
-        </button>
-        <button
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
           type="button"
           onClick={onCancel}
           aria-label="İptal"
-          className="inline-flex h-7 items-center gap-1 rounded-md border border-border bg-surface-raised px-2 text-[11px] font-medium text-fg-subtle transition-colors hover:bg-surface-overlay hover:text-fg"
+          className="gap-1 px-2 text-[11px] text-fg-subtle hover:text-fg"
         >
           <IcClose />
           İptal
-        </button>
+        </Button>
       </div>
     </div>
   );
@@ -531,14 +536,14 @@ export function SuiteTree({ suites, folders, cases, node, onNode, pid, dragKind 
                 </select>
               </div>
               <div className="mt-2 flex items-center justify-end gap-1.5">
-                <button type="button" onClick={() => void saveFolder()}
-                  className="inline-flex h-7 items-center gap-1 rounded-md bg-emerald-600 px-2 text-[11px] font-semibold text-white shadow-xs transition-colors hover:brightness-105">
+                <Button variant="primary" size="sm" type="button" onClick={() => void saveFolder()}
+                  className="gap-1 px-2 text-[11px] bg-emerald-600 text-white hover:bg-emerald-600 hover:brightness-105">
                   <IcCheckMini />Kaydet
-                </button>
-                <button type="button" onClick={() => { setAddFolder(false); setFolderName(""); setFolderSuiteId(""); }}
-                  className="inline-flex h-7 items-center gap-1 rounded-md border border-border bg-surface-raised px-2 text-[11px] font-medium text-fg-subtle transition-colors hover:bg-surface-overlay hover:text-fg">
+                </Button>
+                <Button variant="outline" size="sm" type="button" onClick={() => { setAddFolder(false); setFolderName(""); setFolderSuiteId(""); }}
+                  className="gap-1 px-2 text-[11px] text-fg-subtle hover:text-fg">
                   <IcClose />İptal
-                </button>
+                </Button>
               </div>
             </div>
           ) : (
@@ -585,20 +590,24 @@ export function SuiteTree({ suites, folders, cases, node, onNode, pid, dragKind 
                 </div>
               )}
               <div className="mt-4 flex items-center justify-end gap-2">
-                <button
+                <Button
+                  variant="outline"
+                  size="sm"
                   type="button"
                   onClick={() => setDeleteConfirmSuiteId(null)}
-                  className="rounded-lg border border-border px-4 py-1.5 text-xs text-fg-subtle hover:bg-surface-overlay"
+                  className="px-4 text-xs text-fg-subtle"
                 >
                   İptal
-                </button>
-                <button
+                </Button>
+                <Button
+                  variant="destructive"
+                  size="sm"
                   type="button"
                   onClick={confirmDeleteSuite}
-                  className="rounded-lg bg-red-600 px-4 py-1.5 text-xs font-semibold text-white hover:bg-red-500"
+                  className="px-4 text-xs"
                 >
                   Sil
-                </button>
+                </Button>
               </div>
             </div>
           </div>

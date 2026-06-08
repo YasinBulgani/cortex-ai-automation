@@ -150,6 +150,25 @@ def _safe_name(name: str) -> str:
     return name
 
 
+def _safe_scope(scope: str) -> str:
+    """Tenant/proje izolasyon segmenti — sadece güvenli karakterler.
+
+    Path traversal, ayraç ve gizli/boş segment kabul edilmez. Çağrı
+    tarafında server-side türetilir (kullanıcı tenant_id'si); istemci
+    bu değeri belirleyemez.
+    """
+    scope = scope.strip().replace("\\", "/")
+    if not scope:
+        raise ValueError("Boş scope")
+    if scope.startswith("/") or ".." in scope.split("/"):
+        raise ValueError(f"Güvensiz scope: {scope}")
+    import re
+
+    if not re.fullmatch(r"[A-Za-z0-9_.-]+(?:/[A-Za-z0-9_.-]+)*", scope):
+        raise ValueError(f"Güvensiz scope: {scope}")
+    return scope
+
+
 # ── Public API ──────────────────────────────────────────────────────────
 
 
@@ -157,6 +176,7 @@ def compare_png(
     *,
     name: str,
     actual_bytes: bytes,
+    scope: str,
     threshold_ratio: Optional[float] = None,
     update_baseline: bool = False,
     baseline_dir: Optional[Path] = None,
@@ -168,6 +188,10 @@ def compare_png(
         name: Baseline dosya adı (tests/login örneği → "login" veya
               "login.png"). Slash izinli (alt dizin), '..' yasak.
         actual_bytes: Yeni çekilen screenshot (PNG).
+        scope: Tenant/proje izolasyon segmenti — server-side türetilir
+            (ör. tenant_id). Baseline ve diff store'ları bu prefix altına
+            kapatılır; istemci scope dışına çıkamaz (cross-tenant IDOR
+            koruması).
         threshold_ratio: Farkın max oranı (0..1). None → env.
         update_baseline: True → baseline değişti kabul edilir (operatör
             onayı sonrası; CI'da sadece manuel tetik). Baseline yoksa her
@@ -184,15 +208,31 @@ def compare_png(
 
     try:
         safe = _safe_name(name)
+        safe_scope = _safe_scope(scope)
     except ValueError as exc:
         return CompareResult(ok=False, status="invalid_image", reason=str(exc))
 
-    base_dir = (baseline_dir or _baseline_dir()).resolve()
-    d_dir = (diff_dir or _diff_dir()).resolve()
+    base_root = (baseline_dir or _baseline_dir()).resolve()
+    d_root = (diff_dir or _diff_dir()).resolve()
+    # Tenant/proje izolasyonu: store'ları scope prefix'i altına kapat.
+    base_dir = (base_root / safe_scope).resolve()
+    d_dir = (d_root / safe_scope).resolve()
+    # Defansif: resolve sonrası prefix dışına çıkılmadığını doğrula.
+    if not (
+        base_dir == base_root or base_root in base_dir.parents
+    ) or not (d_dir == d_root or d_root in d_dir.parents):
+        return CompareResult(
+            ok=False, status="invalid_image", reason="Güvensiz scope"
+        )
     base_dir.mkdir(parents=True, exist_ok=True)
     d_dir.mkdir(parents=True, exist_ok=True)
 
-    baseline_path = base_dir / safe
+    baseline_path = (base_dir / safe).resolve()
+    # Defansif: name de scope dizini dışına çıkamaz.
+    if base_dir not in baseline_path.parents:
+        return CompareResult(
+            ok=False, status="invalid_image", reason="Güvensiz isim"
+        )
 
     # Parse actual
     try:

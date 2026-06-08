@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useEffect, useCallback, useState } from "react";
+import { useMemo, useEffect, useRef, useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/api-client";
@@ -34,6 +34,7 @@ import { QuickSetupWizard } from "../_components/QuickSetupWizard";
 import { useProfile } from "@/lib/hooks/use-profile";
 
 const REFETCH_INTERVAL = 30_000; // ms
+const STALE_DAYS = 14;
 
 function AutoRefreshBadge() {
   const [countdown, setCountdown] = useState(30);
@@ -460,6 +461,64 @@ function ProjectHealthWidget({
         ))}
       </div>
     </section>
+  );
+}
+
+// ─── Defect Trend Mini Chart ─────────────────────────────────────────────────
+
+function DefectTrendMini({ defects }: { defects: import("@/lib/hooks/use-management").DefectLink[] }) {
+  const weeks = 8;
+  const now = Date.now();
+  const MS_WEEK = 7 * 24 * 60 * 60 * 1000;
+
+  const buckets: { label: string; open: number; closed: number }[] = Array.from({ length: weeks }, (_, i) => {
+    const weekAgo = now - (weeks - 1 - i) * MS_WEEK;
+    const d = new Date(weekAgo);
+    const label = `${d.getDate()}/${d.getMonth() + 1}`;
+    const windowStart = weekAgo - MS_WEEK;
+    const windowEnd = weekAgo;
+    let open = 0, closed = 0;
+    for (const def of defects) {
+      const t = Date.parse(def.created_at ?? "");
+      if (isNaN(t) || t < windowStart || t >= windowEnd) continue;
+      const isClosed = ["closed","done","resolved","fixed","verified"].includes((def.status ?? "").toLowerCase());
+      if (isClosed) closed++; else open++;
+    }
+    return { label, open, closed };
+  });
+
+  const maxVal = Math.max(1, ...buckets.map(b => b.open + b.closed));
+
+  if (defects.length === 0) {
+    return <p className="text-[12px] text-fg-muted py-4 text-center">Henüz defect verisi yok.</p>;
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-end gap-1 h-20">
+        {buckets.map((b, i) => (
+          <div key={i} className="flex-1 flex flex-col items-center gap-0.5 group">
+            <div className="relative w-full flex flex-col-reverse" style={{ height: "64px" }}>
+              <div
+                className="w-full rounded-t bg-emerald-500/60 transition-all"
+                style={{ height: `${(b.closed / maxVal) * 64}px` }}
+                title={`Kapalı: ${b.closed}`}
+              />
+              <div
+                className="w-full bg-red-500/60"
+                style={{ height: `${(b.open / maxVal) * 64}px` }}
+                title={`Açık: ${b.open}`}
+              />
+            </div>
+            <span className="text-[9px] text-fg-disabled">{b.label}</span>
+          </div>
+        ))}
+      </div>
+      <div className="flex items-center gap-3 text-[10px] text-fg-muted">
+        <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-sm bg-red-500/60"/> Açık</span>
+        <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-sm bg-emerald-500/60"/> Kapalı</span>
+      </div>
+    </div>
   );
 }
 
@@ -936,6 +995,78 @@ function ReleaseSignoffWidget({
   );
 }
 
+// ─── Stale Tests Widget ───────────────────────────────────────────────────────
+
+function StaleTestsWidget({ stale, total, projectId }: { stale: TestCase[]; total: number; projectId: string }) {
+  if (stale.length === 0) {
+    return (
+      <section className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-5 shadow-sm">
+        <div className="mb-2 flex items-center gap-2">
+          <span className="flex h-6 w-6 items-center justify-center rounded-md bg-emerald-500/15 text-[11px]">🕐</span>
+          <h2 className="text-[13px] font-semibold text-fg">Eski Test Verileri</h2>
+        </div>
+        <p className="text-[12px] text-emerald-400">Tüm testler güncel — son {STALE_DAYS} gün içinde çalıştırılmış.</p>
+      </section>
+    );
+  }
+
+  const PRIO_COLOR: Record<string, string> = {
+    P0: "text-red-400",
+    P1: "text-orange-400",
+    P2: "text-amber-400",
+    P3: "text-slate-400",
+  };
+
+  return (
+    <section className="rounded-xl border border-orange-500/20 bg-orange-500/5 p-5 shadow-sm">
+      <div className="mb-3 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <span className="flex h-6 w-6 items-center justify-center rounded-md bg-orange-500/15 text-[11px]">🕐</span>
+          <h2 className="text-[13px] font-semibold text-fg">Eski Test Verileri</h2>
+        </div>
+        <span className="rounded-full border border-orange-500/30 bg-orange-500/10 px-2 py-0.5 text-[10px] font-medium text-orange-400">
+          {total} test
+        </span>
+      </div>
+      <p className="mb-3 text-[11px] text-fg-muted">
+        Son {STALE_DAYS} günde çalıştırılmamış veya hiç koşulmamış test case'ler. Kapsam boşluğu riski.
+      </p>
+      <div className="space-y-1.5">
+        {stale.map(tc => {
+          const daysSince = tc.last_run_at
+            ? Math.floor((Date.now() - new Date(tc.last_run_at).getTime()) / 86_400_000)
+            : null;
+          const neverRun = daysSince === null;
+          return (
+            <Link
+              key={tc.id}
+              href={`/p/${projectId}/management/cases/${tc.id}`}
+              className="flex items-center gap-3 rounded-lg border border-border bg-surface-overlay px-3 py-2 hover:border-orange-500/30 transition-colors"
+            >
+              <span className={cn("shrink-0 text-[10px] font-bold tabular-nums w-6", PRIO_COLOR[tc.priority] ?? "text-fg-subtle")}>
+                {tc.priority}
+              </span>
+              <span className="shrink-0 font-mono text-[9px] text-fg-subtle">{tc.case_key}</span>
+              <span className="flex-1 min-w-0 truncate text-[12px] text-fg">{tc.title}</span>
+              <span className={cn("shrink-0 text-[10px] tabular-nums", neverRun ? "text-orange-400 font-medium" : "text-fg-muted")}>
+                {neverRun ? "Hiç koşulmadı" : `${daysSince}g önce`}
+              </span>
+            </Link>
+          );
+        })}
+      </div>
+      {total > stale.length && (
+        <p className="mt-3 text-[11px] text-fg-subtle">
+          + {total - stale.length} daha —{" "}
+          <Link href={`/p/${projectId}/management/repository`} className="text-brand hover:underline">
+            tümünü gör
+          </Link>
+        </p>
+      )}
+    </section>
+  );
+}
+
 export default function ManagementDashboardPage() {
   const router = useRouter();
   const rawProjectId = useRouteParam("projectId");
@@ -982,18 +1113,23 @@ export default function ManagementDashboardPage() {
     return map;
   }, [membersData]);
 
+  // Store latest query refs so the interval closure never goes stale without re-creating the interval
+  const queryRefs = useRef({ summaryFast, repoQ, runsQ, summaryQ, defectsQ, requirementsQ, releaseQ, auditQ, plansQ, trendQ });
+  queryRefs.current = { summaryFast, repoQ, runsQ, summaryQ, defectsQ, requirementsQ, releaseQ, auditQ, plansQ, trendQ };
+
   const refreshAll = useCallback(() => {
-    void summaryFast.refetch().catch(console.error);
-    void repoQ.refetch().catch(console.error);
-    void runsQ.refetch().catch(console.error);
-    void summaryQ.refetch().catch(console.error);
-    void defectsQ.refetch().catch(console.error);
-    void requirementsQ.refetch().catch(console.error);
-    void releaseQ.refetch().catch(console.error);
-    void auditQ.refetch().catch(console.error);
-    void plansQ.refetch().catch(console.error);
-    void trendQ.refetch().catch(console.error);
-  }, [summaryFast, repoQ, runsQ, summaryQ, defectsQ, requirementsQ, releaseQ, auditQ, plansQ, trendQ]);
+    const q = queryRefs.current;
+    void q.summaryFast.refetch().catch(console.error);
+    void q.repoQ.refetch().catch(console.error);
+    void q.runsQ.refetch().catch(console.error);
+    void q.summaryQ.refetch().catch(console.error);
+    void q.defectsQ.refetch().catch(console.error);
+    void q.requirementsQ.refetch().catch(console.error);
+    void q.releaseQ.refetch().catch(console.error);
+    void q.auditQ.refetch().catch(console.error);
+    void q.plansQ.refetch().catch(console.error);
+    void q.trendQ.refetch().catch(console.error);
+  }, []); // stable — reads latest via ref
 
   // Auto-refetch every 30s
   useEffect(() => {
@@ -1047,6 +1183,21 @@ export default function ManagementDashboardPage() {
     ).length,
     [defects],
   );
+
+  const staleTestsAll = useMemo(() => {
+    const now = Date.now();
+    const staleMs = STALE_DAYS * 24 * 60 * 60 * 1000;
+    const PRIO: Record<string, number> = { P0: 0, P1: 1, P2: 2, P3: 3 };
+    return cases
+      .filter(tc => {
+        if (tc.last_run_at) return now - new Date(tc.last_run_at).getTime() > staleMs;
+        // Never run — only flag if created before STALE_DAYS
+        return now - new Date(tc.created_at).getTime() > staleMs;
+      })
+      .sort((a, b) => (PRIO[a.priority] ?? 9) - (PRIO[b.priority] ?? 9));
+  }, [cases]);
+
+  const staleTests = staleTestsAll.slice(0, 8);
 
   const latestCases = [...cases]
     .sort((a, b) => Date.parse(b.updated_at) - Date.parse(a.updated_at))
@@ -1184,26 +1335,47 @@ export default function ManagementDashboardPage() {
             )}
           </div>
 
-          {/* ── Run Trend Chart ──────────────────────────────────────────────────── */}
-          {((trendQ.data && trendQ.data.length >= 2) || trendQ.isLoading) && (
-            <section className="rounded-xl border border-border bg-surface-raised p-5 shadow-sm">
-              <div className="mb-4 flex items-center justify-between">
-                <div>
-                  <h2 className="text-[14px] font-semibold text-fg">Test Koşum Trendi</h2>
-                  <p className="mt-0.5 text-[11px] text-fg-muted">Son koşumlarda geçme oranı değişimi</p>
+          {/* ── Trend Charts Row ─────────────────────────────────────────────────── */}
+          <div className="grid gap-5 lg:grid-cols-2">
+            {((trendQ.data && trendQ.data.length >= 2) || trendQ.isLoading) && (
+              <section className="rounded-xl border border-border bg-surface-raised p-5 shadow-sm">
+                <div className="mb-4 flex items-center justify-between">
+                  <div>
+                    <h2 className="text-[14px] font-semibold text-fg">Test Koşum Trendi</h2>
+                    <p className="mt-0.5 text-[11px] text-fg-muted">Son koşumlarda geçme oranı</p>
+                  </div>
+                  <Link href={`/p/${projectId}/management/runs`}
+                    className="text-[11px] text-brand hover:underline">
+                    Tüm koşumlar →
+                  </Link>
                 </div>
-                <Link href={`/p/${projectId}/management/runs`}
-                  className="text-[11px] text-brand hover:underline">
-                  Tüm koşumlar →
-                </Link>
-              </div>
-              {trendQ.isLoading ? (
-                <div className="h-32 animate-pulse rounded-lg bg-surface-overlay" />
-              ) : (
-                <RunTrendChart points={trendQ.data ?? []} />
-              )}
-            </section>
-          )}
+                {trendQ.isLoading ? (
+                  <div className="h-32 animate-pulse rounded-lg bg-surface-overlay" />
+                ) : (
+                  <RunTrendChart points={trendQ.data ?? []} />
+                )}
+              </section>
+            )}
+            {(!defectsQ.isLoading || defects.length > 0) && (
+              <section className="rounded-xl border border-border bg-surface-raised p-5 shadow-sm">
+                <div className="mb-4 flex items-center justify-between">
+                  <div>
+                    <h2 className="text-[14px] font-semibold text-fg">Defect Trendi</h2>
+                    <p className="mt-0.5 text-[11px] text-fg-muted">Son 8 haftada açılan/kapanan defectler</p>
+                  </div>
+                  <Link href={`/p/${projectId}/management/defects`}
+                    className="text-[11px] text-brand hover:underline">
+                    Tüm defectler →
+                  </Link>
+                </div>
+                {defectsQ.isLoading ? (
+                  <div className="h-24 animate-pulse rounded-lg bg-surface-overlay" />
+                ) : (
+                  <DefectTrendMini defects={defects} />
+                )}
+              </section>
+            )}
+          </div>
 
           {/* Test type/priority distribution + velocity */}
           <TestInsightsPanel cases={cases} runs={runs} />
@@ -1396,7 +1568,7 @@ export default function ManagementDashboardPage() {
                   </span>
                 )}
               </div>
-              <p className="mb-3 text-[11px] text-fg-muted">Birden fazla koşumda tutarsız sonuç veren testler (skor ≥ 0.2).</p>
+              <p className="mb-3 text-[11px] text-fg-muted">Birden fazla koşumda tutarsız sonuç veren <span className="text-fg">otomasyonlu</span> testler (skor ≥ 0.2). Saf manuel case&apos;ler hariç tutulur.</p>
               {flakyQ.isLoading ? (
                 <div className="space-y-2">
                   {[1,2,3].map(i => <div key={i} className="h-10 animate-pulse rounded-lg bg-surface-accent" />)}
@@ -1473,6 +1645,11 @@ export default function ManagementDashboardPage() {
             </section>
           </div>
 
+          {/* Stale Tests Widget */}
+          {!repoQ.isLoading && (staleTestsAll.length > 0 || cases.length > 0) && (
+            <StaleTestsWidget stale={staleTests} total={staleTestsAll.length} projectId={projectId} />
+          )}
+
           {/* Activity Feed */}
           {auditQ.data && auditQ.data.length > 0 && (
             <section className="rounded-xl border border-border bg-surface-raised p-5 shadow-sm">
@@ -1482,19 +1659,27 @@ export default function ManagementDashboardPage() {
                   className="text-[11px] text-brand hover:underline">Tümünü gör →</Link>
               </div>
               <div className="space-y-2">
-                {auditQ.data.slice(0, 8).map(ev => (
-                  <div key={ev.id} className="flex items-center gap-3 rounded-lg border border-border bg-surface-overlay px-3 py-2">
-                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-surface-accent text-[9px] font-bold text-fg-subtle">
-                      {ev.entity_type?.[0]?.toUpperCase() ?? "?"}
-                    </span>
-                    <span className="flex-1 min-w-0 truncate text-[12px] text-fg-muted">{ev.action}</span>
-                    <span className="shrink-0 text-[10px] text-fg-subtle tabular-nums">
-                      {new Date(ev.created_at).toLocaleDateString("tr-TR", { day: "2-digit", month: "short" })}
-                      {" "}
-                      {new Date(ev.created_at).toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" })}
-                    </span>
-                  </div>
-                ))}
+                {auditQ.data.slice(0, 8).map(ev => {
+                  const actorName = ev.actor_id
+                    ? (userIdMap[ev.actor_id] ?? `${ev.actor_id.slice(0, 6)}…`)
+                    : "Sistem";
+                  return (
+                    <div key={ev.id} className="flex items-center gap-3 rounded-lg border border-border bg-surface-overlay px-3 py-2">
+                      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-surface-accent text-[9px] font-bold text-fg-subtle" title={actorName}>
+                        {actorName[0]?.toUpperCase() ?? "?"}
+                      </span>
+                      <div className="flex-1 min-w-0">
+                        <p className="truncate text-[12px] text-fg-muted">{ev.action}</p>
+                        <p className="text-[10px] text-fg-subtle">{actorName}</p>
+                      </div>
+                      <span className="shrink-0 text-[10px] text-fg-subtle tabular-nums">
+                        {new Date(ev.created_at).toLocaleDateString("tr-TR", { day: "2-digit", month: "short" })}
+                        {" "}
+                        {new Date(ev.created_at).toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" })}
+                      </span>
+                    </div>
+                  );
+                })}
               </div>
             </section>
           )}

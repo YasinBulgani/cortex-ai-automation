@@ -238,7 +238,7 @@ export default function ManagementAuditPage() {
           </div>
         </div>
       }>
-    <div className="flex flex-col min-h-full bg-bg text-fg">
+    <div className="flex flex-col min-h-full bg-surface-base text-fg">
       {/* Header */}
       <div className="border-b border-border bg-surface-raised px-6 py-4">
         <div className="flex flex-col gap-3">
@@ -323,6 +323,53 @@ export default function ManagementAuditPage() {
             <button type="button" onClick={clearFilters}
               className="text-[10px] text-fg-subtle hover:text-danger">Temizle</button>
           )}
+        </div>
+      )}
+
+      {/* Activity breakdown strip */}
+      {!isLoading && !isError && filtered.length > 0 && (
+        <div className="border-b border-border bg-surface-base px-6 py-2.5 overflow-x-auto">
+          <div className="flex items-center gap-3 min-w-max">
+            {(() => {
+              const byEntity: Record<string, number> = {};
+              for (const ev of filtered) {
+                const e = ev.entity_type ?? "other";
+                byEntity[e] = (byEntity[e] ?? 0) + 1;
+              }
+              const ENTITY_COLORS: Record<string, string> = {
+                case:   "text-blue-400 bg-blue-500/10 border-blue-500/20",
+                suite:  "text-purple-400 bg-purple-500/10 border-purple-500/20",
+                run:    "text-teal-400 bg-teal-500/10 border-teal-500/20",
+                plan:   "text-indigo-400 bg-indigo-500/10 border-indigo-500/20",
+                defect: "text-red-400 bg-red-500/10 border-red-500/20",
+                defect_link: "text-orange-400 bg-orange-500/10 border-orange-500/20",
+                requirement: "text-amber-400 bg-amber-500/10 border-amber-500/20",
+                shared_step: "text-emerald-400 bg-emerald-500/10 border-emerald-500/20",
+              };
+              const ENTITY_LABELS: Record<string, string> = {
+                case: "Case", suite: "Suite", folder: "Klasör", run: "Run",
+                plan: "Plan", cycle: "Cycle", defect: "Defect",
+                defect_link: "Defect", requirement: "Gereksinim",
+                shared_step: "Adım Şablonu", release_signoff: "Onay",
+              };
+              return Object.entries(byEntity)
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 10)
+                .map(([entity, count]) => (
+                  <button
+                    key={entity}
+                    type="button"
+                    onClick={() => setEntityFilter(entityFilter === entity ? "" : entity)}
+                    className={`flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-medium transition-colors ${
+                      ENTITY_COLORS[entity] ?? "text-fg-muted bg-surface-overlay border-border"
+                    } ${entityFilter === entity ? "ring-2 ring-brand/30" : ""}`}
+                  >
+                    <span>{ENTITY_LABELS[entity] ?? entity}</span>
+                    <span className="opacity-70 tabular-nums">{count}</span>
+                  </button>
+                ));
+            })()}
+          </div>
         </div>
       )}
 

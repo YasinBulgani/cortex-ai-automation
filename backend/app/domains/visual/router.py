@@ -5,7 +5,7 @@ from typing import Annotated, Optional
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
 
-from app.deps import get_current_user, require_permission
+from app.deps import _user_permissions, get_current_user, require_permission
 from app.infra.models import User
 
 from .compare import compare_png
@@ -20,14 +20,23 @@ _ADMIN_PERM = "admin.visual"
 async def _compare(
     image: Annotated[UploadFile, File(description="PNG ekran görüntüsü")],
     name: Annotated[str, Form(min_length=1, description="Baseline adı, ör. 'login'")],
-    _: Annotated[User, Depends(get_current_user)],
+    user: Annotated[User, Depends(get_current_user)],
     threshold_ratio: Annotated[
         Optional[float], Form(ge=0.0, le=1.0, description="Fark oranı eşiği")
     ] = None,
     update_baseline: Annotated[
-        bool, Form(description="True → baseline değiştir")
+        bool, Form(description="True → baseline değiştir (admin.visual yetkisi gerekir)")
     ] = False,
 ) -> dict:
+    # Baseline overwrite, /baseline/update ile aynı yetki kapısının arkasında
+    # olmalı — aksi halde her kullanıcı yetki kontrolünü atlayabilir.
+    if update_baseline:
+        perms = _user_permissions(user)
+        if "admin.*" not in perms and _ADMIN_PERM not in perms:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Baseline güncellemek için yetkiniz yok: {_ADMIN_PERM}",
+            )
     raw = await image.read()
     if not raw:
         raise HTTPException(
@@ -36,6 +45,7 @@ async def _compare(
     result = compare_png(
         name=name,
         actual_bytes=raw,
+        scope=str(user.tenant_id),
         threshold_ratio=threshold_ratio,
         update_baseline=update_baseline,
     )
@@ -64,12 +74,17 @@ async def _compare(
 async def _force_update(
     image: Annotated[UploadFile, File()],
     name: Annotated[str, Form(min_length=1)],
-    _: Annotated[User, Depends(require_permission(_ADMIN_PERM))],
+    user: Annotated[User, Depends(require_permission(_ADMIN_PERM))],
 ) -> None:
     raw = await image.read()
     if not raw:
         raise HTTPException(status_code=400, detail="Boş image")
-    result = compare_png(name=name, actual_bytes=raw, update_baseline=True)
+    result = compare_png(
+        name=name,
+        actual_bytes=raw,
+        scope=str(user.tenant_id),
+        update_baseline=True,
+    )
     if result.status == "pillow_unavailable":
         raise HTTPException(status_code=503, detail="Pillow yok")
     if result.status == "invalid_image":

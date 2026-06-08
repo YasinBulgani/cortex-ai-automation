@@ -2,6 +2,7 @@
 
 import React, { useMemo, useState, useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 import {
   useManagementCycles,
   useManagementPlans,
@@ -279,12 +280,10 @@ export function NewRunModal({ pid, cases: casesProp, suites: suitesProp, initial
         <div className="flex items-center justify-between px-6 py-4">
           {err ? <p className="text-[12px] text-red-400">{err}</p> : <span />}
           <div className="flex items-center gap-2">
-            <button type="button" onClick={onClose}
-              className="rounded-xl border border-border px-4 py-2 text-[13px] font-medium text-fg-muted transition-colors hover:bg-surface-overlay hover:text-fg">İptal</button>
-            <button type="button" onClick={save} disabled={busy || !name.trim() || selected.size === 0}
-              className="rounded-xl bg-brand px-5 py-2 text-[13px] font-semibold text-brand-fg shadow-sm transition-colors hover:brightness-105 disabled:opacity-40">
+            <Button type="button" variant="outline" onClick={onClose}>İptal</Button>
+            <Button type="button" variant="primary" onClick={save} disabled={busy || !name.trim() || selected.size === 0}>
               {busy ? "Oluşturuluyor…" : "Run Oluştur"}
-            </button>
+            </Button>
           </div>
         </div>
       </div>

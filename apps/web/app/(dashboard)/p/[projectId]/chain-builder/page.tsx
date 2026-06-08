@@ -19,6 +19,7 @@ import ReactFlow, {
 import "reactflow/dist/style.css";
 
 import { FlowGuideCard } from "@/components/FlowGuideCard";
+import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/nexus/PageHeader";
 import { SectionCard } from "@/components/nexus/SectionCard";
 import { ServiceTestingGuide } from "@/components/ServiceTestingGuide";
@@ -95,12 +96,14 @@ function Toolbar({
       <div className="w-px h-6 bg-slate-700" />
 
       {/* Add Request Node */}
-      <button
+      <Button
+        variant="primary"
+        size="sm"
         onClick={onAddNode}
-        className="flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-500 transition-colors"
+        className="gap-1.5 bg-blue-600 text-xs font-semibold text-white hover:bg-blue-500"
       >
         <span className="text-sm">+</span> Request Node
-      </button>
+      </Button>
 
       {/* Templates dropdown */}
       <div className="relative">
@@ -178,21 +181,25 @@ function Toolbar({
       <div className="flex-1" />
 
       {/* Save */}
-      <button
+      <Button
+        variant="primary"
+        size="sm"
         onClick={onSave}
         disabled={saving}
-        className="flex items-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-1.5 text-xs font-semibold text-white hover:bg-emerald-500 disabled:opacity-50 transition-colors"
+        className="gap-1.5 px-4 bg-emerald-600 text-xs font-semibold text-white hover:bg-emerald-500"
       >
         {saving ? "Saving..." : "Save Chain"}
-      </button>
+      </Button>
 
       {/* Run */}
-      <button
+      <Button
+        variant="primary"
+        size="sm"
         onClick={onRun}
-        className="flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-blue-600 to-purple-600 px-4 py-1.5 text-xs font-semibold text-white hover:from-blue-500 hover:to-purple-500 transition-all"
+        className="gap-1.5 px-4 bg-gradient-to-r from-blue-600 to-purple-600 text-xs font-semibold text-white hover:from-blue-500 hover:to-purple-500"
       >
         Run Chain
-      </button>
+      </Button>
     </div>
   );
 }

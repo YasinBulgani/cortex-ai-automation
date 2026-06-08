@@ -6,6 +6,7 @@ import Link from "next/link";
 import { apiFetch } from "@/lib/api";
 import { PRODUCT_FAMILY } from "@/lib/product";
 import { VirtualList } from "@/components/ui/virtual-list";
+import { Button } from "@/components/ui/button";
 
 type Project = {
   id: string;
@@ -204,16 +205,16 @@ function NewProjectModal({ onClose, onCreated }: { onClose: () => void; onCreate
           {error && <p className="text-xs text-red-400">{error}</p>}
         </div>
         <div className="mt-5 flex justify-end gap-2">
-          <button onClick={onClose} className="rounded-lg border border-slate-700 px-4 py-2 text-sm text-slate-400 hover:text-white transition-colors">
+          <Button variant="outline" onClick={onClose}>
             İptal
-          </button>
-          <button
+          </Button>
+          <Button
             onClick={handleSubmit}
             disabled={!name.trim() || createMut.isPending}
-            className="rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50 hover:opacity-90 transition-opacity"
+            className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white"
           >
             {createMut.isPending ? "Oluşturuluyor..." : "Oluştur"}
-          </button>
+          </Button>
         </div>
       </div>
     </div>
@@ -325,13 +326,13 @@ export default function PortfolioPage() {
             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg>
             Sihirbazla Oluştur
           </Link>
-          <button
+          <Button
             onClick={() => setNewOpen(true)}
-            className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-lg hover:opacity-90 transition-opacity"
+            className="gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg"
           >
             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
             Yeni Proje
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -415,12 +416,14 @@ export default function PortfolioPage() {
       {projectsError && !loading && (
         <div className="flex items-center justify-between rounded-xl border border-red-500/20 bg-red-500/5 px-4 py-3">
           <p className="text-sm text-red-400">Projeler yüklenemedi. Lütfen tekrar deneyin.</p>
-          <button
+          <Button
+            variant="outline"
+            size="sm"
             onClick={() => refetchProjects()}
-            className="shrink-0 rounded-lg border border-red-500/30 px-3 py-1 text-xs font-medium text-red-400 hover:bg-red-500/10 transition-colors"
+            className="shrink-0 border-red-500/30 text-red-400 hover:bg-red-500/10"
           >
             Tekrar Dene
-          </button>
+          </Button>
         </div>
       )}
 
@@ -448,12 +451,12 @@ export default function PortfolioPage() {
             {search ? "Arama sonucu bulunamadı." : "Henüz proje yok."}
           </p>
           {!search && (
-            <button
+            <Button
               onClick={() => setNewOpen(true)}
-              className="mt-4 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-500 transition-colors"
+              className="mt-4"
             >
               İlk projeyi oluştur
-            </button>
+            </Button>
           )}
         </div>
       ) : view === "grid" ? (
@@ -478,29 +481,35 @@ export default function PortfolioPage() {
         <div className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 flex items-center gap-3 rounded-2xl border border-slate-600 bg-slate-900/95 px-5 py-3 shadow-2xl backdrop-blur-sm">
           <span className="text-sm font-medium text-white">{selectedIds.size} proje seçildi</span>
           <div className="h-4 w-px bg-slate-700" />
-          <button
+          <Button
             type="button"
+            variant="outline"
+            size="sm"
             onClick={handleBulkArchive}
             disabled={bulkLoading}
-            className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-1.5 text-xs font-medium text-amber-300 transition-colors hover:bg-amber-500/20 disabled:opacity-50"
+            className="border-amber-500/30 bg-amber-500/10 text-amber-300 hover:bg-amber-500/20"
           >
             Arşivle
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
+            variant="ghost-danger"
+            size="sm"
             onClick={handleBulkDelete}
             disabled={bulkLoading}
-            className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-1.5 text-xs font-medium text-red-300 transition-colors hover:bg-red-500/20 disabled:opacity-50"
+            className="border border-red-500/30 bg-red-500/10 text-red-300 hover:bg-red-500/20"
           >
             Sil
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
+            variant="ghost"
+            size="sm"
             onClick={clearSelection}
-            className="rounded-lg px-2 py-1.5 text-xs text-slate-400 transition-colors hover:text-white"
+            className="text-slate-400 hover:text-white"
           >
             İptal
-          </button>
+          </Button>
         </div>
       )}
 

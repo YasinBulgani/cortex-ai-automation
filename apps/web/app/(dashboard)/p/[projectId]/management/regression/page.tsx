@@ -3,6 +3,7 @@
 import { useState, useMemo } from "react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 import {
   useRegressionSets,
   useCreateRegressionSet,
@@ -25,6 +26,7 @@ import {
 import { useManagementProjectId } from "@/lib/hooks/use-management-project-id";
 import { useRouteParam } from "@/lib/use-route-param";
 import { useRouter } from "next/navigation";
+import { useProjectRole } from "@/lib/hooks/use-management-role";
 
 const LAST_RUN_DOT: Record<string, string> = {
   passed:  "bg-emerald-500",
@@ -92,12 +94,12 @@ function AiSuggestPanel({ mpid, existingCaseIds, onAdd, onClose }: {
               className="h-3.5 w-3.5 rounded accent-brand"/>
             Hiç koşulmamış
           </label>
-          <button onClick={handleSuggest} disabled={suggestMut.isPending}
-            className="ml-auto flex items-center gap-1.5 rounded-xl bg-brand px-4 py-1.5 text-[12px] font-semibold text-brand-fg hover:brightness-105 disabled:opacity-50">
+          <Button variant="primary" size="sm" onClick={handleSuggest} disabled={suggestMut.isPending}
+            className="ml-auto gap-1.5">
             {suggestMut.isPending ? (
               <><span className="h-3 w-3 animate-spin rounded-full border-2 border-brand-fg border-t-transparent"/>Analiz ediliyor…</>
             ) : "✦ AI ile Öner"}
-          </button>
+          </Button>
         </div>
 
         {candidates.length === 0 && !suggestMut.isPending ? (
@@ -155,11 +157,10 @@ function AiSuggestPanel({ mpid, existingCaseIds, onAdd, onClose }: {
       <div className="flex items-center justify-between border-t border-border px-5 py-3">
         <span className="text-[11px] text-fg-muted">{candidates.length} öneri{checked.size > 0 ? ` · ${checked.size} seçili` : ""}</span>
         <div className="flex gap-2">
-          <button onClick={onClose} className="rounded-xl border border-border px-4 py-2 text-[12px] text-fg-muted hover:text-fg">İptal</button>
-          <button onClick={doAdd} disabled={!checked.size || saving}
-            className="rounded-xl bg-brand px-5 py-2 text-[12px] font-semibold text-brand-fg hover:brightness-105 disabled:opacity-40">
+          <Button variant="outline" size="sm" onClick={onClose}>İptal</Button>
+          <Button variant="primary" size="sm" onClick={doAdd} disabled={!checked.size || saving}>
             {saving ? "Ekleniyor…" : `${checked.size || ""} Case Ekle`}
-          </button>
+          </Button>
         </div>
       </div>
     </>
@@ -209,10 +210,10 @@ function CasePickerModal({ mpid, existingCaseIds, onAdd, onClose }: {
           </div>
           <div className="flex items-center gap-3">
             <div className="flex rounded-lg border border-border overflow-hidden text-[11px]">
-              <button onClick={() => setPickerTab("manual")} className={cn("px-3 py-1.5 transition-colors", pickerTab === "manual" ? "bg-brand/15 text-brand font-semibold" : "text-fg-muted hover:text-fg")}>Manuel</button>
-              <button onClick={() => setPickerTab("ai")} className={cn("px-3 py-1.5 transition-colors border-l border-border", pickerTab === "ai" ? "bg-brand/15 text-brand font-semibold" : "text-fg-muted hover:text-fg")}>✦ AI Öner</button>
+              <Button variant="ghost" size="sm" onClick={() => setPickerTab("manual")} className={cn("rounded-none", pickerTab === "manual" ? "bg-brand/15 text-brand font-semibold" : "text-fg-muted hover:text-fg")}>Manuel</Button>
+              <Button variant="ghost" size="sm" onClick={() => setPickerTab("ai")} className={cn("rounded-none border-l border-border", pickerTab === "ai" ? "bg-brand/15 text-brand font-semibold" : "text-fg-muted hover:text-fg")}>✦ AI Öner</Button>
             </div>
-            <button onClick={onClose} className="rounded-lg p-1.5 text-fg-subtle hover:bg-surface-overlay"><IcClose/></button>
+            <Button variant="ghost" size="icon" onClick={onClose} className="h-auto w-auto p-1.5 text-fg-subtle"><IcClose/></Button>
           </div>
         </div>
         {pickerTab === "ai" ? (
@@ -224,7 +225,7 @@ function CasePickerModal({ mpid, existingCaseIds, onAdd, onClose }: {
             <IcSearch/>
             <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="Ara…"
               className="flex-1 bg-transparent text-[11px] text-fg placeholder-fg-subtle outline-none"/>
-            {search && <button onClick={() => setSearch("")} className="text-fg-subtle"><IcClose/></button>}
+            {search && <Button variant="ghost" size="icon" onClick={() => setSearch("")} className="h-auto w-auto p-0 text-fg-subtle"><IcClose/></Button>}
           </div>
           <select value={suiteF} onChange={e => setSuiteF(e.target.value)}
             className="rounded-xl border border-border bg-surface-raised px-2 py-1.5 text-[11px] text-fg-muted outline-none">
@@ -287,11 +288,10 @@ function CasePickerModal({ mpid, existingCaseIds, onAdd, onClose }: {
         <div className="flex items-center justify-between border-t border-border px-5 py-3">
           <span className="text-[11px] text-fg-muted">{filtered.length} case</span>
           <div className="flex gap-2">
-            <button onClick={onClose} className="rounded-xl border border-border px-4 py-2 text-[12px] text-fg-muted hover:text-fg">İptal</button>
-            <button onClick={doAdd} disabled={!checked.size || saving}
-              className="rounded-xl bg-brand px-5 py-2 text-[12px] font-semibold text-brand-fg hover:brightness-105 disabled:opacity-40">
+            <Button variant="outline" size="sm" onClick={onClose}>İptal</Button>
+            <Button variant="primary" size="sm" onClick={doAdd} disabled={!checked.size || saving}>
               {saving ? "Ekleniyor…" : `${checked.size || ""} Case Ekle`}
-            </button>
+            </Button>
           </div>
         </div>
         </> : null}
@@ -403,7 +403,7 @@ function RunHistoryPanel({ mpid, setId, projectId }: { mpid: string; setId: stri
             return (
               <tr key={r.id} className="border-b border-border/50 hover:bg-surface-overlay">
                 <td className="px-4 py-2.5">
-                  <Link href={`/p/${projectId}/management/runs/${r.id}`} className="text-[12px] text-brand hover:underline line-clamp-1">{r.name}</Link>
+                  <Link href={`/p/${projectId}/management/runs/${r.id}/execute`} className="text-[12px] text-brand hover:underline line-clamp-1">{r.name}</Link>
                 </td>
                 <td className="px-4 py-2.5">
                   <span className="inline-flex items-center gap-1.5">
@@ -416,7 +416,7 @@ function RunHistoryPanel({ mpid, setId, projectId }: { mpid: string; setId: stri
                 <td className="px-4 py-2.5"><span className={cn("font-mono text-[11px] font-semibold", pctColor)}>{pctStr}</span></td>
                 <td className="px-4 py-2.5"><span className="text-[10px] text-fg-muted">{new Date(r.created_at).toLocaleDateString("tr-TR",{day:"2-digit",month:"short",year:"numeric"})}</span></td>
                 <td className="w-10 px-2">
-                  <Link href={`/p/${projectId}/management/runs/${r.id}`}
+                  <Link href={`/p/${projectId}/management/runs/${r.id}/execute`}
                     className="invisible group-hover:visible block rounded-lg p-1.5 text-fg-subtle hover:bg-surface-overlay hover:text-fg">
                     <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
                   </Link>
@@ -504,6 +504,8 @@ export default function ManagementRegressionPage() {
   const projectId = useRouteParam("projectId") ?? "";
   const mpid      = useManagementProjectId(projectId || undefined);
   const router    = useRouter();
+  const currentRole = useProjectRole(projectId);
+  const canEdit = currentRole === "owner" || currentRole === "admin" || currentRole === "member";
 
   const { data: sets, isLoading, isError, refetch: refetchSets } = useRegressionSets(mpid || undefined);
   const createSet  = useCreateRegressionSet(mpid || "");
@@ -529,9 +531,11 @@ export default function ManagementRegressionPage() {
   const [caseSearch,   setCaseSearch]   = useState("");
   const [showRun,      setShowRun]      = useState(false);
   const [runName,      setRunName]      = useState("");
+  const [runEnv,       setRunEnv]       = useState("");
   const [launching,    setLaunching]    = useState(false);
   const [launchError,  setLaunchError]  = useState<string | null>(null);
-  const [detailTab,    setDetailTab]    = useState<"cases" | "history">("cases");
+  const [detailTab,        setDetailTab]        = useState<"cases" | "history">("cases");
+  const [caseStatusFilter, setCaseStatusFilter] = useState<"all" | "failed" | "not_run" | "passed">("all");
 
   const refreshAll = () => {
     void refetchSets();
@@ -543,8 +547,12 @@ export default function ManagementRegressionPage() {
   const filteredCases = useMemo(() => {
     if (!selectedSet) return [];
     const q = caseSearch.trim().toLowerCase();
-    return q ? selectedSet.cases.filter(c => c.title.toLowerCase().includes(q) || (c.case_key ?? "").toLowerCase().includes(q)) : selectedSet.cases;
-  }, [selectedSet, caseSearch]);
+    let list = q ? selectedSet.cases.filter(c => c.title.toLowerCase().includes(q) || (c.case_key ?? "").toLowerCase().includes(q)) : selectedSet.cases;
+    if (caseStatusFilter === "failed")  list = list.filter(c => c.last_run_status === "failed");
+    if (caseStatusFilter === "not_run") list = list.filter(c => !c.last_run_status || c.last_run_status === "not_run");
+    if (caseStatusFilter === "passed")  list = list.filter(c => c.last_run_status === "passed");
+    return list;
+  }, [selectedSet, caseSearch, caseStatusFilter]);
   const existingIds = useMemo(() => new Set((selectedSet?.cases ?? []).map(c => c.case_id)), [selectedSet]);
 
   const doCreate = async (e: React.FormEvent) => {
@@ -563,9 +571,13 @@ export default function ManagementRegressionPage() {
 
   const doDelete = async () => {
     if (!deleteTarget) return;
-    await deleteSet.mutateAsync({ id: deleteTarget });
-    if (selectedId === deleteTarget) setSelectedId(null);
-    setDeleteTarget(null);
+    try {
+      await deleteSet.mutateAsync({ id: deleteTarget });
+      if (selectedId === deleteTarget) setSelectedId(null);
+      setDeleteTarget(null);
+    } catch {
+      /* mutation error state is surfaced via deleteSet.isError below */
+    }
   };
 
   const doLaunchRun = async (e: React.FormEvent) => {
@@ -576,7 +588,7 @@ export default function ManagementRegressionPage() {
     setLaunchError(null);
     setLaunching(true);
     try {
-      const run = await createRun.mutateAsync({ cycle_id: cid, name: runName.trim(), case_ids: selectedSet.cases.map(c => c.case_id), source_type: "regression", source_ref: selectedSet.id });
+      const run = await createRun.mutateAsync({ cycle_id: cid, name: runName.trim(), case_ids: selectedSet.cases.map(c => c.case_id), source_type: "regression", source_ref: selectedSet.id, environment: runEnv.trim() || undefined });
       router.push(`/p/${projectId}/management/runs/${run.id}/execute`);
     } catch(e) {
       setLaunchError(e instanceof Error ? e.message : "Hata");
@@ -589,17 +601,19 @@ export default function ManagementRegressionPage() {
       <aside className="flex w-64 shrink-0 flex-col overflow-hidden border-r border-border bg-surface-raised">
         <div className="flex items-center justify-between border-b border-border px-4 py-3">
           <span className="text-[12px] font-semibold text-fg">Regresyon Setleri</span>
-          <button onClick={() => { setShowNew(true); setSelectedId(null); setEditId(null); }}
-            className="flex items-center gap-1 rounded-lg bg-brand px-2 py-1 text-[10px] font-semibold text-brand-fg hover:brightness-105 shadow-sm">
-            <IcPlus/> Yeni
-          </button>
+          {canEdit && (
+            <Button variant="primary" size="sm" onClick={() => { setShowNew(true); setSelectedId(null); setEditId(null); }}
+              className="h-auto gap-1 px-2 py-1 text-[10px] shadow-sm">
+              <IcPlus/> Yeni
+            </Button>
+          )}
         </div>
         <div className="border-b border-border px-3 py-2">
           <div className="flex items-center gap-1.5 rounded-lg border border-border bg-surface-base px-2.5 py-1.5">
             <IcSearch/>
             <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="Ara…"
               className="flex-1 bg-transparent text-[11px] text-fg placeholder-fg-subtle outline-none"/>
-            {search && <button onClick={() => setSearch("")} className="text-fg-subtle hover:text-fg"><IcClose/></button>}
+            {search && <Button variant="ghost" size="icon" onClick={() => setSearch("")} className="h-auto w-auto p-0 text-fg-subtle hover:text-fg"><IcClose/></Button>}
           </div>
         </div>
         <div className="flex-1 overflow-y-auto">
@@ -616,20 +630,43 @@ export default function ManagementRegressionPage() {
             </div>
           ) : (
             <div className="space-y-0.5 p-2">
-              {filtered.map((set: RegressionSet) => (
-                <button key={set.id} onClick={() => { setSelectedId(set.id); setShowNew(false); setEditId(null); }}
-                  className={cn("w-full rounded-xl border px-3 py-2.5 text-left transition-colors",
-                    selectedId === set.id ? "border-brand/20 bg-brand-soft" : "border-transparent hover:border-border hover:bg-surface-overlay")}>
-                  <div className="flex items-center gap-2">
-                    <span className={cn("flex-1 truncate text-[12px] font-medium", selectedId === set.id ? "text-brand" : "text-fg")}>{set.name}</span>
-                    <span className={cn("rounded px-1.5 py-0.5 text-[9px]", selectedId === set.id ? "bg-brand/15 text-brand" : "bg-surface-overlay text-fg-subtle")}>{set.set_type}</span>
-                  </div>
-                  <div className="mt-1 flex justify-between text-[10px] text-fg-subtle">
-                    <span>{set.cases.length} case</span>
-                    <span>{new Date(set.created_at).toLocaleDateString("tr-TR",{day:"2-digit",month:"short"})}</span>
-                  </div>
-                </button>
-              ))}
+              {filtered.map((set: RegressionSet) => {
+                const total   = set.cases.length;
+                const passed  = set.cases.filter(c => c.last_run_status === "passed").length;
+                const failed  = set.cases.filter(c => c.last_run_status === "failed").length;
+                const hasBeen = set.cases.some(c => c.last_run_status && c.last_run_status !== "not_run");
+                const pct     = hasBeen && total > 0 ? Math.round((passed / total) * 100) : null;
+                const pctColor = pct === null ? "text-fg-disabled" : pct >= 80 ? "text-emerald-400" : pct >= 50 ? "text-amber-400" : "text-red-400";
+                return (
+                  <Button key={set.id} variant="ghost" onClick={() => { setSelectedId(set.id); setShowNew(false); setEditId(null); }}
+                    className={cn("h-auto w-full flex-col items-stretch rounded-xl border px-3 py-2.5 text-left",
+                      selectedId === set.id ? "border-brand/20 bg-brand-soft" : "border-transparent hover:border-border hover:bg-surface-overlay")}>
+                    <div className="flex items-center gap-2">
+                      <span className={cn("flex-1 truncate text-[12px] font-medium", selectedId === set.id ? "text-brand" : "text-fg")}>{set.name}</span>
+                      <span className={cn("rounded px-1.5 py-0.5 text-[9px]", selectedId === set.id ? "bg-brand/15 text-brand" : "bg-surface-overlay text-fg-subtle")}>{set.set_type}</span>
+                    </div>
+                    <div className="mt-1 flex items-center justify-between text-[10px] text-fg-subtle">
+                      <span>{total} case</span>
+                      <div className="flex items-center gap-2">
+                        {pct !== null && (
+                          <span className={cn("font-mono font-semibold tabular-nums", pctColor)} title={`${passed} geçti / ${failed} başarısız`}>
+                            {pct}%
+                          </span>
+                        )}
+                        {hasBeen && failed > 0 && (
+                          <span className="text-red-400/70">{failed}✗</span>
+                        )}
+                      </div>
+                    </div>
+                    {hasBeen && total > 0 && (
+                      <div className="mt-1.5 flex h-1 overflow-hidden rounded-full bg-surface-accent">
+                        {passed > 0 && <div className="bg-emerald-500/70" style={{ width: `${(passed/total)*100}%` }}/>}
+                        {failed > 0 && <div className="bg-red-500/70" style={{ width: `${(failed/total)*100}%` }}/>}
+                      </div>
+                    )}
+                  </Button>
+                );
+              })}
             </div>
           )}
         </div>
@@ -669,12 +706,10 @@ export default function ManagementRegressionPage() {
                     className="w-full resize-none rounded-xl border border-border bg-surface-base px-3 py-2.5 text-[13px] text-fg outline-none"/>
                 </div>
                 <div className="flex gap-2 pt-1">
-                  <button type="button" onClick={()=>setShowNew(false)}
-                    className="rounded-xl border border-border px-4 py-2 text-[12px] text-fg-muted hover:text-fg">İptal</button>
-                  <button type="submit" disabled={!newName.trim()||createSet.isPending}
-                    className="rounded-xl bg-brand px-5 py-2 text-[12px] font-semibold text-brand-fg hover:brightness-105 disabled:opacity-40">
+                  <Button type="button" variant="outline" size="sm" onClick={()=>setShowNew(false)}>İptal</Button>
+                  <Button type="submit" variant="primary" size="sm" disabled={!newName.trim()||createSet.isPending}>
                     {createSet.isPending ? "Oluşturuluyor…" : "Oluştur"}
-                  </button>
+                  </Button>
                 </div>
               </form>
             </div>
@@ -693,12 +728,10 @@ export default function ManagementRegressionPage() {
                     className="rounded-xl border border-border bg-surface-base px-3 py-2 text-[12px] text-fg outline-none">
                     {SET_TYPE_OPTIONS.map(t => <option key={t} value={t}>{t}</option>)}
                   </select>
-                  <button type="submit" disabled={updateSet.isPending}
-                    className="rounded-xl bg-brand px-4 py-2 text-[12px] font-semibold text-brand-fg hover:brightness-105 disabled:opacity-40">
+                  <Button type="submit" variant="primary" size="sm" disabled={updateSet.isPending}>
                     {updateSet.isPending ? "…" : "Kaydet"}
-                  </button>
-                  <button type="button" onClick={()=>setEditId(null)}
-                    className="rounded-xl border border-border px-3 py-2 text-[12px] text-fg-muted">İptal</button>
+                  </Button>
+                  <Button type="button" variant="outline" size="sm" onClick={()=>setEditId(null)}>İptal</Button>
                 </form>
               ) : (
                 <div className="flex items-start justify-between gap-4">
@@ -711,18 +744,24 @@ export default function ManagementRegressionPage() {
                     <p className="mt-1 text-[11px] text-fg-subtle">{selectedSet.cases.length} case · {new Date(selectedSet.created_at).toLocaleDateString("tr-TR",{day:"2-digit",month:"long",year:"numeric"})}</p>
                   </div>
                   <div className="flex shrink-0 items-center gap-2">
-                    <button onClick={()=>setShowPicker(true)}
-                      className="flex items-center gap-1.5 rounded-xl border border-border px-3 py-2 text-[12px] text-fg-muted hover:border-brand/30 hover:text-brand">
-                      <IcPlus/> Case Ekle
-                    </button>
-                    <button onClick={()=>{setRunName(selectedSet.name+" — Run");setShowRun(true);}}
-                      className="flex items-center gap-1.5 rounded-xl bg-emerald-600 px-3 py-2 text-[12px] font-semibold text-white hover:bg-emerald-500 shadow-sm">
+                    {canEdit && (
+                      <Button variant="outline" size="sm" onClick={()=>setShowPicker(true)}
+                        className="gap-1.5 text-fg-muted hover:border-brand/30 hover:text-brand">
+                        <IcPlus/> Case Ekle
+                      </Button>
+                    )}
+                    <Button variant="primary" size="sm" onClick={()=>{setRunName(selectedSet.name+" — Run");setShowRun(true);}}
+                      className="gap-1.5 bg-emerald-600 text-white hover:bg-emerald-500 shadow-sm">
                       <IcPlay/> Run Başlat
-                    </button>
-                    <button onClick={()=>{setEditId(selectedSet.id);setEditName(selectedSet.name);setEditType(selectedSet.set_type);}}
-                      className="rounded-lg p-2 text-fg-subtle hover:bg-surface-overlay hover:text-fg"><IcEdit/></button>
-                    <button onClick={()=>setDeleteTarget(selectedSet.id)}
-                      className="rounded-lg p-2 text-fg-subtle hover:bg-red-500/10 hover:text-red-400"><IcTrash/></button>
+                    </Button>
+                    {canEdit && (
+                      <Button variant="ghost" size="icon" onClick={()=>{setEditId(selectedSet.id);setEditName(selectedSet.name);setEditType(selectedSet.set_type);}}
+                        className="text-fg-subtle hover:text-fg"><IcEdit/></Button>
+                    )}
+                    {canEdit && (
+                      <Button variant="ghost" size="icon" onClick={()=>setDeleteTarget(selectedSet.id)}
+                        className="text-fg-subtle hover:bg-red-500/10 hover:text-red-400"><IcTrash/></Button>
+                    )}
                   </div>
                 </div>
               )}
@@ -733,46 +772,69 @@ export default function ManagementRegressionPage() {
             {/* Tabs */}
             <div className="flex items-center gap-0 border-b border-border px-6">
               {([["cases","Case Listesi"],["history","Geçmiş Koşumlar"]] as [string,string][]).map(([t,l]) => (
-                <button key={t} onClick={() => setDetailTab(t as "cases"|"history")}
-                  className={cn("px-4 py-2.5 text-[12px] font-medium border-b-2 transition-colors -mb-px",
+                <Button key={t} variant="ghost" size="sm" onClick={() => setDetailTab(t as "cases"|"history")}
+                  className={cn("h-auto rounded-none px-4 py-2.5 text-[12px] font-medium border-b-2 -mb-px",
                     detailTab === t ? "border-brand text-brand" : "border-transparent text-fg-muted hover:text-fg")}>
                   {l}
-                </button>
+                </Button>
               ))}
             </div>
             {detailTab === "history" && <RunHistoryPanel mpid={mpid ?? ""} setId={selectedSet.id} projectId={projectId}/>}
             {detailTab === "cases" && <>
-            <div className="flex items-center gap-3 border-b border-border px-6 py-2.5">
-              <div className="flex flex-1 items-center gap-1.5 rounded-xl border border-border bg-surface-raised px-2.5 py-1.5">
-                <IcSearch/>
-                <input type="text" value={caseSearch} onChange={e=>setCaseSearch(e.target.value)} placeholder="Case ara…"
-                  className="flex-1 bg-transparent text-[11px] text-fg placeholder-fg-subtle outline-none"/>
-                {caseSearch && <button onClick={()=>setCaseSearch("")} className="text-fg-subtle"><IcClose/></button>}
+            <div className="flex flex-col border-b border-border">
+              <div className="flex items-center gap-3 px-6 py-2.5">
+                <div className="flex flex-1 items-center gap-1.5 rounded-xl border border-border bg-surface-raised px-2.5 py-1.5">
+                  <IcSearch/>
+                  <input type="text" value={caseSearch} onChange={e=>setCaseSearch(e.target.value)} placeholder="Case ara…"
+                    className="flex-1 bg-transparent text-[11px] text-fg placeholder-fg-subtle outline-none"/>
+                  {caseSearch && <Button variant="ghost" size="icon" onClick={()=>setCaseSearch("")} className="h-auto w-auto p-0 text-fg-subtle"><IcClose/></Button>}
+                </div>
+                <span className="text-[11px] text-fg-subtle">{filteredCases.length}/{selectedSet.cases.length}</span>
+                {selectedSet.cases.length > 0 && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      const headers = ["Key", "Başlık", "Öncelik", "Tür", "Son Koşum", "Risk Skoru"];
+                      const lines = filteredCases.map(c => [
+                        c.case_key ?? "",
+                        c.title,
+                        c.priority,
+                        c.type,
+                        c.last_run_status ?? "not_run",
+                        typeof c.risk_score === "number" ? c.risk_score.toFixed(2) : "",
+                      ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(";"));
+                      const csv = "﻿" + [headers.join(";"), ...lines].join("\n");
+                      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement("a"); a.href = url; a.download = `${selectedSet.name.replace(/[^a-z0-9]/gi,"_")}.csv`; a.click();
+                      URL.revokeObjectURL(url);
+                    }}
+                    className="shrink-0 h-auto px-2.5 py-1.5 text-[10px] font-medium text-fg-muted hover:text-fg"
+                  >
+                    CSV
+                  </Button>
+                )}
               </div>
-              <span className="text-[11px] text-fg-subtle">{filteredCases.length}/{selectedSet.cases.length}</span>
               {selectedSet.cases.length > 0 && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    const headers = ["Key", "Başlık", "Öncelik", "Tür", "Son Koşum", "Risk Skoru"];
-                    const lines = filteredCases.map(c => [
-                      c.case_key ?? "",
-                      c.title,
-                      c.priority,
-                      c.type,
-                      c.last_run_status ?? "not_run",
-                      typeof c.risk_score === "number" ? c.risk_score.toFixed(2) : "",
-                    ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(";"));
-                    const csv = "﻿" + [headers.join(";"), ...lines].join("\n");
-                    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement("a"); a.href = url; a.download = `${selectedSet.name.replace(/[^a-z0-9]/gi,"_")}.csv`; a.click();
-                    URL.revokeObjectURL(url);
-                  }}
-                  className="shrink-0 rounded-lg border border-border px-2.5 py-1.5 text-[10px] font-medium text-fg-muted hover:text-fg transition-colors"
-                >
-                  CSV
-                </button>
+                <div className="flex items-center gap-1.5 px-6 pb-2.5 overflow-x-auto">
+                  {([
+                    ["all",     "Tümü",         "",                  selectedSet.cases.length],
+                    ["failed",  "Başarısız",     "text-red-400",      selectedSet.cases.filter(c=>c.last_run_status==="failed").length],
+                    ["not_run", "Koşulmadı",     "text-fg-subtle",    selectedSet.cases.filter(c=>!c.last_run_status||c.last_run_status==="not_run").length],
+                    ["passed",  "Geçti",         "text-emerald-400",  selectedSet.cases.filter(c=>c.last_run_status==="passed").length],
+                  ] as [string, string, string, number][]).map(([key, label, col, count]) => (
+                    <Button key={key} variant="ghost" size="sm" onClick={()=>setCaseStatusFilter(key as "all"|"failed"|"not_run"|"passed")}
+                      className={cn("h-auto gap-1 rounded-full border px-2.5 py-0.5 text-[10px] font-medium shrink-0",
+                        caseStatusFilter === key
+                          ? "border-brand/30 bg-brand/10 text-brand"
+                          : "border-border text-fg-muted hover:border-border-strong hover:text-fg")}>
+                      <span className={caseStatusFilter === key ? "" : col}>{label}</span>
+                      <span className="tabular-nums text-fg-subtle">{count}</span>
+                    </Button>
+                  ))}
+                </div>
               )}
             </div>
             <div className="flex-1 overflow-auto">
@@ -785,47 +847,81 @@ export default function ManagementRegressionPage() {
                     <p className="text-[13px] font-semibold text-fg-muted">Bu sette henüz case yok</p>
                     <p className="mt-1 text-[11px] text-fg-subtle max-w-xs mx-auto">Repository&apos;den case ekleyerek regresyon setini oluşturun.</p>
                   </div>
-                  <button onClick={()=>setShowPicker(true)}
-                    className="flex items-center gap-1.5 rounded-xl bg-brand px-4 py-2 text-[12px] font-semibold text-brand-fg hover:brightness-105">
-                    <IcPlus/> Case Ekle
-                  </button>
+                  {canEdit && (
+                    <Button variant="primary" size="sm" onClick={()=>setShowPicker(true)} className="gap-1.5">
+                      <IcPlus/> Case Ekle
+                    </Button>
+                  )}
                 </div>
               ) : (
                 <table className="w-full">
                   <thead className="sticky top-0 z-10 border-b border-border bg-surface-raised/90 backdrop-blur-sm">
                     <tr>
-                      {["Key","Başlık","Öncelik","Tür","Son Koşum","Risk Skoru",""].map(h => (
+                      {["Key","Başlık","Öncelik","Önem","Tür","Son Koşum","Risk",""].map(h => (
                         <th key={h} className={cn("px-4 py-2.5 text-left text-[9px] font-semibold uppercase tracking-widest text-fg-subtle", h==="" && "w-10")}>{h}</th>
                       ))}
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredCases.map((c: RegressionSetCase) => (
-                      <tr key={c.id} className="group border-b border-border/50 hover:bg-surface-overlay">
-                        <td className="px-4 py-3"><span className="font-mono text-[10px] text-fg-subtle">{c.case_key}</span></td>
-                        <td className="px-4 py-3"><span className="text-[12px] text-fg line-clamp-1">{c.title}</span></td>
-                        <td className="px-4 py-3">
-                          <span className="inline-flex items-center gap-1.5">
-                            <span className={cn("h-1.5 w-1.5 rounded-full", PRIORITY_DOT[c.priority] ?? "bg-slate-500")}/>
-                            <span className="font-mono text-[10px] text-fg-muted">{c.priority}</span>
-                          </span>
-                        </td>
-                        <td className="px-4 py-3"><span className="rounded bg-surface-overlay px-1.5 py-0.5 text-[10px] text-fg-muted">{c.type}</span></td>
-                        <td className="px-4 py-3">
-                          <span className="inline-flex items-center gap-1.5">
-                            <span className={cn("h-1.5 w-1.5 rounded-full", LAST_RUN_DOT[c.last_run_status ?? "not_run"] ?? "bg-slate-600")}/>
-                            <span className="text-[10px] text-fg-muted">{c.last_run_status ?? "not_run"}</span>
-                          </span>
-                        </td>
-                        <td className="px-4 py-3"><span className="font-mono text-[10px] text-fg-subtle">{typeof c.risk_score==="number"&&c.risk_score>0?c.risk_score.toFixed(2):"--"}</span></td>
-                        <td className="w-10 px-2">
-                          <button onClick={()=>removeCase.mutate({setId:selectedSet.id,caseId:c.case_id})} disabled={removeCase.isPending}
-                            className="invisible group-hover:visible rounded-lg p-1.5 text-fg-subtle hover:bg-red-500/10 hover:text-red-400">
-                            <IcTrash/>
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
+                    {filteredCases.map((c: RegressionSetCase) => {
+                      const isFailed = c.last_run_status === "failed";
+                      const isHighRisk = typeof c.risk_score === "number" && c.risk_score >= 0.7;
+                      const sevKey = (c.severity ?? "").toLowerCase();
+                      const SEV_BADGE: Record<string, string> = {
+                        blocker: "border-red-500/30 bg-red-500/10 text-red-400",
+                        critical: "border-orange-500/30 bg-orange-500/10 text-orange-400",
+                        major: "border-amber-500/30 bg-amber-500/10 text-amber-400",
+                        minor: "border-border bg-surface-overlay text-fg-muted",
+                        trivial: "border-border bg-surface-overlay text-fg-subtle",
+                      };
+                      return (
+                        <tr key={c.id} className={cn("group border-b border-border/50 hover:bg-surface-overlay",
+                          isFailed ? "bg-red-500/[0.04]" : "")}>
+                          <td className="px-4 py-3">
+                            <span className="font-mono text-[10px] text-fg-subtle">{c.case_key}</span>
+                            {isHighRisk && <span className="ml-1 text-[9px] text-red-400/70" title="Yüksek risk">⚡</span>}
+                          </td>
+                          <td className="px-4 py-3 max-w-[200px]">
+                            <span className={cn("text-[12px] line-clamp-1", isFailed ? "text-red-300/90 font-medium" : "text-fg")}>{c.title}</span>
+                          </td>
+                          <td className="px-4 py-3">
+                            <span className="inline-flex items-center gap-1.5">
+                              <span className={cn("h-1.5 w-1.5 rounded-full", PRIORITY_DOT[c.priority] ?? "bg-slate-500")}/>
+                              <span className="font-mono text-[10px] text-fg-muted">{c.priority}</span>
+                            </span>
+                          </td>
+                          <td className="px-4 py-3">
+                            {c.severity ? (
+                              <span className={cn("rounded border px-1.5 py-0.5 text-[9px] font-medium capitalize", SEV_BADGE[sevKey] ?? "border-border bg-surface-overlay text-fg-muted")}>
+                                {c.severity}
+                              </span>
+                            ) : <span className="text-[10px] text-fg-disabled">—</span>}
+                          </td>
+                          <td className="px-4 py-3"><span className="rounded bg-surface-overlay px-1.5 py-0.5 text-[10px] text-fg-muted">{c.type}</span></td>
+                          <td className="px-4 py-3">
+                            <span className="inline-flex items-center gap-1.5">
+                              <span className={cn("h-1.5 w-1.5 rounded-full", LAST_RUN_DOT[c.last_run_status ?? "not_run"] ?? "bg-slate-600")}/>
+                              <span className={cn("text-[10px]", isFailed ? "font-medium text-red-400" : "text-fg-muted")}>{c.last_run_status ?? "not_run"}</span>
+                            </span>
+                          </td>
+                          <td className="px-4 py-3">
+                            <span className={cn("font-mono text-[10px] tabular-nums",
+                              isHighRisk ? "text-red-400" :
+                              (typeof c.risk_score === "number" && c.risk_score >= 0.4) ? "text-amber-400" : "text-fg-subtle")}>
+                              {typeof c.risk_score==="number"&&c.risk_score>0 ? c.risk_score.toFixed(2) : "--"}
+                            </span>
+                          </td>
+                          <td className="w-10 px-2">
+                            {canEdit && (
+                              <Button variant="ghost" size="icon" onClick={()=>removeCase.mutate({setId:selectedSet.id,caseId:c.case_id})} disabled={removeCase.isPending}
+                                className="invisible group-hover:visible h-auto w-auto p-1.5 text-fg-subtle hover:bg-red-500/10 hover:text-red-400">
+                                <IcTrash/>
+                              </Button>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               )}
@@ -838,12 +934,14 @@ export default function ManagementRegressionPage() {
         {isError && !selectedSet && !showNew && (
           <div className="flex flex-1 flex-col items-center justify-center gap-3 text-center">
             <p className="text-[13px] text-red-400">Regresyon setleri yüklenemedi.</p>
-            <button
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={() => refreshAll()}
               className="text-[12px] text-brand hover:underline"
             >
               Tekrar dene
-            </button>
+            </Button>
           </div>
         )}
 
@@ -860,10 +958,10 @@ export default function ManagementRegressionPage() {
               </p>
             </div>
             {(sets??[]).length===0 && (
-              <button onClick={()=>setShowNew(true)}
-                className="flex items-center gap-1.5 rounded-xl bg-brand px-5 py-2.5 text-[12px] font-semibold text-brand-fg hover:brightness-105">
+              <Button variant="primary" size="sm" onClick={()=>setShowNew(true)}
+                className="gap-1.5">
                 <IcPlus/> Oluştur
-              </button>
+              </Button>
             )}
           </div>
         )}
@@ -884,9 +982,12 @@ export default function ManagementRegressionPage() {
             <p className="mt-2 text-[12px] text-fg-muted">
               <span className="font-semibold text-fg">{(sets??[]).find(s=>s.id===deleteTarget)?.name}</span> kalıcı olarak silinecek.
             </p>
+            {deleteSet.isError && (
+              <p className="mt-3 text-[12px] text-danger">Set silinemedi. Lütfen tekrar deneyin.</p>
+            )}
             <div className="mt-5 flex justify-end gap-2">
-              <button onClick={()=>setDeleteTarget(null)} className="rounded-xl border border-border px-4 py-2 text-[12px] text-fg-muted hover:text-fg">İptal</button>
-              <button onClick={doDelete} className="rounded-xl bg-red-600 px-4 py-2 text-[12px] font-semibold text-white hover:bg-red-500">Sil</button>
+              <Button variant="outline" size="sm" onClick={()=>setDeleteTarget(null)} disabled={deleteSet.isPending}>İptal</Button>
+              <Button variant="destructive" size="sm" onClick={doDelete} disabled={deleteSet.isPending}>{deleteSet.isPending ? "Siliniyor…" : "Sil"}</Button>
             </div>
           </div>
         </div>
@@ -913,7 +1014,7 @@ export default function ManagementRegressionPage() {
                   </p>
                 </div>
                 <div className="flex justify-end">
-                  <button onClick={()=>setShowRun(false)} className="rounded-xl border border-border px-4 py-2 text-[12px] text-fg-muted">Kapat</button>
+                  <Button variant="outline" size="sm" onClick={()=>setShowRun(false)}>Kapat</Button>
                 </div>
               </div>
             ) : (
@@ -936,6 +1037,11 @@ export default function ManagementRegressionPage() {
                   <label className="mb-1.5 block text-[11px] uppercase tracking-widest text-fg-subtle">Run Adı</label>
                   <input autoFocus value={runName} onChange={e=>setRunName(e.target.value)} required
                     className="w-full rounded-xl border border-border bg-surface-base px-3 py-2 text-[13px] text-fg outline-none focus:border-brand/50"/>
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-[11px] uppercase tracking-widest text-fg-subtle">Ortam</label>
+                  <input value={runEnv} onChange={e=>setRunEnv(e.target.value)} placeholder="ör. staging, prod-like…"
+                    className="w-full rounded-xl border border-border bg-surface-base px-3 py-2 text-[13px] text-fg placeholder-fg-subtle outline-none focus:border-brand/50"/>
                 </div>
                 {launchError && (
                   <p className="rounded-xl border border-red-500/20 bg-red-500/5 px-3 py-2 text-[11px] text-red-400">{launchError}</p>

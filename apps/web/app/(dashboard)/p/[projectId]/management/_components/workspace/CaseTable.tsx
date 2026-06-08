@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import Link from "next/link";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 import { useDraggable } from "@dnd-kit/core";
 import type { TestCase } from "@/lib/hooks/use-management";
 import { useCloneManagementCase, useArchiveManagementCase } from "@/lib/hooks/use-management";
@@ -365,24 +366,24 @@ export function CaseTable({
         </select>
         {hasFilter && <button type="button" onClick={clearFilters}
           className="text-[11px] text-red-500/70 hover:text-red-400 transition-colors">✕ Temizle</button>}
-        <button type="button" onClick={onNewCase}
-          className="flex items-center gap-1.5 rounded-xl bg-brand px-3 py-1.5 text-[13px] font-semibold text-brand-fg shadow-sm transition-colors hover:brightness-105">
+        <Button type="button" variant="primary" size="sm" onClick={onNewCase}
+          className="gap-1.5 text-[13px] font-semibold">
           <IcPlus /> Yeni Senaryo
-        </button>
+        </Button>
       </div>
 
       {/* Bulk bar */}
       {checked.size > 0 && (
         <div className="flex flex-wrap items-center gap-2 border-b border-brand/20 bg-brand-soft px-4 py-1.5">
           <span className="text-[12px] font-semibold text-brand">{checked.size} seçili</span>
-          <button type="button" onClick={onCreateRun} disabled={busy}
-            className="flex items-center gap-1 rounded-lg border border-brand/25 bg-surface-raised px-2.5 py-1 text-[11px] text-brand transition-colors hover:bg-surface-overlay disabled:opacity-40">
+          <Button type="button" variant="outline" size="sm" onClick={onCreateRun} disabled={busy}
+            className="gap-1 border-brand/25 bg-surface-raised text-[11px] text-brand hover:bg-surface-overlay">
             <IcPlay /> Seçilenlerden Run Oluştur
-          </button>
-          <button type="button" onClick={onPromote} disabled={busy}
-            className="rounded-lg border border-border px-2.5 py-1 text-[11px] text-fg-muted transition-colors hover:bg-surface-overlay hover:text-fg disabled:opacity-40">Aktife Al</button>
-          <button type="button" onClick={onArchiveMany} disabled={busy}
-            className="rounded-lg border border-red-500/20 px-2.5 py-1 text-[11px] text-red-400 hover:bg-red-500/10 disabled:opacity-40 transition-colors">Arşivle</button>
+          </Button>
+          <Button type="button" variant="outline" size="sm" onClick={onPromote} disabled={busy}
+            className="text-[11px] text-fg-muted hover:text-fg">Aktife Al</Button>
+          <Button type="button" variant="ghost-danger" size="sm" onClick={onArchiveMany} disabled={busy}
+            className="border border-red-500/20 px-2.5 text-[11px] text-red-400 hover:bg-red-500/10">Arşivle</Button>
           <button type="button" onClick={onClearChecked} className="ml-auto text-[11px] text-fg-subtle hover:text-fg-muted">Temizle</button>
         </div>
       )}
@@ -406,10 +407,10 @@ export function CaseTable({
                   className="mt-3 text-[12px] text-brand hover:text-brand-secondary transition-colors">Filtreleri temizle</button></>
             ) : (
               <><p className="text-[14px] font-medium text-fg-muted">Henüz senaryo yok</p>
-                <button type="button" onClick={onNewCase}
-                  className="mt-3 flex items-center gap-1.5 rounded-xl bg-brand px-4 py-2 text-[13px] font-semibold text-brand-fg shadow-sm transition-colors hover:brightness-105">
+                <Button type="button" variant="primary" onClick={onNewCase}
+                  className="mt-3 gap-1.5 text-[13px] font-semibold">
                   <IcPlus /> İlk senaryoyu oluştur
-                </button></>
+                </Button></>
             )}
           </div>
         ) : (

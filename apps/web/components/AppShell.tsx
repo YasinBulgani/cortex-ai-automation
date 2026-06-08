@@ -9,6 +9,7 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { AiStatusChip } from "@/components/AiStatusChip";
 import { SidebarSearch } from "@/components/SidebarSearch";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 import { ENGINE_BASE, clearTokens } from "@/lib/api";
 import {
   PRODUCT_SHORT,
@@ -36,6 +37,11 @@ const RecentFavoritesPanel = lazy(() => import("./RecentFavoritesPanel").then(m 
 
 type Project = { id: string; name: string };
 const ALL_PRODUCTS_OPTION = { id: "all" as const, label: "QA Operations Platform", short: "Tümü" };
+
+function productIdFromPath(path: string | null): string {
+  const id = path?.match(/^\/products\/([^/?#]+)/)?.[1];
+  return id && PRODUCT_FAMILY.some((product) => product.id === id) ? id : "all";
+}
 
 // ─── Error Boundary ───────────────────────────────────────────────────────────
 
@@ -80,12 +86,13 @@ class AppErrorBoundary extends React.Component<
               </p>
             )}
             <div className="flex flex-col gap-2 sm:flex-row sm:justify-center">
-              <button
+              <Button
+                variant="primary"
+                size="default"
                 onClick={() => window.location.reload()}
-                className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-500 transition-colors"
               >
                 Sayfayı Yenile
-              </button>
+              </Button>
               <a
                 href="/"
                 className="rounded-md border border-border px-4 py-2 text-sm font-medium text-fg-muted hover:border-border-strong hover:text-fg transition-colors"
@@ -230,16 +237,21 @@ export function AppShell({
   const [userMenuOpen,    setUserMenuOpen]     = useState(false);
   const [projectDropOpen, setProjectDropOpen] = useState(false);
   const [productPickerOpen, setProductPickerOpen] = useState(false);
-  const [activeProductId, setActiveProductId] = useState<string>("all");
+  const [activeProductId, setActiveProductId] = useState<string>(() => productIdFromPath(path));
 
   useEffect(() => {
     try {
       const raw = localStorage.getItem("bgts_active_project");
       if (raw) { const p = JSON.parse(raw); if (p?.id) setStoredProjectId(String(p.id)); }
       const product = localStorage.getItem(PRODUCT_FAMILY_STORAGE_KEY);
-      if (product) setActiveProductId(product);
+      if (product && productIdFromPath(path) === "all") setActiveProductId(product);
     } catch { /* ignore */ }
-  }, []);
+  }, [path]);
+
+  useEffect(() => {
+    const routeProductId = productIdFromPath(path);
+    if (routeProductId !== "all") setActiveProductId(routeProductId);
+  }, [path]);
 
   const activeProduct = useMemo(
     () =>
@@ -626,7 +638,7 @@ export function AppShell({
 
         <a
           href="#main-content"
-          className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-teal-600 focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-white focus:outline-none"
+          className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-brand focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-white focus:outline-none"
           data-testid="skip-to-content"
         >
           Ana içeriğe atla

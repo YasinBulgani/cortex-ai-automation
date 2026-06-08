@@ -37,8 +37,18 @@ def _make_ws() -> AsyncMock:
 
 
 def _run(coro):
-    """Run a coroutine synchronously for test convenience."""
-    return asyncio.get_event_loop().run_until_complete(coro)
+    """Run a coroutine synchronously for test convenience.
+
+    Uses a dedicated event loop rather than ``asyncio.get_event_loop()`` so the
+    helper is independent of any global loop state another test may have left
+    behind (on Python 3.11+ ``get_event_loop()`` raises ``RuntimeError`` when no
+    current loop is set, causing order-dependent failures in the full suite).
+    """
+    loop = asyncio.new_event_loop()
+    try:
+        return loop.run_until_complete(coro)
+    finally:
+        loop.close()
 
 
 # ---------------------------------------------------------------------------

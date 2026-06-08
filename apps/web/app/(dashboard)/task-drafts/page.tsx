@@ -6,6 +6,8 @@ import { apiFetch } from "@/lib/api";
 import { useProject } from "@/lib/useProject";
 import { Sparkles, Plus, X, ChevronRight, Bot, CheckCircle2, Clock, Eye, Loader2, FileText, Globe, Image, Wand2, Check, ExternalLink, Search, Settings, AlertCircle } from "lucide-react";
 import { API_BASE } from "@/lib/api-client";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 type Scenario = {
   id: string;
@@ -408,32 +410,34 @@ function NewScenarioModal({
               <p className="text-[11px] text-slate-500 leading-none">AI destekli veya manuel oluştur</p>
             </div>
           </div>
-          <button onClick={onClose} className="rounded-lg p-1.5 text-slate-600 hover:bg-slate-800 hover:text-white transition-colors">
+          <Button variant="ghost" size="icon" onClick={onClose} className="text-slate-600 hover:bg-slate-800 hover:text-white">
             <X className="h-4 w-4" />
-          </button>
+          </Button>
         </div>
 
         {/* ── Tabs ── */}
         <div className="flex border-b border-slate-800 px-2">
-          <button onClick={() => setTab("ai")}
-            className={`flex items-center gap-2 px-5 py-3.5 text-[13px] font-semibold border-b-2 transition-all ${
+          <Button variant="ghost" onClick={() => setTab("ai")}
+            className={cn(
+              "flex items-center gap-2 px-5 py-3.5 text-[13px] font-semibold border-b-2 rounded-none transition-all h-auto",
               tab === "ai"
                 ? "border-violet-500 text-violet-300"
                 : "border-transparent text-slate-500 hover:text-slate-300"
-            }`}>
+            )}>
             <Bot className="h-4 w-4" />
             AI ile Oluştur
             <span className="rounded-full bg-violet-500/20 px-1.5 py-0.5 text-[9px] font-black text-violet-400 tracking-wide">YENİ</span>
-          </button>
-          <button onClick={() => setTab("manual")}
-            className={`flex items-center gap-2 px-5 py-3.5 text-[13px] font-semibold border-b-2 transition-all ${
+          </Button>
+          <Button variant="ghost" onClick={() => setTab("manual")}
+            className={cn(
+              "flex items-center gap-2 px-5 py-3.5 text-[13px] font-semibold border-b-2 rounded-none transition-all h-auto",
               tab === "manual"
                 ? "border-blue-500 text-blue-300"
                 : "border-transparent text-slate-500 hover:text-slate-300"
-            }`}>
+            )}>
             <Plus className="h-4 w-4" />
             Manuel
-          </button>
+          </Button>
         </div>
 
         {/* ── Body ── */}
@@ -446,17 +450,18 @@ function NewScenarioModal({
               {/* Source selector */}
               <div className="flex gap-2">
                 {AI_SOURCES.map(src => (
-                  <button key={src.id} type="button" onClick={() => {
+                  <Button key={src.id} type="button" variant="ghost" size="sm" onClick={() => {
                     setAiSource(src.id);
                     if (src.id === "jira" && jiraStatus === "idle") checkJiraStatus();
                   }}
-                    className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-[12px] font-medium transition-all ${
+                    className={cn(
+                      "flex items-center gap-1.5 rounded-lg border text-[12px] font-medium transition-all h-auto px-3 py-1.5",
                       aiSource === src.id
                         ? "border-violet-500/60 bg-violet-500/10 text-violet-300"
                         : "border-slate-700 text-slate-500 hover:border-slate-600 hover:text-slate-300"
-                    }`}>
+                    )}>
                     {src.icon} {src.label}
-                  </button>
+                  </Button>
                 ))}
               </div>
 
@@ -517,10 +522,10 @@ Yanlış şifre girilince anlamlı hata mesajı gösterilmeli.
                     <input value={aiUrl} onChange={e => setAiUrl(e.target.value)}
                       placeholder="https://app.example.com/login"
                       className="flex-1 rounded-xl border border-slate-700/80 bg-slate-900 px-4 py-2.5 text-[13px] text-white placeholder-slate-600 focus:border-violet-500/60 focus:outline-none" />
-                    <button type="button" onClick={crawlUrl} disabled={aiGenerating || !aiUrl.trim()}
-                      className="rounded-xl border border-slate-700 bg-slate-800 px-4 py-2.5 text-[12px] font-medium text-slate-300 hover:border-violet-500/40 hover:text-violet-300 disabled:opacity-40 transition-colors">
+                    <Button type="button" variant="outline" size="sm" onClick={crawlUrl} disabled={aiGenerating || !aiUrl.trim()}
+                      className="rounded-xl border-slate-700 bg-slate-800 px-4 py-2.5 text-[12px] font-medium text-slate-300 hover:border-violet-500/40 hover:text-violet-300">
                       {aiGenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : "Tara"}
-                    </button>
+                    </Button>
                   </div>
                   {aiContext && (
                     <p className="mt-2 text-[11px] text-slate-500 line-clamp-2">{aiContext.slice(0, 200)}…</p>
@@ -555,10 +560,10 @@ Yanlış şifre girilince anlamlı hata mesajı gösterilmeli.
                             className="flex items-center gap-2 rounded-xl bg-blue-600/20 border border-blue-500/40 px-4 py-2.5 text-[12px] font-semibold text-blue-300 hover:bg-blue-600/30 transition-colors">
                             <ExternalLink className="h-3.5 w-3.5" /> Settings'te Ayarla
                           </Link>
-                          <button type="button" onClick={() => setJiraSetupOpen(true)}
-                            className="flex items-center gap-2 rounded-xl bg-amber-600/20 border border-amber-500/40 px-4 py-2.5 text-[12px] font-semibold text-amber-300 hover:bg-amber-600/30 transition-colors">
+                          <Button type="button" size="sm" onClick={() => setJiraSetupOpen(true)}
+                            className="gap-2 rounded-xl bg-amber-600/20 border border-amber-500/40 px-4 py-2.5 text-[12px] font-semibold text-amber-300 hover:bg-amber-600/30">
                             <Settings className="h-3.5 w-3.5" /> Hızlı Kur
-                          </button>
+                          </Button>
                         </div>
                       ) : (
                         <div className="space-y-3">
@@ -586,15 +591,15 @@ Yanlış şifre girilince anlamlı hata mesajı gösterilmeli.
                           </div>
                           {jiraErr && <p className="text-[12px] text-red-400">{jiraErr}</p>}
                           <div className="flex gap-2">
-                            <button type="button" onClick={saveJiraConfig} disabled={jiraSaving}
-                              className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 py-2.5 text-[12px] font-semibold text-white disabled:opacity-40 hover:opacity-90 transition-opacity">
+                            <Button type="button" onClick={saveJiraConfig} disabled={jiraSaving}
+                              className="flex-1 gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 py-2.5 text-[12px] font-semibold text-white hover:opacity-90">
                               {jiraSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
                               {jiraSaving ? "Bağlanıyor…" : "Bağlan & Kaydet"}
-                            </button>
-                            <button type="button" onClick={() => setJiraSetupOpen(false)}
-                              className="rounded-xl border border-slate-700 px-4 py-2.5 text-[12px] text-slate-400 hover:text-white transition-colors">
+                            </Button>
+                            <Button type="button" variant="outline" onClick={() => setJiraSetupOpen(false)}
+                              className="rounded-xl border-slate-700 px-4 py-2.5 text-[12px] text-slate-400 hover:text-white">
                               İptal
-                            </button>
+                            </Button>
                           </div>
                         </div>
                       )}
@@ -663,11 +668,11 @@ Yanlış şifre girilince anlamlı hata mesajı gösterilmeli.
                                 placeholder="Issue ara (başlık, açıklama…)"
                                 className="w-full rounded-xl border border-slate-700/80 bg-slate-900 py-2.5 pl-9 pr-3 text-[13px] text-white placeholder-slate-600 focus:border-blue-500/60 focus:outline-none" />
                             </div>
-                            <button type="button" onClick={() => loadJiraIssues(jiraSelProject, jiraSearch)}
+                            <Button type="button" variant="outline" onClick={() => loadJiraIssues(jiraSelProject, jiraSearch)}
                               disabled={jiraLoading}
-                              className="rounded-xl bg-slate-800 border border-slate-700 px-4 text-[12px] font-medium text-slate-300 hover:border-slate-600 disabled:opacity-40 transition-colors">
+                              className="rounded-xl bg-slate-800 border-slate-700 px-4 text-[12px] font-medium text-slate-300 hover:border-slate-600">
                               Ara
-                            </button>
+                            </Button>
                           </div>
                         </div>
                       )}
@@ -776,13 +781,13 @@ Yanlış şifre girilince anlamlı hata mesajı gösterilmeli.
               )}
 
               {/* Generate button — Jira'da gizle (otomatik tetikleniyor) */}
-              {aiSource !== "jira" && <button type="button" onClick={generateWithAI}
+              {aiSource !== "jira" && <Button type="button" onClick={generateWithAI}
                 disabled={aiGenerating || (!aiContext.trim() && aiSource !== "file") || (aiSource === "file" && !aiContext.trim())}
-                className="flex w-full items-center justify-center gap-2.5 rounded-xl bg-gradient-to-r from-violet-600 to-blue-600 py-3 text-[13px] font-semibold text-white disabled:opacity-40 hover:from-violet-500 hover:to-blue-500 transition-all shadow-lg shadow-violet-900/20">
+                className="w-full gap-2.5 rounded-xl bg-gradient-to-r from-violet-600 to-blue-600 py-3 text-[13px] font-semibold text-white hover:from-violet-500 hover:to-blue-500 shadow-lg shadow-violet-900/20">
                 {aiGenerating
                   ? <><Loader2 className="h-4 w-4 animate-spin" /> {aiProgress || "Analiz ediliyor…"}</>
                   : <><Wand2 className="h-4 w-4" /> AI ile Senaryo Üret</>}
-              </button>}
+              </Button>}
 
               {aiError && (
                 <div className="rounded-xl border border-red-500/30 bg-red-500/8 px-4 py-3 text-[12px] text-red-400 flex items-start gap-2">
@@ -958,34 +963,35 @@ Yanlış şifre girilince anlamlı hata mesajı gösterilmeli.
 
         {/* ── Footer ── */}
         <div className="border-t border-slate-800 px-6 py-4 flex items-center justify-between gap-3">
-          <button onClick={onClose}
-            className="rounded-xl border border-slate-700 px-4 py-2 text-[13px] text-slate-400 hover:border-slate-600 hover:text-white transition-colors">
+          <Button variant="outline" onClick={onClose}
+            className="rounded-xl border-slate-700 px-4 py-2 text-[13px] text-slate-400 hover:border-slate-600 hover:text-white">
             İptal
-          </button>
+          </Button>
 
           {tab === "ai" ? (
-            <button type="button" onClick={saveSelected}
+            <Button type="button" onClick={saveSelected}
               disabled={saving || selectedCount === 0 || saved}
-              className={`flex items-center gap-2 rounded-xl px-5 py-2 text-[13px] font-semibold transition-all ${
+              className={cn(
+                "gap-2 rounded-xl px-5 py-2 text-[13px] font-semibold",
                 saved
                   ? "bg-emerald-600/20 border border-emerald-500/40 text-emerald-400"
                   : selectedCount > 0
                     ? "bg-gradient-to-r from-violet-600 to-blue-600 text-white hover:from-violet-500 hover:to-blue-500 shadow-lg shadow-violet-900/20"
                     : "bg-slate-800 text-slate-600 cursor-not-allowed"
-              }`}>
+              )}>
               {saved
                 ? <><CheckCircle2 className="h-4 w-4" /> Kaydedildi</>
                 : saving
                   ? <><Loader2 className="h-4 w-4 animate-spin" /> Kaydediliyor…</>
                   : <><Plus className="h-4 w-4" /> {selectedCount > 0 ? `${selectedCount} Senaryo Kaydet` : "Senaryo Seçin"}</>}
-            </button>
+            </Button>
           ) : (
-            <button type="button" onClick={handleManualSubmit}
+            <Button type="button" onClick={handleManualSubmit}
               disabled={!title.trim() || manLoading}
-              className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-5 py-2 text-[13px] font-semibold text-white disabled:opacity-40 hover:from-blue-500 hover:to-indigo-500 transition-all shadow-lg shadow-blue-900/20">
+              className="gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-5 py-2 text-[13px] font-semibold text-white hover:from-blue-500 hover:to-indigo-500 shadow-lg shadow-blue-900/20">
               {manLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
               Oluştur
-            </button>
+            </Button>
           )}
         </div>
       </div>
@@ -1086,14 +1092,14 @@ export default function TaskDraftsPage() {
             {projects.length === 0 && <option value="">Proje yok</option>}
             {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
           </select>
-          <button
+          <Button
             onClick={() => setNewOpen(true)}
             disabled={!selectedProjectId}
-            className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-violet-600 to-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-lg disabled:opacity-50 hover:opacity-90 transition-opacity"
+            className="gap-2 rounded-xl bg-gradient-to-r from-violet-600 to-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-lg hover:opacity-90"
           >
             <Sparkles className="h-4 w-4" />
             Yeni Senaryo
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -1140,12 +1146,12 @@ export default function TaskDraftsPage() {
               {scenarios.length === 0 ? "Bu projede henüz senaryo yok." : "Bu filtrede senaryo bulunamadı."}
             </p>
             {scenarios.length === 0 && selectedProjectId && (
-              <button
+              <Button
                 onClick={() => setNewOpen(true)}
-                className="mt-4 flex mx-auto items-center gap-2 rounded-xl bg-gradient-to-r from-violet-600 to-blue-600 px-4 py-2 text-sm font-medium text-white hover:opacity-90 transition-opacity"
+                className="mt-4 mx-auto gap-2 rounded-xl bg-gradient-to-r from-violet-600 to-blue-600 px-4 py-2 text-sm font-medium text-white hover:opacity-90"
               >
                 <Sparkles className="h-4 w-4" /> AI ile İlk Senaryoyu Oluştur
-              </button>
+              </Button>
             )}
           </div>
         )}

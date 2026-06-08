@@ -27,6 +27,10 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
+    # Make create_table / create_index / alter calls idempotent so a fresh
+    # linear upgrade can skip objects an earlier migration already produced.
+    from _idempotent import enable_idempotent_ops
+    enable_idempotent_ops()
     # ── 1. cicd_webhook_events ─────────────────────────────────────────────
     op.create_table(
         "cicd_webhook_events",
@@ -283,6 +287,9 @@ def upgrade() -> None:
                 )
             except Exception:
                 pass
+
+    from _idempotent import disable_idempotent_ops
+    disable_idempotent_ops()
 
 
 def downgrade() -> None:

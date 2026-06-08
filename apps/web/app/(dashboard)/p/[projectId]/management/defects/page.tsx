@@ -6,6 +6,7 @@ import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { useRouteParam } from "@/lib/use-route-param";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 import { apiFetch } from "@/lib/api-client";
 import { RoleGuard } from "../_components/RoleGuard";
 import {
@@ -116,6 +117,7 @@ interface CreateDefectModalProps {
   mpid: string;
   onClose: () => void;
   onDone: () => void;
+  existingTitles?: string[];
 }
 
 interface ConfirmDeleteDialogProps {
@@ -451,22 +453,26 @@ function ConfirmDeleteDialog({ onConfirm, onCancel, isPending }: ConfirmDeleteDi
           </p>
         </div>
         <div className="flex items-center justify-end gap-2 border-t border-border px-5 py-3">
-          <button
+          <Button
             type="button"
+            variant="outline"
+            size="sm"
             onClick={onCancel}
             disabled={isPending}
-            className="rounded-xl border border-border px-4 py-2 text-[12px] text-fg-muted hover:text-fg disabled:opacity-40 transition-colors"
+            className="text-[12px] text-fg-muted hover:text-fg"
           >
             İptal
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
+            variant="destructive"
+            size="sm"
             onClick={onConfirm}
             disabled={isPending}
-            className="rounded-xl bg-red-600 px-4 py-2 text-[12px] font-medium text-white hover:bg-red-700 disabled:opacity-40 transition-colors"
+            className="text-[12px]"
           >
             {isPending ? "Siliniyor…" : "Evet, Sil"}
-          </button>
+          </Button>
         </div>
       </div>
     </div>
@@ -475,7 +481,7 @@ function ConfirmDeleteDialog({ onConfirm, onCancel, isPending }: ConfirmDeleteDi
 
 // ─── Create Defect Modal ──────────────────────────────────────────────────────
 
-function CreateDefectModal({ mpid, onClose, onDone }: CreateDefectModalProps) {
+function CreateDefectModal({ mpid, onClose, onDone, existingTitles = [] }: CreateDefectModalProps) {
   const create = useCreateManagementDefect(mpid);
 
   useEffect(() => {
@@ -491,12 +497,20 @@ function CreateDefectModal({ mpid, onClose, onDone }: CreateDefectModalProps) {
   const [priority,    setPriority]    = useState("P2");
   const [status,      setStatus]      = useState("open");
   const [description, setDescription] = useState("");
+  const [submitErr,   setSubmitErr]   = useState<string | null>(null);
 
   const inp = "w-full rounded-xl border border-border bg-surface-overlay px-3 py-2 text-[13px] text-fg placeholder:text-fg-disabled outline-none focus:border-teal-500/40 transition-colors";
   const sel = "w-full rounded-xl border border-border bg-surface-overlay px-3 py-2 text-[13px] text-fg outline-none focus:border-teal-500/40 transition-colors";
 
+  const potentialDuplicates = useMemo(() => {
+    if (!title.trim() || title.trim().length < 5) return [];
+    const q = title.trim().toLowerCase();
+    return existingTitles.filter(t => t.toLowerCase().includes(q) || q.includes(t.toLowerCase()));
+  }, [title, existingTitles]);
+
   const handleSubmit = async () => {
     if (!title.trim()) return;
+    setSubmitErr(null);
     const payload: Parameters<typeof create.mutateAsync>[0] = {
       title: title.trim(),
       external_key: externalKey.trim() || "",
@@ -506,8 +520,12 @@ function CreateDefectModal({ mpid, onClose, onDone }: CreateDefectModalProps) {
       status,
       root_cause: description.trim() || null,
     };
-    await create.mutateAsync(payload);
-    onDone();
+    try {
+      await create.mutateAsync(payload);
+      onDone();
+    } catch {
+      setSubmitErr("Defekt oluşturulamadı. Lütfen tekrar deneyin.");
+    }
   };
 
   return (
@@ -540,6 +558,16 @@ function CreateDefectModal({ mpid, onClose, onDone }: CreateDefectModalProps) {
               placeholder="Defekt başlığı…"
               className={inp}
             />
+            {potentialDuplicates.length > 0 && (
+              <div className="mt-1.5 rounded-lg border border-amber-500/20 bg-amber-500/5 px-3 py-2">
+                <p className="text-[10px] font-semibold text-amber-400 mb-1">⚠ Olası Tekrar Defektler</p>
+                <ul className="space-y-0.5">
+                  {potentialDuplicates.slice(0, 3).map((t, i) => (
+                    <li key={i} className="text-[11px] text-fg-muted truncate">• {t}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
 
           {/* External Key & URL */}
@@ -609,19 +637,25 @@ function CreateDefectModal({ mpid, onClose, onDone }: CreateDefectModalProps) {
         </div>
 
         {/* Footer */}
+        {submitErr && (
+          <div className="border-t border-danger/30 bg-danger-subtle px-5 py-2.5 text-[12px] text-danger">
+            {submitErr}
+          </div>
+        )}
         <div className="flex items-center justify-between border-t border-border px-5 py-4">
-          <button type="button" onClick={onClose}
-            className="rounded-xl border border-border px-4 py-2 text-[13px] text-fg-muted hover:text-fg transition-colors">
+          <Button type="button" variant="outline" onClick={onClose}
+            className="text-[13px] text-fg-muted hover:text-fg">
             İptal
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
+            variant="primary"
             onClick={handleSubmit}
             disabled={create.isPending || !title.trim()}
-            className="rounded-xl bg-brand px-5 py-2 text-[13px] font-medium text-brand-fg hover:brightness-105 disabled:opacity-40 transition-colors"
+            className="px-5 text-[13px]"
           >
             {create.isPending ? "Oluşturuluyor…" : "Oluştur"}
-          </button>
+          </Button>
         </div>
       </div>
     </div>
@@ -892,14 +926,14 @@ function DefectEditModal({ defect, mpid, onClose, onDeleted, onAnalysisResult, m
 
           {/* Footer */}
           <div className="flex items-center justify-between border-t border-border px-5 py-4">
-            <button type="button" onClick={onClose}
-              className="rounded-xl border border-border px-4 py-2 text-[13px] text-fg-muted hover:text-fg transition-colors">
+            <Button type="button" variant="outline" onClick={onClose}
+              className="text-[13px] text-fg-muted hover:text-fg">
               İptal
-            </button>
-            <button type="button" onClick={save} disabled={update.isPending}
-              className="rounded-xl bg-brand px-5 py-2 text-[13px] font-medium text-brand-fg hover:brightness-105 disabled:opacity-40 transition-colors">
+            </Button>
+            <Button type="button" variant="primary" onClick={save} disabled={update.isPending}
+              className="px-5 text-[13px]">
               {update.isPending ? "Kaydediliyor…" : "Kaydet"}
-            </button>
+            </Button>
           </div>
         </div>
       </div>
@@ -918,6 +952,10 @@ function DefectEditModal({ defect, mpid, onClose, onDeleted, onAnalysisResult, m
 
 // ─── Table Row ────────────────────────────────────────────────────────────────
 
+const SLA_DAYS: Record<string, number> = {
+  blocker: 2, critical: 2, major: 5, minor: 14, trivial: 30,
+};
+
 function DefectRow({ defect, mpid, onClick, onDeleted, analysisResult, userIdMap = {} }: DefectRowProps) {
   const del = useDeleteManagementDefect(mpid);
   const [showConfirmDelete, setShowConfirmDelete] = useState(false);
@@ -928,10 +966,15 @@ function DefectRow({ defect, mpid, onClick, onDeleted, analysisResult, userIdMap
   const sevDot  = SEVERITY_DOT[defect.severity.toLowerCase()] ?? "bg-slate-600";
   const sttDot  = statusDot(defect.status);
 
-  const ageCls = closed                              ? "text-fg-subtle"
-               : days !== null && days > 14          ? "text-red-400"
-               : days !== null && days > 7           ? "text-fg-muted"
-               :                                       "text-fg-muted";
+  const sev      = defect.severity.toLowerCase();
+  const slaDays  = SLA_DAYS[sev] ?? 14;
+  const slaBreached = !closed && days !== null && days > slaDays;
+  const slaWarning  = !closed && !slaBreached && days !== null && days > Math.floor(slaDays * 0.6);
+
+  const ageCls = closed        ? "text-fg-subtle"
+    : slaBreached              ? "text-red-400 font-semibold"
+    : slaWarning               ? "text-amber-400"
+    :                            "text-fg-muted";
 
   const handleDeleteConfirm = async () => {
     try {
@@ -968,6 +1011,11 @@ function DefectRow({ defect, mpid, onClick, onDeleted, analysisResult, userIdMap
             <span className="mt-0.5 inline-flex items-center gap-1">
               <span className="h-1 w-1 rounded-full bg-red-500 inline-block"/>
               <span className="text-[9px] text-red-400 uppercase tracking-wide">blocker</span>
+            </span>
+          )}
+          {slaBreached && !blocker && (
+            <span className="mt-0.5 inline-flex items-center gap-1">
+              <span className="text-[9px] text-red-400 font-medium">⏱ SLA aşıldı ({days}g)</span>
             </span>
           )}
         </td>
@@ -1118,19 +1166,24 @@ export default function ManagementDefectsPage() {
     if (statusF)   r = r.filter(d => d.status.toLowerCase().includes(statusF));
     if (priorityF) r = r.filter(d => d.priority === priorityF);
     if (assigneeF) {
-      const af = assigneeF.toLowerCase();
-      r = r.filter(d => {
-        const rawId = d.assignee_id ?? "";
-        const displayName = rawId ? (userIdMap[rawId] ?? rawId) : "";
-        return displayName.toLowerCase().includes(af) || rawId.toLowerCase().includes(af);
-      });
+      const isExactId = members.some(m => m.user_id === assigneeF);
+      if (isExactId) {
+        r = r.filter(d => d.assignee_id === assigneeF);
+      } else {
+        const af = assigneeF.toLowerCase();
+        r = r.filter(d => {
+          const rawId = d.assignee_id ?? "";
+          const displayName = rawId ? (userIdMap[rawId] ?? rawId) : "";
+          return displayName.toLowerCase().includes(af) || rawId.toLowerCase().includes(af);
+        });
+      }
     }
     if (myDefects && profile.data) {
-      const me = profile.data.email.toLowerCase();
-      r = r.filter(d => (d.assignee_id ?? "").toLowerCase().includes(me));
+      const myId = String(profile.data.id);
+      r = r.filter(d => (d.assignee_id ?? "") === myId);
     }
     return r;
-  }, [rows, search, severityF, statusF, priorityF, assigneeF, myDefects, profile.data, userIdMap]);
+  }, [rows, search, severityF, statusF, priorityF, assigneeF, myDefects, profile.data, userIdMap, members]);
 
   const sorted = useMemo(() => {
     const PRIO_ORDER: Record<string, number> = { P0: 0, P1: 1, P2: 2, P3: 3 };
@@ -1178,7 +1231,7 @@ export default function ManagementDefectsPage() {
 
   return (
     <PageErrorBoundary>
-    <div className="min-h-screen bg-bg px-5 py-5">
+    <div className="min-h-screen bg-surface-base px-5 py-5">
       <div className="mx-auto max-w-7xl space-y-5">
 
         {/* Header */}
@@ -1188,14 +1241,15 @@ export default function ManagementDefectsPage() {
             <p className="mt-0.5 text-xs text-fg-muted">Test koşumlarından bağlanan defektler ve retest durumu</p>
           </div>
           <RoleGuard minRole="member" projectId={projectId || undefined}>
-            <button
+            <Button
               type="button"
+              variant="primary"
               onClick={() => setShowCreate(true)}
               aria-label="Yeni defekt oluştur"
-              className="rounded-xl bg-brand px-4 py-2 text-[12px] font-semibold text-brand-fg hover:brightness-105 transition-colors"
+              className="text-[12px]"
             >
               + Yeni Defekt
-            </button>
+            </Button>
           </RoleGuard>
         </div>
 
@@ -1284,14 +1338,30 @@ export default function ManagementDefectsPage() {
 
           {/* Assigned to filter */}
           <label htmlFor="defect-assignee-filter" className="sr-only">Atanan kişi filtresi</label>
-          <input
-            id="defect-assignee-filter"
-            type="text"
-            value={assigneeF}
-            onChange={e => handleAssigneeChange(e.target.value)}
-            placeholder="Atanan kişi…"
-            className="rounded-xl border border-border bg-surface-overlay px-2.5 py-1.5 text-[10px] text-fg placeholder:text-fg-disabled outline-none focus:border-border-strong transition-colors"
-          />
+          {members.length > 0 ? (
+            <select
+              id="defect-assignee-filter"
+              value={assigneeF}
+              onChange={e => handleAssigneeChange(e.target.value)}
+              className="rounded-xl border border-border bg-surface-overlay px-2.5 py-1.5 text-[10px] text-fg outline-none focus:border-border-strong transition-colors"
+            >
+              <option value="">Tüm atamalar</option>
+              {members.map(m => (
+                <option key={m.user_id} value={m.user_id}>
+                  {m.full_name?.trim() || m.email}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <input
+              id="defect-assignee-filter"
+              type="text"
+              value={assigneeF}
+              onChange={e => handleAssigneeChange(e.target.value)}
+              placeholder="Atanan kişi…"
+              className="rounded-xl border border-border bg-surface-overlay px-2.5 py-1.5 text-[10px] text-fg placeholder:text-fg-disabled outline-none focus:border-border-strong transition-colors"
+            />
+          )}
 
           {/* My defects quick toggle */}
           <button
@@ -1356,10 +1426,10 @@ export default function ManagementDefectsPage() {
                 )}
               </p>
               {hasFilter && (
-                <button type="button" onClick={clearFilters}
-                  className="rounded-xl border border-border px-4 py-2 text-xs text-fg-muted hover:text-fg transition-colors">
+                <Button type="button" variant="outline" onClick={clearFilters}
+                  className="text-xs text-fg-muted hover:text-fg">
                   Filtreleri Temizle
-                </button>
+                </Button>
               )}
             </div>
           ) : (
@@ -1389,6 +1459,7 @@ export default function ManagementDefectsPage() {
                       onClick={() => setEditDefect(d)}
                       onDeleted={(_id: string) => {
                         toastCtx.success("Defect silindi");
+                        void defectsQuery.refetch();
                       }}
                       analysisResult={analysisResults[d.id]}
                       userIdMap={userIdMap}
@@ -1433,6 +1504,7 @@ export default function ManagementDefectsPage() {
             onDeleted={(_id: string) => {
               setEditDefect(null);
               toastCtx.success("Defect silindi");
+              void defectsQuery.refetch();
             }}
             onAnalysisResult={(defectId, result) => {
               setAnalysisResults(prev => ({ ...prev, [defectId]: result }));
@@ -1446,6 +1518,7 @@ export default function ManagementDefectsPage() {
         {showCreate && mpid && (
           <CreateDefectModal
             mpid={mpid}
+            existingTitles={rows.map(d => d.title)}
             onClose={() => setShowCreate(false)}
             onDone={() => { setShowCreate(false); void defectsQuery.refetch(); }}
           />

@@ -27,6 +27,32 @@ import { PerfPanel } from "./web/PerfPanel";
 const brand = PRODUCT_BRAND.web;
 const ZERO_STATE_TELEMETRY = DEMO_TELEMETRY.web;
 
+function DataModeNotice({ error, isDemo }: { error?: Error | null; isDemo?: boolean }) {
+  if (!isDemo && !error) return null;
+
+  return (
+    <section
+      className="rounded-2xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-950 shadow-sm dark:border-amber-500/25 dark:bg-amber-500/10 dark:text-amber-100"
+      role="status"
+      aria-live="polite"
+    >
+      <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p className="font-semibold">Bu ekrandaki bazı kartlar demo/fallback veriyle çalışıyor.</p>
+          <p className="mt-0.5 text-xs text-amber-800 dark:text-amber-100/80">
+            {error
+              ? `Canlı ürün telemetrisi alınamadı: ${error.message}`
+              : "Backend gerçek aggregation verisi sağlamadığında örnek veri gösteriliyor."}
+          </p>
+        </div>
+        <span className="w-fit rounded-full border border-amber-300 bg-white px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200">
+          Demo modu
+        </span>
+      </div>
+    </section>
+  );
+}
+
 // ─── Browser Cockpit ──────────────────────────────────────────────────────
 
 function BrowserCockpit({ browsers }: { browsers: BrowserStat[] }) {
@@ -198,9 +224,10 @@ function A11ySummary() {
   );
 }
 
-function formatProjectRecency(iso?: string) {
+function formatProjectRecency(iso?: string, now = Date.now()) {
   if (!iso) return "Guncellenme tarihi yok";
-  const diff = Date.now() - new Date(iso).getTime();
+  if (now <= 0) return "Guncelleme bilgisi mevcut";
+  const diff = now - new Date(iso).getTime();
   const mins = Math.floor(diff / 60000);
   if (mins < 60) return `${Math.max(1, mins)} dk once guncellendi`;
   const hrs = Math.floor(mins / 60);
@@ -212,6 +239,7 @@ function formatProjectRecency(iso?: string) {
 function WebProjectZeroState() {
   const { setProject } = useProject();
   const { data: projects, isLoading, error } = useProjects();
+  const renderNow = 0;
   const topProjects = [...(projects ?? [])]
     .sort((a, b) => {
       const aTs = new Date(a.updated_at ?? a.created_at ?? 0).getTime();
@@ -223,7 +251,7 @@ function WebProjectZeroState() {
   const firstPendingStep = ZERO_STATE_TELEMETRY.onboarding.find((step) => !step.done);
 
   return (
-    <div className="flex flex-col gap-6 p-6 pb-12">
+    <div className="flex flex-col gap-6 p-6 pb-12" data-product-page="web">
       <section className="rounded-[28px] border border-emerald-500/15 bg-[radial-gradient(circle_at_top_left,rgba(16,185,129,0.16),transparent_38%),linear-gradient(180deg,rgba(15,23,42,0.96),rgba(2,6,23,0.98))] p-6 shadow-[0_32px_120px_rgba(5,150,105,0.12)] lg:p-7">
         <div className="grid gap-6 xl:grid-cols-[1.35fr_0.95fr]">
           <div className="space-y-5">
@@ -402,7 +430,7 @@ function WebProjectZeroState() {
                           </span>
                         </div>
                         <p className="mt-2 text-[11px] text-slate-500">
-                          {formatProjectRecency(item.updated_at ?? item.created_at)}
+                          {formatProjectRecency(item.updated_at ?? item.created_at, renderNow)}
                         </p>
                       </button>
                     ))}
@@ -556,15 +584,17 @@ function WebProjectZeroState() {
 // ─── Main Component ───────────────────────────────────────────────────────
 
 export function WebProductPage() {
-  const { telemetry, loading, isDemo } = useProductTelemetry("web");
+  const { telemetry, loading, isDemo, error } = useProductTelemetry("web");
   const { project, projectId } = useProject();
 
   if (!projectId) return <WebProjectZeroState />;
 
   return (
-    <div className="flex flex-col gap-6 p-6 pb-12">
+    <div className="flex flex-col gap-6 p-6 pb-12" data-product-page="web">
       {/* ── Release Sağlığı (en üstte, karar bantı) ─── */}
       <ReleaseHealthBanner />
+
+      <DataModeNotice error={error} isDemo={isDemo} />
 
       {/* ── Slim Hero: proje + CTA'lar ───────────────── */}
       <section className="relative rounded-2xl border border-slate-800 bg-slate-900/60 px-5 py-4">
@@ -610,7 +640,9 @@ export function WebProductPage() {
       <MyInbox />
 
       {/* ── Şu an koşuyor + son fail ─────────────── */}
-      <LiveRunsPanel />
+      <div id="runs">
+        <LiveRunsPanel />
+      </div>
 
       {/* ── Performance / Core Web Vitals ───────── */}
       <div id="perf">
@@ -683,23 +715,23 @@ export function WebProductPage() {
       </section>
 
       {/* ── Stats ──────────────────────────────────── */}
-      <section>
+      <section id="stats">
         <p className="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-3">Web Metrikleri</p>
         <LiveStatsBar stats={telemetry?.stats ?? []} loading={loading} brandText={brand.text} />
       </section>
 
       {/* ── Visual Regression Wall ──────────────────── */}
-      <div className="rounded-2xl bg-slate-900 border border-slate-800 p-6">
+      <section id="visual" className="rounded-2xl bg-slate-900 border border-slate-800 p-6">
         <div className="flex items-center justify-between mb-5">
           <h2 className="text-sm font-semibold text-white">Görsel Regresyon Duvarı</h2>
           <span className="text-xs text-slate-400">4 değişiklik · 2 onaylandı bekleniyor</span>
         </div>
         <VisualRegressionWall />
-      </div>
+      </section>
 
       {/* ── Locator + A11y + Insights ─────────────── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="rounded-2xl bg-slate-900 border border-slate-800 p-6">
+        <div className="rounded-2xl bg-slate-900 border border-slate-800 p-6" id="a11y">
           <div className="flex items-center justify-between mb-5">
             <h2 className="text-sm font-semibold text-white">Locator Sağlığı</h2>
             <span className="text-xs text-slate-400">1847 toplam</span>

@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any, Generic, Optional, TypeVar
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 T = TypeVar("T")
 
@@ -517,6 +517,54 @@ class RunDetailOut(TestRunOut):
     run_cases: list[RunCaseOut] = Field(default_factory=list)
 
 
+class RunCompareItem(BaseModel):
+    case_id: Optional[str] = None
+    case_key: Optional[str] = None
+    title: str
+    priority: Optional[str] = None
+    base_status: Optional[str] = None
+    target_status: Optional[str] = None
+
+
+class RunCompareSummary(BaseModel):
+    id: str
+    name: str
+    status: str
+    environment: Optional[str] = None
+    total: int
+    passed: int
+    failed: int
+    pass_rate: float
+
+
+class RunCompareOut(BaseModel):
+    base: RunCompareSummary
+    target: RunCompareSummary
+    newly_failed: list[RunCompareItem] = Field(default_factory=list)
+    fixed: list[RunCompareItem] = Field(default_factory=list)
+    still_failing: list[RunCompareItem] = Field(default_factory=list)
+    new_cases: list[RunCompareItem] = Field(default_factory=list)
+    removed_cases: list[RunCompareItem] = Field(default_factory=list)
+
+
+class MyWorkItemOut(BaseModel):
+    """A single run-case assigned to the current user (My Work queue)."""
+
+    run_case_id: str
+    run_id: str
+    run_name: str
+    run_status: str
+    environment: Optional[str] = None
+    case_id: Optional[str] = None
+    case_key: Optional[str] = None
+    case_title: str
+    priority: Optional[str] = None
+    type: Optional[str] = None
+    status: str
+    started_at: Optional[datetime] = None
+    completed_at: Optional[datetime] = None
+
+
 class ExecutionSummaryOut(BaseModel):
     total: int
     not_run: int
@@ -707,6 +755,27 @@ class DefectLinkOut(BaseModel):
     verified_at: Optional[datetime] = None
     created_at: datetime
     updated_at: datetime
+
+
+class DefectSearchResult(BaseModel):
+    """A distinct defect (deduped by external_key) for the 'link existing' picker."""
+
+    defect_id: str
+    external_key: str
+    external_source: str
+    title: str
+    status: str
+    severity: str
+    priority: str
+    url: Optional[str] = None
+    root_cause: Optional[str] = None
+    link_count: int = 1
+
+
+class DefectLinkExistingRequest(BaseModel):
+    run_case_id: str
+    defect_id: str
+    step_result_id: Optional[str] = None
 
 
 class TestImportJobCreate(BaseModel):
@@ -1373,3 +1442,63 @@ class PlanImpactSummary(BaseModel):
     run_count: int
     run_case_count: int
     evidence_count: int
+
+
+# ── Exploratory testing sessions ────────────────────────────────────────────────
+
+EXPLORATION_NOTE_KINDS = ("note", "idea", "bug", "question", "risk")
+
+
+class ExplorationNoteIn(BaseModel):
+    kind: str = Field(default="note")
+    text: str = Field(..., min_length=1, max_length=4000)
+
+    @field_validator("kind")
+    @classmethod
+    def _valid_kind(cls, v: str) -> str:
+        return v if v in EXPLORATION_NOTE_KINDS else "note"
+
+
+class ExplorationNote(BaseModel):
+    id: str
+    ts: str
+    kind: str
+    text: str
+
+
+class ExplorationSessionCreate(BaseModel):
+    title: str = Field(..., min_length=1, max_length=300)
+    charter: Optional[str] = None
+    areas: Optional[str] = Field(default=None, max_length=500)
+    environment: Optional[str] = Field(default=None, max_length=120)
+    timebox_minutes: int = Field(default=60, ge=5, le=480)
+
+
+class ExplorationSessionUpdate(BaseModel):
+    title: Optional[str] = Field(default=None, min_length=1, max_length=300)
+    charter: Optional[str] = None
+    areas: Optional[str] = Field(default=None, max_length=500)
+    environment: Optional[str] = Field(default=None, max_length=120)
+    status: Optional[str] = None
+    timebox_minutes: Optional[int] = Field(default=None, ge=5, le=480)
+    elapsed_seconds: Optional[int] = Field(default=None, ge=0)
+
+
+class ExplorationSessionOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    project_id: str
+    title: str
+    charter: Optional[str] = None
+    areas: Optional[str] = None
+    environment: Optional[str] = None
+    status: str
+    timebox_minutes: int
+    elapsed_seconds: int
+    notes: list[ExplorationNote] = Field(default_factory=list)
+    tester_id: Optional[str] = None
+    started_at: Optional[datetime] = None
+    ended_at: Optional[datetime] = None
+    created_at: datetime
+    updated_at: datetime

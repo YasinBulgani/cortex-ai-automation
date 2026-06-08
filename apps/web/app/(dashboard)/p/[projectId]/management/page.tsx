@@ -14,7 +14,7 @@ export default function ManagementRoot() {
   }, [projectId, router]);
 
   return (
-    <div className="flex h-full items-center justify-center bg-bg">
+    <div className="flex h-full items-center justify-center bg-surface-base">
       <div className="h-4 w-4 animate-spin rounded-full border-2 border-border border-t-teal-500" />
     </div>
   );

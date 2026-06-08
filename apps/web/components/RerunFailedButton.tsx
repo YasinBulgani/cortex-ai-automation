@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
+import { Button } from "@/components/ui/button";
 import { apiFetch } from "@/lib/api";
 
 type Props = {
@@ -40,8 +41,10 @@ export function RerunFailedButton({ projectId, runId, hasFailed }: Props) {
 
   return (
     <div className="relative" data-testid="rerun-failed-button">
-      <button
+      <Button
         type="button"
+        variant="outline"
+        size="sm"
         onClick={onClick}
         disabled={!hasFailed || busy}
         title={
@@ -49,11 +52,11 @@ export function RerunFailedButton({ projectId, runId, hasFailed }: Props) {
             ? "Sadece başarısız senaryoları tekrar koş"
             : "Bu koşumda başarısız senaryo yok"
         }
-        className="flex items-center gap-1.5 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-1.5 text-xs text-amber-300 hover:bg-amber-500/20 transition disabled:opacity-30 disabled:cursor-not-allowed"
+        className="gap-1.5 border-amber-500/40 bg-amber-500/10 text-amber-300 hover:bg-amber-500/20 disabled:opacity-30"
         data-testid="rerun-failed-toggle"
       >
         {busy ? "…" : "↻ Sadece başarısızlar"}
-      </button>
+      </Button>
       {error && (
         <p
           className="absolute right-0 top-9 z-10 rounded border border-red-500/30 bg-red-500/10 px-2 py-1 text-[10px] text-red-300 whitespace-nowrap"

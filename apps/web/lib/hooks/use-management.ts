@@ -558,6 +558,8 @@ export const managementKeys = {
   settings: (projectId: string | undefined) => [...managementKeys.project(projectId), "settings"] as const,
   audit: (projectId: string | undefined) => [...managementKeys.project(projectId), "audit"] as const,
   myCases: (projectId: string | undefined) => [...managementKeys.project(projectId), "my-cases"] as const,
+  myWork: (projectId: string | undefined) => [...managementKeys.project(projectId), "my-work"] as const,
+  exploration: (projectId: string | undefined) => [...managementKeys.project(projectId), "exploration"] as const,
   tags: (projectId: string | undefined) => [...managementKeys.project(projectId), "tags"] as const,
 };
 
@@ -901,6 +903,155 @@ export function useManagementRuns(projectId: string | undefined, statusFilter?: 
   });
 }
 
+export interface MyWorkItem {
+  run_case_id: string;
+  run_id: string;
+  run_name: string;
+  run_status: string;
+  environment: string | null;
+  case_id: string | null;
+  case_key: string | null;
+  case_title: string;
+  priority: string | null;
+  type: string | null;
+  status: string;
+  started_at: string | null;
+  completed_at: string | null;
+}
+
+/** Run-case'ler içinde mevcut kullanıcıya atanmış işler (My Work kuyruğu). */
+export function useMyWork(projectId: string | undefined, scope: "open" | "all" = "open") {
+  return useQuery({
+    queryKey: [...managementKeys.myWork(projectId), scope] as const,
+    queryFn: () =>
+      apiFetch<MyWorkItem[]>(`${BASE(projectId!)}/my-work?scope=${scope}`),
+    enabled: !!projectId,
+    staleTime: 15_000,
+  });
+}
+
+export interface RunCompareItem {
+  case_id: string | null;
+  case_key: string | null;
+  title: string;
+  priority: string | null;
+  base_status: string | null;
+  target_status: string | null;
+}
+export interface RunCompareSummary {
+  id: string;
+  name: string;
+  status: string;
+  environment: string | null;
+  total: number;
+  passed: number;
+  failed: number;
+  pass_rate: number;
+}
+export interface RunCompare {
+  base: RunCompareSummary;
+  target: RunCompareSummary;
+  newly_failed: RunCompareItem[];
+  fixed: RunCompareItem[];
+  still_failing: RunCompareItem[];
+  new_cases: RunCompareItem[];
+  removed_cases: RunCompareItem[];
+}
+
+/** İki test koşusunu karşılaştır (regresyon farkı). */
+export function useCompareRuns(projectId: string | undefined, baseId: string | undefined, targetId: string | undefined) {
+  return useQuery({
+    queryKey: [...managementKeys.runs(projectId), "compare", baseId, targetId] as const,
+    queryFn: () =>
+      apiFetch<RunCompare>(
+        `${BASE(projectId!)}/run-compare?base=${encodeURIComponent(baseId!)}&target=${encodeURIComponent(targetId!)}`,
+      ),
+    enabled: !!projectId && !!baseId && !!targetId && baseId !== targetId,
+    staleTime: 15_000,
+  });
+}
+
+// ── Exploratory testing sessions ────────────────────────────────────────────────
+
+export type ExplorationNoteKind = "note" | "idea" | "bug" | "question" | "risk";
+export interface ExplorationNote {
+  id: string;
+  ts: string;
+  kind: ExplorationNoteKind;
+  text: string;
+}
+export interface ExplorationSession {
+  id: string;
+  project_id: string;
+  title: string;
+  charter: string | null;
+  areas: string | null;
+  environment: string | null;
+  status: string;
+  timebox_minutes: number;
+  elapsed_seconds: number;
+  notes: ExplorationNote[];
+  tester_id: string | null;
+  started_at: string | null;
+  ended_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export function useExplorationSessions(projectId: string | undefined) {
+  return useQuery({
+    queryKey: managementKeys.exploration(projectId),
+    queryFn: () => apiFetch<ExplorationSession[]>(`${BASE(projectId!)}/exploration-sessions`),
+    enabled: !!projectId,
+    staleTime: 15_000,
+  });
+}
+
+export function useCreateExplorationSession(projectId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: { title: string; charter?: string | null; areas?: string | null; environment?: string | null; timebox_minutes?: number }) =>
+      apiFetch<ExplorationSession>(`${BASE(projectId)}/exploration-sessions`, { method: "POST", json: payload }),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: managementKeys.exploration(projectId) }),
+  });
+}
+
+export function useUpdateExplorationSession(projectId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ sessionId, ...patch }: { sessionId: string } & Partial<Pick<ExplorationSession, "title" | "charter" | "areas" | "environment" | "status" | "timebox_minutes" | "elapsed_seconds">>) =>
+      apiFetch<ExplorationSession>(`${BASE(projectId)}/exploration-sessions/${sessionId}`, { method: "PATCH", json: patch }),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: managementKeys.exploration(projectId) }),
+  });
+}
+
+export function useAddExplorationNote(projectId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ sessionId, kind, text }: { sessionId: string; kind: ExplorationNoteKind; text: string }) =>
+      apiFetch<ExplorationSession>(`${BASE(projectId)}/exploration-sessions/${sessionId}/notes`, { method: "POST", json: { kind, text } }),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: managementKeys.exploration(projectId) }),
+  });
+}
+
+export function useDeleteExplorationNote(projectId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ sessionId, noteId }: { sessionId: string; noteId: string }) =>
+      apiFetch<ExplorationSession>(`${BASE(projectId)}/exploration-sessions/${sessionId}/notes/${noteId}`, { method: "DELETE" }),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: managementKeys.exploration(projectId) }),
+  });
+}
+
+export function useDeleteExplorationSession(projectId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (sessionId: string) =>
+      apiFetch<void>(`${BASE(projectId)}/exploration-sessions/${sessionId}`, { method: "DELETE" }),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: managementKeys.exploration(projectId) }),
+  });
+}
+
 export function useRegressionSets(projectId: string | undefined) {
   return useQuery({
     queryKey: managementKeys.regressionSets(projectId),
@@ -1133,6 +1284,48 @@ export function useCreateManagementDefect(projectId: string) {
   return useMutation({
     mutationFn: (payload: CreateDefectInput) =>
       apiFetch<DefectLink>(`${BASE(projectId)}/defects`, {
+        method: "POST",
+        json: payload,
+      }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: managementKeys.defects(projectId) });
+      void qc.invalidateQueries({ queryKey: managementKeys.summary(projectId) });
+    },
+  });
+}
+
+export interface DefectSearchResult {
+  defect_id: string;
+  external_key: string;
+  external_source: string;
+  title: string;
+  status: string;
+  severity: string;
+  priority: string;
+  url: string | null;
+  root_cause: string | null;
+  link_count: number;
+}
+
+/** Mevcut defect'leri (external_key bazında tekil) ara — "mevcut defect bağla" için. */
+export function useSearchDefects(projectId: string | undefined, q: string, enabled = true) {
+  return useQuery({
+    queryKey: [...managementKeys.defects(projectId), "search", q] as const,
+    queryFn: () =>
+      apiFetch<DefectSearchResult[]>(
+        `${BASE(projectId!)}/defects/search${q.trim() ? `?q=${encodeURIComponent(q.trim())}` : ""}`,
+      ),
+    enabled: !!projectId && enabled,
+    staleTime: 10_000,
+  });
+}
+
+/** Mevcut bir defect'i başarısız bir run-case'e bağla. */
+export function useLinkExistingDefect(projectId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: { run_case_id: string; defect_id: string; step_result_id?: string | null }) =>
+      apiFetch<DefectLink>(`${BASE(projectId)}/defects/link-existing`, {
         method: "POST",
         json: payload,
       }),

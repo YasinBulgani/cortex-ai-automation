@@ -1,5 +1,7 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
+
 import type { SimulationState } from "./useFlowSimulation";
 
 interface SimulationLog {
@@ -62,52 +64,64 @@ export function SimulationPanel({
 
         <div className="flex items-center gap-2">
           {simState === "idle" && (
-            <button
+            <Button
+              variant="primary"
+              size="sm"
               onClick={onRun}
-              className="flex items-center gap-1.5 rounded-md bg-emerald-500 text-white px-3 py-1 text-xs font-medium hover:bg-emerald-600 transition-colors"
+              className="gap-1.5 bg-emerald-500 text-white hover:bg-emerald-600"
             >
               <span>▶</span> Çalıştır
-            </button>
+            </Button>
           )}
           {simState === "running" && (
             <>
-              <button
+              <Button
+                variant="primary"
+                size="sm"
                 onClick={onPause}
-                className="flex items-center gap-1.5 rounded-md bg-amber-500 text-white px-3 py-1 text-xs font-medium hover:bg-amber-600 transition-colors"
+                className="gap-1.5 bg-amber-500 text-white hover:bg-amber-600"
               >
                 <span>⏸</span> Duraklat
-              </button>
-              <button
+              </Button>
+              <Button
+                variant="destructive"
+                size="sm"
                 onClick={onStop}
-                className="flex items-center gap-1.5 rounded-md bg-red-500 text-white px-3 py-1 text-xs font-medium hover:bg-red-600 transition-colors"
+                className="gap-1.5 bg-red-500 text-white hover:bg-red-600"
               >
                 <span>⏹</span> Durdur
-              </button>
+              </Button>
             </>
           )}
           {simState === "paused" && (
             <>
-              <button
+              <Button
+                variant="primary"
+                size="sm"
                 onClick={onResume}
-                className="flex items-center gap-1.5 rounded-md bg-emerald-500 text-white px-3 py-1 text-xs font-medium hover:bg-emerald-600 transition-colors"
+                className="gap-1.5 bg-emerald-500 text-white hover:bg-emerald-600"
               >
                 <span>▶</span> Devam Et
-              </button>
-              <button
+              </Button>
+              <Button
+                variant="destructive"
+                size="sm"
                 onClick={onStop}
-                className="flex items-center gap-1.5 rounded-md bg-red-500 text-white px-3 py-1 text-xs font-medium hover:bg-red-600 transition-colors"
+                className="gap-1.5 bg-red-500 text-white hover:bg-red-600"
               >
                 <span>⏹</span> Durdur
-              </button>
+              </Button>
             </>
           )}
           {(simState === "completed" || simState === "error") && (
-            <button
+            <Button
+              variant="secondary"
+              size="sm"
               onClick={onReset}
-              className="flex items-center gap-1.5 rounded-md bg-gray-500 text-white px-3 py-1 text-xs font-medium hover:bg-gray-600 transition-colors"
+              className="gap-1.5 bg-gray-500 text-white hover:bg-gray-600"
             >
               <span>↻</span> Sıfırla
-            </button>
+            </Button>
           )}
           <button
             onClick={onClose}

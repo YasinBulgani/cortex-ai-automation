@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useState } from "react";
 
+import { Button } from "@/components/ui/button";
+
 // Engine proxy hits Next.js /api/engine/* which forwards to Flask :5001
 // with the X-Internal-Key server-side. Keeps the secret out of the browser.
 async function engineProxy<T>(
@@ -152,12 +154,14 @@ export function RecorderStudio() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <button
+          <Button
+            variant="primary"
+            size="sm"
             onClick={() => setStartOpen(true)}
-            className="text-[11px] px-2.5 py-1.5 rounded-lg bg-emerald-500 text-white font-semibold hover:bg-emerald-400"
+            className="text-[11px] bg-emerald-500 text-white font-semibold hover:bg-emerald-400"
           >
             + Yeni Kayıt
-          </button>
+          </Button>
           <button
             onClick={() => void fetchSessions()}
             className="text-[11px] px-2.5 py-1.5 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 border border-slate-700"
@@ -246,13 +250,15 @@ export function RecorderStudio() {
                     {f.label}
                   </button>
                 ))}
-                <button
+                <Button
+                  variant="primary"
+                  size="sm"
                   onClick={() => void generateCode()}
                   disabled={generating}
-                  className="ml-auto text-[11px] px-3 py-1 rounded-lg bg-gradient-to-r from-rose-500 to-pink-600 text-white font-semibold hover:opacity-90 disabled:opacity-40"
+                  className="ml-auto text-[11px] bg-gradient-to-r from-rose-500 to-pink-600 text-white font-semibold hover:opacity-90"
                 >
                   {generating ? "Üretiliyor…" : "Kod Üret"}
-                </button>
+                </Button>
               </div>
 
               {/* Generated code */}
@@ -267,21 +273,25 @@ export function RecorderStudio() {
 {generated.code}
                     </pre>
                     <div className="px-4 py-2 border-t border-slate-800 flex items-center justify-end gap-2">
-                      <button
+                      <Button
+                        variant="secondary"
+                        size="sm"
                         onClick={() => navigator.clipboard?.writeText(generated.code)}
-                        className="text-[11px] px-2.5 py-1 rounded-md bg-slate-800 text-slate-300 hover:bg-slate-700"
+                        className="text-[11px] bg-slate-800 text-slate-300 hover:bg-slate-700"
                       >
                         Kopyala
-                      </button>
-                      <button
+                      </Button>
+                      <Button
+                        variant="primary"
+                        size="sm"
                         onClick={() => {
                           const ext = FORMATS.find((f) => f.key === generated.format)?.ext ?? ".txt";
                           downloadText(generated.code, `${selected.name}_${generated.format}${ext}`);
                         }}
-                        className="text-[11px] px-2.5 py-1 rounded-md bg-emerald-500 text-white font-medium hover:bg-emerald-400"
+                        className="text-[11px] bg-emerald-500 text-white font-medium hover:bg-emerald-400"
                       >
                         ↓ İndir
-                      </button>
+                      </Button>
                     </div>
                   </>
                 )}
@@ -345,12 +355,13 @@ function StartRecordingDialog({
                 Bittiğinde "Stop" çağrısı yap.
               </p>
             </div>
-            <button
+            <Button
+              variant="primary"
               onClick={onStarted}
-              className="w-full px-4 py-2 rounded-lg bg-emerald-500 text-white text-sm font-semibold hover:bg-emerald-400"
+              className="w-full bg-emerald-500 text-white text-sm font-semibold hover:bg-emerald-400"
             >
               Tamam
-            </button>
+            </Button>
           </div>
         ) : (
           <>
@@ -389,19 +400,23 @@ function StartRecordingDialog({
             )}
 
             <div className="flex items-center justify-end gap-2">
-              <button
+              <Button
+                variant="ghost"
+                size="sm"
                 onClick={onClose}
-                className="px-3 py-1.5 rounded-lg text-sm text-slate-300 hover:bg-slate-800"
+                className="text-sm text-slate-300 hover:bg-slate-800"
               >
                 İptal
-              </button>
-              <button
+              </Button>
+              <Button
+                variant="primary"
+                size="sm"
                 onClick={() => void start()}
                 disabled={!name.trim() || busy}
-                className="px-4 py-1.5 rounded-lg bg-gradient-to-r from-rose-500 to-pink-600 text-white text-sm font-semibold hover:opacity-90 disabled:opacity-40"
+                className="bg-gradient-to-r from-rose-500 to-pink-600 text-white text-sm font-semibold hover:opacity-90"
               >
                 {busy ? "Başlatılıyor…" : "Başlat"}
-              </button>
+              </Button>
             </div>
           </>
         )}

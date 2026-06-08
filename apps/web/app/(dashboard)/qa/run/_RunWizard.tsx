@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { apiFetch } from "@/lib/api-client";
+import { Button } from "@/components/ui/button";
 
 type Plan = {
   id: string;
@@ -162,13 +163,15 @@ export default function RunWizard() {
             <Field label="Env" value={env.env} onChange={(v) => setEnv({ ...env, env: v })} />
             <Field label="URL (opsiyonel)" value={env.url} onChange={(v) => setEnv({ ...env, url: v })} />
           </div>
-          <button
+          <Button
+            variant="primary"
+            size="sm"
             onClick={startExecution}
             disabled={scoped.length === 0}
-            className="mt-2 rounded bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+            className="mt-2"
           >
             Koşumu başlat ({scoped.length} TC)
-          </button>
+          </Button>
         </div>
       </div>
     );
@@ -190,19 +193,21 @@ export default function RunWizard() {
         </div>
         <TCExecutor tc={tc} current={current} onRecord={recordResult} />
         <div className="mt-3 flex items-center justify-between text-xs text-gray-500">
-          <button
+          <Button
+            variant="outline"
+            size="sm"
             disabled={currentIdx === 0}
             onClick={() => setCurrentIdx(currentIdx - 1)}
-            className="rounded border border-gray-200 px-3 py-1 hover:bg-gray-50 disabled:opacity-50"
           >
             ← Önceki
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
             onClick={() => setStep("review")}
-            className="rounded border border-gray-200 px-3 py-1 hover:bg-gray-50"
           >
             Tümünü gözden geçir →
-          </button>
+          </Button>
         </div>
       </div>
     );
@@ -249,16 +254,18 @@ export default function RunWizard() {
           </div>
         )}
         <div className="mt-4 flex gap-2">
-          <button
+          <Button
+            variant="primary"
+            size="sm"
             onClick={saveRun}
             disabled={saving}
-            className="rounded bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-60"
+            className="bg-green-600 text-white hover:bg-green-700"
           >
             {saving ? "Kaydediliyor..." : "✓ Run YAML olarak kaydet"}
-          </button>
-          <button onClick={() => setStep("execute")} className="rounded border border-gray-200 px-4 py-2 text-sm hover:bg-gray-50">
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => setStep("execute")}>
             ← Koşuma geri dön
-          </button>
+          </Button>
         </div>
       </div>
     );
@@ -279,7 +286,9 @@ export default function RunWizard() {
         <a href="/qa" className="rounded bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">
           Dashboard'a dön
         </a>
-        <button
+        <Button
+          variant="outline"
+          size="sm"
           onClick={() => {
             setStep("pick-plan");
             setChosenPlan(null);
@@ -287,10 +296,9 @@ export default function RunWizard() {
             setCurrentIdx(0);
             setSavedRunId(null);
           }}
-          className="rounded border border-gray-200 px-4 py-2 text-sm hover:bg-gray-50"
         >
           Yeni koşum
-        </button>
+        </Button>
       </div>
     </div>
   );

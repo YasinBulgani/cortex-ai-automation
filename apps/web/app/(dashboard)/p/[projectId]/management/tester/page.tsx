@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useMyTesterCases, type MyTesterCase } from "@/lib/hooks/use-management";
 import { useManagementProjectId } from "@/lib/hooks/use-management-project-id";
 import { useRouteParam } from "@/lib/use-route-param";
@@ -90,7 +90,7 @@ function CaseCard({ c, projectId }: { c: MyTesterCase; projectId: string }) {
           {c.status === "not_run" && (
             <Link
               href={`/p/${projectId}/management/runs/${c.run_id}/execute`}
-              className="rounded-lg bg-brand hover:brightness-105 px-3 py-1.5 text-xs font-semibold text-white transition-colors"
+              className="rounded-lg bg-brand hover:brightness-105 px-3 py-1.5 text-xs font-semibold text-brand-fg transition-colors"
             >
               Başlat →
             </Link>
@@ -109,6 +109,8 @@ function CaseCard({ c, projectId }: { c: MyTesterCase; projectId: string }) {
   );
 }
 
+const PRIO_ORDER: Record<string, number> = { P0: 0, P1: 1, P2: 2, P3: 3 };
+
 export default function TesterHomePage() {
   const projectId = useRouteParam("projectId") ?? "";
   const mpid      = useManagementProjectId(projectId || undefined);
@@ -116,16 +118,36 @@ export default function TesterHomePage() {
 
   const { data: cases = [], isLoading, isError, refetch } = useMyTesterCases(mpid || undefined);
 
-  const filtered = filter === "all" ? cases : cases.filter((c) => c.status === filter);
   const pending  = cases.filter((c) => c.status === "not_run").length;
   const done     = cases.filter((c) => ["passed", "skipped"].includes(c.status)).length;
   const failed   = cases.filter((c) => c.status === "failed").length;
-  const pct      = cases.length > 0 ? Math.round((done / cases.length) * 100) : 0;
+  const blocked  = cases.filter((c) => c.status === "blocked").length;
+  const total    = cases.length;
 
-  const nextCase = cases.find((c) => c.status === "not_run");
+  // Sort not_run by priority (P0 first), then others by creation order
+  const filtered = useMemo(() => {
+    const list = filter === "all" ? cases : cases.filter((c) => c.status === filter);
+    if (filter === "not_run" || filter === "all") {
+      return [...list].sort((a, b) => {
+        if (a.status === "not_run" && b.status !== "not_run") return -1;
+        if (a.status !== "not_run" && b.status === "not_run") return 1;
+        return (PRIO_ORDER[a.priority] ?? 9) - (PRIO_ORDER[b.priority] ?? 9);
+      });
+    }
+    return list;
+  }, [cases, filter]);
+
+  // Next case = highest priority not_run
+  const nextCase = useMemo(() =>
+    [...cases]
+      .filter(c => c.status === "not_run")
+      .sort((a, b) => (PRIO_ORDER[a.priority] ?? 9) - (PRIO_ORDER[b.priority] ?? 9))[0] ?? null
+  , [cases]);
+
+  const pct = total > 0 ? Math.round((done / total) * 100) : 0;
 
   return (
-    <div className="min-h-full bg-bg px-5 py-5 space-y-5">
+    <div className="min-h-full bg-surface-base px-5 py-5 space-y-5">
       {/* Hata durumunda belirgin hata kartı */}
       {isError && (
         <div className="rounded-xl border border-red-500/40 bg-red-500/10 p-6 flex flex-col items-center gap-4 text-center">
@@ -149,10 +171,10 @@ export default function TesterHomePage() {
       {!isError && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {[
-            { label: "Toplam",      value: cases.length, color: "text-fg" },
-            { label: "Bekliyor",    value: pending,      color: "text-amber-400" },
-            { label: "Tamamlandı", value: done,          color: "text-emerald-400" },
-            { label: "Başarısız",  value: failed,        color: "text-red-400" },
+            { label: "Toplam",      value: total,   color: "text-fg" },
+            { label: "Bekliyor",    value: pending, color: "text-amber-400" },
+            { label: "Tamamlandı", value: done,     color: "text-emerald-400" },
+            { label: "Başarısız",  value: failed,   color: "text-red-400" },
           ].map((stat) => (
             <div key={stat.label} className="rounded-xl border border-border bg-surface-raised p-4 text-center">
               <p className={`text-2xl font-bold ${stat.color}`}>{isLoading ? "…" : stat.value}</p>
@@ -162,20 +184,25 @@ export default function TesterHomePage() {
         </div>
       )}
 
-      {/* Genel ilerleme çubuğu */}
-      {!isLoading && cases.length > 0 && (
+      {/* Stacked ilerleme çubuğu */}
+      {!isLoading && total > 0 && (
         <div className="rounded-xl border border-border bg-surface-raised p-4 space-y-2">
           <div className="flex justify-between text-sm">
-            <span className="text-fg-muted font-medium">Bugünkü İlerleme</span>
-            <span className="text-teal-400 font-bold">{pct}%</span>
+            <span className="text-fg-muted font-medium">İlerleme</span>
+            <span className="text-teal-400 font-bold">{pct}% tamamlandı</span>
           </div>
-          <div className="h-3 rounded-full bg-surface-overlay overflow-hidden">
-            <div
-              className="h-full rounded-full bg-teal-500 transition-all duration-700"
-              style={{ width: `${pct}%` }}
-            />
+          <div className="flex h-3 overflow-hidden rounded-full bg-surface-overlay">
+            {done    > 0 && <div className="bg-emerald-500/80 transition-all duration-700" style={{ width: `${(done    / total) * 100}%` }} title={`${done} tamamlandı`}/>}
+            {failed  > 0 && <div className="bg-red-500/80    transition-all duration-700" style={{ width: `${(failed  / total) * 100}%` }} title={`${failed} başarısız`}/>}
+            {blocked > 0 && <div className="bg-amber-500/60  transition-all duration-700" style={{ width: `${(blocked / total) * 100}%` }} title={`${blocked} bloke`}/>}
+            {pending > 0 && <div className="bg-surface-accent transition-all duration-700" style={{ width: `${(pending / total) * 100}%` }} title={`${pending} bekliyor`}/>}
           </div>
-          <p className="text-xs text-fg-subtle">{done} tamamlandı · {pending} bekliyor · {failed} başarısız</p>
+          <div className="flex flex-wrap gap-3 text-[11px] text-fg-subtle">
+            {done    > 0 && <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-emerald-500/80 inline-block"/>{done} tamamlandı</span>}
+            {failed  > 0 && <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-red-500/80 inline-block"/>{failed} başarısız</span>}
+            {blocked > 0 && <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-amber-500/60 inline-block"/>{blocked} bloke</span>}
+            {pending > 0 && <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-surface-accent inline-block border border-border"/>{pending} bekliyor</span>}
+          </div>
         </div>
       )}
 
@@ -193,7 +220,7 @@ export default function TesterHomePage() {
             </div>
             <Link
               href={`/p/${projectId}/management/runs/${nextCase.run_id}/execute`}
-              className="shrink-0 rounded-xl bg-brand hover:brightness-105 px-5 py-2.5 text-sm font-bold text-white transition-colors"
+              className="shrink-0 rounded-xl bg-brand hover:brightness-105 px-5 py-2.5 text-sm font-bold text-brand-fg transition-colors"
             >
               Başlat →
             </Link>
@@ -212,7 +239,7 @@ export default function TesterHomePage() {
             onClick={() => setFilter(f)}
             className={`rounded-full px-4 py-1.5 text-xs font-medium transition-colors ${
               filter === f
-                ? "bg-brand text-white"
+                ? "bg-brand text-brand-fg"
                 : "bg-surface-overlay text-fg-muted hover:bg-surface-overlay"
             }`}
           >

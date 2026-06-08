@@ -25,15 +25,20 @@ export function useProductTelemetry(productId: ProductFamilyId): {
     try {
       const data = await apiFetch<ProductTelemetry>(`/api/v1/products/${productId}/telemetry`);
       if (!isMounted.current) return;
-      setTelemetry({ ...data, isDemo: false });
-      setIsDemo(false);
+      const dataModeIsDemo = Boolean(
+        data.isDemo ||
+        (data as ProductTelemetry & { demo_mode?: boolean; _demo?: unknown }).demo_mode ||
+        (data as ProductTelemetry & { _demo?: unknown })._demo,
+      );
+      setTelemetry({ ...data, isDemo: dataModeIsDemo });
+      setIsDemo(dataModeIsDemo);
       setError(null);
-    } catch {
+    } catch (err) {
       if (!isMounted.current) return;
       const demo = DEMO_TELEMETRY[productId];
       setTelemetry(demo ?? null);
       setIsDemo(true);
-      setError(null);
+      setError(err instanceof Error ? err : new Error("Ürün telemetri endpoint'i yanıt vermedi"));
     } finally {
       if (isMounted.current) setLoading(false);
     }

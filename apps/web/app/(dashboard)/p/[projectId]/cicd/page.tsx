@@ -5,6 +5,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { useRouteParam } from "@/lib/use-route-param";
 import { FlowGuideCard } from "@/components/FlowGuideCard";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { apiFetch, ENGINE_BASE } from "@/lib/api";
 import {
   PageHeader,
@@ -283,10 +285,10 @@ function EngineWebhookPanel() {
                 <input type="password" className={`${inputCls} font-mono`} placeholder="ghp_xxxx..." value={cfg.github_token} onChange={e => setCfg({...cfg, github_token: e.target.value})} />
               </div>
             </div>
-            <button onClick={saveConfig} disabled={saving}
-              className={`px-4 py-1.5 text-xs font-semibold rounded-lg transition-colors ${saved ? "bg-emerald-600 text-white" : "bg-blue-600 hover:bg-blue-500 text-white disabled:opacity-50"}`}>
+            <Button variant="primary" size="sm" onClick={saveConfig} disabled={saving}
+              className={cn(saved && "bg-emerald-600 hover:bg-emerald-600 text-white")}>
               {saved ? "✓ Kaydedildi" : saving ? "Kaydediliyor…" : "Kaydet"}
-            </button>
+            </Button>
           </div>
         )}
 
@@ -383,14 +385,16 @@ export default function CicdPage() {
         title="CI/CD Entegrasyonu"
         description="GitHub, GitLab ve Jenkins'ten otomatik test tetiklemeleri"
         right={
-          <button
+          <Button
+            variant="primary"
+            size="sm"
             onClick={handleManualTrigger}
             disabled={triggering}
-            className="flex items-center gap-2 px-4 py-1.5 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-500 rounded-xl transition-colors disabled:opacity-50"
+            className="gap-2"
           >
             {triggering ? <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : null}
             {triggering ? "Tetikleniyor…" : "Manuel Tetikle (Smoke)"}
-          </button>
+          </Button>
         }
       />
 

@@ -9,6 +9,7 @@ import { PageFeedbackWidget } from "@/components/PageFeedbackWidget";
 import { engineFetch, ENGINE_BASE } from "@/lib/api-client";
 import { cn } from "@/lib/utils";
 import { FlowGuideCard } from "@/components/FlowGuideCard";
+import { Button } from "@/components/ui/button";
 
 interface DeviceProfile {
   name: string;
@@ -548,13 +549,14 @@ function WifiAdbPanel() {
             onKeyDown={(e) => e.key === "Enter" && handleConnect()}
             className="flex-1 rounded-lg border border-slate-700 bg-slate-800 px-3 py-1.5 text-sm text-white placeholder-slate-600 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
           />
-          <button
+          <Button
+            variant="primary"
             onClick={handleConnect}
             disabled={connecting || !wifiIp.trim()}
-            className="rounded-lg bg-blue-600 px-4 py-1.5 text-sm font-semibold text-white hover:bg-blue-500 disabled:opacity-50"
+            className="h-auto bg-blue-600 px-4 py-1.5 text-sm font-semibold text-white hover:bg-blue-500"
           >
             {connecting ? "Bağlanıyor…" : "Bağlan"}
-          </button>
+          </Button>
         </div>
         {connectResult && (
           <p className={`text-xs font-medium ${connectResult.startsWith("✓") ? "text-emerald-400" : "text-red-400"}`}>
@@ -983,14 +985,16 @@ export default function NeurexFarmPage() {
                 </span>
               </div>
               <div className="flex gap-2">
-                <button
+                <Button
+                  variant="outline"
+                  size="sm"
                   type="button"
                   onClick={() => setLiveRefreshCount(c => c + 1)}
                   disabled={liveLoading}
-                  className="rounded-lg border border-slate-700 bg-slate-800/60 px-3 py-1.5 text-xs text-slate-300 hover:border-slate-500 hover:text-white transition disabled:opacity-50"
+                  className="border-slate-700 bg-slate-800/60 px-3 text-xs text-slate-300 hover:border-slate-500 hover:text-white"
                 >
                   ↺ Yenile
-                </button>
+                </Button>
                 <Link
                   href={`/p/${projectId}/device-manager`}
                   className="rounded-lg border border-purple-500/30 bg-purple-500/10 px-3 py-1.5 text-xs text-purple-200 hover:bg-purple-500/20 transition"
@@ -1094,12 +1098,13 @@ export default function NeurexFarmPage() {
                     </div>
 
                     <div className="flex items-center gap-3">
-                      <button
+                      <Button
+                        variant="primary"
                         type="button"
                         onClick={liveRunning ? undefined : handleLiveRun}
                         disabled={!liveRunning && selectedLiveCount === 0}
                         className={cn(
-                          "flex items-center gap-2 rounded-lg px-5 py-2.5 text-sm font-semibold transition-colors",
+                          "gap-2 px-5 py-2.5 h-auto font-semibold",
                           liveRunning
                             ? "bg-red-700 hover:bg-red-600 text-white"
                             : selectedLiveCount > 0
@@ -1112,7 +1117,7 @@ export default function NeurexFarmPage() {
                         ) : (
                           <>▶ {selectedLiveCount > 1 ? `${selectedLiveCount} Cihazda Koştur` : "Koştur"}</>
                         )}
-                      </button>
+                      </Button>
                       {selectedLiveCount > 0 && !liveRunning && (
                         <span className="text-slate-500 text-sm">{selectedLiveCount} cihaz seçili</span>
                       )}
@@ -1239,13 +1244,14 @@ export default function NeurexFarmPage() {
 
               {/* Aksiyon butonları */}
               <div className="flex items-center gap-3">
-                <button
+                <Button
+                  variant="primary"
                   type="button"
                   onClick={running ? handleStop : handleRun}
                   disabled={!running && selectedCount === 0}
                   data-testid="run-btn"
                   className={cn(
-                    "flex items-center gap-2 rounded-lg px-5 py-2.5 text-sm font-semibold transition-colors",
+                    "gap-2 px-5 py-2.5 h-auto font-semibold",
                     running
                       ? "bg-red-700 hover:bg-red-600 text-white"
                       : selectedCount > 0
@@ -1263,7 +1269,7 @@ export default function NeurexFarmPage() {
                       ▶ {selectedCount > 1 ? `${selectedCount} Cihazda Paralel Koştur` : "Koştur"}
                     </>
                   )}
-                </button>
+                </Button>
                 {selectedCount > 0 && !running && (
                   <span className="text-slate-500 text-sm">{selectedCount} cihaz seçili</span>
                 )}

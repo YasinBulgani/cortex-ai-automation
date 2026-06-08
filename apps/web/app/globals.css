@@ -238,11 +238,23 @@ html:not(.dark) [role="separator"] {
  * ─────────────────────────────────────────────────────────────────────── */
 
 /* ── Backgrounds ───────────────────────────────────────────────────────── */
+/* slate, gray ve neutral aileleri aynı şekilde ele alınır — sadece KOYU tonlar
+ * (600+) light moda map edilir; açık tonlar (50/100/200) zaten light'ta doğru. */
 html:not(.dark) [class*="bg-slate-950"],
-html:not(.dark) [class*="bg-slate-900"] { background-color: var(--surface-raised)  !important; }
-html:not(.dark) [class*="bg-slate-800"] { background-color: var(--surface-overlay) !important; }
-html:not(.dark) [class*="bg-slate-700"] { background-color: var(--surface-accent)  !important; }
-html:not(.dark) [class*="bg-slate-600"] { background-color: var(--surface-accent)  !important; }
+html:not(.dark) [class*="bg-slate-900"],
+html:not(.dark) [class*="bg-gray-950"],
+html:not(.dark) [class*="bg-gray-900"],
+html:not(.dark) [class*="bg-neutral-950"],
+html:not(.dark) [class*="bg-neutral-900"] { background-color: var(--surface-raised)  !important; }
+html:not(.dark) [class*="bg-slate-800"],
+html:not(.dark) [class*="bg-gray-800"],
+html:not(.dark) [class*="bg-neutral-800"] { background-color: var(--surface-overlay) !important; }
+html:not(.dark) [class*="bg-slate-700"],
+html:not(.dark) [class*="bg-slate-600"],
+html:not(.dark) [class*="bg-gray-700"],
+html:not(.dark) [class*="bg-gray-600"],
+html:not(.dark) [class*="bg-neutral-700"],
+html:not(.dark) [class*="bg-neutral-600"] { background-color: var(--surface-accent)  !important; }
 
 /* Custom hex dark values — tüm yaygın dark hex tonları */
 html:not(.dark) [class*="bg-[#0d1117]"],
@@ -265,12 +277,26 @@ html:not(.dark) [class*="bg-white/[0.3"] { background-color: var(--surface-accen
 html:not(.dark) [class*="bg-black/"]  { background-color: rgb(0 0 0 / 0.06) !important; }
 
 /* ── Text: invisible/low-contrast-in-light → readable ───────────────────── */
-html:not(.dark) [class*="text-slate-100"] { color: var(--fg)       !important; }
-html:not(.dark) [class*="text-slate-200"] { color: var(--fg)       !important; }
-html:not(.dark) [class*="text-slate-300"] { color: var(--fg-muted) !important; }
-html:not(.dark) [class*="text-slate-400"] { color: var(--fg-muted) !important; }
-html:not(.dark) [class*="text-slate-500"] { color: var(--fg-subtle) !important; }
-html:not(.dark) [class*="text-slate-600"] { color: var(--fg-subtle) !important; }
+/* Açık tonlar (100-200) light zeminde görünmez → koyu metne; orta tonlar
+ * (300-600) → muted/subtle. gray + neutral aileleri slate ile birebir. */
+html:not(.dark) [class*="text-slate-100"],
+html:not(.dark) [class*="text-gray-100"],
+html:not(.dark) [class*="text-neutral-100"] { color: var(--fg)       !important; }
+html:not(.dark) [class*="text-slate-200"],
+html:not(.dark) [class*="text-gray-200"],
+html:not(.dark) [class*="text-neutral-200"] { color: var(--fg)       !important; }
+html:not(.dark) [class*="text-slate-300"],
+html:not(.dark) [class*="text-gray-300"],
+html:not(.dark) [class*="text-neutral-300"] { color: var(--fg-muted) !important; }
+html:not(.dark) [class*="text-slate-400"],
+html:not(.dark) [class*="text-gray-400"],
+html:not(.dark) [class*="text-neutral-400"] { color: var(--fg-muted) !important; }
+html:not(.dark) [class*="text-slate-500"],
+html:not(.dark) [class*="text-gray-500"],
+html:not(.dark) [class*="text-neutral-500"] { color: var(--fg-subtle) !important; }
+html:not(.dark) [class*="text-slate-600"],
+html:not(.dark) [class*="text-gray-600"],
+html:not(.dark) [class*="text-neutral-600"] { color: var(--fg-subtle) !important; }
 
 /* Placeholder */
 html:not(.dark) [class*="placeholder-slate-5"],
@@ -279,6 +305,10 @@ html:not(.dark) [class*="placeholder-slate-6"] { --tw-placeholder-opacity: 1; co
 /* ── Borders ────────────────────────────────────────────────────────────── */
 html:not(.dark) [class*="border-slate-700"],
 html:not(.dark) [class*="border-slate-800"],
+html:not(.dark) [class*="border-gray-700"],
+html:not(.dark) [class*="border-gray-800"],
+html:not(.dark) [class*="border-neutral-700"],
+html:not(.dark) [class*="border-neutral-800"],
 html:not(.dark) [class*="border-[#1c"],
 html:not(.dark) [class*="border-[#2a"] { border-color: var(--border) !important; }
 
@@ -288,7 +318,135 @@ html:not(.dark) [class*="ring-slate-8"] { --tw-ring-color: var(--border) !import
 
 /* ── Divide ─────────────────────────────────────────────────────────────── */
 html:not(.dark) [class*="divide-slate-7"],
-html:not(.dark) [class*="divide-slate-8"] { border-color: var(--border) !important; }
+html:not(.dark) [class*="divide-slate-8"],
+html:not(.dark) [class*="divide-gray-7"],
+html:not(.dark) [class*="divide-gray-8"] { border-color: var(--border) !important; }
+
+/* ── DARK MODE light-first rescue ─────────────────────────────────────────
+ * Light-first yazılmış bileşenler (özellikle qa/* ve bazı public sayfalar)
+ * dark: varyantı olmadan açık renkler kullanıyor. Bu proje varsayılan KOYU
+ * temada açılır → o bileşenler parlak beyaz blok + okunmaz koyu metin olur.
+ * Light fallback'in simetriği: açık zemin/koyu metin/açık border'ları koyu
+ * semantic token'lara map et. Açık tonlar dark-native kodda kullanılmaz, bu
+ * yüzden blast radius dar; bg-white/NN gibi overlay'ler hariç tutulur.
+ * ─────────────────────────────────────────────────────────────────────── */
+
+/* Açık zemin → koyu yüzey */
+html.dark [class*="bg-slate-50"],
+html.dark [class*="bg-gray-50"],
+html.dark [class*="bg-neutral-50"],
+html.dark [class*="bg-slate-100"],
+html.dark [class*="bg-gray-100"],
+html.dark [class*="bg-neutral-100"] { background-color: var(--surface-overlay) !important; }
+html.dark [class*="bg-slate-200"],
+html.dark [class*="bg-gray-200"],
+html.dark [class*="bg-neutral-200"] { background-color: var(--surface-accent) !important; }
+/* Bare bg-white (opacity'siz) → kart yüzeyi; bg-white/NN overlay'ler korunur */
+html.dark [class~="bg-white"] { background-color: var(--surface-raised) !important; }
+
+/* Koyu metin → okunabilir açık metin */
+html.dark [class*="text-slate-900"],
+html.dark [class*="text-gray-900"],
+html.dark [class*="text-neutral-900"],
+html.dark [class*="text-slate-800"],
+html.dark [class*="text-gray-800"],
+html.dark [class*="text-neutral-800"] { color: var(--fg) !important; }
+html.dark [class*="text-slate-700"],
+html.dark [class*="text-gray-700"],
+html.dark [class*="text-neutral-700"],
+html.dark [class*="text-slate-600"],
+html.dark [class*="text-gray-600"],
+html.dark [class*="text-neutral-600"] { color: var(--fg-muted) !important; }
+html.dark [class*="text-gray-500"],
+html.dark [class*="text-neutral-500"] { color: var(--fg-subtle) !important; }
+
+/* Açık border → koyu border */
+html.dark [class*="border-slate-100"],
+html.dark [class*="border-gray-100"],
+html.dark [class*="border-neutral-100"],
+html.dark [class*="border-slate-200"],
+html.dark [class*="border-gray-200"],
+html.dark [class*="border-neutral-200"],
+html.dark [class*="border-slate-300"],
+html.dark [class*="border-gray-300"],
+html.dark [class*="border-neutral-300"] { border-color: var(--border) !important; }
+
+/* Açık divide → koyu */
+html.dark [class*="divide-gray-1"],
+html.dark [class*="divide-gray-2"],
+html.dark [class*="divide-slate-1"],
+html.dark [class*="divide-slate-2"] { border-color: var(--border) !important; }
+
+/* ── Product Web page rescue ───────────────────────────────────────────────
+ * /products/web hâlâ dark-first dashboard parçaları içeriyor. Bu hedefli katman
+ * light mode'da kartları ve metni okunur tutar; dark mode'a dokunmaz.
+ */
+html:not(.dark) [data-product-page="web"] {
+  color: var(--fg);
+}
+
+html:not(.dark) [data-product-page="web"] .text-white {
+  color: var(--fg) !important;
+}
+
+html:not(.dark) [data-product-page="web"] .text-white-subtle {
+  color: var(--fg-muted) !important;
+}
+
+html:not(.dark) [data-product-page="web"] [class*="bg-slate-900"],
+html:not(.dark) [data-product-page="web"] [class*="bg-slate-950"] {
+  background-color: var(--surface-raised) !important;
+}
+
+html:not(.dark) [data-product-page="web"] [class*="border-slate-800"],
+html:not(.dark) [data-product-page="web"] [class*="border-slate-700"] {
+  border-color: var(--border) !important;
+}
+
+html:not(.dark) [data-product-page="web"] [class*="shadow-"] {
+  --tw-shadow-color: rgb(15 23 42 / 0.08) !important;
+}
+
+/* ── Pastel semantic-renk badge'leri (light-first) → koyu subtle tint ────────
+ * "bg-red-100 text-red-700" gibi rozetler dark: varyantı olmadan yazılmış;
+ * koyu modda parlak pastel blok olur. Pastel zemini (50/100/200) ilgili
+ * *-subtle token'a, koyu accent metni (600-900) okunabilir solid renge map et.
+ * Solid butonlar (bg-*-500/600) ve açık accent metin (-300/-400) etkilenmez. */
+html.dark [class*="bg-red-50"],    html.dark [class*="bg-red-100"],    html.dark [class*="bg-red-200"],
+html.dark [class*="bg-rose-50"],   html.dark [class*="bg-rose-100"],   html.dark [class*="bg-rose-200"] { background-color: var(--danger-subtle) !important; }
+html.dark [class*="bg-green-50"],   html.dark [class*="bg-green-100"],   html.dark [class*="bg-green-200"],
+html.dark [class*="bg-emerald-50"], html.dark [class*="bg-emerald-100"], html.dark [class*="bg-emerald-200"],
+html.dark [class*="bg-teal-50"],    html.dark [class*="bg-teal-100"],    html.dark [class*="bg-teal-200"],
+html.dark [class*="bg-lime-50"],    html.dark [class*="bg-lime-100"],    html.dark [class*="bg-lime-200"] { background-color: var(--success-subtle) !important; }
+html.dark [class*="bg-amber-50"],  html.dark [class*="bg-amber-100"],  html.dark [class*="bg-amber-200"],
+html.dark [class*="bg-yellow-50"], html.dark [class*="bg-yellow-100"], html.dark [class*="bg-yellow-200"],
+html.dark [class*="bg-orange-50"], html.dark [class*="bg-orange-100"], html.dark [class*="bg-orange-200"] { background-color: var(--warning-subtle) !important; }
+html.dark [class*="bg-blue-50"],   html.dark [class*="bg-blue-100"],   html.dark [class*="bg-blue-200"],
+html.dark [class*="bg-sky-50"],    html.dark [class*="bg-sky-100"],    html.dark [class*="bg-sky-200"],
+html.dark [class*="bg-cyan-50"],   html.dark [class*="bg-cyan-100"],   html.dark [class*="bg-cyan-200"],
+html.dark [class*="bg-indigo-50"], html.dark [class*="bg-indigo-100"], html.dark [class*="bg-indigo-200"] { background-color: var(--info-subtle) !important; }
+html.dark [class*="bg-purple-50"], html.dark [class*="bg-purple-100"], html.dark [class*="bg-purple-200"],
+html.dark [class*="bg-violet-50"], html.dark [class*="bg-violet-100"], html.dark [class*="bg-violet-200"],
+html.dark [class*="bg-pink-50"],   html.dark [class*="bg-pink-100"],   html.dark [class*="bg-pink-200"] { background-color: var(--ai-subtle) !important; }
+
+/* Koyu accent metni → okunabilir solid status rengi (subtle zemin üstünde) */
+html.dark [class*="text-red-900"], html.dark [class*="text-red-800"], html.dark [class*="text-red-700"], html.dark [class*="text-red-600"],
+html.dark [class*="text-rose-900"], html.dark [class*="text-rose-800"], html.dark [class*="text-rose-700"], html.dark [class*="text-rose-600"] { color: var(--danger) !important; }
+html.dark [class*="text-green-900"], html.dark [class*="text-green-800"], html.dark [class*="text-green-700"], html.dark [class*="text-green-600"],
+html.dark [class*="text-emerald-900"], html.dark [class*="text-emerald-800"], html.dark [class*="text-emerald-700"], html.dark [class*="text-emerald-600"] { color: var(--success) !important; }
+html.dark [class*="text-amber-900"], html.dark [class*="text-amber-800"], html.dark [class*="text-amber-700"], html.dark [class*="text-amber-600"],
+html.dark [class*="text-yellow-900"], html.dark [class*="text-yellow-800"], html.dark [class*="text-yellow-700"], html.dark [class*="text-yellow-600"],
+html.dark [class*="text-orange-900"], html.dark [class*="text-orange-800"], html.dark [class*="text-orange-700"], html.dark [class*="text-orange-600"] { color: var(--warning) !important; }
+html.dark [class*="text-blue-900"], html.dark [class*="text-blue-800"], html.dark [class*="text-blue-700"],
+html.dark [class*="text-indigo-900"], html.dark [class*="text-indigo-800"], html.dark [class*="text-indigo-700"] { color: var(--info) !important; }
+html.dark [class*="text-purple-900"], html.dark [class*="text-purple-800"], html.dark [class*="text-purple-700"],
+html.dark [class*="text-violet-900"], html.dark [class*="text-violet-800"], html.dark [class*="text-violet-700"] { color: var(--ai) !important; }
+
+/* Pastel accent border'lar → ilgili subtle (görünürlük için border korunur) */
+html.dark [class*="border-red-200"], html.dark [class*="border-rose-200"] { border-color: var(--danger-subtle) !important; }
+html.dark [class*="border-green-200"], html.dark [class*="border-emerald-200"] { border-color: var(--success-subtle) !important; }
+html.dark [class*="border-amber-200"], html.dark [class*="border-yellow-200"], html.dark [class*="border-orange-200"] { border-color: var(--warning-subtle) !important; }
+html.dark [class*="border-blue-200"], html.dark [class*="border-sky-200"], html.dark [class*="border-indigo-200"] { border-color: var(--info-subtle) !important; }
 
 @media (prefers-reduced-motion: reduce) {
   @keyframes shimmer {

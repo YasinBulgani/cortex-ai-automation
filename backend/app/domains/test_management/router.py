@@ -54,8 +54,10 @@ from app.domains.test_management.schemas import (
     CaseReviewOut,
     CaseReviewSubmitRequest,
     DefectLinkCreate,
+    DefectLinkExistingRequest,
     DefectLinkOut,
     DefectLinkUpdate,
+    DefectSearchResult,
     DefectRootCauseRequest,
     DefectRootCauseResponse,
     DesignRunOut,
@@ -64,6 +66,12 @@ from app.domains.test_management.schemas import (
     PairwiseRunCreate,
     EvidenceOut,
     ExecutionSummaryOut,
+    ExplorationNoteIn,
+    ExplorationSessionCreate,
+    ExplorationSessionOut,
+    ExplorationSessionUpdate,
+    MyWorkItemOut,
+    RunCompareOut,
     ExpandCaseResponse,
     FlakyTestOut,
     FlakyTestsResponse,
@@ -356,9 +364,9 @@ def test_sso_endpoint(
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Bu hedefe SSO testi yapılamaz (iç ağ adresi)")
 
     try:
-        response = httpx.head(payload.sso_url, timeout=8.0, follow_redirects=True)
+        response = httpx.head(payload.sso_url, timeout=8.0, follow_redirects=False)
         if response.status_code in {405, 501}:
-            response = httpx.get(payload.sso_url, timeout=8.0, follow_redirects=True)
+            response = httpx.get(payload.sso_url, timeout=8.0, follow_redirects=False)
     except httpx.HTTPError as exc:
         return SsoTestResponse(ok=False, message=f"SSO URL yoklanamadı: {exc}")
 
@@ -834,10 +842,13 @@ def list_flaky_cases(
     threshold: float = Query(default=0.2, ge=0.0, le=1.0, description="Minimum flakiness skoru (0-1)"),
     min_runs: int = Query(default=3, ge=1, description="Minimum koşum sayısı"),
     limit: int = Query(default=50, ge=1, le=200),
+    include_manual: bool = Query(default=False, description="Saf manuel case'leri de dahil et (varsayılan: hariç)"),
     db: DB = ...,
     _user: ReadUser = ...,
 ) -> FlakyTestsResponse:
-    result = service.list_flaky_cases(db, project_id, threshold=threshold, min_runs=min_runs, limit=limit)
+    result = service.list_flaky_cases(
+        db, project_id, threshold=threshold, min_runs=min_runs, limit=limit, include_manual=include_manual
+    )
     return FlakyTestsResponse(
         items=[FlakyTestOut.model_validate(c) for c in result["items"]],
         total=result["total"],
@@ -1213,6 +1224,24 @@ def get_run(project_id: str, run_id: str, db: DB, _user: ReadUser) -> RunDetailO
     return service.get_run(db, project_id, run_id)
 
 
+@router.get(
+    "/projects/{project_id}/run-compare",
+    response_model=RunCompareOut,
+    summary="İki test koşusunu karşılaştır (yeni bozulanlar / düzelenler / hâlâ başarısız)",
+)
+def compare_runs(
+    project_id: str,
+    db: DB,
+    _user: ReadUser,
+    base: str = Query(..., description="Temel (eski) run id"),
+    target: str = Query(..., description="Karşılaştırılan (yeni) run id"),
+) -> RunCompareOut:
+    try:
+        return RunCompareOut(**service.compare_runs(db, project_id, base, target))
+    except KeyError as e:
+        raise HTTPException(status_code=404, detail=str(e)) from e
+
+
 @router.patch("/projects/{project_id}/run-cases/{run_case_id}", response_model=RunCaseOut)
 def update_run_case(
     project_id: str,
@@ -1277,6 +1306,99 @@ def stats_dashboard(project_id: str, db: DB, _user: ReadUser) -> dict:
     Use /reports/dashboard-summary for the full metric set (pass_rate, coverage, etc.).
     """
     return service.dashboard_summary_fast(db, project_id)
+
+
+@router.get(
+    "/projects/{project_id}/my-work",
+    response_model=list[MyWorkItemOut],
+    summary="Run-case'ler içinde mevcut kullanıcıya atanmış işler (My Work kuyruğu)",
+)
+def my_work(
+    project_id: str,
+    db: DB,
+    user: ReadUser,
+    scope: str = Query(default="open", pattern="^(open|all)$"),
+) -> list[MyWorkItemOut]:
+    """Tüm run'lar boyunca giriş yapan kullanıcıya atanmış test case'leri döndürür.
+
+    scope=open → sadece yapılacak işler (not_run/running, run tamamlanmamış)
+    scope=all  → atanmış tüm run-case'ler
+    """
+    items = service.list_my_work(db, project_id, str(user.id), scope=scope)
+    return [MyWorkItemOut(**item) for item in items]
+
+
+# ── Exploratory testing sessions ────────────────────────────────────────────────
+
+@router.get("/projects/{project_id}/exploration-sessions", response_model=list[ExplorationSessionOut])
+def list_exploration_sessions(project_id: str, db: DB, _user: ReadUser) -> list[ExplorationSessionOut]:
+    return service.list_exploration_sessions(db, project_id)
+
+
+@router.post(
+    "/projects/{project_id}/exploration-sessions",
+    response_model=ExplorationSessionOut,
+    status_code=status.HTTP_201_CREATED,
+)
+def create_exploration_session(
+    project_id: str, payload: ExplorationSessionCreate, db: DB, user: WriteUser
+) -> ExplorationSessionOut:
+    return service.create_exploration_session(db, project_id, payload, user)
+
+
+@router.get("/projects/{project_id}/exploration-sessions/{session_id}", response_model=ExplorationSessionOut)
+def get_exploration_session(project_id: str, session_id: str, db: DB, _user: ReadUser) -> ExplorationSessionOut:
+    try:
+        return service.get_exploration_session(db, project_id, session_id)
+    except KeyError as e:
+        raise HTTPException(status_code=404, detail=str(e)) from e
+
+
+@router.patch("/projects/{project_id}/exploration-sessions/{session_id}", response_model=ExplorationSessionOut)
+def update_exploration_session(
+    project_id: str, session_id: str, payload: ExplorationSessionUpdate, db: DB, user: WriteUser
+) -> ExplorationSessionOut:
+    try:
+        return service.update_exploration_session(db, project_id, session_id, payload, user)
+    except KeyError as e:
+        raise HTTPException(status_code=404, detail=str(e)) from e
+
+
+@router.post(
+    "/projects/{project_id}/exploration-sessions/{session_id}/notes",
+    response_model=ExplorationSessionOut,
+)
+def add_exploration_note(
+    project_id: str, session_id: str, payload: ExplorationNoteIn, db: DB, user: WriteUser
+) -> ExplorationSessionOut:
+    try:
+        return service.add_exploration_note(db, project_id, session_id, payload, user)
+    except KeyError as e:
+        raise HTTPException(status_code=404, detail=str(e)) from e
+
+
+@router.delete(
+    "/projects/{project_id}/exploration-sessions/{session_id}/notes/{note_id}",
+    response_model=ExplorationSessionOut,
+)
+def delete_exploration_note(
+    project_id: str, session_id: str, note_id: str, db: DB, user: WriteUser
+) -> ExplorationSessionOut:
+    try:
+        return service.delete_exploration_note(db, project_id, session_id, note_id, user)
+    except KeyError as e:
+        raise HTTPException(status_code=404, detail=str(e)) from e
+
+
+@router.delete(
+    "/projects/{project_id}/exploration-sessions/{session_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+def delete_exploration_session(project_id: str, session_id: str, db: DB, user: WriteUser) -> None:
+    try:
+        service.delete_exploration_session(db, project_id, session_id, user)
+    except KeyError as e:
+        raise HTTPException(status_code=404, detail=str(e)) from e
 
 
 @router.get("/projects/{project_id}/reports/execution-summary", response_model=ExecutionSummaryOut)
@@ -1472,6 +1594,36 @@ def list_defect_links(
 )
 def create_defect_link(project_id: str, payload: DefectLinkCreate, db: DB, user: WriteUser) -> DefectLinkOut:
     return service.create_defect_link(db, project_id, payload, user)
+
+
+@router.get(
+    "/projects/{project_id}/defects/search",
+    response_model=list[DefectSearchResult],
+    summary="Mevcut defect'leri ara (external_key bazında tekilleştirilmiş) — 'mevcut defect bağla' için",
+)
+def search_defects(
+    project_id: str,
+    db: DB,
+    _user: ReadUser,
+    q: Optional[str] = Query(default=None, description="Başlık veya defect anahtarı araması"),
+    limit: int = Query(default=20, ge=1, le=100),
+) -> list[DefectSearchResult]:
+    return [DefectSearchResult(**item) for item in service.search_defects(db, project_id, q=q, limit=limit)]
+
+
+@router.post(
+    "/projects/{project_id}/defects/link-existing",
+    response_model=DefectLinkOut,
+    status_code=status.HTTP_201_CREATED,
+    summary="Mevcut bir defect'i başarısız bir run-case'e bağla (aynı bug birden çok case'i düşürdüğünde)",
+)
+def link_existing_defect(project_id: str, payload: DefectLinkExistingRequest, db: DB, user: WriteUser) -> DefectLinkOut:
+    try:
+        return service.link_existing_defect(
+            db, project_id, payload.run_case_id, payload.defect_id, payload.step_result_id, user
+        )
+    except KeyError as e:
+        raise HTTPException(status_code=404, detail=str(e)) from e
 
 
 @router.patch("/projects/{project_id}/defects/{defect_id}", response_model=DefectLinkOut)

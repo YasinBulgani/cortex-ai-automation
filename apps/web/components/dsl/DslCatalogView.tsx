@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Button } from "@/components/ui/button";
 import {
   useDslActions,
   useDslCategories,
@@ -276,7 +277,7 @@ function KeyboardShortcutsModal({ onClose }: { onClose: () => void }) {
             </span>
             <h3 className="font-semibold text-white">Klavye Kısayolları</h3>
           </div>
-          <button
+          <Button variant="ghost" size="icon"
             type="button"
             onClick={onClose}
             className={`flex h-6 w-6 items-center justify-center rounded-md border border-slate-700 bg-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-600 ring-1 ring-inset ring-white/[0.04] transition-all active:scale-90 ${FOCUS_RING}`}
@@ -284,7 +285,7 @@ function KeyboardShortcutsModal({ onClose }: { onClose: () => void }) {
             <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="h-2.5 w-2.5">
               <path d="M2.5 2.5l5 5M7.5 2.5l-5 5" />
             </svg>
-          </button>
+          </Button>
         </div>
         <div className="divide-y divide-slate-800/60 overflow-hidden rounded-b-xl">
           {groups.map(({ label, items }) => (
@@ -322,7 +323,7 @@ function KeyboardShortcutsModal({ onClose }: { onClose: () => void }) {
 function ShareButton() {
   const [shared, setShared] = useState(false);
   return (
-    <button
+    <Button variant="ghost" size="sm"
       type="button"
       onClick={() => {
         navigator.clipboard.writeText(window.location.href).then(() => {
@@ -350,7 +351,7 @@ function ShareButton() {
           <span>Paylaş</span>
         </>
       )}
-    </button>
+    </Button>
   );
 }
 
@@ -452,7 +453,7 @@ function ActionCard({
           />
         )}
         {/* BDD keyword + primary alias */}
-        <button
+        <Button variant="ghost" size="sm"
           type="button"
           onClick={() => onOpen(action)}
           className={`min-w-0 flex-1 truncate text-left font-mono text-xs ${isDeprecated ? "line-through text-slate-500" : "text-white hover:text-blue-200"} ${FOCUS_RING}`}
@@ -465,7 +466,7 @@ function ActionCard({
             </span>
           )}
           {highlight ? renderHighlight(primary, highlight) : renderParams(primary)}
-        </button>
+        </Button>
         {/* Category dot + label */}
         <span className="hidden shrink-0 items-center gap-1 text-[10px] text-slate-600 sm:flex">
           <span className={`h-1.5 w-1.5 rounded-full ${CATEGORY_DOTS[action.category.split(".")[0]] ?? "bg-slate-500"}`} />
@@ -497,7 +498,7 @@ function ActionCard({
           </span>
         )}
         {/* Copy ID + favorite */}
-        <button
+        <Button variant="ghost" size="icon"
           type="button"
           onClick={copyId}
           className={`shrink-0 flex items-center justify-center rounded p-0.5 transition-all active:scale-75 opacity-0 group-hover:opacity-100 ${FOCUS_RING} ${
@@ -515,9 +516,9 @@ function ActionCard({
               <path d="M3 1h6v7" />
             </svg>
           )}
-        </button>
+        </Button>
         {onToggleFavorite && (
-          <button
+          <Button variant="ghost" size="icon"
             type="button"
             onClick={(e) => { e.stopPropagation(); onToggleFavorite(action.id); }}
             className={`shrink-0 flex items-center justify-center p-0.5 transition-all active:scale-75 ${FOCUS_RING} ${
@@ -529,7 +530,7 @@ function ActionCard({
             <svg viewBox="0 0 10 10" fill={isFavorite ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" className="h-2.5 w-2.5">
               <path d="M5 1l1.2 2.5L9 3.8l-2 2 .5 2.7L5 7.2 2.5 8.5 3 5.8 1 3.8l2.8-.3L5 1z" />
             </svg>
-          </button>
+          </Button>
         )}
       </div>
     );
@@ -570,7 +571,7 @@ function ActionCard({
           aria-hidden="true"
         />
       )}
-      <button
+      <Button variant="ghost" size="default"
         type="button"
         onClick={() => onOpen(action)}
         className={`relative flex flex-col gap-2 p-4 text-left ${FOCUS_RING}`}
@@ -675,7 +676,7 @@ function ActionCard({
         {/* ID row with copy button + alias counts */}
         <div className="flex items-center gap-1.5">
           <span className="font-mono text-xs truncate">{renderActionId(action.id)}</span>
-          <button
+          <Button variant="ghost" size="icon"
             type="button"
             onClick={copyId}
             className={`shrink-0 flex items-center justify-center rounded p-0.5 opacity-0 transition-all active:scale-75 group-hover:opacity-100 hover:bg-slate-800 ${FOCUS_RING} ${
@@ -693,8 +694,8 @@ function ActionCard({
                 <path d="M3 1h6v7" />
               </svg>
             )}
-          </button>
-          <button
+          </Button>
+          <Button variant="ghost" size="sm"
             type="button"
             onClick={copyBdd}
             className={`shrink-0 rounded border px-1.5 py-0.5 text-[9px] font-semibold opacity-0 transition-all active:scale-[0.94] group-hover:opacity-100 ring-1 ring-inset ${FOCUS_RING} ${
@@ -715,9 +716,9 @@ function ActionCard({
                 <path d="M2 5.5l2 2 4-4" />
               </svg>
             ) : "BDD"}
-          </button>
+          </Button>
           {onToggleFavorite && (
-            <button
+            <Button variant="ghost" size="icon"
               type="button"
               onClick={(e) => { e.stopPropagation(); onToggleFavorite(action.id); }}
               className={`shrink-0 flex items-center justify-center rounded p-0.5 transition-all active:scale-75 ${FOCUS_RING} ${
@@ -732,7 +733,7 @@ function ActionCard({
               <svg viewBox="0 0 10 10" fill={isFavorite ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" className="h-3 w-3">
                 <path d="M5 1l1.2 2.5L9 3.8l-2 2 .5 2.7L5 7.2 2.5 8.5 3 5.8 1 3.8l2.8-.3L5 1z" />
               </svg>
-            </button>
+            </Button>
           )}
           <span className="ml-auto flex shrink-0 items-center gap-1 text-[10px]">
             {trCount > 0 && (
@@ -810,13 +811,13 @@ function ActionCard({
             </div>
           </div>
         )}
-      </button>
+      </Button>
 
       {/* Tags footer */}
       {visibleTags.length > 0 && (
         <div className="flex flex-wrap items-center gap-1 border-t border-slate-800/60 px-4 py-2">
           {visibleTags.map((tag) => (
-            <button
+            <Button variant="ghost" size="sm"
               key={tag}
               type="button"
               onClick={(e) => { e.stopPropagation(); onTagClick?.(tag); }}
@@ -827,7 +828,7 @@ function ActionCard({
               }`}
             >
               #{tag}
-            </button>
+            </Button>
           ))}
           {(action.tags?.length ?? 0) > 5 && (
             <span className="text-[10px] text-slate-600">
@@ -856,7 +857,7 @@ function ActionCard({
             Yardımcı oldu mu?
           </span>
           <div className="flex items-center gap-1">
-            <button
+            <Button variant="ghost" size="sm"
               type="button"
               onClick={(e) => { e.stopPropagation(); onVote("up"); }}
               className={`flex items-center gap-1 rounded border px-2 py-0.5 text-[10px] transition-all active:scale-90 ring-1 ring-inset shadow-sm shadow-black/10 ${FOCUS_RING} ${
@@ -872,8 +873,8 @@ function ActionCard({
                 <path d="M5 1.5L8 5.5H6.5v3h-3v-3H2L5 1.5z" />
               </svg>
               {votedAs === "up" && <span>Yararlı</span>}
-            </button>
-            <button
+            </Button>
+            <Button variant="ghost" size="sm"
               type="button"
               onClick={(e) => { e.stopPropagation(); onVote("down"); }}
               className={`flex items-center gap-1 rounded border px-2 py-0.5 text-[10px] transition-all active:scale-90 ring-1 ring-inset shadow-sm shadow-black/10 ${FOCUS_RING} ${
@@ -889,7 +890,7 @@ function ActionCard({
                 <path d="M5 8.5L2 4.5H3.5v-3h3v3H8L5 8.5z" />
               </svg>
               {votedAs === "down" && <span>Yararsız</span>}
-            </button>
+            </Button>
           </div>
         </div>
       )}
@@ -993,14 +994,14 @@ function AiStatusBanner({
         <span>AI indeksi henüz hazır değil — alias araması kullanılıyor</span>
       </span>
       <span className="text-amber-900/60">·</span>
-      <button
+      <Button variant="ghost" size="sm"
         type="button"
         onClick={() => navigator.clipboard.writeText("/api/v1/dsl/index/rebuild").then(() => {})}
         className={`font-mono text-[10px] text-amber-800/70 hover:text-amber-600/80 transition-all active:scale-95 ${FOCUS_RING}`}
         title="Yolu kopyala"
       >
         /api/v1/dsl/index/rebuild
-      </button>
+      </Button>
     </div>
   );
 }
@@ -1222,7 +1223,7 @@ function AiAliasSuggestSection({ actionId }: { actionId: string }) {
             className="w-14 rounded-md border border-slate-700 bg-slate-900 px-2 py-1 text-xs text-white shadow-inner shadow-black/10 focus:outline-none focus:border-violet-500/40 focus:ring-1 focus:ring-violet-500/20 ring-1 ring-inset ring-white/[0.03] transition-colors"
           />
         </label>
-        <button
+        <Button variant="primary" size="sm"
           type="button"
           onClick={onGenerate}
           disabled={gen.isPending}
@@ -1250,7 +1251,7 @@ function AiAliasSuggestSection({ actionId }: { actionId: string }) {
               AI&apos;dan üret
             </span>
           )}
-        </button>
+        </Button>
       </div>
 
       {gen.isPending && (
@@ -1283,7 +1284,7 @@ function AiAliasSuggestSection({ actionId }: { actionId: string }) {
               <ul className="space-y-1">
                 {lastResult.accepted.map((a) => (
                   <li key={a}>
-                    <button
+                    <Button variant="ghost" size="sm"
                       type="button"
                       onClick={() => {
                         navigator.clipboard.writeText(a).then(() => {
@@ -1300,7 +1301,7 @@ function AiAliasSuggestSection({ actionId }: { actionId: string }) {
                           <path d="M3 1h6v7" />
                         </svg>
                       </span>
-                    </button>
+                    </Button>
                   </li>
                 ))}
               </ul>
@@ -1546,14 +1547,14 @@ function ActionDetail({
                 </span>
               )}
               {onCategoryClick ? (
-                <button
+                <Button variant="ghost" size="sm"
                   type="button"
                   onClick={() => onCategoryClick(action.category.split(".")[0])}
                   className={`${BADGE_CLS} border-slate-700/80 bg-slate-800/80 text-slate-300 hover:bg-slate-700 hover:text-white hover:border-slate-600 transition-all active:scale-[0.94] ring-1 ring-inset ring-white/[0.04] hover:ring-white/[0.06] ${FOCUS_RING}`}
                   title={`${action.category} kategorisine filtrele`}
                 >
                   {getCategoryLabel(action.category)}
-                </button>
+                </Button>
               ) : (
                 <span className={`${BADGE_CLS} border-slate-700 bg-slate-800 text-slate-300 ring-1 ring-inset ring-white/[0.03]`}>
                   {getCategoryLabel(action.category)}
@@ -1581,7 +1582,7 @@ function ActionDetail({
                 </span>
               )}
             </div>
-            <button
+            <Button variant="ghost" size="default"
               type="button"
               onClick={() => copy(action.id, "id", "ID kopyalandı ✓")}
               className={`group/id mt-2 break-all text-left font-mono text-base font-semibold transition-all active:scale-[0.98] hover:text-blue-200 ${FOCUS_RING}`}
@@ -1602,7 +1603,7 @@ function ActionDetail({
                   </svg>
                 )}
               </span>
-            </button>
+            </Button>
             {action.since && (() => {
               const isNew = /\b(202[4-9]|0\.[89]|1\.[0-4])\b/.test(action.since);
               return (
@@ -1652,13 +1653,13 @@ function ActionDetail({
                     Doldur &amp; Kopyala
                   </span>
                   {Object.values(paramValues).some(Boolean) && (
-                    <button
+                    <Button variant="ghost" size="sm"
                       type="button"
                       onClick={() => setParamValues({})}
                       className={`ml-auto text-[10px] text-slate-600 hover:text-slate-400 transition-all active:scale-95 ${FOCUS_RING}`}
                     >
                       Temizle
-                    </button>
+                    </Button>
                   )}
                 </div>
                 <div className="flex flex-wrap gap-1.5">
@@ -1690,7 +1691,7 @@ function ActionDetail({
                       }`}>{detailKw}</span>
                       {fillGherkin(detailPrimary, paramValues)}
                     </div>
-                    <button
+                    <Button variant="ghost" size="sm"
                       type="button"
                       onClick={() => copy(`${detailKw} ${fillGherkin(detailPrimary, paramValues)}`, "param-filled", "Doldurulmuş adım kopyalandı ✓")}
                       className={`flex shrink-0 items-center justify-center rounded border px-2 py-1 transition-all active:scale-90 ring-1 ring-inset shadow-sm shadow-black/10 ${FOCUS_RING} ${
@@ -1710,7 +1711,7 @@ function ActionDetail({
                           <path d="M3 1h6v7" />
                         </svg>
                       )}
-                    </button>
+                    </Button>
                   </div>
                 )}
               </div>
@@ -1740,7 +1741,7 @@ function ActionDetail({
                       )}
                     </div>
                     {depReplacement && (
-                      <button
+                      <Button variant="ghost-danger" size="sm"
                         type="button"
                         onClick={() => copy(depReplacement, "deprecated-replacement", "Yeni cümlecik ID'si kopyalandı ✓")}
                         className={`shrink-0 rounded border border-red-700/30 bg-red-900/20 px-1.5 py-0.5 text-[10px] transition-all active:scale-90 hover:bg-red-900/40 ring-1 ring-inset ring-red-500/[0.05] shadow-sm shadow-black/10 ${FOCUS_RING}`}
@@ -1758,7 +1759,7 @@ function ActionDetail({
                           ID
                         </span>
                       )}
-                      </button>
+                      </Button>
                     )}
                   </div>
                 </div>
@@ -1769,7 +1770,7 @@ function ActionDetail({
             <div className="flex items-center gap-1">
               {(hasPrev || hasNext) && (
                 <>
-                  <button
+                  <Button variant="ghost" size="icon"
                     type="button"
                     onClick={onPrev}
                     disabled={!hasPrev}
@@ -1780,7 +1781,7 @@ function ActionDetail({
                     <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="h-2.5 w-2.5">
                       <path d="M6.5 2l-3 3 3 3" />
                     </svg>
-                  </button>
+                  </Button>
                   {position && (
                     <span
                       className="min-w-[3.5rem] rounded border border-slate-800/60 bg-slate-900/60 px-1.5 py-0.5 text-center font-mono text-[10px] text-slate-500 ring-1 ring-inset ring-white/[0.02]"
@@ -1790,7 +1791,7 @@ function ActionDetail({
                       <span className="text-slate-500">/{position.total}</span>
                     </span>
                   )}
-                  <button
+                  <Button variant="ghost" size="icon"
                     type="button"
                     onClick={onNext}
                     disabled={!hasNext}
@@ -1801,10 +1802,10 @@ function ActionDetail({
                     <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="h-2.5 w-2.5">
                       <path d="M3.5 2l3 3-3 3" />
                     </svg>
-                  </button>
+                  </Button>
                 </>
               )}
-              <button
+              <Button variant="ghost" size="icon"
                 ref={closeBtnRef}
                 type="button"
                 className={`flex h-7 w-7 items-center justify-center rounded-lg border border-slate-700/80 bg-slate-900/80 text-slate-400 transition-all hover:bg-slate-800 hover:text-slate-200 hover:border-slate-600 hover:scale-105 active:scale-95 ring-1 ring-inset ring-white/[0.04] ${FOCUS_RING}`}
@@ -1815,7 +1816,7 @@ function ActionDetail({
                 <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="h-3 w-3">
                   <path d="M2 2l6 6M8 2l-6 6" />
                 </svg>
-              </button>
+              </Button>
             </div>
             {/* ── Primary action buttons (flex-wrap row) ── */}
             <div className="flex flex-wrap justify-end gap-1">
@@ -1829,7 +1830,7 @@ function ActionDetail({
                 </svg>
                 Düzenle
               </Link>
-              <button
+              <Button variant="secondary" size="sm"
                 type="button"
                 onClick={() => copy(detailGherkin, "gherkin")}
                 className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs transition-all active:scale-[0.97] ring-1 ring-inset shadow-sm shadow-black/10 ${FOCUS_RING} ${
@@ -1856,8 +1857,8 @@ function ActionDetail({
                     Gherkin
                   </>
                 )}
-              </button>
-              <button
+              </Button>
+              <Button variant="secondary" size="sm"
                 type="button"
                 onClick={() => {
                   const trAliases = action.aliases?.tr ?? [];
@@ -1897,9 +1898,9 @@ function ActionDetail({
                     Feature
                   </>
                 )}
-              </button>
+              </Button>
               {onToggleFavorite && (
-                <button
+                <Button variant="secondary" size="sm"
                   type="button"
                   onClick={() => onToggleFavorite(action.id)}
                   className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs transition-all active:scale-[0.97] ring-1 ring-inset shadow-sm shadow-black/10 ${FOCUS_RING} ${
@@ -1914,12 +1915,12 @@ function ActionDetail({
                     <path d="M5 1l1.2 2.5L9 3.8l-2 2 .5 2.7L5 7.2 2.5 8.5 3 5.8 1 3.8l2.8-.3L5 1z" />
                   </svg>
                   {isFavorite ? "Favoride" : "Favori"}
-                </button>
+                </Button>
               )}
             </div>
             {/* ── Secondary actions (compact text row) ── */}
             <div className="flex items-center gap-0.5">
-              <button
+              <Button variant="ghost" size="sm"
                 type="button"
                 onClick={() => copy(JSON.stringify(action, null, 2), "json", "JSON kopyalandı ✓")}
                 className={`flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] transition-all active:scale-95 ${FOCUS_RING} ${
@@ -1937,9 +1938,9 @@ function ActionDetail({
                   </svg>
                 )}
                 <span>JSON</span>
-              </button>
+              </Button>
               <span className="text-slate-800/60 select-none">·</span>
-              <button
+              <Button variant="ghost" size="sm"
                 type="button"
                 onClick={() => {
                   const url = new URL(window.location.href);
@@ -1969,7 +1970,7 @@ function ActionDetail({
                     <span>Paylaş</span>
                   </>
                 )}
-              </button>
+              </Button>
             </div>
           </div>
         </div>
@@ -1981,7 +1982,7 @@ function ActionDetail({
           aria-label="Detay bölümleri (1-6 tuşlarıyla geçiş)"
         >
           {tabDefs.map(({ key, label, count }, tabIdx) => (
-            <button
+            <Button variant="ghost" size="sm"
               key={key}
               type="button"
               role="tab"
@@ -2011,10 +2012,10 @@ function ActionDetail({
                   {count}
                 </span>
               )}
-            </button>
+            </Button>
           ))}
           {/* AI tab — always visible, right-aligned */}
-          <button
+          <Button variant="ghost" size="sm"
             type="button"
             role="tab"
             aria-selected={activeTab === "ai"}
@@ -2032,7 +2033,7 @@ function ActionDetail({
               </svg>
               <span>AI</span>
             </span>
-          </button>
+          </Button>
         </div>
 
         {/* ─── Tab content ─── */}
@@ -2072,7 +2073,7 @@ function ActionDetail({
                         </kbd>
                       )}
                       {aliasFilter && (
-                        <button
+                        <Button variant="ghost" size="icon"
                           type="button"
                           onClick={() => setAliasFilter("")}
                           className="absolute right-1.5 flex items-center justify-center text-slate-600 hover:text-slate-300 transition-all active:scale-75"
@@ -2081,13 +2082,13 @@ function ActionDetail({
                           <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="h-2.5 w-2.5">
                             <path d="M2.5 2.5l5 5M7.5 2.5l-5 5" />
                           </svg>
-                        </button>
+                        </Button>
                       )}
                     </div>
                   )}
                   {totalAliasCount > 0 && (
                     <>
-                      <button
+                      <Button variant="ghost" size="sm"
                         type="button"
                         className={`shrink-0 rounded border px-1.5 py-0.5 text-[10px] transition-all active:scale-[0.94] ring-1 ring-inset shadow-sm shadow-black/10 ${FOCUS_RING} ${
                           copied === "all:all"
@@ -2118,7 +2119,7 @@ function ActionDetail({
                             Gherkin
                           </span>
                         )}
-                      </button>
+                      </Button>
                       {totalAliasCount > 3 && (
                         <span className="text-[9px] font-mono text-slate-600">
                           {totalAliasCount} alias
@@ -2152,7 +2153,7 @@ function ActionDetail({
                           {aliasFilter ? `${filtered.length}/${arr.length}` : arr.length}
                         </span>
                       </span>
-                      <button
+                      <Button variant="ghost" size="sm"
                         type="button"
                         className={`rounded border px-1.5 py-0.5 text-[10px] transition-all active:scale-[0.94] ring-1 ring-inset ${FOCUS_RING} ${
                           copied === `all:${lang}` ? "border-emerald-500/30 bg-emerald-500/5 text-emerald-400 ring-emerald-500/[0.06]" : "border-transparent text-slate-600 hover:border-slate-700/60 hover:text-slate-300 ring-transparent"
@@ -2176,7 +2177,7 @@ function ActionDetail({
                             Tümü
                           </span>
                         )}
-                      </button>
+                      </Button>
                     </div>
                     <ul className="space-y-1">
                       {filtered.map((alias, idx) => {
@@ -2194,7 +2195,7 @@ function ActionDetail({
                               </span>
                             ) : idx + 1}
                           </span>
-                          <button
+                          <Button variant="ghost" size="sm"
                             type="button"
                             className={`flex-1 rounded-md border px-2 py-1.5 text-left font-mono text-xs leading-relaxed transition-all active:scale-[0.995] ring-1 ring-inset ${FOCUS_RING} ${
                               copied === `${lang}:${alias}`
@@ -2207,7 +2208,7 @@ function ActionDetail({
                             title={isPrimaryAlias ? "Birincil alias — kopyalamak için tıkla" : "Kopyalamak için tıkla"}
                           >
                             {aliasFilter ? renderHighlight(alias, aliasFilter) : renderParams(alias)}
-                          </button>
+                          </Button>
                           {/* Copy icon — appears on hover */}
                           <span className={`self-center shrink-0 transition-all duration-150 ${
                             copied === `${lang}:${alias}`
@@ -2226,7 +2227,7 @@ function ActionDetail({
                             )}
                           </span>
                           {/* GWT copy button — copies "Given/When/Then alias" */}
-                          <button
+                          <Button variant="ghost" size="sm"
                             type="button"
                             className={`self-center shrink-0 rounded border px-1.5 py-0.5 text-[9px] font-semibold transition-all active:scale-90 opacity-0 group-hover/alias:opacity-100 ring-1 ring-inset shadow-sm shadow-black/10 ${FOCUS_RING} ${
                               st === "given"
@@ -2245,7 +2246,7 @@ function ActionDetail({
                                 <path d="M2 5.5l2 2 4-4" />
                               </svg>
                             ) : detailKw}
-                          </button>
+                          </Button>
                         </li>
                         );
                       })}
@@ -2259,13 +2260,13 @@ function ActionDetail({
               ) && (
                 <div className="rounded-lg border border-dashed border-slate-700/60 py-4 text-center text-xs text-slate-600">
                   <p>&ldquo;{aliasFilter}&rdquo; için eşleşen alias bulunamadı</p>
-                  <button
+                  <Button variant="ghost" size="sm"
                     type="button"
                     onClick={() => setAliasFilter("")}
                     className={`mt-1 text-slate-500 hover:text-slate-300 transition-all active:scale-95 ${FOCUS_RING}`}
                   >
                     Filtreyi temizle
-                  </button>
+                  </Button>
                 </div>
               )}
               {/* Empty aliases state — no aliases at all */}
@@ -2330,7 +2331,7 @@ function ActionDetail({
                       {fillGherkin(detailPrimary, paramValues)}
                     </div>
                   </div>
-                  <button
+                  <Button variant="ghost" size="sm"
                     type="button"
                     onClick={() => copy(`${detailKw} ${fillGherkin(detailPrimary, paramValues)}`, "param-filled", "Doldurulmuş adım kopyalandı ✓")}
                     className={`flex shrink-0 items-center justify-center rounded border px-2 py-1 transition-all active:scale-[0.94] ring-1 ring-inset shadow-sm shadow-black/10 ${FOCUS_RING} ${
@@ -2349,7 +2350,7 @@ function ActionDetail({
                         <path d="M3 1h6v7" />
                       </svg>
                     )}
-                  </button>
+                  </Button>
                 </div>
               )}
               <div className="overflow-hidden rounded-lg border border-slate-800 ring-1 ring-inset ring-white/[0.02]">
@@ -2409,7 +2410,7 @@ function ActionDetail({
                           {p.examples && p.examples.length > 0 && (
                             <div className="mt-1.5 flex flex-wrap gap-1">
                               {p.examples.slice(0, 3).map((ex, ei) => (
-                                <button
+                                <Button variant="ghost" size="sm"
                                   key={ei}
                                   type="button"
                                   onClick={() => setParamValues((prev) => ({ ...prev, [p.name]: String(ex) }))}
@@ -2419,7 +2420,7 @@ function ActionDetail({
                                   title={`"${ex}" değerini kullan`}
                                 >
                                   {String(ex)}
-                                </button>
+                                </Button>
                               ))}
                             </div>
                           )}
@@ -2526,7 +2527,7 @@ function ActionDetail({
                                 ));
                               })()}
                             </code>
-                            <button
+                            <Button variant="ghost" size="sm"
                               type="button"
                               onClick={() => copy(impl.pattern!, `pat:${lang}`, "Pattern kopyalandı ✓")}
                               className={`absolute right-2 top-2 rounded border border-slate-800 bg-slate-900/90 px-1.5 py-0.5 text-[9px] text-slate-600 opacity-0 transition-all active:scale-[0.94] group-hover/pattern:opacity-100 hover:text-slate-300 ring-1 ring-inset ring-white/[0.04] shadow-sm shadow-black/20 backdrop-blur-sm ${FOCUS_RING}`}
@@ -2541,7 +2542,7 @@ function ActionDetail({
                                   <path d="M3 1h6v7" />
                                 </svg>
                               )}
-                            </button>
+                            </Button>
                           </div>
                         )}
                         {/* Source file path */}
@@ -2549,7 +2550,7 @@ function ActionDetail({
                           <span className="min-w-0 flex-1 truncate font-mono text-[10px] text-slate-500" title={impl.source_file}>
                             {shortPath}
                           </span>
-                          <button
+                          <Button variant="ghost" size="sm"
                             type="button"
                             onClick={() => copy(impl.source_file, `src:${lang}`, "Dosya yolu kopyalandı ✓")}
                             className={`shrink-0 rounded border border-transparent px-1 py-0.5 text-[10px] text-slate-600 transition-all active:scale-90 hover:border-slate-700/50 hover:text-slate-300 ring-1 ring-inset ring-transparent hover:ring-white/[0.02] ${FOCUS_RING}`}
@@ -2565,7 +2566,7 @@ function ActionDetail({
                                 <path d="M3 1h6v7" />
                               </svg>
                             )}
-                          </button>
+                          </Button>
                         </div>
                       </div>
                     );
@@ -2588,7 +2589,7 @@ function ActionDetail({
                       </svg>
                       <span>Notlar</span>
                     </div>
-                    <button
+                    <Button variant="ghost" size="sm"
                       type="button"
                       onClick={() => copy(action.notes!, "notes", "Notlar kopyalandı ✓")}
                       className={`rounded border border-amber-700/20 bg-transparent px-1.5 py-0.5 text-[10px] text-amber-700/50 opacity-0 transition-all active:scale-90 group-hover/notes:opacity-100 hover:bg-amber-500/10 hover:text-amber-400 ring-1 ring-inset ring-amber-500/[0.03] hover:ring-amber-500/[0.06] shadow-sm shadow-black/10 ${FOCUS_RING}`}
@@ -2603,7 +2604,7 @@ function ActionDetail({
                           <path d="M3 1h6v7" />
                         </svg>
                       )}
-                    </button>
+                    </Button>
                   </div>
                   <p className="px-3 pb-3 pt-2.5 text-xs leading-relaxed text-amber-200/90">{action.notes}</p>
                 </div>
@@ -2646,7 +2647,7 @@ function ActionDetail({
                         <pre className="overflow-x-auto rounded-xl border border-slate-800/60 bg-slate-950 p-3 font-mono text-xs leading-relaxed shadow-inner shadow-black/30 ring-1 ring-inset ring-white/[0.015] [&::-webkit-scrollbar]:h-1 [&::-webkit-scrollbar-track]:bg-slate-900 [&::-webkit-scrollbar-thumb]:bg-slate-700 [&::-webkit-scrollbar-thumb:hover]:bg-slate-600">
                           {highlightGherkin(ex)}
                         </pre>
-                        <button
+                        <Button variant="ghost" size="sm"
                           type="button"
                           onClick={() => copy(ex, `ex:${i}`, "Örnek kopyalandı ✓")}
                           className={`absolute right-2 bottom-2 rounded border border-slate-700 bg-slate-800/90 px-1.5 py-0.5 text-[10px] text-slate-400 opacity-0 transition-all active:scale-90 group-hover/ex:opacity-100 hover:text-slate-200 ring-1 ring-inset ring-white/[0.04] shadow-sm shadow-black/20 backdrop-blur-sm ${FOCUS_RING}`}
@@ -2667,7 +2668,7 @@ function ActionDetail({
                               Kopyala
                             </span>
                           )}
-                        </button>
+                        </Button>
                       </div>
                     );
                   })}
@@ -2708,7 +2709,7 @@ function ActionDetail({
                     const relEnCount = rel.aliases?.en?.length ?? 0;
                     return (
                       <li key={rel.id} className="animate-fade-in" style={{ animationDelay: `${relIdx * 40}ms`, animationFillMode: "both" }}>
-                        <button
+                        <Button variant="ghost" size="sm"
                           type="button"
                           onClick={() => onOpenRelated?.(rel)}
                           style={relSc ? { borderLeftColor: relSc.borderColor, borderLeftWidth: "2px" } : undefined}
@@ -2743,7 +2744,7 @@ function ActionDetail({
                               <path d="M2 5h6M5.5 2l3 3-3 3" />
                             </svg>
                           </span>
-                        </button>
+                        </Button>
                       </li>
                     );
                   })}
@@ -3208,7 +3209,7 @@ export function DslCatalogView({
                 </span>
                 {/* Favorites count pill */}
                 {favorites.size > 0 && (
-                  <button
+                  <Button variant="ghost" size="sm"
                     type="button"
                     onClick={() => { setShowFavoritesOnly((v) => !v); setPage(1); }}
                     className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs transition-all active:scale-[0.95] ring-1 ring-inset shadow-sm shadow-black/10 ${FOCUS_RING} ${
@@ -3223,7 +3224,7 @@ export function DslCatalogView({
                       <path d="M5 1l1.2 2.5L9 3.8l-2 2 .5 2.7L5 7.2 2.5 8.5 3 5.8 1 3.8l2.8-.3L5 1z" />
                     </svg>
                     <span className="font-semibold">{favorites.size}</span>
-                  </button>
+                  </Button>
                 )}
                 {/* Step-type distribution segmented bar */}
                 {stats.data.by_step_type && stats.data.total > 0 && (() => {
@@ -3241,7 +3242,7 @@ export function DslCatalogView({
                         const isFirst = segIdx === 0;
                         const isLast = segIdx === segs.length - 1;
                         return (
-                          <button
+                          <Button variant="ghost" size="sm"
                             key={key}
                             type="button"
                             onClick={() => { setStepTypeFilter(stepTypeFilter === key ? "all" : key); setPage(1); }}
@@ -3285,7 +3286,7 @@ export function DslCatalogView({
             </span>
           )}
           {activeActions.length > 0 && (
-            <button
+            <Button variant="ghost" size="icon"
               type="button"
               onClick={() => {
                 const idx = Math.floor(Math.random() * activeActions.length);
@@ -3303,7 +3304,7 @@ export function DslCatalogView({
                 <circle cx="6.8" cy="6.8" r="0.6" fill="currentColor" stroke="none" />
                 <circle cx="5" cy="5" r="0.6" fill="currentColor" stroke="none" />
               </svg>
-            </button>
+            </Button>
           )}
           <Link
             href="/dsl-catalog/editor/new"
@@ -3327,7 +3328,7 @@ export function DslCatalogView({
             İnceleme
           </Link>
           <ShareButton />
-          <button
+          <Button variant="ghost" size="icon"
             type="button"
             onClick={() => setShowShortcuts((s) => !s)}
             className={`flex h-8 w-8 items-center justify-center rounded-lg border font-mono text-sm font-semibold transition-all active:scale-90 ring-1 ring-inset shadow-sm shadow-black/10 ${FOCUS_RING} ${
@@ -3339,7 +3340,7 @@ export function DslCatalogView({
             aria-label="Klavye kısayollarını göster"
           >
             ?
-          </button>
+          </Button>
         </div>
       </header>
 
@@ -3402,7 +3403,7 @@ export function DslCatalogView({
                     <div className="px-3 py-1 text-[10px] uppercase tracking-wider text-slate-600">Kategoriler</div>
                     <div className="flex flex-wrap gap-1 px-3 pb-2">
                       {topCats.slice(0, 6).map((c) => (
-                        <button
+                        <Button variant="ghost" size="sm"
                           key={c.id}
                           type="button"
                           onMouseDown={(e) => e.preventDefault()}
@@ -3416,7 +3417,7 @@ export function DslCatalogView({
                           <span className={`h-1.5 w-1.5 rounded-full ${CATEGORY_DOTS[c.id] ?? "bg-slate-500"}`} />
                           {CATEGORY_LABELS[c.id] ?? c.id}
                           <span className="text-slate-500">{c.count}</span>
-                        </button>
+                        </Button>
                       ))}
                     </div>
                   </>
@@ -3424,18 +3425,18 @@ export function DslCatalogView({
                 {searchHistory.length > 0 && (
                   <div className="flex items-center justify-between px-3 py-1">
                     <span className="text-[10px] uppercase tracking-wider text-slate-600">Son aramalar</span>
-                    <button
+                    <Button variant="ghost" size="sm"
                       type="button"
                       onMouseDown={(e) => e.preventDefault()}
                       onClick={() => setSearchHistory([])}
                       className={`text-[10px] text-slate-600 hover:text-slate-400 transition-all active:scale-95 ${FOCUS_RING}`}
                     >
                       Temizle
-                    </button>
+                    </Button>
                   </div>
                 )}
                 {searchHistory.map((q) => (
-                  <button
+                  <Button variant="ghost" size="sm"
                     key={q}
                     type="button"
                     onMouseDown={(e) => e.preventDefault()}
@@ -3452,7 +3453,7 @@ export function DslCatalogView({
                         <path d="M8.5 2.5v3H2M4.5 4l-2.5 1.5L4.5 7" />
                       </svg>
                     </span>
-                  </button>
+                  </Button>
                 ))}
               </div>
             )}
@@ -3477,7 +3478,7 @@ export function DslCatalogView({
                 </kbd>
               )}
               {search && (
-                <button
+                <Button variant="ghost" size="icon"
                   type="button"
                   onClick={() => { setSearch(""); setPage(1); }}
                   className={`flex items-center justify-center rounded p-1 text-slate-600 hover:bg-slate-800 hover:text-slate-300 transition-all active:scale-90 ${FOCUS_RING}`}
@@ -3486,7 +3487,7 @@ export function DslCatalogView({
                   <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="h-2.5 w-2.5">
                     <path d="M2.5 2.5l5 5M7.5 2.5l-5 5" />
                   </svg>
-                </button>
+                </Button>
               )}
             </div>
           </div>
@@ -3496,7 +3497,7 @@ export function DslCatalogView({
         <div className={`flex items-center gap-0.5 rounded-lg border p-0.5 transition-colors ring-1 ring-inset shadow-sm shadow-black/10 ${
           searchMode === "ai" ? "border-violet-500/20 bg-violet-950/30 ring-violet-500/[0.06]" : "border-slate-700 bg-slate-900 ring-white/[0.03]"
         }`}>
-          <button
+          <Button variant="ghost" size="sm"
             type="button"
             onClick={() => {
               setSearchMode("substring");
@@ -3515,8 +3516,8 @@ export function DslCatalogView({
               <path d="M8 8l2.5 2.5" />
             </svg>
             Alias
-          </button>
-          <button
+          </Button>
+          <Button variant="ghost" size="sm"
             type="button"
             onClick={() => {
               setSearchMode("ai");
@@ -3542,13 +3543,13 @@ export function DslCatalogView({
               </svg>
               <span>AI</span>
             </span>
-          </button>
+          </Button>
         </div>
 
         <div className="hidden h-5 w-px bg-slate-700/60 sm:block" aria-hidden="true" />
         <div className="flex items-center gap-0.5 rounded-lg border border-slate-700 bg-slate-900 p-0.5 ring-1 ring-inset ring-white/[0.03] shadow-sm shadow-black/10">
           {(["all", "tr", "en"] as LangFilter[]).map((l) => (
-            <button
+            <Button variant="ghost" size="sm"
               type="button"
               key={l}
               onClick={() => {
@@ -3574,7 +3575,7 @@ export function DslCatalogView({
                   {l.toUpperCase()}
                 </span>
               )}
-            </button>
+            </Button>
           ))}
         </div>
       </div>
@@ -3590,7 +3591,7 @@ export function DslCatalogView({
       )}
 
       {/* Mobile sidebar toggle */}
-      <button
+      <Button variant="ghost" size="sm"
         type="button"
         onClick={() => setSidebarOpen((o) => !o)}
         className={`flex items-center gap-2 self-start rounded-lg border bg-slate-900 px-3 py-1.5 text-xs transition-all active:scale-[0.97] hover:bg-slate-800 lg:hidden ring-1 ring-inset shadow-sm shadow-black/10 ${FOCUS_RING} ${
@@ -3611,7 +3612,7 @@ export function DslCatalogView({
             {[category, stepTypeFilter !== "all", langFilter !== "all", showFavoritesOnly, tagFilter].filter(Boolean).length}
           </span>
         )}
-      </button>
+      </Button>
 
       <div className="flex flex-1 min-h-0 flex-col gap-4 lg:flex-row">
         {/* Sol: Filtreler */}
@@ -3622,7 +3623,7 @@ export function DslCatalogView({
         >
           {/* Collapse toggle */}
           <div className={`mb-2 ${sidebarCollapsed ? "flex justify-center" : "flex justify-end"}`}>
-            <button
+            <Button variant="ghost" size="icon"
               type="button"
               onClick={() => setSidebarCollapsed((v) => !v)}
               className={`hidden rounded-md border border-slate-800 bg-slate-900/60 p-1 text-slate-600 hover:text-slate-300 hover:border-slate-700 ring-1 ring-inset ring-white/[0.02] transition-all active:scale-90 lg:flex ${FOCUS_RING}`}
@@ -3634,14 +3635,14 @@ export function DslCatalogView({
                   ? <path d="M5 2l6 6-6 6" />
                   : <path d="M11 2L5 8l6 6" />}
               </svg>
-            </button>
+            </Button>
           </div>
 
           {/* Show only icons when collapsed */}
           {sidebarCollapsed ? (
             <div className="flex flex-col items-center gap-2 pt-1">
               {topCats.map((c) => (
-                <button
+                <Button variant="ghost" size="icon"
                   key={c.id}
                   type="button"
                   onClick={() => { setCategory(c.id === category ? null : c.id); setPage(1); }}
@@ -3663,10 +3664,10 @@ export function DslCatalogView({
                   aria-pressed={category === c.id}
                 >
                   {(CATEGORY_LABELS[c.id] ?? c.id).slice(0, 2).toUpperCase()}
-                </button>
+                </Button>
               ))}
               {favorites.size > 0 && (
-                <button
+                <Button variant="ghost" size="icon"
                   type="button"
                   onClick={() => { setShowFavoritesOnly((v) => !v); setPage(1); }}
                   className={`flex items-center justify-center transition-all active:scale-90 ${FOCUS_RING} ${showFavoritesOnly ? "text-amber-400" : "text-slate-600 hover:text-amber-400"}`}
@@ -3675,14 +3676,14 @@ export function DslCatalogView({
                   <svg viewBox="0 0 10 10" fill={showFavoritesOnly ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
                     <path d="M5 1l1.2 2.5L9 3.8l-2 2 .5 2.7L5 7.2 2.5 8.5 3 5.8 1 3.8l2.8-.3L5 1z" />
                   </svg>
-                </button>
+                </Button>
               )}
             </div>
           ) : (
           <>
           {/* Parent category breadcrumb when subcategory is selected */}
           {category && category.includes(".") && (
-            <button
+            <Button variant="ghost" size="sm"
               type="button"
               onClick={() => { setCategory(category.split(".")[0]); setPage(1); }}
               className={`mb-3 flex w-full items-center gap-1.5 rounded-lg border border-slate-800/60 bg-slate-900/40 px-2 py-1.5 text-xs text-slate-500 hover:bg-slate-800/60 hover:text-slate-300 hover:border-slate-700/60 ring-1 ring-inset ring-white/[0.02] hover:ring-white/[0.03] transition-all active:scale-[0.98] ${FOCUS_RING}`}
@@ -3698,7 +3699,7 @@ export function DslCatalogView({
                 </svg>
                 üst
               </span>
-            </button>
+            </Button>
           )}
 
           {/* Adım Tipi Filtresi */}
@@ -3709,7 +3710,7 @@ export function DslCatalogView({
               </svg>
               <span className="text-[10px] font-bold uppercase tracking-widest text-slate-600">Adım Tipi</span>
               {stepTypeFilter !== "all" && (
-                <button
+                <Button variant="ghost" size="sm"
                   type="button"
                   onClick={() => { setStepTypeFilter("all"); setPage(1); }}
                   className={`ml-auto flex items-center gap-0.5 text-[9px] text-slate-600 hover:text-slate-400 transition-all active:scale-90 ${FOCUS_RING}`}
@@ -3719,11 +3720,11 @@ export function DslCatalogView({
                   <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="h-2 w-2">
                     <path d="M2.5 2.5l5 5M7.5 2.5l-5 5" />
                   </svg>
-                </button>
+                </Button>
               )}
             </div>
             <div className="space-y-0.5">
-              <button
+              <Button variant="ghost" size="sm"
                 type="button"
                 onClick={() => { setStepTypeFilter("all"); setPage(1); }}
                 className={`flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-sm transition-all active:scale-[0.97] ${FOCUS_RING} ${
@@ -3737,13 +3738,13 @@ export function DslCatalogView({
                   Tümü
                 </span>
                 <span className={`text-xs ${stepTypeFilter === "all" ? "text-slate-400/60 font-semibold" : "text-slate-600"}`}>{stats.data?.total ?? ""}</span>
-              </button>
+              </Button>
               {(Object.entries(STEP_TYPE_FILTER_CONFIG) as [StepType, typeof STEP_TYPE_FILTER_CONFIG[StepType]][]).map(([key, cfg]) => {
                 const count = stats.data?.by_step_type?.[key] ?? 0;
                 const total = stats.data?.total ?? 0;
                 const pct = total > 0 && count > 0 ? Math.round((count / total) * 100) : null;
                 return (
-                  <button
+                  <Button variant="ghost" size="sm"
                     key={key}
                     type="button"
                     onClick={() => { setStepTypeFilter(key === stepTypeFilter ? "all" : key); setPage(1); }}
@@ -3778,7 +3779,7 @@ export function DslCatalogView({
                         />
                       </div>
                     )}
-                  </button>
+                  </Button>
                 );
               })}
             </div>
@@ -3794,7 +3795,7 @@ export function DslCatalogView({
                   </svg>
                   <span className="text-[10px] font-bold uppercase tracking-widest text-slate-600">Favoriler</span>
                 </div>
-                <button
+                <Button variant="ghost" size="sm"
                   type="button"
                   onClick={() => {
                     setFavorites(new Set());
@@ -3805,9 +3806,9 @@ export function DslCatalogView({
                   title="Tüm favorileri temizle"
                 >
                   Temizle
-                </button>
+                </Button>
               </div>
-              <button
+              <Button variant="ghost" size="sm"
                 type="button"
                 onClick={() => { setShowFavoritesOnly((v) => !v); setPage(1); }}
                 className={`flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-sm transition-all active:scale-[0.97] ${FOCUS_RING} ${
@@ -3824,7 +3825,7 @@ export function DslCatalogView({
                   <span>Yalnızca favoriler</span>
                 </span>
                 <span className="text-xs text-slate-600">{favorites.size}</span>
-              </button>
+              </Button>
             </div>
           )}
 
@@ -3840,7 +3841,7 @@ export function DslCatalogView({
               <span className="text-[10px] font-bold uppercase tracking-widest text-slate-600">Kategoriler</span>
             </div>
             {category && (
-              <button
+              <Button variant="ghost" size="icon"
                 type="button"
                 onClick={() => { setCategory(null); setPage(1); }}
                 className={`flex items-center justify-center text-slate-600 hover:text-slate-400 transition-all active:scale-90 ${FOCUS_RING}`}
@@ -3849,7 +3850,7 @@ export function DslCatalogView({
                 <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="h-2 w-2">
                   <path d="M2.5 2.5l5 5M7.5 2.5l-5 5" />
                 </svg>
-              </button>
+              </Button>
             )}
           </div>
           {categories.isLoading && (
@@ -3865,7 +3866,7 @@ export function DslCatalogView({
           )}
           <ul className="space-y-0.5 text-sm">
             <li>
-              <button
+              <Button variant="ghost" size="sm"
                 type="button"
                 onClick={() => { setCategory(null); setPage(1); }}
                 className={`flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-left transition-all active:scale-[0.97] ${FOCUS_RING} ${
@@ -3881,11 +3882,11 @@ export function DslCatalogView({
                 <span className={`font-mono text-xs ${category === null ? "font-semibold text-slate-400/60" : "text-slate-600"}`}>
                   {stats.data?.total ?? "—"}
                 </span>
-              </button>
+              </Button>
             </li>
             {topCats.map((c) => (
               <li key={c.id}>
-                <button
+                <Button variant="ghost" size="sm"
                   type="button"
                   onClick={() => { setCategory(c.id); setPage(1); }}
                   style={category === c.id
@@ -3914,12 +3915,12 @@ export function DslCatalogView({
                       }}
                     />
                   </div>
-                </button>
+                </Button>
                 {category === c.id && subCats && subCats.length > 0 && (
                   <ul className="mt-1 ml-4 space-y-0.5 border-l border-slate-800/80 pl-2 text-xs">
                     {subCats.filter(s => s.id !== c.id).map((s) => (
                       <li key={s.id}>
-                        <button
+                        <Button variant="ghost" size="sm"
                           type="button"
                           onClick={() => { setCategory(s.id); setPage(1); }}
                           style={category === s.id
@@ -3936,7 +3937,7 @@ export function DslCatalogView({
                             {s.id.includes(".") ? s.id.split(".").slice(1).join(".") : s.id}
                           </span>
                           <span className="ml-2 shrink-0 text-slate-600">{s.count}</span>
-                        </button>
+                        </Button>
                       </li>
                     ))}
                   </ul>
@@ -3954,7 +3955,7 @@ export function DslCatalogView({
                 </svg>
                 <span className="text-[10px] font-bold uppercase tracking-widest text-slate-600">Etiketler</span>
                 {tagFilter && (
-                  <button
+                  <Button variant="ghost" size="sm"
                     type="button"
                     onClick={() => { setTagFilter(null); setPage(1); }}
                     className={`ml-auto flex items-center gap-0.5 text-[9px] text-slate-600 hover:text-slate-400 transition-all active:scale-90 ${FOCUS_RING}`}
@@ -3964,12 +3965,12 @@ export function DslCatalogView({
                       <path d="M2.5 2.5l5 5M7.5 2.5l-5 5" />
                     </svg>
                     {tagFilter}
-                  </button>
+                  </Button>
                 )}
               </div>
               <div className="flex flex-wrap gap-1">
                 {stats.data.top_tags.slice(0, 12).map(({ tag, count }) => (
-                  <button
+                  <Button variant="ghost" size="sm"
                     key={tag}
                     type="button"
                     onClick={() => { setTagFilter(tagFilter === tag ? null : tag); setPage(1); }}
@@ -3982,7 +3983,7 @@ export function DslCatalogView({
                   >
                     #{tag}
                     <span className="ml-0.5 opacity-50">{count}</span>
-                  </button>
+                  </Button>
                 ))}
               </div>
             </>
@@ -3999,14 +4000,14 @@ export function DslCatalogView({
                   </svg>
                   <span className="text-[10px] font-bold uppercase tracking-widest text-slate-600">Son Görüntülenenler</span>
                 </div>
-                <button
+                <Button variant="ghost" size="sm"
                   type="button"
                   onClick={() => setRecentActions([])}
                   className={`text-[9px] text-slate-600 hover:text-slate-400 transition-all active:scale-90 ${FOCUS_RING}`}
                   title="Geçmişi temizle"
                 >
                   Temizle
-                </button>
+                </Button>
               </div>
               <ul className="space-y-0.5">
                 {recentActions.map(({ action: a, viewedAt }) => {
@@ -4017,7 +4018,7 @@ export function DslCatalogView({
                   return (
                     <li key={a.id} className="group/recent-item">
                       <div className="flex items-center">
-                        <button
+                        <Button variant="ghost" size="sm"
                           type="button"
                           onClick={() => openAction(a)}
                           className={`flex min-w-0 flex-1 items-center gap-2 rounded-lg px-2 py-1.5 text-left transition-all active:scale-[0.99] hover:bg-slate-800 ${FOCUS_RING} ${
@@ -4032,9 +4033,9 @@ export function DslCatalogView({
                           <span className="shrink-0 text-[9px] text-slate-600" title={new Date(viewedAt).toLocaleTimeString("tr-TR")}>
                             {relativeTime(new Date(viewedAt).toISOString())}
                           </span>
-                        </button>
+                        </Button>
                         {/* Quick-copy Gherkin on hover */}
-                        <button
+                        <Button variant="ghost" size="icon"
                           type="button"
                           onClick={() => {
                             navigator.clipboard.writeText(`${aKw} ${aAlias}`).then(() => {
@@ -4048,7 +4049,7 @@ export function DslCatalogView({
                             <rect x="1" y="2" width="7" height="7" rx="1" />
                             <path d="M3 1h6v7" />
                           </svg>
-                        </button>
+                        </Button>
                       </div>
                     </li>
                   );
@@ -4111,7 +4112,7 @@ export function DslCatalogView({
               </span>
             )}
             {category && (
-              <button
+              <Button variant="ghost" size="sm"
                 type="button"
                 onClick={() => { setCategory(null); setPage(1); }}
                 className={`flex items-center gap-1 rounded-full border border-slate-700 bg-slate-800/60 px-2 py-0.5 text-[10px] text-slate-400 hover:border-slate-600 hover:text-slate-200 transition-all active:scale-[0.95] ring-1 ring-inset ring-white/[0.02] ${FOCUS_RING}`}
@@ -4122,10 +4123,10 @@ export function DslCatalogView({
                 <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="h-2 w-2 text-slate-600">
                   <path d="M2.5 2.5l5 5M7.5 2.5l-5 5" />
                 </svg>
-              </button>
+              </Button>
             )}
             {stepTypeFilter !== "all" && (
-              <button
+              <Button variant="ghost" size="sm"
                 type="button"
                 onClick={() => { setStepTypeFilter("all"); setPage(1); }}
                 className={`flex items-center gap-1 rounded-full border border-slate-700 bg-slate-800/60 px-2 py-0.5 text-[10px] text-slate-400 hover:border-slate-600 hover:text-slate-200 transition-all active:scale-[0.95] ring-1 ring-inset ring-white/[0.02] ${FOCUS_RING}`}
@@ -4136,10 +4137,10 @@ export function DslCatalogView({
                 <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="h-2 w-2 text-slate-600">
                   <path d="M2.5 2.5l5 5M7.5 2.5l-5 5" />
                 </svg>
-              </button>
+              </Button>
             )}
             {tagFilter && (
-              <button
+              <Button variant="ghost" size="sm"
                 type="button"
                 onClick={() => { setTagFilter(null); setPage(1); }}
                 className={`flex items-center gap-1 rounded-full border border-blue-500/25 bg-blue-500/[0.07] px-2 py-0.5 text-[10px] text-blue-400/80 hover:border-blue-500/40 hover:text-blue-300 transition-all active:scale-[0.95] ring-1 ring-inset ring-blue-500/[0.04] ${FOCUS_RING}`}
@@ -4149,10 +4150,10 @@ export function DslCatalogView({
                 <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="h-2 w-2 text-slate-600">
                   <path d="M2.5 2.5l5 5M7.5 2.5l-5 5" />
                 </svg>
-              </button>
+              </Button>
             )}
             {showFavoritesOnly && (
-              <button
+              <Button variant="ghost" size="sm"
                 type="button"
                 onClick={() => setShowFavoritesOnly(false)}
                 className={`flex items-center gap-1 rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[10px] text-amber-400 hover:border-amber-500/50 hover:text-amber-300 transition-all active:scale-[0.95] ring-1 ring-inset ring-amber-500/[0.06] ${FOCUS_RING}`}
@@ -4165,7 +4166,7 @@ export function DslCatalogView({
                 <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="h-2 w-2 text-amber-600">
                   <path d="M2.5 2.5l5 5M7.5 2.5l-5 5" />
                 </svg>
-              </button>
+              </Button>
             )}
             {isSearching && aiEnabled && activeMode && (
               <span className="rounded-full border border-violet-500/15 bg-violet-500/5 px-1.5 py-px font-mono text-[9px] uppercase tracking-wider text-violet-400/60 ring-1 ring-inset ring-violet-500/[0.03]">
@@ -4174,7 +4175,7 @@ export function DslCatalogView({
             )}
             {/* Export visible actions as text */}
             {activeActions.length > 0 && (
-              <button
+              <Button variant="ghost" size="sm"
                 type="button"
                 onClick={() => {
                   const lines = activeActions.flatMap((a) => {
@@ -4198,11 +4199,11 @@ export function DslCatalogView({
                   <path d="M5 1v5M2.5 4l2.5 3L7.5 4M1 8.5h8" />
                 </svg>
                 TXT
-              </button>
+              </Button>
             )}
             {/* Export as Gherkin scenario */}
             {activeActions.length > 0 && (
-              <button
+              <Button variant="ghost" size="sm"
                 type="button"
                 onClick={() => {
                   const lines = activeActions.map((a) => {
@@ -4223,11 +4224,11 @@ export function DslCatalogView({
                   <path d="M3 1h6v7" />
                 </svg>
                 Gherkin
-              </button>
+              </Button>
             )}
             {/* CSV export */}
             {activeActions.length > 0 && (
-              <button
+              <Button variant="ghost" size="sm"
                 type="button"
                 onClick={() => {
                   const header = "ID,Category,StepType,TR_Aliases,EN_Aliases,Parameters,Tags";
@@ -4253,12 +4254,12 @@ export function DslCatalogView({
                   <path d="M5 1v5M2.5 4l2.5 3L7.5 4M1 8.5h8" />
                 </svg>
                 CSV
-              </button>
+              </Button>
             )}
 
             {/* Batch mode toggle + actions */}
             {activeActions.length > 0 && (
-              <button
+              <Button variant="ghost" size="sm"
                 type="button"
                 onClick={() => {
                   setBatchMode((v) => !v);
@@ -4279,7 +4280,7 @@ export function DslCatalogView({
                   </svg>
                   Seç
                 </span>
-              </button>
+              </Button>
             )}
             {batchMode && (
               <>
@@ -4287,7 +4288,7 @@ export function DslCatalogView({
                   <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-blue-500" />
                   Seçim modu
                 </span>
-                <button
+                <Button variant="ghost" size="sm"
                   type="button"
                   onClick={() => {
                     if (selectedBatchIds.size === activeActions.length) {
@@ -4299,13 +4300,13 @@ export function DslCatalogView({
                   className={`rounded-full border border-blue-500/20 bg-blue-500/5 px-2 py-0.5 text-[10px] text-blue-400/70 hover:border-blue-500/40 hover:text-blue-300 transition-all active:scale-[0.95] ring-1 ring-inset ring-blue-500/[0.04] ${FOCUS_RING}`}
                 >
                   {selectedBatchIds.size === activeActions.length ? "Seçimi kaldır" : "Tümünü seç"}
-                </button>
+                </Button>
               </>
             )}
             {batchMode && selectedBatchIds.size > 0 && (
               <>
                 <span className="text-[10px] text-blue-400">{selectedBatchIds.size} seçili</span>
-                <button
+                <Button variant="ghost" size="sm"
                   type="button"
                   onClick={() => {
                     const lines = activeActions
@@ -4331,8 +4332,8 @@ export function DslCatalogView({
                     <path d="M3 1h6v7" />
                   </svg>
                   Kopyala
-                </button>
-                <button
+                </Button>
+                <Button variant="ghost" size="sm"
                   type="button"
                   onClick={() => {
                     setFavorites((prev) => {
@@ -4353,14 +4354,14 @@ export function DslCatalogView({
                     <path d="M5 1l1.2 2.5L9 3.8l-2 2 .5 2.7L5 7.2 2.5 8.5 3 5.8 1 3.8l2.8-.3L5 1z" />
                   </svg>
                   Favori
-                </button>
-                <button
+                </Button>
+                <Button variant="ghost" size="sm"
                   type="button"
                   onClick={() => setSelectedBatchIds(new Set())}
                   className={`text-[10px] text-slate-600 hover:text-slate-400 transition-all active:scale-95 ${FOCUS_RING}`}
                 >
                   Seçimi temizle
-                </button>
+                </Button>
               </>
             )}
 
@@ -4390,7 +4391,7 @@ export function DslCatalogView({
                 ), title: "Z'den A'ya" },
                 { key: "step", label: "G·W·T", title: "Adım tipine göre (Given→When→Then)" },
               ] as const).map(({ key, label, title }) => (
-                <button
+                <Button variant="ghost" size="sm"
                   key={key}
                   type="button"
                   onClick={() => setSortOrder(key)}
@@ -4402,14 +4403,14 @@ export function DslCatalogView({
                   title={title}
                 >
                   {label}
-                </button>
+                </Button>
               ))}
 
               {/* Divider */}
               <span className="mx-1.5 h-3.5 w-px bg-slate-800" aria-hidden="true" />
 
               {/* View mode: grid/list toggle */}
-              <button
+              <Button variant="ghost" size="icon"
                 type="button"
                 onClick={() => setViewMode(viewMode === "list" ? "grid" : "list")}
                 className={`flex h-6 w-6 items-center justify-center rounded transition-all active:scale-90 ${FOCUS_RING} ${
@@ -4433,14 +4434,14 @@ export function DslCatalogView({
                     <rect x="0" y="10.5" width="14" height="2.5" rx="1"/>
                   </svg>
                 )}
-              </button>
+              </Button>
 
               {/* Grid column count (only in grid mode) */}
               {viewMode === "grid" && (
                 <>
                   <span className="mx-0.5 h-3.5 w-px bg-slate-800" aria-hidden="true" />
                   {([1, 2, 3] as const).map((n) => (
-                    <button
+                    <Button variant="ghost" size="icon"
                       key={n}
                       type="button"
                       onClick={() => setGridCols(n)}
@@ -4452,7 +4453,7 @@ export function DslCatalogView({
                       title={`${n} sütun`}
                     >
                       {n}
-                    </button>
+                    </Button>
                   ))}
                 </>
               )}
@@ -4460,7 +4461,7 @@ export function DslCatalogView({
 
             {/* Reset all filters */}
             {(category || stepTypeFilter !== "all" || langFilter !== "all" || isSearching || tagFilter || showFavoritesOnly) && (
-              <button
+              <Button variant="ghost" size="sm"
                 type="button"
                 onClick={() => {
                   setSearch(""); setCategory(forceCategory ?? null);
@@ -4473,7 +4474,7 @@ export function DslCatalogView({
                   <path d="M8 2L2 8M2 2l6 6" />
                 </svg>
                 Sıfırla
-              </button>
+              </Button>
             )}
           </div>
 
@@ -4486,7 +4487,7 @@ export function DslCatalogView({
                 const raConfig = raSt ? STEP_TYPE_CONFIG[raSt] : null;
                 const raKw = raSt === "given" ? "G" : raSt === "when" ? "W" : raSt === "then" ? "T" : null;
                 return (
-                  <button
+                  <Button variant="ghost" size="sm"
                     key={ra.id}
                     type="button"
                     onClick={() => openAction(ra)}
@@ -4506,7 +4507,7 @@ export function DslCatalogView({
                     <span className="max-w-[140px] truncate font-mono text-[10px]">
                       {ra.aliases?.tr?.[0] ?? ra.aliases?.en?.[0] ?? ra.id}
                     </span>
-                  </button>
+                  </Button>
                 );
               })}
             </div>
@@ -4536,7 +4537,7 @@ export function DslCatalogView({
                       {(["given", "when", "then"] as StepType[]).map((s) => {
                         const c = STEP_TYPE_CONFIG[s];
                         return (
-                          <button
+                          <Button variant="ghost" size="sm"
                             key={s}
                             type="button"
                             onClick={() => { setStepTypeFilter(stepTypeFilter === s ? "all" : s); setPage(1); }}
@@ -4547,7 +4548,7 @@ export function DslCatalogView({
                           >
                             <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: c.borderColor }} />
                             <span>{c.label.slice(0, 3)}</span>
-                          </button>
+                          </Button>
                         );
                       })}
                     </span>
@@ -4555,7 +4556,7 @@ export function DslCatalogView({
                 </div>
               </div>
               {!forceCategory && (
-                <button
+                <Button variant="ghost" size="sm"
                   type="button"
                   onClick={() => { setCategory(null); setPage(1); }}
                   className={`shrink-0 rounded-md border border-slate-700/50 bg-slate-800/50 px-2 py-0.5 text-[10px] text-slate-500 transition-all active:scale-[0.95] hover:border-slate-600 hover:bg-slate-800 hover:text-slate-300 ring-1 ring-inset ring-white/[0.02] shadow-sm shadow-black/10 ${FOCUS_RING}`}
@@ -4567,7 +4568,7 @@ export function DslCatalogView({
                       <path d="M2 5h6M5.5 2l3 3-3 3" />
                     </svg>
                   </span>
-                </button>
+                </Button>
               )}
             </div>
           )}
@@ -4586,7 +4587,7 @@ export function DslCatalogView({
                   <span className="text-xs font-semibold text-slate-300">Hızlı Başlangıç</span>
                   <span className="text-[10px] text-slate-600">— Klavye kısayolları</span>
                 </div>
-                <button
+                <Button variant="ghost" size="icon"
                   type="button"
                   onClick={() => {
                     setShowHints(false);
@@ -4599,7 +4600,7 @@ export function DslCatalogView({
                   <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="h-2 w-2">
                     <path d="M2.5 2.5l5 5M7.5 2.5l-5 5" />
                   </svg>
-                </button>
+                </Button>
               </div>
               <div className="grid grid-cols-2 gap-px bg-slate-800/30 sm:grid-cols-3 lg:grid-cols-6">
                 {[
@@ -4637,7 +4638,7 @@ export function DslCatalogView({
                 <p className="mt-1.5 max-w-xs text-xs leading-relaxed text-red-400/60">
                   {listQuery.error instanceof Error ? listQuery.error.message : "Sunucuya ulaşılamıyor. Lütfen ağ bağlantınızı kontrol edin."}
                 </p>
-                <button
+                <Button variant="secondary" size="sm"
                   type="button"
                   onClick={() => listQuery.refetch()}
                   className={`mt-4 flex items-center gap-1.5 rounded-lg border border-red-700/40 bg-red-900/20 px-3 py-1.5 text-xs text-red-300 hover:bg-red-900/40 transition-all active:scale-[0.97] ring-1 ring-inset ring-red-500/[0.06] shadow-sm shadow-black/10 ${FOCUS_RING}`}
@@ -4646,7 +4647,7 @@ export function DslCatalogView({
                     <path d="M1.5 5A3.5 3.5 0 108 2M1.5 1v4h4" />
                   </svg>
                   Tekrar dene
-                </button>
+                </Button>
               </div>
             ) : (listQuery.isLoading && !isSearching) || (isAiLoading && isSearching && activeActions.length === 0) ? (
               <div className={
@@ -4709,21 +4710,21 @@ export function DslCatalogView({
                     <p className="mb-2 text-[10px] uppercase tracking-wider text-slate-600">Etiketle filtrele</p>
                     <div className="flex flex-wrap justify-center gap-1.5">
                       {stats.data.top_tags.slice(0, 8).map(({ tag }) => (
-                        <button
+                        <Button variant="ghost" size="sm"
                           key={tag}
                           type="button"
                           onClick={() => { setSearch(""); setTagFilter(tag); setPage(1); }}
                           className={`rounded-full border border-slate-700/60 bg-slate-800/50 px-2.5 py-1 font-mono text-[11px] text-slate-400 hover:border-blue-500/30 hover:bg-blue-500/[0.07] hover:text-blue-300 transition-all active:scale-[0.95] ring-1 ring-inset ring-white/[0.02] hover:ring-blue-500/[0.05] ${FOCUS_RING}`}
                         >
                           #{tag}
-                        </button>
+                        </Button>
                       ))}
                     </div>
                   </div>
                 )}
                 {isSearching && !aiEnabled && (
                   <div className="mt-4">
-                    <button
+                    <Button variant="primary" size="sm"
                       type="button"
                       onClick={() => { setSearchMode("ai"); }}
                       className={`rounded-lg border border-violet-500/30 bg-violet-500/10 px-3 py-1.5 text-xs text-violet-300 hover:bg-violet-500/20 ring-1 ring-inset ring-violet-500/[0.08] transition-all active:scale-[0.97] ${FOCUS_RING}`}
@@ -4734,17 +4735,17 @@ export function DslCatalogView({
                         </svg>
                         AI arama ile dene
                       </span>
-                    </button>
+                    </Button>
                   </div>
                 )}
                 {(category || stepTypeFilter !== "all") && (
-                  <button
+                  <Button variant="secondary" size="sm"
                     type="button"
                     onClick={() => { setCategory(forceCategory ?? null); setStepTypeFilter("all"); setTagFilter(null); setPage(1); }}
                     className={`mt-3 rounded-lg border border-slate-700/80 bg-slate-900 px-3 py-1.5 text-xs text-slate-300 hover:bg-slate-800 hover:border-slate-600 ring-1 ring-inset ring-white/[0.03] shadow-sm shadow-black/10 transition-all active:scale-[0.97] ${FOCUS_RING}`}
                   >
                     Filtreleri temizle
-                  </button>
+                  </Button>
                 )}
               </div>
             ) : (
@@ -4864,7 +4865,7 @@ export function DslCatalogView({
                 </span>
               </div>
             <div className="flex items-center justify-center gap-2">
-              <button
+              <Button variant="ghost" size="icon"
                 type="button"
                 className={`flex items-center justify-center rounded-lg border border-slate-700 bg-slate-900 p-1.5 text-xs text-slate-300 transition-all hover:bg-slate-800 hover:text-white active:scale-[0.93] disabled:cursor-not-allowed disabled:opacity-30 ring-1 ring-inset ring-white/[0.03] shadow-sm shadow-black/10 ${FOCUS_RING}`}
                 onClick={() => setPage(1)}
@@ -4874,8 +4875,8 @@ export function DslCatalogView({
                 <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="h-3 w-3">
                   <path d="M7 2L4 5l3 3M4 2L1 5l3 3" />
                 </svg>
-              </button>
-              <button
+              </Button>
+              <Button variant="ghost" size="sm"
                 type="button"
                 className={`flex items-center gap-1 rounded-lg border border-slate-700 bg-slate-900 px-3 py-1.5 text-xs text-slate-300 transition-all hover:bg-slate-800 hover:text-white active:scale-[0.95] disabled:cursor-not-allowed disabled:opacity-30 ring-1 ring-inset ring-white/[0.03] shadow-sm shadow-black/10 ${FOCUS_RING}`}
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
@@ -4886,7 +4887,7 @@ export function DslCatalogView({
                   <path d="M6.5 2l-3 3 3 3" />
                 </svg>
                 Önceki
-              </button>
+              </Button>
               {/* Smart page number buttons */}
               {(() => {
                 const total = Math.ceil(activeTotal / 50);
@@ -4906,7 +4907,7 @@ export function DslCatalogView({
                       r === "..." ? (
                         <span key={`dot-${i}`} className="px-0.5 text-xs text-slate-600">…</span>
                       ) : (
-                        <button
+                        <Button variant="ghost" size="sm"
                           key={r}
                           type="button"
                           onClick={() => setPage(r as number)}
@@ -4919,13 +4920,13 @@ export function DslCatalogView({
                           aria-label={`Sayfa ${r}`}
                         >
                           {r}
-                        </button>
+                        </Button>
                       )
                     )}
                   </div>
                 );
               })()}
-              <button
+              <Button variant="ghost" size="sm"
                 type="button"
                 className={`flex items-center gap-1 rounded-lg border border-slate-700 bg-slate-900 px-3 py-1.5 text-xs text-slate-300 transition-all hover:bg-slate-800 hover:text-white active:scale-[0.95] disabled:cursor-not-allowed disabled:opacity-30 ring-1 ring-inset ring-white/[0.03] shadow-sm shadow-black/10 ${FOCUS_RING}`}
                 onClick={() => setPage((p) => p + 1)}
@@ -4936,8 +4937,8 @@ export function DslCatalogView({
                 <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="h-2.5 w-2.5">
                   <path d="M3.5 2l3 3-3 3" />
                 </svg>
-              </button>
-              <button
+              </Button>
+              <Button variant="ghost" size="icon"
                 type="button"
                 className={`flex items-center justify-center rounded-lg border border-slate-700 bg-slate-900 p-1.5 text-xs text-slate-300 transition-all hover:bg-slate-800 hover:text-white active:scale-[0.93] disabled:cursor-not-allowed disabled:opacity-30 ring-1 ring-inset ring-white/[0.03] shadow-sm shadow-black/10 ${FOCUS_RING}`}
                 onClick={() => setPage(Math.ceil(activeTotal / 50))}
@@ -4947,7 +4948,7 @@ export function DslCatalogView({
                 <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="h-3 w-3">
                   <path d="M3 2l3 3-3 3M6 2l3 3-3 3" />
                 </svg>
-              </button>
+              </Button>
               {/* Jump-to-page input */}
               {Math.ceil(activeTotal / 50) > 5 && (
                 <form
@@ -5016,7 +5017,7 @@ export function DslCatalogView({
 
       {/* Back-to-top floating button — fixed bottom-right */}
       {cardScrolled && (
-        <button
+        <Button variant="ghost" size="icon"
           type="button"
           onClick={() => cardScrollRef.current?.scrollTo({ top: 0, behavior: "smooth" })}
           className={`group/top fixed bottom-6 right-6 z-40 flex h-9 w-9 items-center justify-center rounded-full border border-slate-700/70 bg-slate-900/95 text-slate-500 shadow-2xl shadow-black/60 backdrop-blur-md transition-all hover:border-blue-500/40 hover:bg-slate-800 hover:text-blue-300 hover:shadow-blue-500/15 hover:scale-110 active:scale-95 ring-1 ring-inset ring-white/[0.04] animate-fade-in ${FOCUS_RING}`}
@@ -5026,7 +5027,7 @@ export function DslCatalogView({
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="h-3.5 w-3.5 transition-transform group-hover/top:-translate-y-0.5">
             <path d="M8 13V3M3 8l5-5 5 5" />
           </svg>
-        </button>
+        </Button>
       )}
 
       {/* ── Floating batch action bar ── */}
@@ -5038,7 +5039,7 @@ export function DslCatalogView({
             </span>
             <span className="text-[11px] text-slate-400">seçili</span>
             <span className="text-slate-600">·</span>
-            <button
+            <Button variant="ghost" size="sm"
               type="button"
               onClick={() => {
                 const lines = activeActions
@@ -5060,8 +5061,8 @@ export function DslCatalogView({
                 <path d="M3 1h6v7" />
               </svg>
               Gherkin
-            </button>
-            <button
+            </Button>
+            <Button variant="ghost" size="sm"
               type="button"
               onClick={() => {
                 setFavorites((prev) => {
@@ -5080,8 +5081,8 @@ export function DslCatalogView({
                 <path d="M5 1l1.2 2.5L9 3.8l-2 2 .5 2.7L5 7.2 2.5 8.5 3 5.8 1 3.8l2.8-.3L5 1z" />
               </svg>
               Favori
-            </button>
-            <button
+            </Button>
+            <Button variant="ghost" size="icon"
               type="button"
               onClick={() => { setBatchMode(false); setSelectedBatchIds(new Set()); }}
               className={`flex items-center justify-center rounded-full border border-slate-700 bg-slate-800 px-2 py-1 text-slate-400 transition-all active:scale-90 hover:bg-slate-700 hover:text-slate-200 ring-1 ring-inset ring-white/[0.03] ${FOCUS_RING}`}
@@ -5090,7 +5091,7 @@ export function DslCatalogView({
               <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="h-2.5 w-2.5">
                 <path d="M2.5 2.5l5 5M7.5 2.5l-5 5" />
               </svg>
-            </button>
+            </Button>
           </div>
         </div>
       )}

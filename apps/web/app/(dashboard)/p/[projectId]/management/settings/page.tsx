@@ -5,6 +5,7 @@ import { useManagementSettings, useUpdateManagementUserSettings } from "@/lib/ho
 import { useManagementProjectId } from "@/lib/hooks/use-management-project-id";
 import { useRouteParam } from "@/lib/use-route-param";
 import { apiFetch } from "@/lib/api-client";
+import { Button } from "@/components/ui/button";
 import { RoleGuard } from "../_components/RoleGuard";
 
 /* ─────────────────────────── constants ─────────────────────────── */
@@ -518,7 +519,7 @@ export default function ManagementSettingsPage() {
 
   /* ─────────────────────────────── render ─────────────────────────────── */
   return (
-    <div className="min-h-[calc(100vh-88px)] bg-bg text-fg">
+    <div className="min-h-[calc(100vh-88px)] bg-surface-base text-fg">
 
       {/* ── page header ── */}
       <div className="border-b border-border bg-surface-raised px-6 py-4">
@@ -598,7 +599,7 @@ export default function ManagementSettingsPage() {
                     <select
                       value={defaultPriority}
                       onChange={e => setDefaultPriority(e.target.value)}
-                      className="w-full rounded-xl border border-border bg-bg px-3 py-2 text-[13px] text-fg outline-none focus:border-teal-500/50"
+                      className="w-full rounded-xl border border-border bg-surface-overlay px-3 py-2 text-[13px] text-fg outline-none focus:border-teal-500/50"
                     >
                       {["P0", "P1", "P2", "P3"].map(p => <option key={p} value={p}>{p}</option>)}
                     </select>
@@ -608,7 +609,7 @@ export default function ManagementSettingsPage() {
                     <select
                       value={defaultType}
                       onChange={e => setDefaultType(e.target.value)}
-                      className="w-full rounded-xl border border-border bg-bg px-3 py-2 text-[13px] text-fg outline-none focus:border-teal-500/50"
+                      className="w-full rounded-xl border border-border bg-surface-overlay px-3 py-2 text-[13px] text-fg outline-none focus:border-teal-500/50"
                     >
                       {["manual", "exploratory", "regression", "smoke", "uat"].map(t => (
                         <option key={t} value={t}>{t}</option>
@@ -629,7 +630,7 @@ export default function ManagementSettingsPage() {
                         onChange={e => setCaseKeyPrefix(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ""))}
                         maxLength={6}
                         placeholder="TC"
-                        className="w-full rounded-xl border border-border bg-bg px-3 py-2 text-[13px] text-fg placeholder:text-fg-disabled outline-none focus:border-teal-500/50 font-mono"
+                        className="w-full rounded-xl border border-border bg-surface-overlay px-3 py-2 text-[13px] text-fg placeholder:text-fg-disabled outline-none focus:border-teal-500/50 font-mono"
                       />
                     </div>
                     <div>
@@ -637,7 +638,7 @@ export default function ManagementSettingsPage() {
                       <select
                         value={caseKeyFormat}
                         onChange={e => setCaseKeyFormat(e.target.value)}
-                        className="w-full rounded-xl border border-border bg-bg px-3 py-2 text-[13px] text-fg outline-none focus:border-teal-500/50"
+                        className="w-full rounded-xl border border-border bg-surface-overlay px-3 py-2 text-[13px] text-fg outline-none focus:border-teal-500/50"
                       >
                         {KEY_FORMAT_OPTIONS.map(o => (
                           <option key={o.value} value={o.value}>{o.label}</option>
@@ -654,12 +655,13 @@ export default function ManagementSettingsPage() {
 
               <div className="mt-4 flex items-center gap-3">
                 <RoleGuard minRole="admin" projectId={projectId ?? undefined}>
-                  <button
+                  <Button
+                    variant="primary"
+                    size="sm"
                     onClick={handleSaveGeneral}
-                    className="rounded-xl bg-brand px-4 py-1.5 text-[12px] font-semibold text-brand-fg transition-colors hover:brightness-105"
                   >
                     Kaydet
-                  </button>
+                  </Button>
                 </RoleGuard>
                 {saveToast && (
                   <span className="text-[12px] text-teal-400 animate-pulse">Kaydedildi ✓</span>
@@ -687,14 +689,15 @@ export default function ManagementSettingsPage() {
                   onChange={e => setNewModule(e.target.value)}
                   onKeyDown={e => e.key === "Enter" && addModule()}
                   placeholder="Modül adı..."
-                  className="flex-1 rounded-xl border border-border bg-bg px-3 py-2 text-[13px] text-fg placeholder:text-fg-disabled outline-none focus:border-teal-500/50"
+                  className="flex-1 rounded-xl border border-border bg-surface-overlay px-3 py-2 text-[13px] text-fg placeholder:text-fg-disabled outline-none focus:border-teal-500/50"
                 />
-                <button
+                <Button
+                  variant="primary"
+                  size="sm"
                   onClick={addModule}
-                  className="rounded-xl bg-brand px-3 py-1.5 text-[12px] font-semibold text-brand-fg transition-colors hover:brightness-105"
                 >
                   Ekle
-                </button>
+                </Button>
               </div>
               {modules.length === 0 ? (
                 <p className="text-[11px] text-fg-disabled">Henüz modül eklenmedi.</p>
@@ -726,14 +729,15 @@ export default function ManagementSettingsPage() {
                   onChange={e => setNewTag(e.target.value)}
                   onKeyDown={e => e.key === "Enter" && addTag()}
                   placeholder="Etiket adı..."
-                  className="flex-1 rounded-xl border border-border bg-bg px-3 py-2 text-[13px] text-fg placeholder:text-fg-disabled outline-none focus:border-teal-500/50"
+                  className="flex-1 rounded-xl border border-border bg-surface-overlay px-3 py-2 text-[13px] text-fg placeholder:text-fg-disabled outline-none focus:border-teal-500/50"
                 />
-                <button
+                <Button
+                  variant="primary"
+                  size="sm"
                   onClick={addTag}
-                  className="rounded-xl bg-brand px-3 py-1.5 text-[12px] font-semibold text-brand-fg transition-colors hover:brightness-105"
                 >
                   Ekle
-                </button>
+                </Button>
               </div>
               {tags.length === 0 ? (
                 <p className="text-[11px] text-fg-disabled">Henüz etiket eklenmedi.</p>
@@ -907,13 +911,14 @@ export default function ManagementSettingsPage() {
                 <h2 className="text-[11px] font-medium uppercase tracking-wider text-fg-subtle">API Anahtarları</h2>
                 <p className="mt-1 text-[11px] text-fg-disabled">Tam anahtar yalnız oluşturulduğu anda gösterilir.</p>
               </div>
-              <button
+              <Button
+                variant="primary"
+                size="sm"
                 onClick={() => setShowKeyModal(true)}
                 disabled={!mpid || keysLoading}
-                className="rounded-xl bg-brand px-3 py-1.5 text-[12px] font-semibold text-brand-fg transition-colors hover:brightness-105"
               >
                 + Yeni Anahtar Oluştur
-              </button>
+              </Button>
             </div>
 
             {revokeError && (
@@ -1047,12 +1052,13 @@ export default function ManagementSettingsPage() {
                           className="w-full rounded-lg border border-border bg-surface-raised px-3 py-1.5 text-[12px] text-fg outline-none focus:border-brand/50"
                         />
                       </div>
-                      <button
+                      <Button
+                        variant="primary"
+                        size="sm"
                         onClick={() => setEditingEnvId(null)}
-                        className="rounded-lg bg-brand px-4 py-1.5 text-[11px] font-semibold text-brand-fg hover:brightness-105"
                       >
                         Tamam
-                      </button>
+                      </Button>
                     </div>
                   ) : (
                     <div className="flex items-start justify-between gap-4">
@@ -1141,13 +1147,14 @@ export default function ManagementSettingsPage() {
                   className="w-full rounded-lg border border-border bg-surface-raised px-3 py-1.5 text-[12px] text-fg outline-none focus:border-brand/50 placeholder:text-fg-disabled"
                 />
               </div>
-              <button
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={addCustomEnv}
                 disabled={!newEnvName.trim() || !newEnvSlug.trim()}
-                className="rounded-lg bg-surface-overlay border border-border px-4 py-1.5 text-[11px] font-semibold text-fg-muted hover:text-fg hover:bg-surface-accent disabled:opacity-40 transition-colors"
               >
                 + Ortam Ekle
-              </button>
+              </Button>
             </div>
 
             {/* Usage hint */}
@@ -1195,7 +1202,7 @@ export default function ManagementSettingsPage() {
                   value={newKeyName}
                   onChange={e => setNewKeyName(e.target.value)}
                   placeholder="ör. CI/CD Pipeline"
-                  className="w-full rounded-xl border border-border bg-bg px-3 py-2 text-[13px] text-fg placeholder:text-fg-disabled outline-none focus:border-teal-500/50"
+                  className="w-full rounded-xl border border-border bg-surface-overlay px-3 py-2 text-[13px] text-fg placeholder:text-fg-disabled outline-none focus:border-teal-500/50"
                   autoFocus
                 />
               </div>
@@ -1223,19 +1230,19 @@ export default function ManagementSettingsPage() {
               <p className="mt-3 text-[12px] text-red-400">{keyError}</p>
             )}
             <div className="mt-6 flex gap-3 justify-end">
-              <button
+              <Button
+                variant="outline"
                 onClick={() => { setShowKeyModal(false); setNewKeyName(""); setKeyError(null); }}
-                className="rounded-xl border border-border px-4 py-2 text-[12px] text-fg-muted hover:text-fg transition-colors"
               >
                 İptal
-              </button>
-              <button
+              </Button>
+              <Button
+                variant="primary"
                 onClick={handleCreateApiKey}
                 disabled={!newKeyName.trim()}
-                className="rounded-xl bg-brand px-4 py-2 text-[12px] font-semibold text-brand-fg transition-colors hover:brightness-105 disabled:opacity-40"
               >
                 Oluştur
-              </button>
+              </Button>
             </div>
           </div>
         </div>
@@ -1276,7 +1283,8 @@ export default function ManagementSettingsPage() {
               </button>
             </div>
             <div className="mt-6 flex justify-end">
-              <button
+              <Button
+                variant="primary"
                 onClick={() => {
                   // Clear full key from state — only masked key remains
                   setApiKeys(prev => prev.map(k =>
@@ -1284,10 +1292,9 @@ export default function ManagementSettingsPage() {
                   ));
                   setCreatedKey(null);
                 }}
-                className="rounded-xl bg-brand px-4 py-2 text-[12px] font-semibold text-brand-fg transition-colors hover:brightness-105"
               >
                 Kopyaladim, kapat
-              </button>
+              </Button>
             </div>
           </div>
         </div>
@@ -1311,18 +1318,18 @@ export default function ManagementSettingsPage() {
               Devam etmek istediğinizden emin misiniz?
             </p>
             <div className="flex gap-3 justify-end">
-              <button
+              <Button
+                variant="outline"
                 onClick={() => setConfirmReset(false)}
-                className="rounded-xl border border-border px-4 py-2 text-[12px] text-fg-muted hover:text-fg transition-colors"
               >
                 İptal
-              </button>
-              <button
+              </Button>
+              <Button
+                variant="destructive"
                 onClick={handleReset}
-                className="rounded-xl bg-red-600 px-4 py-2 text-[12px] font-medium text-white hover:bg-red-500 transition-colors"
               >
                 Evet, temizle
-              </button>
+              </Button>
             </div>
           </div>
         </div>

@@ -19,7 +19,13 @@ BASE = "https://kiwi.example.com"
 
 
 def _run(coro):
-    return asyncio.get_event_loop().run_until_complete(coro)
+    # Dedicated loop — independent of global loop state another test may leave
+    # behind (get_event_loop() raises on Python 3.11+ when no current loop set).
+    loop = asyncio.new_event_loop()
+    try:
+        return loop.run_until_complete(coro)
+    finally:
+        loop.close()
 
 
 def _make_transport(handler):

@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 import {
   DndContext, DragOverlay, PointerSensor, KeyboardSensor,
   useSensor, useSensors, closestCenter,
@@ -266,17 +267,19 @@ function CaseTable({
           </div>
         ))}
         {(search || priority || type || status || tagFilter) && !showSaveFilterInput && (
-          <button
+          <Button
+            variant="outline"
+            size="sm"
             type="button"
             onClick={() => { setSaveFilterName(""); setShowSaveFilterInput(true); }}
-            className="flex items-center gap-1 rounded-md border border-border bg-surface-overlay px-2 py-0.5 text-[10px] text-fg-disabled hover:text-brand hover:border-brand/30 transition-colors"
+            className="gap-1 border-border bg-surface-overlay px-2 py-0.5 text-[10px] text-fg-disabled hover:text-brand hover:border-brand/30"
             title="Mevcut filtreyi kaydet"
           >
             <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"/>
             </svg>
             Filtreyi Kaydet
-          </button>
+          </Button>
         )}
         {showSaveFilterInput && (
           <div className="flex items-center gap-1.5 rounded-lg border border-brand/30 bg-surface-overlay px-2 py-1">
@@ -332,6 +335,7 @@ function CaseTable({
             hasFilter={hasFilter}
             onClearFilters={clearAll}
             onNewCase={onNewCase}
+            projectId={projectId}
           />
         ) : (
           <table className="w-full border-collapse">
@@ -385,13 +389,15 @@ function CaseTable({
               {hasMore && (
                 <tr>
                   <td colSpan={9} className="px-4 py-3 text-center">
-                    <button
+                    <Button
+                      variant="outline"
+                      size="sm"
                       type="button"
                       onClick={() => setPage(p => p + 1)}
-                      className="rounded-lg border border-border bg-surface-raised px-4 py-1.5 text-[12px] font-medium text-fg-subtle hover:border-brand hover:text-brand transition-colors"
+                      className="rounded-lg border-border bg-surface-raised px-4 py-1.5 text-[12px] font-medium text-fg-subtle hover:border-brand hover:text-brand"
                     >
                       Daha fazla yükle ({sorted.length - visibleCases.length} kalan)
-                    </button>
+                    </Button>
                   </td>
                 </tr>
               )}
@@ -887,11 +893,74 @@ export function WorkspaceShell({
             />
 
             {/* ── Far right: Case detail drawer ──────────────────────────── */}
-            {selId && (
+            {selId ? (
               <CaseDetailDrawer
                 caseId={selId} pid={mpid || ""} projectId={projectId}
                 onClose={() => setSelId(null)}
               />
+            ) : (
+              <div className="hidden xl:flex w-72 shrink-0 flex-col gap-5 border-l border-border bg-surface-base px-5 py-6 overflow-y-auto">
+                {/* Header */}
+                <div className="flex flex-col items-center gap-2 text-center">
+                  <div className="rounded-full bg-surface-raised p-3">
+                    <svg className="h-6 w-6 text-fg-disabled" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
+                    </svg>
+                  </div>
+                  <p className="text-[12px] font-medium text-fg-muted">Test Case Seçin</p>
+                  <p className="text-[10px] text-fg-subtle">Detayları görüntülemek için soldan bir case seçin</p>
+                </div>
+
+                {/* Quick stats */}
+                {active.length > 0 && (
+                  <div className="rounded-xl border border-border bg-surface-raised p-3 space-y-2">
+                    <p className="text-[10px] font-semibold uppercase tracking-widest text-fg-subtle">Hızlı İstatistik</p>
+                    {[
+                      {
+                        label: "Toplam Case",
+                        value: active.length,
+                        color: "text-fg",
+                      },
+                      {
+                        label: "Geçti",
+                        value: active.filter(c => c.last_run_status === "passed").length,
+                        color: "text-emerald-400",
+                      },
+                      {
+                        label: "Başarısız",
+                        value: active.filter(c => c.last_run_status === "failed").length,
+                        color: "text-red-400",
+                      },
+                      {
+                        label: "Çalıştırılmadı",
+                        value: active.filter(c => !c.last_run_status || c.last_run_status === "not_run").length,
+                        color: "text-fg-muted",
+                      },
+                    ].map(stat => (
+                      <div key={stat.label} className="flex items-center justify-between">
+                        <span className="text-[11px] text-fg-subtle">{stat.label}</span>
+                        <span className={`text-[12px] font-semibold tabular-nums ${stat.color}`}>{stat.value}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Keyboard hints */}
+                <div className="rounded-xl border border-border bg-surface-raised p-3 space-y-2">
+                  <p className="text-[10px] font-semibold uppercase tracking-widest text-fg-subtle">Klavye Kısayolları</p>
+                  {[
+                    { key: "N",   desc: "Yeni case ekle" },
+                    { key: "F",   desc: "Filtre aç" },
+                    { key: "⌘K", desc: "Global arama" },
+                    { key: "?",   desc: "Tüm kısayollar" },
+                  ].map(sh => (
+                    <div key={sh.key} className="flex items-center gap-2">
+                      <kbd className="rounded border border-border bg-surface-overlay px-1.5 py-0.5 text-[9px] font-mono text-fg-muted shrink-0">{sh.key}</kbd>
+                      <span className="text-[10px] text-fg-subtle">{sh.desc}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
             )}
           </div>
 

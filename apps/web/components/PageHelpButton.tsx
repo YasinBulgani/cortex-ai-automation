@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { Button } from "@/components/ui/button";
 
 type Props = {
   /** KB article path (örn. /kb/a-12345) */
@@ -29,15 +30,17 @@ export function PageHelpButton({ kbHref, hint, details, links }: Props) {
 
   return (
     <div className="relative" data-testid="page-help-button">
-      <button
+      <Button
         type="button"
+        variant="ghost"
+        size="icon"
         onClick={() => setOpen((v) => !v)}
-        className="flex h-7 w-7 items-center justify-center rounded-full border border-slate-700 text-xs text-slate-400 hover:bg-slate-800 hover:text-white"
+        className="h-7 w-7 rounded-full border border-slate-700 text-xs text-slate-400 hover:bg-slate-800 hover:text-white"
         aria-label="Sayfa yardımı"
         data-testid="page-help-toggle"
       >
         ?
-      </button>
+      </Button>
 
       {open && (
         <>

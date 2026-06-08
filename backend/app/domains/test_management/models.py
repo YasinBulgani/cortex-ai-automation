@@ -692,6 +692,32 @@ class TestImportJobRow(Base):
     job: Mapped[TestImportJob] = relationship(back_populates="rows")
 
 
+class ExplorationSession(Base):
+    """A timeboxed exploratory testing session (charter + timer + free-form notes)."""
+
+    __tablename__ = "test_management_exploration_sessions"
+    __table_args__ = (
+        Index("ix_tm_exploration_project_created", "project_id", "created_at"),
+    )
+
+    id: Mapped[str] = mapped_column(UUID(as_uuid=False), primary_key=True, default=_uuid)
+    project_id: Mapped[str] = mapped_column(UUID(as_uuid=False), ForeignKey("test_management_projects.id", ondelete="CASCADE"), nullable=False, index=True)
+    title: Mapped[str] = mapped_column(String(300), nullable=False)
+    charter: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    areas: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    environment: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
+    status: Mapped[str] = mapped_column(String(32), default="planned", server_default="planned", nullable=False)
+    timebox_minutes: Mapped[int] = mapped_column(Integer, default=60, server_default="60", nullable=False)
+    elapsed_seconds: Mapped[int] = mapped_column(Integer, default=0, server_default="0", nullable=False)
+    # Each note: {"id": str, "ts": iso, "kind": note|idea|bug|question|risk, "text": str}
+    notes: Mapped[list[dict[str, Any]]] = mapped_column(JSONB, default=list, server_default="[]", nullable=False)
+    tester_id: Mapped[Optional[str]] = mapped_column(UUID(as_uuid=False), ForeignKey("sd_users.id", ondelete="SET NULL"), nullable=True)
+    started_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    ended_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow, nullable=False)
+
+
 class TestManagementAuditEvent(Base):
     __tablename__ = "test_management_audit_events"
     __table_args__ = (

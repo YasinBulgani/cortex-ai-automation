@@ -80,6 +80,7 @@ function usePerfMetrics(projectId: string | null | undefined) {
     enabled: !!projectId,
     staleTime: 60 * 1000,
     refetchInterval: 5 * 60 * 1000,
+    retry: false,
   });
 }
 
@@ -111,7 +112,7 @@ function TrendChart({ data, metric }: { data: number[]; metric: MetricKey }) {
 
 export function PerfPanel() {
   const { projectId } = useProject();
-  const { data, isLoading } = usePerfMetrics(projectId);
+  const { data, isLoading, isError } = usePerfMetrics(projectId);
   const metrics = data ?? DEMO;
   const isDemo = !data && !isLoading;
   const [selectedMetric, setSelectedMetric] = useState<MetricKey>("lcp");
@@ -145,7 +146,7 @@ export function PerfPanel() {
           <p className="text-xs font-semibold text-cyan-400 uppercase tracking-widest">⚡ Performance · Core Web Vitals</p>
           {isDemo && (
             <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/25">
-              Demo
+              {isError ? "Fallback" : "Demo"}
             </span>
           )}
           <p className="text-xs text-slate-500">· Son 7 gün</p>

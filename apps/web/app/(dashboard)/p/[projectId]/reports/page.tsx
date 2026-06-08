@@ -16,6 +16,7 @@ import {
   TrendBadge,
 } from "@/components/nexus";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
 import { PageFeedbackWidget } from "@/components/PageFeedbackWidget";
 import { apiFetch, engineFetch, getToken, API_BASE } from "@/lib/api-client";
 import {
@@ -183,22 +184,25 @@ export default function ReportsPage() {
         }
         right={
           <ToolbarActions>
-            <button
+            <Button
+              variant="secondary"
+              size="sm"
               onClick={() => downloadCsvSummary(projectId)}
-              className="flex items-center gap-1.5 rounded-xl border border-slate-700 bg-slate-800 px-3 py-2 text-xs font-medium text-slate-300 transition-colors hover:bg-slate-700"
+              className="gap-1.5"
               data-testid="reports-btn-csv"
             >
               <span>📊</span> CSV
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="primary"
               onClick={() =>
                 window.open(`${API_BASE}/api/v1/tspm/projects/${projectId}/report/summary?format=html`, "_blank")
               }
-              className="flex items-center gap-2 rounded-xl border border-blue-500/20 bg-blue-500/10 px-4 py-2 text-sm font-semibold text-blue-100 transition-colors hover:bg-blue-500/20"
+              className="gap-2"
               data-testid="reports-btn-html"
             >
               🌐 HTML Raporu Aç
-            </button>
+            </Button>
           </ToolbarActions>
         }
       />
@@ -314,24 +318,30 @@ export default function ReportsPage() {
       >
         <div className="grid gap-4 lg:grid-cols-[1fr,0.8fr]">
           <div className="flex flex-wrap gap-2">
-            <button
+            <Button
+              variant="outline"
+              size="sm"
               onClick={() => { setDownloadError(null); void downloadReport(projectId, null, "html", Number(summaryDays), setDownloadError); }}
-              className="flex items-center gap-1.5 rounded-xl border border-blue-500/20 bg-blue-500/10 px-4 py-3 text-xs font-semibold text-blue-200 transition-all hover:border-blue-400/40"
+              className="h-auto gap-1.5 border-blue-500/20 bg-blue-500/10 px-4 py-3 font-semibold text-blue-200 hover:border-blue-400/40 hover:bg-blue-500/10 hover:text-blue-200"
             >
               🌐 Son {summaryDays}g HTML
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
               onClick={() => { setDownloadError(null); void downloadReport(projectId, null, "json", Number(summaryDays), setDownloadError); }}
-              className="flex items-center gap-1.5 rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-xs font-semibold text-amber-200 transition-all hover:border-amber-400/40"
+              className="h-auto gap-1.5 border-amber-500/20 bg-amber-500/10 px-4 py-3 font-semibold text-amber-200 hover:border-amber-400/40 hover:bg-amber-500/10 hover:text-amber-200"
             >
               <span>{"{ }"}</span> Son {summaryDays}g JSON
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
               onClick={() => downloadCsvSummary(projectId)}
-              className="flex items-center gap-1.5 rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-xs font-semibold text-emerald-200 transition-all hover:border-emerald-400/40"
+              className="h-auto gap-1.5 border-emerald-500/20 bg-emerald-500/10 px-4 py-3 font-semibold text-emerald-200 hover:border-emerald-400/40 hover:bg-emerald-500/10 hover:text-emerald-200"
             >
               📊 CSV
-            </button>
+            </Button>
           </div>
           <div className="rounded-xl border border-slate-800 bg-slate-950/60 px-4 py-3 text-sm leading-6 text-slate-400">
             HTML yönetim paylaşımı, JSON entegrasyon ve denetim otomasyonu, CSV ise portföy veya dönemsel özet için en uygun çıktı.

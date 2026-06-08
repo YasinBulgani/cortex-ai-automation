@@ -27,12 +27,23 @@ pytestmark = pytest.mark.skipif(not _IMPORT_OK, reason="privacy router import fa
 # Fixtures
 # ---------------------------------------------------------------------------
 
+TENANT_ID = "tenant-aaa"
+
+
 def _make_admin_user(perm: str = "privacy.manage") -> MagicMock:
     user = MagicMock()
     user.id = "admin-user-id"
     user.email = "admin@test.com"
     user.full_name = "Test Admin"
+    user.tenant_id = TENANT_ID
     return user
+
+
+def _make_same_tenant_target() -> MagicMock:
+    """A target user that lives in the actor's tenant (passes the IDOR guard)."""
+    target = MagicMock()
+    target.tenant_id = TENANT_ID
+    return target
 
 
 def _make_non_admin_user() -> MagicMock:
@@ -71,6 +82,7 @@ def client_admin():
 
     admin = _make_admin_user()
     db_mock = MagicMock()
+    db_mock.get.return_value = _make_same_tenant_target()
 
     app = FastAPI()
     app.dependency_overrides[get_current_user] = lambda: admin
@@ -78,7 +90,8 @@ def client_admin():
     app.include_router(privacy_router, prefix="/api/v1")
 
     with patch("app.domains.privacy.router._user_permissions",
-               return_value={"privacy.manage"}):
+               return_value={"privacy.manage"}), \
+         patch("app.domains.privacy.router._uuid_or_none", side_effect=lambda v: v):
         yield TestClient(app, raise_server_exceptions=False)
 
     app.dependency_overrides.clear()
@@ -123,8 +136,9 @@ class TestExportEndpoint:
 
     def test_export_passes_user_id_to_service(self, client_admin):
         captured = {}
-        def fake_export(db, user_id):
+        def fake_export(db, user_id, tenant_id=None):
             captured["user_id"] = user_id
+            captured["tenant_id"] = tenant_id
             return _export_payload(user_id)
 
         with patch("app.domains.privacy.router.build_user_dsar_export", side_effect=fake_export):
@@ -173,8 +187,9 @@ class TestDeleteEndpoint:
     def test_delete_dry_run_true_passed_to_service(self, client_admin):
         captured = {}
 
-        def fake_delete(db, user_id, dry_run, purge_artifact_files):
+        def fake_delete(db, user_id, dry_run, purge_artifact_files, tenant_id=None):
             captured["dry_run"] = dry_run
+            captured["tenant_id"] = tenant_id
             return _delete_payload(user_id, dry_run=dry_run)
 
         with patch("app.domains.privacy.router.delete_user_ai_data", side_effect=fake_delete), \
@@ -203,6 +218,7 @@ class TestDeleteEndpoint:
 
         admin = _make_admin_user()
         db_mock = MagicMock()
+        db_mock.get.return_value = _make_same_tenant_target()
 
         app = FastAPI()
         app.dependency_overrides[get_current_user] = lambda: admin
@@ -210,6 +226,7 @@ class TestDeleteEndpoint:
         app.include_router(privacy_router, prefix="/api/v1")
 
         with patch("app.domains.privacy.router._user_permissions", return_value={"admin.*"}), \
+             patch("app.domains.privacy.router._uuid_or_none", side_effect=lambda v: v), \
              patch("app.domains.privacy.router.delete_user_ai_data",
                    return_value=_delete_payload("u-star")), \
              patch("app.domains.privacy.router.log_audit"):

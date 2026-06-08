@@ -246,7 +246,18 @@ def start_farm_session(
     """
     from dataclasses import asdict
 
-    from .device_farm_adapters import get_device_farm
+    from .device_farm_adapters import (
+        AppPathValidationError,
+        get_device_farm,
+        validate_app_path,
+    )
+
+    # SSRF guard: reject file://, internal hosts and private IPs before any
+    # server-side fetch of the app_path (see AWSDeviceFarmAdapter.start_session).
+    try:
+        validate_app_path(app_path)
+    except AppPathValidationError as exc:
+        raise HTTPException(status_code=400, detail=f"Invalid app_path: {exc}") from exc
 
     farm = get_device_farm()
     session = farm.start_session(device_id, app_path, capabilities)

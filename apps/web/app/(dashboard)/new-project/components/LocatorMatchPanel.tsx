@@ -7,6 +7,7 @@ import type {
   LocatorMatchStatus,
 } from "../types";
 import { matchKey } from "../types";
+import { Button } from "@/components/ui/button";
 
 interface MatchStats {
   steps_considered: number;
@@ -122,27 +123,33 @@ export function LocatorMatchPanel({
         </div>
         {locatorMatches.length > 0 && !matching && (
           <div className="flex flex-wrap gap-2">
-            <button
+            <Button
               type="button"
+              size="sm"
+              variant="outline"
               onClick={onApproveAll}
-              className="rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-3 py-1.5 text-xs font-semibold text-emerald-300 hover:bg-emerald-500/20"
+              className="border-emerald-500/40 bg-emerald-500/10 text-xs font-semibold text-emerald-300 hover:bg-emerald-500/20"
             >
               ✓ Hepsini Onayla
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
+              size="sm"
+              variant="outline"
               onClick={onRejectAll}
-              className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-1.5 text-xs font-semibold text-slate-400 hover:border-slate-600"
+              className="border-slate-700 bg-slate-800 text-xs font-semibold text-slate-400 hover:border-slate-600"
             >
               ✗ Hepsini Reddet
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
+              size="sm"
+              variant="outline"
               onClick={onReMatch}
-              className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-1.5 text-xs font-semibold text-slate-400 hover:border-blue-500 hover:text-blue-300"
+              className="border-slate-700 bg-slate-800 text-xs font-semibold text-slate-400 hover:border-blue-500 hover:text-blue-300"
             >
               ↻ Tekrar Eşleştir
-            </button>
+            </Button>
           </div>
         )}
       </div>

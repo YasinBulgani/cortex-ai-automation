@@ -2,10 +2,68 @@
 
 from __future__ import annotations
 
+import ipaddress
+import socket
 from datetime import datetime
 from typing import Optional
+from urllib.parse import urlparse
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
+
+
+def _validate_repo_url(value: str) -> str:
+    """Klonlanacak repo_url'i güvenlik açısından doğrula.
+
+    git clone, ``ext::``, ``file://``, ``git://`` gibi transport helper'ları
+    çalıştırabildiğinden RCE/SSRF riskini engellemek için yalnızca
+    https / ssh şemalarına ve özel olmayan (public) host'lara izin verilir.
+    """
+    raw = (value or "").strip()
+    if not raw:
+        raise ValueError("repo_url boş olamaz")
+
+    # git transport helper / option injection engelle
+    if raw.startswith("-") or "::" in raw:
+        raise ValueError("Geçersiz repo_url biçimi")
+
+    lowered = raw.lower()
+    if lowered.startswith(("file:", "git:", "ext:", "ftp:", "ftps:")):
+        raise ValueError("Bu şema desteklenmiyor: yalnızca https ve ssh kabul edilir")
+
+    # scp benzeri SSH biçimi: git@host:org/repo
+    scp_like = "://" not in raw and "@" in raw and ":" in raw.split("@", 1)[1]
+
+    if scp_like:
+        host = raw.split("@", 1)[1].split(":", 1)[0]
+    else:
+        parsed = urlparse(raw)
+        scheme = parsed.scheme.lower()
+        if scheme not in ("https", "ssh"):
+            raise ValueError("Yalnızca https ve ssh şemaları desteklenir")
+        host = parsed.hostname or ""
+
+    if not host:
+        raise ValueError("repo_url host bilgisi içermiyor")
+
+    # Host'u çöz ve özel/loopback/link-local aralıklarını engelle (SSRF)
+    try:
+        infos = socket.getaddrinfo(host, None)
+    except OSError as exc:
+        raise ValueError(f"repo_url host'u çözümlenemedi: {host}") from exc
+
+    for info in infos:
+        ip = ipaddress.ip_address(info[4][0])
+        if (
+            ip.is_private
+            or ip.is_loopback
+            or ip.is_link_local
+            or ip.is_reserved
+            or ip.is_multicast
+            or ip.is_unspecified
+        ):
+            raise ValueError("repo_url özel/dahili bir adrese işaret ediyor")
+
+    return raw
 
 # ── NexusProject ──────────────────────────────────────────────────────────────
 
@@ -18,6 +76,11 @@ class NexusProjectCreate(BaseModel):
     credential_ref: Optional[str] = None
     llm_provider: str = Field("ollama", pattern="^(ollama|openai|anthropic)$")
     llm_model: str = Field("qwen2.5:32b", max_length=100)
+
+    @field_validator("repo_url")
+    @classmethod
+    def _check_repo_url(cls, v: str) -> str:
+        return _validate_repo_url(v)
 
 
 class NexusProjectUpdate(BaseModel):

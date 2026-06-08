@@ -5,6 +5,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { useRouteParam } from "@/lib/use-route-param";
 import { apiFetch } from "@/lib/api";
+import { Button } from "@/components/ui/button";
 import {
   PageHeader,
   SectionCard,
@@ -126,11 +127,11 @@ export default function IntegrationsPage() {
         title="Entegrasyonlar"
         description="Dış araçlarla bağlantı yönetimi"
         right={
-          <button onClick={() => setShowForm(f => !f)}
-            className="flex items-center gap-2 px-4 py-1.5 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-500 rounded-xl transition-colors">
+          <Button variant="primary" onClick={() => setShowForm(f => !f)}
+            className="gap-2">
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
             Yeni Entegrasyon
-          </button>
+          </Button>
         }
       />
 
@@ -170,12 +171,10 @@ export default function IntegrationsPage() {
               )}
             </div>
             <div className="flex gap-2">
-              <button type="submit" disabled={loading} data-testid="integrations-btn-create"
-                className="px-4 py-2 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-500 rounded-xl transition-colors disabled:opacity-50">
+              <Button type="submit" variant="primary" disabled={loading} data-testid="integrations-btn-create">
                 {loading ? "Ekleniyor…" : "Ekle"}
-              </button>
-              <button type="button" onClick={() => setShowForm(false)}
-                className="px-4 py-2 text-sm text-slate-400 hover:text-white transition-colors">İptal</button>
+              </Button>
+              <Button type="button" variant="secondary" onClick={() => setShowForm(false)}>İptal</Button>
             </div>
           </form>
         </SectionCard>
@@ -191,7 +190,7 @@ export default function IntegrationsPage() {
         {integrations.length === 0 ? (
           <div className="p-8">
             <EmptyState icon="🔌" title="Entegrasyon yok" description="Jira, Azure DevOps, Slack ve diğer araçları bağlayın"
-              action={<button onClick={() => setShowForm(true)} className="px-4 py-2 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-500 rounded-xl transition-colors">Entegrasyon Ekle</button>} />
+              action={<Button variant="primary" onClick={() => setShowForm(true)}>Entegrasyon Ekle</Button>} />
           </div>
         ) : (
           integrations.map(integ => {

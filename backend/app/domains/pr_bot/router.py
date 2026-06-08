@@ -53,10 +53,26 @@ def analyze(body: AnalyzeRequest, user: Annotated[User, Depends(get_current_user
 
     Returns a ``PRSummary`` serialised as a dict.
     """
-    repo_root = Path(os.environ.get("REPO_ROOT", "."))
+    repo_root = Path(os.environ.get("REPO_ROOT", ".")).resolve()
     coverage_paths: list[Path] | None = None
     if body.coverage_path:
-        coverage_paths = [Path(body.coverage_path)]
+        raw = body.coverage_path
+        # Reject absolute paths and parent-traversal segments outright, then
+        # confine the resolved path inside REPO_ROOT. This prevents arbitrary
+        # local-file read / content-exfiltration via attacker-chosen paths
+        # (e.g. /etc/passwd, /app/.env) passed to the XML/LCOV parsers.
+        if Path(raw).is_absolute() or ".." in Path(raw).parts:
+            raise HTTPException(
+                status_code=400, detail="coverage_path must be a relative path inside the repo"
+            )
+        candidate = (repo_root / raw).resolve()
+        try:
+            candidate.relative_to(repo_root)
+        except ValueError:
+            raise HTTPException(
+                status_code=400, detail="coverage_path must be inside the repo root"
+            )
+        coverage_paths = [candidate]
 
     try:
         summary = build_pr_summary(

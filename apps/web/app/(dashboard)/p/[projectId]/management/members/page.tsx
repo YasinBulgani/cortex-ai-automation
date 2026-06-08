@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouteParam } from "@/lib/use-route-param";
 import { useCurrentUser } from "@/lib/useCurrentUser";
 import { apiFetch } from "@/lib/api-client";
 import { cn } from "@/lib/utils";
 import { useProjectRole } from "@/lib/hooks/use-management-role";
+import { Button } from "@/components/ui/button";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -257,14 +258,12 @@ function InviteModal({
           {error && <p className="rounded-lg bg-danger-subtle border border-danger/20 px-3 py-2 text-[12px] text-danger">{error}</p>}
 
           <div className="flex justify-end gap-2 pt-1">
-            <button type="button" onClick={onClose}
-              className="rounded-xl border border-border px-4 py-2 text-[12px] text-fg-muted hover:text-fg transition-colors">
+            <Button type="button" variant="outline" size="sm" onClick={onClose}>
               İptal
-            </button>
-            <button type="submit" disabled={loading || !email.trim() || isDuplicate}
-              className="rounded-xl bg-brand px-4 py-2 text-[12px] font-semibold text-brand-fg hover:brightness-105 disabled:opacity-50 transition-colors">
+            </Button>
+            <Button type="submit" variant="primary" size="sm" disabled={loading || !email.trim() || isDuplicate}>
               {loading ? "Gönderiliyor…" : "Davet Et"}
-            </button>
+            </Button>
           </div>
         </form>
       </div>
@@ -283,6 +282,7 @@ export default function ManagementMembersPage() {
 
   const [showInvite, setShowInvite]       = useState(false);
   const [openRoleMenu, setOpenRoleMenu]   = useState<string | null>(null);
+  const [confirmRemove, setConfirmRemove] = useState<ProjectMember | null>(null);
 
   const membersQuery = useQuery({
     queryKey: ["management", "members", projectId],
@@ -319,6 +319,15 @@ export default function ManagementMembersPage() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["management", "members", projectId] }),
   });
 
+  useEffect(() => {
+    if (!openRoleMenu) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpenRoleMenu(null);
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [openRoleMenu]);
+
   function handleRoleChange(userId: string, newRole: MemberRole) {
     setOpenRoleMenu(null);
     roleChangeMut.mutate({ userId, role: newRole });
@@ -326,7 +335,14 @@ export default function ManagementMembersPage() {
 
   function handleRemove(member: ProjectMember) {
     if (isLastAdmin(member)) return;
-    removeMut.mutate(member.user_id);
+    setConfirmRemove(member);
+  }
+
+  function doRemove() {
+    if (!confirmRemove) return;
+    removeMut.mutate(confirmRemove.user_id, {
+      onSettled: () => setConfirmRemove(null),
+    });
   }
 
   const isCurrentUser = (m: ProjectMember) => !!currentUser && currentUser.id === m.user_id;
@@ -346,16 +362,17 @@ export default function ManagementMembersPage() {
           </p>
         </div>
         {canInvite && (
-          <button
+          <Button
             type="button"
+            variant="primary"
+            size="sm"
             onClick={() => setShowInvite(true)}
-            className="flex items-center gap-1.5 rounded-xl bg-brand px-4 py-2 text-[12px] font-semibold text-brand-fg hover:brightness-105 transition-colors"
           >
             <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/>
             </svg>
             Üye Davet Et
-          </button>
+          </Button>
         )}
       </div>
 
@@ -517,6 +534,27 @@ export default function ManagementMembersPage() {
 
       {openRoleMenu && (
         <div className="fixed inset-0 z-10" onClick={() => setOpenRoleMenu(null)} />
+      )}
+
+      {confirmRemove && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true">
+          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => !removeMut.isPending && setConfirmRemove(null)} />
+          <div className="relative z-10 w-full max-w-md rounded-2xl border border-border bg-surface-raised p-6 shadow-2xl">
+            <h3 className="text-[14px] font-semibold text-fg">Üyeyi Kaldır</h3>
+            <p className="mt-2 text-[12px] text-fg-muted">
+              <span className="font-semibold text-fg">{confirmRemove.email}</span> bu projeden kaldırılacak. Bu işlem geri alınamaz.
+            </p>
+            {removeMut.isError && (
+              <p className="mt-3 text-[12px] text-danger">Üye kaldırılamadı. Lütfen tekrar deneyin.</p>
+            )}
+            <div className="mt-5 flex justify-end gap-2">
+              <Button type="button" variant="outline" size="sm" onClick={() => setConfirmRemove(null)} disabled={removeMut.isPending}>İptal</Button>
+              <Button type="button" variant="destructive" size="sm" onClick={doRemove} disabled={removeMut.isPending}>
+                {removeMut.isPending ? "Kaldırılıyor…" : "Kaldır"}
+              </Button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

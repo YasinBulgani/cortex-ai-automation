@@ -9,6 +9,7 @@ import {
   type RequirementTraceabilityRow,
 } from "@/lib/hooks/use-management";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 
 // ── Constants ──────────────────────────────────────────────────────────────────
 
@@ -417,19 +418,23 @@ export default function TraceabilityPage() {
           >
             Gereksinimler
           </Link>
-          <button
+          <Button
+            variant="outline"
+            size="sm"
             onClick={exportCSV}
             disabled={!data.length}
-            className="rounded-lg border border-border bg-surface-raised px-3 py-2 text-[12px] font-medium text-fg-muted hover:text-fg disabled:opacity-40 transition-colors"
+            className="bg-surface-raised text-fg-muted hover:text-fg"
           >
             CSV İndir
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
             onClick={() => void refetch()}
-            className="rounded-lg border border-border bg-surface-raised px-3 py-2 text-[12px] font-medium text-fg-muted hover:text-fg transition-colors"
+            className="bg-surface-raised text-fg-muted hover:text-fg"
           >
             Yenile
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -573,9 +578,9 @@ export default function TraceabilityPage() {
         ) : isError ? (
           <div className="flex flex-col items-center gap-3 py-16 text-center">
             <p className="text-[13px] font-medium text-fg-muted">Veri yüklenirken hata oluştu.</p>
-            <button onClick={() => void refetch()} className="rounded-lg bg-brand px-3 py-2 text-[12px] font-semibold text-brand-fg hover:brightness-105">
+            <Button variant="primary" size="sm" onClick={() => void refetch()}>
               Tekrar Dene
-            </button>
+            </Button>
           </div>
         ) : data.length === 0 ? (
           <div className="flex flex-col items-center gap-3 py-16 text-center">

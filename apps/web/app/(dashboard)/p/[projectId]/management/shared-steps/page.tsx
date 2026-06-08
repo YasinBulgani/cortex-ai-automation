@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 import {
   useSharedSteps,
   useCreateSharedStep,
@@ -13,6 +14,7 @@ import {
 import { useManagementProjectId } from "@/lib/hooks/use-management-project-id";
 import { useRouteParam } from "@/lib/use-route-param";
 import { useToast } from "@/lib/useToast";
+import { useProjectRole } from "@/lib/hooks/use-management-role";
 
 // ── Empty State ───────────────────────────────────────────────────────────────
 function EmptyState({ onNew }: { onNew: () => void }) {
@@ -27,14 +29,16 @@ function EmptyState({ onNew }: { onNew: () => void }) {
         <p className="text-[14px] font-semibold text-fg">Henüz paylaşılan adım yok</p>
         <p className="mt-1 text-[12px] text-fg-subtle max-w-xs">Birden fazla test senaryosunda tekrar eden adımları şablon olarak kaydedin.</p>
       </div>
-      <button
+      <Button
         type="button"
         onClick={onNew}
-        className="flex items-center gap-2 rounded-xl bg-brand px-4 py-2 text-[13px] font-semibold text-brand-fg shadow-sm hover:brightness-105 transition-all"
+        variant="primary"
+        size="default"
+        className="gap-2 rounded-xl"
       >
         <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4"/></svg>
         İlk şablonu oluştur
-      </button>
+      </Button>
     </div>
   );
 }
@@ -79,9 +83,9 @@ function StepEditorRow({
 
 // ── Step Template Card ────────────────────────────────────────────────────────
 function SharedStepCard({
-  ss, onEdit, onDelete,
+  ss, onEdit, onDelete, isDeleting,
 }: {
-  ss: SharedStep; onEdit: (s: SharedStep) => void; onDelete: (id: string) => void;
+  ss: SharedStep; onEdit?: (s: SharedStep) => void; onDelete?: (id: string) => void; isDeleting?: boolean;
 }) {
   const [expanded, setExpanded] = useState(false);
 
@@ -109,26 +113,35 @@ function SharedStepCard({
             <span className="text-[10px] text-fg-disabled">{ss.usage_count}× kullanım</span>
           </div>
         </button>
-        <button
-          type="button"
-          onClick={() => onEdit(ss)}
-          className="shrink-0 rounded-md p-1.5 text-fg-subtle hover:bg-surface-overlay hover:text-fg transition-colors"
-          title="Düzenle"
-        >
-          <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/>
-          </svg>
-        </button>
-        <button
-          type="button"
-          onClick={() => onDelete(ss.id)}
-          className="shrink-0 rounded-md p-1.5 text-fg-subtle hover:bg-red-500/10 hover:text-red-400 transition-colors"
-          title="Sil"
-        >
-          <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-          </svg>
-        </button>
+        {onEdit && (
+          <button
+            type="button"
+            onClick={() => onEdit(ss)}
+            className="shrink-0 rounded-md p-1.5 text-fg-subtle hover:bg-surface-overlay hover:text-fg transition-colors"
+            title="Düzenle"
+          >
+            <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/>
+            </svg>
+          </button>
+        )}
+        {onDelete && (
+          <button
+            type="button"
+            onClick={() => !isDeleting && onDelete(ss.id)}
+            disabled={isDeleting}
+            className="shrink-0 rounded-md p-1.5 text-fg-subtle hover:bg-red-500/10 hover:text-red-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            title={isDeleting ? "Siliniyor…" : "Sil"}
+          >
+            {isDeleting ? (
+              <span className="h-3.5 w-3.5 block rounded-full border-2 border-red-400 border-t-transparent animate-spin" />
+            ) : (
+              <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+              </svg>
+            )}
+          </button>
+        )}
       </div>
       {expanded && (
         <div className="border-t border-border/50 px-4 py-3 space-y-2">
@@ -219,14 +232,14 @@ function SharedStepModal({
             </div>
           </div>
           <div className="flex gap-2 pt-2">
-            <button type="submit" disabled={saving || !name.trim()}
-              className="flex-1 rounded-xl bg-brand py-2.5 text-[13px] font-semibold text-brand-fg shadow-sm hover:brightness-105 disabled:opacity-40 transition-all">
+            <Button type="submit" variant="primary" size="default" disabled={saving || !name.trim()}
+              className="flex-1 rounded-xl">
               {saving ? "Kaydediliyor…" : (initial ? "Güncelle" : "Oluştur")}
-            </button>
-            <button type="button" onClick={onClose}
-              className="rounded-xl border border-border px-4 py-2.5 text-[13px] text-fg-muted hover:text-fg transition-colors">
+            </Button>
+            <Button type="button" onClick={onClose} variant="outline" size="default"
+              className="rounded-xl">
               İptal
-            </button>
+            </Button>
           </div>
         </form>
       </div>
@@ -234,10 +247,21 @@ function SharedStepModal({
   );
 }
 
+type SortKey = "usage" | "name" | "steps" | "newest";
+
+const SORT_OPTIONS: { key: SortKey; label: string }[] = [
+  { key: "usage",  label: "Kullanım (çok→az)" },
+  { key: "name",   label: "Ad (A→Z)" },
+  { key: "steps",  label: "Adım sayısı" },
+  { key: "newest", label: "En yeni" },
+];
+
 // ── Page ──────────────────────────────────────────────────────────────────────
 export default function SharedStepsPage() {
   const projectId = useRouteParam("projectId");
   const mpid = useManagementProjectId(projectId || undefined);
+  const currentRole = useProjectRole(projectId ?? "");
+  const canEdit = currentRole === "owner" || currentRole === "admin" || currentRole === "member";
 
   const { data: steps = [], isLoading, isError, refetch } = useSharedSteps(mpid || undefined);
   const create = useCreateSharedStep(mpid || "");
@@ -249,18 +273,40 @@ export default function SharedStepsPage() {
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState<SharedStep | null>(null);
   const [search, setSearch] = useState("");
+  const [sortKey, setSortKey] = useState<SortKey>("usage");
+  const [activeTag, setActiveTag] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+
+  // Collect all unique tags from all templates
+  const allTags = useMemo(() => {
+    const tagSet = new Set<string>();
+    for (const s of steps) s.tags.forEach(t => tagSet.add(t));
+    return Array.from(tagSet).sort();
+  }, [steps]);
+
+  // Summary stats
+  const totalUsage = useMemo(() => steps.reduce((acc, s) => acc + (s.usage_count ?? 0), 0), [steps]);
+  const totalStepCount = useMemo(() => steps.reduce((acc, s) => acc + s.steps.length, 0), [steps]);
 
   const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    if (!q) return steps;
-    return steps.filter(s =>
-      s.name.toLowerCase().includes(q) ||
-      s.description?.toLowerCase().includes(q) ||
-      s.tags.some(t => t.toLowerCase().includes(q))
-    );
-  }, [steps, search]);
+    let list = steps.filter(s => {
+      const q = search.trim().toLowerCase();
+      const matchesSearch = !q || s.name.toLowerCase().includes(q) ||
+        s.description?.toLowerCase().includes(q) ||
+        s.tags.some(t => t.toLowerCase().includes(q));
+      const matchesTag = !activeTag || s.tags.includes(activeTag);
+      return matchesSearch && matchesTag;
+    });
+    switch (sortKey) {
+      case "usage":  list = [...list].sort((a, b) => (b.usage_count ?? 0) - (a.usage_count ?? 0)); break;
+      case "name":   list = [...list].sort((a, b) => a.name.localeCompare(b.name, "tr")); break;
+      case "steps":  list = [...list].sort((a, b) => b.steps.length - a.steps.length); break;
+      case "newest": list = [...list].sort((a, b) => (b.created_at ?? "").localeCompare(a.created_at ?? "")); break;
+    }
+    return list;
+  }, [steps, search, activeTag, sortKey]);
 
   const handleSave = async (data: { name: string; description: string; steps: SharedStepItem[]; tags: string[] }) => {
     setSaving(true);
@@ -282,8 +328,14 @@ export default function SharedStepsPage() {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("Bu şablonu silmek istediğinizden emin misiniz?")) return;
+  const handleDeleteRequest = (id: string) => {
+    setConfirmDeleteId(id);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!confirmDeleteId) return;
+    const id = confirmDeleteId;
+    setConfirmDeleteId(null);
     setDeletingId(id);
     try {
       await del.mutateAsync(id);
@@ -306,23 +358,87 @@ export default function SharedStepsPage() {
             Birden fazla test senaryosunda kullanılabilen yeniden kullanılabilir adım şablonları
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => { setEditing(null); setShowModal(true); }}
-          className="flex items-center gap-2 rounded-xl bg-brand px-4 py-2 text-[13px] font-semibold text-brand-fg shadow-sm hover:brightness-105 transition-all"
-        >
-          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4"/></svg>
-          Yeni Şablon
-        </button>
+        {canEdit && (
+          <Button
+            type="button"
+            onClick={() => { setEditing(null); setShowModal(true); }}
+            variant="primary"
+            size="default"
+            className="gap-2 rounded-xl"
+          >
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4"/></svg>
+            Yeni Şablon
+          </Button>
+        )}
       </div>
 
-      {/* Search bar */}
-      <div className="border-b border-border bg-surface-base px-6 py-2.5 shrink-0">
-        <div className="flex w-64 items-center gap-2 rounded-xl border border-border bg-surface-raised px-3 py-1.5 focus-within:border-brand focus-within:ring-2 focus-within:ring-brand/15 transition-all">
+      {/* Stats row */}
+      {!isLoading && steps.length > 0 && (
+        <div className="border-b border-border bg-surface-base px-6 py-3 shrink-0">
+          <div className="flex items-center gap-6">
+            <div className="text-center">
+              <p className="text-[18px] font-bold text-fg tabular-nums">{steps.length}</p>
+              <p className="text-[10px] text-fg-subtle">Şablon</p>
+            </div>
+            <div className="h-8 w-px bg-border" />
+            <div className="text-center">
+              <p className="text-[18px] font-bold text-fg tabular-nums">{totalStepCount}</p>
+              <p className="text-[10px] text-fg-subtle">Toplam Adım</p>
+            </div>
+            <div className="h-8 w-px bg-border" />
+            <div className="text-center">
+              <p className="text-[18px] font-bold text-brand tabular-nums">{totalUsage}</p>
+              <p className="text-[10px] text-fg-subtle">Toplam Kullanım</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Search + sort bar */}
+      <div className="border-b border-border bg-surface-base px-6 py-2.5 shrink-0 flex items-center gap-3 flex-wrap">
+        <div className="flex w-56 items-center gap-2 rounded-xl border border-border bg-surface-raised px-3 py-1.5 focus-within:border-brand focus-within:ring-2 focus-within:ring-brand/15 transition-all">
           <svg className="h-3.5 w-3.5 shrink-0 text-fg-subtle" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><circle cx="11" cy="11" r="8"/><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35"/></svg>
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Şablon ara…"
             className="flex-1 bg-transparent text-[12px] text-fg placeholder:text-fg-subtle outline-none" />
+          {search && (
+            <button type="button" onClick={() => setSearch("")} className="text-fg-subtle hover:text-fg">
+              <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+          )}
         </div>
+        {/* Sort dropdown */}
+        <select
+          value={sortKey}
+          onChange={e => setSortKey(e.target.value as SortKey)}
+          className="rounded-xl border border-border bg-surface-raised px-3 py-1.5 text-[12px] text-fg outline-none focus:border-brand cursor-pointer"
+        >
+          {SORT_OPTIONS.map(o => <option key={o.key} value={o.key}>{o.label}</option>)}
+        </select>
+        {/* Tag filter chips */}
+        {allTags.length > 0 && (
+          <div className="flex items-center gap-1.5 flex-wrap">
+            {activeTag && (
+              <button
+                type="button"
+                onClick={() => setActiveTag(null)}
+                className="flex items-center gap-1 rounded-full bg-brand/20 border border-brand/30 px-2 py-0.5 text-[10px] text-brand font-medium"
+              >
+                <svg className="h-2.5 w-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                {activeTag}
+              </button>
+            )}
+            {allTags.filter(t => t !== activeTag).slice(0, 8).map(t => (
+              <button
+                key={t}
+                type="button"
+                onClick={() => setActiveTag(t)}
+                className="rounded-full border border-border bg-surface-overlay px-2 py-0.5 text-[10px] text-fg-subtle hover:border-brand/40 hover:text-brand transition-colors"
+              >
+                {t}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Content */}
@@ -345,17 +461,21 @@ export default function SharedStepsPage() {
               <button onClick={() => setSearch("")} className="text-[12px] text-brand transition-colors">Aramayı temizle</button>
             </div>
           ) : (
-            <EmptyState onNew={() => { setEditing(null); setShowModal(true); }} />
+            <EmptyState onNew={canEdit ? () => { setEditing(null); setShowModal(true); } : () => {}} />
           )
         ) : (
           <div className="space-y-2">
-            <p className="mb-3 text-[11px] text-fg-subtle">{filtered.length} şablon</p>
+            <p className="mb-3 text-[11px] text-fg-subtle">
+              {filtered.length} şablon
+              {(search || activeTag) && <span className="text-fg-disabled"> (toplam {steps.length}'den)</span>}
+            </p>
             {filtered.map(ss => (
               <SharedStepCard
                 key={ss.id}
                 ss={ss}
-                onEdit={(s) => { setEditing(s); setShowModal(true); }}
-                onDelete={handleDelete}
+                isDeleting={deletingId === ss.id}
+                onEdit={canEdit ? (s) => { setEditing(s); setShowModal(true); } : undefined}
+                onDelete={canEdit ? handleDeleteRequest : undefined}
               />
             ))}
           </div>
@@ -369,6 +489,50 @@ export default function SharedStepsPage() {
           onClose={() => { setShowModal(false); setEditing(null); }}
           saving={saving}
         />
+      )}
+
+      {confirmDeleteId && (
+        <div
+          className="fixed inset-0 z-[200] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+          onClick={() => setConfirmDeleteId(null)}
+        >
+          <div
+            className="w-full max-w-sm rounded-2xl border border-border bg-surface-raised p-6 shadow-2xl"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex items-start gap-4">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-danger-subtle">
+                <svg className="h-5 w-5 text-danger" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                </svg>
+              </div>
+              <div className="flex-1">
+                <h3 className="text-[14px] font-semibold text-fg">Şablonu Sil</h3>
+                <p className="mt-1 text-[12px] text-fg-muted">Bu adım şablonu kalıcı olarak silinecek. Bu işlem geri alınamaz.</p>
+              </div>
+            </div>
+            <div className="mt-5 flex justify-end gap-2">
+              <Button
+                type="button"
+                onClick={() => setConfirmDeleteId(null)}
+                variant="outline"
+                size="default"
+                className="rounded-xl"
+              >
+                İptal
+              </Button>
+              <Button
+                type="button"
+                onClick={handleDeleteConfirm}
+                variant="destructive"
+                size="default"
+                className="rounded-xl"
+              >
+                Sil
+              </Button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

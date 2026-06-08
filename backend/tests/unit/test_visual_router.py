@@ -21,7 +21,9 @@ def client():
     if not _HAS_DEPS:
         pytest.skip("visual router dependencies not available")
     from unittest.mock import MagicMock
-    fake_user = MagicMock(id="test-user-id", email="test@example.com", roles=[])
+    fake_user = MagicMock(
+        id="test-user-id", email="test@example.com", roles=[], tenant_id="t1"
+    )
     app = FastAPI()
     app.dependency_overrides[get_current_user] = lambda: fake_user
     app.dependency_overrides[get_db] = lambda: MagicMock()
@@ -124,7 +126,8 @@ class TestVisualCompare:
         """update_baseline=true must be forwarded to compare_png as a kwarg."""
         fake_png = b"\x89PNG\r\n\x1a\n" + b"\x00" * 100
         result = _make_compare_result(status="baseline_updated")
-        with patch("app.domains.visual.router.compare_png", return_value=result) as mock_cmp:
+        with patch("app.domains.visual.router.compare_png", return_value=result) as mock_cmp, \
+                patch("app.domains.visual.router._user_permissions", return_value={"admin.visual"}):
             resp = client.post(
                 "/visual/compare",
                 data={"name": "login", "update_baseline": "true"},
@@ -135,6 +138,9 @@ class TestVisualCompare:
         # compare_png is called with keyword args only — call_args = (args, kwargs)
         _, kwargs = mock_cmp.call_args
         assert kwargs.get("update_baseline") is True
+        # Scope must be server-derived from the authenticated user's tenant_id,
+        # never the client-supplied name (cross-tenant IDOR guard).
+        assert kwargs.get("scope") == "t1"
 
 
 # ---------------------------------------------------------------------------

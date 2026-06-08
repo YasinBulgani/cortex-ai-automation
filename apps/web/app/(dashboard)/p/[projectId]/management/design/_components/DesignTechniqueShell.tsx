@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouteParam } from "@/lib/use-route-param";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 import {
   useManagementSettingValue,
   usePatchManagementSetting,
@@ -124,7 +125,7 @@ export function DesignTechniqueShell({
   const runLabel = isRunning ? "Uretiliyor..." : `${technique} Calistir`;
 
   return (
-    <div className="min-h-full bg-bg px-6 py-6 space-y-5">
+    <div className="min-h-full bg-surface-base px-6 py-6 space-y-5">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -252,13 +253,15 @@ export function DesignTechniqueShell({
             </div>
           ))}
 
-          <button
+          <Button
             type="button"
+            variant="outline"
+            size="sm"
             onClick={() => setFields(p => [...p, emptyField()])}
-            className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-border py-2 text-[12px] text-fg-disabled hover:text-fg-muted transition-colors"
+            className="w-full gap-1.5 border-dashed text-fg-disabled hover:text-fg-muted"
           >
             + Alan Ekle
-          </button>
+          </Button>
 
           <textarea
             value={context}
@@ -271,21 +274,22 @@ export function DesignTechniqueShell({
           {extraFormSlot}
 
           <div className="flex gap-2">
-            <button
+            <Button
               type="button"
+              variant="primary"
               onClick={() => onRun(fields, context)}
               disabled={fields.some(f => !f.name.trim()) || isRunning}
-              className="flex-1 rounded-xl bg-brand py-2.5 text-[13px] font-medium text-white hover:brightness-105 disabled:opacity-40 transition-colors"
+              className="flex-1"
             >
               {runLabel}
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
+              variant="outline"
               onClick={() => setShowTemplateSave(v => !v)}
-              className="rounded-xl border border-border px-3 py-2.5 text-[12px] text-fg-muted hover:text-fg hover:border-border-strong transition-colors"
             >
               Sablon Kaydet
-            </button>
+            </Button>
           </div>
 
           {showTemplateSave && (
@@ -296,13 +300,15 @@ export function DesignTechniqueShell({
                 placeholder="Sablon adi (opsiyonel)"
                 className={cn(INP, "text-[12px]")}
               />
-              <button
+              <Button
                 type="button"
+                variant="primary"
+                size="sm"
                 onClick={saveTemplate}
-                className="shrink-0 rounded-lg bg-blue-600/80 px-3 py-2 text-[12px] text-white hover:bg-blue-600 transition-colors"
+                className="shrink-0"
               >
                 Kaydet
-              </button>
+              </Button>
             </div>
           )}
         </div>
@@ -374,14 +380,15 @@ export function DesignTechniqueShell({
                     </div>
                   ))}
                 </div>
-                <button
+                <Button
                   type="button"
+                  variant="outline"
                   onClick={() => onPromote(cases.map((_, i) => i).filter(i => !promoted.has(i)))}
                   disabled={isPending || promoted.size === cases.length}
-                  className="w-full rounded-xl border border-border py-2 text-[12px] text-fg-muted hover:text-fg disabled:opacity-40 transition-colors"
+                  className="w-full text-fg-muted hover:text-fg"
                 >
                   {isPending ? "Kaydediliyor..." : "Tumunu Repository'ye Kaydet"}
-                </button>
+                </Button>
               </>
             )}
           </div>

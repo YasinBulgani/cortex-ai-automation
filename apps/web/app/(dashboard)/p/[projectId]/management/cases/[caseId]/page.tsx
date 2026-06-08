@@ -36,6 +36,7 @@ import {
 } from "@/lib/hooks/use-management";
 import { useManagementProjectId } from "@/lib/hooks/use-management-project-id";
 import { useRouteParam } from "@/lib/use-route-param";
+import { Button } from "@/components/ui/button";
 import { CommentThread } from "../../_components/CommentThread";
 import { SharedStepPicker } from "../../_components/SharedStepPicker";
 import { ParameterizedCasesPanel } from "../../_components/ParameterizedCasesPanel";
@@ -70,13 +71,27 @@ function makeStep(no: number): DraftStep {
   return { id: crypto.randomUUID(), step_no: no, action: "", expected_result: "", test_data: "", is_required: true, notes: "" };
 }
 
+// Backend stores step test data as { value: "..." }. Surface that value as a plain
+// string in the editor; fall back to the raw JSON for any other shape.
+function testDataToString(raw: unknown): string {
+  if (raw == null) return "";
+  if (typeof raw === "string") return raw;
+  if (typeof raw === "object") {
+    const v = (raw as { value?: unknown }).value;
+    if (typeof v === "string") return v;
+    if (Object.keys(raw as object).length === 0) return "";
+    return JSON.stringify(raw);
+  }
+  return String(raw);
+}
+
 export default function ManagementCaseDetailPage() {
   const projectId = useRouteParam("projectId");
   const caseId    = useRouteParam("caseId");
 
   const mpid = useManagementProjectId(projectId || undefined);
 
-  const { data: tc, isLoading } = useManagementCase(mpid || undefined, caseId || undefined);
+  const { data: tc, isLoading, isError } = useManagementCase(mpid || undefined, caseId || undefined);
   const { data: versions }      = useManagementCaseVersions(mpid || undefined, caseId || undefined);
   const { data: subCases = [] } = useSubCases(mpid || undefined, caseId || undefined);
   const { data: dependencies = [] } = useCaseDependencies(mpid || undefined, caseId || undefined);
@@ -144,7 +159,7 @@ export default function ManagementCaseDetailPage() {
             step_no: s.step_no,
             action: s.action,
             expected_result: s.expected_result,
-            test_data: typeof s.test_data === "string" ? s.test_data : JSON.stringify(s.test_data ?? {}),
+            test_data: testDataToString(s.test_data),
             is_required: (s as unknown as { is_required?: boolean }).is_required ?? true,
             notes: (s as unknown as { notes?: string }).notes ?? "",
           }))
@@ -189,7 +204,7 @@ export default function ManagementCaseDetailPage() {
           step_no: idx + 1,
           action: s.action,
           expected_result: s.expected_result,
-          test_data: {},
+          test_data: s.test_data.trim() ? { value: s.test_data.trim() } : {},
           notes: s.notes ?? "",
           is_required: s.is_required ?? true,
         })),
@@ -226,7 +241,7 @@ export default function ManagementCaseDetailPage() {
             step_no: s.step_no,
             action: s.action,
             expected_result: s.expected_result,
-            test_data: typeof s.test_data === "string" ? s.test_data : JSON.stringify(s.test_data ?? {}),
+            test_data: testDataToString(s.test_data),
             is_required: (s as unknown as { is_required?: boolean }).is_required ?? true,
             notes: (s as unknown as { notes?: string }).notes ?? "",
           }))
@@ -286,14 +301,42 @@ export default function ManagementCaseDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-[calc(100vh-88px)] bg-bg flex items-center justify-center">
-        <div className="animate-pulse h-6 w-32 rounded bg-surface-overlay" />
+      <div className="min-h-[calc(100vh-88px)] bg-surface-base p-6 space-y-4 max-w-4xl mx-auto">
+        <div className="animate-pulse h-8 w-48 rounded-lg bg-surface-overlay" />
+        <div className="animate-pulse h-4 w-64 rounded bg-surface-overlay" />
+        <div className="animate-pulse h-32 rounded-xl bg-surface-overlay" />
+        <div className="animate-pulse h-24 rounded-xl bg-surface-overlay" />
+        <div className="animate-pulse h-24 rounded-xl bg-surface-overlay" />
+      </div>
+    );
+  }
+
+  if (isError || (!isLoading && !tc)) {
+    return (
+      <div className="min-h-[calc(100vh-88px)] bg-surface-base flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4 text-center">
+          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-danger-subtle">
+            <svg className="h-6 w-6 text-danger" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+            </svg>
+          </div>
+          <div>
+            <h3 className="text-[14px] font-semibold text-fg">Test Case Bulunamadı</h3>
+            <p className="mt-1 text-[12px] text-fg-subtle">Bu test case silinmiş veya erişim izniniz olmayabilir.</p>
+          </div>
+          <Link
+            href={`/p/${projectId}/management/repository`}
+            className="rounded-xl bg-brand px-4 py-2 text-[12px] font-semibold text-brand-fg hover:brightness-105 transition-all"
+          >
+            Depoya Dön
+          </Link>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-[calc(100vh-88px)] bg-bg text-fg">
+    <div className="min-h-[calc(100vh-88px)] bg-surface-base text-fg">
       {/* Top bar */}
       <div className="flex items-center justify-between border-b border-border bg-surface-raised px-6 py-3">
         <div className="flex items-center gap-4">
@@ -311,7 +354,7 @@ export default function ManagementCaseDetailPage() {
             {([ ["edit", "Düzenle"], ["comments", "Yorumlar"], ["history", "Geçmiş"], ["parametric", "Parametrik"] ] as const).map(([tab, label]) => (
               <button key={tab} type="button" onClick={() => setActiveTab(tab)}
                 className={`px-3 py-1.5 text-[11px] font-medium transition-colors ${
-                  activeTab === tab ? "bg-brand text-white" : "bg-transparent text-fg-subtle hover:text-fg"
+                  activeTab === tab ? "bg-brand text-brand-fg" : "bg-transparent text-fg-subtle hover:text-fg"
                 }`}>
                 {label}
               </button>
@@ -324,14 +367,15 @@ export default function ManagementCaseDetailPage() {
               )}
               {dirty && !revertMsg && <span className="text-[10px] text-fg-disabled">Kaydedilmemiş</span>}
               <div className="flex flex-col items-end gap-0.5">
-                <button
+                <Button
+                  variant="primary"
+                  size="sm"
                   type="button"
                   onClick={handleSave}
                   disabled={saving || !dirty}
-                  className="rounded-md bg-brand px-4 py-1.5 text-[11px] font-medium text-white hover:brightness-105 disabled:opacity-40 transition-colors"
                 >
                   {saving ? "Kaydediliyor…" : "Kaydet"}
-                </button>
+                </Button>
                 {saveError && <p className="text-[12px] text-red-400 mt-1">{saveError}</p>}
               </div>
             </>
@@ -556,7 +600,7 @@ export default function ManagementCaseDetailPage() {
                 <select
                   value={value}
                   onChange={e => { onChange(e.target.value); markDirty(); }}
-                  className="w-full rounded-md border border-border bg-bg px-2 py-1.5 text-[13px] text-fg outline-none focus:border-teal-500/50"
+                  className="w-full rounded-md border border-border bg-surface-overlay px-2 py-1.5 text-[13px] text-fg outline-none focus:border-teal-500/50"
                 >
                   {opts.map(o => <option key={o} value={o}>{o}</option>)}
                 </select>
@@ -570,7 +614,7 @@ export default function ManagementCaseDetailPage() {
                 <select
                   value={ownerId}
                   onChange={e => { setOwnerId(e.target.value); markDirty(); }}
-                  className="w-full rounded-md border border-border bg-bg px-2 py-1.5 text-[13px] text-fg outline-none focus:border-teal-500/50"
+                  className="w-full rounded-md border border-border bg-surface-overlay px-2 py-1.5 text-[13px] text-fg outline-none focus:border-teal-500/50"
                 >
                   <option value="">— Atanmamış —</option>
                   {members.map(m => (
@@ -598,7 +642,7 @@ export default function ManagementCaseDetailPage() {
                 onChange={e => { setTags(e.target.value); markDirty(); }}
                 onBlur={handleSave}
                 placeholder="login, payment, …"
-                className="w-full rounded-md border border-border bg-bg px-2 py-1.5 text-[13px] text-fg placeholder:text-fg-disabled outline-none focus:border-teal-500/50"
+                className="w-full rounded-md border border-border bg-surface-overlay px-2 py-1.5 text-[13px] text-fg placeholder:text-fg-disabled outline-none focus:border-teal-500/50"
               />
             </div>
           </div>
@@ -684,18 +728,20 @@ export default function ManagementCaseDetailPage() {
                   value={depKeyInput}
                   onChange={e => { setDepKeyInput(e.target.value); setDepAddError(""); }}
                   placeholder="TC-XXX (case key)"
-                  className="flex-1 rounded border border-border bg-bg px-2 py-1 text-[11px] text-fg placeholder:text-fg-disabled outline-none focus:border-teal-500/50"
+                  className="flex-1 rounded border border-border bg-surface-overlay px-2 py-1 text-[11px] text-fg placeholder:text-fg-disabled outline-none focus:border-teal-500/50"
                 />
                 <select
                   value={depTypeInput}
                   onChange={e => setDepTypeInput(e.target.value as "blocks" | "related")}
-                  className="rounded border border-border bg-bg px-1 py-1 text-[11px] text-fg outline-none focus:border-teal-500/50"
+                  className="rounded border border-border bg-surface-overlay px-1 py-1 text-[11px] text-fg outline-none focus:border-teal-500/50"
                 >
                   <option value="blocks">blocks</option>
                   <option value="related">related</option>
                 </select>
               </div>
-              <button
+              <Button
+                variant="outline"
+                size="sm"
                 type="button"
                 disabled={!depKeyInput.trim() || addDependency.isPending}
                 onClick={async () => {
@@ -713,10 +759,10 @@ export default function ManagementCaseDetailPage() {
                     setDepAddError("Eklenemedi");
                   }
                 }}
-                className="w-full rounded-md border border-border bg-surface-overlay py-1 text-[11px] text-fg-muted hover:border-teal-500/40 hover:text-teal-400 transition-colors disabled:opacity-40"
+                className="w-full text-fg-muted hover:border-teal-500/40 hover:text-teal-400"
               >
                 {addDependency.isPending ? "Ekleniyor…" : "+ Bağımlılık Ekle"}
-              </button>
+              </Button>
               {depAddError && <p className="text-[10px] text-red-400">{depAddError}</p>}
             </div>
           </div>

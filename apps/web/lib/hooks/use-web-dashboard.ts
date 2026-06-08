@@ -85,6 +85,7 @@ export function useReleaseHealth(projectId: string | null | undefined) {
     enabled: !!projectId,
     staleTime: 60 * 1000,
     refetchInterval: 5 * 60 * 1000,
+    retry: false,
   });
 }
 
@@ -99,6 +100,7 @@ export function useDayOverDay(projectId: string | null | undefined) {
     enabled: !!projectId,
     staleTime: 60 * 1000,
     refetchInterval: 5 * 60 * 1000,
+    retry: false,
   });
 }
 
@@ -113,5 +115,6 @@ export function useMyInbox(projectId: string | null | undefined) {
     enabled: !!projectId,
     staleTime: 30 * 1000,
     refetchInterval: 2 * 60 * 1000,
+    retry: false,
   });
 }

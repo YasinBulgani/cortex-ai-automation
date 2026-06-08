@@ -14,6 +14,7 @@ import {
   type ApiEnvironment,
 } from "@/lib/hooks/use-api-testing";
 import { useToast } from "@/components/ui/toast";
+import { Button } from "@/components/ui/button";
 
 interface VarRow { key: string; value: string; sensitive?: boolean; revealed?: boolean }
 
@@ -137,9 +138,9 @@ function CompareModal({
           </div>
         </div>
         <div className="border-t border-slate-800 px-6 py-4 flex justify-end">
-          <button onClick={onClose} className="rounded-lg border border-slate-700 px-4 py-2 text-sm text-slate-300 hover:text-white">
+          <Button variant="outline" onClick={onClose}>
             Kapat
-          </button>
+          </Button>
         </div>
       </div>
     </>
@@ -337,8 +338,6 @@ export default function EnvironmentsPage() {
   }, []);
 
   const inputCls = "w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white placeholder-slate-500 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500";
-  const btnPrimary = "inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed";
-  const btnSecondary = "inline-flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-800 px-3 py-1.5 text-sm font-medium text-slate-300 hover:bg-slate-700 hover:text-white transition-colors";
 
   return (
     <div className="space-y-6" data-testid="environments-page">
@@ -354,26 +353,26 @@ export default function EnvironmentsPage() {
           <div className="flex items-center gap-2 flex-wrap">
             <input ref={fileInputRef} type="file" accept=".json" className="hidden" onChange={handleFileImport} />
             {environments.length >= 2 && (
-              <button type="button" className={btnSecondary} onClick={() => setShowCompare(true)}>
+              <Button type="button" variant="secondary" size="sm" onClick={() => setShowCompare(true)}>
                 ⚖ Karşılaştır
-              </button>
+              </Button>
             )}
             {selected && (
               <>
-                <button type="button" className={btnSecondary} onClick={() => fileInputRef.current?.click()}>
+                <Button type="button" variant="secondary" size="sm" onClick={() => fileInputRef.current?.click()}>
                   ⬆ JSON Yükle
-                </button>
-                <button type="button" className={btnSecondary} onClick={handleExport}>
+                </Button>
+                <Button type="button" variant="secondary" size="sm" onClick={handleExport}>
                   ⬇ JSON İndir
-                </button>
-                <button type="button" className={btnSecondary} onClick={handleClone} disabled={createMut.isPending}>
+                </Button>
+                <Button type="button" variant="secondary" size="sm" onClick={handleClone} disabled={createMut.isPending}>
                   🗐 Kopyala
-                </button>
+                </Button>
               </>
             )}
-            <button type="button" className={btnPrimary} onClick={handleCreate} disabled={createMut.isPending}>
+            <Button type="button" variant="primary" size="sm" onClick={handleCreate} disabled={createMut.isPending}>
               + Yeni Ortam
-            </button>
+            </Button>
           </div>
         }
       />
@@ -388,9 +387,9 @@ export default function EnvironmentsPage() {
           title="Henüz ortam yok"
           description="API testleriniz için ortam değişkenleri tanımlamaya başlayın."
           action={
-            <button type="button" className={btnPrimary} onClick={handleCreate} disabled={createMut.isPending}>
+            <Button type="button" variant="primary" size="sm" onClick={handleCreate} disabled={createMut.isPending}>
               + İlk Ortamı Oluştur
-            </button>
+            </Button>
           }
         />
       ) : (
@@ -486,9 +485,9 @@ export default function EnvironmentsPage() {
                 <SectionCard title="Hızlı Şablon">
                   <div className="flex flex-wrap gap-2">
                     {PRESETS.map((p) => (
-                      <button key={p.label} type="button" className={btnSecondary} onClick={() => applyPreset(p)}>
+                      <Button key={p.label} type="button" variant="secondary" size="sm" onClick={() => applyPreset(p)}>
                         {p.label}
-                      </button>
+                      </Button>
                     ))}
                   </div>
                 </SectionCard>
@@ -568,9 +567,9 @@ export default function EnvironmentsPage() {
 
                   {/* Add row + suggestions */}
                   <div className="mt-4 flex flex-wrap items-center gap-2">
-                    <button type="button" className={btnSecondary} onClick={addRow}>
+                    <Button type="button" variant="secondary" size="sm" onClick={addRow}>
                       + Değişken Ekle
-                    </button>
+                    </Button>
                     <span className="text-xs text-slate-600 mx-1">|</span>
                     {SUGGESTED_KEYS.filter((k) => !editRows.some((r) => r.key === k)).map((k) => (
                       <button
@@ -595,30 +594,30 @@ export default function EnvironmentsPage() {
                       placeholder='{"variables": {"base_url": "...", "api_key": "..."}, "sensitive_keys": ["api_key"]}'
                     />
                     <div className="mt-3 flex items-center gap-2">
-                      <button type="button" className={btnPrimary} onClick={handleImport}>Uygula</button>
-                      <button type="button" className={btnSecondary} onClick={() => { setShowImport(false); setImportJson(""); }}>İptal</button>
+                      <Button type="button" variant="primary" size="sm" onClick={handleImport}>Uygula</Button>
+                      <Button type="button" variant="secondary" size="sm" onClick={() => { setShowImport(false); setImportJson(""); }}>İptal</Button>
                     </div>
                   </SectionCard>
                 )}
 
                 {/* Save / Delete */}
                 <div className="flex items-center justify-between">
-                  <button
+                  <Button
                     type="button"
-                    className="inline-flex items-center gap-1.5 rounded-lg bg-red-600/20 border border-red-500/30 px-3 py-1.5 text-sm font-medium text-red-400 hover:bg-red-600/30 transition-colors"
+                    variant="ghost-danger"
                     onClick={() => handleDelete(selectedId!)}
                     disabled={deleteMut.isPending}
                   >
                     🗑 Ortamı Sil
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     type="button"
-                    className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-5 py-2 text-sm font-semibold text-white hover:bg-blue-500 transition-colors disabled:opacity-50"
+                    variant="primary"
                     onClick={handleSave}
                     disabled={updateMut.isPending || !editName.trim()}
                   >
                     {updateMut.isPending ? "Kaydediliyor…" : "Kaydet"}
-                  </button>
+                  </Button>
                 </div>
               </>
             )}

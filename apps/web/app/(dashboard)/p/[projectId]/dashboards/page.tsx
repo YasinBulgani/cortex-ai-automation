@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 
+import { Button } from "@/components/ui/button";
 import { useRouteParam } from "@/lib/use-route-param";
 import { useManagementProjectId } from "@/lib/hooks/use-management-project-id";
 import {
@@ -277,15 +278,16 @@ export default function CustomDashboardsPage() {
               className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-1.5 text-xs text-slate-200"
               data-testid="dashboard-new-name-input"
             />
-            <button
+            <Button
               type="button"
+              variant="primary"
+              size="sm"
               onClick={handleCreate}
               disabled={!newName.trim()}
-              className="rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-indigo-500 disabled:opacity-40"
               data-testid="dashboard-create-btn"
             >
               + Oluştur
-            </button>
+            </Button>
           </div>
         </div>
 
@@ -368,26 +370,28 @@ export default function CustomDashboardsPage() {
               </h2>
             )}
             <div className="flex gap-2">
-              <button
+              <Button
                 type="button"
+                variant="outline"
+                size="sm"
                 onClick={() => setShowAddPanel((v) => !v)}
-                className="rounded-lg border border-slate-700 px-3 py-1.5 text-xs hover:bg-slate-800"
                 data-testid="dashboard-add-widget-btn"
               >
                 + Widget Ekle
-              </button>
-              <button
+              </Button>
+              <Button
                 type="button"
+                variant="ghost-danger"
+                size="sm"
                 onClick={() => {
                   if (confirm(`"${active.name}" dashboard silinsin mi?`)) {
                     deleteDashboard(active.id);
                   }
                 }}
-                className="rounded-lg border border-red-500/30 px-3 py-1.5 text-xs text-red-300 hover:bg-red-500/10"
                 data-testid="dashboard-delete-btn"
               >
                 Sil
-              </button>
+              </Button>
             </div>
           </div>
 

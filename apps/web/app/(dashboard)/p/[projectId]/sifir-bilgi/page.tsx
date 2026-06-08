@@ -15,6 +15,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 
+import { Button } from "@/components/ui/button";
+
 import {
   createAIWorkflow,
   downloadAIWorkflowArtifact,
@@ -503,72 +505,45 @@ export default function SıfırBilgiPage() {
         </details>
 
         <div style={{ marginTop: "20px", display: "flex", gap: "12px" }}>
-          <button
+          <Button
             type="button"
+            variant="primary"
+            size="lg"
             onClick={handleStart}
             disabled={!canStart || inputsLocked}
-            style={{
-              padding: "12px 24px",
-              background: canStart && !inputsLocked ? "#1976d2" : "#aaa",
-              color: "white",
-              border: "none",
-              borderRadius: "6px",
-              cursor: canStart && !inputsLocked ? "pointer" : "not-allowed",
-              fontWeight: 600,
-              fontSize: "14px",
-            }}
           >
             {isRunning ? "Çalışıyor..." : "Pipeline'ı Başlat"}
-          </button>
+          </Button>
           {isRunning && runId && (
-            <button
+            <Button
               type="button"
+              variant="outline"
+              size="lg"
               onClick={handleCancel}
-              style={{
-                padding: "12px 24px",
-                background: "#fff",
-                color: "#d32f2f",
-                border: "1px solid #d32f2f",
-                borderRadius: "6px",
-                cursor: "pointer",
-              }}
             >
               İptal
-            </button>
+            </Button>
           )}
           {runStatus === "pending_approval" && runId && (
             <>
-              <button
+              <Button
                 type="button"
+                variant="primary"
+                size="lg"
                 onClick={() => void handleApproval("approved")}
                 disabled={approvalBusy}
-                style={{
-                  padding: "12px 24px",
-                  background: approvalBusy ? "#aaa" : "#2e7d32",
-                  color: "white",
-                  border: "none",
-                  borderRadius: "6px",
-                  cursor: approvalBusy ? "not-allowed" : "pointer",
-                  fontWeight: 600,
-                }}
               >
                 Onayla ve Kuyruğa Al
-              </button>
-              <button
+              </Button>
+              <Button
                 type="button"
+                variant="destructive"
+                size="lg"
                 onClick={() => void handleApproval("rejected")}
                 disabled={approvalBusy}
-                style={{
-                  padding: "12px 24px",
-                  background: "#fff",
-                  color: "#d32f2f",
-                  border: "1px solid #d32f2f",
-                  borderRadius: "6px",
-                  cursor: approvalBusy ? "not-allowed" : "pointer",
-                }}
               >
                 Reddet
-              </button>
+              </Button>
             </>
           )}
         </div>

@@ -40,6 +40,72 @@ from typing import Any, Optional, Protocol
 
 logger = logging.getLogger(__name__)
 
+
+class AppPathValidationError(ValueError):
+    """Raised when an app_path fails SSRF / scheme validation."""
+
+
+def validate_app_path(app_path: str) -> None:
+    """Validate an ``app_path`` before it is fetched server-side.
+
+    Prevents SSRF / local file disclosure: only ``arn:`` identifiers and
+    ``https://`` URLs to public hosts are permitted. ``file://``, ``ftp://``,
+    plain ``http://``, internal hostnames and private/loopback/link-local IPs
+    are rejected. Used by adapters that fetch the app (e.g. AWS Device Farm
+    calls ``urllib.request.urlretrieve(app_path, ...)``).
+    """
+    import ipaddress
+    import socket
+    from urllib.parse import urlparse
+
+    if not isinstance(app_path, str) or not app_path.strip():
+        raise AppPathValidationError("app_path is required")
+
+    app_path = app_path.strip()
+
+    # AWS ARNs / provider storage identifiers are passed through unchanged.
+    if app_path.startswith("arn:") or app_path.startswith("storage:") or app_path.startswith("bs://"):
+        return
+
+    parsed = urlparse(app_path)
+    scheme = (parsed.scheme or "").lower()
+    if scheme != "https":
+        raise AppPathValidationError(
+            f"app_path scheme '{scheme or '(none)'}' not allowed; use an arn:/storage: id or an https:// URL"
+        )
+
+    host = (parsed.hostname or "").strip()
+    if not host:
+        raise AppPathValidationError("app_path URL has no host")
+
+    # Block obvious internal names before DNS resolution.
+    lowered = host.lower()
+    if lowered in {"localhost"} or lowered.endswith(".localhost") or lowered.endswith(".internal") or lowered.endswith(".local"):
+        raise AppPathValidationError("app_path host is not allowed")
+
+    # Resolve and reject private/loopback/link-local/reserved addresses (SSRF).
+    try:
+        infos = socket.getaddrinfo(host, None)
+    except OSError as exc:
+        raise AppPathValidationError(f"app_path host could not be resolved: {host}") from exc
+
+    for info in infos:
+        addr = info[4][0]
+        try:
+            ip = ipaddress.ip_address(addr.split("%", 1)[0])
+        except ValueError:
+            continue
+        if (
+            ip.is_private
+            or ip.is_loopback
+            or ip.is_link_local
+            or ip.is_reserved
+            or ip.is_multicast
+            or ip.is_unspecified
+        ):
+            raise AppPathValidationError("app_path resolves to a non-public address")
+
+
 # Re-export so unit tests can patch "app.domains.mobile.device_farm_adapters.get_broker"
 try:
     from .device_broker import get_broker as get_broker  # noqa: PLC0414
@@ -181,6 +247,8 @@ class AWSDeviceFarmAdapter:
         capabilities: dict[str, Any],
     ) -> FarmSession:
         try:
+            # SSRF guard: never urlretrieve an attacker-controlled scheme/host.
+            validate_app_path(app_path)
             client = self._get_client()
             # Upload app if local path
             app_arn = app_path

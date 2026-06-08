@@ -23,6 +23,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { useRouteParam } from "@/lib/use-route-param";
 import Link from "next/link";
 import { apiFetch } from "@/lib/api";
+import { Button } from "@/components/ui/button";
 import {
   PageHeader,
   SectionCard,
@@ -218,13 +219,15 @@ function DraftStepRow({
         rows={2}
         className="min-h-[70px] rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white placeholder-slate-500 focus:border-blue-500 focus:outline-none"
       />
-      <button
+      <Button
         type="button"
+        variant="ghost-danger"
+        size="sm"
         onClick={onRemove}
-        className="h-10 rounded-lg border border-red-500/30 px-3 text-xs font-medium text-red-300 hover:bg-red-500/10"
+        className="h-10"
       >
         Sil
-      </button>
+      </Button>
     </div>
   );
 }
@@ -497,21 +500,23 @@ function TestCard({
                 data-testid={`manual-step-input-expected-${test.id}`}
               />
               <div className="flex gap-2">
-                <button
+                <Button
                   type="submit"
+                  variant="primary"
+                  size="sm"
                   disabled={addingStep}
-                  className="px-3 py-1.5 text-xs font-medium text-white bg-blue-600 hover:bg-blue-500 rounded-lg transition-colors disabled:opacity-50"
                   data-testid={`manual-step-submit-${test.id}`}
                 >
                   {addingStep ? "Ekleniyor..." : "Kaydet"}
-                </button>
-                <button
+                </Button>
+                <Button
                   type="button"
+                  variant="ghost"
+                  size="sm"
                   onClick={() => { setShowStepForm(false); setStepForm(emptyStep); }}
-                  className="px-3 py-1.5 text-xs text-slate-400 hover:text-white transition-colors"
                 >
                   İptal
-                </button>
+                </Button>
               </div>
             </form>
           )}
@@ -786,16 +791,17 @@ export default function ManualPage() {
               </svg>
               Otomasyona Çevir
             </Link>
-            <button
+            <Button
+              variant="primary"
               onClick={() => setShowForm(v => !v)}
-              className="flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-1.5 text-sm font-semibold text-white transition-colors hover:bg-blue-500"
+              className="gap-2"
               data-testid="manual-tests-btn-new"
             >
               <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
               </svg>
               {showForm ? "İptal" : "Yeni Test"}
-            </button>
+            </Button>
           </ToolbarActions>
         }
       />
@@ -1039,28 +1045,28 @@ export default function ManualPage() {
                 </DndContext>
 
                 <div className="flex flex-wrap items-center gap-2">
-                  <button
+                  <Button
                     type="button"
+                    variant="outline"
                     onClick={() => setDraftSteps((current) => [...current, makeDraftStep()])}
-                    className="rounded-lg border border-slate-700 px-3 py-2 text-sm font-semibold text-slate-300 hover:bg-slate-800 hover:text-white"
                   >
                     Adım Ekle
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     type="submit"
+                    variant="primary"
                     disabled={creating}
-                    className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-500 disabled:opacity-50"
                     data-testid="manual-tests-btn-create"
                   >
                     {creating ? "Oluşturuluyor..." : "Testi Oluştur"}
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     type="button"
+                    variant="ghost"
                     onClick={() => { setShowForm(false); setForm(emptyForm); setErr(null); }}
-                    className="px-3 py-2 text-sm text-slate-400 transition-colors hover:text-white"
                   >
                     İptal
-                  </button>
+                  </Button>
                 </div>
                 {err && <p className="text-sm text-red-400" data-testid="manual-tests-alert-error">{err}</p>}
               </div>
@@ -1215,13 +1221,13 @@ export default function ManualPage() {
           title="Henüz manuel test yok"
           description="İlk manuel testinizi oluşturun veya filtrelerinizi değiştirin"
           action={
-            <button
+            <Button
+              variant="primary"
               onClick={() => setShowForm(true)}
-              className="px-4 py-2 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-500 rounded-xl transition-colors"
               data-testid="manual-tests-btn-empty-new"
             >
               İlk Testi Oluştur
-            </button>
+            </Button>
           }
         />
       ) : (

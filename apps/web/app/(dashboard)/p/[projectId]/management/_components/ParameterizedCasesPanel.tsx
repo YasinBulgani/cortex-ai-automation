@@ -56,7 +56,7 @@ export function ParameterizedCasesPanel({ caseId }: { caseId: string }) {
             <select
               value={activeSet?.id ?? ""}
               onChange={(e) => setSelectedSetId(e.target.value)}
-              className="w-full rounded border border-border bg-surface-raised px-2 py-1 text-sm text-white"
+              className="w-full rounded border border-border bg-surface-overlay px-2 py-1 text-sm text-fg"
             >
               {sets.map((s) => (
                 <option key={s.id} value={s.id}>
@@ -85,7 +85,7 @@ function SchemaEditor({ caseId }: { caseId: string }) {
   };
 
   return (
-    <div className="rounded-lg border border-border bg-bg p-3">
+    <div className="rounded-lg border border-border bg-surface-overlay p-3">
       <p className="mb-2 text-xs uppercase tracking-wide text-fg-muted">Yeni schema</p>
       <div className="space-y-2">
         {fields.map((f, idx) => (
@@ -94,12 +94,12 @@ function SchemaEditor({ caseId }: { caseId: string }) {
               value={f.name}
               onChange={(e) => update(idx, { name: e.target.value })}
               placeholder="field name"
-              className="rounded border border-border bg-surface-raised px-2 py-1 text-sm text-white"
+              className="rounded border border-border bg-surface-overlay px-2 py-1 text-sm text-fg"
             />
             <select
               value={f.type}
               onChange={(e) => update(idx, { type: e.target.value })}
-              className="rounded border border-border bg-surface-raised px-2 py-1 text-sm text-white"
+              className="rounded border border-border bg-surface-overlay px-2 py-1 text-sm text-fg"
             >
               <option value="string">string</option>
               <option value="int">int</option>
@@ -163,31 +163,52 @@ function DataTableEditor({ caseId, paramSet }: { caseId: string; paramSet: CaseP
   const generate = useGenerateDataRows(caseId);
   const addManual = useAddManualRows(caseId, paramSet.id);
   const [count, setCount] = useState<number>(5);
+  const [actionErr, setActionErr] = useState<string | null>(null);
 
   const fieldNames = (paramSet.schema_json.fields ?? []).map((f) => f.name);
+
+  const handleGenerate = async () => {
+    setActionErr(null);
+    try {
+      await generate.mutateAsync({ param_set_id: paramSet.id, source: "llm", count });
+    } catch {
+      setActionErr("Satır üretimi başarısız oldu. Lütfen tekrar deneyin.");
+    }
+  };
 
   const handleCsvUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const content = await readFile(file);
-    await generate.mutateAsync({
-      param_set_id: paramSet.id,
-      source: "csv",
-      csv_content: content,
-    });
-    e.target.value = "";
+    setActionErr(null);
+    try {
+      const content = await readFile(file);
+      await generate.mutateAsync({
+        param_set_id: paramSet.id,
+        source: "csv",
+        csv_content: content,
+      });
+    } catch {
+      setActionErr("CSV içe aktarma başarısız oldu. Lütfen dosyayı kontrol edin.");
+    } finally {
+      e.target.value = "";
+    }
   };
 
   const handleAddBlankRow = async () => {
+    setActionErr(null);
     const values: Record<string, unknown> = {};
     for (const name of fieldNames) values[name] = "";
-    await addManual.mutateAsync([
-      { values, expected: {}, source_type: "manual", category: null },
-    ]);
+    try {
+      await addManual.mutateAsync([
+        { values, expected: {}, source_type: "manual", category: null },
+      ]);
+    } catch {
+      setActionErr("Satır eklenemedi. Lütfen tekrar deneyin.");
+    }
   };
 
   return (
-    <div className="rounded-lg border border-border bg-bg p-3">
+    <div className="rounded-lg border border-border bg-surface-overlay p-3">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <p className="text-xs uppercase tracking-wide text-fg-muted">Data rows</p>
         <div className="flex flex-wrap items-center gap-2">
@@ -199,19 +220,13 @@ function DataTableEditor({ caseId, paramSet }: { caseId: string; paramSet: CaseP
               max={50}
               value={count}
               onChange={(e) => setCount(Math.max(1, Math.min(50, Number(e.target.value) || 1)))}
-              className="w-16 rounded border border-border bg-surface-raised px-2 py-1 text-xs text-white"
+              className="w-16 rounded border border-border bg-surface-overlay px-2 py-1 text-xs text-fg"
             />
           </label>
           <button
             type="button"
             disabled={generate.isPending}
-            onClick={() =>
-              generate.mutateAsync({
-                param_set_id: paramSet.id,
-                source: "llm",
-                count,
-              })
-            }
+            onClick={() => void handleGenerate()}
             className="rounded bg-cyan-500 px-3 py-1 text-xs font-semibold text-surface-base hover:bg-cyan-400 disabled:opacity-40"
           >
             {generate.isPending ? "AI üretiyor..." : "AI ile satır üret"}
@@ -230,6 +245,9 @@ function DataTableEditor({ caseId, paramSet }: { caseId: string; paramSet: CaseP
           </button>
         </div>
       </div>
+      {actionErr && (
+        <p className="mb-3 rounded border border-danger/30 bg-danger-subtle px-3 py-2 text-[11px] text-danger" role="alert">{actionErr}</p>
+      )}
       <div className="overflow-x-auto rounded border border-border">
         <table className="min-w-full divide-y divide-slate-800 text-xs">
           <thead className="bg-surface-raised uppercase tracking-wide text-fg-muted">
@@ -277,19 +295,28 @@ function DataTableEditor({ caseId, paramSet }: { caseId: string; paramSet: CaseP
 
 function ExpandRow({ caseId }: { caseId: string }) {
   const expand = useExpandCase(caseId);
+  const [expandErr, setExpandErr] = useState<string | null>(null);
   return (
-    <div className="flex items-center justify-between rounded-lg border border-border bg-bg p-3">
+    <div className="flex items-center justify-between rounded-lg border border-border bg-surface-overlay p-3">
       <div>
         <p className="text-sm font-medium text-fg">Expand cases</p>
         <p className="text-xs text-fg-subtle">
           Tüm param setlerindeki satırlar için execution stub üretir.
         </p>
+        {expandErr && <p className="mt-1 text-[11px] text-danger" role="alert">{expandErr}</p>}
       </div>
       <button
         type="button"
         disabled={expand.isPending}
-        onClick={() => expand.mutateAsync()}
-        className="rounded bg-brand px-3 py-2 text-sm font-semibold text-white hover:brightness-105 disabled:opacity-40"
+        onClick={async () => {
+          setExpandErr(null);
+          try {
+            await expand.mutateAsync();
+          } catch {
+            setExpandErr("Genişletme başarısız oldu.");
+          }
+        }}
+        className="rounded bg-brand px-3 py-2 text-sm font-semibold text-brand-fg hover:brightness-105 disabled:opacity-40"
       >
         {expand.isPending
           ? "Çalışıyor..."

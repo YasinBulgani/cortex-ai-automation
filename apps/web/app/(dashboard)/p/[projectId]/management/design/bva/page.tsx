@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRouteParam } from "@/lib/use-route-param";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 import {
   type DesignDataType,
   type DesignFieldSpec,
@@ -72,15 +73,28 @@ export default function BvaPage() {
       if (f.data_type !== "string" && f.data_type !== "bool" && f.data_type !== "enum") {
         const min = f.min_value
         const max = f.max_value
-        if (min !== null && min !== undefined && min !== "") {
-          const parsed = parseFloat(String(min))
-          if (isNaN(parsed)) return `"${f.name}" minimum değeri geçerli bir sayı olmalı`
-          if (!isFinite(parsed)) return `"${f.name}" minimum değeri sonsuz olamaz`
-        }
-        if (max !== null && max !== undefined && max !== "") {
-          const parsed = parseFloat(String(max))
-          if (isNaN(parsed)) return `"${f.name}" maksimum değeri geçerli bir sayı olmalı`
-          if (!isFinite(parsed)) return `"${f.name}" maksimum değeri sonsuz olamaz`
+        const hasMin = min !== null && min !== undefined && min !== ""
+        const hasMax = max !== null && max !== undefined && max !== ""
+        if (f.data_type === "date") {
+          // Dates are ISO strings (yyyy-mm-dd); compare via Date.parse, not parseFloat.
+          const minT = hasMin ? Date.parse(String(min)) : NaN
+          const maxT = hasMax ? Date.parse(String(max)) : NaN
+          if (hasMin && isNaN(minT)) return `"${f.name}" minimum tarihi geçerli bir tarih olmalı`
+          if (hasMax && isNaN(maxT)) return `"${f.name}" maksimum tarihi geçerli bir tarih olmalı`
+          if (hasMin && hasMax && minT > maxT) return `"${f.name}" minimum tarihi maksimumdan sonra olamaz`
+        } else {
+          let minN = NaN, maxN = NaN
+          if (hasMin) {
+            minN = parseFloat(String(min))
+            if (isNaN(minN)) return `"${f.name}" minimum değeri geçerli bir sayı olmalı`
+            if (!isFinite(minN)) return `"${f.name}" minimum değeri sonsuz olamaz`
+          }
+          if (hasMax) {
+            maxN = parseFloat(String(max))
+            if (isNaN(maxN)) return `"${f.name}" maksimum değeri geçerli bir sayı olmalı`
+            if (!isFinite(maxN)) return `"${f.name}" maksimum değeri sonsuz olamaz`
+          }
+          if (hasMin && hasMax && minN > maxN) return `"${f.name}" minimum değeri maksimumdan büyük olamaz`
         }
       }
     }
@@ -115,7 +129,7 @@ export default function BvaPage() {
   const displayCases = selectedHistory ? selectedHistory.generated_cases : cases;
 
   return (
-    <div className="min-h-full bg-bg px-6 py-6 space-y-5">
+    <div className="min-h-full bg-surface-base px-6 py-6 space-y-5">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-[15px] font-semibold text-fg">Boundary Value Analysis</h1>
@@ -251,21 +265,25 @@ export default function BvaPage() {
                 onKeyDown={e => { if (e.key === "Enter") handleSaveTemplate(); if (e.key === "Escape") setShowTemplateSave(false); }}
                 autoFocus
               />
-              <button
+              <Button
                 type="button"
+                variant="primary"
+                size="sm"
                 onClick={handleSaveTemplate}
                 disabled={!templateName.trim() || saveTemplateMut.isPending}
-                className="shrink-0 rounded-lg bg-teal-600/20 border border-teal-500/30 px-3 py-1.5 text-[12px] text-teal-300 hover:bg-teal-600/30 disabled:opacity-40 transition-colors"
+                className="shrink-0"
               >
                 {saveTemplateMut.isPending ? "…" : "Kaydet"}
-              </button>
-              <button
+              </Button>
+              <Button
                 type="button"
+                variant="ghost"
+                size="sm"
                 onClick={() => { setShowTemplateSave(false); setTemplateName(""); }}
-                className="shrink-0 text-fg-disabled hover:text-fg-muted text-[12px] px-1"
+                className="shrink-0"
               >
                 İptal
-              </button>
+              </Button>
             </div>
           ) : (
             <button
@@ -278,11 +296,11 @@ export default function BvaPage() {
             </button>
           )}
 
-          <button type="button" onClick={submit}
+          <Button type="button" variant="primary" onClick={submit}
             disabled={fields.some(f => !f.name.trim()) || runMut.isPending}
-            className="w-full rounded-xl bg-brand py-2.5 text-[13px] font-medium text-white hover:brightness-105 disabled:opacity-40 transition-colors">
+            className="w-full rounded-xl">
             {runMut.isPending ? "Üretiliyor…" : "BVA Çalıştır"}
-          </button>
+          </Button>
           {validationError && (
             <p className="mt-2 text-xs text-amber-400">{validationError}</p>
           )}
@@ -327,12 +345,12 @@ export default function BvaPage() {
                 ))}
               </div>
               {!selectedHistory && (
-                <button type="button"
+                <Button type="button" variant="outline"
                   onClick={() => promote(cases.map((_, i) => i).filter(i => !promoted.has(i)))}
                   disabled={promoteMut.isPending || promoted.size === cases.length}
-                  className="w-full rounded-xl border border-border py-2 text-[12px] text-fg-muted hover:text-fg disabled:opacity-40 transition-colors">
+                  className="w-full rounded-xl">
                   {promoteMut.isPending ? "Kaydediliyor…" : "Tümünü Repository'ye Kaydet"}
-                </button>
+                </Button>
               )}
             </>
           )}

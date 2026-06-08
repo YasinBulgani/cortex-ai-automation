@@ -32,6 +32,7 @@ import {
   type DslParameter,
 } from "@/lib/hooks/use-dsl";
 import { ApiError } from "@/lib/api-client";
+import { Button } from "@/components/ui/button";
 
 const INPUT =
   "w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500/50";
@@ -546,9 +547,9 @@ export function DslActionEditor({
             altındaki YAML dosyasına yazılır.
           </p>
         </div>
-        <button type="button" onClick={() => router.back()} className={BTN_GHOST}>
+        <Button variant="secondary" size="sm" type="button" onClick={() => router.back()}>
           ← Geri
-        </button>
+        </Button>
       </header>
 
       <GitStatusBanner
@@ -796,11 +797,11 @@ export function DslActionEditor({
           </div>
 
           <div className="flex flex-col gap-2 pt-2">
-            <button
+            <Button
+              variant="primary"
               type="button"
               onClick={onSubmit}
               disabled={errors.length > 0 || busy}
-              className={BTN_PRIMARY}
               data-testid="dsl-editor-save"
             >
               {busy
@@ -810,16 +811,16 @@ export function DslActionEditor({
                 : mode === "create"
                 ? "Oluştur"
                 : "Güncelle"}
-            </button>
+            </Button>
             {mode === "edit" && (
-              <button
+              <Button
+                variant="destructive"
                 type="button"
                 onClick={() => setShowDeleteConfirm(true)}
                 disabled={busy}
-                className={BTN_DANGER}
               >
                 Sil
-              </button>
+              </Button>
             )}
           </div>
 
@@ -844,21 +845,21 @@ export function DslActionEditor({
               ve git commit olarak kaydedilir.
             </p>
             <div className="flex items-center justify-end gap-2">
-              <button
+              <Button
+                variant="secondary"
                 type="button"
-                className={BTN_GHOST}
                 onClick={() => setShowDeleteConfirm(false)}
               >
                 Vazgeç
-              </button>
-              <button
+              </Button>
+              <Button
+                variant="destructive"
                 type="button"
-                className={BTN_DANGER}
                 onClick={onDelete}
                 disabled={deleteMut.isPending}
               >
                 {deleteMut.isPending ? "Siliniyor…" : "Evet, sil"}
-              </button>
+              </Button>
             </div>
           </div>
         </div>

@@ -13,6 +13,7 @@ try:
 
     from app.deps import get_current_user
     from app.domains.pilot.router import router
+    from app.infra.database import get_db
 
     _IMPORT_OK = True
 except ImportError:
@@ -39,6 +40,8 @@ def _app() -> TestClient:
     app = FastAPI()
     app.include_router(router)
     app.dependency_overrides[get_current_user] = _mock_user
+    # get_db gerçek bir DB session'a bağlanmaya çalışmasın — sahte bir session ver.
+    app.dependency_overrides[get_db] = lambda: MagicMock()
     return TestClient(app, raise_server_exceptions=False)
 
 
@@ -63,13 +66,31 @@ def test_create_session_success() -> None:
     if not _IMPORT_OK:
         return
     client = _app()
-    with patch("app.domains.pilot.router.svc") as mock_svc:
+    with patch("app.domains.pilot.router.svc") as mock_svc, patch(
+        "app.domains.pilot.router.resolve_project_permissions",
+        return_value={"project.read"},
+    ):
         mock_svc.create_session.return_value = _fake_session()
         r = client.post("/pilot/sessions", json={"project_id": "proj-001"})
     assert r.status_code == 201
     data = r.json()
     assert "id" in data
     assert data["project_id"] == "proj-001"
+
+
+def test_create_session_forbidden_403() -> None:
+    """Proje yetkisi olmayan kullanıcı session oluşturamaz (cross-tenant koruma)."""
+    if not _IMPORT_OK:
+        return
+    client = _app()
+    with patch("app.domains.pilot.router.svc") as mock_svc, patch(
+        "app.domains.pilot.router.resolve_project_permissions",
+        return_value=set(),
+    ):
+        mock_svc.create_session.return_value = _fake_session()
+        r = client.post("/pilot/sessions", json={"project_id": "proj-001"})
+    assert r.status_code == 403
+    mock_svc.create_session.assert_not_called()
 
 
 def test_create_session_missing_project_id_422() -> None:
@@ -93,7 +114,10 @@ def test_create_session_user_from_auth() -> None:
     if not _IMPORT_OK:
         return
     client = _app()
-    with patch("app.domains.pilot.router.svc") as mock_svc:
+    with patch("app.domains.pilot.router.svc") as mock_svc, patch(
+        "app.domains.pilot.router.resolve_project_permissions",
+        return_value={"project.read"},
+    ):
         mock_svc.create_session.return_value = _fake_session()
         r = client.post("/pilot/sessions", json={"project_id": "proj-999"})
     assert r.status_code == 201
