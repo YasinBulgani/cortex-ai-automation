@@ -7,11 +7,11 @@ import { useManagementProjectId } from "@/lib/hooks/use-management-project-id";
 import { useRouteParam } from "@/lib/use-route-param";
 
 const STATUS_CONFIG: Record<string, { label: string; dot: string; badge: string }> = {
-  not_run:  { label: "Bekliyor",   dot: "bg-slate-500",   badge: "bg-slate-700 text-slate-300" },
+  not_run:  { label: "Bekliyor",   dot: "bg-slate-500",   badge: "bg-surface-accent text-fg" },
   passed:   { label: "Geçti",      dot: "bg-emerald-500", badge: "bg-emerald-500/20 text-emerald-400" },
   failed:   { label: "Başarısız",  dot: "bg-red-500",    badge: "bg-red-500/20 text-red-400" },
   blocked:  { label: "Bloke",      dot: "bg-amber-500",   badge: "bg-amber-500/20 text-amber-400" },
-  skipped:  { label: "Atlandı",    dot: "bg-slate-600",   badge: "bg-slate-700 text-slate-400" },
+  skipped:  { label: "Atlandı",    dot: "bg-slate-600",   badge: "bg-surface-accent text-fg-muted" },
 };
 
 const PRIORITY_DOT: Record<string, string> = {
@@ -45,9 +45,9 @@ function CaseCard({ c, projectId }: { c: MyTesterCase; projectId: string }) {
             <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${cfg.dot}`} />
             <div className="min-w-0">
               {c.case_key && (
-                <span className="text-xs font-mono text-slate-500 mr-2">{c.case_key}</span>
+                <span className="text-xs font-mono text-fg-subtle mr-2">{c.case_key}</span>
               )}
-              <span className="text-sm font-medium text-white truncate">{c.title ?? c.case_id}</span>
+              <span className="text-sm font-medium text-fg truncate">{c.title ?? c.case_id}</span>
             </div>
           </div>
           <div className="flex items-center gap-2 shrink-0">
@@ -59,12 +59,12 @@ function CaseCard({ c, projectId }: { c: MyTesterCase; projectId: string }) {
         </div>
 
         {/* Run bilgisi */}
-        <p className="text-xs text-slate-500 truncate">📋 {c.run_name}</p>
+        <p className="text-xs text-fg-subtle truncate">📋 {c.run_name}</p>
 
         {/* Adım ilerleme */}
         {c.step_count > 0 && (
           <div className="space-y-1">
-            <div className="flex justify-between text-xs text-slate-500">
+            <div className="flex justify-between text-xs text-fg-subtle">
               <span>Adımlar</span>
               <span>{c.completed_steps}/{c.step_count}</span>
             </div>
@@ -79,7 +79,7 @@ function CaseCard({ c, projectId }: { c: MyTesterCase; projectId: string }) {
 
         {/* Alt satır */}
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3 text-xs text-slate-500">
+          <div className="flex items-center gap-3 text-xs text-fg-subtle">
             {c.duration_seconds && (
               <span>⏱ {formatDuration(c.duration_seconds)}</span>
             )}
@@ -149,14 +149,14 @@ export default function TesterHomePage() {
       {!isError && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {[
-            { label: "Toplam",      value: cases.length, color: "text-white" },
+            { label: "Toplam",      value: cases.length, color: "text-fg" },
             { label: "Bekliyor",    value: pending,      color: "text-amber-400" },
             { label: "Tamamlandı", value: done,          color: "text-emerald-400" },
             { label: "Başarısız",  value: failed,        color: "text-red-400" },
           ].map((stat) => (
             <div key={stat.label} className="rounded-xl border border-border bg-surface-raised p-4 text-center">
               <p className={`text-2xl font-bold ${stat.color}`}>{isLoading ? "…" : stat.value}</p>
-              <p className="text-xs text-slate-500 mt-1">{stat.label}</p>
+              <p className="text-xs text-fg-subtle mt-1">{stat.label}</p>
             </div>
           ))}
         </div>
@@ -166,7 +166,7 @@ export default function TesterHomePage() {
       {!isLoading && cases.length > 0 && (
         <div className="rounded-xl border border-border bg-surface-raised p-4 space-y-2">
           <div className="flex justify-between text-sm">
-            <span className="text-slate-300 font-medium">Bugünkü İlerleme</span>
+            <span className="text-fg-muted font-medium">Bugünkü İlerleme</span>
             <span className="text-teal-400 font-bold">{pct}%</span>
           </div>
           <div className="h-3 rounded-full bg-surface-overlay overflow-hidden">
@@ -175,7 +175,7 @@ export default function TesterHomePage() {
               style={{ width: `${pct}%` }}
             />
           </div>
-          <p className="text-xs text-slate-500">{done} tamamlandı · {pending} bekliyor · {failed} başarısız</p>
+          <p className="text-xs text-fg-subtle">{done} tamamlandı · {pending} bekliyor · {failed} başarısız</p>
         </div>
       )}
 
@@ -185,11 +185,11 @@ export default function TesterHomePage() {
           <p className="text-xs font-semibold text-teal-400 uppercase tracking-wide">⚡ Sıradaki Görev</p>
           <div className="flex items-center justify-between gap-4">
             <div>
-              <p className="text-white font-semibold">
-                {nextCase.case_key && <span className="font-mono text-slate-400 mr-2 text-sm">{nextCase.case_key}</span>}
+              <p className="text-fg font-semibold">
+                {nextCase.case_key && <span className="font-mono text-fg-subtle mr-2 text-sm">{nextCase.case_key}</span>}
                 {nextCase.title}
               </p>
-              <p className="text-xs text-slate-400 mt-1">{nextCase.run_name}</p>
+              <p className="text-xs text-fg-subtle mt-1">{nextCase.run_name}</p>
             </div>
             <Link
               href={`/p/${projectId}/management/runs/${nextCase.run_id}/execute`}
@@ -199,7 +199,7 @@ export default function TesterHomePage() {
             </Link>
           </div>
           {nextCase.step_count > 0 && (
-            <p className="text-xs text-slate-500">{nextCase.step_count} adım</p>
+            <p className="text-xs text-fg-subtle">{nextCase.step_count} adım</p>
           )}
         </div>
       )}
@@ -213,7 +213,7 @@ export default function TesterHomePage() {
             className={`rounded-full px-4 py-1.5 text-xs font-medium transition-colors ${
               filter === f
                 ? "bg-brand text-white"
-                : "bg-surface-overlay text-slate-400 hover:bg-slate-700"
+                : "bg-surface-overlay text-fg-muted hover:bg-surface-overlay"
             }`}
           >
             {f === "all" ? "Tümü" : f === "not_run" ? "Bekleyenler" : f === "failed" ? "Başarısızlar" : "Tamamlananlar"}
@@ -228,17 +228,17 @@ export default function TesterHomePage() {
 
       {/* Case listesi */}
       {isLoading ? (
-        <div className="flex items-center justify-center py-16 text-slate-500 text-sm">
+        <div className="flex items-center justify-center py-16 text-fg-subtle text-sm">
           <span className="w-5 h-5 border-2 border-teal-500 border-t-transparent rounded-full animate-spin mr-3" />
           Görevler yükleniyor…
         </div>
       ) : !isError && filtered.length === 0 ? (
         <div className="rounded-xl border border-border bg-surface-raised py-16 text-center">
           <p className="text-4xl mb-3">✅</p>
-          <p className="text-slate-300 font-medium">
+          <p className="text-fg-muted font-medium">
             {filter === "all" ? "Atanmış görev yok" : "Bu filtrede görev yok"}
           </p>
-          <p className="text-xs text-slate-500 mt-1">
+          <p className="text-xs text-fg-subtle mt-1">
             {filter === "all" ? "Test yöneticinizden case atamasını bekleyin." : "Filtreyi değiştirin."}
           </p>
         </div>

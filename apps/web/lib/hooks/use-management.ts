@@ -84,6 +84,16 @@ export interface TestCase {
   created_at: string;
   updated_at: string;
   steps: TestCaseStep[];
+  // Review workflow
+  review_status?: string;
+  review_by?: string | null;
+  review_at?: string | null;
+  review_comment?: string | null;
+  // Flakiness tracking
+  run_count?: number;
+  pass_count?: number;
+  fail_count?: number;
+  flakiness_score?: number;
 }
 
 export interface TestCaseVersion {
@@ -548,12 +558,22 @@ export const managementKeys = {
   settings: (projectId: string | undefined) => [...managementKeys.project(projectId), "settings"] as const,
   audit: (projectId: string | undefined) => [...managementKeys.project(projectId), "audit"] as const,
   myCases: (projectId: string | undefined) => [...managementKeys.project(projectId), "my-cases"] as const,
+  tags: (projectId: string | undefined) => [...managementKeys.project(projectId), "tags"] as const,
 };
 
 export function useManagementProjects() {
   return useQuery({
     queryKey: managementKeys.projects(),
     queryFn: () => apiFetch<ManagementProject[]>("/api/v1/test-management/projects"),
+  });
+}
+
+export function useManagementProjectTags(projectId: string | undefined) {
+  return useQuery({
+    queryKey: managementKeys.tags(projectId),
+    queryFn: () => apiFetch<string[]>(`${BASE(projectId!)}/tags`),
+    enabled: !!projectId,
+    staleTime: 2 * 60 * 1000,
   });
 }
 
@@ -746,6 +766,51 @@ export function useManagementCaseVersions(projectId: string | undefined, caseId:
   return useQuery({
     queryKey: managementKeys.caseVersions(projectId, caseId),
     queryFn: () => apiFetch<TestCaseVersion[]>(`${BASE(projectId!)}/cases/${caseId!}/versions`),
+    enabled: !!projectId && !!caseId,
+    staleTime: 30_000,
+  });
+}
+
+export interface CaseAttachment {
+  id: string;
+  case_id: string;
+  filename: string;
+  size: number;
+  content_type: string;
+  uploader_id: string;
+  created_at: string;
+}
+
+export function useCaseAttachments(projectId: string | undefined, caseId: string | undefined) {
+  return useQuery({
+    queryKey: [...managementKeys.case(projectId, caseId), "attachments"] as const,
+    queryFn: () => apiFetch<CaseAttachment[]>(`${BASE(projectId!)}/cases/${caseId!}/attachments`),
+    enabled: !!projectId && !!caseId,
+    staleTime: 30_000,
+  });
+}
+
+export function useUploadCaseAttachment(projectId: string, caseId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (file: File) => {
+      const form = new FormData();
+      form.append("file", file);
+      return apiFetch<CaseAttachment>(`${BASE(projectId)}/cases/${caseId}/attachments`, {
+        method: "POST",
+        body: form,
+      });
+    },
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: [...managementKeys.case(projectId, caseId), "attachments"] });
+    },
+  });
+}
+
+export function useCaseDefects(projectId: string | undefined, caseId: string | undefined) {
+  return useQuery({
+    queryKey: [...managementKeys.case(projectId, caseId), "defects"] as const,
+    queryFn: () => apiFetch<DefectLink[]>(`${BASE(projectId!)}/defects?case_id=${caseId!}`),
     enabled: !!projectId && !!caseId,
     staleTime: 30_000,
   });
@@ -981,15 +1046,16 @@ export function useArchiveManagementCase(projectId: string) {
 export function useUpdateManagementRunCase(projectId: string, runId?: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ runCaseId, status, actual_result, execution_notes }: {
+    mutationFn: ({ runCaseId, status, actual_result, execution_notes, duration_seconds }: {
       runCaseId: string;
       status: string;
       actual_result?: string | null;
       execution_notes?: string | null;
+      duration_seconds?: number | null;
     }) =>
       apiFetch<RunCase>(`${BASE(projectId)}/run-cases/${runCaseId}`, {
         method: "PATCH",
-        json: { status, actual_result, execution_notes },
+        json: { status, actual_result, execution_notes, duration_seconds },
       }),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: managementKeys.summary(projectId) });
@@ -2233,5 +2299,113 @@ export function usePlanImpactSummary(mpid: string | undefined, planId: string | 
     ),
     enabled: !!mpid && !!planId,
     staleTime: 0,
+  });
+}
+
+// ── Flaky Test Detection ─────────────────────────────────────────────────────
+
+export interface FlakyTestOut {
+  id: string;
+  case_key: string;
+  title: string;
+  suite_id?: string | null;
+  priority: string;
+  run_count: number;
+  pass_count: number;
+  fail_count: number;
+  flakiness_score: number;
+  last_run_status?: string | null;
+  last_run_at?: string | null;
+}
+
+export interface FlakyTestsResponse {
+  items: FlakyTestOut[];
+  total: number;
+  threshold: number;
+}
+
+export function useManagementFlakyTests(
+  mpid: string | undefined,
+  opts?: { threshold?: number; minRuns?: number; limit?: number }
+) {
+  const threshold = opts?.threshold ?? 0.2;
+  const minRuns = opts?.minRuns ?? 3;
+  const limit = opts?.limit ?? 20;
+  return useQuery({
+    queryKey: [...managementKeys.project(mpid), "flaky", threshold, minRuns, limit],
+    queryFn: () =>
+      apiFetch<FlakyTestsResponse>(
+        `${BASE(mpid!)}/cases/flaky?threshold=${threshold}&min_runs=${minRuns}&limit=${limit}`
+      ),
+    enabled: !!mpid,
+    staleTime: 60_000,
+  });
+}
+
+// ── Review Workflow ──────────────────────────────────────────────────────────
+
+export type ReviewStatus = "none" | "pending" | "approved" | "rejected";
+
+export interface CaseReviewOut {
+  id: string;
+  case_key: string;
+  title: string;
+  review_status: ReviewStatus;
+  review_by?: string | null;
+  review_at?: string | null;
+  review_comment?: string | null;
+  status: string;
+  updated_at: string;
+}
+
+export function useReviewQueue(mpid: string | undefined, reviewStatus: ReviewStatus = "pending") {
+  return useQuery({
+    queryKey: [...managementKeys.project(mpid), "review-queue", reviewStatus],
+    queryFn: () =>
+      apiFetch<CaseReviewOut[]>(`${BASE(mpid!)}/cases/review-queue?review_status=${reviewStatus}`),
+    enabled: !!mpid,
+    staleTime: 30_000,
+  });
+}
+
+export function useSubmitCaseForReview(mpid: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ caseId, comment }: { caseId: string; comment?: string }) =>
+      apiFetch<CaseReviewOut>(`${BASE(mpid)}/cases/${caseId}/submit-review`, {
+        method: "POST",
+        json: { comment },
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: managementKeys.project(mpid) });
+    },
+  });
+}
+
+export function useApproveCaseReview(mpid: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ caseId, comment }: { caseId: string; comment?: string }) =>
+      apiFetch<CaseReviewOut>(`${BASE(mpid)}/cases/${caseId}/approve`, {
+        method: "POST",
+        json: { comment },
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: managementKeys.project(mpid) });
+    },
+  });
+}
+
+export function useRejectCaseReview(mpid: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ caseId, comment }: { caseId: string; comment?: string }) =>
+      apiFetch<CaseReviewOut>(`${BASE(mpid)}/cases/${caseId}/reject`, {
+        method: "POST",
+        json: { comment },
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: managementKeys.project(mpid) });
+    },
   });
 }

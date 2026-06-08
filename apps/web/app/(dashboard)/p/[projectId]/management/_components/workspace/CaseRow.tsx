@@ -1,5 +1,7 @@
 "use client";
 
+import { useState, useEffect, useRef, useCallback } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { useDraggable } from "@dnd-kit/core";
 import { cn } from "@/lib/utils";
@@ -21,15 +23,92 @@ function IcCopy() {
   return <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>;
 }
 
+// ─── Context Menu ─────────────────────────────────────────────────────────────
+
+interface CtxMenuProps {
+  x: number; y: number;
+  onClose: () => void;
+  onOpenDetail: () => void;
+  fullPageHref: string;
+  onClone: () => void;
+  onArchive?: () => void;
+  createRunHref: string;
+  caseKey: string;
+}
+
+function ContextMenu({ x, y, onClose, onOpenDetail, fullPageHref, onClone, onArchive, createRunHref, caseKey }: CtxMenuProps) {
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handler(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) onClose();
+    }
+    function keyHandler(e: KeyboardEvent) { if (e.key === "Escape") onClose(); }
+    document.addEventListener("mousedown", handler);
+    document.addEventListener("keydown", keyHandler);
+    return () => {
+      document.removeEventListener("mousedown", handler);
+      document.removeEventListener("keydown", keyHandler);
+    };
+  }, [onClose]);
+
+  // Adjust to stay inside viewport
+  const adjustedX = Math.min(x, window.innerWidth - 188);
+  const adjustedY = Math.min(y, window.innerHeight - 260);
+
+  const items: Array<{ label: string; icon: string; action: () => void; sep?: boolean } | "sep"> = [
+    { label: "Detayı Aç",       icon: "◧", action: () => { onOpenDetail(); onClose(); } },
+    { label: "Tam Sayfada Aç",  icon: "⬡", action: () => { window.open(fullPageHref, "_blank"); onClose(); } },
+    "sep",
+    { label: "Klonla",          icon: "⊕", action: () => { onClone(); onClose(); } },
+    ...(onArchive ? [{ label: "Arşivle", icon: "⊟", action: () => { onArchive(); onClose(); }, sep: true } as const] : []),
+    "sep",
+    { label: "Run Oluştur",     icon: "▶", action: () => { window.location.href = createRunHref; onClose(); } },
+    "sep",
+    { label: `Case Key'i Kopyala (${caseKey})`, icon: "⌘", action: () => { void navigator.clipboard.writeText(caseKey); onClose(); } },
+  ];
+
+  return createPortal(
+    <div
+      ref={ref}
+      role="menu"
+      style={{ top: adjustedY, left: adjustedX }}
+      className="fixed z-[9999] w-48 overflow-hidden rounded-xl border border-border bg-surface-overlay shadow-2xl shadow-black/30"
+    >
+      {items.map((item, i) =>
+        item === "sep"
+          ? <div key={i} className="my-0.5 h-px bg-border" />
+          : (
+            <button
+              key={i}
+              role="menuitem"
+              type="button"
+              className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-[12px] text-fg hover:bg-surface-accent focus:bg-surface-accent focus:outline-none transition-colors"
+              onClick={item.action}
+            >
+              <span className="shrink-0 text-fg-subtle text-[10px]">{item.icon}</span>
+              {item.label}
+            </button>
+          )
+      )}
+    </div>,
+    document.body
+  );
+}
+
 // ─── CaseRow ──────────────────────────────────────────────────────────────────
 
 export function CaseRow({
-  tc, selected, onSelect, checked, onCheck, projectId, onClone, cloning,
+  tc, selected, onSelect, checked, onCheck, projectId, onClone, cloning, onArchive,
 }: {
   tc: TestCase; selected: boolean; onSelect: () => void;
   checked: boolean; onCheck: (e: React.MouseEvent) => void; projectId: string;
   onClone: () => void; cloning: boolean;
+  onArchive?: () => void;
 }) {
+  const [menu, setMenu] = useState<{ x: number; y: number } | null>(null);
+  const closeMenu = useCallback(() => setMenu(null), []);
+
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: `case:${tc.id}`,
     data: { kind: "case", caseId: tc.id },
@@ -38,9 +117,23 @@ export function CaseRow({
   const ad  = AUTO_DOT[tc.automation_status] ?? AUTO_DOT.not_automated;
 
   return (
+    <>
+    {menu && (
+      <ContextMenu
+        x={menu.x} y={menu.y}
+        onClose={closeMenu}
+        onOpenDetail={onSelect}
+        fullPageHref={`/p/${projectId}/management/cases/${tc.id}`}
+        onClone={onClone}
+        onArchive={onArchive}
+        createRunHref={`/p/${projectId}/management/runs?caseId=${tc.id}`}
+        caseKey={tc.case_key ?? tc.id}
+      />
+    )}
     <tr
       ref={setNodeRef}
       onClick={onSelect}
+      onContextMenu={e => { e.preventDefault(); setMenu({ x: e.clientX, y: e.clientY }); }}
       className={cn(
         "group border-b border-border/40 cursor-pointer select-none",
         isDragging  && "opacity-30",
@@ -146,6 +239,7 @@ export function CaseRow({
         </div>
       </td>
     </tr>
+    </>
   );
 }
 

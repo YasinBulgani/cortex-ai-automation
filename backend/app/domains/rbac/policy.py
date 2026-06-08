@@ -40,6 +40,7 @@ logger = logging.getLogger(__name__)
 # Her rol → izin set'i. "admin.*" wildcard tüm admin.* izinleri kapsar.
 # Composite: bir kullanıcı birden çok role sahip olabilir, izinler UNION alınır.
 ROLES: Dict[str, Set[str]] = {
+    # ── Core platform roles ────────────────────────────────────────────────
     "viewer": {
         "tspm.read",
         "test_management.read",
@@ -96,6 +97,80 @@ ROLES: Dict[str, Set[str]] = {
     },
     "admin": {
         "admin.*",
+    },
+
+    # ── QA Platform domain-specific roles ─────────────────────────────────
+    # Test Lead: plan, approve test cases, manage cycles, release signoff,
+    #   member management (limited), reports, full test management write.
+    "test_lead": {
+        "tspm.read",
+        "tspm.write",
+        "tspm.approve",
+        "test_management.read",
+        "test_management.write",
+        "test_management.execute",
+        "test_management.approve",     # approve test case reviews
+        "test_management.plan",        # create/manage plans & cycles
+        "test_management.regression",  # manage regression sets
+        "test_management.signoff",     # release signoff authority
+        "test_management.report",      # export & view all reports
+        "test_management.audit",       # read audit log
+        "defects.read",
+        "defects.write",
+        "requirements.read",
+        "requirements.write",
+        "ai.read",
+        "ai.generate",
+        "feature_flags.read",
+        "members.read",                # view team members
+    },
+
+    # QA Engineer: write tests, execute runs, create defects,
+    #   cannot approve cases authored by self (SoD enforced).
+    "qa_engineer": {
+        "tspm.read",
+        "tspm.write",
+        "test_management.read",
+        "test_management.write",       # create/edit test cases
+        "test_management.execute",     # run tests, update step results
+        "test_management.regression",  # run regression sets
+        "test_management.report",      # view reports
+        "defects.read",
+        "defects.write",               # open/update defects
+        "requirements.read",
+        "ai.read",
+        "ai.generate",
+        "feature_flags.read",
+    },
+
+    # Developer: read-only on test management; can mark defects for retest.
+    "developer": {
+        "tspm.read",
+        "test_management.read",
+        "defects.read",
+        "defects.retest",              # mark defect as ready for retest
+        "requirements.read",
+        "ai.read",
+        "feature_flags.read",
+    },
+
+    # Business Analyst: manage requirements, view test coverage,
+    #   cannot create or execute test cases.
+    "business_analyst": {
+        "tspm.read",
+        "test_management.read",
+        "requirements.read",
+        "requirements.write",          # create/update requirements
+        "requirements.approve",        # approve requirement changes
+        "defects.read",
+        "ai.read",
+        "feature_flags.read",
+    },
+
+    # Customer / External Viewer: read-only on reports and release status only.
+    "customer": {
+        "test_management.read",        # read-only on shared reports
+        "defects.read",
     },
 }
 
@@ -180,6 +255,40 @@ SOD_RULES: Tuple[SoDRule, ...] = (
         window_days=14,
         scope="resource",
         description="Feature flag oluşturan ≠ %100'e terfi eden",
+    ),
+
+    # ── Test Management SoD kuralları ─────────────────────────────────────
+    SoDRule(
+        name="test_case_author_vs_approver",
+        new_action="test_case.approve",
+        conflicting_actions=("test_case.create", "test_case.update"),
+        window_days=30,
+        scope="resource",
+        description="Test case yazan ≠ test case'i review eden/onaylayan (4-göz)",
+    ),
+    SoDRule(
+        name="test_case_author_vs_release_signoff",
+        new_action="release.signoff",
+        conflicting_actions=("test_case.create",),
+        window_days=7,
+        scope="tenant",
+        description="Sprint'te test case yazan tek kişi release signoff yapamaz",
+    ),
+    SoDRule(
+        name="defect_opener_vs_closer",
+        new_action="defect.close",
+        conflicting_actions=("defect.open",),
+        window_days=14,
+        scope="resource",
+        description="Defect açan ≠ defect'i kapatan (kritik defectler için)",
+    ),
+    SoDRule(
+        name="test_executor_vs_regression_approver",
+        new_action="regression.approve",
+        conflicting_actions=("run.execute",),
+        window_days=7,
+        scope="resource",
+        description="Regresyon koşumunu yürüten ≠ regresyon setini onaylayan",
     ),
 )
 

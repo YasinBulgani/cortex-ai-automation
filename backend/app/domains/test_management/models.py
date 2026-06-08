@@ -119,6 +119,19 @@ class TestCase(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow, nullable=False)
 
+    # ── Review workflow ────────────────────────────────────────────────────────
+    # review_status: none | pending | approved | rejected
+    review_status: Mapped[str] = mapped_column(String(32), default="none", server_default="none", nullable=False, index=True)
+    review_by: Mapped[Optional[str]] = mapped_column(UUID(as_uuid=False), ForeignKey("sd_users.id", ondelete="SET NULL"), nullable=True)
+    review_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    review_comment: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+
+    # ── Flakiness tracking ────────────────────────────────────────────────────
+    run_count: Mapped[int] = mapped_column(Integer, default=0, server_default="0", nullable=False)
+    pass_count: Mapped[int] = mapped_column(Integer, default=0, server_default="0", nullable=False)
+    fail_count: Mapped[int] = mapped_column(Integer, default=0, server_default="0", nullable=False)
+    flakiness_score: Mapped[float] = mapped_column(sa.Float, default=0.0, server_default="0", nullable=False)
+
     project: Mapped[TestManagementProject] = relationship(back_populates="cases")
     suite: Mapped[Optional[TestSuite]] = relationship(back_populates="cases")
     folder: Mapped[Optional[TestFolder]] = relationship(back_populates="cases")

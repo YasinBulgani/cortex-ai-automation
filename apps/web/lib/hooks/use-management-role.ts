@@ -28,10 +28,13 @@ export const projectMembersKey = (projectId: string) =>
  * Calls GET /api/v1/organizations/projects/{project_id}/members
  * and matches the response against useCurrentUser().user.id.
  *
- * Falls back to "member" if:
+ * Falls back to "viewer" (most restrictive) if:
  *   - projectId is not yet known
+ *   - the request is still in-flight
  *   - the request fails (e.g. network error, 404, 403)
  *   - the current user is not found in the members list
+ *
+ * Using "viewer" as fallback prevents privilege escalation during loading.
  */
 export function useProjectRole(
   projectId: string | undefined,
@@ -49,8 +52,9 @@ export function useProjectRole(
     retry: false,            // yetki hatalarında sonsuz döngü olmasın
   });
 
-  if (!user || !query.data) return "member";
+  // While loading or on error, fall back to the most restrictive role.
+  if (!user || !query.data) return "viewer";
 
   const me = query.data.find((m) => m.user_id === user.id);
-  return me?.role ?? "member";
+  return me?.role ?? "viewer";
 }

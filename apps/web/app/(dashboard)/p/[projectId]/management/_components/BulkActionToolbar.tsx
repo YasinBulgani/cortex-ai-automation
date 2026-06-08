@@ -42,10 +42,10 @@ export function BulkActionToolbar({
       <div className="flex items-center gap-3 rounded-xl border border-border-strong bg-surface-overlay px-4 py-3 shadow-2xl shadow-black/50">
         {/* Seçim sayısı */}
         <div className="flex items-center gap-2 pr-3 border-r border-border">
-          <div className="w-6 h-6 rounded-full bg-brand flex items-center justify-center text-xs font-bold text-white">
+          <div className="w-6 h-6 rounded-full bg-brand flex items-center justify-center text-xs font-bold text-brand-fg">
             {selectedCount}
           </div>
-          <span className="text-sm text-slate-300 font-medium whitespace-nowrap">
+          <span className="text-sm text-fg font-medium whitespace-nowrap">
             case seçildi
           </span>
         </div>
@@ -61,7 +61,7 @@ export function BulkActionToolbar({
                 flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-semibold transition-colors disabled:opacity-50
                 ${action.variant === "danger"
                   ? "bg-red-500/20 hover:bg-red-500/30 text-red-300 border border-red-500/30"
-                  : "bg-slate-700 hover:bg-slate-600 text-slate-200 border border-border-strong"}
+                  : "bg-surface-accent hover:bg-surface-overlay text-fg border border-border"}
               `}
             >
               {loading === action.id ? (
@@ -77,7 +77,7 @@ export function BulkActionToolbar({
         {/* Temizle */}
         <button
           onClick={onClearSelection}
-          className="ml-1 text-slate-500 hover:text-white text-sm transition-colors"
+          className="ml-1 text-fg-subtle hover:text-fg text-sm transition-colors"
           title="Seçimi temizle"
         >
           ✕

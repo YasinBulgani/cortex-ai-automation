@@ -108,7 +108,11 @@ class InvitationAccept(BaseModel):
 # ── Project members ──────────────────────────────────────────────
 class ProjectMemberAdd(BaseModel):
     user_id: str
-    role: str = Field(default="viewer", pattern=r"^(admin|operator|member|viewer)$")
+    role: str = Field(default="viewer", pattern=r"^(owner|admin|operator|member|viewer)$")
+
+
+class ProjectMemberRoleUpdate(BaseModel):
+    role: str = Field(pattern=r"^(owner|admin|operator|member|viewer)$")
 
 
 class ProjectMemberOut(BaseModel):

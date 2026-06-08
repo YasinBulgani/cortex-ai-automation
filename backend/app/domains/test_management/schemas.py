@@ -196,6 +196,16 @@ class TestCaseOut(BaseModel):
     updated_at: datetime
     steps: list[TestCaseStepOut] = Field(default_factory=list)
     sub_case_count: int = 0
+    # Review workflow
+    review_status: str = "none"
+    review_by: Optional[str] = None
+    review_at: Optional[datetime] = None
+    review_comment: Optional[str] = None
+    # Flakiness tracking
+    run_count: int = 0
+    pass_count: int = 0
+    fail_count: int = 0
+    flakiness_score: float = 0.0
 
 
 class TestCaseVersionOut(BaseModel):
@@ -210,6 +220,54 @@ class TestCaseVersionOut(BaseModel):
     snapshot_size_bytes: int
     created_by: Optional[str] = None
     created_at: datetime
+
+
+# ── Review Workflow Schemas ────────────────────────────────────────────────────
+
+class CaseReviewSubmitRequest(BaseModel):
+    comment: Optional[str] = Field(None, max_length=2000)
+
+
+class CaseReviewActionRequest(BaseModel):
+    comment: Optional[str] = Field(None, max_length=2000)
+
+
+class CaseReviewOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    case_key: str
+    title: str
+    review_status: str
+    review_by: Optional[str] = None
+    review_at: Optional[datetime] = None
+    review_comment: Optional[str] = None
+    status: str
+    updated_at: datetime
+
+
+# ── Flakiness Schemas ─────────────────────────────────────────────────────────
+
+class FlakyTestOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    case_key: str
+    title: str
+    suite_id: Optional[str] = None
+    priority: str
+    run_count: int
+    pass_count: int
+    fail_count: int
+    flakiness_score: float
+    last_run_status: Optional[str] = None
+    last_run_at: Optional[datetime] = None
+
+
+class FlakyTestsResponse(BaseModel):
+    items: list[FlakyTestOut]
+    total: int
+    threshold: float
 
 
 class RepositoryOut(BaseModel):
@@ -969,6 +1027,32 @@ class EqRunCreate(BaseModel):
     project_id: Optional[str] = None
     requirement_id: Optional[str] = None
     fields: list[DesignFieldSpec] = Field(..., min_length=1)
+    requirement_text: str = ""
+
+
+class DtRunCreate(BaseModel):
+    project_id: Optional[str] = None
+    requirement_id: Optional[str] = None
+    # Accept either structured DesignFieldSpec list OR human-readable conditions + actions
+    fields: Optional[list[DesignFieldSpec]] = None
+    conditions: Optional[list[str]] = None
+    actions: Optional[list[str]] = None
+    requirement_text: str = ""
+
+    def effective_fields(self) -> list[DesignFieldSpec]:
+        """Convert conditions (strings) to bool DesignFieldSpec for the service."""
+        if self.fields:
+            return self.fields
+        conds = [c.strip() for c in (self.conditions or []) if c.strip()]
+        if not conds:
+            raise ValueError("DT run requires at least one condition or field")
+        return [DesignFieldSpec(name=c, data_type="bool") for c in conds]
+
+
+class PairwiseRunCreate(BaseModel):
+    project_id: Optional[str] = None
+    requirement_id: Optional[str] = None
+    fields: list[DesignFieldSpec] = Field(..., min_length=2, max_length=20)
     requirement_text: str = ""
 
 

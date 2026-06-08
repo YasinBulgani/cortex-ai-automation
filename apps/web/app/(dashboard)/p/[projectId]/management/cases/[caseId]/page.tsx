@@ -1,7 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { apiFetch } from "@/lib/api-client";
 import {
   DndContext,
   closestCenter,
@@ -29,12 +31,14 @@ import {
   useAddCaseDependency,
   useRemoveCaseDependency,
   useManagementCases,
+  useManagementProjectTags,
   type TestCaseStep,
 } from "@/lib/hooks/use-management";
 import { useManagementProjectId } from "@/lib/hooks/use-management-project-id";
 import { useRouteParam } from "@/lib/use-route-param";
 import { CommentThread } from "../../_components/CommentThread";
 import { SharedStepPicker } from "../../_components/SharedStepPicker";
+import { ParameterizedCasesPanel } from "../../_components/ParameterizedCasesPanel";
 
 function SortableStepCard({ id, children }: { id: string; children: React.ReactNode }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
@@ -46,7 +50,7 @@ function SortableStepCard({ id, children }: { id: string; children: React.ReactN
   return (
     <div ref={setNodeRef} style={style} {...attributes}>
       <div className="flex items-start gap-2">
-        <button {...listeners} className="mt-1 cursor-grab text-slate-600 hover:text-slate-400 p-1" title="Sürükle" type="button">
+        <button {...listeners} className="mt-1 cursor-grab text-fg-disabled hover:text-fg-muted p-1" title="Sürükle" type="button">
           ⠿
         </button>
         <div className="flex-1">{children}</div>
@@ -82,6 +86,18 @@ export default function ManagementCaseDetailPage() {
   const addDependency           = useAddCaseDependency(mpid || "");
   const removeDependency        = useRemoveCaseDependency(mpid || "");
 
+  const { data: membersRaw } = useQuery({
+    queryKey: ["management", "members", projectId],
+    queryFn: () =>
+      apiFetch<Array<{ user_id: string; email: string; full_name?: string }>>(
+        `/api/v1/organizations/projects/${projectId}/members`
+      ).then(d => (Array.isArray(d) ? d : [])),
+    enabled: !!projectId,
+    staleTime: 5 * 60 * 1000,
+  });
+  const members = useMemo(() => membersRaw ?? [], [membersRaw]);
+  const { data: existingTags = [] } = useManagementProjectTags(mpid || undefined);
+
   const [title, setTitle]             = useState("");
   const [objective, setObjective]     = useState("");
   const [preconditions, setPreconditions] = useState("");
@@ -94,11 +110,12 @@ export default function ManagementCaseDetailPage() {
   const [customComponent, setCustomComponent] = useState("");
   const [customPlatform,  setCustomPlatform]  = useState("");
   const [customRiskArea,  setCustomRiskArea]  = useState("");
+  const [ownerId, setOwnerId]         = useState("");
   const [dirty, setDirty]             = useState(false);
   const [saving, setSaving]           = useState(false);
   const [saveError, setSaveError]     = useState("");
   const [titleError, setTitleError]   = useState<string|null>(null);
-  const [activeTab, setActiveTab]     = useState<"edit" | "comments" | "history">("edit");
+  const [activeTab, setActiveTab]     = useState<"edit" | "comments" | "history" | "parametric">("edit");
   const [revertMsg, setRevertMsg]     = useState("");
   const [showStepPicker, setShowStepPicker] = useState(false);
   const [depKeyInput, setDepKeyInput] = useState("");
@@ -114,6 +131,7 @@ export default function ManagementCaseDetailPage() {
     setSeverity(tc.severity ?? "major");
     setType(tc.type ?? "manual");
     setStatus(tc.status ?? "draft");
+    setOwnerId(tc.owner_id ?? "");
     setTags((tc.tags ?? []).join(", "));
     const cf = tc.custom_fields ?? {};
     setCustomComponent((cf.component as string) ?? "");
@@ -160,6 +178,7 @@ export default function ManagementCaseDetailPage() {
         severity,
         type,
         status,
+        owner_id: ownerId || null,
         tags: tags.split(",").map(t => t.trim()).filter(Boolean),
         custom_fields: {
           ...(customComponent.trim() ? { component: customComponent.trim() } : {}),
@@ -268,31 +287,31 @@ export default function ManagementCaseDetailPage() {
   if (isLoading) {
     return (
       <div className="min-h-[calc(100vh-88px)] bg-bg flex items-center justify-center">
-        <div className="animate-pulse h-6 w-32 rounded bg-white/[0.04]" />
+        <div className="animate-pulse h-6 w-32 rounded bg-surface-overlay" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-[calc(100vh-88px)] bg-bg text-slate-200">
+    <div className="min-h-[calc(100vh-88px)] bg-bg text-fg">
       {/* Top bar */}
       <div className="flex items-center justify-between border-b border-border bg-surface-raised px-6 py-3">
         <div className="flex items-center gap-4">
           <Link
             href={`/p/${projectId}/management/repository`}
-            className="flex items-center gap-1 text-[11px] text-slate-500 hover:text-slate-300 transition-colors"
+            className="flex items-center gap-1 text-[11px] text-fg-subtle hover:text-fg transition-colors"
           >
             ← Repository
           </Link>
-          {tc && <span className="font-mono text-[11px] text-slate-600">{tc.case_key}</span>}
+          {tc && <span className="font-mono text-[11px] text-fg-disabled">{tc.case_key}</span>}
         </div>
         <div className="flex items-center gap-2">
           {/* Tab switcher */}
           <div className="flex rounded-lg border border-border overflow-hidden">
-            {([ ["edit", "Düzenle"], ["comments", "Yorumlar"], ["history", "Geçmiş"] ] as const).map(([tab, label]) => (
+            {([ ["edit", "Düzenle"], ["comments", "Yorumlar"], ["history", "Geçmiş"], ["parametric", "Parametrik"] ] as const).map(([tab, label]) => (
               <button key={tab} type="button" onClick={() => setActiveTab(tab)}
                 className={`px-3 py-1.5 text-[11px] font-medium transition-colors ${
-                  activeTab === tab ? "bg-brand text-white" : "bg-transparent text-slate-500 hover:text-slate-300"
+                  activeTab === tab ? "bg-brand text-white" : "bg-transparent text-fg-subtle hover:text-fg"
                 }`}>
                 {label}
               </button>
@@ -303,7 +322,7 @@ export default function ManagementCaseDetailPage() {
               {revertMsg && (
                 <span className="text-[10px] text-amber-400 bg-amber-400/10 rounded px-2 py-1">{revertMsg}</span>
               )}
-              {dirty && !revertMsg && <span className="text-[10px] text-slate-600">Kaydedilmemiş</span>}
+              {dirty && !revertMsg && <span className="text-[10px] text-fg-disabled">Kaydedilmemiş</span>}
               <div className="flex flex-col items-end gap-0.5">
                 <button
                   type="button"
@@ -320,6 +339,13 @@ export default function ManagementCaseDetailPage() {
         </div>
       </div>
 
+      {/* Parametric tab */}
+      {activeTab === "parametric" && caseId && (
+        <div className="flex-1 overflow-y-auto p-6 max-w-4xl mx-auto w-full">
+          <ParameterizedCasesPanel caseId={caseId} />
+        </div>
+      )}
+
       {/* Comments tab */}
       {activeTab === "comments" && caseId && (
         <div className="flex-1 overflow-y-auto p-6 max-w-2xl mx-auto">
@@ -335,31 +361,31 @@ export default function ManagementCaseDetailPage() {
       {/* History tab */}
       {activeTab === "history" && (
         <div className="p-6 max-w-2xl mx-auto">
-          <h2 className="mb-4 text-[11px] font-medium uppercase tracking-wider text-slate-600">Versiyon Geçmişi</h2>
+          <h2 className="mb-4 text-[11px] font-medium uppercase tracking-wider text-fg-disabled">Versiyon Geçmişi</h2>
           {(versions ?? []).length === 0 ? (
-            <p className="text-[13px] text-slate-600">Henüz versiyon geçmişi yok.</p>
+            <p className="text-[13px] text-fg-disabled">Henüz versiyon geçmişi yok.</p>
           ) : (
             <div className="space-y-2">
               {(versions ?? []).map((v, idx) => {
                 const isLatest = idx === 0;
                 return (
                   <div key={v.id} className="flex items-start gap-3 rounded-xl border border-border bg-surface-raised px-4 py-3">
-                    <span className="flex h-6 w-8 items-center justify-center rounded bg-surface-overlay font-mono text-[10px] font-bold text-slate-400 shrink-0">v{v.version_no}</span>
+                    <span className="flex h-6 w-8 items-center justify-center rounded bg-surface-overlay font-mono text-[10px] font-bold text-fg-muted shrink-0">v{v.version_no}</span>
                     <div className="flex-1 min-w-0">
-                      {v.change_summary && <p className="text-[13px] text-slate-300">{v.change_summary}</p>}
+                      {v.change_summary && <p className="text-[13px] text-fg">{v.change_summary}</p>}
                       {v.changed_fields.length > 0 && (
-                        <p className="mt-0.5 text-[11px] text-slate-500">{v.changed_fields.join(", ")} güncellendi</p>
+                        <p className="mt-0.5 text-[11px] text-fg-subtle">{v.changed_fields.join(", ")} güncellendi</p>
                       )}
                     </div>
                     <div className="flex items-center gap-3 shrink-0">
-                      <span className="text-[10px] text-slate-600">
+                      <span className="text-[10px] text-fg-disabled">
                         {new Date(v.created_at).toLocaleDateString("tr-TR", { day: "2-digit", month: "short", year: "numeric" })}
                       </span>
                       {!isLatest && v.snapshot && (
                         <button
                           type="button"
                           onClick={() => handleRevert(v.snapshot as Record<string, unknown>)}
-                          className="rounded-md border border-border bg-white/[0.04] px-2 py-1 text-[10px] text-slate-400 hover:border-teal-500/40 hover:text-teal-400 transition-colors"
+                          className="rounded-md border border-border bg-surface-overlay px-2 py-1 text-[10px] text-fg-muted hover:border-teal-500/40 hover:text-teal-400 transition-colors"
                         >
                           ← Geri Al
                         </button>
@@ -382,13 +408,13 @@ export default function ManagementCaseDetailPage() {
         <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
           {/* Title */}
           <div>
-            <label className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-slate-600">Başlık</label>
+            <label className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-fg-disabled">Başlık</label>
             <input
               value={title}
               onChange={e => { setTitle(e.target.value); markDirty(); if (titleError) setTitleError(null); }}
               onBlur={handleSave}
               maxLength={500}
-              className="w-full rounded-md border border-border bg-white/[0.02] px-3 py-2 text-base font-medium text-slate-100 placeholder-slate-600 outline-none focus:border-teal-500/50"
+              className="w-full rounded-md border border-border bg-surface-overlay/30 px-3 py-2 text-base font-medium text-fg placeholder:text-fg-disabled outline-none focus:border-teal-500/50"
               placeholder="Test case başlığı"
             />
             <div className="flex items-center justify-between mt-1">
@@ -399,14 +425,14 @@ export default function ManagementCaseDetailPage() {
 
           {/* Objective */}
           <div>
-            <label className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-slate-600">Amaç</label>
+            <label className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-fg-disabled">Amaç</label>
             <textarea
               rows={2}
               value={objective}
               onChange={e => { setObjective(e.target.value); markDirty(); }}
               onBlur={handleSave}
               maxLength={2000}
-              className="w-full resize-none rounded-md border border-border bg-white/[0.02] px-3 py-2 text-[13px] text-slate-200 placeholder-slate-600 outline-none focus:border-teal-500/50"
+              className="w-full resize-none rounded-md border border-border bg-surface-overlay/30 px-3 py-2 text-[13px] text-fg placeholder:text-fg-disabled outline-none focus:border-teal-500/50"
               placeholder="Test'in amacı…"
             />
             <span className={`text-xs ${objective.length >= 1900 ? "text-amber-400" : "text-fg-subtle"}`}>{objective.length}/2000</span>
@@ -414,14 +440,14 @@ export default function ManagementCaseDetailPage() {
 
           {/* Preconditions */}
           <div>
-            <label className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-slate-600">Ön Koşullar</label>
+            <label className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-fg-disabled">Ön Koşullar</label>
             <textarea
               rows={2}
               value={preconditions}
               onChange={e => { setPreconditions(e.target.value); markDirty(); }}
               onBlur={handleSave}
               maxLength={2000}
-              className="w-full resize-none rounded-md border border-border bg-white/[0.02] px-3 py-2 text-[13px] text-slate-200 placeholder-slate-600 outline-none focus:border-teal-500/50"
+              className="w-full resize-none rounded-md border border-border bg-surface-overlay/30 px-3 py-2 text-[13px] text-fg placeholder:text-fg-disabled outline-none focus:border-teal-500/50"
               placeholder="Gerekli ön koşullar…"
             />
             <span className={`text-xs ${preconditions.length >= 1900 ? "text-amber-400" : "text-fg-subtle"}`}>{preconditions.length}/2000</span>
@@ -430,7 +456,7 @@ export default function ManagementCaseDetailPage() {
           {/* Steps */}
           <div>
             <div className="mb-2 flex items-center justify-between">
-              <label className="text-[10px] font-medium uppercase tracking-wider text-slate-600">Adımlar</label>
+              <label className="text-[10px] font-medium uppercase tracking-wider text-fg-disabled">Adımlar</label>
               <div className="flex items-center gap-2">
                 <button
                   type="button"
@@ -452,14 +478,14 @@ export default function ManagementCaseDetailPage() {
                 <div className="space-y-2">
                   {steps.map((step, idx) => (
                     <SortableStepCard key={step.id} id={step.id}>
-                      <div className="rounded-md border border-border bg-white/[0.02] p-3">
+                      <div className="rounded-md border border-border bg-surface-overlay/30 p-3">
                         <div className="mb-2 flex items-center justify-between">
-                          <span className="text-[10px] text-slate-600">Adım {idx + 1}</span>
+                          <span className="text-[10px] text-fg-disabled">Adım {idx + 1}</span>
                           {steps.length > 1 && (
                             <button
                               type="button"
                               onClick={() => removeStep(idx)}
-                              className="text-[10px] text-slate-600 hover:text-red-400 transition-colors"
+                              className="text-[10px] text-fg-disabled hover:text-red-400 transition-colors"
                             >
                               Kaldır
                             </button>
@@ -471,28 +497,28 @@ export default function ManagementCaseDetailPage() {
                             placeholder="Aksiyon"
                             value={step.action}
                             onChange={e => updateStep(idx, "action", e.target.value)}
-                            className="w-full resize-none rounded border border-border bg-white/[0.02] px-2 py-1.5 text-[13px] text-slate-200 placeholder-slate-600 outline-none focus:border-teal-500/50"
+                            className="w-full resize-none rounded border border-border bg-surface-overlay/30 px-2 py-1.5 text-[13px] text-fg placeholder:text-fg-disabled outline-none focus:border-teal-500/50"
                           />
                           <textarea
                             rows={2}
                             placeholder="Beklenen sonuç"
                             value={step.expected_result}
                             onChange={e => updateStep(idx, "expected_result", e.target.value)}
-                            className="w-full resize-none rounded border border-border bg-white/[0.02] px-2 py-1.5 text-[13px] text-slate-200 placeholder-slate-600 outline-none focus:border-teal-500/50"
+                            className="w-full resize-none rounded border border-border bg-surface-overlay/30 px-2 py-1.5 text-[13px] text-fg placeholder:text-fg-disabled outline-none focus:border-teal-500/50"
                           />
                           <input
                             placeholder="Test verisi (opsiyonel)"
                             value={step.test_data}
                             onChange={e => updateStep(idx, "test_data", e.target.value)}
-                            className="w-full rounded border border-border bg-white/[0.02] px-2 py-1.5 text-[11px] text-slate-400 placeholder-slate-600 outline-none focus:border-teal-500/50"
+                            className="w-full rounded border border-border bg-surface-overlay/30 px-2 py-1.5 text-[11px] text-fg-muted placeholder:text-fg-disabled outline-none focus:border-teal-500/50"
                           />
                           <input
                             placeholder="Notlar (opsiyonel)"
                             value={step.notes}
                             onChange={e => updateStep(idx, "notes", e.target.value)}
-                            className="w-full rounded border border-border bg-white/[0.02] px-2 py-1.5 text-[11px] text-slate-400 placeholder-slate-600 outline-none focus:border-teal-500/50"
+                            className="w-full rounded border border-border bg-surface-overlay/30 px-2 py-1.5 text-[11px] text-fg-muted placeholder:text-fg-disabled outline-none focus:border-teal-500/50"
                           />
-                          <label className="flex items-center gap-2 text-[11px] text-slate-500 cursor-pointer">
+                          <label className="flex items-center gap-2 text-[11px] text-fg-subtle cursor-pointer">
                             <input
                               type="checkbox"
                               checked={step.is_required}
@@ -518,7 +544,7 @@ export default function ManagementCaseDetailPage() {
         <div className="w-72 shrink-0 border-l border-border bg-surface-raised overflow-y-auto px-5 py-5 space-y-5">
           {/* Metadata fields */}
           <div className="space-y-3">
-            <h3 className="text-[10px] font-medium uppercase tracking-wider text-slate-600">Metadata</h3>
+            <h3 className="text-[10px] font-medium uppercase tracking-wider text-fg-disabled">Metadata</h3>
             {[
               { label: "Öncelik", value: priority, onChange: setPriority, opts: PRIORITY_OPTIONS },
               { label: "Severity", value: severity, onChange: setSeverity, opts: SEVERITY_OPTIONS },
@@ -526,34 +552,61 @@ export default function ManagementCaseDetailPage() {
               { label: "Durum", value: status, onChange: setStatus, opts: STATUS_OPTIONS },
             ].map(({ label, value, onChange, opts }) => (
               <div key={label}>
-                <label className="mb-1 block text-[11px] text-slate-500">{label}</label>
+                <label className="mb-1 block text-[11px] text-fg-subtle">{label}</label>
                 <select
                   value={value}
                   onChange={e => { onChange(e.target.value); markDirty(); }}
-                  className="w-full rounded-md border border-border bg-bg px-2 py-1.5 text-[13px] text-slate-200 outline-none focus:border-teal-500/50"
+                  className="w-full rounded-md border border-border bg-bg px-2 py-1.5 text-[13px] text-fg outline-none focus:border-teal-500/50"
                 >
                   {opts.map(o => <option key={o} value={o}>{o}</option>)}
                 </select>
               </div>
             ))}
 
+            {/* Owner */}
+            <div>
+              <label className="mb-1 block text-[11px] text-fg-subtle">Sahip</label>
+              {members.length > 0 ? (
+                <select
+                  value={ownerId}
+                  onChange={e => { setOwnerId(e.target.value); markDirty(); }}
+                  className="w-full rounded-md border border-border bg-bg px-2 py-1.5 text-[13px] text-fg outline-none focus:border-teal-500/50"
+                >
+                  <option value="">— Atanmamış —</option>
+                  {members.map(m => (
+                    <option key={m.user_id} value={m.user_id}>
+                      {m.full_name?.trim() || m.email}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <p className="text-[12px] text-fg-disabled">{tc?.owner_id ?? "—"}</p>
+              )}
+            </div>
+
             {/* Tags */}
             <div>
-              <label className="mb-1 block text-[11px] text-slate-500">Etiketler</label>
+              <label className="mb-1 block text-[11px] text-fg-subtle">Etiketler</label>
+              {existingTags.length > 0 && (
+                <datalist id="case-detail-tags-list">
+                  {existingTags.map(tag => <option key={tag} value={tag} />)}
+                </datalist>
+              )}
               <input
+                list={existingTags.length > 0 ? "case-detail-tags-list" : undefined}
                 value={tags}
                 onChange={e => { setTags(e.target.value); markDirty(); }}
                 onBlur={handleSave}
                 placeholder="login, payment, …"
-                className="w-full rounded-md border border-border bg-bg px-2 py-1.5 text-[13px] text-slate-200 placeholder-slate-600 outline-none focus:border-teal-500/50"
+                className="w-full rounded-md border border-border bg-bg px-2 py-1.5 text-[13px] text-fg placeholder:text-fg-disabled outline-none focus:border-teal-500/50"
               />
             </div>
           </div>
 
           {/* Custom Fields — editable */}
           <div className="space-y-2">
-            <h3 className="text-[10px] font-medium uppercase tracking-wider text-slate-600">Özel Alanlar</h3>
-            <div className="rounded-md border border-border bg-white/[0.02] p-3 space-y-2">
+            <h3 className="text-[10px] font-medium uppercase tracking-wider text-fg-disabled">Özel Alanlar</h3>
+            <div className="rounded-md border border-border bg-surface-overlay/30 p-3 space-y-2">
               {[
                 { label: "Bileşen", val: customComponent, set: setCustomComponent },
                 { label: "Platform", val: customPlatform, set: setCustomPlatform },
@@ -575,10 +628,10 @@ export default function ManagementCaseDetailPage() {
           {/* Version info */}
           {tc && (
             <div className="space-y-1.5">
-              <h3 className="text-[10px] font-medium uppercase tracking-wider text-slate-600">Versiyon</h3>
-              <div className="rounded-md border border-border bg-white/[0.02] px-3 py-2">
-                <p className="text-[11px] text-slate-500">v{tc.current_version}</p>
-                <p className="text-[10px] text-slate-600 mt-0.5">
+              <h3 className="text-[10px] font-medium uppercase tracking-wider text-fg-disabled">Versiyon</h3>
+              <div className="rounded-md border border-border bg-surface-overlay/30 px-3 py-2">
+                <p className="text-[11px] text-fg-subtle">v{tc.current_version}</p>
+                <p className="text-[10px] text-fg-disabled mt-0.5">
                   {new Date(tc.updated_at).toLocaleDateString("tr-TR", { day: "2-digit", month: "short", year: "numeric" })}
                 </p>
               </div>
@@ -587,7 +640,7 @@ export default function ManagementCaseDetailPage() {
 
           {/* Dependencies */}
           <div className="space-y-2">
-            <h3 className="text-[10px] font-medium uppercase tracking-wider text-slate-600">
+            <h3 className="text-[10px] font-medium uppercase tracking-wider text-fg-disabled">
               Bağımlılıklar {dependencies.length > 0 && <span className="ml-1 text-fg-muted">({dependencies.length})</span>}
             </h3>
             {dependencies.length > 0 ? (
@@ -596,11 +649,11 @@ export default function ManagementCaseDetailPage() {
                   <div
                     key={dep.id}
                     className={`flex items-center gap-2 rounded-md border px-3 py-1.5 ${
-                      dep.dep_type === "blocks" ? "border-red-500/30 bg-red-500/[0.04]" : "border-border bg-white/[0.02]"
+                      dep.dep_type === "blocks" ? "border-red-500/30 bg-red-500/[0.04]" : "border-border bg-surface-overlay/30"
                     }`}
                   >
                     <span className="font-mono text-[9px] text-fg-disabled shrink-0">{dep.depends_on_key}</span>
-                    <span className="flex-1 truncate text-[11px] text-slate-400">{dep.depends_on_title}</span>
+                    <span className="flex-1 truncate text-[11px] text-fg-muted">{dep.depends_on_title}</span>
                     <span className={`shrink-0 rounded px-1.5 py-0.5 text-[9px] ${
                       dep.dep_type === "blocks" ? "bg-red-500/10 text-red-400" : "bg-surface-overlay text-fg-subtle"
                     }`}>
@@ -613,7 +666,7 @@ export default function ManagementCaseDetailPage() {
                         await removeDependency.mutateAsync({ caseId, depId: dep.id });
                       }}
                       disabled={removeDependency.isPending}
-                      className="shrink-0 text-[10px] text-slate-600 hover:text-red-400 transition-colors disabled:opacity-40"
+                      className="shrink-0 text-[10px] text-fg-disabled hover:text-red-400 transition-colors disabled:opacity-40"
                       title="Bağımlılığı kaldır"
                     >
                       ×
@@ -622,7 +675,7 @@ export default function ManagementCaseDetailPage() {
                 ))}
               </div>
             ) : (
-              <p className="text-[10px] text-slate-600">Bağımlılık yok</p>
+              <p className="text-[10px] text-fg-disabled">Bağımlılık yok</p>
             )}
             {/* Add dependency form */}
             <div className="space-y-1.5">
@@ -631,12 +684,12 @@ export default function ManagementCaseDetailPage() {
                   value={depKeyInput}
                   onChange={e => { setDepKeyInput(e.target.value); setDepAddError(""); }}
                   placeholder="TC-XXX (case key)"
-                  className="flex-1 rounded border border-border bg-bg px-2 py-1 text-[11px] text-slate-200 placeholder-slate-600 outline-none focus:border-teal-500/50"
+                  className="flex-1 rounded border border-border bg-bg px-2 py-1 text-[11px] text-fg placeholder:text-fg-disabled outline-none focus:border-teal-500/50"
                 />
                 <select
                   value={depTypeInput}
                   onChange={e => setDepTypeInput(e.target.value as "blocks" | "related")}
-                  className="rounded border border-border bg-bg px-1 py-1 text-[11px] text-slate-200 outline-none focus:border-teal-500/50"
+                  className="rounded border border-border bg-bg px-1 py-1 text-[11px] text-fg outline-none focus:border-teal-500/50"
                 >
                   <option value="blocks">blocks</option>
                   <option value="related">related</option>
@@ -660,7 +713,7 @@ export default function ManagementCaseDetailPage() {
                     setDepAddError("Eklenemedi");
                   }
                 }}
-                className="w-full rounded-md border border-border bg-white/[0.04] py-1 text-[11px] text-slate-400 hover:border-teal-500/40 hover:text-teal-400 transition-colors disabled:opacity-40"
+                className="w-full rounded-md border border-border bg-surface-overlay py-1 text-[11px] text-fg-muted hover:border-teal-500/40 hover:text-teal-400 transition-colors disabled:opacity-40"
               >
                 {addDependency.isPending ? "Ekleniyor…" : "+ Bağımlılık Ekle"}
               </button>
@@ -671,7 +724,7 @@ export default function ManagementCaseDetailPage() {
           {/* Sub-cases */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <h3 className="text-[10px] font-medium uppercase tracking-wider text-slate-600">
+              <h3 className="text-[10px] font-medium uppercase tracking-wider text-fg-disabled">
                 Alt Senaryolar {subCases.length > 0 && <span className="ml-1 text-fg-muted">({subCases.length})</span>}
               </h3>
               <button
@@ -692,36 +745,36 @@ export default function ManagementCaseDetailPage() {
                   <Link
                     key={sc.id}
                     href={`/p/${projectId}/management/cases/${sc.id}`}
-                    className="flex items-center gap-2 rounded-md border border-border bg-white/[0.02] px-3 py-1.5 hover:bg-surface-overlay transition-colors"
+                    className="flex items-center gap-2 rounded-md border border-border bg-surface-overlay/30 px-3 py-1.5 hover:bg-surface-overlay transition-colors"
                   >
                     <span className="font-mono text-[9px] text-fg-disabled">{sc.case_key}</span>
-                    <span className="flex-1 truncate text-[11px] text-slate-400">{sc.title}</span>
+                    <span className="flex-1 truncate text-[11px] text-fg-muted">{sc.title}</span>
                     <span className="shrink-0 rounded px-1.5 py-0.5 text-[9px] bg-surface-overlay text-fg-subtle">{sc.status}</span>
                   </Link>
                 ))}
               </div>
             ) : (
-              <p className="text-[10px] text-slate-600">Alt senaryo yok</p>
+              <p className="text-[10px] text-fg-disabled">Alt senaryo yok</p>
             )}
           </div>
 
           {/* Version history */}
           {(versions ?? []).length > 0 && (
             <div className="space-y-2">
-              <h3 className="text-[10px] font-medium uppercase tracking-wider text-slate-600">Versiyon Geçmişi</h3>
+              <h3 className="text-[10px] font-medium uppercase tracking-wider text-fg-disabled">Versiyon Geçmişi</h3>
               {(versions ?? []).slice(0, 6).map(v => (
-                <div key={v.id} className="rounded-md border border-border bg-white/[0.02] px-3 py-2">
+                <div key={v.id} className="rounded-md border border-border bg-surface-overlay/30 px-3 py-2">
                   <div className="flex items-center justify-between">
-                    <span className="text-[11px] text-slate-400">v{v.version_no}</span>
-                    <span className="text-[10px] text-slate-600">
+                    <span className="text-[11px] text-fg-muted">v{v.version_no}</span>
+                    <span className="text-[10px] text-fg-disabled">
                       {new Date(v.created_at).toLocaleDateString("tr-TR", { day: "2-digit", month: "short" })}
                     </span>
                   </div>
                   {v.change_summary && (
-                    <p className="mt-0.5 text-[10px] text-slate-600 truncate">{v.change_summary}</p>
+                    <p className="mt-0.5 text-[10px] text-fg-disabled truncate">{v.change_summary}</p>
                   )}
                   {v.changed_fields.length > 0 && (
-                    <p className="mt-0.5 text-[10px] text-slate-600">{v.changed_fields.join(", ")}</p>
+                    <p className="mt-0.5 text-[10px] text-fg-disabled">{v.changed_fields.join(", ")}</p>
                   )}
                 </div>
               ))}

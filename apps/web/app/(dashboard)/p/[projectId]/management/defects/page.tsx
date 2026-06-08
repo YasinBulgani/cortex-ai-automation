@@ -3,8 +3,10 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
 import Link from "next/link";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
+import { useQuery } from "@tanstack/react-query";
 import { useRouteParam } from "@/lib/use-route-param";
 import { cn } from "@/lib/utils";
+import { apiFetch } from "@/lib/api-client";
 import { RoleGuard } from "../_components/RoleGuard";
 import {
   useManagementDefects,
@@ -12,6 +14,8 @@ import {
   useCreateManagementDefect,
   useDeleteManagementDefect,
   useAnalyzeDefectRootCause,
+  useCreateManagementRun,
+  useManagementCycles,
   type DefectLink,
 } from "@/lib/hooks/use-management";
 import { useManagementProjectId } from "@/lib/hooks/use-management-project-id";
@@ -87,12 +91,16 @@ interface StatCardProps {
   loading?: boolean;
 }
 
+interface Member { user_id: string; email: string; full_name?: string; }
+
 interface DefectEditModalProps {
   defect: DefectLink;
   mpid: string;
   onClose: () => void;
   onDeleted: (id: string) => void;
   onAnalysisResult?: (defectId: string, result: string) => void;
+  members?: Member[];
+  userIdMap?: Record<string, string>;
 }
 
 interface DefectRowProps {
@@ -101,6 +109,7 @@ interface DefectRowProps {
   onClick: () => void;
   onDeleted: (id: string) => void;
   analysisResult?: string;
+  userIdMap?: Record<string, string>;
 }
 
 interface CreateDefectModalProps {
@@ -175,6 +184,229 @@ function OpenDefectSparkline({ defects }: SparklineProps) {
         <p className="text-lg font-bold tabular-nums text-fg">{points[6]}</p>
         <p className="text-[9px] text-fg-subtle">bugün</p>
       </div>
+    </div>
+  );
+}
+
+// ─── Defect Analytics Panel ───────────────────────────────────────────────────
+
+function DefectAnalyticsPanel({ defects, loading }: { defects: DefectLink[]; loading: boolean }) {
+  const open   = defects.filter(d => !isClosed(d));
+  const closed = defects.filter(d => isClosed(d));
+
+  // MTTR: average days from created_at to closed (for closed defects)
+  const mttrDays = useMemo(() => {
+    const closedWithDates = closed.filter(d => d.created_at && d.updated_at);
+    if (!closedWithDates.length) return null;
+    const totalMs = closedWithDates.reduce((sum, d) => {
+      const diff = new Date(d.updated_at ?? d.created_at).getTime() - new Date(d.created_at).getTime();
+      return sum + Math.max(0, diff);
+    }, 0);
+    return Math.round(totalMs / closedWithDates.length / 86_400_000);
+  }, [closed]);
+
+  // Oldest open defect age
+  const oldestOpenDays = useMemo(() => {
+    if (!open.length) return null;
+    const oldest = open.reduce((min, d) =>
+      new Date(d.created_at).getTime() < new Date(min.created_at).getTime() ? d : min, open[0]);
+    return daysSince(oldest.created_at);
+  }, [open]);
+
+  // Severity breakdown
+  const severityMap = useMemo(() => {
+    const m: Record<string, number> = {};
+    for (const d of defects) {
+      const s = (d.severity ?? "").toLowerCase() || "unknown";
+      m[s] = (m[s] ?? 0) + 1;
+    }
+    return m;
+  }, [defects]);
+
+  const sevOrder = ["blocker", "critical", "major", "minor", "trivial"];
+  const sevColors: Record<string, string> = {
+    blocker: "bg-red-600",
+    critical: "bg-red-400",
+    major: "bg-orange-400",
+    minor: "bg-amber-400",
+    trivial: "bg-slate-500",
+  };
+
+  const totalForSev = Object.values(severityMap).reduce((a, b) => a + b, 0) || 1;
+
+  // CSV export
+  function exportDefectsCSV() {
+    const headers = ["ID", "Başlık", "Önem", "Öncelik", "Durum", "Oluşturulma", "Yaş (gün)"];
+    const rows = defects.map(d => [
+      d.external_key ?? d.id,
+      d.title,
+      d.severity,
+      d.priority,
+      d.status,
+      d.created_at ? new Date(d.created_at).toLocaleDateString("tr-TR") : "",
+      daysSince(d.created_at) ?? "",
+    ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(";"));
+    const csv = "﻿" + [headers.join(";"), ...rows].join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a"); a.href = url; a.download = "defektler.csv"; a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  if (loading) {
+    return <div className="h-24 rounded-xl border border-border bg-surface-raised animate-pulse" />;
+  }
+
+  if (!defects.length) return null;
+
+  return (
+    <div className="rounded-xl border border-border bg-surface-raised overflow-hidden">
+      {/* Header */}
+      <div className="flex items-center justify-between border-b border-border px-4 py-3">
+        <p className="text-[11px] font-semibold text-fg">Defekt Analizi</p>
+        <button
+          type="button"
+          onClick={exportDefectsCSV}
+          className="flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1 text-[10px] font-medium text-fg-muted hover:text-fg hover:border-border-strong transition-colors"
+        >
+          <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+          </svg>
+          CSV İndir
+        </button>
+      </div>
+
+      <div className="grid grid-cols-2 gap-0 divide-x divide-border sm:grid-cols-4">
+        {/* MTTR */}
+        <div className="px-4 py-3">
+          <p className="text-[9px] font-semibold uppercase tracking-widest text-fg-subtle">MTTR</p>
+          <p className="mt-1 text-xl font-bold tabular-nums text-fg">
+            {mttrDays !== null ? `${mttrDays}g` : "—"}
+          </p>
+          <p className="text-[10px] text-fg-muted">Ort. kapatma süresi</p>
+        </div>
+
+        {/* Oldest open */}
+        <div className="px-4 py-3">
+          <p className="text-[9px] font-semibold uppercase tracking-widest text-fg-subtle">En Yaşlı Açık</p>
+          <p className={cn(
+            "mt-1 text-xl font-bold tabular-nums",
+            oldestOpenDays !== null && oldestOpenDays > 30 ? "text-red-400" :
+            oldestOpenDays !== null && oldestOpenDays > 14 ? "text-amber-400" : "text-fg",
+          )}>
+            {oldestOpenDays !== null ? `${oldestOpenDays}g` : "—"}
+          </p>
+          <p className="text-[10px] text-fg-muted">Açık kalan en eski</p>
+        </div>
+
+        {/* Resolution rate */}
+        <div className="px-4 py-3">
+          <p className="text-[9px] font-semibold uppercase tracking-widest text-fg-subtle">Kapatma Oranı</p>
+          <p className={cn(
+            "mt-1 text-xl font-bold tabular-nums",
+            defects.length > 0 && (closed.length / defects.length) >= 0.7 ? "text-emerald-400" : "text-fg",
+          )}>
+            {defects.length > 0 ? `${Math.round((closed.length / defects.length) * 100)}%` : "—"}
+          </p>
+          <p className="text-[10px] text-fg-muted">{closed.length}/{defects.length} kapatıldı</p>
+        </div>
+
+        {/* Open count */}
+        <div className="px-4 py-3">
+          <p className="text-[9px] font-semibold uppercase tracking-widest text-fg-subtle">Açık Defekt</p>
+          <p className={cn(
+            "mt-1 text-xl font-bold tabular-nums",
+            open.length > 10 ? "text-red-400" : open.length > 5 ? "text-amber-400" : "text-fg",
+          )}>
+            {open.length}
+          </p>
+          <p className="text-[10px] text-fg-muted">Kapatılmamış</p>
+        </div>
+      </div>
+
+      {/* Severity breakdown bar */}
+      {totalForSev > 0 && (
+        <div className="border-t border-border px-4 py-3">
+          <p className="mb-2 text-[9px] font-semibold uppercase tracking-widest text-fg-subtle">Önem Dağılımı</p>
+          <div className="flex h-2 w-full overflow-hidden rounded-full">
+            {sevOrder
+              .filter(s => (severityMap[s] ?? 0) > 0)
+              .map(s => (
+                <div
+                  key={s}
+                  className={cn("h-full transition-all", sevColors[s] ?? "bg-slate-500")}
+                  style={{ width: `${((severityMap[s] ?? 0) / totalForSev) * 100}%` }}
+                  title={`${s}: ${severityMap[s]}`}
+                />
+              ))}
+          </div>
+          <div className="mt-2 flex flex-wrap gap-3">
+            {sevOrder
+              .filter(s => (severityMap[s] ?? 0) > 0)
+              .map(s => (
+                <div key={s} className="flex items-center gap-1.5">
+                  <span className={cn("h-2 w-2 rounded-full", sevColors[s] ?? "bg-slate-500")} />
+                  <span className="text-[10px] text-fg-muted capitalize">{s}: {severityMap[s]}</span>
+                </div>
+              ))}
+          </div>
+        </div>
+      )}
+
+      {/* Risk Matrix: Severity × Priority */}
+      {open.length > 0 && (
+        <div className="border-t border-border px-4 py-3">
+          <p className="mb-3 text-[9px] font-semibold uppercase tracking-widest text-fg-subtle">Risk Matrisi (Açık Defektler)</p>
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse text-[10px]">
+              <thead>
+                <tr>
+                  <th className="pb-1 pr-2 text-left text-fg-disabled font-normal">Sev \ Önc</th>
+                  {["P0","P1","P2","P3"].map(p => (
+                    <th key={p} className="pb-1 px-1 text-center font-semibold text-fg-muted">{p}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {["blocker","critical","major","minor","trivial"].map(sev => (
+                  <tr key={sev}>
+                    <td className="py-0.5 pr-2 capitalize text-fg-muted">{sev}</td>
+                    {["P0","P1","P2","P3"].map(pri => {
+                      const count = open.filter(d =>
+                        (d.severity ?? "").toLowerCase() === sev &&
+                        (d.priority ?? "") === pri
+                      ).length;
+                      const risk = (sev === "blocker" || sev === "critical") && (pri === "P0" || pri === "P1") ? "high" :
+                                   (sev === "major" && pri === "P0") || ((sev === "blocker" || sev === "critical") && pri === "P2") ? "medium" : "low";
+                      return (
+                        <td key={pri} className="px-1 py-0.5 text-center">
+                          {count > 0 ? (
+                            <span className={cn(
+                              "inline-flex h-6 w-6 items-center justify-center rounded font-bold tabular-nums",
+                              risk === "high"   ? "bg-red-500/20 text-red-400" :
+                              risk === "medium" ? "bg-amber-500/20 text-amber-400" :
+                              "bg-slate-500/20 text-fg-muted"
+                            )}>
+                              {count}
+                            </span>
+                          ) : (
+                            <span className="inline-flex h-6 w-6 items-center justify-center rounded bg-surface-overlay text-fg-disabled">—</span>
+                          )}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="mt-2 flex gap-4 text-[10px] text-fg-disabled">
+            <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-sm bg-red-500/50"/> Yüksek Risk</span>
+            <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-sm bg-amber-500/50"/> Orta Risk</span>
+            <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-sm bg-slate-500/50"/> Düşük Risk</span>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -260,7 +492,7 @@ function CreateDefectModal({ mpid, onClose, onDone }: CreateDefectModalProps) {
   const [status,      setStatus]      = useState("open");
   const [description, setDescription] = useState("");
 
-  const inp = "w-full rounded-xl border border-border bg-surface-overlay px-3 py-2 text-[13px] text-fg placeholder-slate-600 outline-none focus:border-teal-500/40 transition-colors";
+  const inp = "w-full rounded-xl border border-border bg-surface-overlay px-3 py-2 text-[13px] text-fg placeholder:text-fg-disabled outline-none focus:border-teal-500/40 transition-colors";
   const sel = "w-full rounded-xl border border-border bg-surface-overlay px-3 py-2 text-[13px] text-fg outline-none focus:border-teal-500/40 transition-colors";
 
   const handleSubmit = async () => {
@@ -398,11 +630,13 @@ function CreateDefectModal({ mpid, onClose, onDone }: CreateDefectModalProps) {
 
 // ─── Defect Edit Modal ────────────────────────────────────────────────────────
 
-function DefectEditModal({ defect, mpid, onClose, onDeleted, onAnalysisResult }: DefectEditModalProps) {
-  const update   = useUpdateManagementDefect(mpid);
-  const del      = useDeleteManagementDefect(mpid);
-  const analyze  = useAnalyzeDefectRootCause(mpid);
-  const toastCtx = useToast();
+function DefectEditModal({ defect, mpid, onClose, onDeleted, onAnalysisResult, members = [], userIdMap = {} }: DefectEditModalProps) {
+  const update     = useUpdateManagementDefect(mpid);
+  const del        = useDeleteManagementDefect(mpid);
+  const analyze    = useAnalyzeDefectRootCause(mpid);
+  const createRun   = useCreateManagementRun(mpid);
+  const cyclesQuery = useManagementCycles(mpid || undefined);
+  const toastCtx   = useToast();
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
@@ -418,6 +652,38 @@ function DefectEditModal({ defect, mpid, onClose, onDeleted, onAnalysisResult }:
   const [rootCause,     setRootCause]    = useState(defect.root_cause ?? "");
   const [aiSuggestions, setAiSuggestions] = useState<string[]>([]);
   const [showConfirmDelete, setShowConfirmDelete] = useState(false);
+  const [retestRunCreated, setRetestRunCreated] = useState(false);
+  const [retestRunPending, setRetestRunPending] = useState(false);
+
+  const RETEST_STATUSES = new Set(["resolved", "fixed"]);
+  const showRetestBanner = RETEST_STATUSES.has(status.toLowerCase()) && !retestRunCreated;
+
+  const cycles   = cyclesQuery.data ?? [];
+  const firstCycleId = cycles[0]?.id ?? "";
+
+  const handleCreateRetestRun = async () => {
+    if (!firstCycleId) {
+      toastCtx.error("Retest run için önce bir test döngüsü (cycle) oluşturun.");
+      return;
+    }
+    setRetestRunPending(true);
+    try {
+      await createRun.mutateAsync({
+        cycle_id: firstCycleId,
+        name: `Retest: ${defect.title.slice(0, 80)}`,
+        case_ids: [],
+        source_type: "defect_retest",
+        source_ref: defect.id,
+      });
+      setRetestStatus("pending");
+      setRetestRunCreated(true);
+      toastCtx.success("Retest koşumu oluşturuldu. Runs sekmesinden takip edebilirsiniz.");
+    } catch {
+      toastCtx.error("Retest run oluşturulamadı.");
+    } finally {
+      setRetestRunPending(false);
+    }
+  };
 
   const save = async () => {
     await update.mutateAsync({
@@ -442,7 +708,7 @@ function DefectEditModal({ defect, mpid, onClose, onDeleted, onAnalysisResult }:
     }
   };
 
-  const inp = "w-full rounded-xl border border-border bg-surface-overlay px-3 py-2 text-[13px] text-fg placeholder-slate-600 outline-none focus:border-teal-500/40 transition-colors";
+  const inp = "w-full rounded-xl border border-border bg-surface-overlay px-3 py-2 text-[13px] text-fg placeholder:text-fg-disabled outline-none focus:border-teal-500/40 transition-colors";
   const sel = "w-full rounded-xl border border-border bg-surface-overlay px-3 py-2 text-[13px] text-fg outline-none focus:border-teal-500/40 transition-colors";
 
   const days = daysSince(defect.created_at);
@@ -483,8 +749,8 @@ function DefectEditModal({ defect, mpid, onClose, onDeleted, onAnalysisResult }:
 
           {/* Meta row — external URL + linked run case + age */}
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 border-b border-border px-5 py-2.5 text-[11px]">
-            {defect.url && (
-              <a href={defect.url} target="_blank" rel="noreferrer"
+            {defect.url && /^https?:\/\//i.test(defect.url) && (
+              <a href={defect.url} target="_blank" rel="noreferrer noopener"
                 className="flex items-center gap-1 text-teal-400 hover:underline">
                 <IcLink/>
                 {defect.url.length > 40 ? defect.url.slice(0, 40) + "…" : defect.url}
@@ -540,9 +806,25 @@ function DefectEditModal({ defect, mpid, onClose, onDeleted, onAnalysisResult }:
 
             <div>
               <label htmlFor="edit-defect-assignee" className="mb-1 block text-[10px] uppercase tracking-widest text-fg-subtle">Atanan Kişi</label>
-              <input id="edit-defect-assignee" value={assigneeId} onChange={e => setAssigneeId(e.target.value)}
-                placeholder="kullanici@sirket.com veya kullanıcı adı"
-                className={inp} />
+              {members.length > 0 ? (
+                <select
+                  id="edit-defect-assignee"
+                  value={assigneeId}
+                  onChange={e => setAssigneeId(e.target.value)}
+                  className={sel}
+                >
+                  <option value="">— Atanmamış —</option>
+                  {members.map(m => (
+                    <option key={m.user_id} value={m.user_id}>
+                      {m.full_name?.trim() || m.email}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <input id="edit-defect-assignee" value={assigneeId} onChange={e => setAssigneeId(e.target.value)}
+                  placeholder="kullanici@sirket.com veya kullanıcı adı"
+                  className={inp} />
+              )}
             </div>
 
             <div>
@@ -580,6 +862,34 @@ function DefectEditModal({ defect, mpid, onClose, onDeleted, onAnalysisResult }:
             </div>
           </div>
 
+          {/* Retest banner */}
+          {showRetestBanner && (
+            <div className="mx-5 mb-2 flex items-center justify-between rounded-xl border border-emerald-500/30 bg-emerald-500/8 px-4 py-3">
+              <div className="min-w-0">
+                <p className="text-[12px] font-semibold text-emerald-400">Retest Önerilir</p>
+                <p className="text-[11px] text-fg-muted">
+                  Defekt çözüldü olarak işaretlendi. Doğrulamak için bir retest koşumu oluşturun.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => { void handleCreateRetestRun(); }}
+                disabled={retestRunPending || !firstCycleId}
+                title={!firstCycleId ? "Önce bir test döngüsü oluşturun" : "Retest run başlat"}
+                className="ml-4 shrink-0 rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-3 py-1.5 text-[11px] font-semibold text-emerald-300 hover:bg-emerald-500/20 disabled:opacity-40 transition-colors"
+              >
+                {retestRunPending ? "Oluşturuluyor…" : "Retest Run Oluştur"}
+              </button>
+            </div>
+          )}
+          {retestRunCreated && (
+            <div className="mx-5 mb-2 rounded-xl border border-teal-500/30 bg-teal-500/8 px-4 py-2.5">
+              <p className="text-[11px] text-teal-400">
+                ✓ Retest koşumu oluşturuldu. <span className="text-fg-muted">Runs sekmesinden takip edin.</span>
+              </p>
+            </div>
+          )}
+
           {/* Footer */}
           <div className="flex items-center justify-between border-t border-border px-5 py-4">
             <button type="button" onClick={onClose}
@@ -608,7 +918,7 @@ function DefectEditModal({ defect, mpid, onClose, onDeleted, onAnalysisResult }:
 
 // ─── Table Row ────────────────────────────────────────────────────────────────
 
-function DefectRow({ defect, mpid, onClick, onDeleted, analysisResult }: DefectRowProps) {
+function DefectRow({ defect, mpid, onClick, onDeleted, analysisResult, userIdMap = {} }: DefectRowProps) {
   const del = useDeleteManagementDefect(mpid);
   const [showConfirmDelete, setShowConfirmDelete] = useState(false);
 
@@ -643,8 +953,8 @@ function DefectRow({ defect, mpid, onClick, onDeleted, analysisResult }: DefectR
         </td>
         {/* Key */}
         <td className="w-28 px-3 py-3">
-          {defect.url ? (
-            <a href={defect.url} target="_blank" rel="noreferrer"
+          {defect.url && /^https?:\/\//i.test(defect.url) ? (
+            <a href={defect.url} target="_blank" rel="noreferrer noopener"
               onClick={e => e.stopPropagation()}
               className="font-mono text-[10px] text-teal-400 hover:underline">{defect.external_key}</a>
           ) : (
@@ -676,8 +986,18 @@ function DefectRow({ defect, mpid, onClick, onDeleted, analysisResult }: DefectR
         <td className="hidden w-14 px-3 py-3 md:table-cell">
           <span className="font-mono text-[10px] text-fg-muted">{defect.priority}</span>
         </td>
-        {/* Retest */}
+        {/* Assignee */}
         <td className="hidden w-28 px-3 py-3 lg:table-cell">
+          {defect.assignee_id ? (
+            <span className="text-[10px] text-fg-muted truncate max-w-[7rem] block" title={userIdMap[defect.assignee_id] ?? defect.assignee_id}>
+              {userIdMap[defect.assignee_id] ?? `…${defect.assignee_id.slice(-8)}`}
+            </span>
+          ) : (
+            <span className="text-[10px] text-fg-disabled">—</span>
+          )}
+        </td>
+        {/* Retest */}
+        <td className="hidden w-28 px-3 py-3 md:table-cell">
           <span className="text-[10px] text-fg-muted">{defect.retest_status.replace(/_/g, " ")}</span>
         </td>
         {/* Age */}
@@ -739,6 +1059,23 @@ export default function ManagementDefectsPage() {
   const loading = defectsQuery.isLoading;
   const profile = useProfile();
 
+  const { data: membersData } = useQuery({
+    queryKey: ["management", "members", projectId],
+    queryFn: () =>
+      apiFetch<Member[]>(`/api/v1/organizations/projects/${projectId}/members`)
+        .then(d => (Array.isArray(d) ? d : [])),
+    enabled: !!projectId,
+    staleTime: 5 * 60 * 1000,
+  });
+  const members: Member[] = membersData ?? [];
+  const userIdMap = useMemo<Record<string, string>>(() => {
+    const map: Record<string, string> = {};
+    for (const m of members) {
+      map[m.user_id] = m.full_name?.trim() || m.email;
+    }
+    return map;
+  }, [members]);
+
   const searchParams = useSearchParams();
   const router       = useRouter();
   const pathname     = usePathname();
@@ -780,13 +1117,20 @@ export default function ManagementDefectsPage() {
     if (severityF) r = r.filter(d => d.severity.toLowerCase() === severityF);
     if (statusF)   r = r.filter(d => d.status.toLowerCase().includes(statusF));
     if (priorityF) r = r.filter(d => d.priority === priorityF);
-    if (assigneeF) r = r.filter(d => (d.assignee_id ?? "").toLowerCase().includes(assigneeF.toLowerCase()));
+    if (assigneeF) {
+      const af = assigneeF.toLowerCase();
+      r = r.filter(d => {
+        const rawId = d.assignee_id ?? "";
+        const displayName = rawId ? (userIdMap[rawId] ?? rawId) : "";
+        return displayName.toLowerCase().includes(af) || rawId.toLowerCase().includes(af);
+      });
+    }
     if (myDefects && profile.data) {
       const me = profile.data.email.toLowerCase();
       r = r.filter(d => (d.assignee_id ?? "").toLowerCase().includes(me));
     }
     return r;
-  }, [rows, search, severityF, statusF, priorityF, assigneeF, myDefects, profile.data]);
+  }, [rows, search, severityF, statusF, priorityF, assigneeF, myDefects, profile.data, userIdMap]);
 
   const sorted = useMemo(() => {
     const PRIO_ORDER: Record<string, number> = { P0: 0, P1: 1, P2: 2, P3: 3 };
@@ -863,8 +1207,53 @@ export default function ManagementDefectsPage() {
           <StatCard label="Yeniden Açılan" value={loading ? "—" : reopened.length} hint="tekrar açıldı"    loading={loading}/>
         </div>
 
+        {/* SLA breach banner — critical/blocker open > 7 days */}
+        {!loading && (() => {
+          const breached = rows.filter(d => {
+            if (isClosed(d)) return false;
+            const isPriority = ["P0","P1"].includes(d.priority) || ["blocker","critical"].includes(d.severity.toLowerCase());
+            const age = daysSince(d.created_at);
+            return isPriority && age !== null && age >= 7;
+          });
+          if (!breached.length) return null;
+          return (
+            <div className="flex items-start gap-3 rounded-xl border border-red-500/30 bg-red-500/8 px-4 py-3">
+              <svg className="mt-0.5 h-4 w-4 shrink-0 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"/>
+              </svg>
+              <div className="min-w-0">
+                <p className="text-[12px] font-semibold text-red-300">
+                  SLA Aşımı — {breached.length} kritik defect 7+ gün açık
+                </p>
+                <div className="mt-1.5 flex flex-wrap gap-1.5">
+                  {breached.slice(0, 5).map(d => {
+                    const age = daysSince(d.created_at);
+                    return (
+                      <button
+                        key={d.id}
+                        type="button"
+                        onClick={() => setEditDefect(d)}
+                        className="flex items-center gap-1.5 rounded-lg border border-red-500/20 bg-red-500/10 px-2 py-1 text-[10px] text-red-400 hover:bg-red-500/20 transition-colors"
+                      >
+                        <span className="font-mono">{d.external_key}</span>
+                        <span className="text-red-300/70">{age}g</span>
+                      </button>
+                    );
+                  })}
+                  {breached.length > 5 && (
+                    <span className="self-center text-[10px] text-red-400/70">+{breached.length - 5} daha</span>
+                  )}
+                </div>
+              </div>
+            </div>
+          );
+        })()}
+
         {/* Bug fix 3: Açık defect trendi sparkline */}
         {!loading && rows.length > 0 && <OpenDefectSparkline defects={rows}/>}
+
+        {/* Analytics panel: MTTR, oldest open, severity breakdown, CSV export */}
+        <DefectAnalyticsPanel defects={rows} loading={loading} />
 
         {/* Toolbar */}
         <div className="flex flex-col sm:flex-row sm:items-center gap-2 rounded-xl border border-border bg-surface-raised px-4 py-3">
@@ -873,7 +1262,7 @@ export default function ManagementDefectsPage() {
             <IcSearch/>
             <input type="text" value={search} onChange={e => handleSearchChange(e.target.value)} placeholder="Ara…"
               aria-label="Defect ara"
-              className="flex-1 bg-transparent text-[10px] text-fg placeholder-slate-600 outline-none min-w-0"/>
+              className="flex-1 bg-transparent text-[10px] text-fg placeholder:text-fg-disabled outline-none min-w-0"/>
             {search && <button type="button" onClick={() => handleSearchChange("")} aria-label="Aramayı temizle" className="text-fg-subtle hover:text-fg"><IcClose/></button>}
           </div>
 
@@ -901,7 +1290,7 @@ export default function ManagementDefectsPage() {
             value={assigneeF}
             onChange={e => handleAssigneeChange(e.target.value)}
             placeholder="Atanan kişi…"
-            className="rounded-xl border border-border bg-surface-overlay px-2.5 py-1.5 text-[10px] text-fg placeholder-slate-600 outline-none focus:border-border-strong transition-colors"
+            className="rounded-xl border border-border bg-surface-overlay px-2.5 py-1.5 text-[10px] text-fg placeholder:text-fg-disabled outline-none focus:border-border-strong transition-colors"
           />
 
           {/* My defects quick toggle */}
@@ -984,6 +1373,7 @@ export default function ManagementDefectsPage() {
                     <SortTh col="status" label="Durum"/>
                     <SortTh col="severity" label="Önem" className="hidden md:table-cell"/>
                     <SortTh col="priority" label="Öncelik" className="hidden md:table-cell"/>
+                    <th scope="col" className="hidden px-3 py-2.5 text-left text-[9px] font-semibold uppercase tracking-widest text-fg-subtle lg:table-cell">Atanan</th>
                     <th scope="col" className="hidden px-3 py-2.5 text-left text-[9px] font-semibold uppercase tracking-widest text-fg-subtle md:table-cell">Retest</th>
                     <th scope="col" className="hidden px-3 py-2.5 text-left text-[9px] font-semibold uppercase tracking-widest text-fg-subtle xl:table-cell">Yaş</th>
                     <SortTh col="created_at" label="Tarih" className="hidden xl:table-cell"/>
@@ -1001,6 +1391,7 @@ export default function ManagementDefectsPage() {
                         toastCtx.success("Defect silindi");
                       }}
                       analysisResult={analysisResults[d.id]}
+                      userIdMap={userIdMap}
                     />
                   ))}
                 </tbody>
@@ -1046,6 +1437,8 @@ export default function ManagementDefectsPage() {
             onAnalysisResult={(defectId, result) => {
               setAnalysisResults(prev => ({ ...prev, [defectId]: result }));
             }}
+            members={members}
+            userIdMap={userIdMap}
           />
         )}
 

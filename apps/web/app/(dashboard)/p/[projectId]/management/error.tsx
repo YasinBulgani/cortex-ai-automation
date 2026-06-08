@@ -50,7 +50,7 @@ export default function ManagementError({
         </svg>
       </div>
       <h2 className="text-lg font-semibold text-fg">Bir hata oluştu</h2>
-      <p className="max-w-md text-center text-sm text-slate-300">
+      <p className="max-w-md text-center text-sm text-fg">
         {friendly.message}
       </p>
 
@@ -58,7 +58,7 @@ export default function ManagementError({
         <button
           type="button"
           onClick={() => reset()}
-          className="rounded-xl border border-slate-700 bg-slate-900 px-4 py-2 text-sm font-medium text-slate-300 hover:border-slate-500 hover:text-white transition-colors"
+          className="rounded-xl border border-border bg-surface-raised px-4 py-2 text-sm font-medium text-fg hover:border-border-strong hover:text-white transition-colors"
           data-testid="management-error-btn-retry"
         >
           Tekrar Dene
@@ -67,7 +67,7 @@ export default function ManagementError({
           <button
             type="button"
             onClick={() => setShowDetails((v) => !v)}
-            className="rounded-xl border border-slate-800 bg-slate-950 px-4 py-2 text-sm font-medium text-slate-400 hover:border-slate-600 hover:text-slate-200 transition-colors"
+            className="rounded-xl border border-border bg-surface-base px-4 py-2 text-sm font-medium text-fg-muted hover:border-border hover:text-fg transition-colors"
             data-testid="management-error-btn-toggle-details"
           >
             {showDetails ? "Detayları gizle" : "Detayları göster"}
@@ -76,22 +76,22 @@ export default function ManagementError({
       </div>
 
       {showDetails && detail && (
-        <div className="w-full max-w-lg rounded-lg border border-slate-800 bg-slate-950/60 p-3">
+        <div className="w-full max-w-lg rounded-lg border border-border bg-surface-base/60 p-3">
           <div className="mb-2 flex items-center justify-between">
-            <span className="text-[10px] uppercase tracking-[0.18em] text-slate-500">
+            <span className="text-[10px] uppercase tracking-[0.18em] text-fg-subtle">
               Teknik detay{" "}
               {error.digest ? `· ${error.digest.slice(0, 8)}` : ""}
             </span>
             <button
               type="button"
               onClick={() => void onCopy()}
-              className="text-xs text-slate-400 underline hover:text-white transition-colors"
+              className="text-xs text-fg-muted underline hover:text-white transition-colors"
               data-testid="management-error-btn-copy"
             >
               {copied ? "Kopyalandı" : "Kopyala"}
             </button>
           </div>
-          <pre className="max-h-48 overflow-auto whitespace-pre-wrap break-words text-[11px] text-slate-400">
+          <pre className="max-h-48 overflow-auto whitespace-pre-wrap break-words text-[11px] text-fg-muted">
             {detail}
           </pre>
         </div>

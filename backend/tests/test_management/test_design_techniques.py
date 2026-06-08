@@ -1,4 +1,4 @@
-"""Tests for M-1 (BVA) + M-2 (Equivalence) + M-9 (Parameterized Cases).
+"""Tests for M-1 (BVA) + M-2 (EQ) + M-3 (DT) + M-4 (Pairwise) + M-9 (Parameterized Cases).
 
 These exercise ``design_service`` directly (and a few router-level integration
 paths) against the real dev Postgres DB. External I/O (the LLM gateway) is
@@ -28,7 +28,9 @@ from app.domains.test_management.schemas import (
     CaseDataRowIn,
     CaseParamSetCreate,
     DesignFieldSpec,
+    DtRunCreate,
     EqRunCreate,
+    PairwiseRunCreate,
     PromoteCasesRequest,
 )
 from sqlalchemy import select
@@ -144,6 +146,107 @@ class TestEqFallback:
         parts, _ = design_service._fallback_eq([field])
         labels = {p["partition_label"] for p in parts}
         assert "empty (required)" in labels
+
+
+class TestDtFallback:
+    def test_produces_at_least_one_row(self) -> None:
+        fields = [
+            DesignFieldSpec(name="IsLoggedIn", data_type="bool"),
+            DesignFieldSpec(name="HasPermission", data_type="bool"),
+        ]
+        drafts = design_service._fallback_dt(fields)
+        assert len(drafts) >= 1
+
+    def test_covers_all_true_combination(self) -> None:
+        fields = [
+            DesignFieldSpec(name="Cond1", data_type="bool"),
+            DesignFieldSpec(name="Cond2", data_type="bool"),
+        ]
+        drafts = design_service._fallback_dt(fields)
+        all_true = [d for d in drafts if d.inputs.get("Cond1") is True and d.inputs.get("Cond2") is True]
+        assert all_true, "No all-true row found"
+        assert "primary action" in all_true[0].rationale.lower() or "action_A" in all_true[0].expected
+
+    def test_capped_at_16_rows(self) -> None:
+        # 10 conditions would give 2^10 = 1024 rows; must be capped at 16
+        fields = [DesignFieldSpec(name=f"C{i}", data_type="bool") for i in range(10)]
+        drafts = design_service._fallback_dt(fields)
+        assert len(drafts) <= 16
+
+    def test_boundary_type_is_decision_row(self) -> None:
+        fields = [DesignFieldSpec(name="A", data_type="bool"), DesignFieldSpec(name="B", data_type="bool")]
+        drafts = design_service._fallback_dt(fields)
+        assert all(d.boundary_type == "decision_row" for d in drafts)
+
+    def test_deterministic(self) -> None:
+        fields = [DesignFieldSpec(name="X", data_type="bool"), DesignFieldSpec(name="Y", data_type="bool")]
+        a = design_service._fallback_dt(fields)
+        b = design_service._fallback_dt(fields)
+        assert [d.model_dump() for d in a] == [d.model_dump() for d in b]
+
+
+class TestPairwiseFallback:
+    def test_produces_rows_for_enum_fields(self) -> None:
+        fields = [
+            DesignFieldSpec(name="Browser", data_type="enum", allowed_set=["Chrome", "Firefox", "Safari"]),
+            DesignFieldSpec(name="OS", data_type="enum", allowed_set=["Windows", "macOS", "Linux"]),
+        ]
+        drafts = design_service._fallback_pairwise(fields)
+        assert len(drafts) >= 1
+
+    def test_covers_all_pairs_for_two_fields(self) -> None:
+        fields = [
+            DesignFieldSpec(name="A", data_type="enum", allowed_set=["a1", "a2"]),
+            DesignFieldSpec(name="B", data_type="enum", allowed_set=["b1", "b2"]),
+        ]
+        drafts = design_service._fallback_pairwise(fields)
+        # For 2×2 there are 4 pairs — need at least 4 test cases (or 2 if they're dense)
+        all_inputs = [d.inputs for d in drafts]
+        covered = set()
+        for inp in all_inputs:
+            covered.add((inp.get("A"), inp.get("B")))
+        assert ("a1", "b1") in covered
+        assert ("a1", "b2") in covered
+        assert ("a2", "b1") in covered
+        assert ("a2", "b2") in covered
+
+    def test_all_inputs_present_in_each_row(self) -> None:
+        fields = [
+            DesignFieldSpec(name="P", data_type="enum", allowed_set=["p1", "p2"]),
+            DesignFieldSpec(name="Q", data_type="enum", allowed_set=["q1", "q2"]),
+            DesignFieldSpec(name="R", data_type="enum", allowed_set=["r1", "r2"]),
+        ]
+        drafts = design_service._fallback_pairwise(fields)
+        for d in drafts:
+            assert "P" in d.inputs and "Q" in d.inputs and "R" in d.inputs
+
+    def test_boundary_type_is_pairwise_row(self) -> None:
+        fields = [
+            DesignFieldSpec(name="X", data_type="enum", allowed_set=["x1", "x2"]),
+            DesignFieldSpec(name="Y", data_type="enum", allowed_set=["y1", "y2"]),
+        ]
+        drafts = design_service._fallback_pairwise(fields)
+        assert all(d.boundary_type == "pairwise_row" for d in drafts)
+
+    def test_safety_cap(self) -> None:
+        # Many params with many values — must not exceed 200 rows
+        fields = [
+            DesignFieldSpec(name=f"P{i}", data_type="enum", allowed_set=[f"v{i}_{j}" for j in range(5)])
+            for i in range(8)
+        ]
+        drafts = design_service._fallback_pairwise(fields)
+        assert len(drafts) <= 200
+
+    def test_bool_fields_supported(self) -> None:
+        fields = [
+            DesignFieldSpec(name="FlagA", data_type="bool"),
+            DesignFieldSpec(name="FlagB", data_type="bool"),
+        ]
+        drafts = design_service._fallback_pairwise(fields)
+        assert len(drafts) >= 1
+        # bool fields should have True/False values
+        flag_vals = {d.inputs.get("FlagA") for d in drafts}
+        assert True in flag_vals and False in flag_vals
 
 
 # ── DB-backed runs ───────────────────────────────────────────────────────────
@@ -643,12 +746,190 @@ class TestLLMFallback:
         assert any(p.partition_label == "ok" for p in run.partitions)
 
 
+# ── DB-backed DT runs ────────────────────────────────────────────────────────
+
+
+class TestDtRunCreate:
+    def test_happy_path_persists_run_and_audit(
+        self, db_session, seeded_users, make_user, design_project
+    ) -> None:
+        user = _user(seeded_users, make_user)
+        payload = DtRunCreate(
+            project_id=design_project,
+            conditions=["IsLoggedIn", "HasPermission"],
+            actions=["Show dashboard", "Redirect to login"],
+            requirement_text="Access control matrix",
+        )
+        run = design_service.create_dt_run(db_session, user.tenant_id, user, payload)
+
+        assert run.technique == "DT"
+        assert run.source == "fallback"  # LLM patched to None
+        assert run.generated_cases, "must produce at least one decision row"
+        assert run.project_id == design_project
+
+        events = db_session.execute(
+            select(TestManagementAuditEvent).where(
+                TestManagementAuditEvent.entity_id == run.id,
+                TestManagementAuditEvent.action == "design.run.create",
+            )
+        ).scalars().all()
+        assert events, "design.run.create audit event missing"
+
+    def test_conditions_become_bool_fields(
+        self, db_session, seeded_users, make_user, design_project
+    ) -> None:
+        user = _user(seeded_users, make_user)
+        payload = DtRunCreate(
+            project_id=design_project,
+            conditions=["CondA", "CondB", "CondC"],
+        )
+        run = design_service.create_dt_run(db_session, user.tenant_id, user, payload)
+        # The generated cases must reference the condition names
+        assert run.generated_cases
+        case_inputs = run.generated_cases[0].get("inputs") or {}
+        assert set(case_inputs.keys()) >= {"CondA", "CondB", "CondC"}
+
+    def test_explicit_fields_override_conditions(
+        self, db_session, seeded_users, make_user, design_project
+    ) -> None:
+        user = _user(seeded_users, make_user)
+        payload = DtRunCreate(
+            project_id=design_project,
+            fields=[DesignFieldSpec(name="Flag", data_type="bool")],
+            conditions=["ShouldBeIgnored"],
+        )
+        run = design_service.create_dt_run(db_session, user.tenant_id, user, payload)
+        # fields takes precedence — the generated cases should use "Flag" not conditions
+        assert run.generated_cases
+        case_inputs = run.generated_cases[0].get("inputs") or {}
+        assert "Flag" in case_inputs
+        assert "ShouldBeIgnored" not in case_inputs
+
+    def test_no_conditions_or_fields_raises(
+        self, db_session, seeded_users, make_user, design_project
+    ) -> None:
+        user = _user(seeded_users, make_user)
+        payload = DtRunCreate(project_id=design_project)
+        with pytest.raises(ValueError, match="condition"):
+            design_service.create_dt_run(db_session, user.tenant_id, user, payload)
+
+    def test_tenant_isolation(
+        self, db_session, seeded_users, make_user, design_project
+    ) -> None:
+        alice = _user(seeded_users, make_user, "alice")
+        eve = _user(seeded_users, make_user, "eve")
+        eve.tenant_id = "00000000-0000-0000-0000-0000000000c2"
+
+        f = DesignFieldSpec(name="X", data_type="bool")
+        alice_run = design_service.create_dt_run(
+            db_session, alice.tenant_id, alice,
+            DtRunCreate(project_id=design_project, fields=[f]),
+        )
+        with pytest.raises(KeyError):
+            design_service.get_design_run(db_session, eve.tenant_id, alice_run.id)
+
+
+# ── DB-backed Pairwise runs ──────────────────────────────────────────────────
+
+
+class TestPairwiseRunCreate:
+    def test_happy_path_persists_run_and_audit(
+        self, db_session, seeded_users, make_user, design_project
+    ) -> None:
+        user = _user(seeded_users, make_user)
+        payload = PairwiseRunCreate(
+            project_id=design_project,
+            fields=[
+                DesignFieldSpec(name="Browser", data_type="enum", allowed_set=["Chrome", "Firefox"]),
+                DesignFieldSpec(name="OS", data_type="enum", allowed_set=["Windows", "macOS"]),
+            ],
+            requirement_text="Cross-browser compatibility matrix",
+        )
+        run = design_service.create_pairwise_run(db_session, user.tenant_id, user, payload)
+
+        assert run.technique == "PAIRWISE"
+        assert run.source == "fallback"  # LLM patched to None
+        assert run.generated_cases, "must produce at least one pairwise row"
+        assert run.project_id == design_project
+
+        events = db_session.execute(
+            select(TestManagementAuditEvent).where(
+                TestManagementAuditEvent.entity_id == run.id,
+                TestManagementAuditEvent.action == "design.run.create",
+            )
+        ).scalars().all()
+        assert events, "design.run.create audit event missing"
+
+    def test_all_pairs_covered_for_two_binary_fields(
+        self, db_session, seeded_users, make_user, design_project
+    ) -> None:
+        user = _user(seeded_users, make_user)
+        payload = PairwiseRunCreate(
+            project_id=design_project,
+            fields=[
+                DesignFieldSpec(name="A", data_type="enum", allowed_set=["a1", "a2"]),
+                DesignFieldSpec(name="B", data_type="enum", allowed_set=["b1", "b2"]),
+            ],
+        )
+        run = design_service.create_pairwise_run(db_session, user.tenant_id, user, payload)
+        covered = {
+            (c.get("inputs", {}).get("A"), c.get("inputs", {}).get("B"))
+            for c in run.generated_cases
+        }
+        assert ("a1", "b1") in covered
+        assert ("a1", "b2") in covered
+        assert ("a2", "b1") in covered
+        assert ("a2", "b2") in covered
+
+    def test_single_field_rejected_at_schema_layer(self) -> None:
+        with pytest.raises(Exception):
+            PairwiseRunCreate(
+                fields=[DesignFieldSpec(name="OnlyOne", data_type="bool")]
+            )
+
+    def test_safety_cap_respected(
+        self, db_session, seeded_users, make_user, design_project
+    ) -> None:
+        user = _user(seeded_users, make_user)
+        payload = PairwiseRunCreate(
+            project_id=design_project,
+            fields=[
+                DesignFieldSpec(
+                    name=f"P{i}",
+                    data_type="enum",
+                    allowed_set=[f"v{i}_{j}" for j in range(6)],
+                )
+                for i in range(8)
+            ],
+        )
+        run = design_service.create_pairwise_run(db_session, user.tenant_id, user, payload)
+        assert len(run.generated_cases) <= 200
+
+    def test_tenant_isolation(
+        self, db_session, seeded_users, make_user, design_project
+    ) -> None:
+        alice = _user(seeded_users, make_user, "alice")
+        eve = _user(seeded_users, make_user, "eve")
+        eve.tenant_id = "00000000-0000-0000-0000-0000000000d2"
+
+        two_fields = [
+            DesignFieldSpec(name="X", data_type="enum", allowed_set=["x1", "x2"]),
+            DesignFieldSpec(name="Y", data_type="enum", allowed_set=["y1", "y2"]),
+        ]
+        alice_run = design_service.create_pairwise_run(
+            db_session, alice.tenant_id, alice,
+            PairwiseRunCreate(project_id=design_project, fields=two_fields),
+        )
+        with pytest.raises(KeyError):
+            design_service.get_design_run(db_session, eve.tenant_id, alice_run.id)
+
+
 # ── Module-level sanity ──────────────────────────────────────────────────────
 
 
 class TestAllowedConstants:
-    def test_techniques_constant_contains_bva_eq(self) -> None:
-        assert {"BVA", "EQ"}.issubset(ALLOWED_TECHNIQUES)
+    def test_techniques_constant_contains_all_techniques(self) -> None:
+        assert {"BVA", "EQ", "DT", "PAIRWISE"}.issubset(ALLOWED_TECHNIQUES)
 
     def test_data_types_constant_complete(self) -> None:
         assert {"int", "float", "string", "date", "bool", "enum"} == ALLOWED_DATA_TYPES

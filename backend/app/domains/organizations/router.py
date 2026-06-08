@@ -26,6 +26,7 @@ from .schemas import (
     OrganizationUpdate,
     ProjectMemberAdd,
     ProjectMemberOut,
+    ProjectMemberRoleUpdate,
     TeamCreate,
     TeamMemberAdd,
     TeamMemberOut,
@@ -371,6 +372,42 @@ def add_project_member_endpoint(
     db.commit()
     log_audit(db, actor_user_id=user.id, action="project.member.add", resource_type="project", resource_id=f"{project_id}:{body.user_id}", payload=None, ip=None)
     return {"ok": True}
+
+
+@router.patch("/projects/{project_id}/members/{user_id}", response_model=ProjectMemberOut)
+def update_project_member_role_endpoint(
+    project_id: str,
+    user_id: str,
+    body: ProjectMemberRoleUpdate,
+    user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[Session, Depends(get_db)],
+):
+    from app.infra.models import ProjectMember
+    # Allow org admins OR project admins/owners to change roles
+    perms = _user_permissions(user)
+    if "admin.*" not in perms:
+        requester_pm = db.get(ProjectMember, (project_id, user.id))
+        if not requester_pm or requester_pm.role not in ("owner", "admin"):
+            raise HTTPException(status.HTTP_403_FORBIDDEN, "Bu işlem için Admin yetkisi gereklidir")
+    target_pm = db.get(ProjectMember, (project_id, user_id))
+    if not target_pm:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Üye bu projede bulunamadı")
+    old_role = target_pm.role
+    target_pm.role = body.role
+    db.commit()
+    db.refresh(target_pm)
+    target_user = db.get(type(user), user_id)
+    log_audit(db, actor_user_id=user.id, action="project.member.role_changed", resource_type="project",
+              resource_id=f"{project_id}:{user_id}",
+              payload={"old_role": old_role, "new_role": body.role}, ip=None)
+    return ProjectMemberOut(
+        project_id=project_id,
+        user_id=user_id,
+        email=target_user.email if target_user else "",
+        full_name=target_user.full_name if target_user else None,
+        role=target_pm.role,
+        added_at=target_pm.added_at,
+    )
 
 
 @router.delete("/projects/{project_id}/members/{user_id}")

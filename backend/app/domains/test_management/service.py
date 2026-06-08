@@ -2047,15 +2047,17 @@ def delete_requirement_link(db: Session, project_id: str, req_id: str, user: Any
     db.commit()
 
 
-def list_defect_links(db: Session, project_id: str) -> list[DefectLink]:
+def list_defect_links(db: Session, project_id: str, case_id: str | None = None) -> list[DefectLink]:
     project_id = resolve_project_id(db, project_id)
     stmt = (
         select(DefectLink)
         .join(TestRunCase, DefectLink.run_case_id == TestRunCase.id)
         .join(TestCase, TestRunCase.case_id == TestCase.id)
         .where(TestCase.project_id == project_id)
-        .order_by(DefectLink.created_at.desc())
     )
+    if case_id:
+        stmt = stmt.where(TestRunCase.case_id == case_id)
+    stmt = stmt.order_by(DefectLink.created_at.desc())
     return list(db.scalars(stmt).all())
 
 
@@ -2927,3 +2929,190 @@ def get_run_trend(db: Session, project_id: str, limit: int = 20) -> list[dict]:
         }
         for row in rows
     ]
+
+
+# ── Review Workflow ────────────────────────────────────────────────────────────
+
+def _get_case_or_404(db: Session, project_id: str, case_id: str) -> TestCase:
+    real_pid = resolve_project_id(db, project_id)
+    case = db.get(TestCase, case_id)
+    if case is None or case.project_id != real_pid:
+        raise KeyError("Test case bulunamadı")
+    return case
+
+
+def submit_case_for_review(
+    db: Session, project_id: str, case_id: str, user: Any, comment: Optional[str] = None
+) -> TestCase:
+    """Author submits a test case for peer review (draft → pending)."""
+    case = _get_case_or_404(db, project_id, case_id)
+    if case.review_status not in ("none", "rejected"):
+        raise ValueError(f"Review gönderilemez: mevcut durum '{case.review_status}'")
+    case.review_status = "pending"
+    case.review_by = None
+    case.review_at = None
+    case.review_comment = comment
+    audit(db, "case.review_submitted", "case", case.id, case.project_id, user, {"comment": comment})
+    db.commit()
+    db.refresh(case)
+    return case
+
+
+def approve_case_review(
+    db: Session, project_id: str, case_id: str, user: Any, comment: Optional[str] = None
+) -> TestCase:
+    """Reviewer approves a test case (pending → approved → status=active)."""
+    case = _get_case_or_404(db, project_id, case_id)
+    if case.review_status != "pending":
+        raise ValueError(f"Onaylanamaz: mevcut durum '{case.review_status}'")
+    case.review_status = "approved"
+    case.review_by = _actor_id(user)
+    case.review_at = utcnow()
+    case.review_comment = comment
+    if case.status == "draft":
+        case.status = "active"
+    audit(db, "case.review_approved", "case", case.id, case.project_id, user, {"comment": comment})
+    db.commit()
+    db.refresh(case)
+    return case
+
+
+def reject_case_review(
+    db: Session, project_id: str, case_id: str, user: Any, comment: Optional[str] = None
+) -> TestCase:
+    """Reviewer rejects a test case (pending → rejected), returns to draft."""
+    case = _get_case_or_404(db, project_id, case_id)
+    if case.review_status != "pending":
+        raise ValueError(f"Reddedilemez: mevcut durum '{case.review_status}'")
+    case.review_status = "rejected"
+    case.review_by = _actor_id(user)
+    case.review_at = utcnow()
+    case.review_comment = comment
+    if case.status == "active":
+        case.status = "draft"
+    audit(db, "case.review_rejected", "case", case.id, case.project_id, user, {"comment": comment})
+    db.commit()
+    db.refresh(case)
+    return case
+
+
+# ── Flakiness Tracking ─────────────────────────────────────────────────────────
+
+def recompute_case_flakiness(db: Session, case_id: str) -> None:
+    """Recompute pass/fail counts and flakiness score for a single test case.
+
+    Flakiness score = transitions between different adjacent results / (run_count - 1).
+    A score of 0.0 means perfectly stable; 1.0 means alternating every run.
+    """
+    from sqlalchemy import text as sa_text
+
+    result = db.execute(
+        sa_text("""
+            SELECT
+                COUNT(*) AS total,
+                COUNT(CASE WHEN rc.status = 'passed' THEN 1 END) AS passed,
+                COUNT(CASE WHEN rc.status = 'failed' THEN 1 END) AS failed
+            FROM test_management_run_cases rc
+            WHERE rc.case_id = :case_id
+              AND rc.status IN ('passed', 'failed')
+        """),
+        {"case_id": case_id},
+    ).mappings().one_or_none()
+
+    if not result or int(result["total"]) == 0:
+        db.execute(
+            sa_text("""
+                UPDATE test_management_cases
+                SET run_count=0, pass_count=0, fail_count=0, flakiness_score=0
+                WHERE id = :cid
+            """),
+            {"cid": case_id},
+        )
+        db.commit()
+        return
+
+    total = int(result["total"])
+    passed = int(result["passed"])
+    failed = int(result["failed"])
+
+    # Compute transitions (alternations) using window function
+    transitions_result = db.execute(
+        sa_text("""
+            SELECT COUNT(*) AS transitions
+            FROM (
+                SELECT
+                    rc.status,
+                    LAG(rc.status) OVER (ORDER BY r.created_at) AS prev_status
+                FROM test_management_run_cases rc
+                JOIN test_management_runs r ON r.id = rc.run_id
+                WHERE rc.case_id = :case_id
+                  AND rc.status IN ('passed', 'failed')
+            ) sub
+            WHERE status != prev_status AND prev_status IS NOT NULL
+        """),
+        {"case_id": case_id},
+    ).scalar()
+
+    transitions = int(transitions_result or 0)
+    flakiness = round(transitions / max(total - 1, 1), 4) if total > 1 else 0.0
+
+    db.execute(
+        sa_text("""
+            UPDATE test_management_cases
+            SET run_count=:total, pass_count=:passed, fail_count=:failed, flakiness_score=:score
+            WHERE id = :cid
+        """),
+        {"total": total, "passed": passed, "failed": failed, "score": flakiness, "cid": case_id},
+    )
+    db.commit()
+
+
+def list_flaky_cases(
+    db: Session,
+    project_id: str,
+    threshold: float = 0.2,
+    min_runs: int = 3,
+    limit: int = 50,
+) -> dict:
+    """Return test cases above the flakiness threshold, ordered by score desc."""
+    real_pid = resolve_project_id(db, project_id)
+    cases = (
+        db.execute(
+            select(TestCase)
+            .where(
+                TestCase.project_id == real_pid,
+                TestCase.flakiness_score >= threshold,
+                TestCase.run_count >= min_runs,
+                TestCase.archived.is_(False),
+            )
+            .order_by(TestCase.flakiness_score.desc())
+            .limit(limit)
+        )
+        .scalars()
+        .all()
+    )
+    return {"items": cases, "total": len(cases), "threshold": threshold}
+
+
+def get_review_queue(
+    db: Session,
+    project_id: str,
+    status: str = "pending",
+    limit: int = 50,
+) -> list[TestCase]:
+    """Return cases in a specific review status for the project."""
+    real_pid = resolve_project_id(db, project_id)
+    return (
+        db.execute(
+            select(TestCase)
+            .where(
+                TestCase.project_id == real_pid,
+                TestCase.review_status == status,
+                TestCase.archived.is_(False),
+            )
+            .order_by(TestCase.updated_at.desc())
+            .limit(limit)
+        )
+        .scalars()
+        .all()
+    )

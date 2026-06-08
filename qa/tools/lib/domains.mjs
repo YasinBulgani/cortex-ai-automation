@@ -32,6 +32,7 @@ export const DOMAIN_PREFIXES = Object.freeze([
   "INF",
   "QA",
   "RUN",
+  "DESIGN",
 ]);
 
 export const SUITE_TO_DOMAIN = Object.freeze({
@@ -68,6 +69,7 @@ export const SUITE_TO_DOMAIN = Object.freeze({
   infrastructure: "INF",
   "qa-engine": "QA",
   runs: "RUN",
+  "design-techniques": "DESIGN",
 });
 
 export const DOMAIN_TO_SUITE = Object.freeze(

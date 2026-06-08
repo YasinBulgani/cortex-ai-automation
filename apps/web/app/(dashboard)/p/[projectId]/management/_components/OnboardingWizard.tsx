@@ -54,7 +54,7 @@ export function OnboardingWizard({ projectId, onCreateWorkspace, isCreating }: O
       {/* Başlık */}
       <div className="bg-teal-500/10 border-b border-border px-6 py-5">
         <h2 className="text-lg font-bold text-white">Management Workspace Kurulumu</h2>
-        <p className="text-sm text-slate-400 mt-1">
+        <p className="text-sm text-fg-muted mt-1">
           4 adımda QA yönetim platformunuzu hazırlayın.
         </p>
         {/* İlerleme çizgisi */}
@@ -68,13 +68,13 @@ export function OnboardingWizard({ projectId, onCreateWorkspace, isCreating }: O
                     ? "bg-brand text-white scale-110"
                     : activeStep > step.id
                     ? "bg-brand text-white"
-                    : "bg-slate-700 text-slate-400"
+                    : "bg-surface-accent text-fg-muted"
                 }`}
               >
                 {activeStep > step.id ? "✓" : step.id}
               </button>
               {i < STEPS.length - 1 && (
-                <div className={`flex-1 h-0.5 rounded ${activeStep > step.id ? "bg-brand" : "bg-slate-700"}`} />
+                <div className={`flex-1 h-0.5 rounded ${activeStep > step.id ? "bg-brand" : "bg-surface-accent"}`} />
               )}
             </div>
           ))}
@@ -89,7 +89,7 @@ export function OnboardingWizard({ projectId, onCreateWorkspace, isCreating }: O
               <span className="text-4xl">{step.icon}</span>
               <div>
                 <h3 className="text-white font-semibold text-base">{step.title}</h3>
-                <p className="text-slate-400 text-sm mt-1">{step.description}</p>
+                <p className="text-fg-muted text-sm mt-1">{step.description}</p>
               </div>
             </div>
 
@@ -97,8 +97,8 @@ export function OnboardingWizard({ projectId, onCreateWorkspace, isCreating }: O
             {step.action === "workspace" ? (
               <div className="space-y-3">
                 <div className="rounded-lg border border-border bg-surface-overlay p-4 space-y-2">
-                  <p className="text-xs text-slate-400">Workspace oluşturulunca:</p>
-                  <ul className="text-xs text-slate-300 space-y-1">
+                  <p className="text-xs text-fg-muted">Workspace oluşturulunca:</p>
+                  <ul className="text-xs text-fg space-y-1">
                     <li>✅ Test repository hazır olacak</li>
                     <li>✅ Plan ve run yönetimi aktif olacak</li>
                     <li>✅ Tüm veri bu proje altında izole tutulacak</li>
@@ -125,7 +125,7 @@ export function OnboardingWizard({ projectId, onCreateWorkspace, isCreating }: O
                 </Link>
                 <button
                   onClick={() => setActiveStep((s) => Math.min(4, s + 1))}
-                  className="text-sm text-slate-400 hover:text-white transition-colors"
+                  className="text-sm text-fg-muted hover:text-white transition-colors"
                 >
                   Sonraki adım
                 </button>
@@ -140,15 +140,15 @@ export function OnboardingWizard({ projectId, onCreateWorkspace, isCreating }: O
         <button
           onClick={() => setActiveStep((s) => Math.max(1, s - 1))}
           disabled={activeStep === 1}
-          className="text-xs text-slate-500 hover:text-white disabled:opacity-30 transition-colors"
+          className="text-xs text-fg-subtle hover:text-white disabled:opacity-30 transition-colors"
         >
           ← Önceki
         </button>
-        <span className="text-xs text-slate-500">Adım {activeStep} / {STEPS.length}</span>
+        <span className="text-xs text-fg-subtle">Adım {activeStep} / {STEPS.length}</span>
         <button
           onClick={() => setActiveStep((s) => Math.min(4, s + 1))}
           disabled={activeStep === 4}
-          className="text-xs text-slate-500 hover:text-white disabled:opacity-30 transition-colors"
+          className="text-xs text-fg-subtle hover:text-white disabled:opacity-30 transition-colors"
         >
           Sonraki →
         </button>

@@ -32,6 +32,8 @@ export interface WorkspaceFilterBarProps {
   priority: string;
   type: string;
   status: string;
+  tagFilter?: string;
+  availableTags?: string[];
   activeFilterCount: number;
   showArchived: boolean;
   archivedCount: number;
@@ -41,6 +43,7 @@ export interface WorkspaceFilterBarProps {
   onPriorityChange: (v: string) => void;
   onTypeChange: (v: string) => void;
   onStatusChange: (v: string) => void;
+  onTagFilterChange?: (v: string) => void;
   onToggleArchived: () => void;
   onClearAll: () => void;
   onNewCase: () => void;
@@ -55,6 +58,8 @@ export function WorkspaceFilterBar({
   priority,
   type,
   status,
+  tagFilter = "",
+  availableTags = [],
   activeFilterCount,
   showArchived,
   archivedCount,
@@ -64,6 +69,7 @@ export function WorkspaceFilterBar({
   onPriorityChange,
   onTypeChange,
   onStatusChange,
+  onTagFilterChange,
   onToggleArchived,
   onClearAll,
   onNewCase,
@@ -164,6 +170,14 @@ export function WorkspaceFilterBar({
           <option key={v} value={v}>{v}</option>
         ))}
       </select>
+      {availableTags.length > 0 && (
+        <select value={tagFilter} onChange={e => onTagFilterChange?.(e.target.value)} className={cn(SEL_CLS, "hidden lg:block")}>
+          <option value="">Etiket</option>
+          {availableTags.map(tag => (
+            <option key={tag} value={tag}>{tag}</option>
+          ))}
+        </select>
+      )}
       {hasFilter && (
         <button
           type="button"

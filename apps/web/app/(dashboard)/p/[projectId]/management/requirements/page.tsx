@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useCallback } from "react";
 import Link from "next/link";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import {
   useRequirementTraceability,
@@ -36,15 +36,15 @@ const PRIORITY_COLORS: Record<string, string> = {
   P0: "text-red-400 border-red-500/30 bg-red-500/10",
   P1: "text-orange-400 border-orange-500/30 bg-orange-500/10",
   P2: "text-amber-400 border-amber-500/30 bg-amber-500/10",
-  P3: "text-slate-400 border-slate-500/30 bg-slate-500/10",
+  P3: "text-fg-muted border-border-strong/30 bg-slate-500/10",
 };
 
 const STATUS_COLORS: Record<string, string> = {
   open: "text-blue-400 border-blue-500/30 bg-blue-500/10",
   in_progress: "text-amber-400 border-amber-500/30 bg-amber-500/10",
   done: "text-emerald-400 border-emerald-500/30 bg-emerald-500/10",
-  deferred: "text-slate-400 border-slate-500/30 bg-slate-500/10",
-  draft: "text-slate-400 border-slate-500/30 bg-slate-500/10",
+  deferred: "text-fg-muted border-border-strong/30 bg-slate-500/10",
+  draft: "text-fg-muted border-border-strong/30 bg-slate-500/10",
   approved: "text-emerald-400 border-emerald-500/30 bg-emerald-500/10",
   rejected: "text-red-400 border-red-500/30 bg-red-500/10",
 };
@@ -52,7 +52,7 @@ const STATUS_COLORS: Record<string, string> = {
 const COVERAGE_COLORS: Record<string, string> = {
   covered: "text-emerald-400 border-emerald-500/30 bg-emerald-500/10",
   partially_covered: "text-amber-400 border-amber-500/30 bg-amber-500/10",
-  not_covered: "text-slate-400 border-slate-500/30 bg-slate-500/10",
+  not_covered: "text-fg-muted border-border-strong/30 bg-slate-500/10",
   out_of_scope: "text-purple-400 border-purple-500/30 bg-purple-500/10",
 };
 
@@ -120,7 +120,7 @@ function CoverageBar({ pct }: { pct: number }) {
   const color = pct >= 80 ? "bg-emerald-500" : pct >= 40 ? "bg-amber-500" : "bg-red-500";
   return (
     <div className="flex items-center gap-2">
-      <div className="h-1.5 w-24 rounded-full bg-white/[0.06] overflow-hidden">
+      <div className="h-1.5 w-24 rounded-full bg-surface-accent overflow-hidden">
         <div className={`h-full rounded-full ${color}`} style={{ width: `${Math.min(pct, 100)}%` }} />
       </div>
       <span className="text-[11px] text-fg-subtle">{pct.toFixed(0)}%</span>
@@ -280,7 +280,7 @@ function LinkCaseModal({
             </div>
             <button
               onClick={onClose}
-              className="rounded p-1 text-fg-subtle hover:bg-white/[0.06] hover:text-fg transition-colors"
+              className="rounded p-1 text-fg-subtle hover:bg-surface-accent hover:text-fg transition-colors"
             >
               <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -340,7 +340,7 @@ function LinkCaseModal({
                       "w-full text-left rounded-lg border px-3 py-2.5 transition-colors",
                       selectedCaseId === c.id
                         ? "border-brand/50 bg-brand/10"
-                        : "border-border bg-surface-overlay hover:bg-white/[0.04]",
+                        : "border-border bg-surface-overlay hover:bg-surface-overlay",
                     ].join(" ")}
                   >
                     <div className="flex items-center gap-2">
@@ -369,7 +369,7 @@ function LinkCaseModal({
               <button
                 type="button"
                 onClick={onClose}
-                className="rounded px-4 py-2 text-[12px] text-fg-muted hover:bg-white/[0.06] hover:text-fg transition-colors"
+                className="rounded px-4 py-2 text-[12px] text-fg-muted hover:bg-surface-accent hover:text-fg transition-colors"
               >
                 İptal
               </button>
@@ -405,7 +405,7 @@ function TraceRow({
   return (
     <>
       <tr
-        className="border-b border-border hover:bg-white/[0.04] cursor-pointer transition-colors"
+        className="border-b border-border hover:bg-surface-overlay cursor-pointer transition-colors"
         onClick={() => setOpen((v) => !v)}
       >
         <td className="px-4 py-3">
@@ -492,10 +492,12 @@ function TraceRow({
 
 function CatalogDetailPanel({
   req,
+  userIdMap = {},
   onClose,
   onEdit,
 }: {
   req: Requirement;
+  userIdMap?: Record<string, string>;
   onClose: () => void;
   onEdit: (req: Requirement) => void;
 }) {
@@ -510,7 +512,7 @@ function CatalogDetailPanel({
         <div className="flex items-center gap-1">
           <button
             onClick={() => onEdit(req)}
-            className="rounded p-1 text-fg-subtle hover:bg-white/[0.06] hover:text-fg transition-colors"
+            className="rounded p-1 text-fg-subtle hover:bg-surface-accent hover:text-fg transition-colors"
             title="Düzenle"
           >
             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -523,7 +525,7 @@ function CatalogDetailPanel({
           </button>
           <button
             onClick={onClose}
-            className="rounded p-1 text-fg-subtle hover:bg-white/[0.06] hover:text-fg transition-colors"
+            className="rounded p-1 text-fg-subtle hover:bg-surface-accent hover:text-fg transition-colors"
           >
             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -566,7 +568,7 @@ function CatalogDetailPanel({
             <p className="text-[10px] font-medium uppercase tracking-wider text-fg-subtle">Etiketler</p>
             <div className="flex flex-wrap gap-1">
               {req.tags.map((tag) => (
-                <span key={tag} className="rounded bg-white/[0.06] px-2 py-0.5 text-[11px] text-fg-muted">
+                <span key={tag} className="rounded bg-surface-accent px-2 py-0.5 text-[11px] text-fg-muted">
                   {tag}
                 </span>
               ))}
@@ -599,17 +601,25 @@ function CatalogDetailPanel({
               <span className="text-fg-subtle">Versiyon</span>
               <span className="text-fg-muted">v{req.version_no}</span>
             </div>
-            {req.url && (
+            {req.url && /^https?:\/\//i.test(req.url) && (
               <div className="flex justify-between">
                 <span className="text-fg-subtle">URL</span>
                 <a
                   href={req.url}
                   target="_blank"
-                  rel="noreferrer"
+                  rel="noreferrer noopener"
                   className="text-brand truncate max-w-[160px] hover:underline"
                 >
                   {req.url}
                 </a>
+              </div>
+            )}
+            {req.owner_id && (
+              <div className="flex justify-between">
+                <span className="text-fg-subtle">Sahip</span>
+                <span className="text-fg-muted truncate max-w-[160px]" title={userIdMap[req.owner_id] ?? req.owner_id}>
+                  {userIdMap[req.owner_id] ?? `${req.owner_id.slice(0, 8)}…`}
+                </span>
               </div>
             )}
             <div className="flex justify-between">
@@ -668,7 +678,10 @@ function EditRequirementModal({
             priority: fields.priority,
             status: fields.status,
             coverage_status: fields.coverage_status,
-            tags: fields.module.trim() ? [fields.module.trim()] : [],
+            tags: [
+              ...(fields.module.trim() ? [fields.module.trim()] : []),
+              ...req.tags.slice(1),
+            ],
           },
         }
       );
@@ -699,7 +712,7 @@ function EditRequirementModal({
             </div>
             <button
               onClick={onClose}
-              className="rounded p-1 text-fg-subtle hover:bg-white/[0.06] hover:text-fg transition-colors"
+              className="rounded p-1 text-fg-subtle hover:bg-surface-accent hover:text-fg transition-colors"
             >
               <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -792,7 +805,7 @@ function EditRequirementModal({
               <button
                 type="button"
                 onClick={onClose}
-                className="rounded px-4 py-2 text-[12px] text-fg-muted hover:bg-white/[0.06] hover:text-fg transition-colors"
+                className="rounded px-4 py-2 text-[12px] text-fg-muted hover:bg-surface-accent hover:text-fg transition-colors"
               >
                 İptal
               </button>
@@ -818,12 +831,12 @@ function LoadingSkeleton() {
     <div className="space-y-3 p-6">
       {Array.from({ length: 5 }).map((_, i) => (
         <div key={i} className="flex items-center gap-4 rounded-lg border border-border p-4">
-          <div className="h-4 w-4 animate-pulse rounded bg-white/[0.08]" />
+          <div className="h-4 w-4 animate-pulse rounded bg-surface-accent" />
           <div className="flex-1 space-y-2">
-            <div className="h-3 w-3/4 animate-pulse rounded bg-white/[0.08]" />
-            <div className="h-2 w-1/2 animate-pulse rounded bg-white/[0.05]" />
+            <div className="h-3 w-3/4 animate-pulse rounded bg-surface-accent" />
+            <div className="h-2 w-1/2 animate-pulse rounded bg-surface-overlay" />
           </div>
-          <div className="h-5 w-16 animate-pulse rounded-full bg-white/[0.06]" />
+          <div className="h-5 w-16 animate-pulse rounded-full bg-surface-accent" />
         </div>
       ))}
     </div>
@@ -858,6 +871,17 @@ export default function ManagementRequirementsPage() {
   const bulkCreateReqs = useBulkCreateRequirements(mpid || "");
   const { data: casesData } = useManagementCases(mpid || undefined);
   const qc = useQueryClient();
+  const { data: membersData } = useQuery({
+    queryKey: ["management", "members", projectId],
+    queryFn: () => apiFetch<{ user_id: string; email: string; full_name?: string }[]>(`/api/v1/organizations/projects/${projectId}/members`).then(d => Array.isArray(d) ? d : []),
+    enabled: !!projectId,
+    staleTime: 5 * 60 * 1000,
+  });
+  const userIdMap = useMemo<Record<string, string>>(() => {
+    const map: Record<string, string> = {};
+    for (const m of membersData ?? []) map[m.user_id] = m.full_name?.trim() || m.email;
+    return map;
+  }, [membersData]);
   const [csvImportMsg, setCsvImportMsg] = useState<string | null>(null);
 
   const [genForReq, setGenForReq] = useState<string | null>(null);
@@ -869,6 +893,7 @@ export default function ManagementRequirementsPage() {
 
   // ── View state — URL-backed ────────────────────────────────────────────────
   const [activeTab, setActiveTab] = useState<ViewTab>("traceability");
+  const [showAllMatrixCases, setShowAllMatrixCases] = useState(false);
   const [search, setSearch] = useState(() => searchParams.get("q") ?? "");
   const [statusFilter, setStatusFilter] = useState(() => searchParams.get("status") ?? "all");
   const [priorityFilter, setPriorityFilter] = useState(() => searchParams.get("priority") ?? "all");
@@ -1080,7 +1105,7 @@ export default function ManagementRequirementsPage() {
                   className={[
                     "rounded px-3 py-1.5 text-[11px] font-medium transition-colors",
                     activeTab === tab
-                      ? "bg-white/[0.08] text-fg"
+                      ? "bg-surface-accent text-fg"
                       : "text-fg-subtle hover:text-fg-muted",
                   ].join(" ")}
                 >
@@ -1153,6 +1178,38 @@ export default function ManagementRequirementsPage() {
               />
             </label>
 
+            {/* CSV export button */}
+            {(catalog ?? []).length > 0 && (
+              <button
+                type="button"
+                onClick={() => {
+                  const rows = catalog ?? [];
+                  const headers = ["External Key", "Başlık", "Öncelik", "Durum", "Kapsam", "Kaynak", "Etiketler", "Oluşturulma"];
+                  const lines = rows.map(r => [
+                    r.external_key,
+                    r.title,
+                    r.priority,
+                    r.status,
+                    r.coverage_status ?? "",
+                    r.external_source,
+                    r.tags.join("; "),
+                    r.created_at ? new Date(r.created_at).toLocaleDateString("tr-TR") : "",
+                  ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(";"));
+                  const csv = "﻿" + [headers.join(";"), ...lines].join("\n");
+                  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement("a"); a.href = url; a.download = "gereksinimler.csv"; a.click();
+                  URL.revokeObjectURL(url);
+                }}
+                className="flex items-center gap-1.5 rounded border border-border px-3 py-1.5 text-[11px] font-medium text-fg-muted transition-colors hover:border-border-strong hover:text-fg"
+              >
+                <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                </svg>
+                CSV İndir
+              </button>
+            )}
+
             {/* New requirement button */}
             <button
               onClick={() => setShowModal(true)}
@@ -1193,7 +1250,7 @@ export default function ManagementRequirementsPage() {
               {
                 label: "Kapsamdışı",
                 value: summaryCardData.notCovered,
-                color: "border-slate-500/30 bg-surface-overlay",
+                color: "border-border-strong/30 bg-surface-overlay",
                 textColor: "text-fg-muted",
                 dot: "bg-slate-500",
               },
@@ -1334,7 +1391,7 @@ export default function ManagementRequirementsPage() {
               </div>
             ) : filteredRows.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-20 gap-3 text-center">
-                <div className="rounded-full bg-white/[0.04] p-4">
+                <div className="rounded-full bg-surface-overlay p-4">
                   <svg
                     className="h-8 w-8 text-fg-subtle"
                     fill="none"
@@ -1454,7 +1511,7 @@ export default function ManagementRequirementsPage() {
               </div>
             ) : filteredCatalog.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-20 gap-3 text-center">
-                <div className="rounded-full bg-white/[0.04] p-4">
+                <div className="rounded-full bg-surface-overlay p-4">
                   <svg
                     className="h-8 w-8 text-fg-subtle"
                     fill="none"
@@ -1529,7 +1586,7 @@ export default function ManagementRequirementsPage() {
                             setSelectedReq(selectedReq?.id === req.id ? null : req)
                           }
                           className={[
-                            "border-b border-border hover:bg-white/[0.04] transition-colors cursor-pointer",
+                            "border-b border-border hover:bg-surface-overlay transition-colors cursor-pointer",
                             selectedReq?.id === req.id
                               ? "bg-brand/5 border-l-2 border-l-brand"
                               : "",
@@ -1578,7 +1635,7 @@ export default function ManagementRequirementsPage() {
                               {req.tags.slice(0, 2).map((tag) => (
                                 <span
                                   key={tag}
-                                  className="rounded bg-white/[0.04] px-1.5 py-0.5 text-[10px] text-fg-subtle"
+                                  className="rounded bg-surface-overlay px-1.5 py-0.5 text-[10px] text-fg-subtle"
                                 >
                                   {tag}
                                 </span>
@@ -1623,7 +1680,7 @@ export default function ManagementRequirementsPage() {
                               <button
                                 type="button"
                                 onClick={() => setEditReq(req)}
-                                className="rounded p-1 text-fg-subtle hover:bg-white/[0.06] hover:text-fg transition-colors"
+                                className="rounded p-1 text-fg-subtle hover:bg-surface-accent hover:text-fg transition-colors"
                                 title="Düzenle"
                               >
                                 <svg
@@ -1653,7 +1710,7 @@ export default function ManagementRequirementsPage() {
                                   <button
                                     type="button"
                                     onClick={() => setConfirmDeleteId(null)}
-                                    className="rounded border border-border px-2 py-0.5 text-[10px] text-fg-muted hover:bg-white/[0.06] transition-colors whitespace-nowrap"
+                                    className="rounded border border-border px-2 py-0.5 text-[10px] text-fg-muted hover:bg-surface-accent transition-colors whitespace-nowrap"
                                   >
                                     İptal
                                   </button>
@@ -1728,17 +1785,22 @@ export default function ManagementRequirementsPage() {
                 <div className="flex items-center justify-center py-12">
                   <p className="text-sm text-fg-subtle">Gereksinim veya bağlantı bulunamadı</p>
                 </div>
-              ) : (
+              ) : (() => {
+                const allCases = (casesData && !Array.isArray(casesData) && (casesData as any).items
+                  ? (casesData as any).items
+                  : Array.isArray(casesData) ? casesData : []) as any[];
+                const MATRIX_LIMIT = 15;
+                const caseList = showAllMatrixCases ? allCases : allCases.slice(0, MATRIX_LIMIT);
+                const hiddenCount = allCases.length - caseList.length;
+                return (
+                <>
                 <table className="min-w-full text-xs">
                   <thead>
                     <tr className="bg-surface-raised">
                       <th className="sticky left-0 bg-surface-raised px-4 py-2 text-left text-fg-subtle font-medium min-w-[180px]">
                         Gereksinim
                       </th>
-                      {(casesData && !Array.isArray(casesData) && (casesData as any).items
-                        ? (casesData as any).items
-                        : Array.isArray(casesData) ? casesData : []
-                      ).slice(0, 15).map((c: any) => (
+                      {caseList.map((c: any) => (
                         <th key={c.id} className="px-2 py-2 text-center text-fg-subtle font-mono text-[10px]">
                           {c.case_key}
                         </th>
@@ -1750,12 +1812,8 @@ export default function ManagementRequirementsPage() {
                       // derive req links from traceability rows
                       const traceRow = rows.find((r) => r.requirement_id === req.id || r.external_key === req.external_key);
                       const linkedCaseIds = new Set((traceRow?.cases ?? []).map((c) => c.case_id));
-                      const caseList = (casesData && !Array.isArray(casesData) && (casesData as any).items
-                        ? (casesData as any).items
-                        : Array.isArray(casesData) ? casesData : []
-                      ).slice(0, 15);
                       return (
-                        <tr key={req.id} className={ri % 2 === 0 ? "bg-transparent" : "bg-white/[0.02]"}>
+                        <tr key={req.id} className={ri % 2 === 0 ? "bg-transparent" : "bg-surface-overlay/30"}>
                           <td className="sticky left-0 px-4 py-2 text-fg text-[11px] font-medium max-w-[180px] truncate bg-surface">
                             {req.title}
                           </td>
@@ -1774,7 +1832,22 @@ export default function ManagementRequirementsPage() {
                     })}
                   </tbody>
                 </table>
-              )}
+                {hiddenCount > 0 && (
+                  <div className="border-t border-border px-4 py-2.5 flex items-center justify-between">
+                    <span className="text-[11px] text-fg-muted">{hiddenCount} case daha gizli</span>
+                    <button type="button" onClick={() => setShowAllMatrixCases(true)}
+                      className="text-[11px] text-brand hover:underline">Tümünü göster ({allCases.length})</button>
+                  </div>
+                )}
+                {showAllMatrixCases && allCases.length > MATRIX_LIMIT && (
+                  <div className="border-t border-border px-4 py-2.5 flex justify-end">
+                    <button type="button" onClick={() => setShowAllMatrixCases(false)}
+                      className="text-[11px] text-fg-muted hover:text-fg hover:underline">İlk {MATRIX_LIMIT} case&apos;e dön</button>
+                  </div>
+                )}
+                </>
+                );
+              })()}
             </div>
           </div>
         )}
@@ -1784,6 +1857,7 @@ export default function ManagementRequirementsPage() {
           <div className="w-[340px] shrink-0 border-l border-border bg-surface-raised overflow-hidden flex flex-col">
             <CatalogDetailPanel
               req={selectedReq}
+              userIdMap={userIdMap}
               onClose={() => setSelectedReq(null)}
               onEdit={(req) => setEditReq(req)}
             />
@@ -1821,7 +1895,7 @@ export default function ManagementRequirementsPage() {
                 <h2 className="text-[14px] font-semibold text-fg">Yeni Gereksinim</h2>
                 <button
                   onClick={handleCloseModal}
-                  className="rounded p-1 text-fg-subtle hover:bg-white/[0.06] hover:text-fg transition-colors"
+                  className="rounded p-1 text-fg-subtle hover:bg-surface-accent hover:text-fg transition-colors"
                 >
                   <svg
                     className="h-4 w-4"
@@ -1958,7 +2032,7 @@ export default function ManagementRequirementsPage() {
                   <button
                     type="button"
                     onClick={handleCloseModal}
-                    className="rounded px-4 py-2 text-[12px] text-fg-muted hover:bg-white/[0.06] hover:text-fg transition-colors"
+                    className="rounded px-4 py-2 text-[12px] text-fg-muted hover:bg-surface-accent hover:text-fg transition-colors"
                   >
                     İptal
                   </button>

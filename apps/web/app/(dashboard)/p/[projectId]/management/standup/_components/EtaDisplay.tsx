@@ -53,14 +53,14 @@ function EtaDisplay({
     <div
       className={`rounded-xl border p-4 flex flex-col gap-1 ${borderClass} ${pulseClass}`}
     >
-      <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
+      <span className="text-[10px] font-bold uppercase tracking-widest text-fg-muted">
         ETA
       </span>
       <span className={`text-4xl font-bold tabular-nums ${colorClass}`}>
         {etaLabel}
       </span>
       {completionLabel && (
-        <span className="text-xs text-slate-400">
+        <span className="text-xs text-fg-muted">
           Tahmini bitiş:{" "}
           <span className={`font-semibold ${colorClass}`}>
             {completionLabel}
@@ -68,7 +68,7 @@ function EtaDisplay({
         </span>
       )}
       {etaHours === null && (
-        <span className="text-xs text-slate-500">Yeterli veri yok</span>
+        <span className="text-xs text-fg-subtle">Yeterli veri yok</span>
       )}
     </div>
   );

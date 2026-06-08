@@ -32,7 +32,7 @@ const ENTITY_LABELS: Record<string, string> = {
 const STATUS_BADGE: Record<string, string> = {
   ok: "bg-emerald-500/15 text-emerald-400",
   error: "bg-rose-500/15 text-rose-400",
-  unconfigured: "bg-white/[0.06] text-slate-400",
+  unconfigured: "bg-surface-accent text-fg-muted",
 };
 
 type IntegrationTab = "kiwi" | "jira" | "cicd" | "sso" | "webhooks";
@@ -148,7 +148,7 @@ export default function ManagementIntegrationsPage() {
         {/* ── Bağlantı ── */}
         <section className="rounded-xl border border-border bg-surface-raised p-5">
           <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-[11px] font-medium uppercase tracking-wider text-slate-500">Kiwi TCMS Bağlantısı</h2>
+            <h2 className="text-[11px] font-medium uppercase tracking-wider text-fg-subtle">Kiwi TCMS Bağlantısı</h2>
             {connection && (
               <span className={`rounded px-2 py-0.5 text-[10px] ${STATUS_BADGE[connection.status] ?? STATUS_BADGE.unconfigured}`}>
                 {connection.status === "ok" ? "Bağlı" : connection.status === "error" ? "Hata" : "Yapılandırılmadı"}
@@ -158,7 +158,7 @@ export default function ManagementIntegrationsPage() {
 
           {isLoading ? (
             <div className="animate-pulse space-y-2">
-              {[1, 2, 3].map(i => <div key={i} className="h-9 rounded bg-white/[0.04]" />)}
+              {[1, 2, 3].map(i => <div key={i} className="h-9 rounded bg-surface-overlay" />)}
             </div>
           ) : (
             <div className="space-y-3">
@@ -167,7 +167,7 @@ export default function ManagementIntegrationsPage() {
                   value={baseUrl}
                   onChange={e => setBaseUrl(e.target.value)}
                   placeholder="https://kiwi.example.com"
-                  className="w-full rounded-md border border-border bg-white/[0.02] px-3 py-2 text-[13px] text-slate-200 outline-none focus:border-teal-500/60"
+                  className="w-full rounded-md border border-border bg-surface-overlay/30 px-3 py-2 text-[13px] text-fg outline-none focus:border-teal-500/60"
                 />
               </Field>
               <div className="grid grid-cols-2 gap-3">
@@ -176,7 +176,7 @@ export default function ManagementIntegrationsPage() {
                     value={username}
                     onChange={e => setUsername(e.target.value)}
                     placeholder="api-user"
-                    className="w-full rounded-md border border-border bg-white/[0.02] px-3 py-2 text-[13px] text-slate-200 outline-none focus:border-teal-500/60"
+                    className="w-full rounded-md border border-border bg-surface-overlay/30 px-3 py-2 text-[13px] text-fg outline-none focus:border-teal-500/60"
                   />
                 </Field>
                 <Field label={isConfigured ? "Token / Parola (değiştirmek için yaz)" : "Token / Parola"}>
@@ -185,11 +185,11 @@ export default function ManagementIntegrationsPage() {
                     value={secret}
                     onChange={e => setSecret(e.target.value)}
                     placeholder={isConfigured ? "••••••••" : "API token"}
-                    className="w-full rounded-md border border-border bg-white/[0.02] px-3 py-2 text-[13px] text-slate-200 outline-none focus:border-teal-500/60"
+                    className="w-full rounded-md border border-border bg-surface-overlay/30 px-3 py-2 text-[13px] text-fg outline-none focus:border-teal-500/60"
                   />
                 </Field>
               </div>
-              <label className="flex items-center gap-2 text-[12px] text-slate-400">
+              <label className="flex items-center gap-2 text-[12px] text-fg-muted">
                 <input type="checkbox" checked={verifySsl} onChange={e => setVerifySsl(e.target.checked)} />
                 SSL sertifikasını doğrula
               </label>
@@ -209,7 +209,7 @@ export default function ManagementIntegrationsPage() {
                 <button
                   onClick={handleTest}
                   disabled={!isConfigured || testConn.isPending}
-                  className="rounded-lg border border-border px-4 py-2 text-[13px] font-medium text-slate-300 transition hover:bg-white/[0.04] disabled:opacity-40"
+                  className="rounded-lg border border-border px-4 py-2 text-[13px] font-medium text-fg transition hover:bg-surface-overlay disabled:opacity-40"
                 >
                   {testConn.isPending ? "Test ediliyor…" : "Bağlantıyı test et"}
                 </button>
@@ -227,8 +227,8 @@ export default function ManagementIntegrationsPage() {
         {/* ── Ürün seçimi ── */}
         {products.length > 0 && (
           <section className="rounded-xl border border-border bg-surface-raised p-5">
-            <h2 className="mb-3 text-[11px] font-medium uppercase tracking-wider text-slate-500">Kiwi Product</h2>
-            <p className="mb-3 text-[12px] text-slate-400">Bu Neurex projesine bağlanacak Kiwi ürününü seçin.</p>
+            <h2 className="mb-3 text-[11px] font-medium uppercase tracking-wider text-fg-subtle">Kiwi Product</h2>
+            <p className="mb-3 text-[12px] text-fg-muted">Bu Neurex projesine bağlanacak Kiwi ürününü seçin.</p>
             <div className="flex flex-wrap gap-2">
               {products.map(p => (
                 <button
@@ -237,7 +237,7 @@ export default function ManagementIntegrationsPage() {
                   className={`rounded-lg border px-3 py-1.5 text-[12px] transition ${
                     productId === p.id
                       ? "border-teal-500 bg-teal-500/15 text-teal-300"
-                      : "border-border text-slate-300 hover:bg-white/[0.04]"
+                      : "border-border text-fg hover:bg-surface-overlay"
                   }`}
                 >
                   {p.name}
@@ -249,20 +249,20 @@ export default function ManagementIntegrationsPage() {
 
         {/* ── Senkron ── */}
         <section className="rounded-xl border border-border bg-surface-raised p-5">
-          <h2 className="mb-3 text-[11px] font-medium uppercase tracking-wider text-slate-500">İçe Aktarım</h2>
+          <h2 className="mb-3 text-[11px] font-medium uppercase tracking-wider text-fg-subtle">İçe Aktarım</h2>
           {productId == null ? (
-            <p className="text-[12px] text-slate-500">Önce bağlantıyı test edip bir Kiwi Product seçin.</p>
+            <p className="text-[12px] text-fg-subtle">Önce bağlantıyı test edip bir Kiwi Product seçin.</p>
           ) : (
             <div className="space-y-3">
               <div className="flex items-center gap-3">
                 <button
                   onClick={() => preview.mutate()}
                   disabled={preview.isPending}
-                  className="rounded-lg border border-border px-4 py-2 text-[13px] font-medium text-slate-300 transition hover:bg-white/[0.04] disabled:opacity-40"
+                  className="rounded-lg border border-border px-4 py-2 text-[13px] font-medium text-fg transition hover:bg-surface-overlay disabled:opacity-40"
                 >
                   {preview.isPending ? "Hesaplanıyor…" : "Önizleme (dry-run)"}
                 </button>
-                <label className="flex items-center gap-2 text-[12px] text-slate-400">
+                <label className="flex items-center gap-2 text-[12px] text-fg-muted">
                   <input type="checkbox" checked={dryRun} onChange={e => setDryRun(e.target.checked)} />
                   Sadece dene (yazma)
                 </label>
@@ -278,9 +278,9 @@ export default function ManagementIntegrationsPage() {
               {preview.data?.ok && (
                 <div className="grid grid-cols-4 gap-2">
                   {Object.entries(preview.data.counts).map(([k, v]) => (
-                    <div key={k} className="rounded-lg border border-border bg-white/[0.02] px-3 py-2 text-center">
-                      <div className="text-[18px] font-semibold text-slate-200">{v}</div>
-                      <div className="text-[10px] uppercase tracking-wide text-slate-500">{ENTITY_LABELS[k] ?? k}</div>
+                    <div key={k} className="rounded-lg border border-border bg-surface-overlay/30 px-3 py-2 text-center">
+                      <div className="text-[18px] font-semibold text-fg">{v}</div>
+                      <div className="text-[10px] uppercase tracking-wide text-fg-subtle">{ENTITY_LABELS[k] ?? k}</div>
                     </div>
                   ))}
                 </div>
@@ -294,18 +294,18 @@ export default function ManagementIntegrationsPage() {
 
         {/* ── Job geçmişi ── */}
         <section className="rounded-xl border border-border bg-surface-raised p-5">
-          <h2 className="mb-3 text-[11px] font-medium uppercase tracking-wider text-slate-500">Senkron Geçmişi</h2>
+          <h2 className="mb-3 text-[11px] font-medium uppercase tracking-wider text-fg-subtle">Senkron Geçmişi</h2>
           {!syncJobs?.length ? (
-            <p className="text-[12px] text-slate-500">Henüz senkron çalıştırılmadı.</p>
+            <p className="text-[12px] text-fg-subtle">Henüz senkron çalıştırılmadı.</p>
           ) : (
             <div className="space-y-2">
               {syncJobs.map(job => (
-                <div key={job.id} className="rounded-lg border border-border bg-white/[0.02] px-3 py-2">
+                <div key={job.id} className="rounded-lg border border-border bg-surface-overlay/30 px-3 py-2">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <JobStatus status={job.status} />
-                      {job.dry_run && <span className="rounded bg-white/[0.06] px-1.5 py-0.5 text-[9px] text-slate-400">dry-run</span>}
-                      <span className="text-[11px] text-slate-500">{new Date(job.created_at).toLocaleString("tr-TR")}</span>
+                      {job.dry_run && <span className="rounded bg-surface-accent px-1.5 py-0.5 text-[9px] text-fg-muted">dry-run</span>}
+                      <span className="text-[11px] text-fg-subtle">{new Date(job.created_at).toLocaleString("tr-TR")}</span>
                     </div>
                     <SyncTotals totals={job.totals} />
                   </div>
@@ -1225,7 +1225,7 @@ post {
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>
-      <label className="mb-1 block text-[11px] text-slate-500">{label}</label>
+      <label className="mb-1 block text-[11px] text-fg-subtle">{label}</label>
       {children}
     </div>
   );
@@ -1239,7 +1239,7 @@ function JobStatus({ status }: { status: string }) {
         ? "bg-rose-500/15 text-rose-400"
         : status === "running"
           ? "bg-amber-500/15 text-amber-400"
-          : "bg-white/[0.06] text-slate-400";
+          : "bg-surface-accent text-fg-muted";
   return <span className={`rounded px-2 py-0.5 text-[10px] ${cls}`}>{status}</span>;
 }
 
@@ -1247,10 +1247,10 @@ function SyncTotals({ totals }: { totals: Record<string, { created: number; upda
   const sum = (k: "created" | "updated" | "skipped" | "errors") =>
     Object.values(totals || {}).reduce((acc, t) => acc + (t?.[k] ?? 0), 0);
   return (
-    <span className="text-[11px] text-slate-400">
+    <span className="text-[11px] text-fg-muted">
       <span className="text-emerald-400">+{sum("created")}</span>{" "}
       <span className="text-sky-400">~{sum("updated")}</span>{" "}
-      <span className="text-slate-500">={sum("skipped")}</span>
+      <span className="text-fg-subtle">={sum("skipped")}</span>
       {sum("errors") > 0 && <span className="text-rose-400"> !{sum("errors")}</span>}
     </span>
   );

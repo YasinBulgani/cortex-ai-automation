@@ -20,6 +20,8 @@ interface RoleGuardProps {
   /** The tspm/route projectId (from useRouteParam("projectId")). */
   projectId?: string;
   children: React.ReactNode;
+  /** Optional fallback rendered when the user does not meet minRole. */
+  fallback?: React.ReactNode;
 }
 
 /**
@@ -28,12 +30,14 @@ interface RoleGuardProps {
  * via useProjectRole(). Falls back to "member" while loading or on error.
  * Hierarchy: owner > admin > member > viewer.
  */
-export function RoleGuard({ minRole, projectId, children }: RoleGuardProps) {
+export function RoleGuard({ minRole, projectId, children, fallback = null }: RoleGuardProps) {
   const role = useProjectRole(projectId);
 
   // Optimistic: while the request is in-flight the hook returns "member",
   // so children are rendered (no flash of hidden content).
-  if (ROLE_RANK[role] < ROLE_RANK[minRole]) return null;
+  if (ROLE_RANK[role] < ROLE_RANK[minRole]) return <>{fallback}</>;
 
   return <>{children}</>;
 }
+
+export default RoleGuard;

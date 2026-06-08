@@ -20,7 +20,7 @@ function MiniBarChart({ velocity }: { velocity: number }) {
 
   return (
     <div className="rounded-xl border border-border bg-surface-raised p-3 flex flex-col gap-1">
-      <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
+      <span className="text-[10px] font-bold uppercase tracking-widest text-fg-muted">
         Saatlik Hız
       </span>
 

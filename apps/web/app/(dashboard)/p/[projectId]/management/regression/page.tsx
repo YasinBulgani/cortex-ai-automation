@@ -13,8 +13,14 @@ import {
   useManagementRepository,
   useCreateManagementRun,
   useManagementCycles,
+  useSuggestRegressionCandidates,
+  useManagementRuns,
+  useManagementRunTrend,
   type RegressionSet,
   type RegressionSetCase,
+  type RegressionCandidate,
+  type TestRun,
+  type RunTrendPoint,
 } from "@/lib/hooks/use-management";
 import { useManagementProjectId } from "@/lib/hooks/use-management-project-id";
 import { useRouteParam } from "@/lib/use-route-param";
@@ -38,6 +44,128 @@ function IcTrash()  { return <svg className="h-3.5 w-3.5 shrink-0" fill="none" v
 function IcEdit()   { return <svg className="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>; }
 function IcPlay()   { return <svg className="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><circle cx="12" cy="12" r="9"/><path strokeLinecap="round" strokeLinejoin="round" d="M10 8l6 4-6 4V8z"/></svg>; }
 
+// ─── AI Suggest Panel ────────────────────────────────────────────────────────
+
+const RISK_COLOR = (score: number) =>
+  score >= 0.7 ? "text-red-400" : score >= 0.4 ? "text-amber-400" : "text-emerald-400";
+
+function AiSuggestPanel({ mpid, existingCaseIds, onAdd, onClose }: {
+  mpid: string; existingCaseIds: Set<string>;
+  onAdd: (ids: string[]) => Promise<void>; onClose: () => void;
+}) {
+  const suggestMut = useSuggestRegressionCandidates(mpid);
+  const [candidates, setCandidates] = useState<RegressionCandidate[]>([]);
+  const [checked, setChecked]   = useState<Set<string>>(new Set());
+  const [saving,  setSaving]    = useState(false);
+  const [include, setInclude] = useState({ lastFailed: true, notRun: false });
+
+  const handleSuggest = () => {
+    suggestMut.mutate(
+      { include_last_failed: include.lastFailed, include_not_run: include.notRun, max_cases: 30 },
+      { onSuccess: (data) => { setCandidates(data.filter(c => !existingCaseIds.has(c.case_id))); setChecked(new Set()); } }
+    );
+  };
+
+  const tog = (id: string) => setChecked(p => { const n = new Set(p); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  const togAll = () => {
+    if (checked.size === candidates.length) setChecked(new Set());
+    else setChecked(new Set(candidates.map(c => c.case_id)));
+  };
+  const doAdd = async () => {
+    if (!checked.size) return;
+    setSaving(true);
+    try { await onAdd([...checked]); onClose(); } finally { setSaving(false); }
+  };
+
+  return (
+    <>
+      <div className="flex-1 overflow-y-auto">
+        {/* Filters */}
+        <div className="flex flex-wrap items-center gap-3 border-b border-border px-5 py-3">
+          <label className="flex cursor-pointer items-center gap-1.5 text-[11px] text-fg-muted">
+            <input type="checkbox" checked={include.lastFailed} onChange={e => setInclude(p => ({ ...p, lastFailed: e.target.checked }))}
+              className="h-3.5 w-3.5 rounded accent-brand"/>
+            Son başarısızlar
+          </label>
+          <label className="flex cursor-pointer items-center gap-1.5 text-[11px] text-fg-muted">
+            <input type="checkbox" checked={include.notRun} onChange={e => setInclude(p => ({ ...p, notRun: e.target.checked }))}
+              className="h-3.5 w-3.5 rounded accent-brand"/>
+            Hiç koşulmamış
+          </label>
+          <button onClick={handleSuggest} disabled={suggestMut.isPending}
+            className="ml-auto flex items-center gap-1.5 rounded-xl bg-brand px-4 py-1.5 text-[12px] font-semibold text-brand-fg hover:brightness-105 disabled:opacity-50">
+            {suggestMut.isPending ? (
+              <><span className="h-3 w-3 animate-spin rounded-full border-2 border-brand-fg border-t-transparent"/>Analiz ediliyor…</>
+            ) : "✦ AI ile Öner"}
+          </button>
+        </div>
+
+        {candidates.length === 0 && !suggestMut.isPending ? (
+          <div className="flex flex-col items-center justify-center py-16 gap-3">
+            <div className="text-3xl">🔮</div>
+            <p className="text-[13px] text-fg-muted">Filtreleri ayarlayın ve AI önerisi alın</p>
+            <p className="text-[11px] text-fg-disabled max-w-xs text-center">
+              AI, risk skoruna göre en kritik test case&apos;leri seçmenize yardımcı olur
+            </p>
+          </div>
+        ) : (
+          <table className="w-full">
+            <thead className="sticky top-0 border-b border-border bg-surface-raised">
+              <tr>
+                <th className="w-10 px-3 py-2.5">
+                  <div onClick={togAll} className={cn("flex h-4 w-4 cursor-pointer items-center justify-center rounded border transition-colors", checked.size === candidates.length && candidates.length > 0 ? "bg-brand border-brand" : "border-border hover:border-fg-subtle")}>
+                    {checked.size === candidates.length && candidates.length > 0 && <svg className="h-2.5 w-2.5 text-brand-fg" fill="none" viewBox="0 0 10 10" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M1.5 5l2.5 2.5 4.5-4.5"/></svg>}
+                  </div>
+                </th>
+                {["ID","Başlık","Risk","P","Gerekçe"].map(h => <th key={h} className="px-3 py-2.5 text-left text-[9px] font-semibold uppercase tracking-widest text-fg-subtle">{h}</th>)}
+              </tr>
+            </thead>
+            <tbody>
+              {candidates.map(c => {
+                const isCk = checked.has(c.case_id);
+                return (
+                  <tr key={c.case_id} onClick={() => tog(c.case_id)} className={cn("cursor-pointer border-b border-border/50 transition-colors", isCk ? "bg-brand/5" : "hover:bg-surface-overlay")}>
+                    <td className="px-3 py-2.5">
+                      <div className={cn("flex h-4 w-4 items-center justify-center rounded border transition-colors", isCk ? "bg-brand border-brand" : "border-border")}>
+                        {isCk && <svg className="h-2.5 w-2.5 text-brand-fg" fill="none" viewBox="0 0 10 10" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M1.5 5l2.5 2.5 4.5-4.5"/></svg>}
+                      </div>
+                    </td>
+                    <td className="px-3 py-2.5"><span className="font-mono text-[10px] text-fg-subtle">{c.case_key}</span></td>
+                    <td className="px-3 py-2.5 max-w-[200px]"><span className="text-[12px] text-fg line-clamp-1">{c.title}</span></td>
+                    <td className="px-3 py-2.5">
+                      <span className={cn("font-mono text-[11px] font-semibold tabular-nums", RISK_COLOR(c.risk_score))}>
+                        {Math.round(c.risk_score * 100)}
+                      </span>
+                    </td>
+                    <td className="px-3 py-2.5"><span className={cn("font-mono text-[10px]", PRIORITY_DOT[c.priority] ? "" : "")}>{c.priority}</span></td>
+                    <td className="px-3 py-2.5 max-w-[180px]">
+                      <div className="flex flex-wrap gap-1">
+                        {(c.reasons ?? []).slice(0,2).map((r, i) => (
+                          <span key={i} className="rounded bg-surface-accent px-1.5 py-0.5 text-[9px] text-fg-muted truncate max-w-[120px]">{r}</span>
+                        ))}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        )}
+      </div>
+      <div className="flex items-center justify-between border-t border-border px-5 py-3">
+        <span className="text-[11px] text-fg-muted">{candidates.length} öneri{checked.size > 0 ? ` · ${checked.size} seçili` : ""}</span>
+        <div className="flex gap-2">
+          <button onClick={onClose} className="rounded-xl border border-border px-4 py-2 text-[12px] text-fg-muted hover:text-fg">İptal</button>
+          <button onClick={doAdd} disabled={!checked.size || saving}
+            className="rounded-xl bg-brand px-5 py-2 text-[12px] font-semibold text-brand-fg hover:brightness-105 disabled:opacity-40">
+            {saving ? "Ekleniyor…" : `${checked.size || ""} Case Ekle`}
+          </button>
+        </div>
+      </div>
+    </>
+  );
+}
+
 // ─── Case Picker Modal ────────────────────────────────────────────────────────
 
 function CasePickerModal({ mpid, existingCaseIds, onAdd, onClose }: {
@@ -52,6 +180,7 @@ function CasePickerModal({ mpid, existingCaseIds, onAdd, onClose }: {
   const [prioF,  setPrioF]      = useState("");
   const [checked, setChecked]   = useState<Set<string>>(new Set());
   const [saving,  setSaving]    = useState(false);
+  const [pickerTab, setPickerTab] = useState<"manual" | "ai">("manual");
 
   const filtered = useMemo(() => {
     let r = allCases.filter(c => !existingCaseIds.has(c.id));
@@ -75,11 +204,21 @@ function CasePickerModal({ mpid, existingCaseIds, onAdd, onClose }: {
       <div className="relative z-10 flex max-h-[85vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-border bg-surface-raised shadow-2xl">
         <div className="flex items-center justify-between border-b border-border px-5 py-4">
           <div>
-            <h2 className="text-[14px] font-semibold text-fg">Case Seç</h2>
-            <p className="mt-0.5 text-[11px] text-fg-muted">{checked.size > 0 ? `${checked.size} seçili` : "Repository'den case seçin"}</p>
+            <h2 className="text-[14px] font-semibold text-fg">Case Ekle</h2>
+            <p className="mt-0.5 text-[11px] text-fg-muted">{checked.size > 0 ? `${checked.size} seçili` : "Manuel seç veya AI önerisi al"}</p>
           </div>
-          <button onClick={onClose} className="rounded-lg p-1.5 text-fg-subtle hover:bg-surface-overlay"><IcClose/></button>
+          <div className="flex items-center gap-3">
+            <div className="flex rounded-lg border border-border overflow-hidden text-[11px]">
+              <button onClick={() => setPickerTab("manual")} className={cn("px-3 py-1.5 transition-colors", pickerTab === "manual" ? "bg-brand/15 text-brand font-semibold" : "text-fg-muted hover:text-fg")}>Manuel</button>
+              <button onClick={() => setPickerTab("ai")} className={cn("px-3 py-1.5 transition-colors border-l border-border", pickerTab === "ai" ? "bg-brand/15 text-brand font-semibold" : "text-fg-muted hover:text-fg")}>✦ AI Öner</button>
+            </div>
+            <button onClick={onClose} className="rounded-lg p-1.5 text-fg-subtle hover:bg-surface-overlay"><IcClose/></button>
+          </div>
         </div>
+        {pickerTab === "ai" ? (
+          <AiSuggestPanel mpid={mpid} existingCaseIds={existingCaseIds} onAdd={onAdd} onClose={onClose}/>
+        ) : null}
+        {pickerTab === "manual" ? <>
         <div className="flex flex-wrap gap-2 border-b border-border px-5 py-3">
           <div className="flex min-w-[180px] flex-1 items-center gap-1.5 rounded-xl border border-border bg-surface-base px-3 py-1.5">
             <IcSearch/>
@@ -155,7 +294,138 @@ function CasePickerModal({ mpid, existingCaseIds, onAdd, onClose }: {
             </button>
           </div>
         </div>
+        </> : null}
       </div>
+    </div>
+  );
+}
+
+// ─── Run History Panel ────────────────────────────────────────────────────────
+
+function RunHistoryPanel({ mpid, setId, projectId }: { mpid: string; setId: string; projectId: string }) {
+  const runsQ  = useManagementRuns(mpid || undefined);
+  const trendQ = useManagementRunTrend(mpid || undefined);
+
+  const trendMap = useMemo(() => {
+    const m = new Map<string, RunTrendPoint>();
+    (trendQ.data ?? []).forEach(t => m.set(t.run_id, t));
+    return m;
+  }, [trendQ.data]);
+
+  const setRuns = useMemo(() => {
+    const all = (runsQ.data ?? []) as TestRun[];
+    return all
+      .filter(r => r.source_type === "regression" && r.source_ref === setId)
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+      .slice(0, 10);
+  }, [runsQ.data, setId]);
+
+  if (runsQ.isLoading || trendQ.isLoading) {
+    return (
+      <div className="space-y-2 p-4">
+        {Array.from({length: 3}).map((_, i) => (
+          <div key={i} className="h-12 rounded-lg bg-surface-overlay animate-pulse"/>
+        ))}
+      </div>
+    );
+  }
+
+  if (!setRuns.length) {
+    return (
+      <div className="flex flex-col items-center justify-center py-16 gap-3 text-center">
+        <div className="rounded-full bg-surface-overlay p-4">
+          <svg className="h-8 w-8 text-fg-subtle" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+          </svg>
+        </div>
+        <div>
+          <p className="text-[12px] font-medium text-fg-muted">Henüz run geçmişi yok</p>
+          <p className="mt-1 text-[11px] text-fg-subtle max-w-xs mx-auto">
+            Bu seti &quot;Run Başlat&quot; ile çalıştırdıktan sonra burada geçmiş görüntülenir.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  const maxPassRate = Math.max(...setRuns.map(r => trendMap.get(r.id)?.pass_rate_pct ?? 0), 1);
+
+  return (
+    <div className="overflow-auto">
+      {/* Mini trend chart */}
+      {setRuns.length >= 2 && (
+        <div className="border-b border-border px-5 py-4">
+          <p className="mb-3 text-[9px] font-semibold uppercase tracking-widest text-fg-subtle">Geçmiş Başarı Oranı</p>
+          <div className="flex items-end gap-1.5 h-16">
+            {[...setRuns].reverse().map((r, i) => {
+              const tp = trendMap.get(r.id);
+              const pct = tp?.pass_rate_pct ?? 0;
+              const barH = maxPassRate > 0 ? Math.max(4, Math.round((pct / 100) * 60)) : 4;
+              const color = pct >= 80 ? "bg-emerald-500" : pct >= 50 ? "bg-amber-500" : "bg-red-500";
+              return (
+                <div key={r.id} className="flex flex-1 flex-col items-center gap-1" title={`${r.name}: ${pct.toFixed(0)}%`}>
+                  <span className="text-[9px] text-fg-subtle tabular-nums">{pct.toFixed(0)}</span>
+                  <div className={cn("w-full rounded-t-sm transition-all", color)} style={{height:`${barH}px`}}/>
+                  <span className="text-[8px] text-fg-disabled truncate w-full text-center">{i+1}</span>
+                </div>
+              );
+            })}
+          </div>
+          {setRuns.length >= 2 && (() => {
+            const latest  = trendMap.get(setRuns[0].id)?.pass_rate_pct ?? null;
+            const prev    = trendMap.get(setRuns[1].id)?.pass_rate_pct ?? null;
+            if (latest === null || prev === null) return null;
+            const delta = latest - prev;
+            return (
+              <p className={cn("mt-2 text-[11px] font-medium", delta > 0 ? "text-emerald-400" : delta < 0 ? "text-red-400" : "text-fg-muted")}>
+                {delta > 0 ? "▲" : delta < 0 ? "▼" : "→"} Son koşum: {delta > 0 ? "+" : ""}{delta.toFixed(1)}% {delta > 0 ? "iyileşme" : delta < 0 ? "gerileme" : "değişim yok"}
+              </p>
+            );
+          })()}
+        </div>
+      )}
+      {/* Run list */}
+      <table className="w-full">
+        <thead className="sticky top-0 border-b border-border bg-surface-raised">
+          <tr>
+            {["Run","Durum","Geçti","Başarısız","Oran","Tarih",""].map(h => (
+              <th key={h} className="px-4 py-2.5 text-left text-[9px] font-semibold uppercase tracking-widest text-fg-subtle">{h}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {setRuns.map(r => {
+            const tp     = trendMap.get(r.id);
+            const pct    = tp?.pass_rate_pct ?? null;
+            const pctStr = pct !== null ? `${pct.toFixed(0)}%` : "—";
+            const pctColor = pct === null ? "text-fg-subtle" : pct >= 80 ? "text-emerald-400" : pct >= 50 ? "text-amber-400" : "text-red-400";
+            const statusDot: Record<string, string> = { completed: "bg-emerald-500", in_progress: "bg-blue-500", cancelled: "bg-red-500", not_started: "bg-slate-500" };
+            return (
+              <tr key={r.id} className="border-b border-border/50 hover:bg-surface-overlay">
+                <td className="px-4 py-2.5">
+                  <Link href={`/p/${projectId}/management/runs/${r.id}`} className="text-[12px] text-brand hover:underline line-clamp-1">{r.name}</Link>
+                </td>
+                <td className="px-4 py-2.5">
+                  <span className="inline-flex items-center gap-1.5">
+                    <span className={cn("h-1.5 w-1.5 rounded-full", statusDot[r.status] ?? "bg-slate-500")}/>
+                    <span className="text-[10px] text-fg-muted">{r.status}</span>
+                  </span>
+                </td>
+                <td className="px-4 py-2.5"><span className="font-mono text-[11px] text-emerald-400">{tp?.passed ?? "—"}</span></td>
+                <td className="px-4 py-2.5"><span className="font-mono text-[11px] text-red-400">{tp?.failed ?? "—"}</span></td>
+                <td className="px-4 py-2.5"><span className={cn("font-mono text-[11px] font-semibold", pctColor)}>{pctStr}</span></td>
+                <td className="px-4 py-2.5"><span className="text-[10px] text-fg-muted">{new Date(r.created_at).toLocaleDateString("tr-TR",{day:"2-digit",month:"short",year:"numeric"})}</span></td>
+                <td className="w-10 px-2">
+                  <Link href={`/p/${projectId}/management/runs/${r.id}`}
+                    className="invisible group-hover:visible block rounded-lg p-1.5 text-fg-subtle hover:bg-surface-overlay hover:text-fg">
+                    <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
+                  </Link>
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
     </div>
   );
 }
@@ -169,6 +439,13 @@ function SetStats({ cases }: { cases: RegressionSetCase[] }) {
   const blocked = cases.filter(c => c.last_run_status === "blocked").length;
   const notRun  = cases.filter(c => !c.last_run_status || c.last_run_status === "not_run").length;
   const pct     = (n: number) => total > 0 ? Math.round(n/total*100) : 0;
+
+  // Risk score distribution
+  const withRisk = cases.filter(c => typeof c.risk_score === "number" && (c.risk_score as number) > 0);
+  const highRisk   = withRisk.filter(c => (c.risk_score as number) >= 0.7).length;
+  const mediumRisk = withRisk.filter(c => (c.risk_score as number) >= 0.4 && (c.risk_score as number) < 0.7).length;
+  const lowRisk    = withRisk.filter(c => (c.risk_score as number) < 0.4).length;
+  const avgRisk    = withRisk.length > 0 ? withRisk.reduce((s, c) => s + (c.risk_score as number), 0) / withRisk.length : null;
 
   return (
     <div className="space-y-3">
@@ -187,11 +464,33 @@ function SetStats({ cases }: { cases: RegressionSetCase[] }) {
             {passed  > 0 && <div className="bg-emerald-500" style={{width:`${pct(passed)}%`}}/>}
             {failed  > 0 && <div className="bg-red-500"     style={{width:`${pct(failed)}%`}}/>}
             {blocked > 0 && <div className="bg-amber-500"   style={{width:`${pct(blocked)}%`}}/>}
-            {notRun  > 0 && <div className="bg-slate-700"   style={{width:`${pct(notRun)}%`}}/>}
+            {notRun  > 0 && <div className="bg-surface-accent"   style={{width:`${pct(notRun)}%`}}/>}
           </div>
           <div className="flex justify-between text-[10px] text-fg-subtle">
             <span>P0: {cases.filter(c=>c.priority==="P0").length} · P1: {cases.filter(c=>c.priority==="P1").length}</span>
             <span>{notRun} koşulmadı</span>
+          </div>
+        </div>
+      )}
+      {withRisk.length > 0 && (
+        <div className="rounded-lg border border-border bg-surface-overlay px-3 py-2">
+          <div className="flex items-center justify-between mb-1.5">
+            <p className="text-[9px] font-semibold uppercase tracking-widest text-fg-subtle">Risk Dağılımı</p>
+            {avgRisk !== null && (
+              <span className={cn("text-[10px] font-semibold tabular-nums", avgRisk >= 0.7 ? "text-red-400" : avgRisk >= 0.4 ? "text-amber-400" : "text-emerald-400")}>
+                Ort. {(avgRisk * 100).toFixed(0)}
+              </span>
+            )}
+          </div>
+          <div className="flex h-1.5 overflow-hidden rounded-full">
+            {highRisk   > 0 && <div className="bg-red-500"     style={{width:`${(highRisk   / withRisk.length) * 100}%`}} title={`Yüksek: ${highRisk}`}/>}
+            {mediumRisk > 0 && <div className="bg-amber-500"   style={{width:`${(mediumRisk / withRisk.length) * 100}%`}} title={`Orta: ${mediumRisk}`}/>}
+            {lowRisk    > 0 && <div className="bg-emerald-500" style={{width:`${(lowRisk    / withRisk.length) * 100}%`}} title={`Düşük: ${lowRisk}`}/>}
+          </div>
+          <div className="mt-1.5 flex gap-3 text-[9px] text-fg-subtle">
+            {highRisk   > 0 && <span><span className="text-red-400">■</span> Yüksek: {highRisk}</span>}
+            {mediumRisk > 0 && <span><span className="text-amber-400">■</span> Orta: {mediumRisk}</span>}
+            {lowRisk    > 0 && <span><span className="text-emerald-400">■</span> Düşük: {lowRisk}</span>}
           </div>
         </div>
       )}
@@ -232,6 +531,7 @@ export default function ManagementRegressionPage() {
   const [runName,      setRunName]      = useState("");
   const [launching,    setLaunching]    = useState(false);
   const [launchError,  setLaunchError]  = useState<string | null>(null);
+  const [detailTab,    setDetailTab]    = useState<"cases" | "history">("cases");
 
   const refreshAll = () => {
     void refetchSets();
@@ -276,7 +576,7 @@ export default function ManagementRegressionPage() {
     setLaunchError(null);
     setLaunching(true);
     try {
-      const run = await createRun.mutateAsync({ cycle_id: cid, name: runName.trim(), case_ids: selectedSet.cases.map(c => c.case_id) });
+      const run = await createRun.mutateAsync({ cycle_id: cid, name: runName.trim(), case_ids: selectedSet.cases.map(c => c.case_id), source_type: "regression", source_ref: selectedSet.id });
       router.push(`/p/${projectId}/management/runs/${run.id}/execute`);
     } catch(e) {
       setLaunchError(e instanceof Error ? e.message : "Hata");
@@ -430,6 +730,18 @@ export default function ManagementRegressionPage() {
             <div className="border-b border-border bg-surface-base px-6 py-4">
               <SetStats cases={selectedSet.cases}/>
             </div>
+            {/* Tabs */}
+            <div className="flex items-center gap-0 border-b border-border px-6">
+              {([["cases","Case Listesi"],["history","Geçmiş Koşumlar"]] as [string,string][]).map(([t,l]) => (
+                <button key={t} onClick={() => setDetailTab(t as "cases"|"history")}
+                  className={cn("px-4 py-2.5 text-[12px] font-medium border-b-2 transition-colors -mb-px",
+                    detailTab === t ? "border-brand text-brand" : "border-transparent text-fg-muted hover:text-fg")}>
+                  {l}
+                </button>
+              ))}
+            </div>
+            {detailTab === "history" && <RunHistoryPanel mpid={mpid ?? ""} setId={selectedSet.id} projectId={projectId}/>}
+            {detailTab === "cases" && <>
             <div className="flex items-center gap-3 border-b border-border px-6 py-2.5">
               <div className="flex flex-1 items-center gap-1.5 rounded-xl border border-border bg-surface-raised px-2.5 py-1.5">
                 <IcSearch/>
@@ -438,6 +750,30 @@ export default function ManagementRegressionPage() {
                 {caseSearch && <button onClick={()=>setCaseSearch("")} className="text-fg-subtle"><IcClose/></button>}
               </div>
               <span className="text-[11px] text-fg-subtle">{filteredCases.length}/{selectedSet.cases.length}</span>
+              {selectedSet.cases.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const headers = ["Key", "Başlık", "Öncelik", "Tür", "Son Koşum", "Risk Skoru"];
+                    const lines = filteredCases.map(c => [
+                      c.case_key ?? "",
+                      c.title,
+                      c.priority,
+                      c.type,
+                      c.last_run_status ?? "not_run",
+                      typeof c.risk_score === "number" ? c.risk_score.toFixed(2) : "",
+                    ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(";"));
+                    const csv = "﻿" + [headers.join(";"), ...lines].join("\n");
+                    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement("a"); a.href = url; a.download = `${selectedSet.name.replace(/[^a-z0-9]/gi,"_")}.csv`; a.click();
+                    URL.revokeObjectURL(url);
+                  }}
+                  className="shrink-0 rounded-lg border border-border px-2.5 py-1.5 text-[10px] font-medium text-fg-muted hover:text-fg transition-colors"
+                >
+                  CSV
+                </button>
+              )}
             </div>
             <div className="flex-1 overflow-auto">
               {selectedSet.cases.length === 0 ? (
@@ -494,6 +830,7 @@ export default function ManagementRegressionPage() {
                 </table>
               )}
             </div>
+            </>}
           </>
         )}
 

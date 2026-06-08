@@ -166,19 +166,19 @@ export function EvidenceModal({
           <div className="flex items-start justify-between gap-3">
             <div>
               <p id="evidence-modal-title" className="text-sm font-bold text-red-400">🚨 FAIL — Evidence Gerekli</p>
-              <p className="text-xs text-slate-400 mt-0.5">
-                {caseKey && <span className="font-mono mr-2 text-slate-500">{caseKey}</span>}
+              <p className="text-xs text-fg-muted mt-0.5">
+                {caseKey && <span className="font-mono mr-2 text-fg-subtle">{caseKey}</span>}
                 {caseTitle}
               </p>
             </div>
             <button
               onClick={() => onClose(false)}
-              className="text-slate-500 hover:text-white text-lg leading-none mt-0.5"
+              className="text-fg-subtle hover:text-fg text-lg leading-none mt-0.5"
             >
               ✕
             </button>
           </div>
-          <p className="text-xs text-slate-500 mt-2">
+          <p className="text-xs text-fg-subtle mt-2">
             Screenshot, log dosyası veya not ekleyerek FAIL kaydını tamamlayın.
           </p>
         </div>
@@ -194,14 +194,14 @@ export function EvidenceModal({
               cursor-pointer rounded-xl border-2 border-dashed p-6 text-center transition-colors
               ${dragOver
                 ? "border-red-400 bg-red-500/10"
-                : "border-border bg-surface-overlay hover:border-slate-500 hover:bg-surface-overlay"}
+                : "border-border bg-surface-overlay hover:border-border-strong"}
             `}
           >
             <input ref={fileInputRef} type="file" multiple className="hidden" onChange={handleFileInput} />
             <p className="text-2xl mb-2">📎</p>
-            <p className="text-sm text-slate-300 font-medium">Dosya sürükle veya tıkla</p>
-            <p className="text-xs text-slate-500 mt-1">
-              Screenshot yapıştır: <kbd className="rounded bg-slate-700 px-1.5 py-0.5 text-[10px]">Ctrl+V</kbd>
+            <p className="text-sm text-fg font-medium">Dosya sürükle veya tıkla</p>
+            <p className="text-xs text-fg-subtle mt-1">
+              Screenshot yapıştır: <kbd className="rounded bg-surface-accent px-1.5 py-0.5 text-[10px] text-fg-muted">Ctrl+V</kbd>
             </p>
           </div>
 
@@ -214,15 +214,15 @@ export function EvidenceModal({
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={p.preview} alt={p.name} className="w-full h-24 object-cover" />
                   ) : (
-                    <div className="h-24 flex items-center justify-center text-slate-400 text-xs p-2 text-center">
+                    <div className="h-24 flex items-center justify-center text-fg-muted text-xs p-2 text-center">
                       📄 {p.name}
                     </div>
                   )}
                   <div className="px-2 py-1 flex justify-between items-center">
-                    <span className="text-[10px] text-slate-400 truncate">{p.name}</span>
+                    <span className="text-[10px] text-fg-muted truncate">{p.name}</span>
                     <button
                       onClick={(e) => { e.stopPropagation(); removeFile(i); }}
-                      className="text-slate-500 hover:text-red-400 text-xs ml-1 shrink-0"
+                      className="text-fg-subtle hover:text-danger text-xs ml-1 shrink-0"
                     >
                       ✕
                     </button>
@@ -234,14 +234,14 @@ export function EvidenceModal({
 
           {/* Not alanı */}
           <div>
-            <label htmlFor="evidence-note" className="text-xs text-slate-400 mb-1 block">Gözlem Notu (opsiyonel)</label>
+            <label htmlFor="evidence-note" className="text-xs text-fg-muted mb-1 block">Gözlem Notu (opsiyonel)</label>
             <textarea
               id="evidence-note"
               value={note}
               onChange={(e) => setNote(e.target.value)}
               placeholder="Hatanın nasıl oluştuğunu kısaca açıkla…"
               rows={3}
-              className="w-full rounded-lg bg-surface-overlay border border-border px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-red-500/50 resize-none"
+              className="w-full rounded-lg bg-surface-overlay border border-border px-3 py-2 text-sm text-fg placeholder:text-fg-disabled focus:outline-none focus:border-red-500/50 resize-none"
             />
           </div>
 
@@ -255,7 +255,7 @@ export function EvidenceModal({
         <div className="border-t border-border px-5 py-3 flex justify-between items-center gap-3">
           <button
             onClick={() => onClose(false)}
-            className="text-xs text-slate-400 hover:text-white transition-colors"
+            className="text-xs text-fg-muted hover:text-fg transition-colors"
           >
             Şimdi değil
           </button>
@@ -266,7 +266,7 @@ export function EvidenceModal({
               flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-colors
               ${canSubmit && !uploading
                 ? "bg-red-500 hover:bg-red-600 text-white"
-                : "bg-slate-700 text-slate-500 cursor-not-allowed"}
+                : "bg-surface-accent text-fg-disabled cursor-not-allowed"}
             `}
           >
             {uploading && (

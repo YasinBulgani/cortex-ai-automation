@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useMemo, useRef } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { apiFetch } from "@/lib/api-client";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
@@ -68,7 +70,7 @@ const PLAN_TYPE_BADGE: Record<string, string> = {
   regression: "bg-purple-500/15 text-purple-400 border-purple-500/20",
   sprint:     "bg-blue-500/15 text-blue-400 border-blue-500/20",
   smoke:      "bg-amber-500/15 text-amber-400 border-amber-500/20",
-  uat:        "bg-slate-500/15 text-fg-muted border-slate-500/20",
+  uat:        "bg-slate-500/15 text-fg-muted border-border-strong/20",
 };
 
 const RUN_STATUS_COLOR: Record<string, string> = {
@@ -146,6 +148,7 @@ function PlanStartRunModal({
   cycle,
   cases,
   suites,
+  members,
   onClose,
   onConfirm,
   busy,
@@ -153,12 +156,14 @@ function PlanStartRunModal({
   cycle: TestCycle;
   cases: import("@/lib/hooks/use-management").TestCase[];
   suites: import("@/lib/hooks/use-management").TestSuite[];
+  members?: { user_id: string; email: string; full_name?: string }[];
   onClose: () => void;
-  onConfirm: (runName: string, caseIds: string[], environment: string) => void;
+  onConfirm: (runName: string, caseIds: string[], environment: string, assignedTo: string) => void;
   busy: boolean;
 }) {
   const [name, setName] = useState(`Koşum — ${cycle.name}`);
   const [environment, setEnvironment] = useState(cycle.environment ?? "");
+  const [assignedTo, setAssignedTo] = useState("");
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<Set<string>>(() => {
     const active = cases.filter(c => !c.archived);
@@ -227,6 +232,21 @@ function PlanStartRunModal({
               className="w-full rounded-xl border border-border bg-surface-overlay px-3 py-2 text-[13px] text-fg placeholder:text-fg-subtle outline-none focus:border-brand focus:ring-2 focus:ring-brand/15"
             />
           </div>
+          {members && members.length > 0 && (
+            <div>
+              <label className="mb-1 block text-[11px] font-medium text-fg-muted">Atanan Tester (Opsiyonel)</label>
+              <select
+                value={assignedTo}
+                onChange={e => setAssignedTo(e.target.value)}
+                className="w-full rounded-xl border border-border bg-surface-overlay px-2.5 py-2 text-[13px] text-fg-muted outline-none focus:border-brand focus:ring-2 focus:ring-brand/15"
+              >
+                <option value="">— Atanmamış —</option>
+                {members.map(m => (
+                  <option key={m.user_id} value={m.user_id}>{m.full_name?.trim() || m.email}</option>
+                ))}
+              </select>
+            </div>
+          )}
         </div>
 
         {/* Search + header */}
@@ -338,7 +358,7 @@ function PlanStartRunModal({
             </button>
             <button type="button"
               disabled={busy || !name.trim() || selected.size === 0}
-              onClick={() => onConfirm(name.trim(), [...selected], environment.trim())}
+              onClick={() => onConfirm(name.trim(), [...selected], environment.trim(), assignedTo)}
               className="rounded-xl bg-brand px-5 py-2 text-[13px] font-semibold text-brand-fg hover:brightness-105 disabled:opacity-40 transition-colors">
               {busy ? "Oluşturuluyor…" : "Koşumu Başlat"}
             </button>
@@ -398,7 +418,7 @@ function RunRow({
   };
 
   return (
-    <div className="group flex items-center gap-2 border-b border-border/30 px-6 py-1.5 last:border-0 hover:bg-white/[0.015] transition-colors">
+    <div className="group flex items-center gap-2 border-b border-border/30 px-6 py-1.5 last:border-0 hover:bg-surface-overlay/30 transition-colors">
       {/* Run link / inline input */}
       {renaming ? (
         <form
@@ -534,7 +554,7 @@ function CycleRow({
   return (
     <div className="border-b border-border/50 last:border-0">
       {/* Cycle header row */}
-      <div className="flex items-center gap-3 px-5 py-2.5 hover:bg-white/[0.02] transition-colors">
+      <div className="flex items-center gap-3 px-5 py-2.5 hover:bg-surface-overlay/30 transition-colors">
         {/* Status dot */}
         <span className={cn("h-1.5 w-1.5 shrink-0 rounded-full",
           running                       ? "bg-blue-400 animate-pulse" :
@@ -643,7 +663,7 @@ function CycleRow({
 
       {/* Run rows */}
       {runs.length > 0 && (
-        <div className="bg-white/[0.01]">
+        <div className="bg-surface-overlay/30">
           {runs.map(run => (
             <RunRow
               key={run.id}
@@ -704,6 +724,263 @@ function DeletePlanModal({ plan, onConfirm, onClose, loading, impactLoading, imp
   );
 }
 
+// ── Gantt View ────────────────────────────────────────────────────────────────
+function GanttView({ plans, allCycles, allRuns }: {
+  plans: TestPlan[];
+  allCycles: TestCycle[];
+  allRuns: TestRun[];
+}) {
+  const rows = useMemo(() => {
+    const result: Array<{
+      planId: string;
+      planName: string;
+      cycleId: string;
+      cycleName: string;
+      runId: string;
+      runName: string;
+      status: string;
+      startMs: number;
+      endMs: number;
+    }> = [];
+
+    for (const plan of plans) {
+      const cycles = allCycles.filter(c => c.plan_id === plan.id);
+      const cids   = new Set(cycles.map(c => c.id));
+      const runs   = allRuns.filter(r => cids.has(r.cycle_id));
+
+      for (const run of runs) {
+        const startMs = run.started_at
+          ? Date.parse(run.started_at)
+          : Date.parse(run.created_at);
+        const endMs = run.completed_at
+          ? Date.parse(run.completed_at)
+          : Date.now();
+        const cycle = allCycles.find(c => c.id === run.cycle_id);
+        result.push({
+          planId:    plan.id,
+          planName:  plan.name,
+          cycleId:   run.cycle_id,
+          cycleName: cycle?.name ?? "—",
+          runId:     run.id,
+          runName:   run.name,
+          status:    run.status,
+          startMs,
+          endMs,
+        });
+      }
+    }
+    return result.sort((a, b) => a.startMs - b.startMs);
+  }, [plans, allCycles, allRuns]);
+
+  if (rows.length === 0) {
+    return (
+      <div className="rounded-xl border border-border bg-surface-raised px-6 py-10 text-center">
+        <p className="text-[12px] text-fg-subtle">Gantt görünümü için en az bir çalıştırılmış run gerekir.</p>
+      </div>
+    );
+  }
+
+  const minMs  = Math.min(...rows.map(r => r.startMs));
+  const maxMs  = Math.max(...rows.map(r => r.endMs));
+  const spanMs = Math.max(maxMs - minMs, 1);
+
+  const STATUS_COLOR: Record<string, string> = {
+    completed:   "bg-emerald-500/70",
+    in_progress: "bg-blue-500/70",
+    running:     "bg-blue-500/70",
+    active:      "bg-blue-500/70",
+    failed:      "bg-red-500/70",
+    blocked:     "bg-amber-500/70",
+    not_started: "bg-slate-600/60",
+  };
+
+  const dayLabels: Array<{ label: string; pct: number }> = [];
+  const totalDays = Math.ceil(spanMs / 86_400_000);
+  const step = totalDays <= 7 ? 1 : totalDays <= 30 ? 7 : 30;
+  for (let d = 0; d <= totalDays; d += step) {
+    dayLabels.push({
+      label: new Date(minMs + d * 86_400_000).toLocaleDateString("tr-TR", { day: "2-digit", month: "short" }),
+      pct:   (d / totalDays) * 100,
+    });
+  }
+
+  return (
+    <div className="rounded-xl border border-border bg-surface-raised overflow-hidden">
+      <div className="border-b border-border px-4 py-3">
+        <p className="text-[11px] font-semibold text-fg">Gantt — Run Zaman Çizelgesi</p>
+        <p className="text-[10px] text-fg-muted">{rows.length} run · zaman aralığı: {new Date(minMs).toLocaleDateString("tr-TR")} – {new Date(maxMs).toLocaleDateString("tr-TR")}</p>
+      </div>
+      {/* Day ruler */}
+      <div className="relative ml-[220px] border-b border-border bg-surface-overlay h-7">
+        {dayLabels.map((dl, i) => (
+          <span
+            key={i}
+            style={{ left: `${dl.pct}%` }}
+            className="absolute top-1 -translate-x-1/2 text-[9px] text-fg-disabled whitespace-nowrap"
+          >{dl.label}</span>
+        ))}
+      </div>
+      {/* Rows */}
+      <div className="max-h-96 overflow-y-auto">
+        {rows.map((row, idx) => {
+          const leftPct  = ((row.startMs - minMs) / spanMs) * 100;
+          const widthPct = Math.max(((row.endMs - row.startMs) / spanMs) * 100, 0.5);
+          const barColor = STATUS_COLOR[row.status.toLowerCase()] ?? "bg-slate-500/60";
+          return (
+            <div key={row.runId} className={cn("flex items-center gap-0 border-b border-border/40 last:border-0", idx % 2 === 0 ? "" : "bg-surface-overlay/30")}>
+              {/* Label */}
+              <div className="flex flex-col w-[220px] shrink-0 px-3 py-1.5 border-r border-border/40">
+                <span className="text-[10px] font-medium text-fg truncate">{row.runName}</span>
+                <span className="text-[9px] text-fg-subtle truncate">{row.planName} › {row.cycleName}</span>
+              </div>
+              {/* Bar track */}
+              <div className="relative flex-1 h-8">
+                <div
+                  className={cn("absolute top-1/2 -translate-y-1/2 h-4 rounded-full", barColor)}
+                  style={{ left: `${leftPct}%`, width: `${widthPct}%`, minWidth: 4 }}
+                  title={`${row.runName}\n${new Date(row.startMs).toLocaleDateString("tr-TR")} – ${row.endMs === Date.now() && !allRuns.find(r=>r.id===row.runId)?.completed_at ? "devam ediyor" : new Date(row.endMs).toLocaleDateString("tr-TR")}`}
+                />
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ── Sprint Velocity Panel ─────────────────────────────────────────────────────
+function SprintVelocityPanel({ plans, allCycles, allRuns }: {
+  plans: TestPlan[];
+  allCycles: TestCycle[];
+  allRuns: TestRun[];
+}) {
+  const stats = useMemo(() => {
+    const totalRuns = allRuns.length;
+    const completedRuns = allRuns.filter(r => ["completed", "done"].includes(r.status.toLowerCase())).length;
+    const activeRuns = allRuns.filter(r => ["in_progress", "running", "active"].includes(r.status.toLowerCase())).length;
+
+    // Pass rate across all runs using scope_snapshot
+    let totalPassed = 0, totalFailed = 0, totalBlocked = 0, totalCases = 0;
+    for (const r of allRuns) {
+      const snap = r.scope_snapshot as { passed?: number; failed?: number; blocked?: number; not_run?: number } | null;
+      if (snap) {
+        totalPassed  += snap.passed  ?? 0;
+        totalFailed  += snap.failed  ?? 0;
+        totalBlocked += snap.blocked ?? 0;
+        totalCases   += (snap.passed ?? 0) + (snap.failed ?? 0) + (snap.blocked ?? 0) + (snap.not_run ?? 0);
+      }
+    }
+    const passRate = totalCases > 0 ? Math.round((totalPassed / totalCases) * 100) : null;
+
+    // Plan type distribution
+    const byType: Record<string, number> = {};
+    for (const p of plans) {
+      const t = p.plan_type || "other";
+      byType[t] = (byType[t] ?? 0) + 1;
+    }
+
+    // Recent run velocity: last 5 completed runs pass rate
+    const recentCompleted = [...allRuns]
+      .filter(r => r.status === "completed")
+      .sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at))
+      .slice(0, 5);
+
+    const velocityPoints = recentCompleted.map(r => {
+      const snap = r.scope_snapshot as { passed?: number; failed?: number; blocked?: number; not_run?: number } | null;
+      const total = (snap?.passed ?? 0) + (snap?.failed ?? 0) + (snap?.blocked ?? 0) + (snap?.not_run ?? 0);
+      const pct   = total > 0 ? Math.round(((snap?.passed ?? 0) / total) * 100) : 0;
+      return { name: r.name.slice(0, 20), pct };
+    }).reverse();
+
+    return { totalRuns, completedRuns, activeRuns, passRate, totalPassed, totalFailed, totalBlocked, totalCases, byType, velocityPoints };
+  }, [plans, allCycles, allRuns]);
+
+  const W = 200, H = 48, pad = 4;
+  const pts = stats.velocityPoints;
+  const maxPct = Math.max(...pts.map(p => p.pct), 100);
+  const sparkCoords = pts.length >= 2
+    ? pts.map((p, i) => {
+        const x = pad + (i / (pts.length - 1)) * (W - pad * 2);
+        const y = H - pad - (p.pct / maxPct) * (H - pad * 2);
+        return `${x},${y}`;
+      }).join(" ")
+    : null;
+
+  return (
+    <div className="rounded-xl border border-border bg-surface-raised overflow-hidden">
+      <div className="flex items-center justify-between border-b border-border px-4 py-3">
+        <p className="text-[11px] font-semibold text-fg">Plan & Sprint Özeti</p>
+        <span className="text-[10px] text-fg-muted">{plans.length} plan · {allCycles.length} cycle · {allRuns.length} run</span>
+      </div>
+      <div className="grid grid-cols-2 gap-0 divide-x divide-border sm:grid-cols-4">
+        <div className="px-4 py-3">
+          <p className="text-[9px] font-semibold uppercase tracking-widest text-fg-subtle">Aktif Runs</p>
+          <p className={cn("mt-1 text-xl font-bold tabular-nums", stats.activeRuns > 0 ? "text-blue-400" : "text-fg")}>
+            {stats.activeRuns}
+          </p>
+          <p className="text-[10px] text-fg-muted">çalışıyor</p>
+        </div>
+        <div className="px-4 py-3">
+          <p className="text-[9px] font-semibold uppercase tracking-widest text-fg-subtle">Tamamlanan</p>
+          <p className="mt-1 text-xl font-bold tabular-nums text-emerald-400">{stats.completedRuns}</p>
+          <p className="text-[10px] text-fg-muted">/{stats.totalRuns} run</p>
+        </div>
+        <div className="px-4 py-3">
+          <p className="text-[9px] font-semibold uppercase tracking-widest text-fg-subtle">Pass Rate</p>
+          <p className={cn("mt-1 text-xl font-bold tabular-nums",
+            stats.passRate !== null && stats.passRate >= 80 ? "text-emerald-400" :
+            stats.passRate !== null && stats.passRate >= 50 ? "text-amber-400" : "text-red-400")}>
+            {stats.passRate !== null ? `${stats.passRate}%` : "—"}
+          </p>
+          <p className="text-[10px] text-fg-muted">{stats.totalPassed}/{stats.totalCases} case</p>
+        </div>
+        <div className="px-4 py-3">
+          <p className="text-[9px] font-semibold uppercase tracking-widest text-fg-subtle">Başarısız</p>
+          <p className={cn("mt-1 text-xl font-bold tabular-nums", stats.totalFailed > 0 ? "text-red-400" : "text-fg")}>
+            {stats.totalFailed}
+          </p>
+          <p className="text-[10px] text-fg-muted">{stats.totalBlocked} engel</p>
+        </div>
+      </div>
+      {sparkCoords && (
+        <div className="border-t border-border px-4 py-3">
+          <p className="mb-2 text-[9px] font-semibold uppercase tracking-widest text-fg-subtle">Son 5 Tamamlanan Run — Pass Rate Trendi</p>
+          <div className="flex items-center gap-4">
+            <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} className="shrink-0">
+              <polyline
+                points={sparkCoords}
+                fill="none"
+                stroke="#34d399"
+                strokeWidth="1.5"
+                strokeLinejoin="round"
+                strokeLinecap="round"
+                opacity="0.8"
+              />
+              {pts.map((p, i) => {
+                const x = pad + (i / (pts.length - 1)) * (W - pad * 2);
+                const y = H - pad - (p.pct / maxPct) * (H - pad * 2);
+                return <circle key={i} cx={x} cy={y} r="2.5" fill="#34d399" opacity="0.9" />;
+              })}
+            </svg>
+            <div className="flex-1 min-w-0 space-y-1">
+              {pts.map((p, i) => (
+                <div key={i} className="flex items-center justify-between gap-2">
+                  <span className="truncate text-[10px] text-fg-subtle">{p.name}</span>
+                  <span className={cn("shrink-0 font-mono text-[10px] font-semibold",
+                    p.pct >= 80 ? "text-emerald-400" : p.pct >= 50 ? "text-amber-400" : "text-red-400")}>
+                    {p.pct}%
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Plan row ──────────────────────────────────────────────────────────────────
 function PlanRow({
   plan, cycles, runs, projectId, onStartRun, runCreating,
@@ -747,7 +1024,7 @@ function PlanRow({
       <button
         type="button"
         onClick={() => setOpen(v => !v)}
-        className="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-white/[0.025] transition-colors"
+        className="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-surface-overlay/50 transition-colors"
       >
         <IcChevron open={open} />
 
@@ -866,6 +1143,13 @@ export default function ManagementPlansPage() {
   const { data: plans, isLoading, isError: plansError, refetch: refetchPlans } = useManagementPlans(mpid || undefined);
   const { data: allCycles }        = useManagementCycles(mpid || undefined);
   const { data: allRuns }          = useManagementRuns(mpid || undefined);
+  const { data: membersData }      = useQuery({
+    queryKey: ["management", "members", projectId],
+    queryFn: () => apiFetch<{ user_id: string; email: string; full_name?: string }[]>(`/api/v1/organizations/projects/${projectId}/members`).then(d => Array.isArray(d) ? d : []),
+    enabled: !!projectId,
+    staleTime: 5 * 60 * 1000,
+  });
+  const members = membersData ?? [];
   const createPlan   = useCreateManagementPlan(mpid || "");
   const updatePlan   = useUpdateManagementPlan(mpid || "");
   const deletePlan   = useDeleteManagementPlan(mpid || "");
@@ -900,6 +1184,7 @@ export default function ManagementPlansPage() {
   const [runCreatingFlag, setRunCreatingFlag]  = useState(false);
   const [cycleCreating,   setCycleCreating]    = useState(false);
   const [error,           setError]            = useState<string | null>(null);
+  const [viewMode,        setViewMode]         = useState<"list" | "gantt">("list");
 
   const handleRenamePlan = async (plan: TestPlan, newName: string) => {
     if (!newName.trim() || newName === plan.name) return;
@@ -972,7 +1257,7 @@ export default function ManagementPlansPage() {
     }
   };
 
-  const handleStartRun = async (cycle: TestCycle, caseIds: string[], runName?: string, environment?: string) => {
+  const handleStartRun = async (cycle: TestCycle, caseIds: string[], runName?: string, environment?: string, assignedTo?: string) => {
     setActiveCycleId(cycle.id);
     setRunCreatingFlag(true);
     setError(null);
@@ -982,6 +1267,7 @@ export default function ManagementPlansPage() {
         name: runName?.trim() || `Koşum — ${cycle.name}`,
         case_ids: caseIds,
         environment: environment?.trim() || cycle.environment || null,
+        assigned_to: assignedTo?.trim() || null,
       });
       setRunCycleForModal(null);
       setActiveCycleId("");
@@ -1059,7 +1345,7 @@ export default function ManagementPlansPage() {
         {/* ── Stats chips ── */}
         <div className="hidden sm:flex items-center gap-2 flex-1 justify-center">
           {[
-            { label: "Toplam",    value: (plans ?? []).length,                                                         color: "text-fg-muted  border-slate-700" },
+            { label: "Toplam",    value: (plans ?? []).length,                                                         color: "text-fg-muted  border-border" },
             { label: "Aktif",     value: (plans ?? []).filter((p: TestPlan) => p.status === "active").length,          color: "text-blue-400   border-blue-500/20 bg-blue-500/10" },
             { label: "Tamamlandı",value: (plans ?? []).filter((p: TestPlan) => p.status === "completed").length,       color: "text-emerald-400 border-emerald-500/20 bg-emerald-500/10" },
           ].map(stat => (
@@ -1069,14 +1355,36 @@ export default function ManagementPlansPage() {
             </div>
           ))}
         </div>
-        <RoleGuard minRole="member" projectId={projectId ?? undefined}>
-          <button
-            onClick={() => setShowPlanForm(v => !v)}
-            className="flex items-center gap-1.5 rounded-lg bg-brand px-3 py-1.5 text-[12px] font-medium text-brand-fg hover:brightness-105 transition-colors"
-          >
-            <IcPlus /> {showPlanForm ? "İptal" : "Yeni Plan"}
-          </button>
-        </RoleGuard>
+        <div className="flex items-center gap-2">
+          {/* View toggle */}
+          <div className="flex rounded-lg border border-border overflow-hidden">
+            <button
+              onClick={() => setViewMode("list")}
+              className={cn("px-2.5 py-1 text-[11px] font-medium transition-colors", viewMode === "list" ? "bg-brand text-brand-fg" : "bg-surface-raised text-fg-muted hover:text-fg")}
+            >
+              <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 10h16M4 14h16M4 18h16"/>
+              </svg>
+            </button>
+            <button
+              onClick={() => setViewMode("gantt")}
+              className={cn("px-2.5 py-1 text-[11px] font-medium transition-colors", viewMode === "gantt" ? "bg-brand text-brand-fg" : "bg-surface-raised text-fg-muted hover:text-fg")}
+              title="Gantt Görünümü"
+            >
+              <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M3 6h8M3 14h12M3 18h6"/>
+              </svg>
+            </button>
+          </div>
+          <RoleGuard minRole="member" projectId={projectId ?? undefined}>
+            <button
+              onClick={() => setShowPlanForm(v => !v)}
+              className="flex items-center gap-1.5 rounded-lg bg-brand px-3 py-1.5 text-[12px] font-medium text-brand-fg hover:brightness-105 transition-colors"
+            >
+              <IcPlus /> {showPlanForm ? "İptal" : "Yeni Plan"}
+            </button>
+          </RoleGuard>
+        </div>
       </div>
 
       {/* ── Error banner ──────────────────────────────────────────────────── */}
@@ -1100,7 +1408,7 @@ export default function ManagementPlansPage() {
                 placeholder="örn. Q3 Release Plan"
                 required
                 maxLength={200}
-                className="w-full rounded-lg border border-border bg-surface-overlay px-3 py-2 text-[13px] text-fg placeholder-slate-600 outline-none focus:border-teal-500/50"
+                className="w-full rounded-lg border border-border bg-surface-overlay px-3 py-2 text-[13px] text-fg placeholder:text-fg-disabled outline-none focus:border-teal-500/50"
               />
             </div>
             <div className="w-36">
@@ -1122,7 +1430,7 @@ export default function ManagementPlansPage() {
                 onChange={e => setPlanRelease(e.target.value)}
                 placeholder="v2.4.0"
                 maxLength={100}
-                className="w-full rounded-lg border border-border bg-surface-overlay px-3 py-2 text-[13px] text-fg placeholder-slate-600 outline-none focus:border-teal-500/50"
+                className="w-full rounded-lg border border-border bg-surface-overlay px-3 py-2 text-[13px] text-fg placeholder:text-fg-disabled outline-none focus:border-teal-500/50"
               />
             </div>
             {suites.length > 0 && (
@@ -1156,7 +1464,7 @@ export default function ManagementPlansPage() {
                   placeholder="Bu planın kapsamı ve hedefleri hakkında kısa bir açıklama…"
                   rows={2}
                   maxLength={1000}
-                  className="w-full resize-none rounded-lg border border-border bg-surface-overlay px-3 py-2 text-[13px] text-fg placeholder-slate-600 outline-none focus:border-teal-500/50"
+                  className="w-full resize-none rounded-lg border border-border bg-surface-overlay px-3 py-2 text-[13px] text-fg placeholder:text-fg-disabled outline-none focus:border-teal-500/50"
                 />
               </div>
               <div className="flex flex-col justify-end">
@@ -1184,7 +1492,22 @@ export default function ManagementPlansPage() {
         </div>
       )}
 
+      {/* ── Sprint Velocity Summary ────────────────────────────────────────── */}
+      {viewMode === "list" && (allRuns ?? []).length > 0 && (
+        <div className="px-6 pt-5">
+          <SprintVelocityPanel plans={plans ?? []} allCycles={allCycles ?? []} allRuns={allRuns ?? []} />
+        </div>
+      )}
+
+      {/* ── Gantt view ─────────────────────────────────────────────────────── */}
+      {viewMode === "gantt" && (
+        <div className="px-6 pt-5 pb-6">
+          <GanttView plans={plans ?? []} allCycles={allCycles ?? []} allRuns={allRuns ?? []} />
+        </div>
+      )}
+
       {/* ── Plan list ──────────────────────────────────────────────────────── */}
+      {viewMode === "list" && (
       <div className="p-6 space-y-3">
         {plansError ? (
           <div className="flex flex-col items-center gap-3 py-12 text-center">
@@ -1244,6 +1567,7 @@ export default function ManagementPlansPage() {
           })
         )}
       </div>
+      )}
 
       {/* ── Plan Run Modal — case seçimi ──────────────────────────────────── */}
       {runCycleForModal && (
@@ -1251,8 +1575,9 @@ export default function ManagementPlansPage() {
           cycle={runCycleForModal}
           cases={repoQ.data?.cases ?? []}
           suites={repoQ.data?.suites ?? []}
+          members={members}
           onClose={() => setRunCycleForModal(null)}
-          onConfirm={(runName, caseIds, environment) => void handleStartRun(runCycleForModal, caseIds, runName, environment)}
+          onConfirm={(runName, caseIds, environment, assignedTo) => void handleStartRun(runCycleForModal, caseIds, runName, environment, assignedTo)}
           busy={createRun.isPending || runCreatingFlag}
         />
       )}
@@ -1287,19 +1612,19 @@ export default function ManagementPlansPage() {
                   }}
                   placeholder="örn. Sprint 5 Regression"
                   maxLength={200}
-                  className="w-full rounded-lg border border-border bg-surface-overlay px-3 py-2 text-[13px] text-fg placeholder-slate-600 outline-none focus:border-teal-500/50"
+                  className="w-full rounded-lg border border-border bg-surface-overlay px-3 py-2 text-[13px] text-fg placeholder:text-fg-disabled outline-none focus:border-teal-500/50"
                 />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="mb-1 block text-[11px] text-fg-muted">Ortam</label>
                   <input value={cycleEnv} onChange={e => setCycleEnv(e.target.value)}
-                    placeholder="prod / staging" maxLength={100} className="w-full rounded-lg border border-border bg-surface-overlay px-3 py-2 text-[12px] text-fg placeholder-slate-600 outline-none focus:border-teal-500/50"/>
+                    placeholder="prod / staging" maxLength={100} className="w-full rounded-lg border border-border bg-surface-overlay px-3 py-2 text-[12px] text-fg placeholder:text-fg-disabled outline-none focus:border-teal-500/50"/>
                 </div>
                 <div>
                   <label className="mb-1 block text-[11px] text-fg-muted">Build</label>
                   <input value={cycleBuild} onChange={e => setCycleBuild(e.target.value)}
-                    placeholder="v2.1.0" maxLength={100} className="w-full rounded-lg border border-border bg-surface-overlay px-3 py-2 text-[12px] text-fg placeholder-slate-600 outline-none focus:border-teal-500/50"/>
+                    placeholder="v2.1.0" maxLength={100} className="w-full rounded-lg border border-border bg-surface-overlay px-3 py-2 text-[12px] text-fg placeholder:text-fg-disabled outline-none focus:border-teal-500/50"/>
                 </div>
               </div>
               <div className="flex gap-2 pt-1">

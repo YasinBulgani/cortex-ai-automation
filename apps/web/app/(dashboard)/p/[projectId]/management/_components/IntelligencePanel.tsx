@@ -1,6 +1,8 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { apiFetch } from "@/lib/api-client";
 
 // ── Tip tanımları ────────────────────────────────────────────────────────────
 
@@ -119,7 +121,7 @@ function HealthGauge({ score }: { score: number }) {
           {score.toFixed(0)}
         </text>
       </svg>
-      <span className="text-xs text-slate-400">Sağlık Skoru</span>
+      <span className="text-xs text-fg-muted">Sağlık Skoru</span>
     </div>
   );
 }
@@ -128,23 +130,23 @@ function VelocityBar({ current, overall }: { current: number; overall: number })
   const max = Math.max(current, overall, 0.1);
   return (
     <div className="space-y-1">
-      <div className="flex justify-between text-xs text-slate-400">
+      <div className="flex justify-between text-xs text-fg-muted">
         <span>Anlık hız</span>
-        <span className="text-white font-mono">{current.toFixed(1)}/sa</span>
+        <span className="text-fg font-mono">{current.toFixed(1)}/sa</span>
       </div>
-      <div className="h-2 rounded-full bg-slate-700 overflow-hidden">
+      <div className="h-2 rounded-full bg-surface-accent overflow-hidden">
         <div
           className="h-full rounded-full bg-violet-500 transition-all duration-700"
           style={{ width: `${Math.min(100, (current / max) * 100)}%` }}
         />
       </div>
-      <div className="flex justify-between text-xs text-slate-400">
+      <div className="flex justify-between text-xs text-fg-muted">
         <span>Genel ort.</span>
         <span className="font-mono">{overall.toFixed(1)}/sa</span>
       </div>
-      <div className="h-2 rounded-full bg-slate-700 overflow-hidden">
+      <div className="h-2 rounded-full bg-surface-accent overflow-hidden">
         <div
-          className="h-full rounded-full bg-slate-500 transition-all duration-700"
+          className="h-full rounded-full bg-fg-disabled transition-all duration-700"
           style={{ width: `${Math.min(100, (overall / max) * 100)}%` }}
         />
       </div>
@@ -152,28 +154,31 @@ function VelocityBar({ current, overall }: { current: number; overall: number })
   );
 }
 
-function TesterRow({ t }: { t: TesterProfile }) {
+function TesterRow({ t, userIdMap = {} }: { t: TesterProfile; userIdMap?: Record<string, string> }) {
   const pct = t.assigned_count > 0 ? (t.completed_count / t.assigned_count) * 100 : 0;
   const isUnassigned = t.user_id === "__unassigned__";
+  const displayName = isUnassigned
+    ? "⚠ Atanmamış"
+    : (userIdMap[t.user_id] ?? `${t.user_id.slice(0, 8)}…`);
 
   return (
     <div className="space-y-1">
       <div className="flex justify-between items-center text-xs">
-        <span className={`font-medium truncate max-w-[140px] ${t.is_bottleneck ? "text-amber-400" : "text-slate-300"}`}>
-          {isUnassigned ? "⚠ Atanmamış" : `${t.user_id.slice(0, 8)}…`}
+        <span className={`font-medium truncate max-w-[140px] ${t.is_bottleneck ? "text-amber-400" : "text-fg"}`}>
+          {displayName}
           {t.is_bottleneck && <span className="ml-1 text-amber-500">⚡</span>}
         </span>
-        <span className="text-slate-400 font-mono">{t.completed_count}/{t.assigned_count}</span>
+        <span className="text-fg-muted font-mono">{t.completed_count}/{t.assigned_count}</span>
       </div>
-      <div className="h-1.5 rounded-full bg-slate-700 overflow-hidden">
+      <div className="h-1.5 rounded-full bg-surface-accent overflow-hidden">
         <div
           className={`h-full rounded-full transition-all duration-700 ${
-            t.is_bottleneck ? "bg-amber-500" : "bg-teal-500"
+            t.is_bottleneck ? "bg-amber-500" : "bg-brand"
           }`}
           style={{ width: `${pct}%` }}
         />
       </div>
-      <div className="flex gap-3 text-[10px] text-slate-500">
+      <div className="flex gap-3 text-[10px] text-fg-subtle">
         <span>{t.velocity_per_hour.toFixed(1)}/sa</span>
         <span>pass {(t.pass_rate * 100).toFixed(0)}%</span>
         {t.inactive_minutes > 20 && (
@@ -198,9 +203,9 @@ function AnomalyCard({ a }: { a: Anomaly }) {
           {a.severity === "critical" ? "🚨" : "⚠️"} {a.title}
         </span>
       </div>
-      <p className="text-xs text-slate-300">{a.detail}</p>
+      <p className="text-xs text-fg">{a.detail}</p>
       {a.suggested_action && (
-        <p className="text-xs text-slate-400 italic">→ {a.suggested_action}</p>
+        <p className="text-xs text-fg-muted italic">→ {a.suggested_action}</p>
       )}
     </div>
   );
@@ -220,21 +225,21 @@ function RiskCaseRow({ c, index }: { c: CaseRiskScore; index: number }) {
 
   return (
     <div className={`flex items-center gap-3 py-2 border-l-2 pl-3 ${recBg[c.recommendation]}`}>
-      <span className="text-slate-500 text-xs w-4">{index + 1}</span>
+      <span className="text-fg-subtle text-xs w-4">{index + 1}</span>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
-          <span className="text-xs font-mono text-slate-400">{c.case_key}</span>
-          <span className="text-xs text-slate-300 truncate">{c.title}</span>
+          <span className="text-xs font-mono text-fg-muted">{c.case_key}</span>
+          <span className="text-xs text-fg truncate">{c.title}</span>
         </div>
         <div className="flex items-center gap-2 mt-0.5">
-          <div className="h-1 w-16 rounded-full bg-slate-700 overflow-hidden">
+          <div className="h-1 w-16 rounded-full bg-surface-accent overflow-hidden">
             <div
               className="h-full rounded-full bg-red-500"
               style={{ width: `${c.risk_score * 100}%` }}
             />
           </div>
-          <span className="text-[10px] text-slate-400">{(c.risk_score * 100).toFixed(0)}% risk</span>
-          <span className="text-[10px] text-slate-500">{recLabel[c.recommendation]}</span>
+          <span className="text-[10px] text-fg-muted">{(c.risk_score * 100).toFixed(0)}% risk</span>
+          <span className="text-[10px] text-fg-subtle">{recLabel[c.recommendation]}</span>
         </div>
       </div>
       {c.last_status && (
@@ -275,6 +280,23 @@ export function IntelligencePanel({
     "overview"
   );
 
+  const { data: membersRaw } = useQuery({
+    queryKey: ["management", "members", projectId],
+    queryFn: () =>
+      apiFetch<Array<{ user_id: string; email: string; full_name?: string }>>(
+        `/api/v1/organizations/projects/${projectId}/members`
+      ).then(d => (Array.isArray(d) ? d : [])),
+    enabled: !!projectId,
+    staleTime: 5 * 60 * 1000,
+  });
+  const userIdMap = useMemo<Record<string, string>>(() => {
+    const map: Record<string, string> = {};
+    for (const m of membersRaw ?? []) {
+      map[m.user_id] = m.full_name?.trim() || m.email;
+    }
+    return map;
+  }, [membersRaw]);
+
   const fetchReport = useCallback(async () => {
     try {
       const res = await fetch(
@@ -301,7 +323,7 @@ export function IntelligencePanel({
   if (loading) {
     return (
       <div className="rounded-xl border border-border bg-surface-raised p-6 flex items-center justify-center h-48">
-        <div className="flex flex-col items-center gap-2 text-slate-500">
+        <div className="flex flex-col items-center gap-2 text-fg-subtle">
           <div className="w-6 h-6 border-2 border-violet-500 border-t-transparent rounded-full animate-spin" />
           <span className="text-sm">Zeka motoru analiz ediyor…</span>
         </div>
@@ -311,7 +333,7 @@ export function IntelligencePanel({
 
   if (error || !report) {
     return (
-      <div className="rounded-xl border border-border bg-surface-raised p-6 text-center text-slate-500 text-sm">
+      <div className="rounded-xl border border-border bg-surface-raised p-6 text-center text-fg-subtle text-sm">
         {error ?? "Rapor oluşturulamadı"}
       </div>
     );
@@ -338,7 +360,7 @@ export function IntelligencePanel({
       <div className={`px-5 py-3 border-b border-border ${healthBg[report.summary_health]}`}>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <span className="text-sm font-semibold text-slate-200">⚡ Test Zekası</span>
+            <span className="text-sm font-semibold text-fg">⚡ Test Zekası</span>
             <span
               className={`text-xs font-bold px-2 py-0.5 rounded-full border ${healthBg[report.summary_health]} ${healthText[report.summary_health]}`}
             >
@@ -352,13 +374,13 @@ export function IntelligencePanel({
           </div>
           <div className="flex items-center gap-3">
             {lastRefresh && (
-              <span className="text-[10px] text-slate-500">
+              <span className="text-[10px] text-fg-subtle">
                 {lastRefresh.toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
               </span>
             )}
             <button
               onClick={fetchReport}
-              className="text-xs text-slate-400 hover:text-white transition-colors"
+              className="text-xs text-fg-muted hover:text-fg transition-colors"
               title="Yenile"
             >
               ↺
@@ -375,8 +397,8 @@ export function IntelligencePanel({
             onClick={() => setActiveTab(tab.id)}
             className={`px-4 py-2.5 text-xs font-medium transition-colors relative ${
               activeTab === tab.id
-                ? "text-white border-b-2 border-violet-500"
-                : "text-slate-400 hover:text-slate-200"
+                ? "text-fg border-b-2 border-violet-500"
+                : "text-fg-muted hover:text-fg"
             }`}
           >
             {tab.label}
@@ -400,7 +422,7 @@ export function IntelligencePanel({
                 <HealthGauge score={report.health_score} />
               </div>
               <div className="bg-surface-overlay rounded-lg p-4 space-y-3">
-                <p className="text-xs font-medium text-slate-400 uppercase tracking-wide">ETA</p>
+                <p className="text-xs font-medium text-fg-subtle uppercase tracking-wide">ETA</p>
                 {eta.eta_hours !== null ? (
                   <>
                     <p className={`text-2xl font-bold ${riskColor[eta.risk_level]}`}>
@@ -408,10 +430,10 @@ export function IntelligencePanel({
                         ? `${Math.round(eta.eta_hours * 60)}dk`
                         : `${eta.eta_hours.toFixed(1)}sa`}
                     </p>
-                    <p className="text-xs text-slate-400">{eta.message}</p>
-                    <div className="flex items-center gap-2 text-xs text-slate-500">
+                    <p className="text-xs text-fg-muted">{eta.message}</p>
+                    <div className="flex items-center gap-2 text-xs text-fg-subtle">
                       <span>Güven: {(eta.confidence * 100).toFixed(0)}%</span>
-                      <div className="flex-1 h-1 bg-slate-700 rounded-full overflow-hidden">
+                      <div className="flex-1 h-1 bg-surface-accent rounded-full overflow-hidden">
                         <div
                           className="h-full bg-violet-500 rounded-full"
                           style={{ width: `${eta.confidence * 100}%` }}
@@ -420,20 +442,20 @@ export function IntelligencePanel({
                     </div>
                   </>
                 ) : (
-                  <p className="text-slate-400 text-sm">{eta.message}</p>
+                  <p className="text-fg-muted text-sm">{eta.message}</p>
                 )}
               </div>
             </div>
 
             {/* İlerleme */}
             <div className="bg-surface-overlay rounded-lg p-4 space-y-3">
-              <div className="flex justify-between text-xs text-slate-400">
+              <div className="flex justify-between text-xs text-fg-muted">
                 <span>İlerleme</span>
-                <span className="font-mono text-white">
+                <span className="font-mono text-fg">
                   {eta.completed_cases} / {eta.total_cases}
                 </span>
               </div>
-              <div className="h-3 bg-slate-700 rounded-full overflow-hidden">
+              <div className="h-3 bg-surface-accent rounded-full overflow-hidden">
                 <div
                   className="h-full rounded-full bg-violet-500 transition-all duration-700"
                   style={{
@@ -470,7 +492,7 @@ export function IntelligencePanel({
         {activeTab === "anomalies" && (
           <div className="space-y-3">
             {anomalies.length === 0 ? (
-              <div className="text-center py-8 text-slate-500 text-sm">
+              <div className="text-center py-8 text-fg-subtle text-sm">
                 ✅ Anomali tespit edilmedi
               </div>
             ) : (
@@ -483,11 +505,11 @@ export function IntelligencePanel({
         {activeTab === "testers" && (
           <div className="space-y-4">
             {testers.length === 0 ? (
-              <div className="text-center py-8 text-slate-500 text-sm">
+              <div className="text-center py-8 text-fg-subtle text-sm">
                 Tester ataması yapılmamış
               </div>
             ) : (
-              testers.map((t, i) => <TesterRow key={t.user_id + i} t={t} />)
+              testers.map((t, i) => <TesterRow key={t.user_id + i} t={t} userIdMap={userIdMap} />)
             )}
           </div>
         )}
@@ -495,11 +517,11 @@ export function IntelligencePanel({
         {/* ── Risk Sırası ── */}
         {activeTab === "queue" && (
           <div className="space-y-1">
-            <p className="text-xs text-slate-500 mb-3">
+            <p className="text-xs text-fg-subtle mb-3">
               Kalan case'ler: failure geçmişi + önem × yakınlık skoru ile sıralandı
             </p>
             {riskQueue.length === 0 ? (
-              <div className="text-center py-8 text-slate-500 text-sm">
+              <div className="text-center py-8 text-fg-subtle text-sm">
                 Bekleyen case yok
               </div>
             ) : (

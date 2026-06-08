@@ -31,7 +31,7 @@ export const S_DOT: Record<string, { dot: string; label: string }> = {
   active:   { dot: "bg-emerald-500/70", label: "Aktif"  },
   draft:    { dot: "bg-slate-600",      label: "Taslak" },
   review:   { dot: "bg-blue-500/60",    label: "Review" },
-  archived: { dot: "bg-slate-700",      label: "Arşiv"  },
+  archived: { dot: "bg-surface-accent",      label: "Arşiv"  },
 };
 
 export const R_DOT: Record<string, { dot: string; label: string; bg: string; text: string }> = {

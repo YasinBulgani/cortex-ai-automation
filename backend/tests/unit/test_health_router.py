@@ -93,7 +93,7 @@ class TestExtendedHealth:
 
     def test_extended_health_overall_is_degraded_when_optional_down(self, client):
         with patch(
-            "app.domains.health.service.get_extended_health",
+            "app.domains.health.router.get_extended_health",
             return_value=_make_extended_health("degraded"),
         ):
             resp = client.get("/api/v1/health/extended")

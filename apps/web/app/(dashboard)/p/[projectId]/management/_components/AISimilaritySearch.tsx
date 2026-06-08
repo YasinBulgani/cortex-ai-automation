@@ -53,7 +53,7 @@ export function AISimilaritySearch({ projectId, onSelectCase }: AISimilaritySear
   const similarityColor = (s: number) =>
     s >= 0.85 ? "text-emerald-400" :
     s >= 0.65 ? "text-amber-400" :
-    "text-slate-400";
+    "text-fg-muted";
 
   const similarityLabel = (s: number) =>
     s >= 0.85 ? "Çok benzer" :
@@ -76,9 +76,9 @@ export function AISimilaritySearch({ projectId, onSelectCase }: AISimilaritySear
       {/* Arama başlığı */}
       <div className="flex items-center gap-3 border-b border-border px-4 py-3">
         <span className="text-violet-400 text-lg">✨</span>
-        <span className="text-sm font-semibold text-white">AI Semantic Arama</span>
-        <span className="text-xs text-slate-500 flex-1">Doğal dilde tanımla, benzer case'leri bul</span>
-        <button onClick={() => setOpen(false)} className="text-slate-500 hover:text-white text-sm">✕</button>
+        <span className="text-sm font-semibold text-fg">AI Semantic Arama</span>
+        <span className="text-xs text-fg-subtle flex-1">Doğal dilde tanımla, benzer case'leri bul</span>
+        <button onClick={() => setOpen(false)} className="text-fg-subtle hover:text-fg text-sm">✕</button>
       </div>
 
       {/* Input */}
@@ -91,7 +91,7 @@ export function AISimilaritySearch({ projectId, onSelectCase }: AISimilaritySear
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleSearch()}
             placeholder='Örnek: "ödeme sayfası kart doğrulama" veya "login başarısız senaryo"'
-            className="flex-1 rounded-lg bg-surface-overlay border border-border px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-violet-500 transition-colors"
+            className="flex-1 rounded-lg bg-surface-overlay border border-border px-3 py-2 text-sm text-fg placeholder:text-fg-disabled focus:outline-none focus:border-violet-500 transition-colors"
           />
           <button
             onClick={handleSearch}
@@ -111,14 +111,14 @@ export function AISimilaritySearch({ projectId, onSelectCase }: AISimilaritySear
 
         {/* Sonuçlar */}
         {searched && results.length === 0 && (
-          <div className="py-6 text-center text-slate-500 text-sm">
+          <div className="py-6 text-center text-fg-subtle text-sm">
             Benzer case bulunamadı. Farklı bir ifade deneyin.
           </div>
         )}
 
         {results.length > 0 && (
           <div className="space-y-2 max-h-72 overflow-y-auto">
-            <p className="text-xs text-slate-500">{results.length} benzer case bulundu:</p>
+            <p className="text-xs text-fg-subtle">{results.length} benzer case bulundu:</p>
             {results.map((c) => (
               <div
                 key={c.case_id}
@@ -127,28 +127,28 @@ export function AISimilaritySearch({ projectId, onSelectCase }: AISimilaritySear
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     {c.case_key && (
-                      <span className="text-xs font-mono text-slate-500 shrink-0">{c.case_key}</span>
+                      <span className="text-xs font-mono text-fg-subtle shrink-0">{c.case_key}</span>
                     )}
-                    <span className="text-sm text-white truncate">{c.title}</span>
+                    <span className="text-sm text-fg truncate">{c.title}</span>
                   </div>
                   <div className="flex items-center gap-3 mt-1">
                     <span className={`text-xs font-medium ${similarityColor(c.similarity)}`}>
                       {similarityLabel(c.similarity)} ({(c.similarity * 100).toFixed(0)}%)
                     </span>
                     {c.suite_name && (
-                      <span className="text-xs text-slate-500 truncate">{c.suite_name}</span>
+                      <span className="text-xs text-fg-subtle truncate">{c.suite_name}</span>
                     )}
                     {c.last_run_status && (
                       <span className={`text-xs ${
                         c.last_run_status === "pass" ? "text-emerald-400" :
-                        c.last_run_status === "fail" ? "text-red-400" : "text-slate-400"
+                        c.last_run_status === "fail" ? "text-red-400" : "text-fg-muted"
                       }`}>
                         {c.last_run_status}
                       </span>
                     )}
                   </div>
                   {/* Benzerlik çubuğu */}
-                  <div className="mt-1.5 h-1 rounded-full bg-slate-700 overflow-hidden">
+                  <div className="mt-1.5 h-1 rounded-full bg-surface-accent overflow-hidden">
                     <div
                       className="h-full rounded-full bg-violet-500 transition-all"
                       style={{ width: `${c.similarity * 100}%` }}

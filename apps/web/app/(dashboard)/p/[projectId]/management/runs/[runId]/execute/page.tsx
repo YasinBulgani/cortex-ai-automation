@@ -20,6 +20,7 @@ import {
   type EvidenceFile,
 } from "@/lib/hooks/use-management";
 import { IntelligencePanel } from "../../../_components/IntelligencePanel";
+import { EvidenceModal } from "../../../_components/EvidenceModal";
 
 // ─── Config ──────────────────────────────────────────────────────────────────
 
@@ -44,8 +45,8 @@ const STATUS_LABEL: Record<string, string> = {
 const STEP_STATUS_BTN: { key: TestRunStatus; label: string; cls: string; activeCls: string }[] = [
   { key: "passed",  label: "Pass",  cls: "border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/10", activeCls: "bg-emerald-500/15 border-emerald-500/40 text-emerald-300" },
   { key: "failed",  label: "Fail",  cls: "border-red-500/20     text-red-400    hover:bg-red-500/10",     activeCls: "bg-red-500/15     border-red-500/40     text-red-300" },
-  { key: "blocked", label: "Block", cls: "border-border      text-slate-400  hover:bg-surface-overlay",       activeCls: "bg-surface-overlay      border-border-strong      text-slate-200" },
-  { key: "skipped", label: "Skip",  cls: "border-border      text-slate-500  hover:bg-surface-overlay",       activeCls: "bg-surface-overlay      border-border-strong      text-slate-400" },
+  { key: "blocked", label: "Block", cls: "border-border      text-fg-muted  hover:bg-surface-overlay",       activeCls: "bg-surface-overlay      border-border-strong      text-fg" },
+  { key: "skipped", label: "Skip",  cls: "border-border      text-fg-subtle  hover:bg-surface-overlay",       activeCls: "bg-surface-overlay      border-border-strong      text-fg-muted" },
 ];
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -95,10 +96,10 @@ function CaseListItem({ rc, isSelected, onClick, itemRef }: {
       <span className={cn("mt-1 h-1.5 w-1.5 shrink-0 rounded-full", dot)}/>
       <div className="min-w-0 flex-1">
         {caseInfo.case_key && (
-          <span className="font-mono text-[9px] text-slate-600">{caseInfo.case_key}</span>
+          <span className="font-mono text-[9px] text-fg-disabled">{caseInfo.case_key}</span>
         )}
         <p className={cn("text-[11px] leading-snug line-clamp-2 transition-colors",
-          isSelected ? "text-teal-300" : "text-slate-400")}>
+          isSelected ? "text-teal-300" : "text-fg-muted")}>
           {caseInfo.title ?? rc.case_id}
         </p>
       </div>
@@ -134,11 +135,11 @@ function StepCard({ step, result, onChange, projectId, runCaseId, runId, onDefec
     <div className={cn("rounded-xl border p-4 transition-all", cardBg)}>
       {/* Step header */}
       <div className="flex items-center gap-2 mb-3">
-        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-surface-overlay font-mono text-[10px] font-bold text-slate-400">
+        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-surface-overlay font-mono text-[10px] font-bold text-fg-muted">
           {step.step_no}
         </span>
         {!step.is_required && (
-          <span className="rounded bg-surface-overlay px-1.5 py-0.5 text-[9px] text-slate-600">opsiyonel</span>
+          <span className="rounded bg-surface-overlay px-1.5 py-0.5 text-[9px] text-fg-disabled">opsiyonel</span>
         )}
         <div className="ml-auto flex items-center gap-1">
           {STEP_STATUS_BTN.map(btn => (
@@ -167,17 +168,17 @@ function StepCard({ step, result, onChange, projectId, runCaseId, runId, onDefec
       </div>
 
       {/* Action */}
-      <p className="text-xs text-slate-200 leading-relaxed">{step.action}</p>
+      <p className="text-xs text-fg leading-relaxed">{step.action}</p>
 
       {/* Expected */}
       <div className="mt-2 rounded-lg border border-border bg-surface-raised px-3 py-2">
-        <p className="mb-0.5 text-[10px] font-medium uppercase tracking-wide text-slate-500">Beklenen</p>
-        <p className="text-xs text-slate-300">{step.expected_result}</p>
+        <p className="mb-0.5 text-[10px] font-medium uppercase tracking-wide text-fg-subtle">Beklenen</p>
+        <p className="text-xs text-fg">{step.expected_result}</p>
       </div>
 
       {/* Actual */}
       <div className="mt-2">
-        <p className="mb-1 text-[10px] font-medium uppercase tracking-wide text-slate-500">Gerçekleşen</p>
+        <p className="mb-1 text-[10px] font-medium uppercase tracking-wide text-fg-subtle">Gerçekleşen</p>
         <textarea
           value={actual}
           onChange={e => { setActual(e.target.value); onChange(currentStatus, e.target.value); }}
@@ -185,7 +186,7 @@ function StepCard({ step, result, onChange, projectId, runCaseId, runId, onDefec
           rows={2}
           aria-label={`Adım ${step.step_no} gerçekleşen sonuç`}
           placeholder="Gerçekleşen sonucu girin…"
-          className="w-full rounded-lg border border-border bg-surface-raised px-3 py-2 text-xs text-white placeholder-slate-600 focus:border-border-strong focus:outline-none resize-none"/>
+          className="w-full rounded-lg border border-border bg-surface-raised px-3 py-2 text-xs text-white placeholder:text-fg-disabled focus:border-border-strong focus:outline-none resize-none"/>
       </div>
     </div>
   );
@@ -214,14 +215,14 @@ const CASE_RESULT_BTNS: { key: TestRunStatus; label: string; shortcut: string; a
     label: "Block",
     shortcut: "B",
     activeCls: "bg-amber-500 border-amber-500 text-white shadow-lg shadow-amber-900/30",
-    idleCls:   "border-border text-slate-400 hover:bg-surface-overlay hover:border-border-strong",
+    idleCls:   "border-border text-fg-muted hover:bg-surface-overlay hover:border-border-strong",
   },
   {
     key: "skipped",
     label: "Skip",
     shortcut: "S",
-    activeCls: "bg-slate-500 border-slate-500 text-white",
-    idleCls:   "border-border text-slate-500 hover:bg-surface-overlay hover:border-border-strong",
+    activeCls: "bg-slate-500 border-border-strong text-white",
+    idleCls:   "border-border text-fg-subtle hover:bg-surface-overlay hover:border-border-strong",
   },
   {
     key: "not_run",
@@ -260,8 +261,8 @@ function QuickDefectModal({ mpid, caseTitle, caseKey, runCaseId, onClose }: {
     onClose();
   };
 
-  const inp = "w-full rounded-xl border border-border bg-white/[0.04] px-3 py-2 text-[13px] text-slate-200 placeholder-slate-600 outline-none focus:border-teal-500/40";
-  const sel = "w-full rounded-xl border border-border bg-white/[0.04] px-3 py-2 text-[13px] text-slate-200 outline-none focus:border-teal-500/40";
+  const inp = "w-full rounded-xl border border-border bg-surface-overlay px-3 py-2 text-[13px] text-fg placeholder:text-fg-disabled outline-none focus:border-teal-500/40";
+  const sel = "w-full rounded-xl border border-border bg-surface-overlay px-3 py-2 text-[13px] text-fg outline-none focus:border-teal-500/40";
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" aria-hidden="true">
@@ -272,42 +273,42 @@ function QuickDefectModal({ mpid, caseTitle, caseKey, runCaseId, onClose }: {
         className="w-full max-w-lg rounded-xl border border-border bg-[#0d1117] shadow-2xl overflow-hidden"
       >
         <div className="flex items-center justify-between border-b border-border px-5 py-4">
-          <h2 id="defect-modal-title" className="text-[14px] font-semibold text-slate-200">Defect Oluştur</h2>
-          <button onClick={onClose} aria-label="Defect modalını kapat" className="rounded-lg p-1.5 text-slate-600 hover:text-slate-300">
+          <h2 id="defect-modal-title" className="text-[14px] font-semibold text-fg">Defect Oluştur</h2>
+          <button onClick={onClose} aria-label="Defect modalını kapat" className="rounded-lg p-1.5 text-fg-disabled hover:text-fg">
             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
           </button>
         </div>
         <form onSubmit={submit} className="p-5 space-y-4">
           <div>
-            <label htmlFor="defect-title" className="mb-1 block text-[10px] uppercase tracking-widest text-slate-600">Başlık *</label>
+            <label htmlFor="defect-title" className="mb-1 block text-[10px] uppercase tracking-widest text-fg-disabled">Başlık *</label>
             <input id="defect-title" value={title} onChange={e => setTitle(e.target.value)} required aria-required="true" className={inp} />
           </div>
           <div>
-            <label htmlFor="defect-ext-key" className="mb-1 block text-[10px] uppercase tracking-widest text-slate-600">Jira/External Key</label>
+            <label htmlFor="defect-ext-key" className="mb-1 block text-[10px] uppercase tracking-widest text-fg-disabled">Jira/External Key</label>
             <input id="defect-ext-key" value={extKey} onChange={e => setExtKey(e.target.value)} placeholder="JIRA-123" className={inp} />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label htmlFor="defect-severity" className="mb-1 block text-[10px] uppercase tracking-widest text-slate-600">Severity</label>
+              <label htmlFor="defect-severity" className="mb-1 block text-[10px] uppercase tracking-widest text-fg-disabled">Severity</label>
               <select id="defect-severity" value={severity} onChange={e => setSeverity(e.target.value)} className={sel}>
                 {["blocker","critical","major","minor","trivial"].map(v => <option key={v} value={v}>{v}</option>)}
               </select>
             </div>
             <div>
-              <label htmlFor="defect-priority" className="mb-1 block text-[10px] uppercase tracking-widest text-slate-600">Priority</label>
+              <label htmlFor="defect-priority" className="mb-1 block text-[10px] uppercase tracking-widest text-fg-disabled">Priority</label>
               <select id="defect-priority" value={priority} onChange={e => setPriority(e.target.value)} className={sel}>
                 {["P0","P1","P2","P3"].map(v => <option key={v} value={v}>{v}</option>)}
               </select>
             </div>
           </div>
           <div>
-            <label htmlFor="defect-root-cause" className="mb-1 block text-[10px] uppercase tracking-widest text-slate-600">Root Cause / Açıklama</label>
+            <label htmlFor="defect-root-cause" className="mb-1 block text-[10px] uppercase tracking-widest text-fg-disabled">Root Cause / Açıklama</label>
             <textarea id="defect-root-cause" value={rootCause} onChange={e => setRootCause(e.target.value)} rows={3} placeholder="Hata detayları, root cause…"
               className={cn(inp, "resize-none")} />
           </div>
           <div className="flex items-center justify-between pt-1">
             <button type="button" onClick={onClose}
-              className="rounded-xl border border-border px-4 py-2 text-[13px] text-slate-500 hover:text-slate-300">İptal</button>
+              className="rounded-xl border border-border px-4 py-2 text-[13px] text-fg-subtle hover:text-fg">İptal</button>
             <button type="submit" disabled={create.isPending}
               className="rounded-xl bg-red-600 px-5 py-2 text-[13px] font-medium text-white hover:bg-red-500 disabled:opacity-40">
               {create.isPending ? "Oluşturuluyor…" : "Defect Oluştur"}
@@ -321,55 +322,50 @@ function QuickDefectModal({ mpid, caseTitle, caseKey, runCaseId, onClose }: {
 
 // ─── Evidence Section ─────────────────────────────────────────────────────────
 
-function EvidenceSection({ projectId, runId, runCaseId }: {
-  projectId: string; runId: string; runCaseId: string;
+function EvidenceSection({ projectId, runId, runCaseId, caseKey, caseTitle }: {
+  projectId: string; runId: string; runCaseId: string; caseKey?: string; caseTitle?: string;
 }) {
   const { data: files = [], isLoading } = useManagementEvidence(projectId, runId, runCaseId);
-  const upload = useUploadEvidence(projectId, runId, runCaseId);
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  const handleFiles = (fileList: FileList | null) => {
-    if (!fileList) return;
-    Array.from(fileList).forEach(f => { void upload.mutateAsync(f); });
-  };
+  const [showModal, setShowModal] = useState(false);
 
   return (
     <div>
       <div className="mb-1 flex items-center justify-between">
-        <p className="text-[10px] font-medium uppercase tracking-wide text-slate-500">Evidence</p>
+        <p className="text-[10px] font-medium uppercase tracking-wide text-fg-subtle">Evidence</p>
         <button
           type="button"
-          onClick={() => inputRef.current?.click()}
-          disabled={upload.isPending}
-          className="flex items-center gap-1 rounded-lg border border-border px-2 py-1 text-[10px] text-slate-400 hover:text-slate-200 hover:bg-surface-overlay transition-colors disabled:opacity-40"
+          onClick={() => setShowModal(true)}
+          className="flex items-center gap-1 rounded-lg border border-border px-2 py-1 text-[10px] text-fg-muted hover:text-fg hover:bg-surface-overlay transition-colors"
         >
           <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"/></svg>
-          {upload.isPending ? "Yükleniyor…" : "Dosya Ekle"}
+          Evidence Ekle
         </button>
-        <input
-          ref={inputRef}
-          type="file"
-          multiple
-          accept="image/*,video/*,.pdf,.txt,.log,.har,.json,.xml"
-          className="hidden"
-          onChange={e => handleFiles(e.target.files)}
-        />
       </div>
       {isLoading ? (
         <div className="h-8 rounded-lg bg-surface-overlay animate-pulse"/>
       ) : files.length === 0 ? (
-        <p className="text-[10px] text-slate-600 italic">Henüz evidence eklenmedi.</p>
+        <p className="text-[10px] text-fg-disabled italic">Henüz evidence eklenmedi.</p>
       ) : (
         <div className="space-y-1">
           {(files as EvidenceFile[]).map(f => (
             <a key={f.id} href={f.url} target="_blank" rel="noreferrer"
-              className="flex items-center gap-2 rounded-lg border border-border bg-surface-raised px-2.5 py-1.5 text-[11px] text-slate-300 hover:text-teal-300 transition-colors truncate">
-              <svg className="h-3 w-3 shrink-0 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/></svg>
+              className="flex items-center gap-2 rounded-lg border border-border bg-surface-raised px-2.5 py-1.5 text-[11px] text-fg hover:text-teal-300 transition-colors truncate">
+              <svg className="h-3 w-3 shrink-0 text-fg-subtle" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/></svg>
               <span className="truncate">{f.filename}</span>
-              <span className="ml-auto shrink-0 text-[9px] text-slate-600">{f.content_type.split("/")[1] ?? f.content_type}</span>
+              <span className="ml-auto shrink-0 text-[9px] text-fg-disabled">{f.content_type.split("/")[1] ?? f.content_type}</span>
             </a>
           ))}
         </div>
+      )}
+      {showModal && (
+        <EvidenceModal
+          projectId={projectId}
+          runId={runId}
+          runCaseId={runCaseId}
+          caseKey={caseKey}
+          caseTitle={caseTitle}
+          onClose={() => setShowModal(false)}
+        />
       )}
     </div>
   );
@@ -378,6 +374,90 @@ function EvidenceSection({ projectId, runId, runCaseId }: {
 // ─── Draft key helper ─────────────────────────────────────────────────────────
 
 const draftKey = (runId: string, caseId: string) => `execute-draft-${runId}-${caseId}`;
+
+// ─── Case Execution Timer ─────────────────────────────────────────────────────
+
+function CaseTimer({ rcId, status }: { rcId: string; status: string }) {
+  const storageKey = `execute-timer-start-${rcId}`;
+  const [elapsed, setElapsed] = useState(0);
+  const [running, setRunning] = useState(false);
+
+  // Start timer when status is not_run or in_progress
+  useEffect(() => {
+    const isActive = status === "not_run" || status === "in_progress";
+    if (!isActive) {
+      setRunning(false);
+      return;
+    }
+    const stored = localStorage.getItem(storageKey);
+    const startTs = stored ? parseInt(stored, 10) : Date.now();
+    if (!stored) localStorage.setItem(storageKey, String(startTs));
+    setRunning(true);
+    setElapsed(Math.floor((Date.now() - startTs) / 1000));
+    const id = setInterval(() => setElapsed(Math.floor((Date.now() - startTs) / 1000)), 1000);
+    return () => clearInterval(id);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rcId, status]);
+
+  // Clear timer when case is completed
+  useEffect(() => {
+    if (!["not_run", "in_progress"].includes(status)) {
+      localStorage.removeItem(storageKey);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status]);
+
+  const fmt = (s: number) => {
+    const m = Math.floor(s / 60);
+    const sec = s % 60;
+    return `${m}:${sec.toString().padStart(2, "0")}`;
+  };
+
+  const color = elapsed > 600 ? "text-red-400" : elapsed > 300 ? "text-amber-400" : "text-teal-400";
+
+  return (
+    <div className="flex items-center gap-1.5" title="Bu case üzerinde geçen süre">
+      <span className={cn("flex h-1.5 w-1.5 rounded-full", running ? "bg-teal-400 animate-pulse" : "bg-fg-disabled")} />
+      <span className={cn("font-mono text-[11px] tabular-nums font-medium", running ? color : "text-fg-disabled")}>
+        {fmt(elapsed)}
+      </span>
+    </div>
+  );
+}
+
+// ─── Session Timer (total elapsed for entire run session) ─────────────────────
+function SessionTimer({ runId }: { runId: string }) {
+  const storageKey = `execute-session-start-${runId}`;
+  const [elapsed, setElapsed] = useState(() => {
+    const stored = localStorage.getItem(storageKey);
+    const startTs = stored ? parseInt(stored, 10) : Date.now();
+    if (!stored) localStorage.setItem(storageKey, String(startTs));
+    return Math.floor((Date.now() - startTs) / 1000);
+  });
+
+  useEffect(() => {
+    const id = setInterval(() => {
+      const stored = localStorage.getItem(storageKey);
+      if (stored) setElapsed(Math.floor((Date.now() - parseInt(stored, 10)) / 1000));
+    }, 1000);
+    return () => clearInterval(id);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [runId]);
+
+  const h = Math.floor(elapsed / 3600);
+  const m = Math.floor((elapsed % 3600) / 60);
+  const s = elapsed % 60;
+  const fmt = h > 0
+    ? `${h}:${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`
+    : `${m}:${s.toString().padStart(2, "0")}`;
+
+  return (
+    <div className="flex items-center justify-between text-[9px]">
+      <span className="text-fg-disabled">Oturum süresi</span>
+      <span className="font-mono text-fg-disabled tabular-nums">{fmt}</span>
+    </div>
+  );
+}
 
 // ─── Main Execution Panel ─────────────────────────────────────────────────────
 function ExecutionPanel({ rc, projectId, runId, onNext, onPrev, mpid }: {
@@ -424,9 +504,15 @@ function ExecutionPanel({ rc, projectId, runId, onNext, onPrev, mpid }: {
 
   // ── TestRail case-level result: one click → status set for whole case ─────
   const handleCaseStatus = useCallback(async (status: TestRunStatus) => {
-    await updateCase.mutateAsync({ runCaseId: rc.id, status, execution_notes: notes || null });
-    // Clear draft once successfully saved to backend
+    // Compute duration from the timer's localStorage start timestamp
+    const timerKey = `execute-timer-start-${rc.id}`;
+    const startTs  = localStorage.getItem(timerKey);
+    const duration_seconds = startTs ? Math.floor((Date.now() - parseInt(startTs, 10)) / 1000) : null;
+
+    await updateCase.mutateAsync({ runCaseId: rc.id, status, execution_notes: notes || null, duration_seconds });
+    // Clear draft + timer once successfully saved to backend
     localStorage.removeItem(draftKey(runId, rc.id));
+    localStorage.removeItem(timerKey);
     // Auto-advance to next case when marking terminal statuses (pass/fail/skip)
     if (["passed", "failed", "skipped"].includes(status)) {
       setTimeout(() => onNext(), 300);
@@ -502,19 +588,20 @@ function ExecutionPanel({ rc, projectId, runId, onNext, onPrev, mpid }: {
       {/* Case header */}
       <div className="border-b border-border bg-surface-raised px-5 py-3">
         <div className="flex flex-wrap items-center gap-2">
-          {caseInfo.case_key && <span className="font-mono text-[10px] text-slate-500">{caseInfo.case_key}</span>}
+          {caseInfo.case_key && <span className="font-mono text-[10px] text-fg-subtle">{caseInfo.case_key}</span>}
           {caseInfo.priority && (
             <span className="inline-flex items-center gap-1.5">
               <span className={cn("h-1.5 w-1.5 rounded-full", priorityDot[caseInfo.priority] ?? "bg-slate-600")}/>
-              <span className="font-mono text-[10px] text-slate-400">{caseInfo.priority}</span>
+              <span className="font-mono text-[10px] text-fg-muted">{caseInfo.priority}</span>
             </span>
           )}
           {caseInfo.type && (
-            <span className="rounded bg-surface-overlay px-1.5 py-0.5 text-[10px] text-slate-400">{caseInfo.type}</span>
+            <span className="rounded bg-surface-overlay px-1.5 py-0.5 text-[10px] text-fg-muted">{caseInfo.type}</span>
           )}
-          <div className="ml-auto flex items-center gap-1.5">
+          <div className="ml-auto flex items-center gap-3">
+            <CaseTimer rcId={rc.id} status={rc.status} />
             <span className={cn("h-1.5 w-1.5 rounded-full", STATUS_DOT[rc.status] ?? STATUS_DOT.not_run)}/>
-            <span className="text-[10px] text-slate-500">{STATUS_LABEL[rc.status] ?? rc.status}</span>
+            <span className="text-[10px] text-fg-subtle">{STATUS_LABEL[rc.status] ?? rc.status}</span>
           </div>
         </div>
         <h2 className="mt-1.5 text-sm font-semibold text-white">{caseInfo.title ?? rc.case_id}</h2>
@@ -532,7 +619,7 @@ function ExecutionPanel({ rc, projectId, runId, onNext, onPrev, mpid }: {
             >
               <div className="h-full rounded-full bg-teal-500/70 transition-all duration-300" style={{ width: `${progress}%` }}/>
             </div>
-            <span className="text-[10px] text-slate-500 tabular-nums" aria-hidden="true">{passedCount}/{steps.length} adım</span>
+            <span className="text-[10px] text-fg-subtle tabular-nums" aria-hidden="true">{passedCount}/{steps.length} adım</span>
           </div>
         )}
       </div>
@@ -570,8 +657,19 @@ function ExecutionPanel({ rc, projectId, runId, onNext, onPrev, mpid }: {
               Defect Aç
             </button>
           )}
-          <span className="ml-auto text-[11px] text-slate-600">
-            {steps.length > 0 ? `${steps.length} adım` : "adımsız"}
+          <span className="ml-auto flex items-center gap-2">
+            <span className="text-[11px] text-fg-disabled">
+              {steps.length > 0 ? `${steps.length} adım` : "adımsız"}
+            </span>
+            <button
+              type="button"
+              onClick={() => setShowShortcuts(true)}
+              title="Klavye kısayollarını göster (?)"
+              aria-label="Klavye kısayollarını göster"
+              className="flex h-5 w-5 items-center justify-center rounded border border-border bg-surface-overlay text-[10px] font-mono text-fg-disabled hover:border-border-strong hover:text-fg transition-colors"
+            >
+              ?
+            </button>
           </span>
         </div>
       </div>
@@ -606,13 +704,22 @@ function ExecutionPanel({ rc, projectId, runId, onNext, onPrev, mpid }: {
                   ["F", "Başarısız (Failed)"],
                   ["B", "Engellendi (Blocked)"],
                   ["S", "Atlandı (Skipped)"],
+                  ["R", "Çalıştırılmadı (Not Run)"],
                   ["N / →", "Sonraki case"],
                   ["← / Backspace", "Önceki case"],
                   ["?", "Bu menüyü aç/kapat"],
+                  ["Esc", "Menüyü kapat"],
                 ] as [string, string][]).map(([key, desc]) => (
                   <tr key={key}>
-                    <td className="pr-4 py-1 font-mono text-fg">{key}</td>
-                    <td className="py-1">{desc}</td>
+                    <td className="pr-4 py-1.5">
+                      {key.split(" / ").map((k, i) => (
+                        <span key={k}>
+                          {i > 0 && <span className="mx-1 text-fg-disabled">/</span>}
+                          <kbd className="inline-flex items-center justify-center rounded border border-border bg-surface-overlay px-1.5 py-0.5 font-mono text-[10px] text-fg">{k}</kbd>
+                        </span>
+                      ))}
+                    </td>
+                    <td className="py-1.5 text-fg-muted">{desc}</td>
                   </tr>
                 ))}
               </tbody>
@@ -635,14 +742,14 @@ function ExecutionPanel({ rc, projectId, runId, onNext, onPrev, mpid }: {
           <div className="grid gap-3 sm:grid-cols-2">
             {caseInfo.objective && (
               <div className="rounded-xl border border-border bg-surface-raised px-3 py-2.5">
-                <p className="mb-1 text-[10px] font-medium uppercase tracking-wide text-slate-500">Amaç</p>
-                <p className="text-xs text-slate-300 leading-relaxed">{caseInfo.objective}</p>
+                <p className="mb-1 text-[10px] font-medium uppercase tracking-wide text-fg-subtle">Amaç</p>
+                <p className="text-xs text-fg leading-relaxed">{caseInfo.objective}</p>
               </div>
             )}
             {caseInfo.preconditions && (
               <div className="rounded-xl border border-border bg-surface-raised px-3 py-2.5">
-                <p className="mb-1 text-[10px] font-medium uppercase tracking-wide text-slate-500">Ön Koşullar</p>
-                <p className="text-xs text-slate-300 leading-relaxed">{caseInfo.preconditions}</p>
+                <p className="mb-1 text-[10px] font-medium uppercase tracking-wide text-fg-subtle">Ön Koşullar</p>
+                <p className="text-xs text-fg leading-relaxed">{caseInfo.preconditions}</p>
               </div>
             )}
           </div>
@@ -651,7 +758,7 @@ function ExecutionPanel({ rc, projectId, runId, onNext, onPrev, mpid }: {
         {/* Steps */}
         {steps.length === 0 ? (
           <div className="rounded-xl border border-dashed border-border py-10 text-center">
-            <p className="text-xs text-slate-500">Bu case için adım tanımlanmamış.</p>
+            <p className="text-xs text-fg-subtle">Bu case için adım tanımlanmamış.</p>
           </div>
         ) : (
           <div className="space-y-3">
@@ -674,26 +781,26 @@ function ExecutionPanel({ rc, projectId, runId, onNext, onPrev, mpid }: {
 
         {/* Notes */}
         <div>
-          <label htmlFor="execution-notes" className="mb-1 block text-[10px] font-medium uppercase tracking-wide text-slate-500">Notlar</label>
+          <label htmlFor="execution-notes" className="mb-1 block text-[10px] font-medium uppercase tracking-wide text-fg-subtle">Notlar</label>
           <textarea id="execution-notes" value={notes} onChange={e => setNotes(e.target.value)} rows={3}
             aria-label="Koşum notları ve gözlemler"
             placeholder="Koşum notları, gözlemler…"
-            className="w-full rounded-xl border border-border bg-surface-raised px-3 py-2 text-xs text-white placeholder-slate-600 focus:border-border-strong focus:outline-none resize-none"/>
+            className="w-full rounded-xl border border-border bg-surface-raised px-3 py-2 text-xs text-white placeholder:text-fg-disabled focus:border-border-strong focus:outline-none resize-none"/>
         </div>
 
         {/* Evidence */}
-        <EvidenceSection projectId={projectId} runId={runId} runCaseId={rc.id} />
+        <EvidenceSection projectId={projectId} runId={runId} runCaseId={rc.id} caseKey={caseInfo.case_key} caseTitle={caseInfo.title} />
       </div>
 
       {/* Footer */}
       <div className="border-t border-border bg-surface-raised px-5 py-3">
         {/* Bulk actions */}
         <div className="mb-3 flex flex-wrap gap-2">
-          <span className="self-center text-[10px] text-slate-500">Toplu:</span>
+          <span className="self-center text-[10px] text-fg-subtle">Toplu:</span>
           {[
             { label: "Pass All",  status: "passed"  as TestRunStatus, cls: "border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/10" },
             { label: "Fail All",  status: "failed"  as TestRunStatus, cls: "border-red-500/20     text-red-400    hover:bg-red-500/10" },
-            { label: "Block All", status: "blocked" as TestRunStatus, cls: "border-border      text-slate-400  hover:bg-surface-overlay" },
+            { label: "Block All", status: "blocked" as TestRunStatus, cls: "border-border      text-fg-muted  hover:bg-surface-overlay" },
             { label: "Retest",    status: "not_run" as TestRunStatus, cls: "border-teal-500/20    text-teal-400   hover:brightness-105/10" },
           ].map(btn => (
             <button key={btn.status} type="button"
@@ -706,7 +813,7 @@ function ExecutionPanel({ rc, projectId, runId, onNext, onPrev, mpid }: {
         </div>
 
         <div className="flex items-center justify-between gap-2">
-          <div className="text-[10px] text-slate-600">
+          <div className="text-[10px] text-fg-disabled">
             {passedCount}/{steps.length} adım tamamlandı
           </div>
           <div className="flex items-center gap-2">
@@ -752,6 +859,8 @@ export default function ManagementRunExecutePage() {
 
   const [selectedRcId, setSelectedRcId] = useState<string | null>(null);
   const [sidebarTab, setSidebarTab] = useState<"cases" | "ai">("cases");
+  const [caseFilter, setCaseFilter] = useState<"all" | "not_run" | "failed" | "passed">("all");
+  const [showEarlyComplete, setShowEarlyComplete] = useState(false);
   const activeCaseRef = useRef<HTMLButtonElement>(null);
 
   const selectedRc = useMemo(() => {
@@ -780,6 +889,19 @@ export default function ManagementRunExecutePage() {
   const pct         = total > 0 ? Math.round((passed / total) * 100) : 0;
   const pendingCount = runCases.filter(rc => rc.status === "not_run" || rc.status === "in_progress").length;
 
+  const filteredCases = useMemo(() => {
+    if (caseFilter === "all")     return runCases;
+    if (caseFilter === "not_run") return runCases.filter(rc => rc.status === "not_run" || rc.status === "in_progress");
+    if (caseFilter === "failed")  return runCases.filter(rc => rc.status === "failed" || rc.status === "blocked");
+    if (caseFilter === "passed")  return runCases.filter(rc => rc.status === "passed");
+    return runCases;
+  }, [runCases, caseFilter]);
+
+  const jumpToFirstNotRun = () => {
+    const first = runCases.find(rc => rc.status === "not_run");
+    if (first) setSelectedRcId(first.id);
+  };
+
   const activeCaseId = selectedRc?.id ?? "";
 
   // Scroll active case into view when it changes
@@ -789,7 +911,86 @@ export default function ManagementRunExecutePage() {
 
   const loading = runQuery.isLoading;
 
+  // ── Run completion summary overlay ────────────────────────────────────────
+  if (run?.status === "completed" && !loading) {
+    const passRate = total > 0 ? Math.round((passed / total) * 100) : 0;
+    const failRate = total > 0 ? Math.round((failed / total) * 100) : 0;
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[calc(100vh-48px)] bg-bg px-6 py-12 text-center">
+        <div className={cn(
+          "flex h-20 w-20 items-center justify-center rounded-full mb-6",
+          passRate >= 80 ? "bg-emerald-500/15 ring-4 ring-emerald-500/20" :
+          passRate >= 50 ? "bg-amber-500/15 ring-4 ring-amber-500/20" :
+          "bg-red-500/15 ring-4 ring-red-500/20"
+        )}>
+          <span className="text-4xl">{passRate >= 80 ? "🎉" : passRate >= 50 ? "⚠️" : "❌"}</span>
+        </div>
+        <h1 className="text-xl font-bold text-fg">Koşum Tamamlandı</h1>
+        <p className="mt-1 text-[13px] text-fg-muted max-w-sm">{run.name}</p>
+
+        {/* Stats grid */}
+        <div className="mt-8 grid grid-cols-3 gap-3 sm:grid-cols-6 w-full max-w-2xl">
+          {[
+            { label: "Pass Rate", value: `%${passRate}`, color: passRate >= 80 ? "text-emerald-400" : passRate >= 50 ? "text-amber-400" : "text-red-400", bg: passRate >= 80 ? "bg-emerald-500/10" : passRate >= 50 ? "bg-amber-500/10" : "bg-red-500/10" },
+            { label: "Geçti",     value: passed,  color: "text-emerald-400", bg: "bg-emerald-500/10" },
+            { label: "Başarısız", value: failed,  color: "text-red-400",     bg: "bg-red-500/10"     },
+            { label: "Engellendi",value: blocked, color: "text-amber-400",   bg: "bg-amber-500/10"   },
+            { label: "Atlandı",   value: runCases.filter(rc => rc.status === "skipped").length, color: "text-fg-muted", bg: "bg-surface-overlay" },
+            { label: "Toplam",    value: total,   color: "text-fg",          bg: "bg-surface-overlay" },
+          ].map(s => (
+            <div key={s.label} className={cn("rounded-xl border border-border p-4", s.bg)}>
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-fg-subtle">{s.label}</p>
+              <p className={cn("mt-2 text-2xl font-bold tabular-nums", s.color)}>{s.value}</p>
+            </div>
+          ))}
+        </div>
+
+        {/* Stacked progress bar */}
+        {total > 0 && (
+          <div className="mt-4 flex w-full max-w-lg h-2 overflow-hidden rounded-full gap-px">
+            {passed  > 0 && <div className="bg-emerald-500" style={{ width: `${(passed  / total) * 100}%` }} />}
+            {failed  > 0 && <div className="bg-red-500"     style={{ width: `${(failed  / total) * 100}%` }} />}
+            {blocked > 0 && <div className="bg-amber-500"   style={{ width: `${(blocked / total) * 100}%` }} />}
+            {notRun  > 0 && <div className="bg-slate-600"   style={{ width: `${(notRun  / total) * 100}%` }} />}
+          </div>
+        )}
+
+        {/* Insight */}
+        {failRate > 0 && (
+          <p className="mt-4 max-w-sm text-[12px] text-fg-subtle">
+            {failRate >= 50
+              ? "Başarısızlık oranı yüksek — kritik defect'leri kontrol edin ve bir regresyon seti oluşturmayı düşünün."
+              : `${failed} başarısız senaryo var. Defect oluşturup takip etmeyi unutmayın.`}
+          </p>
+        )}
+
+        {/* Actions */}
+        <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+          <Link
+            href={`/p/${projectId}/management/reports`}
+            className="flex items-center gap-2 rounded-xl bg-brand px-5 py-2.5 text-[13px] font-semibold text-brand-fg hover:brightness-105 transition-colors"
+          >
+            Rapora Git →
+          </Link>
+          <Link
+            href={`/p/${projectId}/management/defects`}
+            className="flex items-center gap-2 rounded-xl border border-border bg-surface-raised px-5 py-2.5 text-[13px] text-fg-muted hover:text-fg transition-colors"
+          >
+            Defect Ekle
+          </Link>
+          <Link
+            href={`/p/${projectId}/management/runs`}
+            className="flex items-center gap-2 rounded-xl border border-border bg-surface-raised px-5 py-2.5 text-[13px] text-fg-muted hover:text-fg transition-colors"
+          >
+            Runs Listesi
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
   return (
+    <>
     <div className="flex bg-bg" style={{ height: "calc(100vh - 48px)" }}>
 
       {/* LEFT: Case List / AI Sidebar */}
@@ -798,15 +999,20 @@ export default function ManagementRunExecutePage() {
         <div className="border-b border-border px-4 py-3">
           <div className="flex items-center gap-2 mb-1">
             <Link href={`/p/${projectId}/management/runs`}
-              className="text-slate-600 hover:text-slate-300 transition-colors">
+              className="text-fg-disabled hover:text-fg transition-colors">
               <IcBack/>
             </Link>
-            <p className="flex-1 min-w-0 truncate text-xs font-semibold text-slate-200">
+            <p className="flex-1 min-w-0 truncate text-xs font-semibold text-fg">
               {loading ? "Yükleniyor…" : (run?.name ?? "Execute Run")}
             </p>
+            {!loading && total > 0 && (
+              <span className="shrink-0 rounded-md bg-surface-overlay px-1.5 py-0.5 font-mono text-[10px] text-fg-disabled tabular-nums">
+                {activeCaseIndex + 1}/{total}
+              </span>
+            )}
           </div>
           {run?.source_ref && (
-            <p className="text-[10px] text-slate-600">{run.source_ref}</p>
+            <p className="text-[10px] text-fg-disabled">{run.source_ref}</p>
           )}
         </div>
 
@@ -819,7 +1025,7 @@ export default function ManagementRunExecutePage() {
               "flex-1 py-2 text-[11px] font-medium transition-colors",
               sidebarTab === "cases"
                 ? "border-b-2 border-teal-500 text-teal-300"
-                : "text-slate-500 hover:text-slate-300 border-b-2 border-transparent",
+                : "text-fg-subtle hover:text-fg border-b-2 border-transparent",
             )}
           >
             Case Listesi
@@ -831,7 +1037,7 @@ export default function ManagementRunExecutePage() {
               "flex-1 py-2 text-[11px] font-medium transition-colors",
               sidebarTab === "ai"
                 ? "border-b-2 border-teal-500 text-teal-300"
-                : "text-slate-500 hover:text-slate-300 border-b-2 border-transparent",
+                : "text-fg-subtle hover:text-fg border-b-2 border-transparent",
             )}
           >
             AI Intelligence
@@ -843,8 +1049,8 @@ export default function ManagementRunExecutePage() {
             {/* Progress */}
             <div className="border-b border-border px-4 py-2.5">
               <div className="flex items-center justify-between mb-1.5">
-                <span className="text-[10px] text-slate-500">İlerleme</span>
-                <span className="text-[10px] font-bold tabular-nums text-slate-300">
+                <span className="text-[10px] text-fg-subtle">İlerleme</span>
+                <span className="text-[10px] font-bold tabular-nums text-fg">
                   {progress?.progress_pct ?? pct}%
                 </span>
               </div>
@@ -864,11 +1070,11 @@ export default function ManagementRunExecutePage() {
                   {progress.passed  > 0 && <span className="text-emerald-400">{progress.passed} pass</span>}
                   {progress.failed  > 0 && <span className="text-red-400">{progress.failed} fail</span>}
                   {progress.blocked > 0 && <span className="text-amber-400">{progress.blocked} blk</span>}
-                  <span className="text-slate-600">{progress.not_run} left</span>
+                  <span className="text-fg-disabled">{progress.not_run} left</span>
                 </div>
               )}
               {!progress && (
-                <div className="mt-1.5 flex justify-between text-[9px] text-slate-600">
+                <div className="mt-1.5 flex justify-between text-[9px] text-fg-disabled">
                   <span>{passed} passed</span>
                   <span>{failed > 0 ? `${failed} fail` : ""}</span>
                   <span>{notRun} left</span>
@@ -876,13 +1082,68 @@ export default function ManagementRunExecutePage() {
               )}
             </div>
 
+            {/* Case list filter tabs */}
+            <div className="flex border-b border-border px-2 pt-1.5">
+              {([
+                { key: "all",     label: "Tümü",    count: total },
+                { key: "not_run", label: "Bekliyor", count: notRun },
+                { key: "failed",  label: "Hatalı",  count: failed + blocked },
+                { key: "passed",  label: "Geçti",   count: passed },
+              ] as { key: "all" | "not_run" | "failed" | "passed"; label: string; count: number }[]).map(f => (
+                <button
+                  key={f.key}
+                  type="button"
+                  onClick={() => setCaseFilter(f.key)}
+                  className={cn(
+                    "flex-1 pb-1.5 text-[9px] font-medium transition-colors border-b-2",
+                    caseFilter === f.key
+                      ? f.key === "failed" ? "border-red-500 text-red-400"
+                        : f.key === "not_run" ? "border-amber-500 text-amber-400"
+                        : f.key === "passed" ? "border-emerald-500 text-emerald-400"
+                        : "border-brand text-brand"
+                      : "border-transparent text-fg-disabled hover:text-fg-subtle",
+                  )}
+                >
+                  {f.label}
+                  {f.count > 0 && (
+                    <span className={cn(
+                      "ml-1 rounded-full px-1 text-[8px] tabular-nums",
+                      caseFilter === f.key ? "bg-surface-overlay" : "bg-surface-overlay opacity-70"
+                    )}>{f.count}</span>
+                  )}
+                </button>
+              ))}
+            </div>
+
+            {/* Jump to first not_run shortcut */}
+            {notRun > 0 && caseFilter !== "not_run" && (
+              <div className="px-2 pt-1.5 pb-0.5">
+                <button
+                  type="button"
+                  onClick={jumpToFirstNotRun}
+                  className="w-full rounded-lg border border-amber-500/20 bg-amber-500/5 py-1.5 text-[10px] text-amber-400 hover:bg-amber-500/10 transition-colors"
+                >
+                  → İlk bekleyene git ({notRun})
+                </button>
+              </div>
+            )}
+
             {/* Case list */}
             <div className="flex-1 overflow-y-auto px-2 py-2 space-y-0.5">
               {loading ? (
                 Array.from({ length: 8 }).map((_, i) => (
                   <div key={i} className="h-10 rounded-lg bg-surface-overlay animate-pulse" style={{ opacity: Math.max(0.2, 1 - i * 0.1) }}/>
                 ))
-              ) : runCases.map(rc => (
+              ) : filteredCases.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-8 gap-2">
+                  <span className="text-2xl opacity-30">
+                    {caseFilter === "not_run" ? "✓" : caseFilter === "failed" ? "✓" : "○"}
+                  </span>
+                  <p className="text-[10px] text-fg-disabled">
+                    {caseFilter === "not_run" ? "Tüm caseler tamamlandı" : caseFilter === "failed" ? "Hatalı case yok" : "Gösterilecek case yok"}
+                  </p>
+                </div>
+              ) : filteredCases.map(rc => (
                 <CaseListItem key={rc.id} rc={rc} isSelected={rc.id === activeCaseId}
                   itemRef={rc.id === activeCaseId ? activeCaseRef : undefined}
                   onClick={() => setSelectedRcId(rc.id)}/>
@@ -891,6 +1152,7 @@ export default function ManagementRunExecutePage() {
 
             {/* Stats footer */}
             <div className="border-t border-border px-3 py-2 space-y-2">
+              <SessionTimer runId={runId} />
               <div className="flex flex-wrap gap-x-3 gap-y-0.5">
                 {[
                   { dot: "bg-emerald-500/70", label: `${passed} ok` },
@@ -900,7 +1162,7 @@ export default function ManagementRunExecutePage() {
                 ].map(s => (
                   <span key={s.label} className="flex items-center gap-1">
                     <span className={cn("h-1.5 w-1.5 rounded-full shrink-0", s.dot)}/>
-                    <span className="text-[9px] text-slate-600">{s.label}</span>
+                    <span className="text-[9px] text-fg-disabled">{s.label}</span>
                   </span>
                 ))}
               </div>
@@ -915,10 +1177,7 @@ export default function ManagementRunExecutePage() {
               {run?.status !== "completed" && notRun > 0 && (passed + failed + blocked) > 0 && (
                 <button type="button"
                   title={`${notRun} senaryo henüz test edilmedi — yine de tamamla`}
-                  onClick={() => {
-                    if (!window.confirm(`${notRun} senaryo henüz test edilmedi. Koşumu tamamlamak istediğinizden emin misiniz?`)) return;
-                    void completeRun.mutateAsync(runId);
-                  }}
+                  onClick={() => setShowEarlyComplete(true)}
                   disabled={completeRun.isPending}
                   className="w-full rounded-lg border border-amber-500/30 py-1.5 text-[11px] font-medium text-amber-400 hover:bg-amber-500/10 disabled:opacity-40 transition-colors">
                   {completeRun.isPending ? "Tamamlanıyor…" : `⚠ Erken Tamamla (${notRun} bekliyor)`}
@@ -944,7 +1203,7 @@ export default function ManagementRunExecutePage() {
         ) : !selectedRc ? (
           <div className="flex h-full flex-col items-center justify-center gap-3 text-center p-8">
             <IcCheck/>
-            <h3 className="text-sm font-semibold text-slate-300">
+            <h3 className="text-sm font-semibold text-fg">
               {runCases.length === 0 ? "Bu run'a case eklenmemiş." : "Case seçin"}
             </h3>
             <Link href={`/p/${projectId}/management/runs`}
@@ -984,5 +1243,38 @@ export default function ManagementRunExecutePage() {
       </div>
 
     </div>
+    {/* Early-complete confirmation dialog */}
+    {showEarlyComplete && (
+      <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+        <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setShowEarlyComplete(false)}/>
+        <div className="relative z-10 w-full max-w-sm rounded-2xl border border-amber-500/30 bg-surface-raised p-6 shadow-2xl">
+          <div className="flex items-start gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-amber-500/15">
+              <svg className="h-5 w-5 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"/></svg>
+            </div>
+            <div className="min-w-0">
+              <p className="text-[14px] font-semibold text-fg">Erken Tamamla?</p>
+              <p className="mt-1 text-[12px] text-fg-muted">
+                <span className="font-semibold text-amber-400">{notRun}</span> senaryo henüz test edilmedi. Koşumu erken tamamlamak istediğinizden emin misiniz?
+              </p>
+              <p className="mt-1.5 text-[11px] text-fg-subtle">Test edilmeyen senaryolar &quot;not_run&quot; olarak kalacak.</p>
+            </div>
+          </div>
+          <div className="mt-5 flex gap-2 justify-end">
+            <button type="button" onClick={() => setShowEarlyComplete(false)}
+              className="rounded-xl border border-border px-4 py-2 text-[12px] text-fg-muted hover:text-fg transition-colors">
+              Vazgeç
+            </button>
+            <button type="button"
+              onClick={() => { setShowEarlyComplete(false); void completeRun.mutateAsync(runId); }}
+              disabled={completeRun.isPending}
+              className="rounded-xl bg-amber-600 px-5 py-2 text-[12px] font-semibold text-white hover:bg-amber-500 disabled:opacity-40 transition-colors">
+              {completeRun.isPending ? "Tamamlanıyor…" : "Evet, Tamamla"}
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
+    </>
   );
 }

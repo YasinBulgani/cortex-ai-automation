@@ -2,7 +2,8 @@
 
 import { useState, useMemo, useCallback } from "react";
 import Link from "next/link";
-import { type UseMutationResult } from "@tanstack/react-query";
+import { useQuery, type UseMutationResult } from "@tanstack/react-query";
+import { apiFetch } from "@/lib/api-client";
 import {
   useExecutionSummary,
   useReleaseReport,
@@ -51,7 +52,7 @@ const SEVERITY_CONFIG: Record<string, { label: string; color: string; bar: strin
   high:     { label: "High",     color: "text-orange-400", bar: "bg-orange-500" },
   medium:   { label: "Medium",   color: "text-amber-400",  bar: "bg-amber-500"  },
   low:      { label: "Low",      color: "text-sky-400",    bar: "bg-sky-500"    },
-  trivial:  { label: "Trivial",  color: "text-slate-400",  bar: "bg-slate-500"  },
+  trivial:  { label: "Trivial",  color: "text-fg-muted",  bar: "bg-slate-500"  },
 };
 
 const DATE_RANGE_OPTIONS = [
@@ -87,6 +88,98 @@ function downloadCSV(rows: { metric: string; value: string | number }[], filenam
   URL.revokeObjectURL(url);
 }
 
+async function downloadXLSX(
+  payload: {
+    summary: ExecutionSummary | undefined;
+    runs: TestRun[];
+    defects: DefectLink[];
+    regressionSets: RegressionSet[];
+    signoffs: ReleaseSignoff[];
+    cases: TestCase[];
+    passRate: number;
+    openDefects: number;
+    activeRuns: number;
+    userIdMap: Record<string, string>;
+  },
+  filename: string,
+) {
+  const XLSX = await import("xlsx");
+  const wb = XLSX.utils.book_new();
+
+  // ── Sheet 1: Execution Summary ──────────────────────────────────────────
+  const summaryRows = [
+    ["Metrik", "Değer"],
+    ["Toplam Case",      payload.summary?.total ?? 0],
+    ["Geçti",            payload.summary?.passed ?? 0],
+    ["Başarısız",        payload.summary?.failed ?? 0],
+    ["Engellendi",       payload.summary?.blocked ?? 0],
+    ["Çalıştırılmadı",  payload.summary?.not_run ?? 0],
+    ["Geçme Oranı (%)", payload.passRate.toFixed(1)],
+    ["Aktif Run",        payload.activeRuns],
+    ["Açık Defect",      payload.openDefects],
+    ["Dışa Aktarım Tarihi", new Date().toLocaleString("tr-TR")],
+  ];
+  const ws1 = XLSX.utils.aoa_to_sheet(summaryRows);
+  ws1["!cols"] = [{ wch: 24 }, { wch: 16 }];
+  XLSX.utils.book_append_sheet(wb, ws1, "Yürütme Özeti");
+
+  // ── Sheet 2: Test Runs ──────────────────────────────────────────────────
+  const runHeaders = ["Run Adı", "Durum", "Ortam", "Başlangıç", "Tamamlanma"];
+  const runRows = payload.runs.map(r => [
+    r.name,
+    r.status,
+    r.environment ?? "",
+    r.created_at ? new Date(r.created_at).toLocaleDateString("tr-TR") : "",
+    r.completed_at ? new Date(r.completed_at as string).toLocaleDateString("tr-TR") : "",
+  ]);
+  const ws2 = XLSX.utils.aoa_to_sheet([runHeaders, ...runRows]);
+  ws2["!cols"] = [{ wch: 32 }, { wch: 14 }, { wch: 12 }, { wch: 14 }, { wch: 14 }];
+  XLSX.utils.book_append_sheet(wb, ws2, "Test Koşumları");
+
+  // ── Sheet 3: Defects ────────────────────────────────────────────────────
+  const defHeaders = ["Defect Başlığı", "Durum", "Severity", "Priority", "External Key", "Oluşturulma"];
+  const defRows = payload.defects.map(d => [
+    d.title,
+    d.status,
+    d.severity,
+    d.priority,
+    d.external_key ?? "",
+    d.created_at ? new Date(d.created_at).toLocaleDateString("tr-TR") : "",
+  ]);
+  const ws3 = XLSX.utils.aoa_to_sheet([defHeaders, ...defRows]);
+  ws3["!cols"] = [{ wch: 40 }, { wch: 14 }, { wch: 12 }, { wch: 10 }, { wch: 14 }, { wch: 14 }];
+  XLSX.utils.book_append_sheet(wb, ws3, "Defektler");
+
+  // ── Sheet 4: Regression Sets ────────────────────────────────────────────
+  const regHeaders = ["Regresyon Seti", "Tip", "Case Sayısı", "Oluşturulma"];
+  const regRows = payload.regressionSets.map(rs => [
+    rs.name,
+    rs.set_type ?? "",
+    rs.cases?.length ?? 0,
+    rs.created_at ? new Date(rs.created_at).toLocaleDateString("tr-TR") : "",
+  ]);
+  const ws4 = XLSX.utils.aoa_to_sheet([regHeaders, ...regRows]);
+  ws4["!cols"] = [{ wch: 32 }, { wch: 14 }, { wch: 12 }, { wch: 18 }];
+  XLSX.utils.book_append_sheet(wb, ws4, "Regresyon Setleri");
+
+  // ── Sheet 5: Test Cases ─────────────────────────────────────────────────
+  const caseHeaders = ["Case Key", "Başlık", "Öncelik", "Tip", "Durum", "Son Koşum", "Sahip"];
+  const caseRows = payload.cases.map(c => [
+    c.case_key ?? "",
+    c.title,
+    c.priority ?? "",
+    c.type ?? "",
+    c.status ?? "",
+    c.last_run_status ?? "",
+    payload.userIdMap[c.owner_id ?? ""] ?? "",
+  ]);
+  const ws5 = XLSX.utils.aoa_to_sheet([caseHeaders, ...caseRows]);
+  ws5["!cols"] = [{ wch: 12 }, { wch: 40 }, { wch: 10 }, { wch: 12 }, { wch: 12 }, { wch: 14 }, { wch: 20 }];
+  XLSX.utils.book_append_sheet(wb, ws5, "Test Case'leri");
+
+  XLSX.writeFile(wb, filename);
+}
+
 // ─── Small Components ────────────────────────────────────────────────────────
 
 function KpiCard({ label, value, sub }: { label: string; value: string | number; sub?: string }) {
@@ -103,7 +196,7 @@ function SkeletonRows({ n = 4 }: { n?: number }) {
   return (
     <div className="space-y-3">
       {Array.from({ length: n }).map((_, i) => (
-        <div key={i} className="h-12 w-full animate-pulse rounded-xl bg-white/[0.04]" />
+        <div key={i} className="h-12 w-full animate-pulse rounded-xl bg-surface-overlay" />
       ))}
     </div>
   );
@@ -266,7 +359,7 @@ function ExecutionBarChart({
     { label: "Geçti",     count: passed,  heightPct: (passed  / total) * 100, color: "bg-emerald-500", text: "text-emerald-400" },
     { label: "Başarısız", count: failed,  heightPct: (failed  / total) * 100, color: "bg-red-500",     text: "text-red-400"     },
     { label: "Engellendi",count: blocked, heightPct: (blocked / total) * 100, color: "bg-amber-500",   text: "text-amber-400"   },
-    { label: "Bekliyor",  count: notRun,  heightPct: (notRun  / total) * 100, color: "bg-slate-600",   text: "text-slate-400"   },
+    { label: "Bekliyor",  count: notRun,  heightPct: (notRun  / total) * 100, color: "bg-slate-600",   text: "text-fg-muted"   },
   ];
 
   return (
@@ -302,11 +395,11 @@ function ChecklistRow({ item }: { item: ReleaseChecklistItem }) {
     item.status === "warn" ? 60  : 25;
 
   return (
-    <div className="flex items-center gap-3 rounded-lg border border-border bg-white/[0.02] px-4 py-3">
+    <div className="flex items-center gap-3 rounded-lg border border-border bg-surface-overlay/30 px-4 py-3">
       <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${dot}`} />
       <span className="flex-1 text-[13px] text-fg">{item.label}</span>
       <div className="flex items-center gap-2 w-40">
-        <div className="h-1 flex-1 rounded-full bg-white/[0.06] overflow-hidden">
+        <div className="h-1 flex-1 rounded-full bg-surface-accent overflow-hidden">
           <div className={`h-full rounded-full ${bar}`} style={{ width: `${pct}%` }} />
         </div>
         <span className="text-[11px] text-fg-subtle w-12 text-right truncate">{item.metric}</span>
@@ -350,7 +443,7 @@ function ExecutionSummaryTab({
                 { n: passed,  c: "bg-emerald-500" },
                 { n: failed,  c: "bg-red-500"     },
                 { n: blocked, c: "bg-amber-500"   },
-                { n: notRun,  c: "bg-white/[0.08]"},
+                { n: notRun,  c: "bg-surface-accent"},
               ].map(({ n, c }, i) => n > 0 ? (
                 <div key={i} className={`${c} h-full`} style={{ width: `${(n / execTotal) * 100}%` }} />
               ) : null)}
@@ -397,7 +490,7 @@ function ExecutionSummaryTab({
                 const runBlocked = snap?.blocked ?? 0;
                 const runTotal   = runPassed + runFailed + runBlocked;
                 return (
-                  <tr key={run.id} className="border-b border-border hover:bg-white/[0.04] transition-colors">
+                  <tr key={run.id} className="border-b border-border hover:bg-surface-overlay transition-colors">
                     <td className="w-6 pl-4 py-3">
                       <span className={`inline-block h-1.5 w-1.5 rounded-full ${dot}`} />
                     </td>
@@ -415,7 +508,7 @@ function ExecutionSummaryTab({
                           {runBlocked > 0 && <div className="bg-amber-500 h-full" style={{ width: `${(runBlocked / runTotal) * 100}%` }} />}
                         </div>
                       ) : (
-                        <div className="h-1.5 w-full rounded-full bg-white/[0.06]" />
+                        <div className="h-1.5 w-full rounded-full bg-surface-accent" />
                       )}
                     </td>
                     <td className="px-4 py-3">
@@ -458,11 +551,11 @@ function RegressionReportTab({
   const sets = regressionSets ?? [];
   const displayRuns = filteredRuns.length > 0 ? filteredRuns : (runs ?? []);
 
-  const getLastRunStatus = (_setId: string): string => {
-    // Run'lar henüz regression_set_id alanı döndürmüyor; "—" gösteriliyor.
-    // Gerçek eşleştirme için backend'in runs API'sine regression_set_id eklenmesi gerekiyor.
-    void displayRuns; // suppress unused warning
-    return "—";
+  const getLastRunStatus = (setId: string): string => {
+    const setRuns = displayRuns
+      .filter(r => r.source_type === "regression" && r.source_ref === setId)
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    return setRuns[0]?.status ?? "—";
   };
 
   return (
@@ -471,9 +564,6 @@ function RegressionReportTab({
         <div className="border-b border-border px-5 py-3 flex items-center justify-between">
           <div>
             <h2 className="text-[11px] font-medium uppercase tracking-wider text-fg-subtle">Regresyon Setleri</h2>
-            <p className="mt-0.5 text-[10px] text-amber-400/70">
-              Son run durumu: backend regression_set_id alanı hazır olduğunda otomatik hesaplanacak.
-            </p>
           </div>
           <span className="rounded-full border border-border bg-surface-overlay px-2 py-0.5 text-[10px] text-fg-subtle">{sets.length} set</span>
         </div>
@@ -500,7 +590,7 @@ function RegressionReportTab({
                   lastStatus === "failed"    ? "text-red-400"     :
                   lastStatus === "in_progress" ? "text-blue-400"  : "text-fg-subtle";
                 return (
-                  <tr key={set.id} className="border-b border-border hover:bg-white/[0.04] transition-colors">
+                  <tr key={set.id} className="border-b border-border hover:bg-surface-overlay transition-colors">
                     <td className="px-4 py-3">
                       <div>
                         <p className="text-[13px] text-fg">{set.name}</p>
@@ -593,12 +683,12 @@ function DefectSummaryTab({
             {orderedSeverities.map(sev => {
               const count = severityCounts[sev] ?? 0;
               if (count === 0 && !severityCounts[sev]) return null;
-              const cfg = SEVERITY_CONFIG[sev] ?? { label: sev, color: "text-slate-400", bar: "bg-slate-500" };
+              const cfg = SEVERITY_CONFIG[sev] ?? { label: sev, color: "text-fg-muted", bar: "bg-slate-500" };
               const widthPct = (count / maxCount) * 100;
               return (
                 <div key={sev} className="flex items-center gap-3">
                   <span className={`w-16 text-[11px] font-medium shrink-0 ${cfg.color}`}>{cfg.label}</span>
-                  <div className="flex-1 h-2 rounded-full bg-white/[0.06] overflow-hidden">
+                  <div className="flex-1 h-2 rounded-full bg-surface-accent overflow-hidden">
                     <div className={`h-full rounded-full ${cfg.bar} transition-all duration-500`} style={{ width: `${widthPct}%` }} />
                   </div>
                   <span className="w-8 text-right text-[12px] text-fg-muted shrink-0">{count}</span>
@@ -613,8 +703,8 @@ function DefectSummaryTab({
                 const widthPct = (count / maxCount) * 100;
                 return (
                   <div key={sev} className="flex items-center gap-3">
-                    <span className="w-16 text-[11px] font-medium shrink-0 text-slate-400 capitalize">{sev}</span>
-                    <div className="flex-1 h-2 rounded-full bg-white/[0.06] overflow-hidden">
+                    <span className="w-16 text-[11px] font-medium shrink-0 text-fg-muted capitalize">{sev}</span>
+                    <div className="flex-1 h-2 rounded-full bg-surface-accent overflow-hidden">
                       <div className="h-full rounded-full bg-slate-500 transition-all duration-500" style={{ width: `${widthPct}%` }} />
                     </div>
                     <span className="w-8 text-right text-[12px] text-fg-muted shrink-0">{count}</span>
@@ -650,12 +740,12 @@ function DefectSummaryTab({
             </thead>
             <tbody>
               {allDefects.slice(0, 20).map((d: DefectLink) => {
-                const sevCfg = SEVERITY_CONFIG[(d.severity ?? "").toLowerCase()] ?? { label: d.severity, color: "text-slate-400" };
+                const sevCfg = SEVERITY_CONFIG[(d.severity ?? "").toLowerCase()] ?? { label: d.severity, color: "text-fg-muted" };
                 const isOpen = !["closed", "resolved", "fixed", "done"].includes(d.status.toLowerCase());
                 return (
-                  <tr key={d.id} className="border-b border-border hover:bg-white/[0.04] transition-colors">
+                  <tr key={d.id} className="border-b border-border hover:bg-surface-overlay transition-colors">
                     <td className="px-4 py-3">
-                      {d.url ? (
+                      {d.url && /^https?:\/\//i.test(d.url) ? (
                         <a href={d.url} target="_blank" rel="noopener noreferrer"
                           className="text-[12px] text-brand-fg hover:opacity-80 font-mono">
                           {d.external_key}
@@ -742,7 +832,7 @@ function ReleaseReadinessTab({
           <h2 className="text-[11px] font-medium uppercase tracking-wider text-fg-subtle">Hazırlık Skoru</h2>
           <span className={`text-3xl font-bold ${scoreColor}`}>{readinessScore}<span className="text-lg">/100</span></span>
         </div>
-        <div className="h-2.5 w-full rounded-full bg-white/[0.06] overflow-hidden">
+        <div className="h-2.5 w-full rounded-full bg-surface-accent overflow-hidden">
           <div className={`h-full rounded-full transition-all duration-700 ${scoreBar}`} style={{ width: `${readinessScore}%` }} />
         </div>
         <div className="mt-3 grid grid-cols-3 gap-3 text-center">
@@ -821,7 +911,7 @@ function ReleaseReadinessTab({
             <div>
               <label className="mb-1 block text-[10px] text-fg-subtle">Rol</label>
               <select value={signoffRole} onChange={e => setSignoffRole(e.target.value)}
-                className="w-full rounded-xl border border-border bg-white/[0.04] px-3 py-2 text-[13px] text-fg outline-none focus:border-teal-500/40">
+                className="w-full rounded-xl border border-border bg-surface-overlay px-3 py-2 text-[13px] text-fg outline-none focus:border-teal-500/40">
                 {["QA Lead", "Dev Lead", "Product Owner", "Release Manager", "Security", "CTO"].map(r => (
                   <option key={r} value={r}>{r}</option>
                 ))}
@@ -830,7 +920,7 @@ function ReleaseReadinessTab({
             <div>
               <label className="mb-1 block text-[10px] text-fg-subtle">Karar</label>
               <select value={signoffDecision} onChange={e => setSignoffDecision(e.target.value as "approved" | "rejected")}
-                className="w-full rounded-xl border border-border bg-white/[0.04] px-3 py-2 text-[13px] text-fg outline-none focus:border-teal-500/40">
+                className="w-full rounded-xl border border-border bg-surface-overlay px-3 py-2 text-[13px] text-fg outline-none focus:border-teal-500/40">
                 <option value="approved">Onaylandı</option>
                 <option value="rejected">Reddedildi</option>
               </select>
@@ -838,7 +928,7 @@ function ReleaseReadinessTab({
           </div>
           <textarea value={signoffComment} onChange={e => setSignoffComment(e.target.value)}
             rows={2} placeholder="Opsiyonel yorum…"
-            className="w-full resize-none rounded-xl border border-border bg-white/[0.04] px-3 py-2 text-[13px] text-fg placeholder-slate-600 outline-none focus:border-teal-500/40" />
+            className="w-full resize-none rounded-xl border border-border bg-surface-overlay px-3 py-2 text-[13px] text-fg placeholder:text-fg-disabled outline-none focus:border-teal-500/40" />
           <div className="flex justify-end">
             <button type="button"
               onClick={async () => {
@@ -863,60 +953,91 @@ function ReleaseReadinessTab({
 
 // ─── Tester Performance Tab ──────────────────────────────────────────────────
 
-type SortKey = "assigned" | "completed" | "passRate";
+type SortKey = "assigned" | "completed" | "passRate" | "completionRate";
 type SortDir = "asc" | "desc";
+
+function PassRateBar({ value, size = "md" }: { value: number; size?: "sm" | "md" }) {
+  const color = value >= 80 ? "bg-emerald-500" : value >= 50 ? "bg-amber-500" : "bg-red-500";
+  const h = size === "sm" ? "h-1" : "h-1.5";
+  return (
+    <div className="flex items-center gap-2 min-w-[100px]">
+      <div className={`flex-1 ${h} rounded-full bg-surface-overlay overflow-hidden`}>
+        <div className={`${h} rounded-full ${color} transition-all duration-500`} style={{ width: `${value}%` }} />
+      </div>
+      <span className={`text-[11px] font-semibold tabular-nums w-8 text-right ${
+        value >= 80 ? "text-emerald-400" : value >= 50 ? "text-amber-400" : "text-red-400"
+      }`}>{value}%</span>
+    </div>
+  );
+}
 
 function TesterPerformanceTab({
   cases,
   runs,
   filteredRuns,
   loading,
+  userIdMap = {},
 }: {
   cases: TestCase[] | undefined;
   runs: TestRun[] | undefined;
   filteredRuns: TestRun[];
   loading: boolean;
+  userIdMap?: Record<string, string>;
 }) {
   const [sortKey, setSortKey] = useState<SortKey>("assigned");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
 
   const displayRuns = filteredRuns.length > 0 ? filteredRuns : (runs ?? []);
 
+  const resolveUser = (rawId: string): string => {
+    if (!rawId) return "Atanmamış";
+    return userIdMap[rawId] ?? `…${rawId.slice(-8)}`;
+  };
+
   const testerRows = useMemo(() => {
     if (!cases) return [];
-    // owner_id is a user UUID from the backend. No display name is available
-    // without a separate /users endpoint. We shorten UUIDs for readability.
-    const shortenId = (id: string) =>
-      id.length > 12 ? `…${id.slice(-8)}` : id;
 
-    const map = new Map<string, { assigned: number; completed: number; passed: number }>();
+    const map = new Map<string, { userId: string; assigned: number; completed: number; passed: number; failed: number; blocked: number }>();
 
     for (const tc of cases) {
       const rawKey = (tc.owner_id ?? "").trim();
-      const key = rawKey ? shortenId(rawKey) : "Atanmamış";
-      const row = map.get(key) ?? { assigned: 0, completed: 0, passed: 0 };
+      const displayKey = rawKey ? (userIdMap[rawKey] ?? `…${rawKey.slice(-8)}`) : "Atanmamış";
+      const row = map.get(displayKey) ?? { userId: rawKey, assigned: 0, completed: 0, passed: 0, failed: 0, blocked: 0 };
       row.assigned += 1;
-      if (["passed", "failed", "blocked"].includes(tc.last_run_status ?? "")) row.completed += 1;
-      if (tc.last_run_status === "passed") row.passed += 1;
-      map.set(key, row);
+      const st = tc.last_run_status ?? "";
+      if (["passed", "failed", "blocked"].includes(st)) row.completed += 1;
+      if (st === "passed")  row.passed  += 1;
+      if (st === "failed")  row.failed  += 1;
+      if (st === "blocked") row.blocked += 1;
+      map.set(displayKey, row);
     }
 
     // Add run-level tester info (assigned_to is a UUID when present)
     for (const run of displayRuns) {
       const rawKey = (run.assigned_to ?? "").trim();
       if (!rawKey) continue;
-      const key = shortenId(rawKey);
-      if (!map.has(key)) map.set(key, { assigned: 0, completed: 0, passed: 0 });
+      const displayKey = userIdMap[rawKey] ?? `…${rawKey.slice(-8)}`;
+      if (!map.has(displayKey)) map.set(displayKey, { userId: rawKey, assigned: 0, completed: 0, passed: 0, failed: 0, blocked: 0 });
     }
 
     return [...map.entries()].map(([tester, data]) => ({
       tester,
+      userId: data.userId,
       assigned: data.assigned,
       completed: data.completed,
-      passRate: data.completed > 0 ? Math.round((data.passed / data.completed) * 100) : 0,
-      active: displayRuns.some(r => r.status === "in_progress" && r.assigned_to != null && r.assigned_to.endsWith(tester.replace("…", ""))),
+      passed:    data.passed,
+      failed:    data.failed,
+      blocked:   data.blocked,
+      passRate:         data.completed > 0 ? Math.round((data.passed  / data.completed) * 100) : 0,
+      completionRate:   data.assigned   > 0 ? Math.round((data.completed / data.assigned) * 100) : 0,
+      active: displayRuns.some(r =>
+        r.status === "in_progress" &&
+        r.assigned_to != null &&
+        (r.assigned_to === data.userId || r.assigned_to.endsWith(data.userId.slice(-8)))
+      ),
     }));
-  }, [cases, displayRuns]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cases, displayRuns, userIdMap]);
 
   const sorted = useMemo(() => {
     return [...testerRows].sort((a, b) => {
@@ -935,89 +1056,135 @@ function TesterPerformanceTab({
   }
 
   const arrow = (key: SortKey) => {
-    if (sortKey !== key) return <span className="text-fg-subtle">↕</span>;
-    return <span className="text-emerald-400">{sortDir === "asc" ? "↑" : "↓"}</span>;
+    if (sortKey !== key) return <span className="text-fg-disabled opacity-50">↕</span>;
+    return <span className="text-brand">{sortDir === "asc" ? "↑" : "↓"}</span>;
   };
+
+  // Aggregate KPIs
+  const totalAssigned   = testerRows.reduce((s, r) => s + r.assigned, 0);
+  const totalCompleted  = testerRows.reduce((s, r) => s + r.completed, 0);
+  const totalPassed     = testerRows.reduce((s, r) => s + r.passed, 0);
+  const overallPassRate = totalCompleted > 0 ? Math.round((totalPassed / totalCompleted) * 100) : 0;
+  const activeTesterCount = sorted.filter(r => r.active).length;
 
   return (
     <div className="space-y-6">
+      {/* KPI summary bar */}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <KpiCard label="Toplam Tester"   value={sorted.length}       sub="case atanmış"       />
+        <KpiCard label="Toplam Atanan"   value={totalAssigned}       sub="test case"          />
+        <KpiCard label="Tamamlama"       value={`${totalCompleted > 0 ? Math.round((totalCompleted/totalAssigned)*100) : 0}%`} sub={`${totalCompleted}/${totalAssigned}`} />
+        <KpiCard label="Genel Pass Rate" value={`${overallPassRate}%`} sub="tamamlananlar üzerinden" />
+      </div>
+
+      {/* Detailed table */}
       <div className="rounded-xl border border-border bg-surface-raised overflow-hidden">
         <div className="border-b border-border px-5 py-3 flex items-center justify-between">
           <div>
-            <h2 className="text-[11px] font-medium uppercase tracking-wider text-fg-subtle">Tester Performansı</h2>
-            <p className="mt-0.5 text-[10px] text-fg-subtle">
-              Case owner_id alanından türetildi — kullanıcı adları profil sayfasında görünür.
+            <h2 className="text-[11px] font-medium uppercase tracking-wider text-fg-subtle">Tester Performans Detayı</h2>
+            <p className="mt-0.5 text-[10px] text-fg-disabled">
+              Proje üyeleri üzerinden çözümlendi.
             </p>
           </div>
-          <span className="text-[10px] text-fg-subtle">{sorted.length} tester</span>
+          <div className="flex items-center gap-3">
+            {activeTesterCount > 0 && (
+              <span className="flex items-center gap-1.5 text-[10px] text-emerald-400">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                {activeTesterCount} aktif
+              </span>
+            )}
+            <span className="text-[10px] text-fg-subtle">{sorted.length} tester</span>
+          </div>
         </div>
         {loading ? (
           <div className="p-6"><SkeletonRows /></div>
         ) : sorted.length === 0 ? (
           <p className="px-5 py-6 text-[13px] text-fg-subtle">Case veya tester ataması bulunamadı.</p>
         ) : (
-          <table className="w-full border-collapse">
-            <thead>
-              <tr className="border-b border-border">
-                <th className="px-4 py-2 text-left text-[10px] font-medium uppercase tracking-wider text-fg-subtle">Tester</th>
-                <th
-                  className="px-4 py-2 text-left text-[10px] font-medium uppercase tracking-wider text-fg-subtle cursor-pointer select-none"
-                  onClick={() => toggleSort("assigned")}
-                >
-                  Atanan {arrow("assigned")}
-                </th>
-                <th
-                  className="px-4 py-2 text-left text-[10px] font-medium uppercase tracking-wider text-fg-subtle cursor-pointer select-none"
-                  onClick={() => toggleSort("completed")}
-                >
-                  Tamamlanan {arrow("completed")}
-                </th>
-                <th
-                  className="px-4 py-2 text-left text-[10px] font-medium uppercase tracking-wider text-fg-subtle cursor-pointer select-none"
-                  onClick={() => toggleSort("passRate")}
-                >
-                  Geçme % {arrow("passRate")}
-                </th>
-                <th className="px-4 py-2 text-left text-[10px] font-medium uppercase tracking-wider text-fg-subtle">Aktif</th>
-              </tr>
-            </thead>
-            <tbody>
-              {sorted.map(row => (
-                <tr key={row.tester} className="border-b border-border hover:bg-white/[0.04] transition-colors">
-                  <td className="px-4 py-3 text-[13px] text-fg">{row.tester}</td>
-                  <td className="px-4 py-3 text-[13px] text-fg-muted">{row.assigned}</td>
-                  <td className="px-4 py-3 text-[13px] text-fg-muted">{row.completed}</td>
-                  <td className="px-4 py-3">
-                    <span className={`text-[12px] font-semibold ${
-                      row.passRate >= 80 ? "text-emerald-400" :
-                      row.passRate >= 50 ? "text-amber-400" : "text-red-400"
-                    }`}>{row.passRate}%</span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className={`inline-block h-2 w-2 rounded-full ${row.active ? "bg-emerald-500 animate-pulse" : "bg-slate-600"}`} />
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse">
+              <thead>
+                <tr className="border-b border-border bg-surface-overlay/30">
+                  <th className="px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wider text-fg-subtle">Tester</th>
+                  <th
+                    className="px-4 py-2.5 text-right text-[10px] font-semibold uppercase tracking-wider text-fg-subtle cursor-pointer select-none hover:text-fg transition-colors"
+                    onClick={() => toggleSort("assigned")}
+                  >
+                    Atanan {arrow("assigned")}
+                  </th>
+                  <th
+                    className="px-4 py-2.5 text-right text-[10px] font-semibold uppercase tracking-wider text-fg-subtle cursor-pointer select-none hover:text-fg transition-colors"
+                    onClick={() => toggleSort("completed")}
+                  >
+                    Tamamlanan {arrow("completed")}
+                  </th>
+                  <th
+                    className="px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wider text-fg-subtle cursor-pointer select-none hover:text-fg transition-colors"
+                    onClick={() => toggleSort("completionRate")}
+                  >
+                    Tamamlama % {arrow("completionRate")}
+                  </th>
+                  <th
+                    className="px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wider text-fg-subtle cursor-pointer select-none hover:text-fg transition-colors"
+                    onClick={() => toggleSort("passRate")}
+                  >
+                    Pass Rate {arrow("passRate")}
+                  </th>
+                  <th className="px-4 py-2.5 text-center text-[10px] font-semibold uppercase tracking-wider text-fg-subtle">Sonuçlar</th>
+                  <th className="px-4 py-2.5 text-center text-[10px] font-semibold uppercase tracking-wider text-fg-subtle">Durum</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {sorted.map((row, idx) => (
+                  <tr
+                    key={row.tester}
+                    className={`border-b border-border hover:bg-surface-overlay/50 transition-colors ${idx % 2 === 0 ? "" : "bg-surface-overlay/10"}`}
+                  >
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2">
+                        <div className="flex h-6 w-6 items-center justify-center rounded-full bg-brand/10 text-[10px] font-bold text-brand">
+                          {row.tester === "Atanmamış" ? "?" : row.tester.slice(-1).toUpperCase()}
+                        </div>
+                        <span className="text-[13px] text-fg font-medium">{row.tester}</span>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-right text-[13px] text-fg-muted tabular-nums">{row.assigned}</td>
+                    <td className="px-4 py-3 text-right text-[13px] text-fg-muted tabular-nums">{row.completed}</td>
+                    <td className="px-4 py-3 min-w-[130px]">
+                      <PassRateBar value={row.completionRate} />
+                    </td>
+                    <td className="px-4 py-3 min-w-[130px]">
+                      <PassRateBar value={row.passRate} />
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center justify-center gap-2 text-[11px]">
+                        {row.passed  > 0 && <span className="flex items-center gap-1 text-emerald-400"><span className="h-1.5 w-1.5 rounded-full bg-emerald-500"/>{row.passed}</span>}
+                        {row.failed  > 0 && <span className="flex items-center gap-1 text-red-400"><span className="h-1.5 w-1.5 rounded-full bg-red-500"/>{row.failed}</span>}
+                        {row.blocked > 0 && <span className="flex items-center gap-1 text-amber-400"><span className="h-1.5 w-1.5 rounded-full bg-amber-500"/>{row.blocked}</span>}
+                        {row.passed === 0 && row.failed === 0 && row.blocked === 0 && (
+                          <span className="text-fg-disabled">—</span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      {row.active ? (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-medium text-emerald-400">
+                          <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                          Aktif
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-surface-overlay px-2 py-0.5 text-[10px] text-fg-disabled">
+                          İdle
+                        </span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
-
-      {sorted.length > 0 && (
-        <div className="grid grid-cols-3 gap-3">
-          <KpiCard label="Toplam Tester" value={sorted.length} sub="case atanmış" />
-          <KpiCard
-            label="Ort. Pass Rate"
-            value={`${Math.round(sorted.reduce((s, r) => s + r.passRate, 0) / sorted.length)}%`}
-            sub="tüm testerlar"
-          />
-          <KpiCard
-            label="Aktif Tester"
-            value={sorted.filter(r => r.active).length}
-            sub="şu anda çalışıyor"
-          />
-        </div>
-      )}
     </div>
   );
 }
@@ -1152,7 +1319,7 @@ function ModuleCoverageTab({
             </thead>
             <tbody>
               {suiteRows.map(row => (
-                <tr key={row.suite} className="border-b border-border hover:bg-white/[0.04] transition-colors">
+                <tr key={row.suite} className="border-b border-border hover:bg-surface-overlay transition-colors">
                   <td className="px-4 py-3 text-[13px] text-fg">{row.suite}</td>
                   <td className="px-4 py-3 text-[13px] text-fg-muted">{row.total}</td>
                   <td className="px-4 py-3 text-[12px] text-emerald-400">{row.passed}</td>
@@ -1195,6 +1362,23 @@ export default function ManagementReportsPage() {
   const createSignoff                                                                     = useCreateReleaseSignoff(mpid || "");
   const { data: runTrend }                                                                = useManagementRunTrend(mpid || undefined);
   const { data: casesData, isLoading: casesLoading }                                      = useManagementCases(mpid || undefined);
+
+  const { data: membersData } = useQuery({
+    queryKey: ["management", "members", projectId],
+    queryFn: () =>
+      apiFetch<Array<{ user_id: string; email: string; full_name?: string }>>(
+        `/api/v1/organizations/projects/${projectId}/members`
+      ).then(d => (Array.isArray(d) ? d : [])),
+    enabled: !!projectId,
+    staleTime: 5 * 60 * 1000,
+  });
+  const userIdMap = useMemo<Record<string, string>>(() => {
+    const map: Record<string, string> = {};
+    for (const m of membersData ?? []) {
+      map[m.user_id] = m.full_name?.trim() || m.email;
+    }
+    return map;
+  }, [membersData]);
 
   // Derive unique module names dynamically from cases data
   const moduleOptions = useMemo(() =>
@@ -1263,6 +1447,48 @@ export default function ManagementReportsPage() {
   const trendData = trendPoints.map(point => point.value);
 
   function handleCSVExport() {
+    const dateLabel = customRange ? `${customRange.start} – ${customRange.end}` : `Son ${dateRange} gün`;
+    if (activeTab === "tester") {
+      const headers = ["Tester", "Atanan", "Tamamlanan", "Geçti", "Başarısız", "Engellendi", "Pass Rate"];
+      const tMap = new Map<string, {assigned:number;completed:number;passed:number;failed:number;blocked:number}>();
+      for (const tc of (casesData ?? [])) {
+        const rawKey = (tc.owner_id ?? "").trim();
+        const k = rawKey ? (userIdMap[rawKey] ?? `…${rawKey.slice(-8)}`) : "Atanmamış";
+        const row = tMap.get(k) ?? {assigned:0,completed:0,passed:0,failed:0,blocked:0};
+        row.assigned += 1;
+        const st = tc.last_run_status ?? "";
+        if (["passed","failed","blocked"].includes(st)) row.completed += 1;
+        if (st === "passed")  row.passed  += 1;
+        if (st === "failed")  row.failed  += 1;
+        if (st === "blocked") row.blocked += 1;
+        tMap.set(k, row);
+      }
+      const lines = [...tMap.entries()].map(([tester, r]) => {
+        const pct = r.completed > 0 ? `${Math.round(r.passed / r.completed * 100)}%` : "—";
+        return [tester, r.assigned, r.completed, r.passed, r.failed, r.blocked, pct]
+          .map(v => `"${String(v).replace(/"/g, '""')}"`).join(",");
+      });
+      const csv = [headers.join(","), ...lines].join("\n");
+      const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob); const a = document.createElement("a");
+      a.href = url; a.download = `tester-performance-${new Date().toISOString().slice(0, 10)}.csv`; a.click();
+      URL.revokeObjectURL(url);
+      return;
+    }
+    if (activeTab === "defects") {
+      const headers = ["Başlık", "Severity", "Öncelik", "Durum", "Atanan", "Oluşturulma"];
+      const lines = (defects ?? []).map(d => [
+        d.title, d.severity, d.priority, d.status,
+        userIdMap[d.assignee_id ?? ""] ?? d.assignee_id ?? "",
+        new Date(d.created_at).toLocaleDateString("tr-TR"),
+      ].map(v => `"${String(v ?? "").replace(/"/g, '""')}"`).join(","));
+      const csv = [headers.join(","), ...lines].join("\n");
+      const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob); const a = document.createElement("a");
+      a.href = url; a.download = `defects-report-${new Date().toISOString().slice(0, 10)}.csv`; a.click();
+      URL.revokeObjectURL(url);
+      return;
+    }
     const passed  = summary?.passed  ?? 0;
     const failed  = summary?.failed  ?? 0;
     const blocked = summary?.blocked ?? 0;
@@ -1277,10 +1503,35 @@ export default function ManagementReportsPage() {
         { metric: "Not Run",      value: notRun  },
         { metric: "Açık Defect",  value: openDefects },
         { metric: "Aktif Run",    value: activeRuns  },
-        { metric: "Tarih Aralığı", value: customRange ? `${customRange.start} – ${customRange.end}` : `Son ${dateRange} gün` },
+        { metric: "Tarih Aralığı", value: dateLabel },
       ],
-      `cortex-report-${new Date().toISOString().slice(0, 10)}.csv`,
+      `neurex-report-${new Date().toISOString().slice(0, 10)}.csv`,
     );
+  }
+
+  const [xlsxExporting, setXlsxExporting] = useState(false);
+
+  async function handleXLSXExport() {
+    setXlsxExporting(true);
+    try {
+      await downloadXLSX(
+        {
+          summary,
+          runs: runs ?? [],
+          defects: defects ?? [],
+          regressionSets: regressionSets ?? [],
+          signoffs: signoffs ?? [],
+          cases: casesData ?? [],
+          passRate,
+          openDefects,
+          activeRuns,
+          userIdMap,
+        },
+        `neurex-report-${new Date().toISOString().slice(0, 10)}.xlsx`,
+      );
+    } finally {
+      setXlsxExporting(false);
+    }
   }
 
   return (
@@ -1301,7 +1552,7 @@ export default function ManagementReportsPage() {
           <div className="flex items-center gap-2">
             <button
               onClick={handleCSVExport}
-              className="flex items-center gap-1.5 rounded-lg border border-border bg-white/[0.04] px-3 py-1.5 text-[11px] font-medium text-fg-muted transition-colors hover:bg-white/[0.08] hover:text-fg"
+              className="flex items-center gap-1.5 rounded-lg border border-border bg-surface-overlay px-3 py-1.5 text-[11px] font-medium text-fg-muted transition-colors hover:bg-surface-accent hover:text-fg"
             >
               <svg className="h-3 w-3" viewBox="0 0 16 16" fill="none">
                 <path d="M8 1v8m0 0L5 6m3 3 3-3M2 11v2a1 1 0 001 1h10a1 1 0 001-1v-2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
@@ -1309,8 +1560,21 @@ export default function ManagementReportsPage() {
               CSV İndir
             </button>
             <button
+              onClick={() => { void handleXLSXExport(); }}
+              disabled={xlsxExporting}
+              title="5 sayfalık kapsamlı Excel raporu"
+              className="flex items-center gap-1.5 rounded-lg border border-emerald-600/30 bg-emerald-600/10 px-3 py-1.5 text-[11px] font-medium text-emerald-400 transition-colors hover:bg-emerald-600/20 disabled:opacity-50"
+            >
+              <svg className="h-3 w-3" viewBox="0 0 16 16" fill="none">
+                <path d="M9 1H4a1 1 0 00-1 1v12a1 1 0 001 1h8a1 1 0 001-1V5l-4-4z" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M9 1v4h4" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M6 9l4 4M10 9l-4 4" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
+              </svg>
+              {xlsxExporting ? "Hazırlanıyor…" : "XLSX İndir"}
+            </button>
+            <button
               onClick={() => window.print()}
-              className="flex items-center gap-1.5 rounded-lg border border-border bg-white/[0.04] px-3 py-1.5 text-[11px] font-medium text-fg-muted transition-colors hover:bg-white/[0.08] hover:text-fg"
+              className="flex items-center gap-1.5 rounded-lg border border-border bg-surface-overlay px-3 py-1.5 text-[11px] font-medium text-fg-muted transition-colors hover:bg-surface-accent hover:text-fg"
             >
               <svg className="h-3 w-3" viewBox="0 0 16 16" fill="none">
                 <path d="M4 6V2h8v4M4 12H2a1 1 0 01-1-1V7a1 1 0 011-1h12a1 1 0 011 1v4a1 1 0 01-1 1h-2m-8 0v3h8v-3H4z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
@@ -1333,7 +1597,7 @@ export default function ManagementReportsPage() {
                 className={`px-3 py-1.5 text-[11px] font-medium transition-colors ${
                   dateRange === opt.value && !customRange
                     ? "bg-emerald-600/30 text-emerald-400"
-                    : "text-fg-subtle hover:bg-white/[0.04] hover:text-fg"
+                    : "text-fg-subtle hover:bg-surface-overlay hover:text-fg"
                 }`}
               >
                 {opt.label}
@@ -1347,7 +1611,7 @@ export default function ManagementReportsPage() {
               className={`px-3 py-1.5 text-[11px] font-medium transition-colors ${
                 dateRange === CUSTOM_RANGE_VALUE
                   ? "bg-emerald-600/30 text-emerald-400"
-                  : "text-fg-subtle hover:bg-white/[0.04] hover:text-fg"
+                  : "text-fg-subtle hover:bg-surface-overlay hover:text-fg"
               }`}
             >
               Özel
@@ -1476,6 +1740,7 @@ export default function ManagementReportsPage() {
             runs={runs}
             filteredRuns={filteredRuns}
             loading={casesLoading || runsLoading}
+            userIdMap={userIdMap}
           />
         )}
 

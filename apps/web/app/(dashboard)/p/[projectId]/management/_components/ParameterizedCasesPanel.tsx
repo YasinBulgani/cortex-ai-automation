@@ -43,14 +43,14 @@ export function ParameterizedCasesPanel({ caseId }: { caseId: string }) {
       <div className="space-y-4">
         <SchemaEditor caseId={caseId} />
         {paramSetsQuery.isLoading && (
-          <p className="text-sm text-slate-500">Param setleri yükleniyor...</p>
+          <p className="text-sm text-fg-subtle">Param setleri yükleniyor...</p>
         )}
         {!paramSetsQuery.isLoading && sets.length === 0 && (
-          <p className="text-sm text-slate-500">Henüz parametre seti yok. Yukarıdan oluşturun.</p>
+          <p className="text-sm text-fg-subtle">Henüz parametre seti yok. Yukarıdan oluşturun.</p>
         )}
         {sets.length > 0 && (
           <div className="space-y-2">
-            <label className="block text-xs uppercase tracking-wide text-slate-400">
+            <label className="block text-xs uppercase tracking-wide text-fg-muted">
               Aktif param set
             </label>
             <select
@@ -86,7 +86,7 @@ function SchemaEditor({ caseId }: { caseId: string }) {
 
   return (
     <div className="rounded-lg border border-border bg-bg p-3">
-      <p className="mb-2 text-xs uppercase tracking-wide text-slate-400">Yeni schema</p>
+      <p className="mb-2 text-xs uppercase tracking-wide text-fg-muted">Yeni schema</p>
       <div className="space-y-2">
         {fields.map((f, idx) => (
           <div key={idx} className="grid gap-2 md:grid-cols-[1fr_auto_auto_auto]">
@@ -108,7 +108,7 @@ function SchemaEditor({ caseId }: { caseId: string }) {
               <option value="date">date</option>
               <option value="enum">enum</option>
             </select>
-            <label className="flex items-center gap-1 text-xs text-slate-300">
+            <label className="flex items-center gap-1 text-xs text-fg">
               <input
                 type="checkbox"
                 checked={f.required}
@@ -130,7 +130,7 @@ function SchemaEditor({ caseId }: { caseId: string }) {
         <button
           type="button"
           onClick={() => setFields((p) => [...p, { name: "", type: "string", required: false }])}
-          className="rounded border border-border px-2 py-1 text-xs text-slate-200 hover:bg-surface-overlay"
+          className="rounded border border-border px-2 py-1 text-xs text-fg hover:bg-surface-overlay"
         >
           + Alan
         </button>
@@ -146,7 +146,7 @@ function SchemaEditor({ caseId }: { caseId: string }) {
               setSaveErr("Schema kaydedilemedi. Lütfen tekrar deneyin.");
             }
           }}
-          className="rounded bg-cyan-500 px-3 py-1 text-xs font-semibold text-slate-950 hover:bg-cyan-400 disabled:opacity-40"
+          className="rounded bg-cyan-500 px-3 py-1 text-xs font-semibold text-surface-base hover:bg-cyan-400 disabled:opacity-40"
         >
           {createParamSet.isPending ? "Kaydediliyor..." : "Schema kaydet"}
         </button>
@@ -189,9 +189,9 @@ function DataTableEditor({ caseId, paramSet }: { caseId: string; paramSet: CaseP
   return (
     <div className="rounded-lg border border-border bg-bg p-3">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <p className="text-xs uppercase tracking-wide text-slate-400">Data rows</p>
+        <p className="text-xs uppercase tracking-wide text-fg-muted">Data rows</p>
         <div className="flex flex-wrap items-center gap-2">
-          <label className="flex items-center gap-2 text-xs text-slate-300">
+          <label className="flex items-center gap-2 text-xs text-fg">
             count
             <input
               type="number"
@@ -212,11 +212,11 @@ function DataTableEditor({ caseId, paramSet }: { caseId: string; paramSet: CaseP
                 count,
               })
             }
-            className="rounded bg-cyan-500 px-3 py-1 text-xs font-semibold text-slate-950 hover:bg-cyan-400 disabled:opacity-40"
+            className="rounded bg-cyan-500 px-3 py-1 text-xs font-semibold text-surface-base hover:bg-cyan-400 disabled:opacity-40"
           >
             {generate.isPending ? "AI üretiyor..." : "AI ile satır üret"}
           </button>
-          <label className="cursor-pointer rounded border border-border px-3 py-1 text-xs text-slate-200 hover:bg-surface-overlay">
+          <label className="cursor-pointer rounded border border-border px-3 py-1 text-xs text-fg hover:bg-surface-overlay">
             CSV yükle
             <input type="file" accept=".csv,text/csv" onChange={handleCsvUpload} className="hidden" />
           </label>
@@ -224,7 +224,7 @@ function DataTableEditor({ caseId, paramSet }: { caseId: string; paramSet: CaseP
             type="button"
             onClick={handleAddBlankRow}
             disabled={addManual.isPending}
-            className="rounded border border-border px-3 py-1 text-xs text-slate-200 hover:bg-surface-overlay"
+            className="rounded border border-border px-3 py-1 text-xs text-fg hover:bg-surface-overlay"
           >
             + Boş satır
           </button>
@@ -232,7 +232,7 @@ function DataTableEditor({ caseId, paramSet }: { caseId: string; paramSet: CaseP
       </div>
       <div className="overflow-x-auto rounded border border-border">
         <table className="min-w-full divide-y divide-slate-800 text-xs">
-          <thead className="bg-surface-raised uppercase tracking-wide text-slate-400">
+          <thead className="bg-surface-raised uppercase tracking-wide text-fg-muted">
             <tr>
               <th className="px-3 py-2 text-left">#</th>
               <th className="px-3 py-2 text-left">Category</th>
@@ -245,25 +245,25 @@ function DataTableEditor({ caseId, paramSet }: { caseId: string; paramSet: CaseP
               <th className="px-3 py-2 text-left">Expected</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-800 text-slate-200">
+          <tbody className="divide-y divide-slate-800 text-fg">
             {(rowsQuery.data ?? []).map((row, idx) => (
               <tr key={row.id} className="hover:bg-surface-raised">
-                <td className="px-3 py-2 font-mono text-slate-500">{idx + 1}</td>
+                <td className="px-3 py-2 font-mono text-fg-subtle">{idx + 1}</td>
                 <td className="px-3 py-2">{row.category ?? "—"}</td>
-                <td className="px-3 py-2 text-slate-400">{row.source_type}</td>
+                <td className="px-3 py-2 text-fg-muted">{row.source_type}</td>
                 {fieldNames.map((n) => (
                   <td key={n} className="px-3 py-2 font-mono text-[11px]">
                     {String(row.values[n] ?? "")}
                   </td>
                 ))}
-                <td className="px-3 py-2 font-mono text-[11px] text-slate-400">
+                <td className="px-3 py-2 font-mono text-[11px] text-fg-muted">
                   {JSON.stringify(row.expected)}
                 </td>
               </tr>
             ))}
             {(rowsQuery.data ?? []).length === 0 && (
               <tr>
-                <td colSpan={fieldNames.length + 4} className="px-3 py-4 text-center text-slate-500">
+                <td colSpan={fieldNames.length + 4} className="px-3 py-4 text-center text-fg-subtle">
                   Henüz satır yok.
                 </td>
               </tr>
@@ -280,8 +280,8 @@ function ExpandRow({ caseId }: { caseId: string }) {
   return (
     <div className="flex items-center justify-between rounded-lg border border-border bg-bg p-3">
       <div>
-        <p className="text-sm font-medium text-slate-200">Expand cases</p>
-        <p className="text-xs text-slate-500">
+        <p className="text-sm font-medium text-fg">Expand cases</p>
+        <p className="text-xs text-fg-subtle">
           Tüm param setlerindeki satırlar için execution stub üretir.
         </p>
       </div>

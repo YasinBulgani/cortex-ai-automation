@@ -173,9 +173,9 @@ function PageHeader({
   onSelectRun?: (id: string) => void;
 }) {
   return (
-    <div className="flex justify-between items-center px-8 py-4 border-b border-slate-800/80">
+    <div className="flex justify-between items-center px-8 py-4 border-b border-border/80">
       <div className="flex flex-col gap-0.5">
-        <span className="text-xs font-semibold uppercase tracking-widest text-slate-500">
+        <span className="text-xs font-semibold uppercase tracking-widest text-fg-subtle">
           Stand-up
         </span>
         {/* Run seçici — birden fazla aktif run varsa göster */}
@@ -183,7 +183,7 @@ function PageHeader({
           <select
             value={selectedRunId ?? ""}
             onChange={e => onSelectRun(e.target.value)}
-            className="mt-0.5 rounded-lg border border-slate-700 bg-slate-900 px-2 py-1 text-[13px] font-bold text-white outline-none focus:border-teal-500/50 max-w-xs"
+            className="mt-0.5 rounded-lg border border-border bg-surface-raised px-2 py-1 text-[13px] font-bold text-white outline-none focus:border-teal-500/50 max-w-xs"
           >
             {activeRuns.map(r => (
               <option key={r.id} value={r.id}>{r.name}</option>
@@ -392,8 +392,8 @@ function ExecutionDonut({
               className="inline-block w-2.5 h-2.5 rounded-sm shrink-0"
               style={{ backgroundColor: seg.color }}
             />
-            <span className="text-[11px] text-slate-400 font-medium">{seg.label}</span>
-            <span className="text-[11px] text-slate-200 font-bold">{seg.value}</span>
+            <span className="text-[11px] text-fg-muted font-medium">{seg.label}</span>
+            <span className="text-[11px] text-fg font-bold">{seg.value}</span>
           </div>
         ))}
       </div>
@@ -427,7 +427,7 @@ function StackedBar({
 
   return (
     <div className="flex flex-col gap-2 w-full">
-      <div className="h-8 flex rounded-full overflow-hidden bg-slate-800">
+      <div className="h-8 flex rounded-full overflow-hidden bg-surface-raised">
         {segments.map((seg) => {
           const pct = (seg.value / safeTotal) * 100;
           if (pct <= 0) return null;
@@ -454,10 +454,10 @@ function StackedBar({
                 className="inline-block w-2 h-2 rounded-full shrink-0"
                 style={{ backgroundColor: seg.color }}
               />
-              <span className="text-[11px] text-slate-400">{seg.label}</span>
-              <span className="text-[11px] font-bold text-slate-200">
+              <span className="text-[11px] text-fg-muted">{seg.label}</span>
+              <span className="text-[11px] font-bold text-fg">
                 {seg.value}
-                <span className="text-slate-600 font-normal"> ({pct}%)</span>
+                <span className="text-fg-disabled font-normal"> ({pct}%)</span>
               </span>
             </div>
           );
@@ -504,17 +504,17 @@ function VelocitySparkline({ velocityPerHour }: { velocityPerHour: number }) {
     .join(" ")} L ${lx},${padY + innerH} L ${fx},${padY + innerH} Z`;
 
   return (
-    <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-4">
+    <div className="rounded-xl border border-border bg-surface-raised/60 p-4">
       <div className="flex items-center justify-between mb-2">
-        <span className="text-xs font-bold uppercase tracking-widest text-slate-400">HIZ</span>
-        <span className={`text-lg font-black ${hasData ? "text-teal-400" : "text-slate-500"}`}>
+        <span className="text-xs font-bold uppercase tracking-widest text-fg-muted">HIZ</span>
+        <span className={`text-lg font-black ${hasData ? "text-teal-400" : "text-fg-subtle"}`}>
           {velocityPerHour.toFixed(1)}{" "}
-          <span className="text-xs font-medium text-slate-500">case/saat</span>
+          <span className="text-xs font-medium text-fg-subtle">case/saat</span>
         </span>
       </div>
       {!hasData ? (
         <div className="flex items-center justify-center" style={{ width: w, height: h }}>
-          <span className="text-sm text-slate-600 font-medium">Henüz hız verisi yok</span>
+          <span className="text-sm text-fg-disabled font-medium">Henüz hız verisi yok</span>
         </div>
       ) : (
         <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`}>
@@ -584,10 +584,10 @@ function EtaDisplay({
   const { borderColor, bgColor, pulse, textColor } = useMemo(() => {
     if (etaHours === null)
       return {
-        borderColor: "border-slate-700",
-        bgColor: "bg-slate-900/30",
+        borderColor: "border-border",
+        bgColor: "bg-surface-raised/30",
         pulse: "",
-        textColor: "text-slate-400",
+        textColor: "text-fg-muted",
       };
     // Gecikmiş: eta <= 0 veya predicted_completion geçmiş
     if (etaHours <= 0 || isOverdue)
@@ -635,11 +635,11 @@ function EtaDisplay({
     <div
       className={`rounded-xl border ${borderColor} ${bgColor} ${pulse} p-4`}
     >
-      <p className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-1">ETA</p>
+      <p className="text-xs font-bold uppercase tracking-widest text-fg-subtle mb-1">ETA</p>
       {etaHours === null ? (
         <>
           <p className={`text-2xl font-black ${textColor}`}>Bilinmiyor</p>
-          <p className="text-xs text-slate-600 mt-0.5">Yeterli veri yok</p>
+          <p className="text-xs text-fg-disabled mt-0.5">Yeterli veri yok</p>
         </>
       ) : isOverdue || etaHours <= 0 ? (
         <>
@@ -656,7 +656,7 @@ function EtaDisplay({
             {etaHours.toFixed(1)}s
           </p>
           {completionTime && (
-            <p className="text-xs text-slate-500 mt-0.5">
+            <p className="text-xs text-fg-subtle mt-0.5">
               Tahmini: {completionTime}
             </p>
           )}
@@ -690,10 +690,10 @@ function MetricCard({
       ? "text-emerald-400"
       : trend === "down"
       ? "text-red-400"
-      : "text-slate-400";
+      : "text-fg-muted";
 
   return (
-    <div className="w-full rounded-xl border border-slate-800 bg-slate-900/60 p-5">
+    <div className="w-full rounded-xl border border-border bg-surface-raised/60 p-5">
       <div className="flex items-start justify-between gap-2">
         <span
           className="text-5xl font-black leading-none"
@@ -705,7 +705,7 @@ function MetricCard({
           <span className={`mt-1 text-2xl font-bold ${trendColor}`}>{trendIcon}</span>
         )}
       </div>
-      <p className="mt-2 text-sm font-medium uppercase tracking-widest text-slate-400">
+      <p className="mt-2 text-sm font-medium uppercase tracking-widest text-fg-muted">
         {label}
       </p>
     </div>
@@ -805,9 +805,9 @@ function AnomalyList({
   };
 
   return (
-    <div className="rounded-xl border border-slate-800 bg-slate-900/60">
-      <div className="flex items-center gap-2 border-b border-slate-800 px-4 py-3">
-        <span className="text-xs font-bold uppercase tracking-widest text-slate-300">
+    <div className="rounded-xl border border-border bg-surface-raised/60">
+      <div className="flex items-center gap-2 border-b border-border px-4 py-3">
+        <span className="text-xs font-bold uppercase tracking-widest text-fg">
           ANOMALİLER
         </span>
         {sorted.length > 0 && (
@@ -828,14 +828,14 @@ function AnomalyList({
               <li
                 key={i}
                 className={`flex items-center gap-3 border-l-4 px-4 py-3 ${borderColor(a.severity)} ${
-                  i < sorted.length - 1 ? "border-b border-slate-800/60" : ""
+                  i < sorted.length - 1 ? "border-b border-border/60" : ""
                 }`}
               >
                 <span
                   className={`h-2 w-2 shrink-0 rounded-full ${dotColor(a.severity)}`}
                 />
                 <div className="flex flex-col min-w-0">
-                  <span className="text-sm text-slate-200 truncate">{a.title}</span>
+                  <span className="text-sm text-fg truncate">{a.title}</span>
                   <span className={`text-[10px] font-bold tracking-wider ${
                     a.severity === "critical" ? "text-red-500" :
                     a.severity === "warning" ? "text-amber-500" : "text-blue-400"
@@ -862,7 +862,7 @@ function BlockerList({
   willMeetGate: boolean;
 }) {
   return (
-    <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-5">
+    <div className="rounded-xl border border-border bg-surface-raised/60 p-5">
       <div className="mb-4 flex items-center gap-3">
         <span
           className={`rounded-lg px-4 py-1.5 text-lg font-black tracking-widest ${
@@ -873,7 +873,7 @@ function BlockerList({
         >
           {willMeetGate ? "GO" : "NO-GO"}
         </span>
-        <span className="text-sm font-semibold uppercase tracking-wider text-slate-400">
+        <span className="text-sm font-semibold uppercase tracking-wider text-fg-muted">
           Sürüm Kapısı
         </span>
       </div>
@@ -882,7 +882,7 @@ function BlockerList({
       ) : (
         <ul className="space-y-2">
           {factors.map((f, i) => (
-            <li key={i} className="flex items-start gap-2 text-sm text-slate-200">
+            <li key={i} className="flex items-start gap-2 text-sm text-fg">
               <span className="mt-0.5 shrink-0 text-red-400">●</span>
               <span>{f}</span>
             </li>
@@ -946,15 +946,24 @@ function BottomBar({
   lastUpdateStr,
   countdown,
   onRefresh,
+  onCopyMarkdown,
 }: {
   lastUpdateStr: string | null;
   countdown: number;
   onRefresh: () => void;
+  onCopyMarkdown?: () => void;
 }) {
+  const [copied, setCopied] = useState(false);
   const progressPct = Math.min(100, Math.max(0, (countdown / 60) * 100));
 
   const handleCopy = () => {
     navigator.clipboard.writeText(document.body.innerText).catch(() => {});
+  };
+
+  const handleCopyMarkdown = () => {
+    onCopyMarkdown?.();
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
   const handlePrint = () => {
@@ -962,34 +971,46 @@ function BottomBar({
   };
 
   return (
-    <div className="border-t border-slate-800 bg-slate-950/90 px-6 py-3 flex items-center justify-between gap-4">
-      <span className="text-xs text-slate-500 whitespace-nowrap min-w-[120px]">
+    <div className="border-t border-border bg-surface-base/90 px-6 py-3 flex items-center justify-between gap-4">
+      <span className="text-xs text-fg-subtle whitespace-nowrap min-w-[120px]">
         {lastUpdateStr ? `Son: ${lastUpdateStr}` : "—"}
       </span>
       <div className="flex-1 flex items-center gap-2">
-        <div className="w-full h-1 bg-slate-800 rounded-full overflow-hidden">
+        <div className="w-full h-1 bg-surface-raised rounded-full overflow-hidden">
           <div
             className="h-full bg-emerald-500 rounded-full transition-all duration-1000"
             style={{ width: `${progressPct}%` }}
           />
         </div>
-        <span className="text-xs text-slate-600 tabular-nums w-6 text-right">
+        <span className="text-xs text-fg-disabled tabular-nums w-6 text-right">
           {countdown}s
         </span>
       </div>
       <div className="flex items-center gap-1">
         <button
           onClick={onRefresh}
-          className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-slate-200 px-3 py-1.5 rounded-lg hover:bg-slate-800 transition-colors"
+          className="flex items-center gap-1.5 text-xs text-fg-muted hover:text-fg px-3 py-1.5 rounded-lg hover:bg-surface-raised transition-colors"
         >
           <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
           </svg>
           Yenile
         </button>
+        {onCopyMarkdown && (
+          <button
+            onClick={handleCopyMarkdown}
+            className="flex items-center gap-1.5 text-xs text-fg-muted hover:text-fg px-3 py-1.5 rounded-lg hover:bg-surface-raised transition-colors"
+            title="Slack/Teams için Markdown olarak kopyala"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"/>
+            </svg>
+            {copied ? "Kopyalandı!" : "Slack/Teams"}
+          </button>
+        )}
         <button
           onClick={handleCopy}
-          className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-slate-200 px-3 py-1.5 rounded-lg hover:bg-slate-800 transition-colors"
+          className="flex items-center gap-1.5 text-xs text-fg-muted hover:text-fg px-3 py-1.5 rounded-lg hover:bg-surface-raised transition-colors"
         >
           <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
@@ -998,7 +1019,7 @@ function BottomBar({
         </button>
         <button
           onClick={handlePrint}
-          className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-slate-200 px-3 py-1.5 rounded-lg hover:bg-slate-800 transition-colors"
+          className="flex items-center gap-1.5 text-xs text-fg-muted hover:text-fg px-3 py-1.5 rounded-lg hover:bg-surface-raised transition-colors"
         >
           <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
@@ -1036,7 +1057,7 @@ function LoadingScreen() {
             d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
           />
         </svg>
-        <p className="text-slate-400 text-sm tracking-wide">
+        <p className="text-fg-muted text-sm tracking-wide">
           Standup verisi yükleniyor...
         </p>
       </div>
@@ -1068,13 +1089,13 @@ function ErrorScreen({ onRetry }: { onRetry: () => void }) {
         </div>
         <div className="text-center">
           <p className="text-red-300 font-semibold text-base">Veri yüklenemedi</p>
-          <p className="text-slate-500 text-sm mt-1">
+          <p className="text-fg-subtle text-sm mt-1">
             Standup verisi alınırken bir hata oluştu.
           </p>
         </div>
         <button
           onClick={onRetry}
-          className="flex items-center gap-2 text-sm font-medium text-slate-200 bg-slate-800 hover:bg-slate-700 border border-slate-700 px-5 py-2 rounded-lg transition-colors"
+          className="flex items-center gap-2 text-sm font-medium text-fg bg-surface-raised hover:bg-surface-overlay border border-border px-5 py-2 rounded-lg transition-colors"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -1279,8 +1300,8 @@ export default function StandupPage() {
           <div className="flex justify-center">
             <BigHealthGauge score={data?.health_score ?? 0} health={health} />
           </div>
-          <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-4">
-            <p className="text-xs text-slate-500 uppercase tracking-widest font-semibold mb-3">
+          <div className="rounded-xl border border-border bg-surface-raised/60 p-4">
+            <p className="text-xs text-fg-subtle uppercase tracking-widest font-semibold mb-3">
               Yürütme Dağılımı
             </p>
             <ExecutionDonut
@@ -1291,8 +1312,8 @@ export default function StandupPage() {
               total={total}
             />
           </div>
-          <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-4">
-            <p className="text-xs text-slate-500 uppercase tracking-widest font-semibold mb-3">
+          <div className="rounded-xl border border-border bg-surface-raised/60 p-4">
+            <p className="text-xs text-fg-subtle uppercase tracking-widest font-semibold mb-3">
               Test Durumu
             </p>
             <StackedBar
@@ -1336,6 +1357,27 @@ export default function StandupPage() {
           lastUpdateStr={lastUpdateStr}
           countdown={countdown}
           onRefresh={handleRefresh}
+          onCopyMarkdown={() => {
+            if (!data) return;
+            const healthLabel = { healthy: "SAĞLIKLI", at_risk: "RİSKTE", critical: "KRİTİK" }[data.summary_health] ?? data.summary_health.toUpperCase();
+            const lines: string[] = [
+              `*QA Stand-up — ${data.run_name}*`,
+              `Sağlık: ${healthLabel} (${data.health_score}/100)${data.will_meet_gate ? " ✓ Gate geçer" : " ✗ Gate riski"}`,
+              `Pass Rate: %${Math.round(data.pass_rate ?? 0)} · Geçti: ${data.passed ?? 0} · Başarısız: ${data.failed ?? 0} · Engellendi: ${data.blocked ?? 0} · Kalan: ${data.remaining_cases}`,
+            ];
+            if (data.eta_hours != null) {
+              lines.push(`ETA: ~${data.eta_hours.toFixed(1)} saat · Hız: ${data.velocity_per_hour.toFixed(1)} TC/saat`);
+            }
+            if (data.blocking_factors?.length) {
+              lines.push("", "*Engelleyiciler:*");
+              data.blocking_factors.forEach(f => lines.push(`• ${f}`));
+            }
+            if (data.anomalies?.length) {
+              lines.push("", "*Anomaliler:*");
+              data.anomalies.forEach(a => lines.push(`• [${a.severity.toUpperCase()}] ${a.title}`));
+            }
+            navigator.clipboard.writeText(lines.join("\n")).catch(() => {});
+          }}
         />
       </div>
     </div>

@@ -34,10 +34,10 @@ function VelocitySparkline({ currentVelocity }: { currentVelocity: number }) {
   return (
     <div className="rounded-xl border border-border bg-surface-raised p-3 flex flex-col gap-1">
       <div className="flex items-baseline justify-between">
-        <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">HIZ</span>
+        <span className="text-[10px] font-bold uppercase tracking-widest text-fg-muted">HIZ</span>
         <div className="flex items-baseline gap-1">
           <span className="text-2xl font-bold text-teal-400">{currentVelocity.toFixed(1)}</span>
-          <span className="text-[10px] text-slate-500">case/saat</span>
+          <span className="text-[10px] text-fg-subtle">case/saat</span>
         </div>
       </div>
 

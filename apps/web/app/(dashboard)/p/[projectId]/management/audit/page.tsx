@@ -1,10 +1,13 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useManagementAuditEvents, type ManagementAuditEvent } from "@/lib/hooks/use-management";
 import { useManagementProjectId } from "@/lib/hooks/use-management-project-id";
 import { useRouteParam } from "@/lib/use-route-param";
+import { apiFetch } from "@/lib/api-client";
 import { cn } from "@/lib/utils";
+import { RoleGuard } from "../_components/RoleGuard";
 
 const ACTION_COLOR: Record<string, string> = {
   "case.created":              "bg-emerald-500/15 text-emerald-400",
@@ -33,7 +36,7 @@ const ACTION_COLOR: Record<string, string> = {
   "defect.created":            "bg-red-500/15 text-red-400",
   "defect_link.created":       "bg-red-500/15 text-red-400",
   "defect_link.updated":       "bg-orange-500/15 text-orange-400",
-  "defect_link.deleted":       "bg-slate-500/15 text-slate-400",
+  "defect_link.deleted":       "bg-slate-500/15 text-fg-muted",
   "requirement_link.created":  "bg-emerald-500/15 text-emerald-400",
   "requirement_link.deleted":  "bg-red-500/15 text-red-400",
 };
@@ -96,11 +99,14 @@ function exportCSV(events: ManagementAuditEvent[]) {
   URL.revokeObjectURL(url);
 }
 
-function EventRow({ ev }: { ev: ManagementAuditEvent }) {
+function EventRow({ ev, userIdMap = {} }: { ev: ManagementAuditEvent; userIdMap?: Record<string, string> }) {
   const [open, setOpen] = useState(false);
-  const colorCls = ACTION_COLOR[ev.action] ?? "bg-slate-700/30 text-slate-400";
+  const colorCls = ACTION_COLOR[ev.action] ?? "bg-surface-accent/30 text-fg-muted";
   const icon     = ENTITY_ICON[ev.entity_type] ?? ev.entity_type?.[0]?.toUpperCase() ?? "?";
   const hasPayload = ev.payload && Object.keys(ev.payload).length > 0;
+  const actorDisplay = ev.actor_id
+    ? (userIdMap[ev.actor_id] ?? ev.actor_id.slice(0, 8) + "…")
+    : "Sistem";
 
   return (
     <>
@@ -130,8 +136,8 @@ function EventRow({ ev }: { ev: ManagementAuditEvent }) {
           </span>
         </td>
         <td className="px-4 py-3 hidden md:table-cell">
-          <span className="font-mono text-[10px] text-fg-subtle truncate max-w-[80px] block">
-            {ev.actor_id ? ev.actor_id.slice(0, 8) + "…" : "Sistem"}
+          <span className="text-[10px] text-fg-muted truncate max-w-[120px] block" title={ev.actor_id ?? undefined}>
+            {actorDisplay}
           </span>
         </td>
         <td className="px-4 py-3 text-[11px] text-fg-subtle tabular-nums whitespace-nowrap">
@@ -171,10 +177,27 @@ export default function ManagementAuditPage() {
 
   const { data: events, isLoading, isError, refetch } = useManagementAuditEvents(mpid || undefined, limit);
 
+  const { data: membersData } = useQuery({
+    queryKey: ["management", "members", projectId],
+    queryFn: () =>
+      apiFetch<Array<{ user_id: string; email: string; full_name?: string }>>(
+        `/api/v1/organizations/projects/${projectId}/members`
+      ).then(d => (Array.isArray(d) ? d : [])),
+    enabled: !!projectId,
+    staleTime: 5 * 60 * 1000,
+  });
+  const userIdMap = useMemo<Record<string, string>>(() => {
+    const map: Record<string, string> = {};
+    for (const m of membersData ?? []) {
+      map[m.user_id] = m.full_name?.trim() || m.email;
+    }
+    return map;
+  }, [membersData]);
+
   const filtered = useMemo(() => (events ?? []).filter(ev => {
     if (actionFilter && !ev.action.includes(actionFilter)) return false;
     if (entityFilter && ev.entity_type !== entityFilter) return false;
-    if (actorFilter && (ev.actor_id ?? "").slice(0, 8) !== actorFilter) return false;
+    if (actorFilter && (ev.actor_id ?? "") !== actorFilter) return false;
     if (dateFrom) {
       const evDate = fmtDateISO(ev.created_at);
       if (evDate < dateFrom) return false;
@@ -188,7 +211,7 @@ export default function ManagementAuditPage() {
 
   const entityTypes = useMemo(() => [...new Set((events ?? []).map(e => e.entity_type))].sort(), [events]);
   const actionTypes = useMemo(() => [...new Set((events ?? []).map(e => e.action))].sort(), [events]);
-  const actorIds    = useMemo(() => [...new Set((events ?? []).filter(e => e.actor_id).map(e => e.actor_id!.slice(0, 8)))].sort(), [events]);
+  const actorIds    = useMemo(() => [...new Set((events ?? []).filter(e => e.actor_id).map(e => e.actor_id!))].sort(), [events]);
 
   const hasFilter = !!(actionFilter || entityFilter || actorFilter || dateFrom || dateTo);
 
@@ -203,7 +226,19 @@ export default function ManagementAuditPage() {
   const SEL = "rounded-lg border border-border bg-surface-overlay px-2.5 py-1.5 text-[11px] text-fg-muted outline-none focus:border-brand transition-colors";
 
   return (
-    <div className="flex flex-col min-h-full bg-bg text-slate-200">
+    <RoleGuard minRole="admin" projectId={projectId ?? ""}
+      fallback={
+        <div className="flex flex-col items-center justify-center min-h-full gap-4 text-center p-8">
+          <div className="rounded-full bg-surface-overlay p-5">
+            <svg className="h-10 w-10 text-fg-subtle" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+          </div>
+          <div>
+            <p className="text-[14px] font-semibold text-fg-muted">Erişim Kısıtlandı</p>
+            <p className="mt-1 text-[12px] text-fg-subtle max-w-xs mx-auto">Denetim kaydına erişmek için Admin veya Owner yetkisi gereklidir.</p>
+          </div>
+        </div>
+      }>
+    <div className="flex flex-col min-h-full bg-bg text-fg">
       {/* Header */}
       <div className="border-b border-border bg-surface-raised px-6 py-4">
         <div className="flex flex-col gap-3">
@@ -247,7 +282,11 @@ export default function ManagementAuditPage() {
             </select>
             <select value={actorFilter} onChange={e => setActorFilter(e.target.value)} className={SEL}>
               <option value="">Tüm Kullanıcılar</option>
-              {actorIds.map(id => <option key={id} value={id}>{id}…</option>)}
+              {actorIds.map(id => (
+                <option key={id} value={id}>
+                  {userIdMap[id] ?? id.slice(0, 8) + "…"}
+                </option>
+              ))}
             </select>
             <input
               type="date"
@@ -277,7 +316,7 @@ export default function ManagementAuditPage() {
           <span className="text-fg-muted font-medium">{filtered.length} kayıt</span>
           {actionFilter && <span className="rounded-full border border-brand/20 bg-brand-soft px-2 py-0.5 text-[10px] text-brand">{actionFilter}</span>}
           {entityFilter && <span className="rounded-full border border-border bg-surface-overlay px-2 py-0.5 text-[10px] text-fg-muted">{entityFilter}</span>}
-          {actorFilter && <span className="rounded-full border border-border bg-surface-overlay px-2 py-0.5 text-[10px] text-fg-muted">Kullanıcı: {actorFilter}…</span>}
+          {actorFilter && <span className="rounded-full border border-border bg-surface-overlay px-2 py-0.5 text-[10px] text-fg-muted">Kullanıcı: {userIdMap[actorFilter] ?? actorFilter.slice(0, 8) + "…"}</span>}
           {dateFrom && <span className="rounded-full border border-border bg-surface-overlay px-2 py-0.5 text-[10px] text-fg-muted">{dateFrom} den</span>}
           {dateTo && <span className="rounded-full border border-border bg-surface-overlay px-2 py-0.5 text-[10px] text-fg-muted">{dateTo} e</span>}
           {hasFilter && (
@@ -311,7 +350,7 @@ export default function ManagementAuditPage() {
           </div>
         ) : filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-24 gap-3">
-            <svg className="h-12 w-12 text-slate-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
+            <svg className="h-12 w-12 text-fg-disabled" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
             </svg>
             <p className="text-[13px] font-medium text-fg-muted">Henüz kayıt yok</p>
@@ -331,7 +370,7 @@ export default function ManagementAuditPage() {
               </tr>
             </thead>
             <tbody>
-              {filtered.map(ev => <EventRow key={ev.id} ev={ev} />)}
+              {filtered.map(ev => <EventRow key={ev.id} ev={ev} userIdMap={userIdMap} />)}
             </tbody>
           </table>
         )}
@@ -348,5 +387,6 @@ export default function ManagementAuditPage() {
         </div>
       )}
     </div>
+    </RoleGuard>
   );
 }

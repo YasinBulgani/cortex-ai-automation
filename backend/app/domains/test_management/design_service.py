@@ -44,8 +44,10 @@ from app.domains.test_management.schemas import (
     CaseParamSetCreate,
     DesignFieldSpec,
     DesignRunOut,
+    DtRunCreate,
     EqRunCreate,
     GeneratedCaseDraft,
+    PairwiseRunCreate,
     PromoteCasesRequest,
     TestCaseCreate,
 )
@@ -549,6 +551,152 @@ def _parse_cases(payload: dict[str, Any] | None) -> list[GeneratedCaseDraft]:
     return out
 
 
+# ── DT fallback (decision table) ─────────────────────────────────────────────
+
+
+def _fallback_dt(fields: list[DesignFieldSpec]) -> list[GeneratedCaseDraft]:
+    """Deterministic decision-table fallback.
+
+    Treats every field as a boolean condition (True / False). Generates a
+    minimal representative set capped at 16 rows to keep output manageable.
+    """
+    import itertools
+
+    conditions = [f.name for f in fields][:8]  # cap at 8 to avoid 256 rows
+    combos = list(itertools.product([True, False], repeat=len(conditions)))[:16]
+    drafts: list[GeneratedCaseDraft] = []
+    for combo in combos:
+        inputs = {cond: val for cond, val in zip(conditions, combo)}
+        all_true = all(combo)
+        label = " & ".join(
+            (f"{c}=Y" if v else f"{c}=N") for c, v in zip(conditions, combo)
+        )
+        drafts.append(
+            GeneratedCaseDraft(
+                name=f"DT: {label}",
+                inputs=inputs,
+                expected="action_A" if all_true else "action_B",
+                boundary_type="decision_row",
+                rationale=(
+                    "All conditions true → primary action."
+                    if all_true
+                    else "At least one condition false → alternative action."
+                ),
+            )
+        )
+    return drafts
+
+
+# ── Pairwise fallback ─────────────────────────────────────────────────────────
+
+
+def _fallback_pairwise(fields: list[DesignFieldSpec]) -> list[GeneratedCaseDraft]:
+    """Greedy pairwise (all-pairs) fallback.
+
+    Builds the minimum set of test cases that covers every pair of parameter
+    values at least once. Uses a pure-Python greedy cover algorithm so there
+    is no external dependency and the output is deterministic.
+    """
+    # Build value lists for each field
+    field_values: list[tuple[str, list[Any]]] = []
+    for f in fields:
+        if f.allowed_set:
+            vals: list[Any] = list(f.allowed_set)[:10]
+        elif f.data_type in {"int", "float"}:
+            lo = _normalize_numeric(f.min_value) or 0
+            hi = _normalize_numeric(f.max_value) or (lo + 2)
+            step = 1.0 if f.data_type == "int" else (hi - lo) / 2
+            vals = [_coerce_num(lo, f.data_type), _coerce_num((lo + hi) / 2, f.data_type), _coerce_num(hi, f.data_type)]
+        elif f.data_type == "bool":
+            vals = [True, False]
+        else:
+            vals = [f"val_{i}" for i in range(1, 4)]
+        if not vals:
+            vals = ["default"]
+        field_values.append((f.name, vals))
+
+    if not field_values:
+        return []
+
+    n = len(field_values)
+    # Build set of all required pairs: (field_i, val_i, field_j, val_j) for i < j
+    required: set[tuple[int, Any, int, Any]] = set()
+    for i in range(n):
+        for j in range(i + 1, n):
+            for vi in field_values[i][1]:
+                for vj in field_values[j][1]:
+                    required.add((i, vi, j, vj))
+
+    covered: set[tuple[int, Any, int, Any]] = set()
+    test_cases: list[dict[str, Any]] = []
+
+    while covered < required:
+        # Greedy: pick a value for each field that covers the most uncovered pairs
+        row: dict[str, Any] = {}
+        for fi, (fname, fvals) in enumerate(field_values):
+            if fname in row:
+                continue
+            best_val = fvals[0]
+            best_score = -1
+            for v in fvals:
+                score = 0
+                # count how many uncovered pairs this value would cover
+                for fj, (fname_j, fvals_j) in enumerate(field_values):
+                    if fi == fj:
+                        continue
+                    existing = row.get(fname_j)
+                    if existing is not None:
+                        # pair with already-assigned field
+                        i_, j_ = min(fi, fj), max(fi, fj)
+                        vi_ = v if fi < fj else existing
+                        vj_ = existing if fi < fj else v
+                        if (i_, vi_, j_, vj_) not in covered:
+                            score += 1
+                    else:
+                        # look ahead: count uncovered pairs against all values of fj
+                        for vj in fvals_j:
+                            i_, j_ = min(fi, fj), max(fi, fj)
+                            vi_ = v if fi < fj else vj
+                            vj_ = vj if fi < fj else v
+                            if (i_, vi_, j_, vj_) not in covered:
+                                score += 1
+                if score > best_score:
+                    best_score = score
+                    best_val = v
+            row[fname] = best_val
+
+        # Mark pairs covered by this row
+        keys = list(row.keys())
+        for ai in range(len(keys)):
+            for bi in range(ai + 1, len(keys)):
+                fname_a, fname_b = keys[ai], keys[bi]
+                fi_a = next(i for i, (n, _) in enumerate(field_values) if n == fname_a)
+                fi_b = next(i for i, (n, _) in enumerate(field_values) if n == fname_b)
+                i_, j_ = min(fi_a, fi_b), max(fi_a, fi_b)
+                vi_ = row[fname_a] if fi_a < fi_b else row[fname_b]
+                vj_ = row[fname_b] if fi_a < fi_b else row[fname_a]
+                covered.add((i_, vi_, j_, vj_))
+
+        if len(test_cases) >= 200:  # safety cap
+            break
+        test_cases.append(dict(row))
+
+    drafts: list[GeneratedCaseDraft] = []
+    for idx, tc in enumerate(test_cases):
+        label = ", ".join(f"{k}={v}" for k, v in tc.items())
+        drafts.append(
+            GeneratedCaseDraft(
+                name=f"PW-{idx + 1:03d}: {label}",
+                inputs=tc,
+                expected="accepted",
+                boundary_type="pairwise_row",
+                partition_label=label,
+                rationale=f"Covers all pairwise interactions for: {label}",
+            )
+        )
+    return drafts
+
+
 def _generate_bva_cases(
     fields: list[DesignFieldSpec], requirement_text: str = ""
 ) -> tuple[list[GeneratedCaseDraft], str]:
@@ -610,6 +758,56 @@ def _generate_eq_partitions(
         partitions, cases = _fallback_eq(fields)
         return partitions, cases, "fallback"
     return partitions, cases, "llm"
+
+
+def _generate_dt_cases(
+    fields: list[DesignFieldSpec], requirement_text: str = ""
+) -> tuple[list[GeneratedCaseDraft], str]:
+    system_prompt = _load_prompt("dt_generate") or (
+        'Reply with strict JSON: {"cases": [{"name": str, "inputs": object, '
+        '"expected": str, "boundary_type": "decision_row", "rationale": str}]}.'
+    )
+    user_message = json.dumps(
+        {
+            "requirement_text": requirement_text,
+            "fields": [f.model_dump() for f in fields],
+        },
+        ensure_ascii=False,
+    )
+    parsed = _call_llm(
+        task_type="mgmt.design.dt_generate",
+        user_message=user_message,
+        system_message=system_prompt,
+    )
+    cases = _parse_cases(parsed)
+    if not cases:
+        return _fallback_dt(fields), "fallback"
+    return cases, "llm"
+
+
+def _generate_pairwise_cases(
+    fields: list[DesignFieldSpec], requirement_text: str = ""
+) -> tuple[list[GeneratedCaseDraft], str]:
+    system_prompt = _load_prompt("pairwise_generate") or (
+        'Reply with strict JSON: {"cases": [{"name": str, "inputs": object, '
+        '"expected": str, "partition_label": str, "rationale": str}]}.'
+    )
+    user_message = json.dumps(
+        {
+            "requirement_text": requirement_text,
+            "fields": [f.model_dump() for f in fields],
+        },
+        ensure_ascii=False,
+    )
+    parsed = _call_llm(
+        task_type="mgmt.design.pairwise_generate",
+        user_message=user_message,
+        system_message=system_prompt,
+    )
+    cases = _parse_cases(parsed)
+    if not cases:
+        return _fallback_pairwise(fields), "fallback"
+    return cases, "llm"
 
 
 def _generate_data_rows_llm(
@@ -803,6 +1001,55 @@ def create_eq_run(
         requirement_text=payload.requirement_text or "",
         cases=cases,
         partitions=partitions,
+        source=source,
+    )
+    return _to_run_out(run)
+
+
+def create_dt_run(
+    db: Session, tenant_id: str, user: Any, payload: DtRunCreate
+) -> DesignRunOut:
+    try:
+        effective = payload.effective_fields()
+    except ValueError as exc:
+        raise exc
+    req_text = payload.requirement_text or ""
+    if payload.actions:
+        req_text = f"{req_text}\nExpected actions: {', '.join(payload.actions)}".strip()
+    cases, source = _generate_dt_cases(effective, req_text)
+    run = _persist_run(
+        db,
+        tenant_id=tenant_id,
+        user=user,
+        technique="DT",
+        project_id=payload.project_id,
+        requirement_id=payload.requirement_id,
+        fields=effective,
+        requirement_text=req_text,
+        cases=cases,
+        partitions=None,
+        source=source,
+    )
+    return _to_run_out(run)
+
+
+def create_pairwise_run(
+    db: Session, tenant_id: str, user: Any, payload: PairwiseRunCreate
+) -> DesignRunOut:
+    if len(payload.fields) < 2:
+        raise ValueError("Pairwise requires at least 2 fields")
+    cases, source = _generate_pairwise_cases(payload.fields, payload.requirement_text or "")
+    run = _persist_run(
+        db,
+        tenant_id=tenant_id,
+        user=user,
+        technique="PAIRWISE",
+        project_id=payload.project_id,
+        requirement_id=payload.requirement_id,
+        fields=payload.fields,
+        requirement_text=payload.requirement_text or "",
+        cases=cases,
+        partitions=None,
         source=source,
     )
     return _to_run_out(run)

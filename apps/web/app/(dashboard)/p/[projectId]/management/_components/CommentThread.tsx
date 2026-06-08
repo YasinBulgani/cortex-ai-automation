@@ -71,7 +71,7 @@ export function CommentThread({
   return (
     <section className="rounded-lg border border-border bg-surface-raised p-5">
       <header className="mb-4 flex items-center justify-between">
-        <h2 className="text-sm font-semibold text-white">{title}</h2>
+        <h2 className="text-sm font-semibold text-fg">{title}</h2>
         <div className="flex items-center gap-3">
           <button
             type="button"
@@ -79,13 +79,13 @@ export function CommentThread({
             aria-pressed={summaryOpen}
             className={`rounded-md border px-2 py-1 text-[11px] transition ${
               summaryOpen
-                ? "border-teal-400 bg-teal-500/15 text-teal-200"
-                : "border-border text-slate-300 hover:border-teal-500 hover:text-teal-200"
+                ? "border-brand/40 bg-brand-soft text-brand"
+                : "border-border text-fg-muted hover:border-brand/40 hover:text-brand"
             }`}
           >
             {summaryOpen ? "Hide AI özet" : "AI özet"}
           </button>
-          <span className="text-xs text-slate-500">{data?.length ?? 0} comment(s)</span>
+          <span className="text-xs text-fg-subtle">{data?.length ?? 0} comment(s)</span>
         </div>
       </header>
 
@@ -95,20 +95,20 @@ export function CommentThread({
             AI thread summary
           </p>
           {summary.isLoading ? (
-            <p className="text-xs text-slate-400">Generating…</p>
+            <p className="text-xs text-fg-muted">Generating…</p>
           ) : summary.isError ? (
-            <p className="text-xs text-red-200">
+            <p className="text-xs text-danger">
               Summary unavailable: {(summary.error as Error)?.message ?? "unknown error"}
             </p>
           ) : summary.data ? (
-            <div className="space-y-2 text-xs text-slate-200">
+            <div className="space-y-2 text-xs text-fg">
               <p>
-                <span className="font-semibold text-teal-200">TL;DR — </span>
+                <span className="font-semibold text-brand">TL;DR — </span>
                 {summary.data.tldr || "(no summary)"}
               </p>
               {summary.data.decisions.length > 0 ? (
                 <div>
-                  <p className="font-semibold text-teal-200">Decisions</p>
+                  <p className="font-semibold text-brand">Decisions</p>
                   <ul className="ml-4 list-disc space-y-0.5">
                     {summary.data.decisions.map((d, i) => (
                       <li key={`d-${i}`}>{d}</li>
@@ -118,7 +118,7 @@ export function CommentThread({
               ) : null}
               {summary.data.openQuestions.length > 0 ? (
                 <div>
-                  <p className="font-semibold text-teal-200">Open questions</p>
+                  <p className="font-semibold text-brand">Open questions</p>
                   <ul className="ml-4 list-disc space-y-0.5">
                     {summary.data.openQuestions.map((q, i) => (
                       <li key={`q-${i}`}>{q}</li>
@@ -127,7 +127,7 @@ export function CommentThread({
                 </div>
               ) : null}
               {summary.data.source === "fallback" ? (
-                <p className="text-[10px] italic text-slate-500">
+                <p className="text-[10px] italic text-fg-subtle">
                   (heuristic fallback — LLM unavailable)
                 </p>
               ) : null}
@@ -143,9 +143,9 @@ export function CommentThread({
       ) : null}
 
       {isLoading ? (
-        <p className="text-xs text-slate-500">Loading…</p>
+        <p className="text-xs text-fg-subtle">Loading…</p>
       ) : tree.length === 0 ? (
-        <p className="rounded border border-dashed border-border bg-bg p-3 text-xs text-slate-500">
+        <p className="rounded border border-dashed border-border bg-surface-overlay p-3 text-xs text-fg-subtle">
           No comments yet.
         </p>
       ) : (
@@ -188,17 +188,17 @@ export function CommentThread({
           onChange={(e) => setDraft(e.target.value)}
           placeholder="Write a comment… Use @<user-uuid> to mention a teammate."
           rows={3}
-          className="w-full resize-y rounded-md border border-border bg-bg p-2 text-sm text-slate-100 outline-none focus:border-teal-500"
+          className="w-full resize-y rounded-md border border-border bg-surface-overlay p-2 text-sm text-fg outline-none focus:border-brand/50 placeholder:text-fg-disabled"
         />
         <div className="mt-2 flex items-center justify-between">
-          <span className="text-[11px] text-slate-500">
+          <span className="text-[11px] text-fg-subtle">
             Markdown supported. Mentions trigger notifications.
           </span>
           <button
             type="button"
             onClick={() => void submitRoot()}
             disabled={!draft.trim() || createMutation.isPending}
-            className="rounded-md bg-teal-500 px-3 py-1.5 text-xs font-semibold text-slate-950 transition hover:bg-teal-400 disabled:cursor-not-allowed disabled:opacity-50"
+            className="rounded-md bg-brand px-3 py-1.5 text-xs font-semibold text-brand-fg transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {createMutation.isPending ? "Posting…" : "Post comment"}
           </button>
@@ -256,9 +256,9 @@ function CommentItem({
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-xs text-slate-400">
-            <span className="font-semibold text-slate-200">{authorLabel}</span>{" "}
-            <span className="text-slate-500">
+          <p className="text-xs text-fg-muted">
+            <span className="font-semibold text-fg">{authorLabel}</span>{" "}
+            <span className="text-fg-subtle">
               · {new Date(node.created_at).toLocaleString()}
               {node.edited_at ? " · edited" : ""}
               {isDeleted ? " · deleted" : ""}
@@ -270,12 +270,12 @@ function CommentItem({
                 value={editDraft}
                 onChange={(e) => setEditDraft(e.target.value)}
                 rows={3}
-                className="w-full resize-y rounded-md border border-border bg-bg p-2 text-sm text-slate-100 outline-none focus:border-teal-500"
+                className="w-full resize-y rounded-md border border-border bg-surface-overlay p-2 text-sm text-fg outline-none focus:border-brand/50"
               />
               <div className="mt-2 flex gap-2">
                 <button
                   type="button"
-                  className="rounded-md bg-teal-500 px-2.5 py-1 text-[11px] font-semibold text-slate-950 hover:bg-teal-400"
+                  className="rounded-md bg-brand px-2.5 py-1 text-[11px] font-semibold text-brand-fg hover:brightness-105"
                   onClick={async () => {
                     const trimmed = editDraft.trim();
                     if (!trimmed) return;
@@ -287,7 +287,7 @@ function CommentItem({
                 </button>
                 <button
                   type="button"
-                  className="rounded-md border border-border px-2.5 py-1 text-[11px] text-slate-300 hover:bg-surface-raised"
+                  className="rounded-md border border-border px-2.5 py-1 text-[11px] text-fg-muted hover:bg-surface-raised"
                   onClick={() => {
                     setEditing(false);
                     setEditDraft(node.body_md);
@@ -300,7 +300,7 @@ function CommentItem({
           ) : (
             <p
               className={`mt-1 whitespace-pre-wrap text-sm ${
-                isDeleted ? "italic text-slate-500" : "text-slate-100"
+                isDeleted ? "italic text-fg-subtle" : "text-fg"
               }`}
             >
               {isDeleted ? "[comment removed]" : renderBody(node.body_md, userDirectory)}
@@ -322,8 +322,8 @@ function CommentItem({
                 onClick={() => void onReact(node.id, emoji, reacted)}
                 className={`flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] transition ${
                   reacted
-                    ? "border-teal-400 bg-teal-500/15 text-teal-200"
-                    : "border-border text-slate-400 hover:border-slate-500"
+                    ? "border-brand/40 bg-brand-soft text-brand"
+                    : "border-border text-fg-muted hover:border-border-strong"
                 }`}
                 aria-pressed={reacted}
                 aria-label={`React with ${emoji}`}
@@ -335,7 +335,7 @@ function CommentItem({
           })}
           <button
             type="button"
-            className="ml-auto text-[11px] text-slate-400 hover:text-slate-200"
+            className="ml-auto text-[11px] text-fg-muted hover:text-fg"
             onClick={() => setReplying((v) => !v)}
           >
             {replying ? "Cancel reply" : "Reply"}
@@ -344,7 +344,7 @@ function CommentItem({
             <>
               <button
                 type="button"
-                className="text-[11px] text-slate-400 hover:text-slate-200"
+                className="text-[11px] text-fg-muted hover:text-fg"
                 onClick={() => {
                   setEditing(true);
                   setEditDraft(node.body_md);
@@ -371,12 +371,12 @@ function CommentItem({
             onChange={(e) => setDraft(e.target.value)}
             rows={2}
             placeholder="Write a reply…"
-            className="w-full resize-y rounded-md border border-border bg-bg p-2 text-sm text-slate-100 outline-none focus:border-teal-500"
+            className="w-full resize-y rounded-md border border-border bg-surface-overlay p-2 text-sm text-fg outline-none focus:border-brand/50 placeholder:text-fg-disabled"
           />
           <div className="mt-2 flex gap-2">
             <button
               type="button"
-              className="rounded-md bg-teal-500 px-2.5 py-1 text-[11px] font-semibold text-slate-950 hover:bg-teal-400"
+              className="rounded-md bg-brand px-2.5 py-1 text-[11px] font-semibold text-brand-fg hover:brightness-105"
               onClick={async () => {
                 const trimmed = draft.trim();
                 if (!trimmed) return;

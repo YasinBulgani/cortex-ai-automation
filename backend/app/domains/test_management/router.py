@@ -59,7 +59,9 @@ from app.domains.test_management.schemas import (
     DefectRootCauseRequest,
     DefectRootCauseResponse,
     DesignRunOut,
+    DtRunCreate,
     EqRunCreate,
+    PairwiseRunCreate,
     EvidenceOut,
     ExecutionSummaryOut,
     ExpandCaseResponse,
@@ -1454,8 +1456,13 @@ def delete_requirement_or_link(project_id: str, req_id: str, db: DB, user: Write
 
 
 @router.get("/projects/{project_id}/defects", response_model=list[DefectLinkOut])
-def list_defect_links(project_id: str, db: DB, _user: ReadUser) -> list[DefectLinkOut]:
-    return service.list_defect_links(db, project_id)
+def list_defect_links(
+    project_id: str,
+    db: DB,
+    _user: ReadUser,
+    case_id: Optional[str] = Query(default=None),
+) -> list[DefectLinkOut]:
+    return service.list_defect_links(db, project_id, case_id=case_id)
 
 
 @router.post(
@@ -2009,6 +2016,34 @@ def design_create_eq(payload: EqRunCreate, db: DB, user: WriteUser) -> DesignRun
     tenant_id = _require_tenant(user)
     try:
         return design_service.create_eq_run(db, tenant_id, user, payload)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.post(
+    "/design/dt",
+    response_model=DesignRunOut,
+    status_code=status.HTTP_201_CREATED,
+    summary="Generate a Decision Table run",
+)
+def design_create_dt(payload: DtRunCreate, db: DB, user: WriteUser) -> DesignRunOut:
+    tenant_id = _require_tenant(user)
+    try:
+        return design_service.create_dt_run(db, tenant_id, user, payload)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.post(
+    "/design/pairwise",
+    response_model=DesignRunOut,
+    status_code=status.HTTP_201_CREATED,
+    summary="Generate a Pairwise (All-Pairs) run",
+)
+def design_create_pairwise(payload: PairwiseRunCreate, db: DB, user: WriteUser) -> DesignRunOut:
+    tenant_id = _require_tenant(user)
+    try:
+        return design_service.create_pairwise_run(db, tenant_id, user, payload)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 

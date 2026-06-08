@@ -9,6 +9,7 @@ import { useKeyboardShortcuts } from "@/lib/useKeyboardShortcuts";
 import { useI18n } from "@/lib/i18n";
 import { useManagementProjectId } from "@/lib/hooks/use-management-project-id";
 import { GlobalSearch } from "./_components/GlobalSearch";
+import { NotificationBell } from "@/components/management/NotificationBell";
 
 // ─── Management Error Boundary ───────────────────────────────────────────────
 
@@ -190,6 +191,20 @@ function IcCode() {
     </svg>
   );
 }
+function IcMatrix() {
+  return (
+    <svg className="h-[15px] w-[15px] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M3 3h7v7H3zM14 3h7v7h-7zM14 14h7v7h-7zM3 14h7v7H3z"/>
+    </svg>
+  );
+}
+function IcApi() {
+  return (
+    <svg className="h-[15px] w-[15px] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+    </svg>
+  );
+}
 
 // ─── Nav config ───────────────────────────────────────────────────────────────
 
@@ -201,6 +216,7 @@ const NAV_GROUPS: NavGroup[] = [
     label: "QA Akışı",
     items: [
       { label: "Dashboard",       segment: "management/dashboard",    Icon: IcHome     },
+      { label: "Workspace",       segment: "management/workspace",    Icon: IcGrid     },
       { label: "Test Deposu",     segment: "management/repository",   Icon: IcDatabase },
       { label: "Planlar",         segment: "management/plans",        Icon: IcCalendar },
       { label: "Test Koşuları",   segment: "management/runs",         Icon: IcPlay     },
@@ -210,11 +226,14 @@ const NAV_GROUPS: NavGroup[] = [
   {
     label: "Analiz",
     items: [
-      { label: "Gereksinimler",   segment: "management/requirements", Icon: IcLink  },
-      { label: "Defektler",       segment: "management/defects",      Icon: IcBug   },
-      { label: "Raporlar",        segment: "management/reports",      Icon: IcChart },
-      { label: "Tester",          segment: "management/tester",       Icon: IcUser  },
-      { label: "Stand-up",        segment: "management/standup",      Icon: IcPulse },
+      { label: "Gereksinimler",   segment: "management/requirements",    Icon: IcLink   },
+      { label: "İzlenebilirlik",  segment: "management/traceability",    Icon: IcMatrix },
+      { label: "Defektler",       segment: "management/defects",         Icon: IcBug    },
+      { label: "Raporlar",        segment: "management/reports",         Icon: IcChart  },
+      { label: "Tester",          segment: "management/tester",          Icon: IcUser   },
+      { label: "Stand-up",        segment: "management/standup",         Icon: IcPulse  },
+      { label: "Mobil Test",      segment: "management/mobile",          Icon: IcGrid   },
+      { label: "API Test",        segment: "api-testing",                Icon: IcApi    },
     ],
   },
   {
@@ -224,13 +243,15 @@ const NAV_GROUPS: NavGroup[] = [
       { label: "Eşdeğerlik Bölümü",      segment: "management/design/eq",        Icon: IcGrid },
       { label: "Karar Tablosu",          segment: "management/design/dt",        Icon: IcGrid },
       { label: "BDD/Gherkin",            segment: "management/design/gherkin",   Icon: IcCode },
-      { label: "Paylaşılan Adımlar",     segment: "management/shared-steps",    Icon: IcCopy },
+      { label: "Pairwise",              segment: "management/design/pairwise",  Icon: IcGrid },
+      { label: "Paylaşılan Adımlar",    segment: "management/shared-steps",    Icon: IcCopy },
     ],
   },
 ];
 
 const NAV_UTILITY: NavItem[] = [
   { label: "Üyeler",          segment: "management/members",       Icon: IcUsers  },
+  { label: "Yetki Matrisi",   segment: "management/permissions",   Icon: IcMatrix },
   { label: "İçe/Dışa Aktar",  segment: "management/import-export", Icon: IcUpload },
   { label: "Entegrasyonlar",  segment: "management/integrations",  Icon: IcLink   },
   { label: "Denetim İzi",     segment: "management/audit",         Icon: IcPulse  },
@@ -343,11 +364,13 @@ const SHORTCUT_GROUPS: ShortcutGroup[] = [
     label: "Navigasyon",
     entries: [
       { key: "G D",     description: "Dashboard'a git" },
+      { key: "G W",     description: "Workspace'e git" },
       { key: "G R",     description: "Test Deposu'na git" },
       { key: "G P",     description: "Planlar'a git" },
       { key: "G U",     description: "Test Koşuları'na git" },
       { key: "G E",     description: "Regresyon'a git" },
       { key: "G Q",     description: "Gereksinimler'e git" },
+      { key: "G X",     description: "İzlenebilirlik'e git" },
       { key: "G F",     description: "Defektler'e git" },
       { key: "G T",     description: "Raporlar'a git" },
       { key: "G S",     description: "Stand-up'a git" },
@@ -476,14 +499,17 @@ export default function ManagementLayout({
   // ── Keyboard shortcuts (chord navigation) ──────────────────────────────────
   useKeyboardShortcuts(useMemo(() => [
     { combo: "g d", description: "Dashboard'a git", handler: () => router.push(`/p/${projectId}/management/dashboard`) },
+    { combo: "g w", description: "Workspace'e git", handler: () => router.push(`/p/${projectId}/management/workspace`) },
     { combo: "g r", description: "Test Deposu'na git", handler: () => router.push(`/p/${projectId}/management/repository`) },
     { combo: "g p", description: "Planlar'a git", handler: () => router.push(`/p/${projectId}/management/plans`) },
     { combo: "g u", description: "Test Koşuları'na git", handler: () => router.push(`/p/${projectId}/management/runs`) },
     { combo: "g e", description: "Regresyon'a git", handler: () => router.push(`/p/${projectId}/management/regression`) },
     { combo: "g q", description: "Gereksinimler'e git", handler: () => router.push(`/p/${projectId}/management/requirements`) },
+    { combo: "g x", description: "İzlenebilirlik'e git", handler: () => router.push(`/p/${projectId}/management/traceability`) },
     { combo: "g f", description: "Defektler'e git", handler: () => router.push(`/p/${projectId}/management/defects`) },
     { combo: "g t", description: "Raporlar'a git", handler: () => router.push(`/p/${projectId}/management/reports`) },
     { combo: "g s", description: "Stand-up'a git", handler: () => router.push(`/p/${projectId}/management/standup`) },
+    { combo: "g a", description: "API Test'e git", handler: () => router.push(`/p/${projectId}/api-testing`) },
     { combo: "g i", description: "Ayarlar'a git", handler: () => router.push(`/p/${projectId}/management/settings`) },
     { combo: "mod+shift+l", description: "Dil değiştir (TR/EN)", handler: () => setLocale(locale === "tr" ? "en" : "tr") },
     { combo: "?", description: "Kısayol yardım paneli", handler: () => setShowShortcuts(true) },
@@ -618,7 +644,7 @@ export default function ManagementLayout({
             onClick={() => setShowShortcuts(true)}
             className="flex w-full items-center justify-between text-[9px] text-fg-disabled hover:text-fg-subtle transition-colors"
           >
-            <span className="font-mono">g d/r/p/u</span>
+            <span className="font-mono">g d/w/r/p/u/s</span>
             <span className="rounded border border-border/50 px-1 py-0.5 font-mono text-[8px]">?</span>
           </button>
         </div>
@@ -637,11 +663,14 @@ export default function ManagementLayout({
           </button>
           <span className="text-[11px] text-fg-muted">{currentLabel}</span>
         </div>
-        {/* Breadcrumb */}
-        <div className="flex items-center gap-1.5 border-b border-border bg-surface-base px-4 py-2 text-[11px] shrink-0">
-          <span className="font-semibold text-brand">Management</span>
-          <span className="text-fg-subtle">›</span>
-          <span className="text-fg">{currentLabel}</span>
+        {/* Breadcrumb + notification bell */}
+        <div className="flex items-center justify-between gap-1.5 border-b border-border bg-surface-base px-4 py-2 shrink-0">
+          <div className="flex items-center gap-1.5 text-[11px]">
+            <span className="font-semibold text-brand">Management</span>
+            <span className="text-fg-subtle">›</span>
+            <span className="text-fg">{currentLabel}</span>
+          </div>
+          <NotificationBell projectId={projectId} className="scale-90" />
         </div>
         <ManagementErrorBoundary>
           {children}

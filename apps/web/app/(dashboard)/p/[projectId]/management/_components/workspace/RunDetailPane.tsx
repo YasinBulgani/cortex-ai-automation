@@ -1,8 +1,10 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useMemo, useRef, useCallback } from "react";
 import Link from "next/link";
+import { useQuery } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
+import { apiFetch } from "@/lib/api-client";
 import {
   useManagementRun,
   useUpdateManagementRun,
@@ -10,6 +12,8 @@ import {
   type RunCase,
 } from "@/lib/hooks/use-management";
 import { R_DOT, RUN_STATUS_LABEL, IcPlay } from "./shared";
+
+interface Member { user_id: string; email: string; full_name?: string; }
 
 function snapshotCase(rc: RunCase): { case_key?: string; title?: string; priority?: string } {
   const snap = rc.case_snapshot as { case?: { case_key?: string; title?: string; priority?: string } };
@@ -38,6 +42,18 @@ export function RunDetailPane({
   const { data: run, isLoading } = useManagementRun(pid || undefined, runId || undefined);
   const updateRun = useUpdateManagementRun(pid);
   const deleteRun = useDeleteManagementRun(pid);
+
+  const { data: membersData } = useQuery({
+    queryKey: ["management", "members", projectId],
+    queryFn: () => apiFetch<Member[]>(`/api/v1/organizations/projects/${projectId}/members`).then(d => Array.isArray(d) ? d : []),
+    enabled: !!projectId,
+    staleTime: 5 * 60 * 1000,
+  });
+  const userIdMap = useMemo<Record<string, string>>(() => {
+    const map: Record<string, string> = {};
+    for (const m of membersData ?? []) map[m.user_id] = m.full_name?.trim() || m.email;
+    return map;
+  }, [membersData]);
 
   /* --- inline rename state --- */
   const [renaming, setRenaming] = useState(false);
@@ -167,7 +183,7 @@ export function RunDetailPane({
           {run.assigned_to && (
             <span>
               <span className="font-medium text-fg-muted">Atanan:</span>{" "}
-              {run.assigned_to}
+              {userIdMap[run.assigned_to] ?? run.assigned_to}
             </span>
           )}
           <span>

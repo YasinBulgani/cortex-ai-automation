@@ -21,6 +21,7 @@ import {
   useBulkUpdateCases,
   useCloneManagementCase,
   useQualityScan,
+  useManagementProjectTags,
   type QualityScanResult,
   type TestCase, type TestSuite, type TestFolder,
 } from "@/lib/hooks/use-management";
@@ -36,6 +37,7 @@ import { RunTabHeader, type RunFilters } from "./RunTabHeader";
 import { WorkspaceFilterBar } from "./WorkspaceFilterBar";
 import { WorkspaceBulkActions } from "./WorkspaceBulkActions";
 import { WorkspaceEmptyState } from "./WorkspaceEmptyState";
+import { AISimilaritySearch } from "../AISimilaritySearch";
 
 type DragData =
   | { kind: "case"; caseId: string }
@@ -52,13 +54,13 @@ function IcCheck() {
 // ─── Case Table (ultra-clean TestRail style) ──────────────────────────────────
 
 function CaseTable({
-  nodeName, nodeCases, archivedCases, loading, projectId,
+  nodeName, nodeCases, archivedCases, loading, projectId, mpid,
   selId, onSelect, checked, onCheck, onClearChecked, onToggleAll,
   onNewCase, onCreateRun, onPromote, onArchiveMany, onUnarchiveMany,
   onBulkMove, onBulkUpdate, onBulkClone, onCloneCase, onUnarchivedSingle,
   busy, suites, folders,
 }: {
-  nodeName: string; nodeCases: TestCase[]; archivedCases: TestCase[]; loading: boolean; projectId: string;
+  nodeName: string; nodeCases: TestCase[]; archivedCases: TestCase[]; loading: boolean; projectId: string; mpid: string;
   selId: string | null; onSelect: (id: string) => void;
   checked: Set<string>; onCheck: (id: string) => void;
   onClearChecked: () => void; onToggleAll: (ids: string[]) => void;
@@ -77,6 +79,41 @@ function CaseTable({
   const [priority,     setPriority]     = useState("");
   const [type,         setType]         = useState("");
   const [status,       setStatus]       = useState("");
+  const [tagFilter,    setTagFilter]    = useState("");
+
+  // Saved filter presets (localStorage)
+  const savedFiltersKey = `ws-saved-filters-${projectId}`;
+  type FilterPreset = { name: string; search: string; priority: string; type: string; status: string; tagFilter: string };
+  const [savedFilters, setSavedFilters] = useState<FilterPreset[]>(() => {
+    try { return JSON.parse(localStorage.getItem(savedFiltersKey) || "[]"); } catch { return []; }
+  });
+  const [showSaveFilterInput, setShowSaveFilterInput] = useState(false);
+  const [saveFilterName, setSaveFilterName] = useState("");
+  function saveCurrentFilter() {
+    if (!saveFilterName.trim()) return;
+    const preset: FilterPreset = { name: saveFilterName.trim(), search, priority, type, status, tagFilter };
+    const next = [...savedFilters.filter(f => f.name !== preset.name), preset];
+    setSavedFilters(next);
+    try { localStorage.setItem(savedFiltersKey, JSON.stringify(next)); } catch {}
+    setSaveFilterName("");
+    setShowSaveFilterInput(false);
+  }
+
+  function applyFilter(preset: FilterPreset) {
+    setSearch(preset.search);
+    setPriority(preset.priority);
+    setType(preset.type);
+    setStatus(preset.status);
+    setTagFilter(preset.tagFilter);
+  }
+
+  function deleteFilter(name: string) {
+    const next = savedFilters.filter(f => f.name !== name);
+    setSavedFilters(next);
+    try { localStorage.setItem(savedFiltersKey, JSON.stringify(next)); } catch {}
+  }
+
+  const { data: projectTags = [] } = useManagementProjectTags(projectId || undefined);
   const [showArchived, setShowArchived] = useState(false);
   const [cloningId,    setCloningId]    = useState<string | null>(null);
   const [unarchivedId, setUnarchivedId] = useState<string | null>(null);
@@ -97,12 +134,13 @@ function CaseTable({
   const filtered = useMemo(() => {
     let r = nodeCases;
     const q = debouncedSearch.trim().toLowerCase();
-    if (q)        r = r.filter(c => c.title.toLowerCase().includes(q) || c.case_key.toLowerCase().includes(q));
-    if (priority) r = r.filter(c => c.priority === priority);
-    if (type)     r = r.filter(c => c.type === type);
-    if (status)   r = r.filter(c => c.last_run_status === status);
+    if (q)         r = r.filter(c => c.title.toLowerCase().includes(q) || c.case_key.toLowerCase().includes(q));
+    if (priority)  r = r.filter(c => c.priority === priority);
+    if (type)      r = r.filter(c => c.type === type);
+    if (status)    r = r.filter(c => c.last_run_status === status);
+    if (tagFilter) r = r.filter(c => (c.tags ?? []).includes(tagFilter));
     return r;
-  }, [nodeCases, debouncedSearch, priority, type, status]);
+  }, [nodeCases, debouncedSearch, priority, type, status, tagFilter]);
 
   // ── Keyboard shortcuts (placed after filtered is defined) ───────────────
   useEffect(() => {
@@ -150,7 +188,7 @@ function CaseTable({
   const visibleCases = useMemo(() => sorted.slice(0, (page + 1) * ITEMS_PER_PAGE), [sorted, page]);
   const hasMore = sorted.length > visibleCases.length;
 
-  const activeFilterCount = [priority, type, status].filter(Boolean).length + (debouncedSearch ? 1 : 0);
+  const activeFilterCount = [priority, type, status, tagFilter].filter(Boolean).length + (debouncedSearch ? 1 : 0);
 
   const toggleSort = (col: string) => {
     if (sortCol === col) setSortDir(d => d === "asc" ? "desc" : "asc");
@@ -158,8 +196,8 @@ function CaseTable({
   };
 
   const allChecked = filtered.length > 0 && filtered.every(c => checked.has(c.id));
-  const hasFilter  = !!(debouncedSearch || priority || type || status);
-  const clearAll   = () => { setSearch(""); setPriority(""); setType(""); setStatus(""); };
+  const hasFilter  = !!(debouncedSearch || priority || type || status || tagFilter);
+  const clearAll   = () => { setSearch(""); setPriority(""); setType(""); setStatus(""); setTagFilter(""); };
   const checkedIds = [...checked];
 
   const checkedArchivedCount = useMemo(
@@ -193,6 +231,8 @@ function CaseTable({
         priority={priority}
         type={type}
         status={status}
+        tagFilter={tagFilter}
+        availableTags={projectTags}
         activeFilterCount={activeFilterCount}
         showArchived={showArchived}
         archivedCount={archivedCases.length}
@@ -202,10 +242,58 @@ function CaseTable({
         onPriorityChange={setPriority}
         onTypeChange={setType}
         onStatusChange={setStatus}
+        onTagFilterChange={setTagFilter}
         onToggleArchived={() => setShowArchived(v => !v)}
         onClearAll={clearAll}
         onNewCase={onNewCase}
       />
+
+      {/* ── Saved filters + AI search bar ──────────────────────────────────── */}
+      <div className="relative flex items-center gap-1.5 border-b border-border bg-surface-overlay/50 px-4 py-1.5 min-h-[32px]">
+        {savedFilters.map(f => (
+          <div key={f.name} className="group flex items-center gap-0.5">
+            <button
+              type="button"
+              onClick={() => applyFilter(f)}
+              className="rounded-l-md border border-border bg-surface-overlay px-2 py-0.5 text-[10px] text-fg-muted hover:text-brand hover:border-brand/30 transition-colors"
+            >{f.name}</button>
+            <button
+              type="button"
+              onClick={() => deleteFilter(f.name)}
+              className="rounded-r-md border border-l-0 border-border bg-surface-overlay px-1.5 py-0.5 text-[10px] text-fg-disabled hover:text-red-400 hover:border-red-500/30 transition-colors opacity-0 group-hover:opacity-100"
+              title="Filtreyi sil"
+            >×</button>
+          </div>
+        ))}
+        {(search || priority || type || status || tagFilter) && !showSaveFilterInput && (
+          <button
+            type="button"
+            onClick={() => { setSaveFilterName(""); setShowSaveFilterInput(true); }}
+            className="flex items-center gap-1 rounded-md border border-border bg-surface-overlay px-2 py-0.5 text-[10px] text-fg-disabled hover:text-brand hover:border-brand/30 transition-colors"
+            title="Mevcut filtreyi kaydet"
+          >
+            <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"/>
+            </svg>
+            Filtreyi Kaydet
+          </button>
+        )}
+        {showSaveFilterInput && (
+          <div className="flex items-center gap-1.5 rounded-lg border border-brand/30 bg-surface-overlay px-2 py-1">
+            <input autoFocus type="text" value={saveFilterName} onChange={e => setSaveFilterName(e.target.value)}
+              onKeyDown={e => { if (e.key === "Enter") saveCurrentFilter(); if (e.key === "Escape") setShowSaveFilterInput(false); }}
+              placeholder="Filtre adı…"
+              className="w-24 bg-transparent text-[10px] text-fg placeholder-fg-subtle outline-none"/>
+            <button type="button" onClick={saveCurrentFilter} disabled={!saveFilterName.trim()}
+              className="text-[10px] text-brand disabled:opacity-40 hover:underline">Kaydet</button>
+            <button type="button" onClick={() => setShowSaveFilterInput(false)}
+              className="text-[10px] text-fg-subtle hover:text-fg">×</button>
+          </div>
+        )}
+        <div className="ml-auto">
+          <AISimilaritySearch projectId={mpid} onSelectCase={onSelect} />
+        </div>
+      </div>
 
       {/* ── Bulk action bar ─────────────────────────────────────────────────── */}
       <WorkspaceBulkActions
@@ -263,7 +351,7 @@ function CaseTable({
                   { label: "Başlık",    col: "title",      cls: ""                           },
                   { label: "Öncelik",   col: "priority",   cls: "w-14"                       },
                   { label: "Tür",       col: "type",       cls: "hidden w-24 lg:table-cell"  },
-                  { label: "Güncelleme",col: "updated_at", cls: "hidden w-24 md:table-cell"  },
+                  { label: "Son Koşum", col: null,         cls: "hidden w-24 md:table-cell"  },
                   { label: "Adım",      col: null,         cls: "hidden w-12 xl:table-cell"  },
                   { label: "",          col: null,         cls: "w-16"                       },
                 ].map(({ label, col, cls }) => (
@@ -772,6 +860,7 @@ export function WorkspaceShell({
               archivedCases={nodeArchivedCases}
               loading={repoQ.isLoading}
               projectId={projectId}
+              mpid={mpid}
               selId={selId}
               onSelect={id => setSelId(selId === id ? null : id)}
               checked={checked}

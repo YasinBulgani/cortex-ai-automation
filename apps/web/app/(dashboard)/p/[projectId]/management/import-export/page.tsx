@@ -90,7 +90,7 @@ const ROW_STATUS_STYLES: Record<string, string> = {
 };
 
 function RowStatusBadge({ status }: { status: string }) {
-  const cls = ROW_STATUS_STYLES[status] ?? "bg-slate-700 text-slate-300";
+  const cls = ROW_STATUS_STYLES[status] ?? "bg-surface-accent text-fg";
   const label = status.replace("_", " ");
   return (
     <span className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${cls}`}>
@@ -111,7 +111,7 @@ function JobStatusBadge({ status }: { status: string }) {
   return (
     <span
       className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-        JOB_STATUS_STYLES[status] ?? "bg-slate-700 text-slate-300"
+        JOB_STATUS_STYLES[status] ?? "bg-surface-accent text-fg"
       }`}
     >
       {status}
@@ -164,7 +164,7 @@ function ImportJobDetailPanel({
     <section className="rounded-xl border border-border bg-surface-raised p-5">
       <div className="mb-5 grid gap-3 md:grid-cols-4">
         <div className="rounded-lg border border-border bg-bg p-3">
-          <p className="text-xs uppercase text-slate-500">Dry-run checked</p>
+          <p className="text-xs uppercase text-fg-subtle">Dry-run checked</p>
           <p className="mt-1 text-xl font-semibold text-white">{checkedRows}</p>
         </div>
         <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/5 p-3">
@@ -181,22 +181,22 @@ function ImportJobDetailPanel({
         </div>
       </div>
 
-      <div className="mb-4 flex flex-wrap items-center gap-3 rounded-lg border border-border bg-bg px-3 py-2 text-sm text-slate-400">
+      <div className="mb-4 flex flex-wrap items-center gap-3 rounded-lg border border-border bg-bg px-3 py-2 text-sm text-fg-muted">
         <JobStatusBadge status={job.status} />
         <span>
           Mapping:{" "}
-          <span className="text-slate-200">
+          <span className="text-fg">
             {Object.keys(job.mapping ?? {}).length > 0 ? "saved with job" : "backend default"}
           </span>
         </span>
-        <span className="text-slate-600">|</span>
+        <span className="text-fg-disabled">|</span>
         <span>Commit sadece validation sonrası preview job üzerinden çalışır.</span>
       </div>
 
       {/* Row table */}
       <div className="overflow-x-auto rounded-lg border border-border">
         <table className="w-full text-sm">
-          <thead className="bg-bg text-xs text-slate-500">
+          <thead className="bg-bg text-xs text-fg-subtle">
             <tr>
               <th className="px-3 py-2 text-left">Row</th>
               <th className="px-3 py-2 text-left">Title / Data</th>
@@ -207,15 +207,15 @@ function ImportJobDetailPanel({
           <tbody className="divide-y divide-slate-800">
             {rows.length === 0 ? (
               <tr>
-                <td colSpan={4} className="px-3 py-4 text-center text-slate-500">
+                <td colSpan={4} className="px-3 py-4 text-center text-fg-subtle">
                   Satır yok
                 </td>
               </tr>
             ) : (
               rows.map((row) => (
                 <tr key={row.id} className="hover:bg-surface-raised">
-                  <td className="px-3 py-2 font-mono text-xs text-slate-500">{row.row_no}</td>
-                  <td className="max-w-xs px-3 py-2 truncate text-slate-200">
+                  <td className="px-3 py-2 font-mono text-xs text-fg-subtle">{row.row_no}</td>
+                  <td className="max-w-xs px-3 py-2 truncate text-fg">
                     {(row.parsed_data as { title?: string })?.title ??
                       JSON.stringify(row.parsed_data).slice(0, 60)}
                   </td>
@@ -241,7 +241,7 @@ function ImportJobDetailPanel({
       <div className="mt-4 flex items-center justify-between">
         <button
           onClick={onClose}
-          className="rounded-lg border border-border px-4 py-2 text-sm text-slate-400 hover:bg-surface-overlay"
+          className="rounded-lg border border-border px-4 py-2 text-sm text-fg-muted hover:bg-surface-overlay"
         >
           ← Listeye dön
         </button>
@@ -712,19 +712,19 @@ export default function ManagementImportExportPage() {
       {/* Stats */}
       <div className="grid gap-4 md:grid-cols-3">
         <div className="rounded-xl border border-border bg-surface-raised px-4 py-3">
-          <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-600">Import Jobs</p>
-          <p className="mt-1.5 text-2xl font-bold text-slate-100 tabular-nums">{String(jobs.length)}</p>
-          <p className="mt-0.5 text-[11px] text-slate-600">{pendingJobs} preview bekliyor</p>
+          <p className="text-[10px] font-semibold uppercase tracking-widest text-fg-disabled">Import Jobs</p>
+          <p className="mt-1.5 text-2xl font-bold text-fg tabular-nums">{String(jobs.length)}</p>
+          <p className="mt-0.5 text-[11px] text-fg-disabled">{pendingJobs} preview bekliyor</p>
         </div>
         <div className="rounded-xl border border-border bg-surface-raised px-4 py-3">
-          <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-600">Committed</p>
-          <p className="mt-1.5 text-2xl font-bold text-slate-100 tabular-nums">{String(committedJobs)}</p>
-          <p className="mt-0.5 text-[11px] text-slate-600">repository'ye yazıldı</p>
+          <p className="text-[10px] font-semibold uppercase tracking-widest text-fg-disabled">Committed</p>
+          <p className="mt-1.5 text-2xl font-bold text-fg tabular-nums">{String(committedJobs)}</p>
+          <p className="mt-0.5 text-[11px] text-fg-disabled">repository'ye yazıldı</p>
         </div>
         <div className="rounded-xl border border-border bg-surface-raised px-4 py-3">
-          <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-600">Formats</p>
-          <p className="mt-1.5 text-2xl font-bold text-slate-100 tabular-nums">XLSX / CSV</p>
-          <p className="mt-0.5 text-[11px] text-slate-600">{failedJobs} failed job</p>
+          <p className="text-[10px] font-semibold uppercase tracking-widest text-fg-disabled">Formats</p>
+          <p className="mt-1.5 text-2xl font-bold text-fg tabular-nums">XLSX / CSV</p>
+          <p className="mt-0.5 text-[11px] text-fg-disabled">{failedJobs} failed job</p>
         </div>
       </div>
 
@@ -732,13 +732,13 @@ export default function ManagementImportExportPage() {
         <section className="rounded-xl border border-border bg-surface-raised p-5">
           <div className="grid gap-4 md:grid-cols-[1fr_auto] md:items-center">
             <div>
-              <p className="text-sm text-slate-300">Excel/CSV şablonu</p>
-              <p className="mt-1 text-xs text-slate-500">
+              <p className="text-sm text-fg">Excel/CSV şablonu</p>
+              <p className="mt-1 text-xs text-fg-subtle">
                 Zorunlu alan: title. Opsiyonel alanlar case_key, suite, priority, steps ve expected_result.
               </p>
               <div className="mt-3 flex flex-wrap gap-2">
                 {TEMPLATE_COLUMNS.slice(0, 8).map((column) => (
-                  <span key={column} className="rounded border border-border bg-bg px-2 py-1 text-xs text-slate-400">
+                  <span key={column} className="rounded border border-border bg-bg px-2 py-1 text-xs text-fg-muted">
                     {column}
                   </span>
                 ))}
@@ -746,7 +746,7 @@ export default function ManagementImportExportPage() {
             </div>
             <button
               onClick={handleTemplateDownload}
-              className="rounded-lg border border-border px-4 py-2 text-sm font-semibold text-slate-200 hover:bg-surface-overlay"
+              className="rounded-lg border border-border px-4 py-2 text-sm font-semibold text-fg hover:bg-surface-overlay"
             >
               Template CSV
             </button>
@@ -755,7 +755,7 @@ export default function ManagementImportExportPage() {
 
         <section className="rounded-xl border border-border bg-surface-raised p-5">
           <div className="flex h-full flex-col justify-between gap-4">
-            <p className="text-sm text-slate-400">
+            <p className="text-sm text-fg-muted">
               Repository snapshot seçilen formatta indirilir; import preview ve mapping ayarları backend job akışında kalır.
             </p>
             {exportError && (
@@ -770,7 +770,7 @@ export default function ManagementImportExportPage() {
                   className={`px-3 py-1.5 rounded-lg text-xs border transition-colors ${
                     exportFormat === fmt
                       ? "border-teal-500/60 bg-teal-500/10 text-teal-300"
-                      : "border-border text-slate-500 hover:text-slate-300"
+                      : "border-border text-fg-subtle hover:text-fg"
                   }`}
                 >
                   {fmt.toUpperCase()}
@@ -801,13 +801,13 @@ export default function ManagementImportExportPage() {
                 : "border-border hover:border-border-strong"
             }`}
           >
-            <svg className="mb-3 h-8 w-8 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg className="mb-3 h-8 w-8 text-fg-subtle" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
                 d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
             </svg>
-            <p className="mb-1 text-sm text-slate-300">Excel, CSV veya JSON dosyası sürükleyin</p>
-            <p className="text-xs text-slate-500 mb-3">veya</p>
-            <label className="cursor-pointer rounded-lg bg-surface-overlay px-4 py-2 text-sm text-slate-300 hover:bg-slate-700">
+            <p className="mb-1 text-sm text-fg">Excel, CSV veya JSON dosyası sürükleyin</p>
+            <p className="text-xs text-fg-subtle mb-3">veya</p>
+            <label className="cursor-pointer rounded-lg bg-surface-overlay px-4 py-2 text-sm text-fg hover:bg-surface-overlay">
               {uploading ? "Yükleniyor…" : "Dosya Seç"}
               <input
                 type="file"
@@ -817,7 +817,7 @@ export default function ManagementImportExportPage() {
                 disabled={uploading}
               />
             </label>
-            <p className="mt-3 text-xs text-slate-600">
+            <p className="mt-3 text-xs text-fg-disabled">
               Dosya önce staging alanına alınır; mapping ve dry-run kontrolünden sonra import job oluşturulur.
             </p>
           </div>
@@ -832,8 +832,8 @@ export default function ManagementImportExportPage() {
           {!stagedImport ? (
             <div className="flex min-h-56 items-center justify-center rounded-lg border border-border bg-bg px-6 text-center">
               <div>
-                <p className="text-sm font-medium text-slate-300">Henüz staged dosya yok</p>
-                <p className="mt-2 max-w-md text-xs text-slate-500">
+                <p className="text-sm font-medium text-fg">Henüz staged dosya yok</p>
+                <p className="mt-2 max-w-md text-xs text-fg-subtle">
                   Excel, CSV veya JSON yüklediğinizde kolonlar burada mapping tablosuna dönüşür.
                 </p>
               </div>
@@ -843,13 +843,13 @@ export default function ManagementImportExportPage() {
               <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-bg px-3 py-2">
                 <div>
                   <p className="text-sm font-medium text-white">{stagedImport.filename}</p>
-                  <p className="text-xs text-slate-500">
+                  <p className="text-xs text-fg-subtle">
                     {stagedImport.rows.length} rows, {stagedImport.headers.length} source columns, {formatFileSize(stagedImport.fileSize)}
                   </p>
                 </div>
                 <button
                   onClick={() => { setStagedImport(null); setColumnMapping({}); }}
-                  className="rounded border border-border px-3 py-1.5 text-xs text-slate-400 hover:bg-surface-overlay"
+                  className="rounded border border-border px-3 py-1.5 text-xs text-fg-muted hover:bg-surface-overlay"
                 >
                   Temizle
                 </button>
@@ -857,7 +857,7 @@ export default function ManagementImportExportPage() {
 
               <div className="grid gap-3 md:grid-cols-4">
                 <div className="rounded-lg border border-border bg-bg p-3">
-                  <p className="text-xs uppercase text-slate-500">Mapped</p>
+                  <p className="text-xs uppercase text-fg-subtle">Mapped</p>
                   <p className="mt-1 text-lg font-semibold text-white">{mappedColumnCount}</p>
                 </div>
                 <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/5 p-3">
@@ -876,7 +876,7 @@ export default function ManagementImportExportPage() {
 
               <div className="overflow-x-auto rounded-lg border border-border">
                 <table className="w-full text-sm">
-                  <thead className="bg-bg text-xs text-slate-500">
+                  <thead className="bg-bg text-xs text-fg-subtle">
                     <tr>
                       <th className="px-3 py-2 text-left">Source column</th>
                       <th className="px-3 py-2 text-left">Maps to</th>
@@ -890,7 +890,7 @@ export default function ManagementImportExportPage() {
                       const isDuplicateTarget = duplicateMappedTargets.includes(target);
                       return (
                         <tr key={header}>
-                          <td className="px-3 py-2 font-mono text-xs text-slate-300">{header}</td>
+                          <td className="px-3 py-2 font-mono text-xs text-fg">{header}</td>
                           <td className="px-3 py-2">
                             <select
                               value={target}
@@ -900,7 +900,7 @@ export default function ManagementImportExportPage() {
                                   [header]: e.target.value as ColumnKey,
                                 }))
                               }
-                              className={`w-44 rounded border bg-bg px-2 py-1.5 text-xs text-slate-200 outline-none focus:border-teal-400 ${
+                              className={`w-44 rounded border bg-bg px-2 py-1.5 text-xs text-fg outline-none focus:border-teal-400 ${
                                 isDuplicateTarget ? "border-amber-500/60" : "border-border"
                               }`}
                             >
@@ -911,14 +911,14 @@ export default function ManagementImportExportPage() {
                               ))}
                             </select>
                           </td>
-                          <td className="max-w-xs truncate px-3 py-2 text-xs text-slate-500">
+                          <td className="max-w-xs truncate px-3 py-2 text-xs text-fg-subtle">
                             {valueToString(stagedImport.rows[0]?.[header]) || "—"}
                           </td>
                           <td className="px-3 py-2 text-xs">
                             {isDuplicateTarget ? (
                               <span className="text-amber-300">Duplicate target</span>
                             ) : target === "ignore" ? (
-                              <span className="text-slate-600">Ignored</span>
+                              <span className="text-fg-disabled">Ignored</span>
                             ) : (
                               <span className="text-emerald-400">Mapped</span>
                             )}
@@ -939,17 +939,17 @@ export default function ManagementImportExportPage() {
                     className="mt-0.5 h-4 w-4 rounded border-border-strong bg-surface-raised"
                   />
                   <span>
-                    <span className="block text-sm text-slate-200">Update existing</span>
-                    <span className="text-xs text-slate-500">case_key eşleşirse güncelleme niyeti mapping payloadına eklenir.</span>
+                    <span className="block text-sm text-fg">Update existing</span>
+                    <span className="text-xs text-fg-subtle">case_key eşleşirse güncelleme niyeti mapping payloadına eklenir.</span>
                   </span>
                 </label>
 
                 <label className="rounded-lg border border-border bg-bg p-3">
-                  <span className="block text-sm text-slate-200">Conflict handling</span>
+                  <span className="block text-sm text-fg">Conflict handling</span>
                   <select
                     value={conflictMode}
                     onChange={(e) => setConflictMode(e.target.value as "skip" | "flag" | "overwrite")}
-                    className="mt-2 w-full rounded border border-border bg-surface-raised px-2 py-1.5 text-xs text-slate-200 outline-none focus:border-teal-400"
+                    className="mt-2 w-full rounded border border-border bg-surface-raised px-2 py-1.5 text-xs text-fg outline-none focus:border-teal-400"
                   >
                     <option value="flag">Flag for review</option>
                     <option value="skip">Skip conflicts</option>
@@ -958,7 +958,7 @@ export default function ManagementImportExportPage() {
                 </label>
 
                 <div className="rounded-lg border border-border bg-bg p-3">
-                  <span className="block text-sm text-slate-200">Validation</span>
+                  <span className="block text-sm text-fg">Validation</span>
                   <span className={hasBlockingValidation ? "mt-2 block text-xs text-red-400" : "mt-2 block text-xs text-emerald-400"}>
                     {hasBlockingValidation ? "Mapping veya satır kontrolü gerekiyor" : "Dry-run için hazır"}
                   </span>
@@ -999,7 +999,7 @@ export default function ManagementImportExportPage() {
 
               <div className="overflow-x-auto rounded-lg border border-border">
                 <table className="w-full text-xs">
-                  <thead className="bg-bg text-slate-500">
+                  <thead className="bg-bg text-fg-subtle">
                     <tr>
                       <th className="px-3 py-2 text-left">#</th>
                       <th className="px-3 py-2 text-left">Preview</th>
@@ -1015,7 +1015,7 @@ export default function ManagementImportExportPage() {
                       const rowStatus = getRowStatus(row, rowNo, issuesByRow, duplicateCaseKeys);
                       return (
                         <tr key={`${stagedImport.filename}-${index}`}>
-                          <td className="px-3 py-2 text-slate-500">{index + 1}</td>
+                          <td className="px-3 py-2 text-fg-subtle">{index + 1}</td>
                           <td className="px-3 py-2">
                             <RowStatusBadge status={rowStatus} />
                             {(issuesByRow.get(rowNo) ?? []).length > 0 && (
@@ -1024,10 +1024,10 @@ export default function ManagementImportExportPage() {
                               </span>
                             )}
                           </td>
-                          <td className="max-w-xs truncate px-3 py-2 text-slate-200">{valueToString(row.title) || "—"}</td>
-                          <td className="px-3 py-2 text-slate-400">{valueToString(row.priority) || "—"}</td>
-                          <td className="px-3 py-2 text-slate-400">{valueToString(row.type) || "—"}</td>
-                          <td className="px-3 py-2 text-slate-400">{valueToString(row.status) || "—"}</td>
+                          <td className="max-w-xs truncate px-3 py-2 text-fg">{valueToString(row.title) || "—"}</td>
+                          <td className="px-3 py-2 text-fg-muted">{valueToString(row.priority) || "—"}</td>
+                          <td className="px-3 py-2 text-fg-muted">{valueToString(row.type) || "—"}</td>
+                          <td className="px-3 py-2 text-fg-muted">{valueToString(row.status) || "—"}</td>
                         </tr>
                       );
                     })}
@@ -1066,10 +1066,10 @@ export default function ManagementImportExportPage() {
                   onClick={() => setSelectedJobId(job.id)}
                   className="rounded-lg border border-border bg-bg p-3 text-left transition hover:border-border hover:bg-surface-raised"
                 >
-                  <span className="block truncate text-xs font-medium text-slate-200">{job.filename}</span>
+                  <span className="block truncate text-xs font-medium text-fg">{job.filename}</span>
                   <span className="mt-2 flex items-center justify-between gap-2">
                     <JobStatusBadge status={job.status} />
-                    <span className="text-xs text-slate-500">
+                    <span className="text-xs text-fg-subtle">
                       {(job.totals as { rows?: number }).rows ?? "—"} rows
                     </span>
                   </span>
@@ -1099,11 +1099,11 @@ export default function ManagementImportExportPage() {
               </button>
             </div>
           ) : jobs.length === 0 ? (
-            <p className="py-4 text-center text-sm text-slate-500">Henüz import job yok.</p>
+            <p className="py-4 text-center text-sm text-fg-subtle">Henüz import job yok.</p>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
-                <thead className="border-b border-border text-xs text-slate-500">
+                <thead className="border-b border-border text-xs text-fg-subtle">
                   <tr>
                     <th className="pb-2 text-left">Dosya</th>
                     <th className="pb-2 text-left">Durum</th>
@@ -1115,14 +1115,14 @@ export default function ManagementImportExportPage() {
                 <tbody className="divide-y divide-slate-800">
                   {jobs.map((job) => (
                     <tr key={job.id} className="hover:bg-surface-raised">
-                      <td className="py-2.5 pr-4 text-slate-200">{job.filename}</td>
+                      <td className="py-2.5 pr-4 text-fg">{job.filename}</td>
                       <td className="py-2.5 pr-4">
                         <JobStatusBadge status={job.status} />
                       </td>
-                      <td className="py-2.5 pr-4 text-slate-400">
+                      <td className="py-2.5 pr-4 text-fg-muted">
                         {(job.totals as { rows?: number }).rows ?? "—"}
                       </td>
-                      <td className="py-2.5 pr-4 text-xs text-slate-500">
+                      <td className="py-2.5 pr-4 text-xs text-fg-subtle">
                         {new Date(job.created_at).toLocaleDateString("tr-TR")}
                       </td>
                       <td className="py-2.5 text-right">

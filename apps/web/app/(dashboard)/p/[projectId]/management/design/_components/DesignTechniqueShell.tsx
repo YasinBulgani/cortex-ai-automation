@@ -21,7 +21,7 @@ import {
 export const DATA_TYPES: DesignDataType[] = ["int", "float", "string", "date", "bool", "enum"];
 
 export const INP =
-  "w-full rounded-lg border border-border bg-white/[0.03] px-3 py-2 text-[13px] text-slate-200 placeholder-slate-600 focus:border-teal-500/30 focus:outline-none transition-colors";
+  "w-full rounded-lg border border-border bg-surface-overlay px-3 py-2 text-[13px] text-fg placeholder:text-fg-disabled focus:border-teal-500/30 focus:outline-none transition-colors";
 
 export function emptyField(): DesignFieldSpec {
   return { name: "", data_type: "int", min_value: null, max_value: null, allowed_set: null, nullable: false };
@@ -128,11 +128,11 @@ export function DesignTechniqueShell({
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-[15px] font-semibold text-slate-100">{title}</h1>
-          <p className="mt-0.5 text-[12px] text-slate-500">{description}</p>
+          <h1 className="text-[15px] font-semibold text-fg">{title}</h1>
+          <p className="mt-0.5 text-[12px] text-fg-subtle">{description}</p>
         </div>
         {result && (
-          <span className="text-[11px] text-slate-600">
+          <span className="text-[11px] text-fg-disabled">
             {cases.length} case uretildi · {promoted.size} kaydedildi
             {partitions.length > 0 && ` · ${partitions.length} partition`}
           </span>
@@ -142,25 +142,25 @@ export function DesignTechniqueShell({
       {/* Saved templates */}
       {templates.length > 0 && (
         <div className="rounded-xl border border-border bg-surface-raised p-4 space-y-2">
-          <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-500">Kayitli Sablonlar</p>
+          <p className="text-[11px] font-semibold uppercase tracking-widest text-fg-subtle">Kayitli Sablonlar</p>
           <div className="flex flex-wrap gap-2">
             {templates.map((t, i) => (
               <div
                 key={i}
-                className="flex items-center gap-1.5 rounded-lg border border-border bg-white/[0.03] px-2.5 py-1.5"
+                className="flex items-center gap-1.5 rounded-lg border border-border bg-surface-overlay px-2.5 py-1.5"
               >
                 <button
                   type="button"
                   onClick={() => loadTemplate(t)}
-                  className="text-[12px] text-slate-300 hover:text-teal-400 transition-colors"
+                  className="text-[12px] text-fg hover:text-teal-400 transition-colors"
                 >
                   {t.name}
                 </button>
-                <span className="text-[10px] text-slate-600">({t.fields.length} alan)</span>
+                <span className="text-[10px] text-fg-disabled">({t.fields.length} alan)</span>
                 <button
                   type="button"
                   onClick={() => deleteTemplate(i)}
-                  className="text-slate-700 hover:text-red-400 transition-colors text-[11px] ml-1"
+                  className="text-fg-disabled hover:text-red-400 transition-colors text-[11px] ml-1"
                 >
                   x
                 </button>
@@ -173,12 +173,12 @@ export function DesignTechniqueShell({
       <div className="grid gap-5 xl:grid-cols-2">
         {/* Form panel */}
         <div className="rounded-xl border border-border bg-surface-raised p-5 space-y-4">
-          <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-500">Alan Tanimlari</p>
+          <p className="text-[11px] font-semibold uppercase tracking-widest text-fg-subtle">Alan Tanimlari</p>
 
           {fields.map((f, i) => (
-            <div key={i} className="space-y-2 rounded-lg border border-border bg-white/[0.02] p-3">
+            <div key={i} className="space-y-2 rounded-lg border border-border bg-surface-overlay/30 p-3">
               <div className="flex gap-2">
-                <span className="flex h-6 w-5 shrink-0 items-center justify-center text-[11px] text-slate-600 font-mono">
+                <span className="flex h-6 w-5 shrink-0 items-center justify-center text-[11px] text-fg-disabled font-mono">
                   {i + 1}
                 </span>
                 <input
@@ -190,7 +190,7 @@ export function DesignTechniqueShell({
                 <select
                   value={f.data_type}
                   onChange={e => update(i, { data_type: e.target.value as DesignDataType })}
-                  className="w-20 shrink-0 rounded-lg border border-border bg-white/[0.03] px-2 py-2 text-[12px] text-slate-300 focus:outline-none"
+                  className="w-20 shrink-0 rounded-lg border border-border bg-surface-overlay px-2 py-2 text-[12px] text-fg focus:outline-none"
                 >
                   {DATA_TYPES.map(t => (
                     <option key={t} value={t}>
@@ -201,7 +201,7 @@ export function DesignTechniqueShell({
                 <button
                   type="button"
                   onClick={() => setFields(p => p.filter((_, j) => j !== i))}
-                  className="shrink-0 text-slate-700 hover:text-red-400 transition-colors text-[12px]"
+                  className="shrink-0 text-fg-disabled hover:text-red-400 transition-colors text-[12px]"
                 >
                   x
                 </button>
@@ -240,7 +240,7 @@ export function DesignTechniqueShell({
                 />
               )}
 
-              <label className="flex items-center gap-2 pl-7 text-[11px] text-slate-500">
+              <label className="flex items-center gap-2 pl-7 text-[11px] text-fg-subtle">
                 <input
                   type="checkbox"
                   checked={!!f.nullable}
@@ -255,7 +255,7 @@ export function DesignTechniqueShell({
           <button
             type="button"
             onClick={() => setFields(p => [...p, emptyField()])}
-            className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-border py-2 text-[12px] text-slate-600 hover:text-slate-400 transition-colors"
+            className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-border py-2 text-[12px] text-fg-disabled hover:text-fg-muted transition-colors"
           >
             + Alan Ekle
           </button>
@@ -282,7 +282,7 @@ export function DesignTechniqueShell({
             <button
               type="button"
               onClick={() => setShowTemplateSave(v => !v)}
-              className="rounded-xl border border-border px-3 py-2.5 text-[12px] text-slate-400 hover:text-slate-200 hover:border-slate-500 transition-colors"
+              className="rounded-xl border border-border px-3 py-2.5 text-[12px] text-fg-muted hover:text-fg hover:border-border-strong transition-colors"
             >
               Sablon Kaydet
             </button>
@@ -312,7 +312,7 @@ export function DesignTechniqueShell({
           {/* Partitions (EQ only) */}
           {partitions.length > 0 && (
             <div className="rounded-xl border border-border bg-surface-raised p-4 space-y-2">
-              <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-500">
+              <p className="text-[11px] font-semibold uppercase tracking-widest text-fg-subtle">
                 Partitions ({partitions.length})
               </p>
               <div className="space-y-1 max-h-40 overflow-y-auto">
@@ -324,9 +324,9 @@ export function DesignTechniqueShell({
                         p.is_valid ? "bg-emerald-500/70" : "bg-red-500/60",
                       )}
                     />
-                    <span className="text-[12px] text-slate-400">{p.partition_label}</span>
+                    <span className="text-[12px] text-fg-muted">{p.partition_label}</span>
                     {p.sample_value && (
-                      <span className="font-mono text-[11px] text-slate-600">({p.sample_value})</span>
+                      <span className="font-mono text-[11px] text-fg-disabled">({p.sample_value})</span>
                     )}
                   </div>
                 ))}
@@ -336,28 +336,28 @@ export function DesignTechniqueShell({
 
           {/* Cases */}
           <div className="rounded-xl border border-border bg-surface-raised p-5 space-y-3">
-            <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-500">Uretilen Senaryolar</p>
+            <p className="text-[11px] font-semibold uppercase tracking-widest text-fg-subtle">Uretilen Senaryolar</p>
 
             {!result ? (
-              <div className="py-12 text-center text-[13px] text-slate-600">Henuz calistirilmadi</div>
+              <div className="py-12 text-center text-[13px] text-fg-disabled">Henuz calistirilmadi</div>
             ) : cases.length === 0 ? (
-              <div className="py-8 text-center text-[13px] text-slate-600">Senaryo uretilemedi</div>
+              <div className="py-8 text-center text-[13px] text-fg-disabled">Senaryo uretilemedi</div>
             ) : (
               <>
                 <div className="space-y-2 max-h-80 overflow-y-auto">
                   {cases.map((c, i) => (
                     <div
                       key={i}
-                      className="flex items-start gap-3 rounded-lg border border-border bg-white/[0.02] px-3 py-2.5"
+                      className="flex items-start gap-3 rounded-lg border border-border bg-surface-overlay/30 px-3 py-2.5"
                     >
                       <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-teal-500/60" />
                       <div className="flex-1 min-w-0">
-                        <p className="text-[13px] text-slate-300">{c.name}</p>
+                        <p className="text-[13px] text-fg">{c.name}</p>
                         {c.rationale && (
-                          <p className="mt-0.5 text-[11px] text-slate-600 line-clamp-1">{c.rationale}</p>
+                          <p className="mt-0.5 text-[11px] text-fg-disabled line-clamp-1">{c.rationale}</p>
                         )}
                         {c.partition_label && (
-                          <p className="mt-0.5 text-[11px] text-slate-600">{c.partition_label}</p>
+                          <p className="mt-0.5 text-[11px] text-fg-disabled">{c.partition_label}</p>
                         )}
                       </div>
                       {promoted.has(i) ? (
@@ -366,7 +366,7 @@ export function DesignTechniqueShell({
                         <button
                           type="button"
                           onClick={() => onPromote([i])}
-                          className="shrink-0 rounded border border-border px-2 py-0.5 text-[11px] text-slate-500 hover:text-teal-400 transition-colors"
+                          className="shrink-0 rounded border border-border px-2 py-0.5 text-[11px] text-fg-subtle hover:text-teal-400 transition-colors"
                         >
                           Kaydet
                         </button>
@@ -378,7 +378,7 @@ export function DesignTechniqueShell({
                   type="button"
                   onClick={() => onPromote(cases.map((_, i) => i).filter(i => !promoted.has(i)))}
                   disabled={isPending || promoted.size === cases.length}
-                  className="w-full rounded-xl border border-border py-2 text-[12px] text-slate-400 hover:text-slate-200 disabled:opacity-40 transition-colors"
+                  className="w-full rounded-xl border border-border py-2 text-[12px] text-fg-muted hover:text-fg disabled:opacity-40 transition-colors"
                 >
                   {isPending ? "Kaydediliyor..." : "Tumunu Repository'ye Kaydet"}
                 </button>
@@ -390,11 +390,11 @@ export function DesignTechniqueShell({
 
       {/* History */}
       <div className="rounded-xl border border-border bg-surface-raised p-5 space-y-3">
-        <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-500">Onceki Analizler</p>
+        <p className="text-[11px] font-semibold uppercase tracking-widest text-fg-subtle">Onceki Analizler</p>
         {historyQ.isLoading ? (
-          <div className="py-6 text-center text-[12px] text-slate-600">Yukleniyor...</div>
+          <div className="py-6 text-center text-[12px] text-fg-disabled">Yukleniyor...</div>
         ) : recentRuns.length === 0 ? (
-          <div className="py-6 text-center text-[12px] text-slate-600">Henuz gecmis analiz yok</div>
+          <div className="py-6 text-center text-[12px] text-fg-disabled">Henuz gecmis analiz yok</div>
         ) : (
           <div className="space-y-2">
             {recentRuns.map(r => {
@@ -404,21 +404,21 @@ export function DesignTechniqueShell({
               return (
                 <div
                   key={r.id}
-                  className="flex items-center gap-3 rounded-lg border border-border bg-white/[0.02] px-3 py-2.5"
+                  className="flex items-center gap-3 rounded-lg border border-border bg-surface-overlay/30 px-3 py-2.5"
                 >
                   <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-teal-500/40" />
                   <div className="flex-1 min-w-0">
-                    <p className="text-[12px] text-slate-400">
+                    <p className="text-[12px] text-fg-muted">
                       {new Date(r.created_at).toLocaleString("tr-TR", { dateStyle: "short", timeStyle: "short" })}
                     </p>
-                    <p className="text-[11px] text-slate-600">
+                    <p className="text-[11px] text-fg-disabled">
                       {fieldCount} alan · {r.generated_cases.length} case uretildi
                       {r.partitions.length > 0 && ` · ${r.partitions.length} partition`}
                     </p>
                   </div>
                   <a
                     href={`/p/${projectId}/management/repository`}
-                    className="shrink-0 rounded border border-border px-2 py-0.5 text-[11px] text-slate-500 hover:text-teal-400 transition-colors"
+                    className="shrink-0 rounded border border-border px-2 py-0.5 text-[11px] text-fg-subtle hover:text-teal-400 transition-colors"
                   >
                     Case leri Gor
                   </a>
