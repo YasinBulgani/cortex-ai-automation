@@ -85,9 +85,16 @@ function CaseTable({
   // Saved filter presets (localStorage)
   const savedFiltersKey = `ws-saved-filters-${projectId}`;
   type FilterPreset = { name: string; search: string; priority: string; type: string; status: string; tagFilter: string };
-  const [savedFilters, setSavedFilters] = useState<FilterPreset[]>(() => {
-    try { return JSON.parse(localStorage.getItem(savedFiltersKey) || "[]"); } catch { return []; }
-  });
+  // Hydration güvenliği: SSR ile aynı boş default'la başla, localStorage'ı
+  // mount sonrası oku (lazy init'te okumak ilk render'da chip'leri
+  // server'dan farklılaştırıp hydration mismatch yaratır).
+  const [savedFilters, setSavedFilters] = useState<FilterPreset[]>([]);
+  useEffect(() => {
+    try {
+      const stored = JSON.parse(localStorage.getItem(savedFiltersKey) || "[]") as FilterPreset[];
+      if (Array.isArray(stored) && stored.length) setSavedFilters(stored);
+    } catch { /* ignore */ }
+  }, [savedFiltersKey]);
   const [showSaveFilterInput, setShowSaveFilterInput] = useState(false);
   const [saveFilterName, setSaveFilterName] = useState("");
   function saveCurrentFilter() {

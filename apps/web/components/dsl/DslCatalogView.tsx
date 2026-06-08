@@ -2846,16 +2846,20 @@ export function DslCatalogView({
   const [recentActions, setRecentActions] = useState<Array<{ action: DslAction; viewedAt: number }>>([]);
   const [searchHistory, setSearchHistory] = useState<string[]>([]);
   const [searchFocused, setSearchFocused] = useState(false);
-  const [favorites, setFavorites] = useState<Set<string>>(() => {
-    try { return new Set(JSON.parse(localStorage.getItem("dsl_favorites") ?? "[]") as string[]); }
-    catch { return new Set<string>(); }
-  });
+  // Hydration güvenliği: SSR ile aynı default'la başla, localStorage'ı mount
+  // sonrası useEffect'te oku. Lazy init'te localStorage okumak ilk client
+  // render'ı server'dan farklılaştırıp hydration mismatch yaratır.
+  const [favorites, setFavorites] = useState<Set<string>>(() => new Set<string>());
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
   const [cardScrolled, setCardScrolled] = useState(false);
-  const [showHints, setShowHints] = useState(() => {
-    try { return localStorage.getItem("dsl_hints_dismissed") !== "1"; }
-    catch { return true; }
-  });
+  const [showHints, setShowHints] = useState(true);
+  useEffect(() => {
+    try {
+      const fav = JSON.parse(localStorage.getItem("dsl_favorites") ?? "[]") as string[];
+      if (Array.isArray(fav) && fav.length) setFavorites(new Set(fav));
+      if (localStorage.getItem("dsl_hints_dismissed") === "1") setShowHints(false);
+    } catch { /* ignore */ }
+  }, []);
   const [batchMode, setBatchMode] = useState(false);
   const [selectedBatchIds, setSelectedBatchIds] = useState<Set<string>>(new Set());
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);

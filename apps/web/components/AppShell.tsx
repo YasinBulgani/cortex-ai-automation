@@ -1,6 +1,7 @@
 "use client";
 
-import React, { lazy, Suspense } from "react";
+import React, { Suspense } from "react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState, useEffect, useRef, useMemo, useCallback, memo } from "react";
@@ -26,14 +27,19 @@ import { PRODUCT_BRAND } from "@/lib/products/brand";
 import { ToastContainer } from "@/components/ToastContainer";
 import { useCurrentUser } from "@/lib/useCurrentUser";
 
-// Lazy-loaded ağır bileşenler — ilk render'da bundle'a dahil edilmez
-const CommandPalette       = lazy(() => import("./CommandPalette").then(m => ({ default: m.CommandPalette })));
-const NotificationBell     = lazy(() => import("./management/NotificationBell").then(m => ({ default: m.NotificationBell })));
-const NotificationCenter   = lazy(() => import("./NotificationCenter").then(m => ({ default: m.NotificationCenter })));
-const KeyboardShortcutsHelp = lazy(() => import("./KeyboardShortcutsHelp").then(m => ({ default: m.KeyboardShortcutsHelp })));
-const AiAssistantPanel     = lazy(() => import("./AiAssistantPanel").then(m => ({ default: m.AiAssistantPanel })));
-const OnboardingTour       = lazy(() => import("./OnboardingTour").then(m => ({ default: m.OnboardingTour })));
-const RecentFavoritesPanel = lazy(() => import("./RecentFavoritesPanel").then(m => ({ default: m.RecentFavoritesPanel })));
+// Lazy-loaded client-only widget'lar — ilk render'da bundle'a dahil edilmez.
+// next/dynamic + ssr:false KULLANILIR (React.lazy DEĞİL): bu bileşenler
+// client-only state (bildirim sayısı, localStorage, query cache) okur ve
+// SSR'da farklı render olup hydration mismatch ("Expected server HTML to
+// contain a matching <span> in <button>") yaratırdı. ssr:false ile hem
+// server'da hem client ilk render'da render edilmezler → mismatch imkansız.
+const CommandPalette       = dynamic(() => import("./CommandPalette").then(m => m.CommandPalette), { ssr: false });
+const NotificationBell     = dynamic(() => import("./management/NotificationBell").then(m => m.NotificationBell), { ssr: false });
+const NotificationCenter   = dynamic(() => import("./NotificationCenter").then(m => m.NotificationCenter), { ssr: false });
+const KeyboardShortcutsHelp = dynamic(() => import("./KeyboardShortcutsHelp").then(m => m.KeyboardShortcutsHelp), { ssr: false });
+const AiAssistantPanel     = dynamic(() => import("./AiAssistantPanel").then(m => m.AiAssistantPanel), { ssr: false });
+const OnboardingTour       = dynamic(() => import("./OnboardingTour").then(m => m.OnboardingTour), { ssr: false });
+const RecentFavoritesPanel = dynamic(() => import("./RecentFavoritesPanel").then(m => m.RecentFavoritesPanel), { ssr: false });
 
 type Project = { id: string; name: string };
 const ALL_PRODUCTS_OPTION = { id: "all" as const, label: "QA Operations Platform", short: "Tümü" };
