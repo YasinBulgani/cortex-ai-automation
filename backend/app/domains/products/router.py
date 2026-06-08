@@ -16,6 +16,7 @@ from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import JSONResponse
+from pydantic import BaseModel, Field
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
@@ -736,39 +737,151 @@ def get_web_my_inbox(
         return {"items": [], "total": 0, "updatedAt": _now_iso(), "_error": str(e)}
 
 
-# TODO: SELECT page_url, page_label,
-#               PERCENTILE_CONT(0.75) WITHIN GROUP (ORDER BY lcp) AS lcp_p75,
-#               PERCENTILE_CONT(0.75) WITHIN GROUP (ORDER BY inp) AS inp_p75,
-#               PERCENTILE_CONT(0.75) WITHIN GROUP (ORDER BY cls) AS cls_p75,
-#               PERCENTILE_CONT(0.75) WITHIN GROUP (ORDER BY fcp) AS fcp_p75,
-#               PERCENTILE_CONT(0.75) WITHIN GROUP (ORDER BY tbt) AS tbt_p75,
-#               COUNT(*) AS sample_count
-#        FROM web_vitals_samples
-#        WHERE project_id = :project_id
-#          AND sampled_at >= NOW() - INTERVAL '24h'
-#        GROUP BY page_url, page_label;
-#       Trend icin: son 8 gunluk gunluk p75 pencereler.
+_PERF_PAGES_FALLBACK = [
+    {"page": "Homepage",        "url": "/",         "lcp": 2100, "inp": 180, "cls": 0.04, "fcp": 1400, "tbt": 140, "sampleCount": 1284},
+    {"page": "Checkout Step 1", "url": "/checkout", "lcp": 2900, "inp": 240, "cls": 0.12, "fcp": 1900, "tbt": 380, "sampleCount": 542},
+    {"page": "Product Detail",  "url": "/p/:id",    "lcp": 3200, "inp": 310, "cls": 0.18, "fcp": 2100, "tbt": 520, "sampleCount": 743},
+    {"page": "Login",           "url": "/login",    "lcp": 1600, "inp": 90,  "cls": 0.02, "fcp": 1100, "tbt": 80,  "sampleCount": 412},
+    {"page": "Profile",         "url": "/profile",  "lcp": 2300, "inp": 210, "cls": 0.08, "fcp": 1500, "tbt": 180, "sampleCount": 287},
+    {"page": "Cart",            "url": "/cart",     "lcp": 4100, "inp": 540, "cls": 0.31, "fcp": 2400, "tbt": 720, "sampleCount": 198},
+]
+_PERF_TREND_FALLBACK = {
+    "lcp": [2.4, 2.5, 2.6, 2.5, 2.7, 2.8, 2.9, 2.9],
+    "inp": [180, 195, 210, 200, 220, 240, 235, 250],
+    "cls": [0.08, 0.09, 0.10, 0.11, 0.12, 0.12, 0.13, 0.14],
+    "fcp": [1.6, 1.7, 1.7, 1.8, 1.8, 1.9, 1.9, 1.9],
+    "tbt": [320, 340, 350, 360, 380, 400, 410, 420],
+}
+
+
+def _real_perf_pages(db: Session, project_id: str | None) -> list[dict[str, Any]] | None:
+    """web_vitals_samples'tan son 24 saatin sayfa-başı p75 Core Web Vitals'ı.
+
+    Hiç örnek yoksa None döner (çağıran demo'ya düşer). PostgreSQL
+    percentile_cont kullanır.
+    """
+    try:
+        from app.domains.products.models import WebVitalsSample as _WV
+
+        cutoff = datetime.now(_tz.utc) - timedelta(hours=24)
+
+        def _p75(col):
+            return func.percentile_cont(0.75).within_group(col.asc())
+
+        stmt = (
+            select(
+                _WV.page_url,
+                func.max(_WV.page_label).label("page_label"),
+                _p75(_WV.lcp).label("lcp"),
+                _p75(_WV.inp).label("inp"),
+                _p75(_WV.cls).label("cls"),
+                _p75(_WV.fcp).label("fcp"),
+                _p75(_WV.tbt).label("tbt"),
+                func.count(_WV.id).label("sample_count"),
+            )
+            .where(_WV.sampled_at >= cutoff)
+            .group_by(_WV.page_url)
+            .order_by(func.count(_WV.id).desc())
+            .limit(50)
+        )
+        if project_id:
+            stmt = stmt.where(_WV.project_id == project_id)
+
+        rows = db.execute(stmt).all()
+        if not rows:
+            return None
+
+        def _r(v: Any, nd: int = 0) -> Any:
+            return round(float(v), nd) if v is not None else None
+
+        return [
+            {
+                "page": r.page_label or r.page_url,
+                "url": r.page_url,
+                "lcp": _r(r.lcp), "inp": _r(r.inp), "cls": _r(r.cls, 3),
+                "fcp": _r(r.fcp), "tbt": _r(r.tbt),
+                "sampleCount": int(r.sample_count or 0),
+            }
+            for r in rows
+        ]
+    except Exception as exc:
+        _logger.warning("Products web/perf-metrics gerçek sorgusu başarısız: %s", exc)
+        return None
+
+
 @router.get("/web/perf-metrics", summary="Core Web Vitals — sayfa başı + trend")
-def get_web_perf_metrics(_user: Annotated[User, Depends(get_current_user)], project_id: str | None = None) -> dict[str, Any]:
+def get_web_perf_metrics(
+    _user: Annotated[User, Depends(get_current_user)],
+    project_id: str | None = None,
+    db: Session = Depends(get_db),
+) -> dict[str, Any]:
     guard = _block_in_production("web/perf-metrics")
     if guard is not None:
         return guard
-    pages = [
-        {"page": "Homepage",        "url": "/",         "lcp": 2100, "inp": 180, "cls": 0.04, "fcp": 1400, "tbt": 140, "sampleCount": 1284},
-        {"page": "Checkout Step 1", "url": "/checkout", "lcp": 2900, "inp": 240, "cls": 0.12, "fcp": 1900, "tbt": 380, "sampleCount": 542},
-        {"page": "Product Detail",  "url": "/p/:id",    "lcp": 3200, "inp": 310, "cls": 0.18, "fcp": 2100, "tbt": 520, "sampleCount": 743},
-        {"page": "Login",           "url": "/login",    "lcp": 1600, "inp": 90,  "cls": 0.02, "fcp": 1100, "tbt": 80,  "sampleCount": 412},
-        {"page": "Profile",         "url": "/profile",  "lcp": 2300, "inp": 210, "cls": 0.08, "fcp": 1500, "tbt": 180, "sampleCount": 287},
-        {"page": "Cart",            "url": "/cart",     "lcp": 4100, "inp": 540, "cls": 0.31, "fcp": 2400, "tbt": 720, "sampleCount": 198},
+
+    if not _DEMO_MODE:
+        pages = _real_perf_pages(db, project_id)
+        if pages is not None:
+            # Trend için gerçek p75 zaman serisi henüz toplulaştırılmadı —
+            # sayfa verisi gerçek, trend penceresi placeholder olarak işaretli.
+            return JSONResponse(content={
+                "pages": pages,
+                "trend": _PERF_TREND_FALLBACK,
+                "updatedAt": _now_iso(),
+                "real": True,
+                "_demo": {"notice": "pages from web_vitals_samples (24h p75); trend placeholder", "realDataAvailable": True},
+            })
+
+    return _demo({
+        "pages": list(_PERF_PAGES_FALLBACK),
+        "trend": dict(_PERF_TREND_FALLBACK),
+        "updatedAt": _now_iso(),
+        "real": False,
+    })
+
+
+class _WebVitalIn(BaseModel):
+    """Tek bir RUM Core Web Vitals örneği."""
+    page_url: str = Field(..., min_length=1, max_length=1000)
+    page_label: str | None = Field(default=None, max_length=200)
+    lcp: float | None = None
+    inp: float | None = None
+    cls: float | None = None
+    fcp: float | None = None
+    tbt: float | None = None
+
+
+class _WebVitalsBatch(BaseModel):
+    samples: list[_WebVitalIn] = Field(..., min_length=1, max_length=500)
+
+
+@router.post("/web/vitals", summary="Core Web Vitals örneklerini kaydet (RUM beacon)")
+def post_web_vitals(
+    body: _WebVitalsBatch,
+    _user: Annotated[User, Depends(get_current_user)],
+    project_id: str | None = None,
+    db: Session = Depends(get_db),
+) -> dict[str, Any]:
+    """RUM beacon veya sentetik perf koşumlarından gelen ölçümleri saklar.
+
+    perf-metrics endpoint'i bu örneklerden sayfa-başı p75 hesaplar.
+    """
+    from app.domains.products.models import WebVitalsSample
+
+    now = datetime.now(_tz.utc)
+    rows = [
+        WebVitalsSample(
+            project_id=project_id,
+            page_url=s.page_url,
+            page_label=s.page_label,
+            lcp=s.lcp, inp=s.inp, cls=s.cls, fcp=s.fcp, tbt=s.tbt,
+            sampled_at=now,
+        )
+        for s in body.samples
     ]
-    trend = {
-        "lcp": [2.4, 2.5, 2.6, 2.5, 2.7, 2.8, 2.9, 2.9],
-        "inp": [180, 195, 210, 200, 220, 240, 235, 250],
-        "cls": [0.08, 0.09, 0.10, 0.11, 0.12, 0.12, 0.13, 0.14],
-        "fcp": [1.6, 1.7, 1.7, 1.8, 1.8, 1.9, 1.9, 1.9],
-        "tbt": [320, 340, 350, 360, 380, 400, 410, 420],
-    }
-    return _demo({"pages": pages, "trend": trend, "updatedAt": _now_iso()})
+    db.add_all(rows)
+    db.commit()
+    return {"ok": True, "ingested": len(rows), "at": now.isoformat()}
 
 
 _VALID_INBOX_ACTIONS = {"dismiss", "snooze", "resolve", "assign", "approve", "reject", "reassign"}

@@ -9,7 +9,7 @@ from __future__ import annotations
 import importlib
 import os
 from datetime import datetime, timedelta, timezone
-from types import ModuleType
+from types import ModuleType, SimpleNamespace
 from typing import Any
 from unittest.mock import MagicMock, patch
 
@@ -38,7 +38,12 @@ try:
         get_web_release_health,
         get_web_day_over_day,
         get_web_my_inbox,
+        get_web_perf_metrics,
         post_web_inbox_action,
+        post_web_vitals,
+        _real_perf_pages,
+        _WebVitalIn,
+        _WebVitalsBatch,
     )
     from fastapi import HTTPException
     _IMPORT_OK = True
@@ -758,3 +763,126 @@ class TestTelemetryProvenanceMerge:
         )
         assert len(body["stats"]) > 0
         assert all(s["real"] is False for s in body["stats"])
+
+
+# ===========================================================================
+# 10. test_web_vitals — Core Web Vitals ingest + p75 aggregation
+# ===========================================================================
+
+class _Row(SimpleNamespace):
+    """db.execute(...).all() satırlarını taklit eden hafif nesne."""
+
+
+class TestRealPerfPages:
+    """_real_perf_pages — web_vitals_samples'tan sayfa-başı p75."""
+
+    def _db_returning(self, rows: list) -> MagicMock:
+        db = _make_mock_db()
+        db.execute.return_value.all.return_value = rows
+        return db
+
+    def test_maps_rows_to_pages(self):
+        """Satırlar sayfa sözlüklerine doğru eşlenir ve yuvarlanır."""
+        rows = [
+            _Row(page_url="/checkout", page_label="Checkout", lcp=2899.6,
+                 inp=240.2, cls=0.1234, fcp=1900.0, tbt=380.0, sample_count=542),
+        ]
+        pages = _real_perf_pages(self._db_returning(rows), project_id=None)
+        assert len(pages) == 1
+        p = pages[0]
+        assert p["page"] == "Checkout"
+        assert p["url"] == "/checkout"
+        assert p["lcp"] == 2900          # yuvarlandı
+        assert p["cls"] == 0.123         # 3 ondalık
+        assert p["sampleCount"] == 542
+
+    def test_page_label_falls_back_to_url(self):
+        """page_label boşsa page alanı url'e düşer."""
+        rows = [_Row(page_url="/x", page_label=None, lcp=None, inp=None,
+                     cls=None, fcp=None, tbt=None, sample_count=3)]
+        pages = _real_perf_pages(self._db_returning(rows), project_id=None)
+        assert pages[0]["page"] == "/x"
+        assert pages[0]["lcp"] is None
+
+    def test_empty_returns_none(self):
+        """Hiç örnek yoksa None döner → demo fallback."""
+        assert _real_perf_pages(self._db_returning([]), project_id=None) is None
+
+    def test_db_error_returns_none(self):
+        db = _make_mock_db()
+        db.execute.side_effect = Exception("no percentile_cont")
+        assert _real_perf_pages(db, project_id=None) is None
+
+
+class TestPerfMetricsEndpoint:
+    """get_web_perf_metrics demo vs gerçek yol davranışı."""
+
+    def test_demo_mode_returns_fallback_real_false(self, monkeypatch):
+        monkeypatch.setattr(_router_module, "_DEMO_MODE", True)
+        monkeypatch.setattr(_router_module, "_is_production", lambda: False)
+        monkeypatch.setattr(_router_module, "_DEMO_HEADERS",
+                            {"X-Data-Mode": "demo", "X-Demo-Data": "true"})
+
+        import json
+        result = get_web_perf_metrics(_user=None, project_id=None, db=_make_mock_db())
+        body = json.loads(result.body)
+        assert body["real"] is False
+        assert len(body["pages"]) > 0
+
+    def test_real_path_returns_db_pages(self, monkeypatch):
+        monkeypatch.setattr(_router_module, "_DEMO_MODE", False)
+        monkeypatch.setattr(_router_module, "_is_production", lambda: False)
+        db = _make_mock_db()
+        db.execute.return_value.all.return_value = [
+            _Row(page_url="/", page_label="Home", lcp=2100.0, inp=180.0,
+                 cls=0.04, fcp=1400.0, tbt=140.0, sample_count=1000),
+        ]
+        import json
+        result = get_web_perf_metrics(_user=None, project_id=None, db=db)
+        body = json.loads(result.body)
+        assert body["real"] is True
+        assert body["pages"][0]["url"] == "/"
+
+    def test_real_path_empty_falls_back_to_demo(self, monkeypatch):
+        monkeypatch.setattr(_router_module, "_DEMO_MODE", False)
+        monkeypatch.setattr(_router_module, "_is_production", lambda: False)
+        monkeypatch.setattr(_router_module, "_DEMO_HEADERS",
+                            {"X-Data-Mode": "demo", "X-Demo-Data": "true"})
+        db = _make_mock_db()
+        db.execute.return_value.all.return_value = []  # hiç örnek yok
+
+        import json
+        result = get_web_perf_metrics(_user=None, project_id=None, db=db)
+        body = json.loads(result.body)
+        assert body["real"] is False
+        assert len(body["pages"]) > 0
+
+
+class TestPostWebVitals:
+    """post_web_vitals ingest endpoint'i."""
+
+    def test_ingests_samples(self):
+        db = _make_mock_db()
+        batch = _WebVitalsBatch(samples=[
+            _WebVitalIn(page_url="/", lcp=2100, inp=180, cls=0.04),
+            _WebVitalIn(page_url="/checkout", page_label="Checkout", lcp=2900),
+        ])
+        result = post_web_vitals(body=batch, _user=_make_mock_user(),
+                                 project_id="proj-1", db=db)
+        assert result["ok"] is True
+        assert result["ingested"] == 2
+        db.add_all.assert_called_once()
+        db.commit.assert_called_once()
+
+    def test_rejects_empty_batch(self):
+        """samples boş olamaz (min_length=1)."""
+        import pytest as _pt
+        from pydantic import ValidationError
+        with _pt.raises(ValidationError):
+            _WebVitalsBatch(samples=[])
+
+    def test_rejects_blank_page_url(self):
+        from pydantic import ValidationError
+        import pytest as _pt
+        with _pt.raises(ValidationError):
+            _WebVitalIn(page_url="")
