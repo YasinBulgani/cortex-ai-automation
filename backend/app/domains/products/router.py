@@ -809,6 +809,88 @@ def _real_perf_pages(db: Session, project_id: str | None) -> list[dict[str, Any]
         return None
 
 
+_PERF_TREND_METRICS = ("lcp", "inp", "cls", "fcp", "tbt")
+
+
+def _fill_series(vals: list[float | None]) -> list[float]:
+    """None boşluklarını doldur: ileri-taşı → geri-doldur → 0. Trend çizgisini
+    boşluklarda kırmamak için kullanılır."""
+    out: list[float | None] = list(vals)
+    last: float | None = None
+    for i, v in enumerate(out):  # ileri taşı
+        if v is None:
+            out[i] = last
+        else:
+            last = v
+    nxt: float | None = None
+    for i in range(len(out) - 1, -1, -1):  # baştaki boşlukları geri doldur
+        if out[i] is None:
+            out[i] = nxt
+        else:
+            nxt = out[i]
+    return [float(v) if v is not None else 0.0 for v in out]
+
+
+def _real_perf_trend(db: Session, project_id: str | None, days: int = 8) -> dict[str, list[float]] | None:
+    """Son `days` günün günlük p75 Core Web Vitals trendi (ms / cls float).
+
+    Eşik referans çizgileriyle tutarlı olması için ham birimler kullanılır.
+    Hiç veri yoksa None döner.
+    """
+    try:
+        from app.domains.products.models import WebVitalsSample as _WV
+
+        now = datetime.now(_tz.utc)
+        cutoff = (now - timedelta(days=days - 1)).replace(hour=0, minute=0, second=0, microsecond=0)
+        # Günü UTC'de böl — DB session timezone'u UTC olmayabilir (ör. +03:00),
+        # aksi halde gün kovaları Python'ın UTC ekseniyle uyuşmaz ve veri kaybolur.
+        day_col = func.date_trunc("day", func.timezone("UTC", _WV.sampled_at))
+
+        def _p75(col):
+            return func.percentile_cont(0.75).within_group(col.asc())
+
+        stmt = (
+            select(
+                day_col.label("day"),
+                _p75(_WV.lcp).label("lcp"),
+                _p75(_WV.inp).label("inp"),
+                _p75(_WV.cls).label("cls"),
+                _p75(_WV.fcp).label("fcp"),
+                _p75(_WV.tbt).label("tbt"),
+            )
+            .where(_WV.sampled_at >= cutoff)
+            .group_by(day_col)
+            .order_by(day_col)
+        )
+        if project_id:
+            stmt = stmt.where(_WV.project_id == project_id)
+
+        rows = db.execute(stmt).all()
+        if not rows:
+            return None
+
+        # Gün → metrik değerleri haritası (tarih anahtarı)
+        by_day: dict[Any, Any] = {}
+        for r in rows:
+            key = r.day.date() if hasattr(r.day, "date") else r.day
+            by_day[key] = r
+
+        # Sabit `days` günlük eksen (eski → yeni)
+        axis = [(cutoff + timedelta(days=i)).date() for i in range(days)]
+        trend: dict[str, list[float]] = {}
+        for m in _PERF_TREND_METRICS:
+            raw = [
+                (getattr(by_day[d], m) if d in by_day and getattr(by_day[d], m) is not None else None)
+                for d in axis
+            ]
+            nd = 3 if m == "cls" else 0
+            trend[m] = [round(v, nd) for v in _fill_series(raw)]
+        return trend
+    except Exception as exc:
+        _logger.warning("Products web/perf-metrics trend sorgusu başarısız: %s", exc)
+        return None
+
+
 @router.get("/web/perf-metrics", summary="Core Web Vitals — sayfa başı + trend")
 def get_web_perf_metrics(
     _user: Annotated[User, Depends(get_current_user)],
@@ -822,19 +904,22 @@ def get_web_perf_metrics(
     if not _DEMO_MODE:
         pages = _real_perf_pages(db, project_id)
         if pages is not None:
-            # Trend için gerçek p75 zaman serisi henüz toplulaştırılmadı —
-            # sayfa verisi gerçek, trend penceresi placeholder olarak işaretli.
+            # Trend de gerçek günlük p75'ten; veri yoksa placeholder seriye düşer.
+            real_trend = _real_perf_trend(db, project_id)
+            trend = real_trend if real_trend is not None else dict(_PERF_TREND_FALLBACK)
             return JSONResponse(content={
                 "pages": pages,
-                "trend": _PERF_TREND_FALLBACK,
+                "trend": trend,
+                "trendReal": real_trend is not None,
                 "updatedAt": _now_iso(),
                 "real": True,
-                "_demo": {"notice": "pages from web_vitals_samples (24h p75); trend placeholder", "realDataAvailable": True},
+                "_demo": {"notice": "pages + trend from web_vitals_samples (p75)", "realDataAvailable": True},
             })
 
     return _demo({
         "pages": list(_PERF_PAGES_FALLBACK),
         "trend": dict(_PERF_TREND_FALLBACK),
+        "trendReal": False,
         "updatedAt": _now_iso(),
         "real": False,
     })

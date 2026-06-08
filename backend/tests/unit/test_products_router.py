@@ -42,6 +42,8 @@ try:
         post_web_inbox_action,
         post_web_vitals,
         _real_perf_pages,
+        _real_perf_trend,
+        _fill_series,
         _WebVitalIn,
         _WebVitalsBatch,
     )
@@ -886,3 +888,40 @@ class TestPostWebVitals:
         import pytest as _pt
         with _pt.raises(ValidationError):
             _WebVitalIn(page_url="")
+
+
+class TestPerfTrend:
+    """_fill_series + _real_perf_trend — günlük p75 trend serisi."""
+
+    def test_fill_series_forward_and_back(self):
+        """Ortadaki boşluklar ileri-taşınır, baştakiler geri-doldurulur."""
+        assert _fill_series([None, 2.0, None, 4.0, None]) == [2.0, 2.0, 2.0, 4.0, 4.0]
+
+    def test_fill_series_all_none_is_zero(self):
+        assert _fill_series([None, None, None]) == [0.0, 0.0, 0.0]
+
+    def test_trend_8day_series_with_recent_rows(self):
+        """Son 8 günün her metrik için 8-elemanlı serisi döner; bugün en güncel."""
+        now = datetime.now(timezone.utc)
+        rows = [
+            _Row(day=now, lcp=2200.0, inp=190.0, cls=0.05, fcp=1450.0, tbt=150.0),
+            _Row(day=now - timedelta(days=1), lcp=2400.0, inp=210.0, cls=0.07, fcp=1500.0, tbt=170.0),
+        ]
+        db = _make_mock_db()
+        db.execute.return_value.all.return_value = rows
+        trend = _real_perf_trend(db, project_id=None)
+
+        assert set(trend.keys()) == {"lcp", "inp", "cls", "fcp", "tbt"}
+        assert all(len(arr) == 8 for arr in trend.values())
+        assert trend["lcp"][-1] == 2200    # bugünün p75'i
+        assert trend["cls"][-1] == 0.05    # cls 3 ondalık korunur
+
+    def test_trend_empty_returns_none(self):
+        db = _make_mock_db()
+        db.execute.return_value.all.return_value = []
+        assert _real_perf_trend(db, project_id=None) is None
+
+    def test_trend_db_error_returns_none(self):
+        db = _make_mock_db()
+        db.execute.side_effect = Exception("date_trunc fail")
+        assert _real_perf_trend(db, project_id=None) is None
