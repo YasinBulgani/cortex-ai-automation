@@ -77,3 +77,47 @@ class AutomationBrainSummary(BaseModel):
     active_runs: int
     queued_runs: int
     last_run: AutomationRunOut | None = None
+
+
+class AutomationScheduleCreate(BaseModel):
+    project_id: str = Field(min_length=1, max_length=120)
+    kind: AutomationKind
+    name: str = Field(min_length=1, max_length=240)
+    cron_expression: str = Field(min_length=1, max_length=120)
+    environment: str | None = Field(default=None, max_length=120)
+    device: str | None = Field(default=None, max_length=160)
+    target: str | None = Field(default=None, max_length=1000)
+    is_active: bool = True
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class AutomationScheduleUpdate(BaseModel):
+    name: str | None = Field(default=None, max_length=240)
+    cron_expression: str | None = Field(default=None, max_length=120)
+    environment: str | None = Field(default=None, max_length=120)
+    device: str | None = Field(default=None, max_length=160)
+    target: str | None = Field(default=None, max_length=1000)
+    is_active: bool | None = None
+    metadata: dict[str, Any] | None = None
+
+
+class AutomationScheduleOut(BaseModel):
+    id: str
+    project_id: str
+    kind: AutomationKind
+    name: str
+    cron_expression: str
+    environment: str | None = None
+    device: str | None = None
+    target: str | None = None
+    is_active: bool
+    metadata: dict[str, Any] = Field(default_factory=dict)
+    created_by: str | None = None
+    created_at: datetime
+    last_run_at: datetime | None = None
+    next_run_at: datetime | None = None
+
+
+class AutomationScheduleList(BaseModel):
+    items: list[AutomationScheduleOut]
+    total: int

@@ -65,11 +65,73 @@ type AutomationRunList = {
   total: number;
 };
 
+type AutomationStatus = AutomationRun["status"];
+
+type AutomationSchedule = {
+  id: string;
+  project_id: string;
+  kind: AutomationKind;
+  name: string;
+  cron_expression: string;
+  environment?: string | null;
+  device?: string | null;
+  target?: string | null;
+  is_active: boolean;
+  metadata?: Record<string, unknown>;
+  created_at: string;
+  last_run_at?: string | null;
+  next_run_at?: string | null;
+};
+
+type AutomationScheduleList = {
+  items: AutomationSchedule[];
+  total: number;
+};
+
+type ScheduleForm = {
+  kind: AutomationKind;
+  name: string;
+  cron_expression: string;
+  target: string;
+};
+
 // ─── Constants ───────────────────────────────────────────────────────────────
 
 const PROXY = "/api/v1/automation/proxy/api/features";
 const BRAIN_CAPABILITIES = "/api/v1/automation/brain/capabilities";
 const BRAIN_RUNS = "/api/v1/automation/runs";
+const BRAIN_SCHEDULES = "/api/v1/automation/schedules";
+
+const KIND_LABELS: Record<AutomationKind, string> = {
+  web: "Web E2E",
+  mobile: "Mobile",
+  api: "API",
+  llm: "LLM Agent",
+  regression: "Regresyon",
+};
+
+const STATUS_LABELS: Record<AutomationStatus, string> = {
+  queued: "Sırada",
+  running: "Çalışıyor",
+  passed: "Geçti",
+  failed: "Başarısız",
+  cancelled: "İptal",
+};
+
+// Yaygın cron ön ayarları — insanca açıklamayla.
+const CRON_PRESETS: { value: string; label: string }[] = [
+  { value: "*/15 * * * *", label: "Her 15 dakikada" },
+  { value: "0 * * * *", label: "Saat başı" },
+  { value: "0 2 * * *", label: "Her gün 02:00" },
+  { value: "0 9 * * 1", label: "Her Pazartesi 09:00" },
+  { value: "0 0 1 * *", label: "Her ayın 1'i" },
+];
+
+/** 5-alanlı cron ifadesi için yüzeysel doğrulama (UI guard; asıl doğrulama backend'de). */
+function isLikelyCron(expr: string): boolean {
+  const parts = expr.trim().split(/\s+/);
+  return parts.length === 5;
+}
 
 const GHERKIN_PLACEHOLDER = `Feature: Örnek özellik
   Senaryo olarak kullanıcı
@@ -216,6 +278,165 @@ function CreateFeatureModal({
   );
 }
 
+// ─── Schedule Panel (presentational) ───────────────────────────────────────────
+
+function SchedulePanel({
+  schedules,
+  form,
+  saving,
+  onFormChange,
+  onCreate,
+  onToggle,
+  onDelete,
+}: {
+  schedules: AutomationSchedule[];
+  form: ScheduleForm;
+  saving: boolean;
+  onFormChange: (patch: Partial<ScheduleForm>) => void;
+  onCreate: () => void;
+  onToggle: (schedule: AutomationSchedule) => void;
+  onDelete: (schedule: AutomationSchedule) => void;
+}) {
+  const cronValid = isLikelyCron(form.cron_expression);
+  const canCreate = !saving && form.name.trim().length > 0 && cronValid;
+
+  return (
+    <section className="rounded-lg border border-slate-800 bg-slate-900 p-4" data-testid="automation-schedule-panel">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-amber-300/80">Zamanlama</p>
+          <h2 className="mt-1 text-lg font-semibold text-white">Otomatik koşumlar (cron)</h2>
+          <p className="mt-1 max-w-2xl text-sm text-slate-400">
+            Periyodik automation koşumları planla — her tetiklenişte bir run oluşturulur.
+          </p>
+        </div>
+      </div>
+
+      {/* Yeni zamanlama formu */}
+      <div className="mt-4 grid gap-3 rounded-lg border border-slate-800 bg-slate-950/60 p-3 md:grid-cols-[1fr_1fr_1fr_auto]">
+        <div className="space-y-1">
+          <label className="text-[11px] uppercase tracking-wide text-slate-500">Tür</label>
+          <select
+            value={form.kind}
+            onChange={(e) => onFormChange({ kind: e.target.value as AutomationKind })}
+            className="h-9 w-full rounded border border-slate-700 bg-slate-900 px-2 text-sm text-white focus:outline-none focus:border-amber-400/50"
+            data-testid="schedule-kind"
+          >
+            {(Object.keys(KIND_LABELS) as AutomationKind[]).map((k) => (
+              <option key={k} value={k}>{KIND_LABELS[k]}</option>
+            ))}
+          </select>
+        </div>
+        <div className="space-y-1">
+          <label className="text-[11px] uppercase tracking-wide text-slate-500">Ad</label>
+          <Input
+            placeholder="ör. Gece smoke"
+            value={form.name}
+            onChange={(e) => onFormChange({ name: e.target.value })}
+            data-testid="schedule-name"
+          />
+        </div>
+        <div className="space-y-1">
+          <label className="text-[11px] uppercase tracking-wide text-slate-500">Hedef (feature/URL)</label>
+          <Input
+            placeholder="opsiyonel"
+            value={form.target}
+            onChange={(e) => onFormChange({ target: e.target.value })}
+            data-testid="schedule-target"
+          />
+        </div>
+        <div className="flex items-end">
+          <Button
+            type="button"
+            onClick={onCreate}
+            disabled={!canCreate}
+            data-testid="schedule-create"
+          >
+            {saving ? "Ekleniyor…" : "+ Zamanla"}
+          </Button>
+        </div>
+        <div className="space-y-1 md:col-span-4">
+          <label className="text-[11px] uppercase tracking-wide text-slate-500">Cron ifadesi</label>
+          <div className="flex flex-wrap items-center gap-2">
+            <Input
+              placeholder="dk sa gün ay haftagünü — ör. 0 2 * * *"
+              value={form.cron_expression}
+              onChange={(e) => onFormChange({ cron_expression: e.target.value })}
+              className={cronValid ? "" : "border-red-500/60"}
+              data-testid="schedule-cron"
+            />
+            {CRON_PRESETS.map((preset) => (
+              <button
+                key={preset.value}
+                type="button"
+                onClick={() => onFormChange({ cron_expression: preset.value })}
+                className="rounded border border-slate-700 px-2 py-1 text-[11px] text-slate-300 hover:border-amber-400/50 hover:text-white"
+              >
+                {preset.label}
+              </button>
+            ))}
+          </div>
+          {!cronValid && form.cron_expression.trim().length > 0 && (
+            <p className="text-xs text-red-400">Cron 5 alandan oluşmalı (dakika saat gün ay haftagünü).</p>
+          )}
+        </div>
+      </div>
+
+      {/* Zamanlama listesi */}
+      <div className="mt-4 overflow-hidden rounded-lg border border-slate-800">
+        <div className="flex items-center justify-between border-b border-slate-800 bg-slate-950/50 px-3 py-2">
+          <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Tanımlı zamanlamalar</span>
+          <span className="text-xs text-slate-500">{schedules.length} kayıt</span>
+        </div>
+        {schedules.length === 0 ? (
+          <div className="px-3 py-4 text-sm text-slate-400" data-testid="schedule-empty">
+            Henüz zamanlama yok. Yukarıdan bir cron koşumu planla.
+          </div>
+        ) : (
+          <div className="divide-y divide-slate-800">
+            {schedules.map((sched) => (
+              <div key={sched.id} className="flex flex-wrap items-center gap-3 px-3 py-2.5" data-testid={`schedule-row-${sched.id}`}>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <p className="truncate text-sm font-medium text-white">{sched.name}</p>
+                    <span className="rounded bg-slate-800 px-1.5 py-0.5 text-[10px] uppercase text-slate-400">{KIND_LABELS[sched.kind] ?? sched.kind}</span>
+                    <span className={`rounded px-1.5 py-0.5 text-[10px] uppercase ${sched.is_active ? "bg-emerald-500/10 text-emerald-300" : "bg-slate-800 text-slate-500"}`}>
+                      {sched.is_active ? "aktif" : "pasif"}
+                    </span>
+                  </div>
+                  <p className="mt-0.5 truncate font-mono text-[11px] text-slate-500">
+                    <span className="text-amber-200/80">{sched.cron_expression}</span>
+                    {sched.next_run_at ? ` · sonraki: ${new Date(sched.next_run_at).toLocaleString()}` : ""}
+                    {sched.target ? ` · ${sched.target}` : ""}
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => onToggle(sched)}
+                  data-testid={`schedule-toggle-${sched.id}`}
+                >
+                  {sched.is_active ? "Duraklat" : "Aktifleştir"}
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost-danger"
+                  size="sm"
+                  onClick={() => onDelete(sched)}
+                  data-testid={`schedule-delete-${sched.id}`}
+                >
+                  Sil
+                </Button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function AutomationPage() {
@@ -238,6 +459,18 @@ export default function AutomationPage() {
   const [brainRuns, setBrainRuns] = useState<AutomationRun[]>([]);
   const [brainLoading, setBrainLoading] = useState(true);
   const [startingKind, setStartingKind] = useState<AutomationKind | null>(null);
+  const [llmUrl, setLlmUrl] = useState("");
+  const [runKindFilter, setRunKindFilter] = useState<"all" | AutomationKind>("all");
+  const [runStatusFilter, setRunStatusFilter] = useState<"all" | AutomationStatus>("all");
+  // Schedules — backend-first (ADR-0012): localStorage'dan anında render → fetch ile güncelle.
+  const [schedules, setSchedules] = useState<AutomationSchedule[]>([]);
+  const [scheduleForm, setScheduleForm] = useState<ScheduleForm>({
+    kind: "web",
+    name: "",
+    cron_expression: "0 2 * * *",
+    target: "",
+  });
+  const [savingSchedule, setSavingSchedule] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -281,6 +514,89 @@ export default function AutomationPage() {
     }
   }, [projectId]);
 
+  const loadSchedules = useCallback(async () => {
+    if (!projectId) return;
+    // localStorage seed (anında render)
+    try {
+      const cached = localStorage.getItem(`automation_schedules_${projectId}`);
+      if (cached) setSchedules(JSON.parse(cached) as AutomationSchedule[]);
+    } catch {
+      /* yok say */
+    }
+    try {
+      const data = await apiFetch<AutomationScheduleList>(
+        `${BRAIN_SCHEDULES}?project_id=${encodeURIComponent(projectId.toString())}`,
+      );
+      const items = data.items ?? [];
+      setSchedules(items);
+      try {
+        localStorage.setItem(`automation_schedules_${projectId}`, JSON.stringify(items));
+      } catch {
+        /* quota — yok say */
+      }
+    } catch {
+      /* backend erişilemez — cache'i koru */
+    }
+  }, [projectId]);
+
+  async function handleCreateSchedule() {
+    if (!projectId) return;
+    if (!isLikelyCron(scheduleForm.cron_expression) || !scheduleForm.name.trim()) return;
+    setSavingSchedule(true);
+    try {
+      await apiFetch(BRAIN_SCHEDULES, {
+        method: "POST",
+        json: {
+          project_id: projectId.toString(),
+          kind: scheduleForm.kind,
+          name: scheduleForm.name.trim(),
+          cron_expression: scheduleForm.cron_expression.trim(),
+          target: scheduleForm.target.trim() || null,
+          environment: "local",
+          is_active: true,
+          metadata: { source_page: "automation_center" },
+        },
+      });
+      toast(`"${scheduleForm.name.trim()}" zamanlaması eklendi.`, "success");
+      setScheduleForm((prev) => ({ ...prev, name: "", target: "" }));
+      await loadSchedules();
+    } catch (e) {
+      toast(e instanceof Error ? e.message : "Zamanlama eklenemedi", "error");
+    } finally {
+      setSavingSchedule(false);
+    }
+  }
+
+  async function handleToggleSchedule(sched: AutomationSchedule) {
+    try {
+      await apiFetch(`${BRAIN_SCHEDULES}/${sched.id}`, {
+        method: "PATCH",
+        json: { is_active: !sched.is_active },
+      });
+      await loadSchedules();
+    } catch (e) {
+      toast(e instanceof Error ? e.message : "Güncellenemedi", "error");
+    }
+  }
+
+  async function handleDeleteSchedule(sched: AutomationSchedule) {
+    const ok = await confirm({
+      title: "Zamanlamayı sil",
+      message: `"${sched.name}" zamanlaması silinecek. Devam edilsin mi?`,
+      confirmLabel: "Sil",
+      cancelLabel: "Vazgeç",
+      variant: "danger",
+    });
+    if (!ok) return;
+    try {
+      await apiFetch(`${BRAIN_SCHEDULES}/${sched.id}`, { method: "DELETE" });
+      toast("Zamanlama silindi.", "success");
+      await loadSchedules();
+    } catch (e) {
+      toast(e instanceof Error ? e.message : "Silinemedi", "error");
+    }
+  }
+
   async function handleSaveEdit() {
     if (!selected) return;
     setSaving(true);
@@ -307,6 +623,10 @@ export default function AutomationPage() {
   useEffect(() => {
     void loadBrain();
   }, [loadBrain]);
+
+  useEffect(() => {
+    void loadSchedules();
+  }, [loadSchedules]);
 
   // Auto-select first item when list loads
   useEffect(() => {
@@ -351,7 +671,12 @@ export default function AutomationPage() {
 
   async function startBrainRun(kind: AutomationKind) {
     setStartingKind(kind);
-    const canExecuteNow = (kind === "web" && Boolean(selected?.path)) || kind === "mobile" || kind === "regression";
+    const llmTarget = llmUrl.trim();
+    const canExecuteNow =
+      (kind === "web" && Boolean(selected?.path)) ||
+      kind === "mobile" ||
+      kind === "regression" ||
+      (kind === "llm" && Boolean(llmTarget));
     try {
       const run = await apiFetch<AutomationRun>(BRAIN_RUNS, {
         method: "POST",
@@ -359,7 +684,7 @@ export default function AutomationPage() {
           project_id: projectId.toString(),
           kind,
           name: `${capabilities.find((cap) => cap.kind === kind)?.label ?? kind} merkezi koşum`,
-          target: kind === "web" ? selected?.path ?? null : null,
+          target: kind === "web" ? selected?.path ?? null : kind === "llm" ? llmTarget || null : null,
           trigger: "manual",
           environment: "local",
           execute_now: canExecuteNow,
@@ -379,17 +704,21 @@ export default function AutomationPage() {
                   extra_instructions: "E2E smoke, kritik kullanıcı akışları ve son hata risklerini öne çıkar.",
                 }
               : {}),
+            ...(kind === "llm" && llmTarget ? { url: llmTarget } : {}),
           },
         },
       });
+      const startedReal =
+        run.metrics?.external_run_id ||
+        run.metrics?.external_session_ids ||
+        run.metrics?.external_session_id ||
+        run.metrics?.suggested_set_count;
       toast(
-        run.metrics?.external_run_id || run.metrics?.external_session_ids || run.metrics?.suggested_set_count
-          ? `${run.name} gerçek runner üzerinde başladı.`
-          : `${run.name} oluşturuldu.`,
+        startedReal ? `${run.name} gerçek runner üzerinde başladı.` : `${run.name} oluşturuldu.`,
         "success",
       );
       await loadBrain();
-      if (!run.metrics?.external_run_id && !run.metrics?.external_session_ids && !run.metrics?.suggested_set_count && run.next_action?.href) {
+      if (!startedReal && run.next_action?.href) {
         router.push(run.next_action.href);
       }
     } catch (e) {
@@ -408,6 +737,12 @@ export default function AutomationPage() {
       toast(e instanceof Error ? e.message : "İptal edilemedi", "error");
     }
   }
+
+  const visibleRuns = brainRuns.filter(
+    (run) =>
+      (runKindFilter === "all" || run.kind === runKindFilter) &&
+      (runStatusFilter === "all" || run.status === runStatusFilter),
+  );
 
   return (
     <div className="mx-auto max-w-6xl space-y-6 p-6" data-testid="automation-page">
@@ -489,6 +824,18 @@ export default function AutomationPage() {
                 </span>
               </div>
               <p className="mt-2 line-clamp-2 text-xs leading-5 text-slate-400">{cap.description}</p>
+              {cap.kind === "llm" && (
+                <input
+                  type="url"
+                  inputMode="url"
+                  placeholder="https://hedef-site.com"
+                  value={llmUrl}
+                  onChange={(e) => setLlmUrl(e.target.value)}
+                  onClick={(e) => e.stopPropagation()}
+                  className="mt-3 h-8 w-full rounded border border-slate-700 bg-slate-900 px-2 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-violet-400/50"
+                  data-testid="automation-llm-url"
+                />
+              )}
               <p className="mt-3 text-xs font-semibold text-violet-200">
                 {startingKind === cap.kind
                   ? "Başlatılıyor…"
@@ -498,7 +845,11 @@ export default function AutomationPage() {
                       ? "2 cihazla çalıştır"
                       : cap.kind === "regression"
                         ? "AI öneri üret"
-                    : "Run oluştur"}
+                        : cap.kind === "llm"
+                          ? llmUrl.trim()
+                            ? "URL ile ajanı başlat"
+                            : "URL gir ve başlat"
+                          : "Run oluştur"}
               </p>
             </button>
           ))}
@@ -510,17 +861,45 @@ export default function AutomationPage() {
         </div>
 
         <div className="mt-4 overflow-hidden rounded-lg border border-slate-800">
-          <div className="flex items-center justify-between border-b border-slate-800 bg-slate-950/50 px-3 py-2">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 bg-slate-950/50 px-3 py-2">
             <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Son merkezi koşumlar</span>
-            <span className="text-xs text-slate-500">{brainRuns.length} kayıt</span>
+            <div className="flex items-center gap-2">
+              <select
+                value={runKindFilter}
+                onChange={(e) => setRunKindFilter(e.target.value as "all" | AutomationKind)}
+                className="h-7 rounded border border-slate-700 bg-slate-900 px-1.5 text-[11px] text-slate-300 focus:outline-none"
+                data-testid="run-filter-kind"
+                aria-label="Türe göre filtrele"
+              >
+                <option value="all">Tüm türler</option>
+                {(Object.keys(KIND_LABELS) as AutomationKind[]).map((k) => (
+                  <option key={k} value={k}>{KIND_LABELS[k]}</option>
+                ))}
+              </select>
+              <select
+                value={runStatusFilter}
+                onChange={(e) => setRunStatusFilter(e.target.value as "all" | AutomationStatus)}
+                className="h-7 rounded border border-slate-700 bg-slate-900 px-1.5 text-[11px] text-slate-300 focus:outline-none"
+                data-testid="run-filter-status"
+                aria-label="Duruma göre filtrele"
+              >
+                <option value="all">Tüm durumlar</option>
+                {(Object.keys(STATUS_LABELS) as AutomationStatus[]).map((s) => (
+                  <option key={s} value={s}>{STATUS_LABELS[s]}</option>
+                ))}
+              </select>
+              <span className="text-xs text-slate-500">{visibleRuns.length}/{brainRuns.length}</span>
+            </div>
           </div>
-          {brainRuns.length === 0 ? (
+          {visibleRuns.length === 0 ? (
             <div className="px-3 py-4 text-sm text-slate-400">
-              Henüz merkezi run yok. Yukarıdan bir otomasyon tipi seçerek ilk kaydı oluştur.
+              {brainRuns.length === 0
+                ? "Henüz merkezi run yok. Yukarıdan bir otomasyon tipi seçerek ilk kaydı oluştur."
+                : "Seçili filtreyle eşleşen koşum yok."}
             </div>
           ) : (
             <div className="divide-y divide-slate-800">
-              {brainRuns.map((run) => (
+              {visibleRuns.map((run) => (
                 <div key={run.id} className="flex flex-wrap items-center gap-3 px-3 py-2.5">
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
@@ -561,6 +940,16 @@ export default function AutomationPage() {
           )}
         </div>
       </section>
+
+      <SchedulePanel
+        schedules={schedules}
+        form={scheduleForm}
+        saving={savingSchedule}
+        onFormChange={(patch) => setScheduleForm((prev) => ({ ...prev, ...patch }))}
+        onCreate={() => void handleCreateSchedule()}
+        onToggle={(sched) => void handleToggleSchedule(sched)}
+        onDelete={(sched) => void handleDeleteSchedule(sched)}
+      />
 
       {/* Body: two-column layout */}
       {loading ? (

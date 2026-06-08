@@ -549,6 +549,33 @@ class AutomationRun(Base):
     duration_ms: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
 
 
+class AutomationSchedule(Base):
+    """Zamanlanmış automation koşumu — cron ifadesiyle periyodik run üretir.
+
+    APScheduler tarafından yüklenir; her tetiklenişte trigger="schedule" olan
+    bir AutomationRun yaratır (bkz. app.domains.automation.scheduler).
+    """
+
+    __tablename__ = "sd_automation_schedules"
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    project_id: Mapped[str] = mapped_column(String(120), nullable=False, index=True)
+    kind: Mapped[str] = mapped_column(String(32), nullable=False)
+    name: Mapped[str] = mapped_column(String(240), nullable=False)
+    cron_expression: Mapped[str] = mapped_column(String(120), nullable=False)
+    environment: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
+    device: Mapped[Optional[str]] = mapped_column(String(160), nullable=True)
+    target: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    run_metadata: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False, default=dict)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False, index=True)
+    created_by: Mapped[Optional[str]] = mapped_column(
+        UUID(as_uuid=False), ForeignKey("sd_users.id", ondelete="SET NULL"), nullable=True
+    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
+    last_run_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    next_run_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
 class AgentV2DeadLetter(Base):
     __tablename__ = "sd_agent_v2_dead_letters"
 

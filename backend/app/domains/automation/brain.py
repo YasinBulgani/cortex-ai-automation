@@ -84,9 +84,10 @@ ADAPTERS: dict[AutomationKind, AutomationAdapter] = {
     "llm": AutomationAdapter(
         kind="llm",
         label="LLM Agent",
-        description="LLM destekli test üretim, analiz ve iyileştirme akışları",
+        description="LLM destekli ReAct tarayıcı ajanı — URL açar, akışı interaktif sürdürür",
         provenance="fallback",
         route_template="/p/{project_id}/llm-agent",
+        required_fields=("url",),
     ),
     "regression": AutomationAdapter(
         kind="regression",

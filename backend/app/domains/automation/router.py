@@ -26,6 +26,10 @@ from app.domains.automation.schemas import (
     AutomationRunCreate,
     AutomationRunList,
     AutomationRunOut,
+    AutomationScheduleCreate,
+    AutomationScheduleList,
+    AutomationScheduleOut,
+    AutomationScheduleUpdate,
 )
 from app.domains.automation_suite import service as suite_service
 from app.domains.automation_suite.schemas import SuiteRunRequest
@@ -194,9 +198,61 @@ def _sync_external_mobile_run(
     return service.store.replace(updated)
 
 
+def _sync_external_llm_run(
+    service: AutomationBrainService,
+    run: AutomationRunOut,
+) -> AutomationRunOut:
+    """LLM ReAct tarayıcı ajanı oturumunun yaşam durumunu yansıt.
+
+    Oturum interaktiftir; otomatik pass/fail üretmez. Engine'de oturum hâlâ
+    duruyorsa run ``running`` kalır; oturum kapanmışsa (404) ``cancelled``
+    olarak işaretlenir.
+    """
+    session_id = run.metrics.get("external_session_id")
+    if run.metrics.get("external_runner") != "llm_agent" or not isinstance(session_id, str):
+        return run
+    if run.status in {"passed", "failed", "cancelled"}:
+        return run
+
+    try:
+        with httpx.Client(timeout=5) as client:
+            resp = client.get(
+                f"{ENGINE_BASE}/api/llm-agent/{session_id}/snapshot",
+                headers={"X-Internal-Key": _INTERNAL_KEY},
+            )
+    except httpx.RequestError:
+        return run  # Engine geçici erişilemez — durumu koru
+
+    if resp.status_code == 404:
+        updated = run.model_copy(
+            update={
+                "status": "cancelled",
+                "finished_at": _utcnow(),
+                "error": run.error or "LLM ajan oturumu kapatıldı",
+                "metrics": _merge_metrics(
+                    run, {"external_status": "closed", "last_synced_at": _utcnow().isoformat()}
+                ),
+            },
+        )
+        return service.store.replace(updated)
+
+    if resp.status_code >= 400:
+        return run
+
+    updated = run.model_copy(
+        update={
+            "metrics": _merge_metrics(
+                run, {"external_status": "running", "last_synced_at": _utcnow().isoformat()}
+            ),
+        },
+    )
+    return service.store.replace(updated)
+
+
 def _sync_external_run(service: AutomationBrainService, run: AutomationRunOut) -> AutomationRunOut:
     run = _sync_external_suite_run(service, run)
-    return _sync_external_mobile_run(service, run)
+    run = _sync_external_mobile_run(service, run)
+    return _sync_external_llm_run(service, run)
 
 
 def _api_test_case_ids(run: AutomationRunOut) -> list[str]:
@@ -490,6 +546,102 @@ async def _start_regression_suggestion_run(
     return service.store.replace(completed)
 
 
+async def _start_llm_agent_run(
+    service: AutomationBrainService,
+    run: AutomationRunOut,
+) -> AutomationRunOut:
+    """LLM ReAct tarayıcı ajanı oturumu başlat (engine /api/llm-agent/start)."""
+    raw_url = run.metadata.get("url") or run.target
+    url = str(raw_url).strip() if raw_url else ""
+    if not url:
+        failed = run.model_copy(
+            update={
+                "status": "failed",
+                "provenance": "fallback",
+                "finished_at": _utcnow(),
+                "error": "LLM koşumu için metadata.url veya target (hedef URL) zorunlu",
+            },
+        )
+        return service.store.replace(failed)
+
+    payload: dict[str, Any] = {"url": url}
+    if isinstance(run.metadata.get("credentials"), dict):
+        payload["credentials"] = run.metadata["credentials"]
+
+    try:
+        async with httpx.AsyncClient(timeout=60) as client:
+            resp = await client.post(
+                f"{ENGINE_BASE}/api/llm-agent/start",
+                headers={"X-Internal-Key": _INTERNAL_KEY},
+                json=payload,
+            )
+    except httpx.RequestError as exc:
+        logger.warning("Automation Brain LLM run could not reach engine: %s", exc)
+        failed = run.model_copy(
+            update={
+                "status": "failed",
+                "provenance": "fallback",
+                "finished_at": _utcnow(),
+                "error": f"LLM ajan motoruna ulaşılamadı: {exc}",
+            },
+        )
+        return service.store.replace(failed)
+
+    if resp.status_code >= 400:
+        detail = ""
+        try:
+            detail = str(resp.json().get("error") or "")
+        except Exception:  # pragma: no cover - defensive json parse
+            detail = resp.text[:200]
+        failed = run.model_copy(
+            update={
+                "status": "failed",
+                "provenance": "fallback",
+                "finished_at": _utcnow(),
+                "error": f"LLM ajan oturumu başlatılamadı: {detail or resp.status_code}",
+            },
+        )
+        return service.store.replace(failed)
+
+    data = resp.json() if resp.content else {}
+    session_id = str(data.get("session_id") or "")
+    if not session_id:
+        failed = run.model_copy(
+            update={
+                "status": "failed",
+                "provenance": "fallback",
+                "finished_at": _utcnow(),
+                "error": "LLM ajan motoru session_id döndürmedi",
+            },
+        )
+        return service.store.replace(failed)
+
+    started = run.model_copy(
+        update={
+            "status": "running",
+            "provenance": "real",
+            "started_at": _utcnow(),
+            "target": run.target or url,
+            "metrics": _merge_metrics(
+                run,
+                {
+                    "external_runner": "llm_agent",
+                    "external_session_id": session_id,
+                    "external_status": "running",
+                    "url": url,
+                },
+            ),
+            "next_action": {
+                "type": "open_llm_agent",
+                "label": "LLM ajanını aç",
+                "href": f"/p/{run.project_id}/llm-agent?session={session_id}",
+                "api": f"/api/v1/automation/proxy/api/llm-agent/{session_id}/snapshot",
+            },
+        },
+    )
+    return service.store.replace(started)
+
+
 def _normalize_proxy_path(path: str) -> str:
     """Proxy path'ini normalize et: baştaki slash'ı temizle."""
     return path.lstrip("/")
@@ -563,6 +715,8 @@ async def create_automation_run(
         return await _start_mobile_farm_run(service, run)
     if payload.execute_now and payload.kind == "regression":
         return await _start_regression_suggestion_run(service, run, db)
+    if payload.execute_now and payload.kind == "llm":
+        return await _start_llm_agent_run(service, run)
     return run
 
 
@@ -715,6 +869,180 @@ async def retry_automation_run(
     if run is None:
         raise HTTPException(status_code=404, detail="Automation run bulunamadı")
     return run
+
+
+# ── Automation Schedules (cron-driven runs) ─────────────────────────────────────
+
+
+def _schedule_to_out(row) -> AutomationScheduleOut:  # noqa: ANN001
+    return AutomationScheduleOut(
+        id=row.id,
+        project_id=row.project_id,
+        kind=row.kind,
+        name=row.name,
+        cron_expression=row.cron_expression,
+        environment=row.environment,
+        device=row.device,
+        target=row.target,
+        is_active=row.is_active,
+        metadata=row.run_metadata or {},
+        created_by=row.created_by,
+        created_at=row.created_at,
+        last_run_at=row.last_run_at,
+        next_run_at=row.next_run_at,
+    )
+
+
+def _require_project_access(db: Session, user: User, project_id: str) -> None:
+    """Proje üyeliği (veya admin '*') yoksa 403 — IDOR koruması."""
+    from app.deps import _user_permissions
+
+    if "admin.*" in _user_permissions(user):
+        return
+    if project_id not in set(_user_project_ids(db, user)):
+        raise HTTPException(status_code=403, detail="Bu projeye erişim yetkiniz yok")
+
+
+@router.get(
+    "/schedules",
+    response_model=AutomationScheduleList,
+    dependencies=[Depends(get_current_user)],
+)
+async def list_automation_schedules(
+    user: Annotated[User, Depends(get_current_user)],
+    project_id: str | None = None,
+    db: Session = Depends(get_db),
+):
+    """Kullanıcının erişebildiği projelerdeki automation schedule'larını listele."""
+    from app.deps import _user_permissions
+    from app.infra.models import AutomationSchedule
+    from sqlalchemy import select as _sa_select
+
+    is_admin = "admin.*" in _user_permissions(user)
+    stmt = _sa_select(AutomationSchedule).order_by(AutomationSchedule.created_at.desc())
+    if project_id:
+        _require_project_access(db, user, project_id)
+        stmt = stmt.where(AutomationSchedule.project_id == project_id)
+    rows = list(db.scalars(stmt))
+    if not project_id and not is_admin:
+        allowed = set(_user_project_ids(db, user))
+        rows = [r for r in rows if r.project_id in allowed]
+    items = [_schedule_to_out(r) for r in rows]
+    return AutomationScheduleList(items=items, total=len(items))
+
+
+@router.post(
+    "/schedules",
+    response_model=AutomationScheduleOut,
+    dependencies=[Depends(get_current_user)],
+)
+async def create_automation_schedule(
+    payload: AutomationScheduleCreate,
+    user: Annotated[User, Depends(get_current_user)],
+    db: Session = Depends(get_db),
+):
+    """Yeni cron-tabanlı automation schedule oluştur."""
+    from app.domains.automation.scheduler import add_schedule_job, compute_next_run, is_valid_cron
+    from app.infra.models import AutomationSchedule
+    from uuid import uuid4
+
+    _require_project_access(db, user, payload.project_id)
+    if not is_valid_cron(payload.cron_expression):
+        raise HTTPException(status_code=422, detail="Geçersiz cron ifadesi (5 alan bekleniyor)")
+
+    row = AutomationSchedule(
+        id=f"asch_{uuid4().hex[:12]}",
+        project_id=payload.project_id,
+        kind=payload.kind,
+        name=payload.name,
+        cron_expression=payload.cron_expression,
+        environment=payload.environment,
+        device=payload.device,
+        target=payload.target,
+        run_metadata=payload.metadata,
+        is_active=payload.is_active,
+        created_by=str(user.id),
+        created_at=_utcnow(),
+        next_run_at=compute_next_run(payload.cron_expression),
+    )
+    db.add(row)
+    db.commit()
+    if row.is_active:
+        add_schedule_job(row.id, row.cron_expression)
+    return _schedule_to_out(row)
+
+
+@router.patch(
+    "/schedules/{schedule_id}",
+    response_model=AutomationScheduleOut,
+    dependencies=[Depends(get_current_user)],
+)
+async def update_automation_schedule(
+    schedule_id: str,
+    payload: AutomationScheduleUpdate,
+    user: Annotated[User, Depends(get_current_user)],
+    db: Session = Depends(get_db),
+):
+    """Schedule güncelle (aktif/pasif, cron, hedef vb.)."""
+    from app.domains.automation.scheduler import (
+        add_schedule_job,
+        compute_next_run,
+        is_valid_cron,
+        remove_schedule_job,
+    )
+    from app.infra.models import AutomationSchedule
+
+    row = db.get(AutomationSchedule, schedule_id)
+    if row is None:
+        raise HTTPException(status_code=404, detail="Schedule bulunamadı")
+    _require_project_access(db, user, row.project_id)
+
+    if payload.cron_expression is not None:
+        if not is_valid_cron(payload.cron_expression):
+            raise HTTPException(status_code=422, detail="Geçersiz cron ifadesi (5 alan bekleniyor)")
+        row.cron_expression = payload.cron_expression
+        row.next_run_at = compute_next_run(payload.cron_expression)
+    if payload.name is not None:
+        row.name = payload.name
+    if payload.environment is not None:
+        row.environment = payload.environment
+    if payload.device is not None:
+        row.device = payload.device
+    if payload.target is not None:
+        row.target = payload.target
+    if payload.metadata is not None:
+        row.run_metadata = payload.metadata
+    if payload.is_active is not None:
+        row.is_active = payload.is_active
+    db.commit()
+
+    remove_schedule_job(row.id)
+    if row.is_active:
+        add_schedule_job(row.id, row.cron_expression)
+    return _schedule_to_out(row)
+
+
+@router.delete(
+    "/schedules/{schedule_id}",
+    dependencies=[Depends(get_current_user)],
+)
+async def delete_automation_schedule(
+    schedule_id: str,
+    user: Annotated[User, Depends(get_current_user)],
+    db: Session = Depends(get_db),
+):
+    """Schedule sil ve APScheduler job'ını kaldır."""
+    from app.domains.automation.scheduler import remove_schedule_job
+    from app.infra.models import AutomationSchedule
+
+    row = db.get(AutomationSchedule, schedule_id)
+    if row is None:
+        raise HTTPException(status_code=404, detail="Schedule bulunamadı")
+    _require_project_access(db, user, row.project_id)
+    remove_schedule_job(row.id)
+    db.delete(row)
+    db.commit()
+    return {"deleted": True, "id": schedule_id}
 
 
 @router.api_route(

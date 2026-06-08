@@ -381,6 +381,11 @@ async def app_lifespan(_app: FastAPI):
     Path(settings.artifacts_dir).mkdir(parents=True, exist_ok=True)
     start_scheduler()
     _start_banking_scheduler()
+    try:
+        from app.domains.automation.scheduler import start_scheduler as start_automation_scheduler
+        start_automation_scheduler()
+    except Exception as exc:
+        logger.warning("Automation scheduler başlatılamadı: %s", exc)
     threading.Thread(target=_startup_index_project, daemon=True).start()
     _start_file_watcher()
     _start_autopilot_worker()
@@ -410,6 +415,11 @@ async def app_lifespan(_app: FastAPI):
     _stop_autopilot_worker()
     _stop_file_watcher()
     shutdown_scheduler()
+    try:
+        from app.domains.automation.scheduler import shutdown_scheduler as shutdown_automation_scheduler
+        shutdown_automation_scheduler()
+    except Exception:
+        logger.debug("Automation scheduler kapatılırken hata", exc_info=True)
 
     try:
         from app.domains.ai.gateway_client import close_http_client

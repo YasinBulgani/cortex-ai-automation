@@ -500,3 +500,196 @@ def test_list_runs_project_id_not_member_forbidden_403() -> None:
     assert r.status_code == 403
     # Access is denied before any runs are listed.
     mock_service.list_runs.assert_not_called()
+
+
+# ---------------------------------------------------------------------------
+# LLM adapter execution — _start_llm_agent_run + create_run dispatch
+# ---------------------------------------------------------------------------
+
+
+def _llm_run(metadata=None, target=None):
+    run = _fake_run("run-llm", "queued")
+    return run.model_copy(update={"kind": "llm", "metadata": metadata or {}, "target": target})
+
+
+def test_start_llm_agent_run_success() -> None:
+    """LLM run engine'i çağırır, session_id alınca running + real olur."""
+    import asyncio
+    from app.domains.automation import router as r
+
+    service = MagicMock()
+    service.store.replace.side_effect = lambda x: x
+    run = _llm_run(metadata={"url": "https://example.com"})
+
+    with patch("app.domains.automation.router.httpx.AsyncClient") as mock_cls:
+        mock_client = AsyncMock()
+        mock_cls.return_value.__aenter__ = AsyncMock(return_value=mock_client)
+        mock_cls.return_value.__aexit__ = AsyncMock(return_value=False)
+        resp = MagicMock()
+        resp.status_code = 200
+        resp.content = b"{}"
+        resp.json.return_value = {"session_id": "sess-123"}
+        mock_client.post.return_value = resp
+        out = asyncio.run(r._start_llm_agent_run(service, run))
+
+    assert out.status == "running"
+    assert out.provenance == "real"
+    assert out.metrics.get("external_runner") == "llm_agent"
+    assert out.metrics.get("external_session_id") == "sess-123"
+
+
+def test_start_llm_agent_run_missing_url_fails() -> None:
+    """URL yoksa run failed + açıklayıcı hata döner, engine çağrılmaz."""
+    import asyncio
+    from app.domains.automation import router as r
+
+    service = MagicMock()
+    service.store.replace.side_effect = lambda x: x
+    run = _llm_run(metadata={})
+
+    with patch("app.domains.automation.router.httpx.AsyncClient") as mock_cls:
+        out = asyncio.run(r._start_llm_agent_run(service, run))
+        mock_cls.assert_not_called()
+
+    assert out.status == "failed"
+    assert "url" in (out.error or "").lower()
+
+
+def test_start_llm_agent_run_engine_error_fails() -> None:
+    """Engine 4xx/5xx → run failed + fallback."""
+    import asyncio
+    from app.domains.automation import router as r
+
+    service = MagicMock()
+    service.store.replace.side_effect = lambda x: x
+    run = _llm_run(target="https://example.com")
+
+    with patch("app.domains.automation.router.httpx.AsyncClient") as mock_cls:
+        mock_client = AsyncMock()
+        mock_cls.return_value.__aenter__ = AsyncMock(return_value=mock_client)
+        mock_cls.return_value.__aexit__ = AsyncMock(return_value=False)
+        resp = MagicMock()
+        resp.status_code = 500
+        resp.json.return_value = {"error": "pool down"}
+        mock_client.post.return_value = resp
+        out = asyncio.run(r._start_llm_agent_run(service, run))
+
+    assert out.status == "failed"
+    assert out.provenance == "fallback"
+
+
+def test_create_run_llm_dispatches_to_starter() -> None:
+    """kind=llm + execute_now → _start_llm_agent_run çağrılır."""
+    client = _app()
+    run = _llm_run(metadata={"url": "https://example.com"})
+    mock_service = MagicMock()
+    mock_service.create_run.return_value = run
+    started = run.model_copy(update={"status": "running", "provenance": "real"})
+
+    with patch("app.domains.automation.router.get_db", return_value=MagicMock()), \
+         patch("app.domains.automation.router.AutomationBrainService", return_value=mock_service), \
+         patch("app.domains.automation.router.SqlAlchemyAutomationRunStore", return_value=MagicMock()), \
+         patch("app.domains.automation.router._start_llm_agent_run", new=AsyncMock(return_value=started)) as mock_start:
+        r = client.post(
+            "/api/v1/automation/runs",
+            json={
+                "project_id": "proj-1",
+                "kind": "llm",
+                "name": "LLM run",
+                "execute_now": True,
+                "metadata": {"url": "https://example.com"},
+            },
+        )
+    assert r.status_code in {200, 201}
+    mock_start.assert_awaited_once()
+
+
+# ---------------------------------------------------------------------------
+# Scheduler helpers — cron validation + next-run computation
+# ---------------------------------------------------------------------------
+
+
+def test_is_valid_cron() -> None:
+    from app.domains.automation.scheduler import is_valid_cron
+
+    assert is_valid_cron("*/5 * * * *") is True
+    assert is_valid_cron("0 9 * * 1") is True
+    assert is_valid_cron("not a cron") is False
+    assert is_valid_cron("* * * *") is False  # 4 alan
+
+
+def test_compute_next_run() -> None:
+    from datetime import datetime
+    from app.domains.automation.scheduler import compute_next_run
+
+    nxt = compute_next_run("*/5 * * * *")
+    assert isinstance(nxt, datetime)
+    assert compute_next_run("garbage") is None
+
+
+# ---------------------------------------------------------------------------
+# Automation schedules CRUD + IDOR
+# ---------------------------------------------------------------------------
+
+_SCHED_BODY = {
+    "project_id": "proj-1",
+    "kind": "web",
+    "name": "Nightly smoke",
+    "cron_expression": "0 2 * * *",
+}
+
+
+def _app_admin_db(mock_db) -> TestClient:
+    """Admin user + mocked DB session via dependency_overrides (get_db Depends)."""
+    app = FastAPI()
+    app.dependency_overrides[get_current_user] = _mock_user
+    app.dependency_overrides[get_db] = lambda: mock_db
+    app.include_router(automation_router, prefix="/api/v1")
+    return TestClient(app, raise_server_exceptions=False)
+
+
+def test_create_schedule_invalid_cron_422() -> None:
+    client = _app_admin_db(MagicMock())
+    r = client.post(
+        "/api/v1/automation/schedules",
+        json={**_SCHED_BODY, "cron_expression": "totally bad"},
+    )
+    assert r.status_code == 422
+
+
+def test_create_schedule_success_200() -> None:
+    client = _app_admin_db(MagicMock())  # admin → project access bypass
+    with patch("app.domains.automation.scheduler.add_schedule_job") as mock_add:
+        r = client.post("/api/v1/automation/schedules", json=_SCHED_BODY)
+    assert r.status_code == 200
+    body = r.json()
+    assert body["cron_expression"] == "0 2 * * *"
+    assert body["is_active"] is True
+    assert body["next_run_at"] is not None
+    mock_add.assert_called_once()
+
+
+def test_create_schedule_non_member_forbidden_403() -> None:
+    """Non-admin, üyesi olmadığı projeye schedule oluşturamaz."""
+    mock_db = MagicMock()
+    mock_db.scalars.return_value = []  # no member projects
+    client = _app_nonadmin(mock_db)
+    r = client.post("/api/v1/automation/schedules", json=_SCHED_BODY)
+    assert r.status_code == 403
+
+
+def test_list_schedules_200() -> None:
+    mock_db = MagicMock()
+    mock_db.scalars.return_value = []
+    client = _app_admin_db(mock_db)
+    r = client.get("/api/v1/automation/schedules")
+    assert r.status_code == 200
+    assert r.json() == {"items": [], "total": 0}
+
+
+def test_delete_schedule_not_found_404() -> None:
+    mock_db = MagicMock()
+    mock_db.get.return_value = None
+    client = _app_admin_db(mock_db)
+    r = client.delete("/api/v1/automation/schedules/asch_missing")
+    assert r.status_code == 404
