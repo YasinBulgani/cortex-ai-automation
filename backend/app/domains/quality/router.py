@@ -9,12 +9,19 @@ from __future__ import annotations
 from typing import Annotated, Optional
 
 from fastapi import APIRouter, Depends, Query
+from sqlalchemy.orm import Session
 
 from app.deps import get_current_user
-from app.domains.quality.service import QualityMetrics, get_quality_metrics
+from app.domains.quality.service import (
+    QualityMetrics,
+    get_quality_metrics,
+    get_quality_score,
+)
+from app.infra.database import get_db
 from app.infra.models import User
 
 CurrentUser = Annotated[User, Depends(get_current_user)]
+DB = Annotated[Session, Depends(get_db)]
 
 router = APIRouter(prefix="/quality", tags=["quality"])
 
@@ -42,26 +49,22 @@ def metrics(
     "/score",
     summary="Genel kalite skoru — project_id opsiyonel",
 )
-def get_quality_score(
+def get_quality_score_endpoint(
     user: Annotated[User, Depends(get_current_user)],
+    db: DB,
     project_id: Optional[str] = Query(default=None, description="Proje ID (opsiyonel, global skor için boş bırakın)"),
 ) -> dict:
-    """Genel kalite skoru hesapla.
+    """Genel kalite skoru — gerçek test_management verilerinden hesaplanır.
 
-    Döndürdüğü metrikler:
-    - overall_score: 0-100 arası genel skor
-    - test_coverage: Test kapsama yüzdesi
-    - defect_density: Defect yoğunluğu (defect/TC)
-    - test_effectiveness: Test etkinlik oranı
-    - automation_rate: Otomasyon oranı
-    - trend: improving | stable | declining
+    Döndürdüğü metrikler (``available=False`` ise hepsi ``None``):
+    - overall_score: 0-100 arası genel skor (kapsama+pass-rate+otomasyon ağırlıklı)
+    - test_coverage: Gereksinim kapsama yüzdesi
+    - defect_density: Kritik defect / TC oranı
+    - test_effectiveness: Pass-rate yüzdesi
+    - automation_rate: Otomatik TC oranı
+    - trend: improving | stable | declining | unknown
+    - available: Gerçek veri bulundu mu
+
+    project_id verilmezse veya proje yoksa ``available=False`` döner.
     """
-    return {
-        "overall_score": 85,
-        "test_coverage": 72,
-        "defect_density": 0.3,
-        "test_effectiveness": 91,
-        "automation_rate": 45,
-        "trend": "improving",
-        "project_id": project_id,
-    }
+    return get_quality_score(db, project_id)

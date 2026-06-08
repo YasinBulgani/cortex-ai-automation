@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouteParam } from "@/lib/use-route-param";
 import { apiFetch } from "@/lib/api";
+import { toast } from "@/lib/useToast";
 import {
   PageHeader,
   SectionCard,
@@ -95,7 +96,7 @@ export default function RecorderPage() {
         ]);
       }
     } catch {
-      alert("Kayıt başlatılamadı. Engine çalışıyor mu?");
+      toast.error("Kayıt başlatılamadı. Engine çalışıyor mu?");
     } finally {
       setRecording(false);
     }
@@ -107,7 +108,7 @@ export default function RecorderPage() {
       setActiveSessions(prev => prev.map(s => (s.id === session.id ? { ...s, status: "completed" as const, action_count: res.action_count } : s)));
       loadSavedSessions();
     } catch {
-      alert("Kayıt durdurulamadı");
+      toast.error("Kayıt durdurulamadı");
     }
   }
 
@@ -129,7 +130,7 @@ export default function RecorderPage() {
         setActiveTab("generate");
       }
     } catch {
-      alert("Kod üretilemedi");
+      toast.error("Kod üretilemedi");
     } finally {
       setGenerating(false);
     }

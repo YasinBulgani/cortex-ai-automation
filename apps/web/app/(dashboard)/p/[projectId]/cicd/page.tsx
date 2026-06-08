@@ -125,10 +125,12 @@ jobs:
         {/* GitLab / Jenkins linkler */}
         <div className="flex gap-2 pt-1">
           {[
-            { label: "GitLab CI Webhook", href: "#" },
-            { label: "Jenkins Plugin",    href: "#" },
+            { label: "GitLab CI Webhook", href: "https://docs.gitlab.com/ee/user/project/integrations/webhooks.html" },
+            { label: "Jenkins Plugin",    href: "https://plugins.jenkins.io/generic-webhook-trigger/" },
           ].map(({ label, href }) => (
             <a key={label} href={href}
+              target="_blank"
+              rel="noopener noreferrer"
               className="text-xs text-indigo-400 hover:text-indigo-300 underline underline-offset-2 transition-colors"
             >
               {label} →

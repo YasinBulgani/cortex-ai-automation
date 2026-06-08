@@ -213,3 +213,89 @@ def get_quality_metrics(
         history=[EvalSnapshotModel(**asdict(s)) for s in history],
         reports_dir=str(root),
     )
+
+
+def _trend_from_score(score: float) -> str:
+    """Skoru kabaca trend etiketine çevir — gerçek zaman serisi yoksa kullanılır."""
+    if score >= 80:
+        return "improving"
+    if score >= 55:
+        return "stable"
+    return "declining"
+
+
+def get_quality_score(db, project_id: Optional[str] = None) -> dict:
+    """Gerçek verilerden kalite skoru hesapla.
+
+    - ``project_id`` verildiyse: test_management dashboard özetinden (gerçek
+      DB sayıları) kapsama, pass-rate, defect ve otomasyon oranı türetilir.
+    - ``project_id`` yoksa veya proje bulunamazsa: ``available=False`` ve
+      tüm metrikler ``None`` döner — frontend "veri yok" gösterir.
+
+    Eski davranış (hardcoded 85/72/...) kaldırıldı; artık hiçbir uydurma
+    değer dönmez.
+    """
+    base = {
+        "overall_score": None,
+        "test_coverage": None,
+        "defect_density": None,
+        "test_effectiveness": None,
+        "automation_rate": None,
+        "trend": "unknown",
+        "project_id": project_id,
+        "available": False,
+    }
+
+    if not project_id:
+        return base
+
+    try:
+        # Lazy import — cross-domain bağımlılık döngüsünü önler.
+        from sqlalchemy import func, select
+
+        from app.domains.test_management.models import TestCase
+        from app.domains.test_management.service import (
+            dashboard_summary,
+            resolve_project_id,
+        )
+
+        summary = dashboard_summary(db, project_id)
+        resolved = resolve_project_id(db, project_id)
+
+        total_cases = summary.get("total_cases", 0) or 0
+        coverage_pct = float(summary.get("coverage_pct", 0) or 0)
+        pass_rate = float(summary.get("pass_rate_pct", 0) or 0)
+        critical_defects = summary.get("critical_defects", 0) or 0
+
+        automated = db.scalar(
+            select(func.count()).select_from(TestCase).where(
+                TestCase.project_id == resolved,
+                TestCase.archived == False,  # noqa: E712
+                TestCase.automation_status == "automated",
+            )
+        ) or 0
+        automation_rate = round(automated / total_cases * 100) if total_cases else 0
+        defect_density = round(critical_defects / total_cases, 2) if total_cases else 0.0
+
+        # Genel skor: kapsama + etkinlik + otomasyon ağırlıklı, defect yoğunluğu cezalı.
+        overall = (
+            coverage_pct * 0.35
+            + pass_rate * 0.40
+            + automation_rate * 0.25
+            - min(defect_density * 10, 20)
+        )
+        overall_score = max(0, min(100, round(overall)))
+
+        return {
+            "overall_score": overall_score,
+            "test_coverage": round(coverage_pct),
+            "defect_density": defect_density,
+            "test_effectiveness": round(pass_rate),
+            "automation_rate": automation_rate,
+            "trend": _trend_from_score(overall_score),
+            "project_id": project_id,
+            "available": True,
+        }
+    except Exception:  # noqa: BLE001 — proje yok / DB hatası → graceful "veri yok"
+        logger.info("get_quality_score: skor hesaplanamadı project_id=%s", project_id)
+        return base
