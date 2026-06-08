@@ -11,6 +11,7 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { CommandPalette } from "@/components/CommandPalette";
 import { HelpWidget } from "@/components/HelpWidget";
 import { PageFeedbackWidget } from "@/components/PageFeedbackWidget";
+import { WebVitalsReporter } from "@/components/WebVitalsReporter";
 import { ProjectProvider, useProject } from "@/lib/useProject";
 import { ModuleOrchestratorProvider } from "./_components/module-orchestrator/ModuleOrchestratorProvider";
 
@@ -120,6 +121,7 @@ export default function DashboardLayout({
               <CommandPalette />
               <HelpWidget />
               <PageFeedbackWidget />
+              <WebVitalsReporter />
             </ModuleOrchestratorProvider>
           </ErrorBoundary>
         </ConfirmProvider>
