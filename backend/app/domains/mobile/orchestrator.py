@@ -46,7 +46,13 @@ _logger = logging.getLogger(__name__)
 
 
 class SessionStore:
-    """Thread-safe in-memory session store + SSE queue."""
+    """Session store — SQL (``mobile_sessions``) kalıcı kaynak + canlı SSE kuyruğu.
+
+    Session/Step kayıtları SQL'e write-through yazılır (pod restart'ında geçmiş
+    korunur). SSE kuyruğu ve event geçmişi in-memory'de kalır (doğası gereği
+    ephemeral). DB erişilemezse session yine de yürür; yalnızca o kayıt kalıcı
+    olmaz (graceful fallback).
+    """
 
     def __init__(self) -> None:
         self._lock = threading.RLock()
@@ -54,6 +60,51 @@ class SessionStore:
         self._queues: dict[str, asyncio.Queue | None] = {}
         self._events: dict[str, list[SessionEvent]] = {}
         self._event_ids: dict[str, int] = {}
+
+    # ── SQL persistence helpers ───────────────────────────────────────────────
+
+    @staticmethod
+    def _persist(sess: Session) -> None:
+        """Session'ı SQL'e upsert et (best-effort, hata yutulur)."""
+        try:
+            from app.domains.mobile.models import MobileSession
+            from app.infra.database import SessionLocal
+
+            steps_json = [s.model_dump(mode="json") for s in sess.steps]
+            with SessionLocal() as db:
+                row = db.get(MobileSession, sess.id)
+                if row is None:
+                    row = MobileSession(id=sess.id)
+                    db.add(row)
+                row.device_id = sess.device_id
+                row.scenario_name = sess.scenario_name
+                row.status = sess.status
+                row.started_at = sess.started_at
+                row.finished_at = sess.finished_at
+                row.mode = sess.mode
+                row.failure_category = sess.failure_category
+                row.failure_message = sess.failure_message
+                row.healed = sess.healed
+                row.steps = steps_json
+                db.commit()
+        except Exception as exc:  # noqa: BLE001
+            _logger.warning("Mobile: session persist başarısız %s (%s)", sess.id, exc)
+
+    @staticmethod
+    def _session_from_row(row) -> Session:
+        return Session(
+            id=row.id,
+            device_id=row.device_id,
+            scenario_name=row.scenario_name,
+            status=row.status,
+            started_at=row.started_at,
+            finished_at=row.finished_at,
+            mode=row.mode,
+            failure_category=row.failure_category,
+            failure_message=row.failure_message,
+            healed=row.healed,
+            steps=[Step(**s) for s in (row.steps or [])],
+        )
 
     def create(
         self,
@@ -86,13 +137,44 @@ class SessionStore:
                 self._queues[sid] = None
             self._events[sid] = []
             self._event_ids[sid] = 0
+        self._persist(sess)
         return sess
 
     def get(self, sid: str) -> Optional[Session]:
         with self._lock:
-            return self._sessions.get(sid)
+            sess = self._sessions.get(sid)
+        if sess is not None:
+            return sess
+        # In-memory'de yok → restart sonrası geçmiş kaydı SQL'den oku
+        try:
+            from app.domains.mobile.models import MobileSession
+            from app.infra.database import SessionLocal
+
+            with SessionLocal() as db:
+                row = db.get(MobileSession, sid)
+                if row is not None:
+                    return self._session_from_row(row)
+        except Exception as exc:  # noqa: BLE001
+            _logger.warning("Mobile: session get başarısız %s (%s)", sid, exc)
+        return None
 
     def list_recent(self, limit: int = 40) -> list[Session]:
+        # Kalıcı geçmiş SQL'den — restart'a dayanıklı. DB hatasında in-memory fallback.
+        try:
+            from sqlalchemy import select
+
+            from app.domains.mobile.models import MobileSession
+            from app.infra.database import SessionLocal
+
+            with SessionLocal() as db:
+                rows = db.scalars(
+                    select(MobileSession)
+                    .order_by(MobileSession.started_at.desc())
+                    .limit(limit)
+                ).all()
+                return [self._session_from_row(r) for r in rows]
+        except Exception as exc:  # noqa: BLE001
+            _logger.warning("Mobile: list_recent DB başarısız, in-memory fallback (%s)", exc)
         with self._lock:
             items = sorted(
                 self._sessions.values(),
@@ -108,7 +190,8 @@ class SessionStore:
                 return None
             updated = s.model_copy(update=fields)
             self._sessions[sid] = updated
-            return updated
+        self._persist(updated)
+        return updated
 
     def update_step(self, sid: str, seq: int, **fields) -> None:
         with self._lock:
@@ -121,7 +204,9 @@ class SessionStore:
                     new_steps.append(step.model_copy(update=fields))
                 else:
                     new_steps.append(step)
-            self._sessions[sid] = s.model_copy(update={"steps": new_steps})
+            updated = s.model_copy(update={"steps": new_steps})
+            self._sessions[sid] = updated
+        self._persist(updated)
 
     def queue(self, sid: str) -> Optional[asyncio.Queue]:
         with self._lock:
