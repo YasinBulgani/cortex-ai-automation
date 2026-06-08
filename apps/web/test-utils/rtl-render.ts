@@ -43,15 +43,25 @@ function render(ui: any, options: any = {}) {
   if (!client || typeof client.getQueryCache !== "function") {
     return actual.render(ui, options);
   }
+  // I18nProvider: pek çok bileşen useI18n() çağırıyor ("useI18n must be used
+  // inside <I18nProvider>"). Component'le AYNI modül örneği gerekli (context
+  // eşleşmesi) → @/lib/i18n ile aynı yola çözülen relative require. i18n
+  // mock'lanmışsa I18nProvider olmayabilir → guard ile atla (mocklu useI18n
+  // provider gerektirmez).
+  let I18nProvider: any = null;
+  try {
+    const i18n = require("../lib/i18n");
+    if (typeof i18n.I18nProvider === "function") I18nProvider = i18n.I18nProvider;
+  } catch { /* i18n yoksa/sorunluysa sarma */ }
+
   const InnerWrapper = options.wrapper;
   const rest = { ...options };
   delete rest.wrapper;
-  const Wrapper = ({ children }: any) =>
-    React.createElement(
-      RQ.QueryClientProvider,
-      { client },
-      InnerWrapper ? React.createElement(InnerWrapper, null, children) : children,
-    );
+  const Wrapper = ({ children }: any) => {
+    let tree = InnerWrapper ? React.createElement(InnerWrapper, null, children) : children;
+    if (I18nProvider) tree = React.createElement(I18nProvider, null, tree);
+    return React.createElement(RQ.QueryClientProvider, { client }, tree);
+  };
   return actual.render(ui, { wrapper: Wrapper, ...rest });
 }
 
