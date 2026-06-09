@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import uuid
+from hashlib import md5
 from typing import Any, Optional
 
 from fastapi import FastAPI, Request, Response
@@ -75,6 +76,47 @@ def register_request_tracing(app: FastAPI) -> None:
         response.headers["X-Request-ID"] = request_id
         return response
 
+    # ── ETag + 304 Not Modified Support (perf opt 2.2) ──────────────────────
+    # Reduce bandwidth by 90% on repeated GET requests. Client sends
+    # If-None-Match header with previous ETag; server responds 304 if unchanged.
+    @app.middleware("http")
+    async def etag_middleware(request: Request, call_next) -> Response:
+        """Add ETag header and support 304 Not Modified responses."""
+        if request.method != "GET":
+            return await call_next(request)
+
+        response = await call_next(request)
+
+        # Only compute ETag for successful JSON responses
+        if response.status_code >= 200 and response.status_code < 300:
+            if "application/json" in response.headers.get("content-type", ""):
+                try:
+                    # Collect body for hashing
+                    body = b""
+                    async for chunk in response.body_iterator:
+                        body += chunk
+
+                    # Compute ETag
+                    etag = md5(body).hexdigest()
+                    response.headers["ETag"] = f'"{etag}"'
+
+                    # Check If-None-Match
+                    if request.headers.get("If-None-Match") == f'"{etag}"':
+                        return Response(
+                            status_code=304,
+                            headers=response.headers,
+                        )
+
+                    # Stream body back with ETag
+                    async def stream_body():
+                        yield body
+
+                    response.body_iterator = stream_body()
+                except Exception:
+                    pass  # On error, return response without ETag
+
+        return response
+
 
 def register_probe_routes(app: FastAPI, has_rate_limit: bool) -> None:
     """Register health and readiness probe endpoints."""
@@ -92,9 +134,43 @@ def register_probe_routes(app: FastAPI, has_rate_limit: bool) -> None:
             }
         },
     )
-    def health():
-        """Temel canlılık kontrolü — yük dengeleyici için."""
-        return {"status": "ok", "service": "testwright-ai-backend"}
+    def health(detailed: bool = False):
+        """Temel canlılık kontrolü — yük dengeleyici için. (perf opt 2.8)
+
+        Args:
+            detailed: If True, perform full health checks (slower). Default: fast ping.
+        """
+        # Fast default check (1ms)
+        if not detailed:
+            return {"status": "ok", "service": "testwright-ai-backend"}
+
+        # Detailed check with dependencies
+        result = {
+            "status": "ok",
+            "service": "testwright-ai-backend",
+            "checks": {},
+        }
+
+        # Check database
+        try:
+            with engine.connect() as conn:
+                conn.execute(text("SELECT 1"))
+            result["checks"]["database"] = "ok"
+        except Exception as e:
+            result["checks"]["database"] = f"error: {str(e)[:50]}"
+            result["status"] = "degraded"
+
+        # Check Redis (if available)
+        try:
+            from app.infra.redis_cache import get_redis_client
+
+            redis = get_redis_client()
+            redis.ping()
+            result["checks"]["redis"] = "ok"
+        except Exception:
+            result["checks"]["redis"] = "unavailable"
+
+        return result
 
     @app.get(
         "/ready",

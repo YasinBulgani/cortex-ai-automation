@@ -141,6 +141,15 @@ except ImportError:
     _HAS_MOBILE_ROUTER = False
     logger.warning("Opsiyonel domain 'mobile' yüklenemedi, mobil endpoint'leri devre dışı.")
 
+# Monitoring domain — performance metrics, health checks (perf opt)
+try:
+    from app.domains.monitoring.router import router as monitoring_router
+    _HAS_MONITORING_ROUTER = True
+except ImportError:
+    monitoring_router = None  # type: ignore[assignment]
+    _HAS_MONITORING_ROUTER = False
+    logger.warning("Opsiyonel domain 'monitoring' yüklenemedi, monitoring endpoint'leri devre dışı.")
+
 _PREFIXED_ROUTERS = [
     admin_router,
     auth_router,
@@ -193,6 +202,9 @@ _PREFIXED_ROUTERS = [
     feature_flags_router,
 ]
 
+if _HAS_MONITORING_ROUTER and monitoring_router is not None:
+    _PREFIXED_ROUTERS.append(monitoring_router)
+
 if _HAS_QA_ROUTER and qa_router is not None:
     _PREFIXED_ROUTERS.append(qa_router)
 
@@ -243,6 +255,11 @@ def register_api_routers(app: FastAPI) -> None:
             "Mobile endpoint'leri devre dışı. Modül kaynak dosyalarının git "
             "add edildiğinden emin olun."
         )
+
+    if _HAS_MONITORING_ROUTER and monitoring_router is not None:
+        app.include_router(monitoring_router, prefix="")
+    else:
+        logger.warning("monitoring_router yüklenemedi; Monitoring endpoint'leri devre dışı.")
 
     # DDD bounded context routers
     if _HAS_CONTEXTS_ROUTERS:

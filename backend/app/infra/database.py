@@ -22,10 +22,17 @@ engine = create_engine(
     settings.database_url,
     pool_pre_ping=True,           # bağlantı sağlığını doğrula
     future=True,
-    pool_size=20,                 # eşzamanlı bağlantı havuzu
-    max_overflow=10,              # pike'ta ek bağlantı izni
-    pool_recycle=3600,            # 1 saatte bir bağlantıları yenile (firewall drop önlemi)
-    pool_timeout=30,              # bağlantı bekleme süre aşımı
+    pool_size=30,                 # +50% eşzamanlı bağlantı havuzu (perf opt 1.1)
+    max_overflow=20,              # pike'ta ek bağlantı izni (+100%)
+    pool_recycle=1800,            # 30 min rotation (firewall drop önlemi, prod optimized)
+    pool_timeout=10,              # bağlantı bekleme süre aşımı (fail fast)
+    echo_pool=False,              # disable pool echo logging (production)
+    connect_args={
+        "keepalives": 1,
+        "keepalives_idle": 30,
+        "keepalives_interval": 10,
+        "keepalives_count": 5,
+    } if "postgresql" in settings.database_url else {},
 )
 
 
@@ -35,10 +42,14 @@ def _set_pg_session_defaults(dbapi_conn, connection_record):
 
     work_mem: Sıralama (ORDER BY) ve hash join için ayrılan bellek.
     Varsayılan 4MB çok düşük; dashboard GROUP BY sorgularında geçici disk
-    yazımını önlemek için 8MB'a çıkarıldı.
+    yazımını önlemek için 16MB'a çıkarıldı (perf opt 1.6).
     """
     with dbapi_conn.cursor() as cur:
-        cur.execute("SET work_mem = '8MB'")
+        cur.execute("SET work_mem = '16MB'")  # +100% from 8MB
+        cur.execute("SET maintenance_work_mem = '256MB'")  # for indexes
+        cur.execute("SET effective_cache_size = '2GB'")  # hint planner
+        cur.execute("SET random_page_cost = 1.1")  # SSD-aware (not 4.0)
+        cur.execute("SET effective_io_concurrency = 200")  # parallel seq scan
 
 
 SessionLocal = sessionmaker(
@@ -75,8 +86,9 @@ with _async_init_lock:
             _async_url,
             pool_pre_ping=True,
             future=True,
-            pool_size=20,
-            max_overflow=10,
+            pool_size=30,  # perf opt 1.1
+            max_overflow=20,  # perf opt 1.1
+            echo_pool=False,  # no pool logging
         )
 
         AsyncSessionLocal = sessionmaker(
