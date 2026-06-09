@@ -46,6 +46,11 @@ class Settings(BaseSettings):
     database_url: str = (
         "postgresql+psycopg2://twai_user:twai_pass@127.0.0.1:5432/syndata_db"
     )
+    # Read-replica URL (Faz 3.1): fallback to primary if not set
+    # Example: "postgresql+psycopg2://twai_user:twai_pass@replica.internal:5432/syndata_db"
+    read_replica_url: str = ""
+    read_replica_enabled: bool = False
+    read_replica_sticky_duration_seconds: float = 5.0
     redis_url: str = "redis://127.0.0.1:6379/0"
 
     # ── JWT Guvenlik ──────────────────────────────────────────────────
@@ -61,12 +66,13 @@ class Settings(BaseSettings):
     artifacts_dir: str = "./data/artifacts"
     # ── Artifact storage backend ──────────────────────────────────────
     # "local" | "s3"  — prod multi-instance icin "s3" zorunlu
-    artifact_storage_backend: str = "local"
-    s3_bucket: str = ""
+    # Faz 3.2 (MinIO): production'da "s3" varsayılan, endpoint="http://minio:9000"
+    artifact_storage_backend: str = "s3" if _is_production_env() else "local"
+    s3_bucket: str = "neurex-artifacts"  # MinIO bucket adı
     s3_region: str = "us-east-1"
-    s3_endpoint_url: str = ""  # MinIO/Localstack icin override; bos = AWS
-    s3_access_key_id: str = ""
-    s3_secret_access_key: str = ""
+    s3_endpoint_url: str = "http://minio:9000"  # MinIO/Localstack icin override; production default
+    s3_access_key_id: str = ""  # MINIO_ROOT_USER
+    s3_secret_access_key: str = ""  # MINIO_ROOT_PASSWORD
     s3_prefix: str = "artifacts/"
     # Production'da Redis zorunlu mu? (multi-instance icin true)
     require_redis_in_production: bool = True
