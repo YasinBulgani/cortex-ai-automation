@@ -1,0 +1,51 @@
+{
+  "name": "NeurexMobile",
+  "displayName": "Neurex",
+  "version": "0.1.0",
+  "exp": {
+    "name": "Neurex",
+    "slug": "neurex-mobile",
+    "version": "0.1.0",
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTabletMode": true,
+      "infoPlist": {
+        "NSCameraUsageDescription": "Camera access is needed for test case documentation.",
+        "NSPhotoLibraryUsageDescription": "Photo library access is needed for test attachments.",
+        "NSFaceIDUsageDescription": "Face ID is used for secure authentication."
+      },
+      "bundleIdentifier": "com.neurex.mobile"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "package": "com.neurex.mobile",
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.INTERNET"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-secure-store",
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "useFrameworks": "static"
+          }
+        }
+      ]
+    ],
+    "scheme": "neurex",
+    "owner": "neurex"
+  }
+}

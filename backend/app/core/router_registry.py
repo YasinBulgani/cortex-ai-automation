@@ -17,6 +17,7 @@ from fastapi import FastAPI
 
 from app.domains.accessibility.router import router as accessibility_router
 from app.domains.admin.router import router as admin_router
+from app.domains.analytics.router import router as analytics_router
 from app.domains.agents.router import router as agents_router
 from app.domains.agents.v2.router import router as agents_v2_router
 from app.domains.ai.router import router as ai_router
@@ -66,6 +67,9 @@ from app.domains.sso.router import router as sso_router
 from app.domains.test_management.router import router as test_management_router
 from app.domains.tspm.router import router as tspm_router
 from app.domains.visual.router import router as visual_router
+from app.domains.webhooks.router import router as webhooks_router
+from app.domains.reporting.router import router as reporting_router
+from app.domains.gdpr.router import router as gdpr_router
 
 # Jira entegrasyonu — /api/jira/* (kendi prefix'i var, /api/v1 altında değil)
 # domains/jira/router.py'den import edilir — engine/routes/__init__.py tetiklemez
@@ -152,6 +156,7 @@ except ImportError:
 
 _PREFIXED_ROUTERS = [
     admin_router,
+    analytics_router,
     auth_router,
     catalog_router,
     rules_router,
@@ -200,6 +205,9 @@ _PREFIXED_ROUTERS = [
     test_management_router,
     kiwi_tcms_router,
     feature_flags_router,
+    webhooks_router,
+    reporting_router,
+    gdpr_router,
 ]
 
 if _HAS_MONITORING_ROUTER and monitoring_router is not None:

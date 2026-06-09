@@ -1,0 +1,101 @@
+name: Mobile E2E Tests
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - 'apps/mobile/**'
+      - '.github/workflows/mobile-e2e-tests.yml'
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'apps/mobile/**'
+  schedule:
+    - cron: '0 2 * * *' # Daily at 2 AM UTC
+
+jobs:
+  e2e-ios:
+    runs-on: macos-latest
+    timeout-minutes: 90
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        working-directory: apps/mobile
+        run: npm ci
+
+      - name: Install applesimutils
+        run: brew tap wix/brew && brew install applesimutils
+
+      - name: Build E2E test app
+        working-directory: apps/mobile
+        run: npm run test:e2e:build
+
+      - name: Run E2E tests
+        working-directory: apps/mobile
+        run: npm run test:e2e
+
+      - name: Upload E2E artifacts
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: e2e-artifacts-ios
+          path: apps/mobile/artifacts
+          retention-days: 7
+
+  e2e-android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Setup Java
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v2
+
+      - name: Install dependencies
+        working-directory: apps/mobile
+        run: npm ci
+
+      - name: Build Detox test app for Android
+        working-directory: apps/mobile
+        run: |
+          npx detox build-framework-cache
+          npx detox build-app --configuration android.emu.release
+
+      - name: Run Android emulator
+        run: |
+          $ANDROID_HOME/emulator/emulator -avd Nexus_6_API_30 -no-window -gpu swiftshader_indirect &
+
+      - name: Run E2E tests
+        working-directory: apps/mobile
+        run: npx detox test --configuration android.emu.release
+
+      - name: Upload E2E artifacts
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: e2e-artifacts-android
+          path: apps/mobile/artifacts
+          retention-days: 7

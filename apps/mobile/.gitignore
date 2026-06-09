@@ -1,0 +1,67 @@
+# Dependencies
+node_modules/
+/.pnp
+.pnp.js
+
+# Testing
+/coverage
+/.nyc_output
+
+# Production
+/build
+/dist
+*.apk
+*.ipa
+*.jks
+*.keystore
+*.p8
+*.p12
+*.cer
+
+# Native builds
+ios/Pods
+ios/Podfile.lock
+ios/xcworkspace
+ios/.symlinks/
+ios/Flutter/Flutter.framework
+ios/Flutter/Flutter.podspec
+ios/Flutter/flutter_export_environment.sh
+android/.gradle
+android/build
+android/local.properties
+android/captures
+android/gradle-wrapper.jar
+
+# IDE
+.vscode/
+.idea/
+.DS_Store
+*.swp
+*.swo
+*~
+.env
+.env.local
+.env.*.local
+
+# Watchman
+watchman-query-result-*.json
+
+# Metro
+.metro-health-check*
+
+# Firebase
+google-services.json
+GoogleService-Info.plist
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# Secrets
+.env.local
+.env.*.local
+keys.json
+*.jks
+*.p12

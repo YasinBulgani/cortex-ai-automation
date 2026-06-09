@@ -1,0 +1,84 @@
+name: Mobile Android Build
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - 'apps/mobile/**'
+      - '.github/workflows/mobile-android-build.yml'
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'apps/mobile/**'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Setup Java
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v2
+
+      - name: Install dependencies
+        working-directory: apps/mobile
+        run: npm ci
+
+      - name: Run linter
+        working-directory: apps/mobile
+        run: npm run lint
+
+      - name: Run type check
+        working-directory: apps/mobile
+        run: npm run type-check
+
+      - name: Run unit tests
+        working-directory: apps/mobile
+        run: npm run test -- --coverage
+
+      - name: Build Android APK
+        working-directory: apps/mobile
+        run: npm run build:android
+
+      - name: Build Android Bundle
+        working-directory: apps/mobile
+        run: npm run build:android:bundle
+
+      - name: Upload build artifacts
+        if: success()
+        uses: actions/upload-artifact@v3
+        with:
+          name: android-build
+          path: |
+            apps/mobile/android/app/build/outputs/apk
+            apps/mobile/android/app/build/outputs/bundle
+          retention-days: 7
+
+      - name: Upload coverage reports
+        if: always()
+        uses: codecov/codecov-action@v3
+        with:
+          files: ./apps/mobile/coverage/coverage-final.json
+          flags: mobile-android
+          name: mobile-android-coverage
+
+      - name: Notify deployment
+        if: success() && github.ref == 'refs/heads/main'
+        run: |
+          echo "Android build successful. Ready for Play Store distribution."

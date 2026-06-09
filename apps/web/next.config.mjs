@@ -45,6 +45,31 @@ const nextConfig = {
     ],
   },
 
+  // ── PWA & Mobile: Image optimization, responsive ────────────────────
+  images: {
+    formats: ["image/avif", "image/webp"],
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "**",
+      },
+    ],
+    deviceSizes: [320, 375, 425, 640, 768, 1024, 1280, 1536],
+    imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
+    minimumCacheTTL: 60 * 60 * 24 * 365, // 1 year for immutable assets
+  },
+
+  // ── Web Vitals: Code splitting, route-based optimization ────────────
+  swcMinify: true, // Faster build with SWC
+  productionBrowserSourceMaps: false, // Disable in production for smaller bundle
+
+  // ── Internationalization (i18n) ───────────────────────────────────
+  i18n: {
+    locales: ["tr", "en"],
+    defaultLocale: "tr",
+    localeDetection: true,
+  },
+
   // ── Güvenlik + Performans: HTTP headers ────────────────────────────────
   async headers() {
     return [
