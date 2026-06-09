@@ -134,7 +134,7 @@ class ProjectMember(Base):
     __tablename__ = "sd_project_members"
 
     project_id: Mapped[str] = mapped_column(
-        String(128), ForeignKey("test_management_projects.id", ondelete="CASCADE"), primary_key=True
+        UUID(as_uuid=False), ForeignKey("test_management_projects.id", ondelete="CASCADE"), primary_key=True
     )
     user_id: Mapped[str] = mapped_column(
         UUID(as_uuid=False), ForeignKey("sd_users.id", ondelete="CASCADE"), primary_key=True

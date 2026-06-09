@@ -78,6 +78,10 @@ def _is_prod_env() -> bool:
 _session_key = os.environ.get("ENGINE_SECRET_KEY", _INSECURE_SESSION_DEFAULT)
 _internal_key = os.environ.get("ENGINE_INTERNAL_KEY", _INSECURE_INTERNAL_KEY_DEFAULT)
 
+# S-HIGH-2: Key rotation tracking — store rotation timestamp
+_KEY_ROTATION_ENV = "ENGINE_INTERNAL_KEY_ROTATED_AT"
+_last_key_rotation = os.environ.get(_KEY_ROTATION_ENV, "")
+
 if _is_prod_env():
     _fatal = []
     if _session_key == _INSECURE_SESSION_DEFAULT:
@@ -91,6 +95,21 @@ if _is_prod_env():
             "Her biri için 'openssl rand -hex 32' ile üretilmiş benzersiz "
             "değerler atayın."
         )
+    # Warn if key not rotated in production (policy: rotate every 90 days)
+    if _last_key_rotation:
+        try:
+            from datetime import datetime, timedelta, timezone as _tz
+            last_rot = datetime.fromisoformat(_last_key_rotation)
+            now = datetime.now(_tz.utc)
+            days_since = (now - last_rot).days
+            if days_since > 90:
+                import logging as _logging
+                _logging.getLogger(__name__).warning(
+                    f"GÜVENLİK: Internal key {days_since} gün önce rotasyona uğradı. "
+                    f"90 günlük policy ihlal ediliyor — rotasyonu sıklaştırın."
+                )
+        except Exception:
+            pass
 
 app.secret_key = _session_key
 INTERNAL_KEY = _internal_key

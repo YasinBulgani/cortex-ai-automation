@@ -1454,10 +1454,18 @@ def get_run(db: Session, project_id: str, run_id: str) -> TestRun:
 
 
 def list_runs(db: Session, project_id: str, limit: int = 50, offset: int = 0, cycle_id: Optional[str] = None, status_filter: str | None = None) -> list[TestRun]:
-    """Return runs for a project with pagination, optionally filtered by cycle or status."""
+    """Return runs for a project with pagination, optionally filtered by cycle or status.
+
+    Eager loads cycle and plan to prevent N+1 queries.
+    """
     project_id = resolve_project_id(db, project_id)
     q = (
         select(TestRun)
+        .options(
+            selectinload(TestRun.cycle).selectinload(TestCycle.plan),
+            selectinload(TestRun.run_cases).selectinload(TestRunCase.step_results),
+            selectinload(TestRun.run_cases).selectinload(TestRunCase.case).selectinload(TestCase.steps),
+        )
         .join(TestCycle, TestRun.cycle_id == TestCycle.id)
         .join(TestPlan, TestCycle.plan_id == TestPlan.id)
         .where(TestPlan.project_id == project_id)

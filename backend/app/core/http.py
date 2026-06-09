@@ -58,6 +58,11 @@ def configure_middlewares(
     # ve yakalanmamış exception'ları ortak şemaya sokar.
     register_exception_handlers(app)
 
+    # CODE-HIGH-3: Correlation ID middleware — her request için trace ID propagation.
+    # Sıralama: CORS/Auth'tan sonra, ama exception handler'dan önce eklenmeli.
+    from app.domains.ai.correlation import CorrelationMiddleware
+    app.add_middleware(CorrelationMiddleware)
+
 
 def register_request_tracing(app: FastAPI) -> None:
     """Attach request IDs to every request and response."""

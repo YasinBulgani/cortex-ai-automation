@@ -38,6 +38,15 @@ def _request_id(request: Request) -> str | None:
     return getattr(getattr(request, "state", None), "request_id", None)
 
 
+def _get_correlation_id() -> str | None:
+    """Contextvar'dan correlation ID'yi al. Yoksa None."""
+    try:
+        from app.domains.ai.correlation import get_correlation_id
+        return get_correlation_id()
+    except (ImportError, Exception):
+        return None
+
+
 def _build_body(error_detail: dict[str, Any], request_id: str | None) -> dict[str, Any]:
     body: dict[str, Any] = {"error": error_detail, "request_id": request_id}
     # Backward compat: expose top-level "detail" so existing tests don't break
@@ -88,15 +97,21 @@ async def validation_exception_handler(
 
 
 async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONResponse:
-    """Hiçbir yerde yakalanmamış exception — 500 + katalog varsayılanı."""
-    logger.exception("Yakalanmamış hata: %s", exc)
+    """Hiçbir yerde yakalanmamış exception — 500 + katalog varsayılanı.
+
+    S-HIGH-5: Do NOT expose exception details to client (stack trace leak prevention).
+    Exception is logged server-side, but response is generic (no traceback to user).
+    """
+    correlation_id = _get_correlation_id()
+    logger.exception("Yakalanmamış hata: %s (correlation_id=%s)", exc, correlation_id)
     entry = ERROR_CATALOG["internal.unexpected"]
     detail = {
         "code": "internal.unexpected",
         "title": entry["title"],
-        "message": entry["message"],
+        "message": entry["message"],  # Generic message only
         "suggestion": entry["suggestion"],
         "doc_url": entry.get("doc_url"),
+        # Never include: str(exc), traceback, or exception type details
     }
     return JSONResponse(
         status_code=500,
@@ -151,12 +166,17 @@ async def permission_error_handler(request: Request, exc: PermissionError) -> JS
 
 
 async def runtime_error_handler(request: Request, exc: RuntimeError) -> JSONResponse:
-    """Service layer RuntimeError → 500 Internal Server Error."""
-    logger.error("Service RuntimeError: %s", exc)
+    """Service layer RuntimeError → 500 Internal Server Error.
+
+    S-HIGH-5: Do NOT expose exception details (str(exc) can leak sensitive info).
+    Log server-side, return generic message to client.
+    """
+    correlation_id = _get_correlation_id()
+    logger.error("Service RuntimeError: %s (correlation_id=%s)", exc, correlation_id)
     detail = {
         "code": "internal.service_error",
         "title": "Internal Server Error",
-        "message": str(exc),
+        "message": "Bir sistem hatası oluştu. Lütfen destek ekibiyle iletişime geçin.",
         "suggestion": "Lütfen daha sonra tekrar deneyin.",
         "doc_url": None,
     }
@@ -208,18 +228,29 @@ def register_exception_handlers(app: FastAPI) -> None:
     """Tüm exception handler'ları FastAPI uygulamasına kaydet.
 
     ``create_app()`` içinde çağrılmalıdır.
+
+    Sıralama önemli: Daha spesifik exception'lar genel olanlardan ÖNCE
+    kaydedilmeli (FastAPI LIFO/last-match-first uyguladığı için).
     """
     from fastapi.exceptions import RequestValidationError
 
     from app.core.exceptions import RateLimitError
     from app.infra.resilience import CircuitBreakerOpen
 
+    # Spesifik HTTP/API exception'ları önce
     app.add_exception_handler(HTTPException, http_exception_handler)
     app.add_exception_handler(RequestValidationError, validation_exception_handler)
+
+    # Custom application exception'ları
     app.add_exception_handler(RateLimitError, rate_limit_error_handler)
     app.add_exception_handler(CircuitBreakerOpen, circuit_breaker_open_handler)
-    app.add_exception_handler(ValueError, value_error_handler)
-    app.add_exception_handler(KeyError, key_error_handler)
+
+    # Service layer exception'ları (ValueError, KeyError, vb)
+    # — daha spesifik olanları genel Exception'ından önce
     app.add_exception_handler(PermissionError, permission_error_handler)
+    app.add_exception_handler(KeyError, key_error_handler)
+    app.add_exception_handler(ValueError, value_error_handler)
     app.add_exception_handler(RuntimeError, runtime_error_handler)
+
+    # En son: catch-all exception handler
     app.add_exception_handler(Exception, unhandled_exception_handler)

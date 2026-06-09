@@ -86,6 +86,7 @@ class TestCase(Base):
         UniqueConstraint("project_id", "case_key", name="uq_tm_cases_project_key"),
         Index("ix_tm_cases_project_status", "project_id", "status"),
         Index("ix_tm_cases_project_archived", "project_id", "archived"),
+        Index("ix_tm_cases_project_status_archived", "project_id", "status", "archived"),
     )
 
     id: Mapped[str] = mapped_column(UUID(as_uuid=False), primary_key=True, default=_uuid)

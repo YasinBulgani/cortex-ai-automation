@@ -26,6 +26,8 @@ class Settings(BaseSettings):
     ENV: str = "development"
     # Boş bırakılırsa startup'ta HATA verilir — production'da mutlaka .env'den set et.
     INTERNAL_KEY: str = ""
+    # S-HIGH-7: Internal key TTL policy — rotate every 30 days in production
+    INTERNAL_KEY_TTL_DAYS: int = 30
     # Virgülle ayrılmış izin verilen origin'ler. Boşsa sadece localhost'a izin verilir.
     ALLOWED_ORIGINS: str = "http://localhost:3000,http://localhost:5173,http://localhost:8080"
 

@@ -295,6 +295,170 @@ def test_management_session() -> MagicMock:
     return session
 
 
+class TestDataFactory:
+    """Factory for building consistent test data without DB side effects.
+
+    Provides builders for common entities (User, Project, TestCase, TestRun, etc.)
+    with sensible defaults and chainable overrides. Zero DB mutation — returns
+    plain dicts or mock objects suitable for unit tests and API mocks.
+
+    Usage:
+        factory = TestDataFactory()
+        user = factory.user(email="alice@test.com", roles=["tester"])
+        project = factory.project(name="My Project", owner_id=user.id)
+        test_case = factory.test_case(project_id=project.id, priority="high")
+    """
+
+    _counter = 0  # For auto-generating unique IDs
+
+    @classmethod
+    def _next_id(cls, prefix: str) -> str:
+        """Generate a unique ID: prefix-{counter}."""
+        cls._counter += 1
+        return f"{prefix}-{cls._counter}"
+
+    def user(
+        self,
+        id: str | None = None,
+        email: str | None = None,
+        full_name: str = "Test User",
+        tenant_id: str | None = None,
+        roles: list[str] | None = None,
+        is_active: bool = True,
+    ) -> dict:
+        """Build a User mock."""
+        return {
+            "id": id or self._next_id("user"),
+            "email": email or f"user+{self._counter}@test.com",
+            "full_name": full_name,
+            "tenant_id": tenant_id or self._next_id("tenant"),
+            "roles": roles or ["tester"],
+            "is_active": is_active,
+            "created_at": "2025-01-01T00:00:00Z",
+        }
+
+    def project(
+        self,
+        id: str | None = None,
+        name: str = "Test Project",
+        key: str | None = None,
+        tenant_id: str | None = None,
+        owner_id: str | None = None,
+        status: str = "active",
+    ) -> dict:
+        """Build a Project mock."""
+        return {
+            "id": id or self._next_id("proj"),
+            "name": name,
+            "key": key or f"TST{self._counter}",
+            "tenant_id": tenant_id or self._next_id("tenant"),
+            "owner_id": owner_id or self._next_id("user"),
+            "status": status,
+            "created_at": "2025-01-01T00:00:00Z",
+        }
+
+    def test_case(
+        self,
+        id: str | None = None,
+        project_id: str | None = None,
+        title: str = "Test Case",
+        priority: str = "medium",
+        status: str = "active",
+        steps: list[dict] | None = None,
+    ) -> dict:
+        """Build a TestCase mock."""
+        if steps is None:
+            steps = [
+                {"order": 1, "action": "Step 1", "expected": "Result 1"},
+            ]
+        return {
+            "id": id or self._next_id("tc"),
+            "project_id": project_id or self._next_id("proj"),
+            "title": title,
+            "priority": priority,
+            "status": status,
+            "steps": steps,
+            "created_at": "2025-01-01T00:00:00Z",
+        }
+
+    def test_run(
+        self,
+        id: str | None = None,
+        project_id: str | None = None,
+        test_case_ids: list[str] | None = None,
+        status: str = "pending",
+        tester_id: str | None = None,
+    ) -> dict:
+        """Build a TestRun mock."""
+        if test_case_ids is None:
+            test_case_ids = [self._next_id("tc")]
+        return {
+            "id": id or self._next_id("run"),
+            "project_id": project_id or self._next_id("proj"),
+            "test_case_ids": test_case_ids,
+            "status": status,
+            "tester_id": tester_id or self._next_id("user"),
+            "created_at": "2025-01-01T00:00:00Z",
+        }
+
+    def test_result(
+        self,
+        id: str | None = None,
+        test_run_id: str | None = None,
+        test_case_id: str | None = None,
+        status: str = "passed",
+        duration_ms: int = 100,
+    ) -> dict:
+        """Build a TestResult mock."""
+        return {
+            "id": id or self._next_id("result"),
+            "test_run_id": test_run_id or self._next_id("run"),
+            "test_case_id": test_case_id or self._next_id("tc"),
+            "status": status,
+            "duration_ms": duration_ms,
+            "created_at": "2025-01-01T00:00:00Z",
+        }
+
+    def defect(
+        self,
+        id: str | None = None,
+        project_id: str | None = None,
+        title: str = "Defect",
+        severity: str = "medium",
+        status: str = "open",
+        test_case_id: str | None = None,
+    ) -> dict:
+        """Build a Defect mock."""
+        return {
+            "id": id or self._next_id("def"),
+            "project_id": project_id or self._next_id("proj"),
+            "title": title,
+            "severity": severity,
+            "status": status,
+            "test_case_id": test_case_id or self._next_id("tc"),
+            "created_at": "2025-01-01T00:00:00Z",
+        }
+
+    def reset(self) -> None:
+        """Reset ID counter (for test isolation)."""
+        self._counter = 0
+
+
+@pytest.fixture()
+def test_data_factory() -> TestDataFactory:
+    """Provide a TestDataFactory instance to tests.
+
+    Usage:
+        def test_something(test_data_factory):
+            user = test_data_factory.user(email="alice@test.com")
+            project = test_data_factory.project(owner_id=user["id"])
+            assert project["owner_id"] == user["id"]
+    """
+    factory = TestDataFactory()
+    yield factory
+    factory.reset()
+
+
 def pytest_configure(config: pytest.Config) -> None:
     config.addinivalue_line("markers", "smoke: Hızlı sağlık kontrolü testleri")
     config.addinivalue_line("markers", "service: API servis katmanı testleri")

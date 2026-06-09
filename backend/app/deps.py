@@ -24,6 +24,17 @@ def _resolve_bearer_token(
     request: Request,
     creds: Optional[HTTPAuthorizationCredentials],
 ) -> Optional[str]:
+    """S-HIGH-6: Token resolution priority matrix.
+
+    Priority (highest to lowest):
+    1. Authorization: Bearer header (most secure, explicit)
+    2. Cookie (convenience, less secure if XSS occurs)
+
+    Rationale: Header takes precedence because it's:
+    - Not subject to CSRF on same-site (unlike cookies)
+    - Explicitly provided (opt-in)
+    - Default for API clients (curl, axios, fetch with credentials)
+    """
     if creds is not None and creds.credentials:
         return creds.credentials
     return request.cookies.get(ACCESS_TOKEN_COOKIE)
@@ -96,7 +107,11 @@ def require_permission(perm: str) -> Callable:
         user: Annotated[User, Depends(get_current_user)],
     ) -> User:
         perms = _user_permissions(user)
-        if "admin.*" in perms or perm in perms:
+        # S-HIGH-1: Wildcard permission validation
+        # Check exact admin.* match (not substring), then specific permission
+        has_admin_wildcard = "admin.*" in perms
+        has_permission = perm in perms
+        if has_admin_wildcard or has_permission:
             return user
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,

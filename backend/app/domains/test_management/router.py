@@ -164,16 +164,22 @@ from app.infra.models import User
 AsyncDB = Annotated[AsyncSession, Depends(get_async_db)]
 
 def _is_ssrf_blocked(url: str) -> bool:
-    """RFC-1918, link-local ve loopback adresleri engelle."""
+    """RFC-1918, link-local ve loopback adresleri engelle (IPv4 + IPv6).
+
+    S-HIGH-4: IPv6 validation was missing — now both IPv4 and IPv6 addresses checked.
+    Blocked: private (RFC-1918), loopback (::1, 127.0.0.1), link-local, reserved, unspecified.
+    """
     try:
         parsed = urlparse(url)
         hostname = parsed.hostname or ""
-        if hostname in ("localhost", "127.0.0.1", "::1", "0.0.0.0"):
+
+        # Localhost aliases (IPv4 + IPv6)
+        if hostname in ("localhost", "127.0.0.1", "::1", "0.0.0.0", "::", ""):
             return True
-        # DNS çözümle
+
+        # Try to parse as IPv6 literal first (DNS resolution won't work for IPv6 literals)
         try:
-            addr = socket.gethostbyname(hostname)
-            ip = ipaddress.ip_address(addr)
+            ip = ipaddress.ip_address(hostname)
             return (
                 ip.is_private
                 or ip.is_loopback
@@ -181,8 +187,34 @@ def _is_ssrf_blocked(url: str) -> bool:
                 or ip.is_reserved
                 or ip.is_unspecified
             )
+        except ValueError:
+            # Not a literal IP, try DNS resolution for both IPv4 and IPv6
+            pass
+
+        # DNS çözümle — IPv4 ve IPv6'yı deneyin
+        try:
+            # Try IPv4 first
+            addr = socket.gethostbyname(hostname)
+            ip = ipaddress.ip_address(addr)
+            if (ip.is_private or ip.is_loopback or ip.is_link_local or
+                ip.is_reserved or ip.is_unspecified):
+                return True
         except Exception:
-            return False
+            pass
+
+        # Try IPv6 resolution
+        try:
+            addr_info = socket.getaddrinfo(hostname, None, socket.AF_INET6)
+            if addr_info:
+                ipv6_str = addr_info[0][4][0]
+                ip = ipaddress.ip_address(ipv6_str)
+                if (ip.is_private or ip.is_loopback or ip.is_link_local or
+                    ip.is_reserved or ip.is_unspecified):
+                    return True
+        except Exception:
+            pass
+
+        return False
     except Exception:
         return True
 

@@ -16,17 +16,54 @@ async function globalSetup(config: FullConfig) {
   fs.mkdirSync(AUTH_DIR, { recursive: true });
   const appUrl = resolveAppUrl(config);
 
-  let authRes: Response;
-  try {
-    authRes = await fetch(`${API_BASE}/api/v1/auth/login`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email: ADMIN_EMAIL, password: ADMIN_PASSWORD }),
-    });
-  } catch (err) {
+  // ── Retry strategy for transient failures ──
+  const MAX_RETRIES = 3;
+  const RETRY_DELAY_MS = 2000; // 2s between retries
+
+  let authRes: Response | undefined;
+  let lastError: Error | undefined;
+
+  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      authRes = await fetch(`${API_BASE}/api/v1/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: ADMIN_EMAIL, password: ADMIN_PASSWORD }),
+      });
+
+      // Successful response — break retry loop
+      if (authRes.ok) {
+        break;
+      }
+
+      // 5xx errors are transient; retry
+      if (authRes.status >= 500) {
+        lastError = new Error(`[global-setup] API returned ${authRes.status} (transient)`);
+        if (attempt < MAX_RETRIES) {
+          console.log(
+            `[global-setup] Attempt ${attempt}/${MAX_RETRIES}: API returned ${authRes.status}, retrying in ${RETRY_DELAY_MS}ms...`
+          );
+          await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_MS));
+          continue;
+        }
+      }
+      break;
+    } catch (err) {
+      lastError = err instanceof Error ? err : new Error(String(err));
+      if (attempt < MAX_RETRIES) {
+        console.log(
+          `[global-setup] Attempt ${attempt}/${MAX_RETRIES}: Connection failed, retrying in ${RETRY_DELAY_MS}ms...`
+        );
+        await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_MS));
+        continue;
+      }
+    }
+  }
+
+  if (!authRes) {
     throw new Error(
-      `[global-setup] Backend sunucusuna ulaşılamadı (${API_BASE}). ` +
-      `Sunucunun çalıştığından emin olun. Hata: ${err}`
+      `[global-setup] Backend sunucusuna ulaşılamadı (${API_BASE}) sonra ${MAX_RETRIES} deneme. ` +
+      `Sunucunun çalıştığından emin olun. Son hata: ${lastError?.message}`
     );
   }
   if (!authRes.ok) {

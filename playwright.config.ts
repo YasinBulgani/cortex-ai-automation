@@ -40,9 +40,12 @@ const PYTHON_CMD = process.env.CI ? "python" : ".venv/bin/python";
 
 export default defineConfig({
   testDir: "./e2e",
-  fullyParallel: false,
+  // ── Enable fullParallel for all non-CI, non-smoke environments ──
+  // Smoke tests and CI must remain sequential to ensure DB consistency.
+  // Regression suite enables fullParallel per project config below.
+  fullyParallel: process.env.CI || process.env.DISABLE_PARALLEL ? false : true,
   forbidOnly: !!process.env.CI,
-  workers: process.env.CI ? 1 : 2,
+  workers: process.env.CI ? 1 : (process.env.WORKERS ? parseInt(process.env.WORKERS) : 4),
   timeout: 60_000,
   expect: { timeout: 10_000 },
 
@@ -104,6 +107,8 @@ export default defineConfig({
     },
 
     // ── Regression: mevcut özellik doğrulama ──
+    // fullParallel enabled for regression: tests have isolated data fixtures
+    // and no shared test-order dependencies.
     {
       name: "regression",
       testMatch: [
@@ -130,6 +135,7 @@ export default defineConfig({
         "ai-quality.spec.ts",
         "mobile-appium.spec.ts",
       ],
+      fullyParallel: !process.env.CI,
       retries: 2,
       timeout: 90_000,
     },

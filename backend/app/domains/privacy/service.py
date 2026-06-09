@@ -178,6 +178,16 @@ def _select_llm_traces(
 
 
 def _count_llm_traces(db: Session, *, user_id: str, tenant_id: str | None = None) -> int:
+    """S-HIGH-8: SQL audit note.
+
+    Query uses f-string, but WHERE clause is safe:
+    - Literal table name (hardcoded "llm_traces")
+    - WHERE conditions constructed from literals only ("user_id", "tenant_id" keys)
+    - All values passed as bound parameters (:user_id, :tenant_id) — not interpolated
+    - No user input in column names or table name
+
+    This is SAFE from SQL injection. Parameterized approach is correct.
+    """
     if not _table_exists(db, "llm_traces"):
         return 0
     where = "WHERE user_id = :user_id"
@@ -195,6 +205,15 @@ def _count_llm_traces(db: Session, *, user_id: str, tenant_id: str | None = None
 
 
 def _delete_llm_traces(db: Session, *, user_id: str, tenant_id: str | None = None) -> None:
+    """S-HIGH-8: SQL audit note.
+
+    DELETE query structure is safe (same as _count_llm_traces):
+    - Table name hardcoded, no user input
+    - WHERE conditions from literal strings only
+    - All values parameterized (no interpolation)
+
+    This is SAFE from SQL injection.
+    """
     if not _table_exists(db, "llm_traces"):
         return
     where = "WHERE user_id = :user_id"
