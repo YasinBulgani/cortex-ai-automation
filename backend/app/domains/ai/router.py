@@ -138,7 +138,11 @@ def _build_workflow_signoff_summary() -> dict[str, Any] | None:
 
 
 def _learn_from_chat(user_content: str, ai_response: str, session_id: str, project_id: str) -> None:
-    """Background: ingest Q&A pair into KnowledgeStore for continuous learning."""
+    """Background: ingest Q&A pair into KnowledgeStore for continuous learning.
+
+    Runs in a background executor thread with its own isolated DB session.
+    CRITICAL: Do NOT reuse DB sessions across async/sync boundaries.
+    """
     try:
         from app.domains.ai.knowledge_store import KnowledgeStore
         store = KnowledgeStore(project_id=project_id)
@@ -458,10 +462,14 @@ def _save_assistant_message(
     Streaming tamamlandiktan sonra assistant mesajini DB'ye kaydet.
     Ayri bir DB session kullanir cunku streaming generator
     orijinal request session'i kapanmis olabilir.
+
+    CRITICAL: Uses get_sync_session() for thread-safe isolation.
+    Each operation gets its own isolated session from the pool.
     """
     try:
-        from app.infra.database import SessionLocal
-        with SessionLocal() as db:
+        from app.infra.database import get_sync_session
+        db = get_sync_session()
+        try:
             msg = AiChatMessage(
                 session_id=session_id,
                 role="assistant",
@@ -471,6 +479,8 @@ def _save_assistant_message(
             msg.id = message_id
             db.add(msg)
             db.commit()
+        finally:
+            db.close()
 
         # Background: learn from this conversation (fire-and-forget)
         import asyncio

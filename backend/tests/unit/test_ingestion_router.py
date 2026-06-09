@@ -6,6 +6,10 @@ Endpoint'ler: POST /text, POST /jira/webhook, POST /confluence/webhook,
 """
 from __future__ import annotations
 
+import hashlib
+import hmac
+import json
+
 try:
     from unittest.mock import MagicMock, patch
 
@@ -185,19 +189,96 @@ def test_get_ingested_not_found_404() -> None:
 
 
 # ---------------------------------------------------------------------------
+# Webhook signature generation helper
+# ---------------------------------------------------------------------------
+
+
+def _make_webhook_signature(body: bytes, secret: str) -> str:
+    """Create HMAC-SHA256 signature matching webhook format."""
+    return "sha256=" + hmac.new(secret.encode(), body, hashlib.sha256).hexdigest()
+
+
+# ---------------------------------------------------------------------------
 # POST /ingestion/jira/webhook
 # ---------------------------------------------------------------------------
 
 
-def test_jira_webhook_success() -> None:
+def test_jira_webhook_success_with_valid_signature() -> None:
+    """Jira webhook with valid HMAC signature should succeed."""
     if not _IMPORT_OK:
         return
     client = _app()
     payload = {"issue": {"key": "TEST-1", "fields": {"summary": "Login bug"}}}
-    with patch("app.domains.ingestion.router.svc") as mock_svc:
-        mock_svc.ingest_jira_payload.return_value = _fake_req()
-        r = client.post("/ingestion/jira/webhook?project_id=proj-1", json=payload)
+    body = json.dumps(payload).encode()
+    sig = _make_webhook_signature(body, "test-webhook-secret")
+
+    with patch("app.domains.ingestion.router.os.environ.get") as mock_env:
+        def env_side_effect(key, default=""):
+            if key == "WEBHOOK_SECRET":
+                return "test-webhook-secret"
+            return default
+        mock_env.side_effect = env_side_effect
+        with patch("app.domains.ingestion.router._webhook_secret_required", return_value=False):
+            with patch("app.domains.ingestion.router.svc") as mock_svc:
+                mock_svc.ingest_jira_payload.return_value = _fake_req()
+                r = client.post(
+                    "/ingestion/jira/webhook?project_id=proj-1",
+                    content=body,
+                    headers={
+                        "X-Webhook-Signature": sig,
+                        "Content-Type": "application/json",
+                    },
+                )
     assert r.status_code == 201
+
+
+def test_jira_webhook_invalid_signature_401() -> None:
+    """Jira webhook with invalid signature should return 401."""
+    if not _IMPORT_OK:
+        return
+    client = _app()
+    payload = {"issue": {"key": "TEST-1"}}
+    body = json.dumps(payload).encode()
+
+    with patch("app.domains.ingestion.router.os.environ.get") as mock_env:
+        def env_side_effect(key, default=""):
+            if key == "WEBHOOK_SECRET":
+                return "test-webhook-secret"
+            return default
+        mock_env.side_effect = env_side_effect
+        with patch("app.domains.ingestion.router._webhook_secret_required", return_value=False):
+            r = client.post(
+                "/ingestion/jira/webhook?project_id=proj-1",
+                content=body,
+                headers={
+                    "X-Webhook-Signature": "sha256=invalidsignature",
+                    "Content-Type": "application/json",
+                },
+            )
+    assert r.status_code == 401
+
+
+def test_jira_webhook_missing_signature_401() -> None:
+    """Jira webhook without signature header should return 401."""
+    if not _IMPORT_OK:
+        return
+    client = _app()
+    payload = {"issue": {"key": "TEST-1"}}
+    body = json.dumps(payload).encode()
+
+    with patch("app.domains.ingestion.router.os.environ.get") as mock_env:
+        def env_side_effect(key, default=""):
+            if key == "WEBHOOK_SECRET":
+                return "test-webhook-secret"
+            return default
+        mock_env.side_effect = env_side_effect
+        with patch("app.domains.ingestion.router._webhook_secret_required", return_value=False):
+            r = client.post(
+                "/ingestion/jira/webhook?project_id=proj-1",
+                content=body,
+                headers={"Content-Type": "application/json"},
+            )
+    assert r.status_code == 401
 
 
 def test_jira_webhook_missing_project_id_422() -> None:
@@ -206,8 +287,20 @@ def test_jira_webhook_missing_project_id_422() -> None:
         return
     client = _app()
     payload = {"issue": {"key": "TEST-1"}}
-    with patch("app.domains.ingestion.router.svc"):
-        r = client.post("/ingestion/jira/webhook", json=payload)
+    body = json.dumps(payload).encode()
+    sig = _make_webhook_signature(body, "test-secret")
+
+    with patch("app.domains.ingestion.router.os.environ.get", return_value=""):
+        with patch("app.domains.ingestion.router._webhook_secret_required", return_value=False):
+            with patch("app.domains.ingestion.router.svc"):
+                r = client.post(
+                    "/ingestion/jira/webhook",
+                    content=body,
+                    headers={
+                        "X-Webhook-Signature": sig,
+                        "Content-Type": "application/json",
+                    },
+                )
     # project_id required query param — 422 veya 400
     assert r.status_code in (400, 422)
 
@@ -217,7 +310,19 @@ def test_jira_webhook_service_error_becomes_422() -> None:
         return
     client = _app()
     payload = {"issue": {}}
-    with patch("app.domains.ingestion.router.svc") as mock_svc:
-        mock_svc.ingest_jira_payload.side_effect = ValueError("geçersiz payload")
-        r = client.post("/ingestion/jira/webhook?project_id=proj-1", json=payload)
+    body = json.dumps(payload).encode()
+    sig = _make_webhook_signature(body, "test-secret")
+
+    with patch("app.domains.ingestion.router.os.environ.get", return_value=""):
+        with patch("app.domains.ingestion.router._webhook_secret_required", return_value=False):
+            with patch("app.domains.ingestion.router.svc") as mock_svc:
+                mock_svc.ingest_jira_payload.side_effect = ValueError("geçersiz payload")
+                r = client.post(
+                    "/ingestion/jira/webhook?project_id=proj-1",
+                    content=body,
+                    headers={
+                        "X-Webhook-Signature": sig,
+                        "Content-Type": "application/json",
+                    },
+                )
     assert r.status_code == 422

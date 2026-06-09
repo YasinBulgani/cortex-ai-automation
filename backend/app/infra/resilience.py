@@ -84,20 +84,41 @@ class CircuitBreaker:
                 raise CircuitBreakerOpen(self.name, max(0.0, retry_after))
 
     def record_success(self) -> None:
+        """Başarılı çağrı — consecutive_failures sıfırla, HALF_OPEN'dan CLOSED'a geç.
+
+        State machine:
+        - CLOSED/HALF_OPEN → CLOSED (failures reset)
+        - OPEN → ignored (success during OPEN shouldn't occur in practice)
+        """
         with self._lock:
             self._consecutive_failures = 0
-            self._state = CircuitState.CLOSED
+            # HALF_OPEN'dan CLOSED'a terfi; CLOSED zaten CLOSED kalır
+            if self._state == CircuitState.HALF_OPEN:
+                self._state = CircuitState.CLOSED
 
     def record_failure(self) -> None:
+        """Başarısız çağrı — failure sayacını artır, eşik aşılırsa OPEN'a geç.
+
+        State machine:
+        - CLOSED: consecutive_failures artır; eşik aşılırsa → OPEN
+        - HALF_OPEN: hata sayaç artmaz (prob başarısız), direkt OPEN'a geç
+        - OPEN: hiçbir şey yapma (zaten OPEN)
+        """
         with self._lock:
-            self._consecutive_failures += 1
-            # HALF_OPEN'da prob başarısızsa ya da CLOSED'da eşik aşılırsa → OPEN.
-            if (
-                self._state == CircuitState.HALF_OPEN
-                or self._consecutive_failures >= self.failure_threshold
-            ):
+            if self._state == CircuitState.OPEN:
+                # Zaten OPEN, ekstra başarısızlık kayda alınmaz
+                return
+
+            if self._state == CircuitState.HALF_OPEN:
+                # HALF_OPEN'da tek bir başarısızlık → OPEN'a geri dön
                 self._state = CircuitState.OPEN
                 self._opened_at = self.clock()
+            else:
+                # CLOSED state
+                self._consecutive_failures += 1
+                if self._consecutive_failures >= self.failure_threshold:
+                    self._state = CircuitState.OPEN
+                    self._opened_at = self.clock()
 
 
 # ── Global registry ─────────────────────────────────────────────────────────
@@ -138,12 +159,48 @@ def reset_all_breakers() -> None:
 # Engine/AI-gateway çağrıları için ÜST SINIR. Bireysel call-site'lar daha düşük
 # verebilir ama bunu AŞMAMALI — yavaş downstream connect/read'de takılıp
 # havuzu tüketmesin diye.
+#
+# Per-domain timeout budgets: config.py'den TIMEOUT_BUDGETS oku.
+# - api: AI gateway (Groq/Gemini default) → 30s
+# - engine: Engine RPC → 30s
+# - mobile: Appium/Selenium (uzun cihaz işlemleri) → 60s
+# - tspm: Live test stream → 120s
+# - default: fallback → 30s
 DEFAULT_DOWNSTREAM_TIMEOUT = 10.0
 MAX_DOWNSTREAM_TIMEOUT = 30.0
 
 
-def bounded_timeout(requested: Optional[float] = None) -> float:
-    """İstenen timeout'u [0, MAX_DOWNSTREAM_TIMEOUT] aralığına sıkıştır."""
+def bounded_timeout(requested: Optional[float] = None, domain: str = 'api') -> float:
+    """İstenen timeout'u domain budget'ına sıkıştır.
+
+    Args:
+        requested: İstemci istediği timeout (saniye), None/<=0 ise budget default'u
+        domain: Domain adı (api/engine/mobile/tspm/default)
+
+    Returns:
+        min(requested, domain_budget)
+
+    Örnek:
+        bounded_timeout(None, domain='api') → 30s (api budget)
+        bounded_timeout(None, domain='mobile') → 60s (mobile budget)
+        bounded_timeout(100, domain='mobile') → min(100, 60) = 60s
+    """
+    budget = None
+    try:
+        # Lazy import to avoid circular dependencies
+        from app.config import settings
+        budgets = getattr(settings, 'timeout_budgets', None)
+        if budgets and isinstance(budgets, dict):
+            budget = budgets.get(domain)
+            if budget is None:
+                budget = budgets.get('default', MAX_DOWNSTREAM_TIMEOUT)
+    except Exception:
+        pass
+
+    # Fallback if import failed or config issue
+    if budget is None:
+        budget = MAX_DOWNSTREAM_TIMEOUT
+
     if requested is None or requested <= 0:
-        return DEFAULT_DOWNSTREAM_TIMEOUT
-    return min(requested, MAX_DOWNSTREAM_TIMEOUT)
+        return float(budget)
+    return min(requested, float(budget))

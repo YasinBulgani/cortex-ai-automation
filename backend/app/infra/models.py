@@ -133,7 +133,9 @@ class TeamMember(Base):
 class ProjectMember(Base):
     __tablename__ = "sd_project_members"
 
-    project_id: Mapped[str] = mapped_column(String(128), primary_key=True)
+    project_id: Mapped[str] = mapped_column(
+        String(128), ForeignKey("test_management_projects.id", ondelete="CASCADE"), primary_key=True
+    )
     user_id: Mapped[str] = mapped_column(
         UUID(as_uuid=False), ForeignKey("sd_users.id", ondelete="CASCADE"), primary_key=True
     )
@@ -445,7 +447,7 @@ class AgentV2Run(Base):
     errors: Mapped[list[dict[str, Any]]] = mapped_column(JSONB, nullable=False, default=list)
     tokens_used: Mapped[int] = mapped_column(BigInteger, default=0, nullable=False)
     llm_calls_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
-    cost_usd: Mapped[float] = mapped_column(Numeric(10, 6), default=0, nullable=False)
+    cost_usd: Mapped[float] = mapped_column(Numeric(18, 6), default=0, nullable=False)
     duration_seconds: Mapped[Optional[float]] = mapped_column(Numeric(10, 3), nullable=True)
     error_message: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)

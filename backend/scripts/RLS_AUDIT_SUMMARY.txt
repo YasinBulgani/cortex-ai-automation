@@ -1,0 +1,243 @@
+================================================================================
+RLS COMPLIANCE AUDIT SUMMARY — Neurex Platform
+2026-06-09
+================================================================================
+
+AUDIT SCOPE:
+  • 14 service domains (backend/app/domains/*/service.py)
+  • 4 RLS policies detected in migrations
+  • 53 backend domains total
+
+================================================================================
+EXECUTIVE FINDINGS
+================================================================================
+
+🔴 CRITICAL ISSUES FOUND: 2
+
+  1. PERMISSIVE RLS POLICY (HIGH RISK)
+     Table: test_management_regression_set_cases
+     Policy: rls_service_layer_owns
+     Status: USING (TRUE) — NO RLS PROTECTION
+     Location: backend/alembic/versions/20260524_0005_test_management_regression_sets.py:153
+
+     Impact: Service layer MUST enforce tenant isolation (via parent RLS)
+     Fix: Change to restrictive policy with subquery check
+     Timeline: URGENT (this sprint)
+
+  2. SERVICE LAYER LACKS EXPLICIT CHECKS (MEDIUM RISK)
+     Count: 11 domains rely entirely on RLS
+     Domains: api_testing, artifacts, auth, catalog, jobs, kiwi_tcms,
+              nexus_repo, organizations, quality, rules, tspm
+
+     Impact: RLS-dependent code is fragile; refactoring could break isolation
+     Fix: Add explicit WHERE tenant_id = ? clauses
+     Timeline: Next sprint
+
+================================================================================
+RLS POLICY STATUS
+================================================================================
+
+RESTRICTIVE (Safe):
+  ✓ test_management_regression_sets          (3 tables)
+  ✓ test_management_release_signoffs
+  ✓ test_management_requirements
+
+PERMISSIVE (Dangerous):
+  ❌ test_management_regression_set_cases    (USES TRUE)
+
+Total Policies: 4
+  Restrictive: 3 ✓
+  Permissive:  1 🔴
+
+================================================================================
+SERVICE LAYER AUDIT RESULTS
+================================================================================
+
+DOMAINS WITH EXPLICIT TENANT CHECKS:
+  ✓ billing       (12 queries, 21 tenant mentions)
+  ✓ privacy       (8 queries, 35 tenant mentions)
+  ✓ test_management (197 queries, 6 tenant mentions)
+
+  Score: 3/14 domains (21%)
+
+DOMAINS WITHOUT EXPLICIT TENANT CHECKS:
+  ⚠ api_testing   (4 queries, 0 tenant mentions)
+  ⚠ artifacts     (1 query, 0 tenant mentions)
+  ⚠ auth          (1 query, 0 tenant mentions)
+  ⚠ catalog       (3 queries, 0 tenant mentions)
+  ⚠ jobs          (1 query, 0 tenant mentions)
+  ⚠ kiwi_tcms     (8 queries, 0 tenant mentions) — HIGH RISK
+  ⚠ nexus_repo    (16 queries, 0 tenant mentions) — HIGH RISK
+  ⚠ organizations (9 queries, 0 tenant mentions) — HIGH RISK
+  ⚠ quality       (1 query, 0 tenant mentions)
+  ⚠ rules         (1 query, 0 tenant mentions)
+  ⚠ tspm          (2 queries, 0 tenant mentions)
+
+  Score: 11/14 domains (79%)
+
+================================================================================
+VULNERABILITY ASSESSMENT
+================================================================================
+
+Current Protection Layers:
+  1. Database: RLS policies (3 restrictive, 1 permissive)
+  2. Application: Explicit WHERE clauses (3 domains only)
+  3. Architecture: Tenant context set per-request (deps.py)
+
+Risk Scenarios:
+
+  SCENARIO A: Permissive Policy Bypass
+  • Code path queries regression_set_cases directly
+  • RLS check (USING TRUE) passes for all rows
+  • Attacker sees cross-tenant cases
+  • Current mitigation: Parent RLS (fragile)
+  • Probability: MEDIUM (refactoring could trigger)
+
+  SCENARIO B: RLS Policy Disabled
+  • Accident: DBA drops RLS policy during debugging
+  • Service layer has no fallback checks
+  • 11 domains at risk
+  • Probability: LOW (but high impact)
+
+  SCENARIO C: Service Layer Logic Error
+  • Example: join condition forgets tenant_id
+  • RLS still applies (at least one check works)
+  • But reduces effectiveness of defense-in-depth
+  • Probability: MEDIUM (common in refactoring)
+
+Overall Risk Level: MEDIUM-HIGH (manageable)
+
+================================================================================
+REMEDIATION ROADMAP
+================================================================================
+
+PHASE 1: CRITICAL (This Sprint)
+────────────────────────────────
+✓ Fix test_management_regression_set_cases permissive policy
+  - Create migration: DROP USING(TRUE), CREATE with subquery
+  - Add integration test
+  - Verify no performance impact
+  - Time: 2–3 hours
+
+PHASE 2: SHORT-TERM (Next Sprint)
+──────────────────────────────────
+✓ Add explicit tenant checks to high-risk domains
+  - kiwi_tcms/service.py: add tenant_id filtering
+  - nexus_repo/service.py: add tenant_id filtering
+  - organizations/service.py: add tenant_id filtering
+  - Time: 1 day
+
+✓ Enable RLS on legacy tables (pre-20260514)
+  - Create migration: apply RLS to tspm_*, api_test_specs, datasets
+  - Time: 1 day
+
+PHASE 3: LONG-TERM (Roadmap)
+─────────────────────────────
+✓ Tenant-first schema design
+  - Update ADR-0005 with mandatory RLS checklist
+  - Every new table must have RLS policy
+  - Reject tables without RLS in code review
+
+✓ RLS compliance gate in CI/CD
+  - Fail build if new table has no RLS
+  - Warn if new permissive policy added
+  - Run this audit on every schema change
+
+✓ Tenant audit logging
+  - Log RLS-blocked queries (security events)
+  - Alert on suspicious patterns (repeated cross-tenant attempts)
+
+================================================================================
+FILES GENERATED
+================================================================================
+
+Reports:
+  1. docs/AUDIT_RLS_COMPLIANCE_2026-06-09.md
+     → Detailed audit results with tables and statistics
+
+  2. docs/RLS_COMPLIANCE_FINDINGS_2026-06-09.md
+     → Critical findings, vulnerability analysis, remediation code
+
+  3. backend/scripts/rls_compliance_audit.sh
+     → Automated RLS audit script (executable)
+
+  4. backend/scripts/RLS_AUDIT_SUMMARY.txt
+     → This file (quick reference)
+
+Next Steps:
+  1. Review findings with security lead
+  2. Create JIRA ticket for Phase 1 (critical fix)
+  3. Schedule Phase 2 planning session
+  4. Add RLS linting rule to pre-commit hooks
+
+================================================================================
+APPENDIX: REMEDIATION CODE SNIPPETS
+================================================================================
+
+FIX #1: Change test_management_regression_set_cases Policy
+
+  -- BEFORE (Vulnerable)
+  DROP POLICY rls_service_layer_owns ON test_management_regression_set_cases;
+
+  -- AFTER (Safe)
+  CREATE POLICY rls_tenant_isolation ON test_management_regression_set_cases
+    USING (
+      regression_set_id IN (
+        SELECT id FROM test_management_regression_sets
+        WHERE project_id IN (
+          SELECT id FROM test_management_projects
+          WHERE tenant_id = current_tenant_id()
+        )
+      )
+    );
+
+FIX #2: Add Explicit Tenant Check Example (kiwi_tcms)
+
+  def get_connections(db: Session, tenant_id: str) -> list[KiwiConnection]:
+    """Get Kiwi connections for tenant."""
+    return db.scalars(
+      select(KiwiConnection)
+      .where(KiwiConnection.tenant_id == tenant_id)  # ← Explicit check
+    ).all()
+
+FIX #3: Enable RLS on Legacy Tables (Migration Template)
+
+  def upgrade() -> None:
+    op.execute("""
+      ALTER TABLE tspm_projects ENABLE ROW LEVEL SECURITY;
+      ALTER TABLE tspm_projects FORCE ROW LEVEL SECURITY;
+      DROP POLICY IF EXISTS rls_tenant_isolation ON tspm_projects;
+      CREATE POLICY rls_tenant_isolation ON tspm_projects
+        USING (tenant_id = current_tenant_id()::text);
+    """)
+
+================================================================================
+COMPLIANCE CHECKLIST
+================================================================================
+
+For each new table:
+  [ ] Add tenant_id UUID FK column
+  [ ] Create restrictive RLS policy (NEVER USING TRUE)
+  [ ] Service layer includes explicit WHERE tenant_id = ?
+  [ ] Add integration test for cross-tenant prevention
+  [ ] Document in ADR-0005 (multi-tenancy)
+  [ ] Run RLS compliance audit script before merge
+  [ ] Code review: check for permission checks
+
+For migrations:
+  [ ] Never use USING (TRUE) — always specific conditions
+  [ ] Include RLS in same migration as table creation
+  [ ] Test RLS with role-based access patterns
+  [ ] Document why RLS is designed a certain way (if unusual)
+
+For service code:
+  [ ] Document if relying on RLS or explicit checks
+  [ ] Add READONLY comment if table is global (not tenant-scoped)
+  [ ] If no tenant_id column, explain in docstring
+  [ ] Include tenant_id in method signature (when applicable)
+
+================================================================================
+Generated: 2026-06-09 11:16:14
+Auditor: RLS Compliance Scanner (automated)
+Status: ⏳ PENDING REVIEW & APPROVAL
+================================================================================

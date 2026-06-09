@@ -1,6 +1,8 @@
 """SQLAlchemy engine ve oturum fabrikası (senkron + async)."""
 
+import threading
 from collections.abc import AsyncGenerator, Generator
+from typing import Optional
 
 from fastapi import Request
 from sqlalchemy import create_engine, event, text
@@ -50,68 +52,72 @@ SessionLocal = sessionmaker(
 # ── Async engine + sessionmaker (Faz 1 hot-path) ───────────────────────────────
 # AsyncSession ile non-blocking I/O. SQLite/in-memory test'ler için sqlite+aiosqlite,
 # prod Postgres için postgresql+asyncpg otomatik detect edilir.
+_async_init_lock = threading.Lock()
 _async_engine = None
 AsyncSessionLocal = None
 
 # ── Async read-replica engine (Faz 3.1) ───────────────────────────────────────
 # Read-only replica for scaling: ~100ms lag, sticky read-after-write pattern.
+_async_read_init_lock = threading.Lock()
 _async_read_engine = None
 AsyncReadSessionLocal = None
 
-try:
-    _async_url = settings.database_url
-    if "postgresql://" in _async_url:
-        _async_url = _async_url.replace("postgresql://", "postgresql+asyncpg://")
-    elif "postgresql+psycopg2://" in _async_url:
-        _async_url = _async_url.replace("postgresql+psycopg2://", "postgresql+asyncpg://")
+# Module-level async initialization with lock (single engine per process)
+with _async_init_lock:
+    try:
+        _async_url = settings.database_url
+        if "postgresql://" in _async_url:
+            _async_url = _async_url.replace("postgresql://", "postgresql+asyncpg://")
+        elif "postgresql+psycopg2://" in _async_url:
+            _async_url = _async_url.replace("postgresql+psycopg2://", "postgresql+asyncpg://")
 
-    _async_engine = create_async_engine(
-        _async_url,
-        pool_pre_ping=True,
-        future=True,
-        pool_size=20,
-        max_overflow=10,
-    )
-
-    AsyncSessionLocal = sessionmaker(
-        bind=_async_engine,
-        class_=AsyncSession,
-        autocommit=False,
-        autoflush=False,
-        future=True,
-        expire_on_commit=False,
-    )
-
-    # Initialize read-replica engine if configured
-    if settings.read_replica_enabled and settings.read_replica_url:
-        _read_replica_url = settings.read_replica_url
-        if "postgresql://" in _read_replica_url:
-            _read_replica_url = _read_replica_url.replace("postgresql://", "postgresql+asyncpg://")
-        elif "postgresql+psycopg2://" in _read_replica_url:
-            _read_replica_url = _read_replica_url.replace("postgresql+psycopg2://", "postgresql+asyncpg://")
-
-        _async_read_engine = create_async_engine(
-            _read_replica_url,
+        _async_engine = create_async_engine(
+            _async_url,
             pool_pre_ping=True,
             future=True,
             pool_size=20,
             max_overflow=10,
-            # Replica is read-only; don't hold transactions open
-            pool_recycle=1800,
         )
 
-        AsyncReadSessionLocal = sessionmaker(
-            bind=_async_read_engine,
+        AsyncSessionLocal = sessionmaker(
+            bind=_async_engine,
             class_=AsyncSession,
             autocommit=False,
             autoflush=False,
             future=True,
             expire_on_commit=False,
         )
-except Exception as _e:
-    # If async engine creation fails (e.g., asyncpg not installed),
-    # set a lazy placeholder. get_async_db will initialize on first use.
-    pass
+
+        # Initialize read-replica engine if configured
+        if settings.read_replica_enabled and settings.read_replica_url:
+            _read_replica_url = settings.read_replica_url
+            if "postgresql://" in _read_replica_url:
+                _read_replica_url = _read_replica_url.replace("postgresql://", "postgresql+asyncpg://")
+            elif "postgresql+psycopg2://" in _read_replica_url:
+                _read_replica_url = _read_replica_url.replace("postgresql+psycopg2://", "postgresql+asyncpg://")
+
+            _async_read_engine = create_async_engine(
+                _read_replica_url,
+                pool_pre_ping=True,
+                future=True,
+                pool_size=20,
+                max_overflow=10,
+                # Replica is read-only; don't hold transactions open
+                pool_recycle=1800,
+            )
+
+            AsyncReadSessionLocal = sessionmaker(
+                bind=_async_read_engine,
+                class_=AsyncSession,
+                autocommit=False,
+                autoflush=False,
+                future=True,
+                expire_on_commit=False,
+            )
+    except Exception as _e:
+        # If async engine creation fails (e.g., asyncpg not installed),
+        # set a lazy placeholder. get_async_db will initialize on first use.
+        pass
 
 
 async def get_async_db(request: Request) -> AsyncGenerator[AsyncSession, None]:
@@ -119,36 +125,40 @@ async def get_async_db(request: Request) -> AsyncGenerator[AsyncSession, None]:
 
     Aynı tenant isolation logic ama async I/O non-blocking.
     Yazılı işlemler için her zaman primary DB kullanır.
+    Lazy initialization with thread-safe double-check locking.
     """
     global _async_engine, AsyncSessionLocal
 
     # Lazy initialization if not already created
     if AsyncSessionLocal is None:
-        try:
-            _async_url = settings.database_url
-            if "postgresql://" in _async_url:
-                _async_url = _async_url.replace("postgresql://", "postgresql+asyncpg://")
-            elif "postgresql+psycopg2://" in _async_url:
-                _async_url = _async_url.replace("postgresql+psycopg2://", "postgresql+asyncpg://")
+        with _async_init_lock:
+            # Double-check inside lock to prevent race
+            if AsyncSessionLocal is None:
+                try:
+                    _async_url = settings.database_url
+                    if "postgresql://" in _async_url:
+                        _async_url = _async_url.replace("postgresql://", "postgresql+asyncpg://")
+                    elif "postgresql+psycopg2://" in _async_url:
+                        _async_url = _async_url.replace("postgresql+psycopg2://", "postgresql+asyncpg://")
 
-            _async_engine = create_async_engine(
-                _async_url,
-                pool_pre_ping=True,
-                future=True,
-                pool_size=20,
-                max_overflow=10,
-            )
+                    _async_engine = create_async_engine(
+                        _async_url,
+                        pool_pre_ping=True,
+                        future=True,
+                        pool_size=20,
+                        max_overflow=10,
+                    )
 
-            AsyncSessionLocal = sessionmaker(
-                bind=_async_engine,
-                class_=AsyncSession,
-                autocommit=False,
-                autoflush=False,
-                future=True,
-                expire_on_commit=False,
-            )
-        except Exception as e:
-            raise RuntimeError(f"Failed to initialize async database session: {e}") from e
+                    AsyncSessionLocal = sessionmaker(
+                        bind=_async_engine,
+                        class_=AsyncSession,
+                        autocommit=False,
+                        autoflush=False,
+                        future=True,
+                        expire_on_commit=False,
+                    )
+                except Exception as e:
+                    raise RuntimeError(f"Failed to initialize async database session: {e}") from e
 
     tenant_id = getattr(request.state, "tenant_id", _DEFAULT_TENANT)
     async with AsyncSessionLocal() as db:
@@ -167,38 +177,42 @@ async def get_read_db(request: Request) -> AsyncGenerator[AsyncSession, None]:
     yapılan okumalar primary'den yapılır.
 
     Eğer read_replica disabled veya configured değilse, primary'ye fallback.
+    Lazy initialization with thread-safe double-check locking.
     """
     from app.infra.read_replica import should_force_primary
 
     global _async_engine, _async_read_engine, AsyncSessionLocal, AsyncReadSessionLocal
 
-    # Lazy initialization if not already created
+    # Lazy initialization if not already created (primary)
     if AsyncSessionLocal is None:
-        try:
-            _async_url = settings.database_url
-            if "postgresql://" in _async_url:
-                _async_url = _async_url.replace("postgresql://", "postgresql+asyncpg://")
-            elif "postgresql+psycopg2://" in _async_url:
-                _async_url = _async_url.replace("postgresql+psycopg2://", "postgresql+asyncpg://")
+        with _async_init_lock:
+            # Double-check inside lock to prevent race
+            if AsyncSessionLocal is None:
+                try:
+                    _async_url = settings.database_url
+                    if "postgresql://" in _async_url:
+                        _async_url = _async_url.replace("postgresql://", "postgresql+asyncpg://")
+                    elif "postgresql+psycopg2://" in _async_url:
+                        _async_url = _async_url.replace("postgresql+psycopg2://", "postgresql+asyncpg://")
 
-            _async_engine = create_async_engine(
-                _async_url,
-                pool_pre_ping=True,
-                future=True,
-                pool_size=20,
-                max_overflow=10,
-            )
+                    _async_engine = create_async_engine(
+                        _async_url,
+                        pool_pre_ping=True,
+                        future=True,
+                        pool_size=20,
+                        max_overflow=10,
+                    )
 
-            AsyncSessionLocal = sessionmaker(
-                bind=_async_engine,
-                class_=AsyncSession,
-                autocommit=False,
-                autoflush=False,
-                future=True,
-                expire_on_commit=False,
-            )
-        except Exception as e:
-            raise RuntimeError(f"Failed to initialize async database session: {e}") from e
+                    AsyncSessionLocal = sessionmaker(
+                        bind=_async_engine,
+                        class_=AsyncSession,
+                        autocommit=False,
+                        autoflush=False,
+                        future=True,
+                        expire_on_commit=False,
+                    )
+                except Exception as e:
+                    raise RuntimeError(f"Failed to initialize async database session: {e}") from e
 
     tenant_id = getattr(request.state, "tenant_id", _DEFAULT_TENANT)
 
@@ -216,32 +230,35 @@ async def get_read_db(request: Request) -> AsyncGenerator[AsyncSession, None]:
     else:
         # Use read replica
         if AsyncReadSessionLocal is None:
-            try:
-                _read_replica_url = settings.read_replica_url
-                if "postgresql://" in _read_replica_url:
-                    _read_replica_url = _read_replica_url.replace("postgresql://", "postgresql+asyncpg://")
-                elif "postgresql+psycopg2://" in _read_replica_url:
-                    _read_replica_url = _read_replica_url.replace("postgresql+psycopg2://", "postgresql+asyncpg://")
+            with _async_read_init_lock:
+                # Double-check inside lock to prevent race
+                if AsyncReadSessionLocal is None:
+                    try:
+                        _read_replica_url = settings.read_replica_url
+                        if "postgresql://" in _read_replica_url:
+                            _read_replica_url = _read_replica_url.replace("postgresql://", "postgresql+asyncpg://")
+                        elif "postgresql+psycopg2://" in _read_replica_url:
+                            _read_replica_url = _read_replica_url.replace("postgresql+psycopg2://", "postgresql+asyncpg://")
 
-                _async_read_engine = create_async_engine(
-                    _read_replica_url,
-                    pool_pre_ping=True,
-                    future=True,
-                    pool_size=20,
-                    max_overflow=10,
-                    pool_recycle=1800,
-                )
+                        _async_read_engine = create_async_engine(
+                            _read_replica_url,
+                            pool_pre_ping=True,
+                            future=True,
+                            pool_size=20,
+                            max_overflow=10,
+                            pool_recycle=1800,
+                        )
 
-                AsyncReadSessionLocal = sessionmaker(
-                    bind=_async_read_engine,
-                    class_=AsyncSession,
-                    autocommit=False,
-                    autoflush=False,
-                    future=True,
-                    expire_on_commit=False,
-                )
-            except Exception as e:
-                raise RuntimeError(f"Failed to initialize read replica session: {e}") from e
+                        AsyncReadSessionLocal = sessionmaker(
+                            bind=_async_read_engine,
+                            class_=AsyncSession,
+                            autocommit=False,
+                            autoflush=False,
+                            future=True,
+                            expire_on_commit=False,
+                        )
+                    except Exception as e:
+                        raise RuntimeError(f"Failed to initialize read replica session: {e}") from e
 
         async with AsyncReadSessionLocal() as db:
             await db.execute(
@@ -277,3 +294,43 @@ def get_db_no_tenant() -> Generator[Session, None, None]:
         yield db
     finally:
         db.close()
+
+
+def get_sync_session(tenant_id: Optional[str] = None) -> Session:
+    """Create an isolated sync DB session for background/executor threads.
+
+    Use this in run_in_executor() callbacks to ensure per-thread session isolation.
+    Each thread gets its own session from the pool, avoiding deadlocks from
+    shared session state across async/sync boundaries.
+
+    Args:
+        tenant_id: Optional tenant ID for RLS context. If None, uses default.
+
+    Returns:
+        A new Session from the pool. Caller MUST close() it.
+
+    Example:
+        def sync_task(project_id: str):
+            db = get_sync_session("tenant-123")
+            try:
+                # Use db in this thread
+                db.query(...).filter(...)
+            finally:
+                db.close()
+
+        loop.run_in_executor(None, sync_task, "proj-456")
+    """
+    if tenant_id is None:
+        tenant_id = _DEFAULT_TENANT
+
+    db = SessionLocal()
+    try:
+        # Set RLS tenant context (transaction-local)
+        db.execute(
+            text("SELECT set_config('app.current_tenant', :t, TRUE)"),
+            {"t": tenant_id},
+        )
+        return db
+    except Exception:
+        db.close()
+        raise

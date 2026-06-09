@@ -55,6 +55,9 @@ try:
         Invitation,
         User,
     )
+    from app.domains.test_management.models import (
+        TestManagementProject,
+    )
     _IMPORT_OK = True
 except Exception:
     _IMPORT_OK = False
@@ -639,3 +642,50 @@ class TestCrossTenantIsolation:
         target.tenant_id = "org-foreign"
         requester_tenant = ORG_ID
         assert target.tenant_id != requester_tenant  # guard fires → HTTPException 404
+
+
+# ===========================================================================
+# 11. ProjectMember Foreign Key & Cascade Delete Behavior
+# ===========================================================================
+
+class TestProjectMemberForeignKey:
+    """
+    Test that ProjectMember.project_id has proper ForeignKey constraint.
+    Verifies cascade delete: when a project is deleted, its members are removed.
+    """
+
+    def test_project_member_has_fk_constraint(self):
+        """
+        Verify ProjectMember model defines ForeignKey to test_management_projects.
+        """
+        from app.infra.models import ProjectMember
+        from app.domains.test_management.models import TestManagementProject
+
+        # Import both models to ensure metadata is complete
+        _ = TestManagementProject
+
+        # Check the mapped_column definition includes ForeignKey
+        project_id_col = ProjectMember.__table__.columns["project_id"]
+        fks = list(project_id_col.foreign_keys)
+
+        # Should have exactly one foreign key
+        assert len(fks) == 1, f"Expected 1 FK, got {len(fks)}: {fks}"
+
+        fk = fks[0]
+        assert fk.column.table.name == "test_management_projects"
+        assert fk.column.name == "id"
+
+    def test_project_member_fk_ondelete_cascade(self):
+        """
+        Verify ForeignKey specifies ondelete='CASCADE'.
+        """
+        from app.infra.models import ProjectMember
+        from app.domains.test_management.models import TestManagementProject
+
+        # Import both models to ensure metadata is complete
+        _ = TestManagementProject
+
+        project_id_col = ProjectMember.__table__.columns["project_id"]
+        fk = list(project_id_col.foreign_keys)[0]
+
+        assert fk.ondelete.lower() == "cascade"

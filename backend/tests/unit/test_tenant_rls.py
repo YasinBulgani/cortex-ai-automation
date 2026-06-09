@@ -31,20 +31,44 @@ class TestSafeTenantId:
         uid = "12345678-1234-1234-1234-1234567890ab"
         assert _safe_tenant_id(uid) == uid.lower()
 
-    def test_none_returns_default(self):
-        assert _safe_tenant_id(None) == _DEFAULT_TENANT
+    def test_valid_uuid_with_allow_missing_false(self):
+        uid = "12345678-1234-1234-1234-1234567890ab"
+        assert _safe_tenant_id(uid, allow_missing=False) == uid.lower()
 
-    def test_empty_string_returns_default(self):
-        assert _safe_tenant_id("") == _DEFAULT_TENANT
+    def test_none_returns_default_when_allow_missing_true(self):
+        assert _safe_tenant_id(None, allow_missing=True) == _DEFAULT_TENANT
 
-    def test_invalid_uuid_returns_default(self):
-        assert _safe_tenant_id("not-a-uuid") == _DEFAULT_TENANT
+    def test_none_raises_when_allow_missing_false(self):
+        with pytest.raises(ValueError, match="Tenant claim is missing"):
+            _safe_tenant_id(None, allow_missing=False)
+
+    def test_empty_string_returns_default_when_allow_missing_true(self):
+        assert _safe_tenant_id("", allow_missing=True) == _DEFAULT_TENANT
+
+    def test_empty_string_raises_when_allow_missing_false(self):
+        with pytest.raises(ValueError, match="Tenant claim is missing"):
+            _safe_tenant_id("", allow_missing=False)
+
+    def test_invalid_uuid_returns_default_when_allow_missing_true(self):
+        assert _safe_tenant_id("not-a-uuid", allow_missing=True) == _DEFAULT_TENANT
+
+    def test_invalid_uuid_raises_when_allow_missing_false(self):
+        with pytest.raises(ValueError, match="Invalid tenant UUID format"):
+            _safe_tenant_id("not-a-uuid", allow_missing=False)
 
     def test_sql_injection_attempt_returns_default(self):
-        assert _safe_tenant_id("'; DROP TABLE tenants; --") == _DEFAULT_TENANT
+        assert _safe_tenant_id("'; DROP TABLE tenants; --", allow_missing=True) == _DEFAULT_TENANT
+
+    def test_sql_injection_raises_when_strict(self):
+        with pytest.raises(ValueError, match="Invalid tenant UUID format"):
+            _safe_tenant_id("'; DROP TABLE tenants; --", allow_missing=False)
 
     def test_too_short_returns_default(self):
-        assert _safe_tenant_id("1234-5678") == _DEFAULT_TENANT
+        assert _safe_tenant_id("1234-5678", allow_missing=True) == _DEFAULT_TENANT
+
+    def test_too_short_raises_when_strict(self):
+        with pytest.raises(ValueError, match="Invalid tenant UUID format"):
+            _safe_tenant_id("1234-5678", allow_missing=False)
 
 
 class TestExtractTenantFromToken:
@@ -58,18 +82,43 @@ class TestExtractTenantFromToken:
         token = _make_jwt_payload({"sub": "user1", "tenant_id": uid})
         assert extract_tenant_from_token(token) == uid.lower()
 
-    def test_no_tenant_claim_returns_default(self):
+    def test_no_tenant_claim_raises_error(self):
+        """SECURITY: Authenticated request without tenant claim must be rejected."""
         token = _make_jwt_payload({"sub": "user1"})
-        assert extract_tenant_from_token(token) == _DEFAULT_TENANT
+        with pytest.raises(ValueError, match="Tenant claim missing"):
+            extract_tenant_from_token(token)
+
+    def test_empty_tenant_claim_raises_error(self):
+        """SECURITY: Authenticated request with empty tenant claim must be rejected."""
+        token = _make_jwt_payload({"sub": "user1", "tenant": ""})
+        with pytest.raises(ValueError, match="Tenant claim missing"):
+            extract_tenant_from_token(token)
 
     def test_none_token_returns_default(self):
+        """Unauthenticated request (no token) gets default tenant."""
         assert extract_tenant_from_token(None) == _DEFAULT_TENANT
 
-    def test_malformed_token_returns_default(self):
-        assert extract_tenant_from_token("not.a.jwt") == _DEFAULT_TENANT
+    def test_malformed_token_raises_error(self):
+        """SECURITY: Malformed token from authenticated client must be rejected."""
+        with pytest.raises(ValueError):
+            extract_tenant_from_token("not.a.jwt")
 
-    def test_invalid_base64_returns_default(self):
-        assert extract_tenant_from_token("bad..sig") == _DEFAULT_TENANT
+    def test_invalid_base64_raises_error(self):
+        """SECURITY: Invalid JWT encoding must be rejected."""
+        with pytest.raises(ValueError):
+            extract_tenant_from_token("bad..sig")
+
+    def test_invalid_tenant_uuid_raises_error(self):
+        """SECURITY: Invalid tenant UUID format in authenticated request must be rejected."""
+        token = _make_jwt_payload({"sub": "user1", "tenant": "not-a-uuid"})
+        with pytest.raises(ValueError, match="Invalid tenant UUID"):
+            extract_tenant_from_token(token)
+
+    def test_sql_injection_in_tenant_claim_raises_error(self):
+        """SECURITY: SQL injection attempts in tenant claim must be rejected."""
+        token = _make_jwt_payload({"sub": "user1", "tenant": "'; DROP TABLE users; --"})
+        with pytest.raises(ValueError, match="Invalid tenant UUID"):
+            extract_tenant_from_token(token)
 
 
 class TestGetDbTenantPropagation:

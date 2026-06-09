@@ -19,7 +19,7 @@ from typing import Any
 import httpx
 
 from app.config import settings
-from app.infra.resilience import CircuitBreakerOpen, get_breaker
+from app.infra.resilience import CircuitBreakerOpen, bounded_timeout, get_breaker
 
 logger = logging.getLogger(__name__)
 
@@ -327,6 +327,8 @@ def gateway_complete(
             effective_timeout = TIMEOUT
 
         try:
+            # Apply domain budget (api timeout: 30s default)
+            effective_timeout = bounded_timeout(effective_timeout, domain='api')
             resp = _get_http_client().post(
                 f"{AI_GATEWAY_BASE}/ai/complete",
                 json=payload,
@@ -371,11 +373,12 @@ def gateway_complete(
                         ]
                         payload["messages"] = [m for m in payload["messages"] if m]
                         # retry attempt — direkt bir kez daha gateway'e
+                        retry_timeout = bounded_timeout(TIMEOUT, domain='api')
                         resp2 = _get_http_client().post(
                             f"{AI_GATEWAY_BASE}/ai/complete",
                             json=payload,
                             headers=_gateway_headers(),
-                            timeout=TIMEOUT,
+                            timeout=retry_timeout,
                         )
                         if resp2.status_code == 200:
                             data2 = resp2.json()
@@ -600,8 +603,9 @@ async def async_gateway_stream(
 
     url = f"{AI_GATEWAY_BASE}/ai/stream"
     headers = _gateway_headers()
+    stream_timeout = bounded_timeout(90.0, domain='api')
 
-    async with _httpx.AsyncClient(timeout=_httpx.Timeout(90.0, connect=5.0)) as client:
+    async with _httpx.AsyncClient(timeout=_httpx.Timeout(stream_timeout, connect=5.0)) as client:
         try:
             async with client.stream("POST", url, json=payload, headers=headers) as resp:
                 resp.raise_for_status()
@@ -714,11 +718,12 @@ def gateway_analyze_document_multimodal(
     last_exc: Exception | None = None
     for attempt in range(1, _MAX_RETRIES + 1):
         try:
+            api_timeout = bounded_timeout(TIMEOUT, domain='api')
             resp = httpx.post(
                 f"{AI_GATEWAY_BASE}/ai/complete",
                 json=payload,
                 headers=_gateway_headers(),
-                timeout=TIMEOUT,
+                timeout=api_timeout,
             )
             resp.raise_for_status()
             data = resp.json()

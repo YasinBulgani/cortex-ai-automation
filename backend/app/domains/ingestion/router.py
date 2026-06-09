@@ -8,11 +8,12 @@ GET  /ingestion/{req_id}                     — detay
 """
 from __future__ import annotations
 
+import hashlib
 import hmac
 import os
 from typing import Annotated, Any, Dict, Optional
 
-from fastapi import APIRouter, Depends, Header, HTTPException, status
+from fastapi import APIRouter, Depends, Header, HTTPException, Request, status
 from pydantic import BaseModel, Field
 
 from app.deps import get_current_user
@@ -36,7 +37,7 @@ class TextIngestIn(BaseModel):
 
 
 # ── Webhook HMAC signature verification ──────────────────────────────────────
-# Webhooks (Jira, Confluence) use HMAC signature verification instead of user
+# Webhooks (Jira, Confluence) use HMAC-SHA256 signature verification instead of user
 # auth, since they are called by external services, not authenticated users.
 
 def _webhook_secret_required() -> bool:
@@ -45,12 +46,28 @@ def _webhook_secret_required() -> bool:
     return forced or _settings.is_production_like
 
 
-def _verify_webhook_signature(x_webhook_secret: str | None = Header(None)) -> None:
-    expected = os.environ.get("WEBHOOK_SECRET", "")
-    if _webhook_secret_required() and not expected:
+def _verify_webhook_signature(
+    body: bytes,
+    x_webhook_signature: str | None = Header(None, alias="x-webhook-signature"),
+) -> None:
+    """Verify webhook HMAC-SHA256 signature.
+
+    Args:
+        body: Raw request body bytes
+        x_webhook_signature: X-Webhook-Signature header (sha256=<hex>)
+
+    Raises:
+        HTTPException: 503 if secret not configured but required, 401 if signature invalid
+    """
+    expected_secret = os.environ.get("WEBHOOK_SECRET", "")
+    if _webhook_secret_required() and not expected_secret:
         raise HTTPException(503, "Webhook secret zorunlu ancak yapılandırılmamış (WEBHOOK_SECRET)")
-    if expected and not hmac.compare_digest(x_webhook_secret or "", expected):
-        raise HTTPException(401, "Invalid webhook signature")
+    if expected_secret:
+        if not x_webhook_signature:
+            raise HTTPException(401, "Webhook signature başlığı eksik")
+        expected = "sha256=" + hmac.new(expected_secret.encode(), body, hashlib.sha256).hexdigest()
+        if not hmac.compare_digest(x_webhook_signature, expected):
+            raise HTTPException(401, "Geçersiz webhook imzası")
 
 
 @router.post("/text", status_code=status.HTTP_201_CREATED)
@@ -69,16 +86,23 @@ def ingest_text_endpoint(body: TextIngestIn, user: Annotated[User, Depends(get_c
 
 
 @router.post("/jira/webhook", status_code=status.HTTP_201_CREATED)
-def jira_webhook(
-    payload: Dict[str, Any],
+async def jira_webhook(
+    request: Request,
     project_id: str,
-    _sig: Annotated[None, Depends(_verify_webhook_signature)],
+    x_webhook_signature: Optional[str] = Header(None, alias="x-webhook-signature"),
 ) -> dict:
     """Jira webhook — `?project_id=` query param ile hedef proje belirlenir.
 
-    Auth: HMAC signature verification via X-Webhook-Secret header.
+    Auth: HMAC-SHA256 signature verification via X-Webhook-Signature header.
     """
+    body = await request.body()
+
+    # Verify webhook signature
+    _verify_webhook_signature(body, x_webhook_signature)
+
     try:
+        import json
+        payload = json.loads(body) if body else {}
         req = svc.ingest_jira_payload(project_id=project_id, payload=payload)
     except ValueError as exc:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, str(exc)) from exc
@@ -86,13 +110,20 @@ def jira_webhook(
 
 
 @router.post("/confluence/webhook", status_code=status.HTTP_201_CREATED)
-def confluence_webhook(
-    payload: Dict[str, Any],
+async def confluence_webhook(
+    request: Request,
     project_id: str,
-    _sig: Annotated[None, Depends(_verify_webhook_signature)],
+    x_webhook_signature: Optional[str] = Header(None, alias="x-webhook-signature"),
 ) -> dict:
-    """Confluence webhook — Auth: HMAC signature verification via X-Webhook-Secret header."""
+    """Confluence webhook — Auth: HMAC-SHA256 signature verification via X-Webhook-Signature header."""
+    body = await request.body()
+
+    # Verify webhook signature
+    _verify_webhook_signature(body, x_webhook_signature)
+
     try:
+        import json
+        payload = json.loads(body) if body else {}
         req = svc.ingest_confluence_payload(project_id=project_id, payload=payload)
     except ValueError as exc:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, str(exc)) from exc

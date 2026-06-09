@@ -78,7 +78,7 @@ def engine_request(
             url,
             json=json,
             headers=merged_headers,
-            timeout=bounded_timeout(timeout),
+            timeout=bounded_timeout(timeout, domain='engine'),
             **kwargs,
         )
     except httpx.RequestError:
@@ -125,7 +125,7 @@ async def engine_request_async(
                 url,
                 json=json,
                 headers=merged_headers,
-                timeout=bounded_timeout(timeout),
+                timeout=bounded_timeout(timeout, domain='engine'),
                 **kwargs,
             )
     except httpx.RequestError:

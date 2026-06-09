@@ -246,6 +246,21 @@ class Settings(BaseSettings):
     )
     ai_background_report_path: str = "./data/reports/ai_ops_latest.md"
 
+    # ── Per-Domain Timeout Budgets ────────────────────────────────
+    # Meşru uzun işlemler için domain-spesifik üst sınırlar (saniye).
+    # - api: AI gateway istek (Groq/Gemini fallback chain default)
+    # - engine: Engine RPC çağrıları (internal)
+    # - mobile: Appium/Selenium mobile automation (uzun cihaz koşuları)
+    # - tspm: Live test stream (300s meşru, backend 120s cap'e düşecek)
+    # - default: Fallback (diğer tüm çağrılar)
+    timeout_budgets: dict = {
+        'api': 30,
+        'engine': 30,
+        'mobile': 60,
+        'tspm': 120,
+        'default': 30,
+    }
+
     # ── Bildirim Kanalları ────────────────────────────────────────
     # Slack
     slack_webhook_url: str = ""          # https://hooks.slack.com/services/...

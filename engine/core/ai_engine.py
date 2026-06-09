@@ -382,7 +382,7 @@ KURALLAR:
         
         try:
             # 1. HTTP İstek ve Headerları Analiz Et
-            res = requests.get(target_url, timeout=15, verify=False)
+            res = requests.get(target_url, timeout=15, verify=True)
             headers_info = dict(res.headers)
             
             # 2. BeautifulSoup ile Statik Zafiyet (Form & Script) Yüzeyini Çıkar

@@ -90,6 +90,12 @@ def upgrade() -> None:
                                 SELECT id FROM test_management_projects
                                 WHERE tenant_id = current_tenant_id()::text
                             )
+                        )
+                        WITH CHECK (
+                            project_id IN (
+                                SELECT id FROM test_management_projects
+                                WHERE tenant_id = current_tenant_id()::text
+                            )
                         );
 
                     CREATE INDEX IF NOT EXISTS idx_{table}_project_id
@@ -108,6 +114,13 @@ def upgrade() -> None:
                     DROP POLICY IF EXISTS rls_tenant_isolation ON {table};
                     CREATE POLICY rls_tenant_isolation ON {table}
                         USING (
+                            case_id IN (
+                                SELECT c.id FROM test_management_cases c
+                                JOIN test_management_projects p ON c.project_id = p.id
+                                WHERE p.tenant_id = current_tenant_id()::text
+                            )
+                        )
+                        WITH CHECK (
                             case_id IN (
                                 SELECT c.id FROM test_management_cases c
                                 JOIN test_management_projects p ON c.project_id = p.id

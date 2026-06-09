@@ -172,7 +172,7 @@ def security_analyze():
             return jsonify(report.to_dict())
 
         import requests as req_lib
-        resp = req_lib.get(url, timeout=10, verify=False)
+        resp = req_lib.get(url, timeout=10, verify=True)
         report = analyzer.analyze_headers(dict(resp.headers), url)
         return jsonify(report.to_dict())
     except Exception as e:
