@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import contextlib
 import os
 from contextlib import contextmanager
@@ -23,6 +24,40 @@ def clear_client_cookies(client: TestClient):
     client.cookies.clear()
     yield
     client.cookies.clear()
+
+
+@pytest.fixture(scope="function")
+def clean_event_loop():
+    """Ensure clean asyncio event loop per test function (ADR-0013).
+
+    Prevents async event-loop pollution that causes tests like
+    hash_password to fail unpredictably. Closes any existing loop,
+    creates fresh one, and cleans up after test.
+
+    Usage: def test_something(clean_event_loop): ...
+    """
+    # Close any existing loop from prior test
+    try:
+        old_loop = asyncio.get_event_loop()
+        if old_loop.is_running():
+            old_loop.stop()
+        old_loop.close()
+    except RuntimeError:
+        # No loop exists — that's fine
+        pass
+
+    # Create fresh loop for this test
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+
+    yield loop
+
+    # Cleanup after test
+    try:
+        if not loop.is_closed():
+            loop.close()
+    except Exception:
+        pass
 
 
 @pytest.fixture(scope="session")
@@ -457,6 +492,121 @@ def test_data_factory() -> TestDataFactory:
     factory = TestDataFactory()
     yield factory
     factory.reset()
+
+
+# ────────────────────────────────────────────────────────────────────────────
+# factory_boy Fixtures (ADR-0013: no shared fixtures, fresh per test)
+# ────────────────────────────────────────────────────────────────────────────
+
+
+@pytest.fixture()
+def db_session(clean_event_loop) -> MagicMock:
+    """Provide a fresh mocked SQLAlchemy session for factory_boy tests.
+
+    This fixture ensures:
+    1. Clean event loop per test (ADR-0013)
+    2. factory_boy factories get a session to work with
+    3. Tests do not share DB state
+
+    Usage:
+        def test_user_creation(db_session):
+            from tests.factories import UserFactory
+            user = UserFactory.create(session=db_session)
+            assert user.email is not None
+    """
+    session = MagicMock()
+    session.add = MagicMock(return_value=None)
+    session.commit = MagicMock(return_value=None)
+    session.flush = MagicMock(return_value=None)
+    session.refresh = MagicMock(return_value=None)
+    return session
+
+
+@pytest.fixture()
+def user_factory(db_session):
+    """Provide UserFactory bound to session.
+
+    Usage:
+        def test_user(user_factory):
+            user = user_factory.build()  # in-memory
+            user = user_factory.create()  # would need real DB
+    """
+    from tests.factories import UserFactory
+
+    UserFactory._meta.sqlalchemy_session = db_session
+    return UserFactory
+
+
+@pytest.fixture()
+def project_factory(db_session):
+    """Provide TestManagementProjectFactory bound to session."""
+    from tests.factories import TestManagementProjectFactory
+
+    TestManagementProjectFactory._meta.sqlalchemy_session = db_session
+    return TestManagementProjectFactory
+
+
+@pytest.fixture()
+def test_case_factory(db_session):
+    """Provide TestCaseFactory bound to session."""
+    from tests.factories import TestCaseFactory
+
+    TestCaseFactory._meta.sqlalchemy_session = db_session
+    return TestCaseFactory
+
+
+@pytest.fixture()
+def test_run_factory(db_session):
+    """Provide TestRunFactory bound to session."""
+    from tests.factories import TestRunFactory
+
+    TestRunFactory._meta.sqlalchemy_session = db_session
+    return TestRunFactory
+
+
+@pytest.fixture()
+def test_result_factory(db_session):
+    """Provide TestResultFactory bound to session."""
+    from tests.factories import TestResultFactory
+
+    TestResultFactory._meta.sqlalchemy_session = db_session
+    return TestResultFactory
+
+
+@pytest.fixture()
+def organization_factory(db_session):
+    """Provide OrganizationFactory bound to session."""
+    from tests.factories import OrganizationFactory
+
+    OrganizationFactory._meta.sqlalchemy_session = db_session
+    return OrganizationFactory
+
+
+@pytest.fixture()
+def team_factory(db_session):
+    """Provide TeamFactory bound to session."""
+    from tests.factories import TeamFactory
+
+    TeamFactory._meta.sqlalchemy_session = db_session
+    return TeamFactory
+
+
+@pytest.fixture()
+def defect_factory(db_session):
+    """Provide DefectFactory bound to session."""
+    from tests.factories import DefectFactory
+
+    DefectFactory._meta.sqlalchemy_session = db_session
+    return DefectFactory
+
+
+@pytest.fixture()
+def automation_run_factory(db_session):
+    """Provide AutomationRunFactory bound to session."""
+    from tests.factories import AutomationRunFactory
+
+    AutomationRunFactory._meta.sqlalchemy_session = db_session
+    return AutomationRunFactory
 
 
 def pytest_configure(config: pytest.Config) -> None:

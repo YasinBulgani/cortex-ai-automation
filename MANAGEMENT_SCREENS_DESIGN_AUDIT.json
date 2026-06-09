@@ -1,0 +1,269 @@
+[
+  {
+    "ekran": "Case Detail Page",
+    "dosya": "cases/[caseId]/page.tsx",
+    "sorunId": "CASE-DET-001",
+    "sorunBaslığı": "Lazy Tab Loading Yok — Tüm Sekme Verileri Başlangıçta Yükleniyor",
+    "mevcut": "6 sekme (Düzenle, Yorumlar, Geçmiş, Parametrik) tüm verileri init'de sırası ile yapılandırılıyor. Büyük case'ler için Comments ve Parametric sekmeleri render edilmediği halde veri fetching yapılıyor.",
+    "problem": "Sayfa ilk açıldığında tüm hooks (useManagementCaseVersions, useSubCases, useCaseDependencies, vb) çalışıyor. 1000+ satır CaseDetailDrawer dosyası çok ağır. Comments tabı açılmadı ama veri fetch ediliyor = kaynak israfı.",
+    "tasarımÖnerisi": "React.lazy + Suspense ile lazy tab loading implementasyonu. Details ve Edit sekmeleri eagerly load, diğerleri on-demand. Sekme switch sırasında skeleton loader göster.",
+    "frontendDeğişiklik": "1. CaseDetailDrawer.tsx bileşeni tab-specific children'ları ayır\n2. src/lib/hooks/use-management.ts hooks'ları tab-gated import'lar yapabilecek şekilde refactor et\n3. Tab state'e bağlı conditional useQuery() enable flag'i ekle (enable: activeTab === 'comments')\n4. Sekme değişimi sırasında <Suspense fallback={<SkeletonLoader />}> wrap et",
+    "componentAyrımı": [
+      "CaseDetailsTab.tsx (form fields, metadata)",
+      "CaseHistoryTab.tsx (version timeline)",
+      "CaseCommentsTab.tsx (comment thread)",
+      "CaseParametricTab.tsx (parametrized cases)"
+    ],
+    "onayGerekli": false,
+    "eforSaat": 6,
+    "riski": "Düşük"
+  },
+  {
+    "ekran": "Case Detail Page",
+    "dosya": "cases/[caseId]/page.tsx",
+    "sorunId": "CASE-DET-002",
+    "sorunBaslığı": "Form Validasyon Logic Scattered — Validator Rules İçeride Tanımlı",
+    "mevcut": "Title validasyonu handleSave'de inline check (satır 175-182). Custom field'lar setter içinde. Step test_data transformation kompleks (satır 76-86). Type safety eksik.",
+    "problem": "Validator logic handler function'ında mixed. Reusable schema yok. Test yazmak zor. Frontend type'larıyla backend schema mismatch risiko.",
+    "tasarımÖnerisi": "Zod schema centralize et. React Hook Form + Zod integration. Field-level error display. onBlur validation ile instant feedback.",
+    "frontendDeğişiklik": "1. src/lib/schemas/case-detail.ts oluştur:\n   - CaseDetailSchema = z.object({ title: z.string().min(1).max(500), objective: z.string().max(2000), ... })\n   - StepSchema = z.object({ action, expected_result, test_data: z.union([z.string(), z.object({value: z.string()})]) })\n2. useForm() ile setup: form = useForm<CaseDetailInput>({ resolver: zodResolver(CaseDetailSchema) })\n3. register() ile binding: <input {...form.register('title')} />\n4. form.formState.errors.title?.message ile error display",
+    "componentAyrımı": [
+      "CaseDetailSchema (zod validator)",
+      "CaseDetailForm.tsx (form binding + error display)"
+    ],
+    "onayGerekli": false,
+    "eforSaat": 4,
+    "riski": "Düşük"
+  },
+  {
+    "ekran": "Case Detail Page",
+    "dosya": "cases/[caseId]/page.tsx",
+    "sorunId": "CASE-DET-003",
+    "sorunBaslığı": "Metadata Sidebar'ı Compact'layıp Collapsible Yapılabilir",
+    "mevcut": "Sağ taraf w-72 fixed width sidebar. Desktop'da iyi ama tablet'te yer kaybı. Mobile'de tamamen gizleniyor (responsive yok). Metadata hiyerarşi flat (tüm dropdownlar aynı seviye).",
+    "problem": "Responsive design eksik — tablet 768-1024px'te sidebar ikiye bölünüyor. Mobile'de sidebarlar full-screen modal olması gerekti ama static. Metadata section'ları collapsible değil.",
+    "tasarımÖnerisi": "1. Desktop (xl): Fixed sidebar - mevcut durum\n2. Tablet (md-lg): Metadata slideout panel (right drawer) — toggle button ekle\n3. Mobile (sm): Bottom sheet modal (/api endpoint sonrası metadata form aç)\n4. Section collapse: Metadata, Özel Alanlar, Dependencies collapsible — state'de track et",
+    "frontendDeğişiklik": "1. SidebarMetadata.tsx ayrı component (modal/drawer pattern)\n2. useMediaQuery('(min-width: 1280px)') hook — screen size track et\n3. Responsive toggle button: <button onClick={() => setMetadataOpen(!metadataOpen)}> (mobile only)\n4. CollapsibleSection component (header + content + chevron icon)\n5. Edit tab: <div className='xl:flex'> ile two-column layout, mobile'de single column",
+    "componentAyrımı": [
+      "MetadataSidebar.tsx (conditional drawer/sidebar)",
+      "MetadataForm.tsx (form fields group)",
+      "CollapsibleSection.tsx (reusable collapse widget)"
+    ],
+    "onayGerekli": false,
+    "eforSaat": 5,
+    "riski": "Orta"
+  },
+  {
+    "ekran": "Case Detail Page",
+    "dosya": "cases/[caseId]/page.tsx",
+    "sorunId": "CASE-DET-004",
+    "sorunBaslığı": "Step Editing UX — Drag-Drop Feedback + Inline Edit Mode",
+    "mevcut": "DnD şu anda çalışıyor (dnd-kit) ama visual feedback minimal. Step card'lar read-only preview gibi görünüyor. Edit mode inline değil — her field ayrı textarea. Delete button confirm olmadan siliyor.",
+    "problem": "DnD sırasında cursor feedback yok (grab cursor var ama drop zone highlight yok). Step preview'i çoğaltmak için her field'ı expand etmek gerekli. Delete: undo yok, direkt siliyor (1000+ adım case'lerde riskli).",
+    "tasarımÖnerisi": "1. DnD feedback: Hover'da highlight zone göster (border-dashed). Dragging'de opacity 0.5. Drop işlemi sonrası toast confirma (undo buton + 3s window)\n2. Step preview/edit toggle: Başında collapsed state, detail icon click'le expand\n3. Inline edit mode: Double-click -> textareas göster, Escape/Blur'de save\n4. Delete: Soft delete — 'Geri Al' buton'u 3 saniye boyunca göster",
+    "frontendDeğişiklik": "1. SortableStepCard: highlight effect (CSS class swap)\n2. Step state: { expanded: boolean, edited: boolean } ekle\n3. StepPreview component (collapsed view)\n4. StepEditor component (expanded edit view)\n5. useUndo hook — deletedSteps stack'i track et\n6. Toast notif: 'Adım silindi. <Geri Al>' buttonu 3s countdown ile",
+    "componentAyrımı": [
+      "SortableStepCard.tsx (DnD wrapper + highlight)",
+      "StepPreview.tsx (compact view, expand button)",
+      "StepEditor.tsx (textarea fields, save/cancel)",
+      "useUndoStack.ts (undo/redo logic)"
+    ],
+    "onayGerekli": false,
+    "eforSaat": 7,
+    "riski": "Orta"
+  },
+  {
+    "ekran": "Case List Page (Defects List)",
+    "dosya": "defects/page.tsx",
+    "sorunId": "DEFECT-LIST-001",
+    "sorunBaslığı": "Filter UI Dağınık — Tüm Dropdown'lar Inline, Responsive'te Kırılıyor",
+    "mevcut": "Satır 1313-1390: toolbar'da 6 select/input sırayla yerleştiriliyor. sm breakpoint'te flex-wrap var ama sırası şaşık. Desktop'da yer darlığı. Search bar çok geniş.",
+    "problem": "md tablet'te filterler 2-3 satırdan fazla alıyor. Filter badge'leri teker teker gösterilmek yerine 'Active Filters (3)' badge'i gösterilemedi. Clear button'u hep görünmüyor. Mobile'de search + filters üst üste yığılıyor.",
+    "tasarımÖnerisi": "1. Filter toolbar redesign: Horizontal scrollable pill UI (mobile) veya grid layout (desktop)\n2. Active filter badge'i: Tüm filtreler > 'Applied Filters' badge ile collapse/expand\n3. Mobile filter: Bottom sheet modal (FilterPanel component) — 'Apply Filters' button ile confirm\n4. Advanced filters: Collapsible 'Daha Fazla Filtre' section (assignee, retest_status hidden initially)",
+    "frontendDeğişiklik": "1. FilterToolbar.tsx bileşen: ResponsiveFilterBar (md'de sticky top)\n2. FilterBadge component: Active filter tag'leri show/hide toggle\n3. FilterPanel modal component (mobile): showFilters state\n4. useFilterState hook: filter values + URL sync\n5. Advanced filters: hidden defaultFocus state",
+    "componentAyrımı": [
+      "FilterToolbar.tsx (responsive layout)",
+      "FilterBadge.tsx (active filter pill)",
+      "FilterPanel.tsx (mobile bottom sheet)",
+      "AdvancedFiltersSection.tsx (collapsible)"
+    ],
+    "onayGerekli": false,
+    "eforSaat": 6,
+    "riski": "Orta"
+  },
+  {
+    "ekran": "Case List Page (Defects List)",
+    "dosya": "defects/page.tsx",
+    "sorunId": "DEFECT-LIST-002",
+    "sorunBaslığı": "Table Responsive Davranışı Kırık — Sütunlar Responsive Hide Ama Card View Yok",
+    "mevcut": "Satır 1440-1450: hidden md:table-cell, hidden lg:table-cell, hidden xl:table-cell var. Mobile'de yalnızca Key, Title, Status gösteriliyor. Severity, Priority, Retest, Age gizleniyor ama horizontal scroll yok.",
+    "problem": "Mobile'de Severity/Priority dropdown tıklanmış defect modal'ında gösteriliyor ama liste view'ında görülmemesi UX problem. Pinch-zoom dışında mobile'de tüm info çekilemiyor. Card view alternative yok.",
+    "tasarımÖnerisi": "1. Mobile: Card view switch (grid view mı table mi toggle)\n2. Card layout: Severity dot + Title, Status badge + Priority badge ekle (compact)\n3. Tap action: Card'a long-press > context menu (Edit, Delete) veya tıkla = modal aç\n4. Sütun visibility toggle: Desktop'ta settings gear icon — preferred columns save localStorage'de",
+    "frontendDeğişiklik": "1. ViewToggle button: Card <-> Table switch (mobile only)\n2. DefectCard.tsx component: Severity/Priority badges + Title + Status + Quick edit\n3. ResponsiveDefectList.tsx: useMediaQuery('(min-width: 768px)') ile conditional render\n4. ColumnVisibility state + localStorage sync (desktop table)\n5. Long-press gesture detection (mobile context menu)",
+    "componentAyrımı": [
+      "DefectCard.tsx (mobile card view)",
+      "DefectTable.tsx (desktop table view)",
+      "ViewToggle.tsx (card/table switch)",
+      "ColumnVisibility.tsx (desktop column picker)"
+    ],
+    "onayGerekli": false,
+    "eforSaat": 8,
+    "riski": "Yüksek"
+  },
+  {
+    "ekran": "Case List Page (Defects List)",
+    "dosya": "defects/page.tsx",
+    "sorunId": "DEFECT-LIST-003",
+    "sorunBaslığı": "Modal Açılış Animasyonu Yok — Defect Edit Modal'da Jarring Effect",
+    "mevcut": "DefectEditModal (satır 667-950): fixed position modal render. Yüksek z-index (50) var ama açılış animasyonu yok (opacity, scale). Modal overlay backgroundColor sabit, transition yok.",
+    "problem": "Modal'ı aç/kapat sırasında abrupt visual change. Modal content scale-down'dan normal'e sıçradığı hissediliyor. Mobile'de keyboard açıldığında modal'ın üstü kaplanıyor (fixed viewport).",
+    "tasarımÖnerisi": "1. Modal açılış: scale 95% > 100% (0.2s), opacity 0 > 1\n2. Modal kapanış: reverse animasyon (undo effect)\n3. Overlay: backdropFilter blur + animated fade-in\n4. Mobile: Bottom sheet pattern — modal height: calc(100vh - 100px), scroll içeride",
+    "frontendDeğişiklik": "1. Modal wrapper: framer-motion AnimatePresence + motion.div ile enter/exit animate\n2. Tailwind @keyframes: @keyframes slideIn { from { ... transform: translateY(10px) ... } }\n3. className: animate-slideIn transition-all duration-200\n4. Mobile: useMediaQuery check > bottom sheet layout (position: fixed bottom-0, height calc)\n5. Keyboard handling: useEffect(() => { window.addEventListener('resize', handleKeyboardUp) })",
+    "componentAyrımı": [
+      "ModalWrapper.tsx (animated container)",
+      "BottomSheetModal.tsx (mobile alternative)"
+    ],
+    "onayGerekli": false,
+    "eforSaat": 4,
+    "riski": "Düşük"
+  },
+  {
+    "ekran": "Dashboard",
+    "dosya": "dashboard/page.tsx",
+    "sorunId": "DASH-001",
+    "sorunBaslığı": "Dashboard Overload — Çok Fazla Widget Aynı Anda, Sayfanın Alt'ı Görülmüyor",
+    "mevcut": "Dashboard 40+ component, 10+ chart/widget. Sayfa boyu 3000px+. Kullanıcı istatistikleri, trends, insights, audit logs, flaky tests, review queue hepsi single-page aşağı kaydırılarak bulunuyor. Proje yeni ise QuickSetupWizard gösteriliyor (satır 1288) ama sonra 20+ widget yükleniyor.",
+    "problem": "Cognitive overload — tüm KPI'lar aynı öneme görünüyor. Önemli actions (Run Başlat, Case Ekle) Quick Actions bölümünde 'ayak kıyafeti' haline gelmiş. Mobile'de scroll uzunluğu insane (swipe yorması).",
+    "tasarımÖnerisi": "1. Dashboard tab layout: Overview | Trends | Health | My Work | Audit\n2. Overview tab (default): Top 3-4 stat card + Health widget + Quick Setup + My Work mini\n3. Trends tab: Run trend + Defect trend (fold'u ayrı)\n4. Health tab: Detailed risk analysis, SLA breach, blockers\n5. My Work tab: My Cases + My Open Defects (personalized)\n6. Audit tab: Activity feed + detailed timeline",
+    "frontendDeğişiklik": "1. DashboardTabs.tsx wrapper: useSearchParams() ile active tab track\n2. Tab-specific components: OverviewTab.tsx, TrendsTab.tsx, vb\n3. Conditional render: activeTab === 'overview' ? <OverviewTab /> : ...\n4. Lazy load: other tabs import with React.lazy()\n5. URL sync: ?tab=trends — bookmark yapılabilir",
+    "componentAyrımı": [
+      "OverviewTab.tsx (top stats + health + setup)",
+      "TrendsTab.tsx (charts + trends)",
+      "HealthTab.tsx (health + blockers + SLA)",
+      "MyWorkTab.tsx (personalized)",
+      "AuditTab.tsx (activity feed)"
+    ],
+    "onayGerekli": true,
+    "eforSaat": 12,
+    "riski": "Yüksek"
+  },
+  {
+    "ekran": "Dashboard",
+    "dosya": "dashboard/page.tsx",
+    "sorunId": "DASH-002",
+    "sorunBaslığı": "Chart Responsiveness Kırık — SVG Charts Desktop Boyutunda Render",
+    "mevcut": "RunTrendChart (satır 527-658): viewBox sabit WIDTH=600, padding sabit. Desktop'ta iyi, tablet'te chart'ın üstüne açılıyor. Mobile'te ekrana sığmıyor, horizontal scroll gerekli.",
+    "problem": "SVG viewBox responsive değil. width: 100% var ama iç yapı (PAD_X=32) sabit — mobile'de label'lar üst üste yazılıyor. Defect trend mini chart'ta aynı sorun (satır 469-523).",
+    "tasarımÖnerisi": "1. SVG chart'lar container'ın width'ine göre scale etsin\n2. Padding/font size: responsive breakpoint'e göre adjust\n3. Mobile: xAxis label'ları rotate 45° veya omit ilk/son göster\n4. Fallback: Mobile'de chart yerine 'swipe>' text gösterilebilir (horizontal scroll için)",
+    "frontendDeğişiklik": "1. ChartContainer component: useWindowSize() hook ile width track\n2. ResponsiveChart component: windowWidth'e göre WIDTH/HEIGHT recalc\n3. Breakpoint-based padding: const PAD_X = windowWidth < 768 ? 16 : 32\n4. xAxis label: slice(0, windowWidth < 768 ? 1 : 3) ile count reduce\n5. CSS: .chart-container { overflow-x: auto } tablet'te",
+    "componentAyrımı": [
+      "ResponsiveChart.tsx (wrapper component)",
+      "useWindowSize.ts (hook)"
+    ],
+    "onayGerekli": false,
+    "eforSaat": 5,
+    "riski": "Düşük"
+  },
+  {
+    "ekran": "Dashboard",
+    "dosya": "dashboard/page.tsx",
+    "sorunId": "DASH-003",
+    "sorunBaslığı": "Quick Actions Bar'ın Buttons'ı Fazla — 8 Link Hepsi Primary/Outline Colo",
+    "mevcut": "Satır 1422-1441: Quick Actions section. 8 button hepsi lg size, 2 primary (Case, Run), geri kalanı outline. Mobile'te 4 satırdan fazla.",
+    "problem": "CTA hierarchy yok — tüm button'lar eşit ağırlıkta. 'Run Başlat' ve 'Case Ekle' önemli, ama 'Raporlar', 'Standup' aynı renk. Mobile'de satır sayısı fazla, sayfanın alt'ına kaymış.",
+    "tasarımÖnerisi": "1. CTA hierarchy: Primary = Run Başlat, Case Ekle (top 2). Secondary = Plan, Defect. Tertiary = Raporlar, Standup (dropdown veya modal)\n2. Mobile layout: Grid 2x2 (4 main action), '+Daha Fazla' dropdown ile rest\n3. Button variant rebalance: primary ve outline'dan secondary variant'a geç\n4. Icon + label: İcon ekle (play, plus, list, etc) visual clarity için",
+    "frontendDeğişiklik": "1. QuickActionsBar.tsx refactor: primary actions array + more actions array\n2. Mobile: grid-cols-2, more actions: state-based dropdown\n3. SecondaryButton variant (tailwind): border-border bg-surface-overlay text-fg hover:border-brand/40\n4. MoreActionsDropdown component\n5. Icon mapping: { label: 'Case Ekle', icon: 'plus', href: '...' }",
+    "componentAyrımı": [
+      "QuickActionsBar.tsx (refactored)",
+      "MoreActionsDropdown.tsx (mobile menu)"
+    ],
+    "onayGerekli": false,
+    "eforSaat": 3,
+    "riski": "Düşük"
+  },
+  {
+    "ekran": "Runs Page (WorkspaceShell)",
+    "dosya": "runs/page.tsx (WorkspaceShell)",
+    "sorunId": "RUNS-001",
+    "sorunBaslığı": "WorkspaceShell Siyah Kutu — Yapısı Anlaşılmıyor",
+    "mevcut": "Satır 8-15: WorkspaceShell component import ve render var. Yalnızca projectId + mpid + initialMode parameter geçiliyor. Component def'i _components/workspace klasöründe. Sayfanın geri kalanı boş/gizli.",
+    "problem": "Architecture opaque — Workspace'in render'ı ne, state'i ne, child components nelerdir bilinmiyor. Design audit için test edilemez. İçeriğe bakamadığımız için run list, filter, action'ları analyze edemeyiz.",
+    "tasarımÖnerisi": "1. _components/workspace/WorkspaceShell.tsx inspect et\n2. Eğer karmaşık ise çokça sub-component'e ayrılmış olabilir\n3. Runs, Cases alt bölümleri check et\n4. Filter/Table/Modal pattern design audit yapılması lazım",
+    "frontendDeğişiklik": "External audit — worktree'ye gir, _components/workspace/WorkspaceShell.tsx aç",
+    "componentAyrımı": [
+      "WorkspaceShell.tsx (parent container)",
+      "[Diğer component'ler TBD]"
+    ],
+    "onayGerekli": true,
+    "eforSaat": 8,
+    "riski": "Yüksek"
+  },
+  {
+    "ekran": "Members Page",
+    "dosya": "members/page.tsx",
+    "sorunId": "MEMBERS-001",
+    "sorunBaslığı": "Invite Modal'da Rol Seçim'i Verbose — Radio Button Group Zor Anlaşılıyor",
+    "mevcut": "InviteModal (satır 239-254): 3 role (admin, member, viewer) için 3 radio button label panel. Her label'da description var, panel 4 satırdan fazla alıyor. Mobile'de modal'ın 70%'i role seçimi ile dolmuş.",
+    "problem": "Role description'lar uzun (satır 28-30). Rol seçimi tamamlanmadan modal'ın üst kısmı görülmüyor. Modal'ın ilk focus email input'a geçmesi gerekti ama role panel yüksekliği sebebi ile scroll gerekli.",
+    "tasarımÖnerisi": "1. Radio button group: Compact icon + label (description tooltipped)\n2. Modal layout: Email input > Role selector (inline 3 button) > Submit\n3. Role description: Hover tooltip (popover) — modal height azalsın\n4. Variant: Role önceden 'member' default, change gerekirse tıkla",
+    "frontendDeğişiklik": "1. InviteModal padding/spacing: reduce (p-4 instead of p-6)\n2. RoleSelector.tsx: 3 compact button (icon + label, no description inline)\n3. Tooltip component: on hover description göster (Headless UI Popover)\n4. Mobile: form vertical stacked ama kompakt\n5. defaultValue: role='member'",
+    "componentAyrımı": [
+      "RoleSelector.tsx (radio group variant)",
+      "RoleTooltip.tsx (description popover)"
+    ],
+    "onayGerekli": false,
+    "eforSaat": 3,
+    "riski": "Düşük"
+  },
+  {
+    "ekran": "Members Page",
+    "dosya": "members/page.tsx",
+    "sorunId": "MEMBERS-002",
+    "sorunBaslığı": "Üye Listesi'nde Role Dropdown'ı Overflow — Absolute Position Mobile'de Patladı",
+    "mevcut": "Satır 476-499: openRoleMenu state ile dropdown absolute right-0 top-full render. Mobile'de screen'ın sağ kenarından dışarı taşıyor. Dropdown min-w-[200px] fixed.",
+    "problem": "Mobile portrait'te dropdown tamamı görülmüyor. Parent li'nin overflow: hidden olması gerekebilir ama parent scroll wrapper'ında ise clipped oluyor. RTL (Türkçe) desteklememesi için ltr var ama absolute positioning RTL'de ters olamıyor.",
+    "tasarımÖnerisi": "1. Dropdown pozisyon: useEffect + ref ile detect en iyi taraf (left vs right)\n2. Mobile: dropdown yerine modal (role change → confirmation modal aç)\n3. Touch-outside: onBlur yerine document click handler\n4. Dropdown arrow: Visual indicator parent button'a pointing",
+    "frontendDeğişiklik": "1. useDropdownPosition hook: parent rect + viewport > best placement (left/right/below)\n2. Mobile: isMobile && openRoleMenu → RoleChangeModal göster\n3. onBlur + document.addEventListener('click') dual handler\n4. Dropdown styling: right-0 vs left-0 conditional placement\n5. Arrow indicator: absolute pseudo-element pointing parent button",
+    "componentAyrımı": [
+      "useDropdownPosition.ts (hook)",
+      "RoleChangeModal.tsx (mobile alternative)"
+    ],
+    "onayGerekli": false,
+    "eforSaat": 4,
+    "riski": "Orta"
+  },
+  {
+    "ekran": "Admin Users Page",
+    "dosya": "admin/users/page.tsx",
+    "sorunId": "ADMIN-USERS-001",
+    "sorunBaslığı": "Form Layout'ı Cramped — Girdi Alanları Dar, Mobile'de İmkansız",
+    "mevcut": "Satır 140-164: Create user form, flex wrap items-end gap-3. 4 input (email, password, name, role) + button. flex-wrap var ama mobile'de hepsi bir satırda almaya çalışıyor (min-w classes var ama override etmiyor).",
+    "problem": "Mobile'de input'lar sıkışık, yazı yazamama. Password alanı çok dar. Button alanları yanlış satırda kaldığı zaman yukarı boşluğu var. Form validation'ı inline olmadığından error'ları görmek zor.",
+    "tasarımÖnerisi": "1. Stacked form (mobile): grid-cols-1. Desktop: grid-cols-4 pattern\n2. Input width: flex-1 (mobile), min-w override etme\n3. Error message: inline (input altında) — real-time validation\n4. Button: full-width mobile, compact desktop\n5. Form grouping: Email ve Password ayrı row, Name + Role ayrı row",
+    "frontendDeğişiklik": "1. FormField component: label + input + error display trio\n2. Grid responsive: grid md:grid-cols-2 lg:grid-cols-4\n3. Zod schema form validation: input onBlur trigger validation\n4. Form.FormProvider > Field mapping pattern\n5. Button type='submit' disabled={!form.formState.isValid}",
+    "componentAyrımı": [
+      "FormField.tsx (label+input+error)",
+      "UserCreateForm.tsx (refactored)"
+    ],
+    "onayGerekli": false,
+    "eforSaat": 4,
+    "riski": "Düşük"
+  },
+  {
+    "ekran": "Admin Users Page",
+    "dosya": "admin/users/page.tsx",
+    "sorunId": "ADMIN-USERS-002",
+    "sorunBaslığı": "Tablo Sütun Alignment Kırık — Font Size İnce, Mobile'de Okunmaz",
+    "mevcut": "Satır 269-330: Table text-sm (14px). Tüm text slate-400/500 (low contrast). Mobile'de horizontal scroll gerekli ama user çoğu bilgiye scrollsuz erişemiyor.",
+    "problem": "Kontras: slate-400 text + slate-900 bg = WCAG AA başarısız. Mobile'de yalnızca email + durum gösterilmesi gerekli, role/created_at gizlenebilir. Font boyutu 12px'e inmiş gibi görünüyor (browser zoom issue mi).",
+    "tasarımÖnerisi": "1. Kontras fix: text-slate-200 (durum badge için), text-white (email için)\n2. Mobile card view: Email + Status + Quick action, Roles/Created gizli (expand ile aç)\n3. Table header: font-semibold + text-slate-300 (contrast boost)\n4. Row hover: bg-slate-800/50 (şu anda var ama subtle)\n5. Responsive: md+ table, <md card grid",
+    "frontendDeğişiklik": "1. Tailwind color overhaul: slate-900->slate-950, colors light up\n2. TableCell component: text-white (header), text-slate-200 (body)\n3. UserCard.tsx: Mobile card variant\n4. Responsive grid: hidden md:table — UserCard show\n5. Badge color: bg-emerald-500/20 > bg-emerald-600/30, text-emerald-400 > text-emerald-300",
+    "componentAyrımı": [
+      "UserCard.tsx (mobile)",
+      "UserTable.tsx (desktop refactored)"
+    ],
+    "onayGerekli": false,
+    "eforSaat": 3,
+    "riski": "Düşük"
+  }
+]

@@ -63,6 +63,10 @@ def create_app() -> FastAPI:
     )
     register_request_tracing(app)
 
+    # Correlation ID middleware (extract/generate X-Correlation-ID for tracing)
+    from app.infra.correlation_middleware import CorrelationMiddleware
+    app.add_middleware(CorrelationMiddleware)
+
     # i18n middleware (locale from ?lang / X-Locale / Accept-Language)
     from app.core.i18n import LocaleMiddleware
     app.add_middleware(LocaleMiddleware)

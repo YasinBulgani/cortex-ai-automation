@@ -94,6 +94,19 @@ repos:
         files: ^qa/(cases|requirements)/.*\.md$
         stages: [pre-commit]
 
+      # ─── Test quality guards (ADR-0013) ────────────────────────────────
+      - id: flaky-test-detection
+        name: "Guard: Flaky test detection (run 3x)"
+        description: >-
+          Changed backend test dosyalarını 3 kez çalıştırarak intermittent
+          failure'ları yakalar. Başarı/başarısızlık değişirse commit'i durdurur.
+          Kullanım: git commit --no-verify ile atla (emergency only).
+        entry: python3 scripts/detect_flaky.py --run-count 3
+        language: system
+        pass_filenames: false
+        files: ^backend/tests/.*\.py$
+        stages: [pre-commit]
+
       # ─── Security guards (D3.4) ─────────────────────────────────────────
       - id: gitleaks-local
         name: "Guard: gitleaks (secret scan)"

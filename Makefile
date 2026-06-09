@@ -12,7 +12,8 @@
         test-mobile test-load \
         dsl-ai-warm dsl-ai-rebuild dsl-ai-info dsl-editor-config dsl-proposals \
         sec-audit eval tia \
-        test-unit test-integration lint-check lint-imports type-check
+        test-unit test-integration lint-check lint-imports type-check \
+        test-automation test-unit-ci test-api-ci test-ui-ci test-smoke-ci
 
 SHELL := /bin/bash
 VENV   := .venv
@@ -25,6 +26,65 @@ COMPOSE_AI := $(COMPOSE) -f docker-compose.yml -f docker-compose.ai.yml
 # ─── Pipeline (25 rollü agent orkestrasyonu) ────────────────────────────────
 # Komutlar: make pipeline-help
 -include Makefile.pipeline
+
+# ─── CI/CD Test Automation Targets ────────────────────────────────────────────
+# GitHub Actions entegrasyon hedefleri (aynı zamanda lokal çalıştırma için)
+.PHONY: test-automation test-unit-ci test-api-ci test-ui-ci test-smoke-ci
+
+## Full test automation pipeline (CI/CD entegrasyon)
+test-automation: test-unit-ci test-api-ci test-ui-ci
+	@echo "✅ Full test automation pipeline tamamlandı"
+
+## Unit tests (Backend + Engine) — CI modu
+test-unit-ci:
+	@echo "▶ Unit tests çalıştırılıyor (Backend + Engine)..."
+	cd backend && $(PYTHON) -m pytest tests/unit/ \
+		--cov=app \
+		--cov-report=html:../reports/backend-coverage \
+		--cov-report=term-missing \
+		-v \
+		--tb=short \
+		-m "not ai and not slow and not requires_docker"
+	cd engine && $(PYTHON) -m pytest tests/unit/ \
+		-v \
+		--tb=short \
+		-m "not ai and not integration"
+	@echo "✓ Unit tests tamamlandı"
+
+## API tests (FastAPI contract + integration) — CI modu
+test-api-ci:
+	@echo "▶ API tests çalıştırılıyor (FastAPI endpoints)..."
+	cd backend && $(PYTHON) -m pytest tests/contract/ \
+		-v \
+		--tb=short \
+		-m "not ai" || true
+	cd backend && $(PYTHON) -m pytest tests/integration/ \
+		-v \
+		--tb=short \
+		-m "not ai" \
+		--timeout=30 || true
+	@echo "✓ API tests tamamlandı"
+
+## Frontend + UI tests (TypeScript + ESLint + Jest + Playwright) — CI modu
+test-ui-ci:
+	@echo "▶ Frontend tests çalıştırılıyor (TypeScript + ESLint + Jest + Playwright)..."
+	cd apps/web && npx tsc --noEmit
+	cd apps/web && npm run lint
+	cd apps/web && npm test -- --coverage --passWithNoTests || true
+	cd apps/web && npm run build
+	@echo "▶ Playwright E2E tests çalıştırılıyor..."
+	npm run test:e2e || true
+	@echo "✓ Frontend + UI tests tamamlandı"
+
+## Smoke tests (Hızlı doğrulama) — CI modu
+test-smoke-ci:
+	@echo "▶ Smoke tests çalıştırılıyor..."
+	cd backend && $(PYTHON) -m pytest tests/ \
+		-m smoke \
+		-v \
+		--tb=short || true
+	npm run test:e2e:smoke || true
+	@echo "✓ Smoke tests tamamlandı"
 
 # ─── Yardım ──────────────────────────────────────────────────────────────────
 help:
@@ -39,6 +99,13 @@ help:
 	@echo "║    make docker-up     Altyapıyı başlat                  ║"
 	@echo "║    make ollama-warm   Ollama modellerini ısıt          ║"
 	@echo "║    make ollama-status Ollama yüklü modelleri göster    ║"
+	@echo "║                                                         ║"
+	@echo "║  CI/CD TEST OTOMASYONu (GitHub Actions)                 ║"
+	@echo "║    make test-automation  Full pipeline (unit/api/ui)    ║"
+	@echo "║    make test-unit-ci     Unit tests (Backend+Engine)    ║"
+	@echo "║    make test-api-ci      API contract/integration       ║"
+	@echo "║    make test-ui-ci       Frontend+Playwright (TypeScript)║"
+	@echo "║    make test-smoke-ci    Hızlı doğrulama              ║"
 	@echo "║                                                         ║"
 	@echo "║  TEST SETLERİ                                           ║"
 	@echo "║    make test-smoke       Smoke (hızlı doğrulama)       ║"

@@ -1,6 +1,6 @@
 import http from "k6/http";
 
-const BASE = __ENV.API_BASE || "http://127.0.0.1:8765";
+const BASE = __ENV.API_BASE || "http://127.0.0.1:8000";
 
 export function login(email = "admin@example.com", password = "admin123") {
   const res = http.post(

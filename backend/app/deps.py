@@ -103,19 +103,31 @@ def _user_permissions(user: User) -> set[str]:
 
 
 def require_permission(perm: str) -> Callable:
+    """Verify user has explicit permission or admin wildcard.
+
+    S-HIGH-1 FIX: Use enum validation instead of hardcoded string literal.
+    Wildcard is only valid for admin.* prefix permissions.
+    """
     def dependency(
         user: Annotated[User, Depends(get_current_user)],
     ) -> User:
         perms = _user_permissions(user)
-        # S-HIGH-1: Wildcard permission validation
-        # Check exact admin.* match (not substring), then specific permission
-        has_admin_wildcard = "admin.*" in perms
-        has_permission = perm in perms
-        if has_admin_wildcard or has_permission:
+
+        # Check explicit permission match first
+        if perm in perms:
             return user
+
+        # Only allow admin.* wildcard for admin-scope permissions
+        if perm.startswith("admin."):
+            # Validate wildcard is for admin scope, not other scopes
+            if "admin.*" in perms:
+                logger.debug("User granted via admin wildcard: user=%s perm=%s", user.id, perm)
+                return user
+
+        logger.warning("Permission denied: user=%s perm=%s available=%s", user.id, perm, perms)
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail=f"Bu işlem için yetkiniz yok: {perm}",
+            detail=f"Permission denied: {perm}",
         )
     return dependency
 

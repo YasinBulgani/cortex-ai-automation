@@ -3,9 +3,13 @@
 Tests are fully self-contained: no DB, no HTTP, no real Redis.
 Covers: hash_password, verify_password, create_access_token, decode_token,
 revoke_token, create_password_reset_token, verify_password_reset_token.
+
+Note: clean_event_loop fixture (from conftest) ensures asyncio event-loop
+isolation per test to prevent async pollution (ADR-0013).
 """
 from __future__ import annotations
 
+import asyncio
 import time
 from datetime import datetime, timedelta, timezone
 from unittest.mock import MagicMock, patch
@@ -41,35 +45,36 @@ USER_ID = "user-abc-123"
 # ---------------------------------------------------------------------------
 
 class TestHashPassword:
-    def test_returns_non_empty_string(self):
+    def test_returns_non_empty_string(self, clean_event_loop):
+        """hash_password must return non-empty string."""
         hashed = hash_password("secret123")
         assert isinstance(hashed, str)
         assert len(hashed) > 0
 
-    def test_hash_is_different_from_plaintext(self):
+    def test_hash_is_different_from_plaintext(self, clean_event_loop):
         plain = "mysecretpassword"
         assert hash_password(plain) != plain
 
-    def test_two_hashes_of_same_password_differ(self):
+    def test_two_hashes_of_same_password_differ(self, clean_event_loop):
         """bcrypt uses random salt — same input must produce different hashes."""
         h1 = hash_password("hello")
         h2 = hash_password("hello")
         assert h1 != h2
 
-    def test_verify_correct_password_returns_true(self):
+    def test_verify_correct_password_returns_true(self, clean_event_loop):
         plain = "correcthorse"
         hashed = hash_password(plain)
         assert verify_password(plain, hashed) is True
 
-    def test_verify_wrong_password_returns_false(self):
+    def test_verify_wrong_password_returns_false(self, clean_event_loop):
         hashed = hash_password("realpassword")
         assert verify_password("wrongpassword", hashed) is False
 
-    def test_verify_empty_string_returns_false(self):
+    def test_verify_empty_string_returns_false(self, clean_event_loop):
         hashed = hash_password("something")
         assert verify_password("", hashed) is False
 
-    def test_verify_with_garbage_hash_returns_false(self):
+    def test_verify_with_garbage_hash_returns_false(self, clean_event_loop):
         assert verify_password("anything", "not-a-valid-hash") is False
 
 

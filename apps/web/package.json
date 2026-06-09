@@ -8,6 +8,11 @@
     "lint": "eslint . --ext .ts,.tsx --max-warnings=0",
     "test": "node -e \"try{require.resolve('jest/bin/jest');process.exit(42)}catch(e){console.log('[tspm-web] jest not installed yet — run npm i to enable');process.exit(0)}\" || jest --runInBand",
     "test:watch": "jest --watch",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:debug": "playwright test --debug",
+    "test:e2e:headed": "playwright test --headed",
+    "test:e2e:report": "playwright show-report",
     "type-check": "tsc --noEmit",
     "clean": "rm -rf .next .turbo"
   },
@@ -57,6 +62,7 @@
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.10.1",
+    "@playwright/test": "^1.60.0",
     "@swc/helpers": "^0.5.15",
     "@swc/jest": "^0.2.39",
     "@testing-library/dom": "^10.4.1",

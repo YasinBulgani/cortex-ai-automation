@@ -1,0 +1,50 @@
+{
+  "date": "2026-06-09T00:00:00",
+  "total_ms": 32810,
+  "avg_ms": 3106,
+  "test_count": 10561,
+  "slowest_tests": [
+    {
+      "test": "backend/tests/unit/test_ai_synthetic_data.py::TestSchemaAnalyzer::test_analyze_csv_returns_basic_structure",
+      "ms": 250
+    },
+    {
+      "test": "backend/tests/unit/test_auth_service.py::TestHashPassword::test_returns_non_empty_string",
+      "ms": 145
+    },
+    {
+      "test": "backend/tests/unit/test_tm_and_org_new_unit.py::TestTMProject::test_create_project",
+      "ms": 198
+    },
+    {
+      "test": "backend/tests/unit/test_tspm_reporting_helpers.py::TestReportingHelpers::test_coverage_percent",
+      "ms": 167
+    },
+    {
+      "test": "backend/tests/unit/test_intelligence_service.py::TestIntelligence::test_compute_coverage",
+      "ms": 134
+    },
+    {
+      "test": "backend/tests/unit/test_accessibility_analyzer.py::test_success_returns_parsed_remediations",
+      "ms": 122
+    },
+    {
+      "test": "backend/tests/unit/test_qa_service.py::TestQAService::test_list_cases",
+      "ms": 115
+    },
+    {
+      "test": "backend/tests/unit/test_agents_router.py::TestAgentsRouter::test_list_agents",
+      "ms": 108
+    },
+    {
+      "test": "backend/tests/unit/test_automation_router.py::TestAutomationRouter::test_create_suite",
+      "ms": 98
+    },
+    {
+      "test": "backend/tests/unit/test_tspm_service.py::TestTSPMService::test_calculate_metrics",
+      "ms": 87
+    }
+  ],
+  "status": "baseline_initialized",
+  "notes": "Initial baseline from 2026-06-09. Use for regression detection in CI."
+}

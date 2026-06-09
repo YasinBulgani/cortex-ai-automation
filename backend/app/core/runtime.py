@@ -101,23 +101,30 @@ def initialize_sentry() -> None:
 
 
 def build_rate_limiter() -> Tuple[Optional[Any], bool, Optional[type], Optional[Any]]:
-    """Create optional slowapi rate limiter components."""
+    """Create optional slowapi rate limiter components.
+
+    A-MED-3: Rate limiter runtime safety with eager Redis validation.
+
+    Non-production: eagerly ping Redis (lazy connections fail unpredictably)
+    Production: fail-closed if Redis unavailable
+    """
     require_rate_limit = settings.is_production_like or os.getenv(
         "RATE_LIMIT_REQUIRED",
         "",
     ).lower() in {"1", "true", "yes"}
-    if require_rate_limit:
-        ensure_redis_available(required=True)
-    else:
-        # Non-production: eagerly ping Redis so we know if it's up.
-        # SlowAPI uses lazy connections — if Redis is down the first request
-        # will crash instead of gracefully skipping rate limiting.
-        if not _redis_ping_ok():
-            logger.warning(
-                "Redis erişilemiyor (%s), rate limiting devre dışı.",
-                settings.redis_url,
+
+    # ✓ Eager Redis check (not lazy) to prevent runtime crashes
+    if not _redis_ping_ok():
+        if require_rate_limit:
+            raise RuntimeError(
+                f"Redis unavailable ({settings.redis_url}) - rate limiting required in production"
             )
-            return None, False, None, None
+        logger.warning(
+            "Redis erişilemiyor (%s), rate limiting devre dışı.",
+            settings.redis_url,
+        )
+        return None, False, None, None
+
     try:
         from slowapi import Limiter, _rate_limit_exceeded_handler
         from slowapi.errors import RateLimitExceeded
@@ -128,6 +135,7 @@ def build_rate_limiter() -> Tuple[Optional[Any], bool, Optional[type], Optional[
             default_limits=[settings.rate_limit_default],
             storage_uri=settings.redis_url,
         )
+        logger.info("Rate limiter initialized: %s", settings.rate_limit_default)
         return limiter, True, RateLimitExceeded, _rate_limit_exceeded_handler
     except ImportError as exc:
         if require_rate_limit:
@@ -136,9 +144,11 @@ def build_rate_limiter() -> Tuple[Optional[Any], bool, Optional[type], Optional[
             ) from exc
         logger.warning("slowapi bulunamadi, rate limiting devre disi.")
         return None, False, None, None
-    except Exception:
+    except Exception as exc:
         if require_rate_limit:
-            raise
+            raise RuntimeError(
+                f"Rate limiter initialization failed: {exc}"
+            ) from exc
         logger.warning("Rate limiter baslatilamadi, rate limiting devre disi.", exc_info=True)
         return None, False, None, None
 

@@ -215,7 +215,7 @@ class RefreshToken(Base):
     __tablename__ = "sd_refresh_tokens"
 
     id: Mapped[str] = mapped_column(
-        UUID(as_uuid=False), primary_key=True,
+        UUID(as_uuid=False), primary_key=True, default=_uuid
     )
     user_id: Mapped[str] = mapped_column(
         UUID(as_uuid=False), ForeignKey("sd_users.id", ondelete="CASCADE"), nullable=False,
