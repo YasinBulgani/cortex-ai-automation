@@ -6,7 +6,7 @@
 
 import React, { useState, useRef, useEffect } from 'react'
 import { MessageCircle, X, Send, Loader } from 'lucide-react'
-import { Button } from '@/components/ui/Button'
+import { Button } from '@/components/ui/button'
 import useAIChat from '@/lib/hooks/useAIChat'
 
 interface Message {
