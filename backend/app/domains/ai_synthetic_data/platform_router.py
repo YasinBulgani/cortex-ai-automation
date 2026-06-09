@@ -104,9 +104,18 @@ async def analyze_schema(
 
     Kaynak: Platform-v4 `schemas/analyze` — Faz 3.B gap analysis'in
     "backend'de eksik" birinci özelliği.
+
+    S-HIGH-3: File upload validation enforced.
     """
-    content = await file.read()
-    filename = file.filename or "upload"
+    from app.core.security_validators import validate_upload_file
+
+    # S-HIGH-3: Validate file before processing
+    content, filename = await validate_upload_file(
+        file,
+        allowed_extensions={"csv", "json"},
+        max_size=5 * 1024 * 1024,
+        category="code",
+    )
 
     analyzer = SchemaAnalyzer()
     classifier = ColumnClassifier()

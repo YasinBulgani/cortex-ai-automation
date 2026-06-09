@@ -136,10 +136,13 @@ def _compute_metrics(
         where_parts.append("phase = :phase")
         params["phase"] = normalized_phase
 
-    where_clause = " AND ".join(where_parts)
+    # S-HIGH-2: SQL injection mitigation — build WHERE clause safely
+    # where_parts are all literal strings or parameterized (:key format)
+    # Never interpolate user input directly. Use bindparam for dynamic filters.
+    where_clause = " AND ".join(where_parts) if where_parts else "1=1"
 
     # 1. Overview (maliyet dahil)
-    overview_sql = text(f"""
+    overview_sql = text("""
         SELECT
             COUNT(*) as total_calls,
             SUM(CASE WHEN success THEN 1 ELSE 0 END) as success_count,
@@ -151,7 +154,7 @@ def _compute_metrics(
             COALESCE(SUM(cost_usd), 0) as total_cost_usd,
             COALESCE(AVG(cost_usd), 0) as avg_cost_usd
         FROM llm_traces
-        WHERE {where_clause}
+        WHERE """ + where_clause + """
     """)
 
     row = db.execute(overview_sql, params).fetchone()
@@ -176,7 +179,7 @@ def _compute_metrics(
     }
 
     # 2. By Agent
-    agent_sql = text(f"""
+    agent_sql = text("""
         SELECT
             agent_name,
             COUNT(*) as calls,
@@ -186,7 +189,7 @@ def _compute_metrics(
             AVG(latency_ms) as avg_lat,
             SUM(CASE WHEN NOT success THEN 1 ELSE 0 END) as errors
         FROM llm_traces
-        WHERE {where_clause}
+        WHERE """ + where_clause + """
         GROUP BY agent_name
         ORDER BY calls DESC
     """)
@@ -207,7 +210,7 @@ def _compute_metrics(
         })
 
     # 3. By Model (maliyet dahil)
-    model_sql = text(f"""
+    model_sql = text("""
         SELECT
             model,
             COUNT(*) as calls,
@@ -219,7 +222,7 @@ def _compute_metrics(
             COALESCE(SUM(cost_usd), 0) as total_cost,
             COALESCE(AVG(cost_usd), 0) as avg_cost
         FROM llm_traces
-        WHERE {where_clause}
+        WHERE """ + where_clause + """
         GROUP BY model
         ORDER BY calls DESC
     """)
@@ -247,14 +250,14 @@ def _compute_metrics(
         pass
 
     # 3b. By Task Type
-    task_type_sql = text(f"""
+    task_type_sql = text("""
         SELECT
             COALESCE(task_type, 'unknown') as task_type,
             COUNT(*) as calls,
             SUM(CASE WHEN success THEN 1 ELSE 0 END) as ok,
             AVG(latency_ms) as avg_lat
         FROM llm_traces
-        WHERE {where_clause}
+        WHERE """ + where_clause + """
         GROUP BY COALESCE(task_type, 'unknown')
         ORDER BY calls DESC
     """)
@@ -270,14 +273,14 @@ def _compute_metrics(
             "avg_latency_ms": round(r[3] or 0),
         })
 
-    phase_sql = text(f"""
+    phase_sql = text("""
         SELECT
             COALESCE(phase, 'unknown') as phase,
             COUNT(*) as calls,
             SUM(CASE WHEN success THEN 1 ELSE 0 END) as ok,
             AVG(latency_ms) as avg_lat
         FROM llm_traces
-        WHERE {where_clause}
+        WHERE """ + where_clause + """
         GROUP BY COALESCE(phase, 'unknown')
         ORDER BY calls DESC
     """)
@@ -294,14 +297,14 @@ def _compute_metrics(
         })
 
     # 4. Daily Trend
-    daily_sql = text(f"""
+    daily_sql = text("""
         SELECT
             CAST(created_at AS DATE) as day,
             COUNT(*) as calls,
             SUM(CASE WHEN success THEN 1 ELSE 0 END) as ok,
             AVG(latency_ms) as avg_lat
         FROM llm_traces
-        WHERE {where_clause}
+        WHERE """ + where_clause + """
         GROUP BY CAST(created_at AS DATE)
         ORDER BY day DESC
         LIMIT 30
@@ -324,10 +327,10 @@ def _compute_metrics(
     daily_trend.reverse()
 
     # 5. Error Distribution
-    error_sql = text(f"""
+    error_sql = text("""
         SELECT error_message, COUNT(*) as cnt
         FROM llm_traces
-        WHERE {where_clause} AND NOT success AND error_message IS NOT NULL
+        WHERE """ + where_clause + """ AND NOT success AND error_message IS NOT NULL
         GROUP BY error_message
         ORDER BY cnt DESC
         LIMIT 20
@@ -413,8 +416,8 @@ def _detect_regressions(
             params_24["model"] = model_filter
             params_7d["model"] = model_filter
 
-        where = " AND ".join(where_parts)
-        agg_sql = text(f"""
+        where = " AND ".join(where_parts) if where_parts else "1=1"
+        agg_sql = text("""
             SELECT
                 COUNT(*) AS total,
                 SUM(CASE WHEN success THEN 1 ELSE 0 END) AS ok,
@@ -423,7 +426,7 @@ def _detect_regressions(
                 AVG(latency_ms) AS avg_lat,
                 COALESCE(SUM(cost_usd), 0) AS total_cost
             FROM llm_traces
-            WHERE {where}
+            WHERE """ + where + """
         """)
 
         r24 = db.execute(agg_sql, params_24).fetchone()

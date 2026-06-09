@@ -262,15 +262,26 @@ async def upload_spec_file(
     db: Session = Depends(get_db),
     user: Any = Depends(get_current_user),
 ):
-    """Spec dosyasi yükle (JSON/YAML)."""
-    from app.domains.api_testing.service import import_spec
+    """Spec dosyasi yükle (JSON/YAML).
 
-    content = await file.read()
+    S-HIGH-3: File upload validation enforced.
+    """
+    from app.domains.api_testing.service import import_spec
+    from app.core.security_validators import validate_upload_file
+
+    # S-HIGH-3: Validate file before processing
+    content, sanitized_name = await validate_upload_file(
+        file,
+        allowed_extensions={"json", "yaml", "yml"},
+        max_size=10 * 1024 * 1024,
+        category="spec",
+    )
+
     try:
         spec, _ = import_spec(
             db, project_id, content.decode("utf-8"),
-            name=file.filename,
-            source_file=file.filename,
+            name=sanitized_name,
+            source_file=sanitized_name,
         )
     except ValueError as exc:
         raise HTTPException(422, str(exc))
