@@ -62,7 +62,8 @@ def _fake_scenario(sid: str = _SCENARIO_ID, project_id: str = _PROJECT_ID) -> Ma
 
 @pytest.fixture()
 def client() -> "TestClient":
-    from app.deps import get_current_user, get_db, get_optional_user
+    from app.deps import get_current_user, get_optional_user
+    from app.infra.database import get_async_db
     from app.infra.models import User
 
     fake_user = MagicMock(spec=User)
@@ -73,17 +74,20 @@ def client() -> "TestClient":
 
     fake_project = _fake_project()
 
-    fake_db = MagicMock()
+    fake_db = AsyncMock()
     # Return the fake project for db.get; routes call _get_project which uses db.get
-    fake_db.get.return_value = fake_project
+    fake_db.get = AsyncMock(return_value=fake_project)
     # Return truthy (1) so the member check in _get_project passes for non-admin users
-    fake_db.scalar.return_value = 1
-    fake_db.scalars.return_value = MagicMock()
-    fake_db.commit.return_value = None
-    fake_db.rollback.return_value = None
-    fake_db.refresh.return_value = None
-    fake_db.execute.return_value = MagicMock()
-    fake_db.flush.return_value = None
+    fake_db.scalar = AsyncMock(return_value=1)
+    # db.scalars returns a result proxy; mock it to return an async generator
+    fake_scalars_result = MagicMock()
+    fake_scalars_result.all = AsyncMock(return_value=[])
+    fake_db.scalars = AsyncMock(return_value=fake_scalars_result)
+    fake_db.commit = AsyncMock(return_value=None)
+    fake_db.rollback = AsyncMock(return_value=None)
+    fake_db.refresh = AsyncMock(return_value=None)
+    fake_db.execute = AsyncMock(return_value=MagicMock())
+    fake_db.flush = AsyncMock(return_value=None)
 
     # require_permission creates a new callable each call → patch the factory
     with patch("app.domains.tspm.router.require_permission", return_value=lambda: fake_user):
@@ -91,7 +95,10 @@ def client() -> "TestClient":
         app.include_router(router, prefix="/api/v1")
         app.dependency_overrides[get_current_user] = lambda: fake_user
         app.dependency_overrides[get_optional_user] = lambda: fake_user
-        app.dependency_overrides[get_db] = lambda: fake_db
+        # get_async_db is async generator; override with simple async callable that returns mock
+        async def fake_get_async_db(_request=None):
+            return fake_db
+        app.dependency_overrides[get_async_db] = fake_get_async_db
         yield TestClient(app, raise_server_exceptions=False)
 
 
@@ -142,7 +149,7 @@ class TestScenarioEndpoints:
 
     def test_list_scenarios_returns_200(self, client: "TestClient") -> None:
         with patch(
-            "app.domains.tspm.scenario_service.list_scenarios",
+            "app.domains.tspm.scenario_service.list_scenarios_for_project",
             return_value=[],
             create=True,
         ):
@@ -178,7 +185,7 @@ class TestExecutionEndpoints:
 
     def test_list_executions_returns_200(self, client: "TestClient") -> None:
         with patch(
-            "app.domains.tspm.execution_service.list_executions",
+            "app.domains.tspm.execution_service.list_executions_for_project",
             return_value=[],
             create=True,
         ):

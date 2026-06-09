@@ -183,6 +183,27 @@ async def rate_limit_error_handler(request: Request, exc: Exception) -> JSONResp
     )
 
 
+async def circuit_breaker_open_handler(request: Request, exc: Exception) -> JSONResponse:
+    """Downstream circuit breaker OPEN → 503 Service Unavailable + Retry-After.
+
+    engine_request()/gateway_client breaker'ı OPEN iken bu fırlatılır. İstek
+    downstream'e hiç gitmeden hızlıca 503 döner — pool exhaustion önlenir.
+    """
+    retry_after = int(getattr(exc, "retry_after", 30)) or 30
+    detail = {
+        "code": "downstream.unavailable",
+        "title": "Service Unavailable",
+        "message": str(exc),
+        "suggestion": f"Bağlı servis geçici olarak yanıt vermiyor. {retry_after} saniye sonra tekrar deneyin.",
+        "doc_url": None,
+    }
+    return JSONResponse(
+        status_code=503,
+        content=_build_body(detail, _request_id(request)),
+        headers={"Retry-After": str(retry_after)},
+    )
+
+
 def register_exception_handlers(app: FastAPI) -> None:
     """Tüm exception handler'ları FastAPI uygulamasına kaydet.
 
@@ -191,10 +212,12 @@ def register_exception_handlers(app: FastAPI) -> None:
     from fastapi.exceptions import RequestValidationError
 
     from app.core.exceptions import RateLimitError
+    from app.infra.resilience import CircuitBreakerOpen
 
     app.add_exception_handler(HTTPException, http_exception_handler)
     app.add_exception_handler(RequestValidationError, validation_exception_handler)
     app.add_exception_handler(RateLimitError, rate_limit_error_handler)
+    app.add_exception_handler(CircuitBreakerOpen, circuit_breaker_open_handler)
     app.add_exception_handler(ValueError, value_error_handler)
     app.add_exception_handler(KeyError, key_error_handler)
     app.add_exception_handler(PermissionError, permission_error_handler)

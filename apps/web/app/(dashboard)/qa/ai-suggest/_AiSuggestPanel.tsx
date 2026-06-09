@@ -71,27 +71,27 @@ export default function AiSuggestPanel() {
 
   return (
     <div className="space-y-6">
-      <form onSubmit={submit} className="space-y-4 rounded border border-gray-200 bg-white p-5">
+      <form onSubmit={submit} className="space-y-4 rounded border border-border bg-surface-raised p-5">
         <div className="grid grid-cols-2 gap-3">
           <label className="text-sm">
-            <span className="block text-xs uppercase tracking-wider text-gray-500">Suite *</span>
+            <span className="block text-xs uppercase tracking-wider text-fg-subtle">Suite *</span>
             <select
               value={form.suite}
               onChange={(e) => setForm({ ...form, suite: e.target.value })}
-              className="mt-0.5 w-full rounded border border-gray-200 px-2 py-1 text-sm"
+              className="mt-0.5 w-full rounded border border-border px-2 py-1 text-sm"
             >
               {SUITES.map((s) => <option key={s}>{s}</option>)}
             </select>
           </label>
           <label className="text-sm">
-            <span className="block text-xs uppercase tracking-wider text-gray-500">Max cases (1-10)</span>
+            <span className="block text-xs uppercase tracking-wider text-fg-subtle">Max cases (1-10)</span>
             <input
               type="number"
               min={1}
               max={10}
               value={form.max_cases}
               onChange={(e) => setForm({ ...form, max_cases: parseInt(e.target.value) || 3 })}
-              className="mt-0.5 w-full rounded border border-gray-200 px-2 py-1 text-sm"
+              className="mt-0.5 w-full rounded border border-border px-2 py-1 text-sm"
             />
           </label>
         </div>
@@ -109,13 +109,13 @@ export default function AiSuggestPanel() {
 
         {form.source === "requirement" ? (
           <label className="block text-sm">
-            <span className="block text-xs uppercase tracking-wider text-gray-500">Requirement</span>
+            <span className="block text-xs uppercase tracking-wider text-fg-subtle">Requirement</span>
             <input
               list="req-list"
               value={form.requirement}
               onChange={(e) => setForm({ ...form, requirement: e.target.value })}
               placeholder="REQ-AUTH-001"
-              className="mt-0.5 w-full rounded border border-gray-200 px-2 py-1 font-mono text-sm"
+              className="mt-0.5 w-full rounded border border-border px-2 py-1 font-mono text-sm"
             />
             <datalist id="req-list">
               {reqOptions.map((id) => <option key={id} value={id} />)}
@@ -123,13 +123,13 @@ export default function AiSuggestPanel() {
           </label>
         ) : (
           <label className="block text-sm">
-            <span className="block text-xs uppercase tracking-wider text-gray-500">Brief</span>
+            <span className="block text-xs uppercase tracking-wider text-fg-subtle">Brief</span>
             <textarea
               value={form.brief}
               onChange={(e) => setForm({ ...form, brief: e.target.value })}
               rows={4}
               placeholder="Test the new MFA fallback flow with backup codes..."
-              className="mt-0.5 w-full rounded border border-gray-200 px-2 py-1 text-sm"
+              className="mt-0.5 w-full rounded border border-border px-2 py-1 text-sm"
             />
           </label>
         )}
@@ -145,8 +145,8 @@ export default function AiSuggestPanel() {
 
         {error && <div className="rounded border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div>}
 
-        <div className="flex items-center justify-between border-t border-gray-100 pt-3">
-          <span className="text-xs text-gray-500">
+        <div className="flex items-center justify-between border-t border-border pt-3">
+          <span className="text-xs text-fg-subtle">
             {form.dry_run ? "🟡 Dry-run — LLM çağrılmaz" : "🤖 Live — LLM çağrısı yapılacak (cost budget'a sayılır)"}
           </span>
           <button
@@ -173,24 +173,24 @@ function ResultView({ r, suite }: { r: Response; suite: string }) {
           <div className="font-semibold">
             {r.dry_run ? "Dry-run tamamlandı" : r.exit_code === 0 ? `${r.drafts.length} draft üretildi` : "Çağrı başarısız"}
           </div>
-          <div className="text-xs text-gray-600">
+          <div className="text-xs text-fg-muted">
             Provider: <code>{r.provider}</code> · Exit: {r.exit_code}
           </div>
         </div>
       </div>
 
       {r.drafts.length > 0 && (
-        <section className="rounded border border-gray-200 bg-white p-5">
-          <h3 className="mb-3 text-sm font-semibold uppercase tracking-wider text-gray-500">
+        <section className="rounded border border-border bg-surface-raised p-5">
+          <h3 className="mb-3 text-sm font-semibold uppercase tracking-wider text-fg-subtle">
             Üretilen draft'lar
           </h3>
           <ul className="space-y-2">
             {r.drafts.map((d) => (
-              <li key={d.file_name} className="flex items-center justify-between rounded bg-gray-50 p-3">
+              <li key={d.file_name} className="flex items-center justify-between rounded bg-surface p-3">
                 <div>
-                  <div className="font-mono text-xs text-gray-500">{d.tc_id}</div>
+                  <div className="font-mono text-xs text-fg-subtle">{d.tc_id}</div>
                   <div className="text-sm font-medium">{d.title}</div>
-                  <div className="text-xs text-gray-400">{d.file_name}</div>
+                  <div className="text-xs text-fg-subtle">{d.file_name}</div>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className={`rounded px-2 py-0.5 text-xs font-semibold ${
@@ -210,18 +210,18 @@ function ResultView({ r, suite }: { r: Response; suite: string }) {
               </li>
             ))}
           </ul>
-          <p className="mt-3 text-xs text-gray-500">
+          <p className="mt-3 text-xs text-fg-subtle">
             💡 Promote için CLI: <code>cd qa && npm run tc-promote -- --suite={suite}</code>
           </p>
         </section>
       )}
 
       {r.prompt_preview && (
-        <details className="rounded border border-gray-200 bg-white p-3">
-          <summary className="cursor-pointer text-xs font-semibold uppercase tracking-wider text-gray-500">
+        <details className="rounded border border-border bg-surface-raised p-3">
+          <summary className="cursor-pointer text-xs font-semibold uppercase tracking-wider text-fg-subtle">
             Prompt önizleme (son 2KB)
           </summary>
-          <pre className="mt-2 max-h-96 overflow-y-auto whitespace-pre-wrap rounded bg-gray-50 p-3 text-xs">
+          <pre className="mt-2 max-h-96 overflow-y-auto whitespace-pre-wrap rounded bg-surface p-3 text-xs">
             {r.prompt_preview}
           </pre>
         </details>

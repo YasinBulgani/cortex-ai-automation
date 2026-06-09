@@ -12,6 +12,7 @@ import bcrypt
 import jwt
 
 from app.config import settings
+from app.infra.otel_decorators import otel_span
 
 logger = logging.getLogger(__name__)
 
@@ -140,10 +141,12 @@ def _consume_password_reset(jti: str) -> Optional[str]:
     return user_id
 
 
+@otel_span("auth.hash_password", sample=0.1)
 def hash_password(plain: str) -> str:
     return bcrypt.hashpw(plain.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
 
 
+@otel_span("auth.verify_password", sample=1.0)
 def verify_password(plain: str, password_hash: str) -> bool:
     try:
         return bcrypt.checkpw(plain.encode("utf-8"), password_hash.encode("utf-8"))
@@ -151,6 +154,7 @@ def verify_password(plain: str, password_hash: str) -> bool:
         return False
 
 
+@otel_span("auth.create_access_token", sample=0.1)
 def create_access_token(
     subject_user_id: str,
     extra_claims: Optional[dict] = None,
@@ -254,7 +258,7 @@ def _sha256_token(token: str) -> str:
     return hashlib.sha256(token.encode("utf-8")).hexdigest()
 
 
-def create_refresh_token(user_id: str, db, user_agent: str = "") -> str:
+async def create_refresh_token(user_id: str, db, user_agent: str = "") -> str:
     """Refresh token oluştur, hash'ini DB'ye kaydet. Ham token'i dondur."""
     from app.infra.models import RefreshToken
 
@@ -280,11 +284,11 @@ def create_refresh_token(user_id: str, db, user_agent: str = "") -> str:
         user_agent=user_agent[:500] if user_agent else "",
     )
     db.add(db_record)
-    db.flush()
+    await db.flush()
     return raw_token
 
 
-def verify_refresh_token(token: str, db) -> str:
+async def verify_refresh_token(token: str, db) -> str:
     """Refresh token'i dogrula. Gecerli ise user_id dondur, degilse ValueError.
 
     Tum basarisiz dogrulama branşları WARN seviyesinde loglanir; token sahteciligi
@@ -311,7 +315,7 @@ def verify_refresh_token(token: str, db) -> str:
         logger.warning("Refresh token dogrulama basarisiz — JTI eksik: sub=%s", payload.get("sub"))
         raise ValueError("Token JTI eksik")
 
-    record = db.get(RefreshToken, jti)
+    record = await db.get(RefreshToken, jti)
     if record is None:
         logger.warning(
             "Refresh token dogrulama basarisiz — kayit bulunamadi: sub=%s jti=%s",
@@ -338,7 +342,7 @@ def verify_refresh_token(token: str, db) -> str:
     return payload["sub"]
 
 
-def revoke_refresh_token(token: str, db) -> None:
+async def revoke_refresh_token(token: str, db) -> None:
     """Tek bir refresh token'i iptal et."""
     from app.infra.models import RefreshToken
 
@@ -350,20 +354,20 @@ def revoke_refresh_token(token: str, db) -> None:
         )
         jti = payload.get("jti", "")
         if jti:
-            record = db.get(RefreshToken, jti)
+            record = await db.get(RefreshToken, jti)
             if record:
                 record.revoked = True
     except jwt.PyJWTError:
         pass
 
 
-def revoke_all_user_tokens(user_id: str, db) -> int:
+async def revoke_all_user_tokens(user_id: str, db) -> int:
     """Kullanicinin tüm refresh token'larini iptal et. Iptal edilen sayiyi dondur."""
     from sqlalchemy import update
 
     from app.infra.models import RefreshToken
 
-    result = db.execute(
+    result = await db.execute(
         update(RefreshToken)
         .where(RefreshToken.user_id == user_id, RefreshToken.revoked == False)
         .values(revoked=True)

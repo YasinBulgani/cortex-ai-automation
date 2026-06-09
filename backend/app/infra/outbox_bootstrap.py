@@ -63,19 +63,37 @@ class _AsyncSyncOutboxRepo:
         return await loop.run_in_executor(None, self._sync_fetch_pending, limit)
 
     def _sync_fetch_pending(self, limit: int):
-        from sqlalchemy import select
+        from sqlalchemy import select, update
 
         from app.contexts._shared.outbox.outbox import OutboxStatus
         from app.contexts._shared.outbox.sql_repository import OutboxRow
         db = self._get_session()
         try:
+            # Atomik claim: SELECT ... FOR UPDATE SKIP LOCKED ile satırları kilitle,
+            # AYNI transaction içinde PROCESSING'e çek. Böylece ikinci bir relay
+            # instance'ı (çoklu uvicorn worker) aynı satırları çekemez → çift-publish
+            # race'i kapanır. skip_locked, kilitli satırları atlayıp bloklanmadan
+            # diğerlerini almamızı sağlar.
             rows = db.execute(
                 select(OutboxRow)
                 .where(OutboxRow.status.in_([OutboxStatus.PENDING.value, OutboxStatus.FAILED.value]))
                 .order_by(OutboxRow.created_at)
                 .limit(limit)
+                .with_for_update(skip_locked=True)
             ).scalars().all()
-            return [r.to_entry() for r in rows]
+            if not rows:
+                db.commit()
+                return []
+            # Entry'leri commit ÖNCESİ üret (commit sonrası ORM nesneleri expire olur).
+            entries = [r.to_entry() for r in rows]
+            db.execute(
+                update(OutboxRow)
+                .where(OutboxRow.id.in_([r.id for r in rows]))
+                .values(status=OutboxStatus.PROCESSING.value)
+                .execution_options(synchronize_session=False)
+            )
+            db.commit()
+            return entries
         finally:
             db.close()
 

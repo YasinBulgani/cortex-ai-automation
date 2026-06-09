@@ -18,13 +18,15 @@ from urllib.parse import urlparse
 from uuid import uuid4
 
 import httpx
-from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
+from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, Query, UploadFile, status
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Session
 
 from app.deps import require_permission, get_current_user
+from app.infra.database import get_async_db
 from app.domains.test_management import comments_service, design_service, intelligence_service, service
 from app.domains.test_management.intelligence_schemas import (
     AnomalyOut,
@@ -158,6 +160,9 @@ from app.domains.test_management.schemas import (
 from app.infra.database import get_db
 from app.infra.models import User
 
+# Type aliases for async DB dependency
+AsyncDB = Annotated[AsyncSession, Depends(get_async_db)]
+
 def _is_ssrf_blocked(url: str) -> bool:
     """RFC-1918, link-local ve loopback adresleri engelle."""
     try:
@@ -203,12 +208,12 @@ AdminUser = Annotated[User, Depends(require_permission("test_management.admin"))
 
 
 @router.get("/health", summary="Neurex Management domain health", include_in_schema=False)
-def health(_user: ReadUser) -> dict[str, str]:
+async def health(_user: ReadUser) -> dict[str, str]:
     return {"status": "ok"}
 
 
 @router.get("/projects", response_model=list[ManagementProjectOut])
-def list_projects(db: DB, _user: ReadUser) -> list[ManagementProjectOut]:
+async def list_projects(db: AsyncDB, _user: ReadUser) -> list[ManagementProjectOut]:
     return service.list_projects(db, user=_user)
 
 
@@ -217,12 +222,12 @@ def list_projects(db: DB, _user: ReadUser) -> list[ManagementProjectOut]:
     response_model=ManagementProjectOut,
     status_code=status.HTTP_201_CREATED,
 )
-def create_project(payload: ManagementProjectCreate, db: DB, user: AdminUser) -> ManagementProjectOut:
+async def create_project(payload: ManagementProjectCreate, db: AsyncDB, user: AdminUser) -> ManagementProjectOut:
     return service.create_project(db, payload, user)
 
 
 @router.get("/projects/{project_id}", response_model=ManagementProjectOut)
-def get_project(project_id: str, db: DB, _user: ReadUser) -> ManagementProjectOut:
+async def get_project(project_id: str, db: AsyncDB, _user: ReadUser) -> ManagementProjectOut:
     return service.get_project(db, project_id)
 
 
@@ -231,20 +236,20 @@ def get_project(project_id: str, db: DB, _user: ReadUser) -> ManagementProjectOu
     response_model=ManagementProjectOut,
     status_code=status.HTTP_200_OK,
 )
-def ensure_project_for_tspm(tspm_project_id: str, db: DB, user: WriteUser) -> ManagementProjectOut:
+async def ensure_project_for_tspm(tspm_project_id: str, db: AsyncDB, user: WriteUser) -> ManagementProjectOut:
     return service.ensure_project_for_tspm(db, tspm_project_id, user)
 
 
 @router.get("/projects/{project_id}/settings", response_model=ManagementSettingsOut)
-def get_settings(project_id: str, db: DB, _user: ReadUser) -> ManagementSettingsOut:
+async def get_settings(project_id: str, db: AsyncDB, _user: ReadUser) -> ManagementSettingsOut:
     return cast(ManagementSettingsOut, service.management_settings(db, project_id))
 
 
 @router.patch("/projects/{project_id}/settings/user", response_model=dict)
-def update_user_settings(
+async def update_user_settings(
     project_id: str,
     payload: ManagementUserSettingsUpdate,
-    db: DB,
+    db: AsyncDB,
     user: WriteUser,
 ) -> dict:
     """Kullanıcı tarafından özelleştirilebilen proje ayarlarını güncelle."""
@@ -264,17 +269,17 @@ def _api_key_public(record: dict) -> ProjectApiKeyOut:
 
 
 @router.get("/projects/{project_id}/api-keys", response_model=list[ProjectApiKeyOut])
-def list_project_api_keys(project_id: str, db: DB, _user: ReadUser) -> list[ProjectApiKeyOut]:
+async def list_project_api_keys(project_id: str, db: AsyncDB, _user: ReadUser) -> list[ProjectApiKeyOut]:
     settings = service.management_settings(db, project_id).get("user_settings", {})
     records = settings.get("api_keys", []) if isinstance(settings, dict) else []
     return [_api_key_public(record) for record in records if isinstance(record, dict)]
 
 
 @router.post("/projects/{project_id}/api-keys", response_model=ProjectApiKeyCreated, status_code=status.HTTP_201_CREATED)
-def create_project_api_key(
+async def create_project_api_key(
     project_id: str,
     payload: ProjectApiKeyCreate,
-    db: DB,
+    db: AsyncDB,
     _user: WriteUser,
 ) -> ProjectApiKeyCreated:
     raw_key = f"sk-live-{secrets.token_urlsafe(32)}"
@@ -295,7 +300,7 @@ def create_project_api_key(
 
 
 @router.delete("/projects/{project_id}/api-keys/{key_id}", status_code=status.HTTP_204_NO_CONTENT)
-def revoke_project_api_key(project_id: str, key_id: str, db: DB, _user: WriteUser) -> None:
+async def revoke_project_api_key(project_id: str, key_id: str, db: AsyncDB, _user: WriteUser) -> None:
     settings = service.management_settings(db, project_id).get("user_settings", {})
     records = settings.get("api_keys", []) if isinstance(settings, dict) else []
     updated = []
@@ -310,11 +315,53 @@ def revoke_project_api_key(project_id: str, key_id: str, db: DB, _user: WriteUse
     service.update_management_user_settings(db, project_id, {"api_keys": updated})
 
 
+def _dispatch_webhooks(subscriptions: list[dict], event: str, payload: dict) -> None:
+    """Fire registered outbound webhooks for an event.
+
+    Runs as a BackgroundTask (after the response) so it never blocks or breaks the
+    main request. Each hook is independent and best-effort: SSRF-guarded, HMAC-SHA256
+    signed when a secret is set, short timeout, and any failure is swallowed.
+    """
+    import hashlib as _hashlib
+    import hmac as _hmac
+    import json as _json
+
+    for sub in subscriptions or []:
+        try:
+            if not sub.get("active", True):
+                continue
+            if event not in (sub.get("events") or []):
+                continue
+            url = sub.get("url") or ""
+            if not url or _is_ssrf_blocked(url):
+                continue
+            body = {"event": event, **payload}
+            raw = _json.dumps(body, default=str).encode()
+            headers = {"Content-Type": "application/json", "X-Webhook-Event": event}
+            secret = sub.get("secret")
+            if secret:
+                sig = _hmac.new(secret.encode(), raw, _hashlib.sha256).hexdigest()
+                headers["X-Webhook-Signature"] = f"sha256={sig}"
+            httpx.post(url, content=raw, headers=headers, timeout=6.0, follow_redirects=False)
+        except Exception:
+            continue  # one failing hook must not affect the others or the request
+
+
+def _project_webhook_subs(db, project_id: str, event: str) -> list[dict]:
+    """Load active webhook subscriptions for a project that are interested in `event`."""
+    try:
+        proj = service.get_project(db, project_id)
+        subs = (proj.settings_data or {}).get("webhook_subscriptions", [])
+        return [s for s in subs if s.get("active", True) and event in (s.get("events") or [])]
+    except Exception:
+        return []
+
+
 @router.post("/projects/{project_id}/webhook-test", response_model=WebhookTestResponse)
-def test_outbound_webhook(
+async def test_outbound_webhook(
     project_id: str,
     payload: WebhookTestRequest,
-    _db: DB,
+    _db: AsyncDB,
     _user: WriteUser,
 ) -> WebhookTestResponse:
     """Send a short server-side test payload to an outbound webhook target."""
@@ -350,10 +397,10 @@ def test_outbound_webhook(
 
 
 @router.post("/projects/{project_id}/sso-test", response_model=SsoTestResponse)
-def test_sso_endpoint(
+async def test_sso_endpoint(
     project_id: str,
     payload: SsoTestRequest,
-    _db: DB,
+    _db: AsyncDB,
     _user: WriteUser,
 ) -> SsoTestResponse:
     """Probe a SAML SSO URL from the backend so browser CORS does not affect the result."""
@@ -382,9 +429,9 @@ def test_sso_endpoint(
 
 
 @router.get("/projects/{project_id}/audit-events", response_model=list[AuditEventOut])
-def list_audit_events(
+async def list_audit_events(
     project_id: str,
-    db: DB,
+    db: AsyncDB,
     _user: ReadUser,
     limit: int = Query(default=50, ge=1, le=200),
 ) -> list[AuditEventOut]:
@@ -392,35 +439,35 @@ def list_audit_events(
 
 
 @router.get("/projects/{project_id}/repository", response_model=RepositoryOut)
-def repository(project_id: str, db: DB, _user: ReadUser) -> RepositoryOut:
+async def repository(project_id: str, db: AsyncDB, _user: ReadUser) -> RepositoryOut:
     return service.repository(db, project_id)
 
 
 @router.get("/projects/{project_id}/export")
-def export_repository(project_id: str, db: DB, _user: ReadUser) -> dict[str, object]:
+async def export_repository(project_id: str, db: AsyncDB, _user: ReadUser) -> dict[str, object]:
     return service.export_repository(db, project_id)
 
 
 @router.get("/projects/{project_id}/repository/export")
-def export_repository_alias(project_id: str, db: DB, _user: ReadUser) -> dict[str, object]:
+async def export_repository_alias(project_id: str, db: AsyncDB, _user: ReadUser) -> dict[str, object]:
     """Alias for /export — frontend hook compatibility."""
     return service.export_repository(db, project_id)
 
 
 @router.get("/projects/{project_id}/suites", response_model=list[TestSuiteOut])
-def list_suites(project_id: str, db: DB, _user: ReadUser) -> list[TestSuiteOut]:
+async def list_suites(project_id: str, db: AsyncDB, _user: ReadUser) -> list[TestSuiteOut]:
     """Projedeki tüm test suite'lerini listeler."""
     from app.domains.test_management.models import TestSuite
-    suites = db.scalars(
+    suites = (await db.scalars(
         select(TestSuite)
         .where(TestSuite.project_id == project_id)
         .order_by(TestSuite.order_index, TestSuite.created_at)
-    ).all()
+    )).all()
     return list(suites)
 
 
 @router.post("/projects/{project_id}/suites", response_model=TestSuiteOut, status_code=status.HTTP_201_CREATED)
-def create_suite(project_id: str, payload: TestSuiteCreate, db: DB, user: WriteUser) -> TestSuiteOut:
+async def create_suite(project_id: str, payload: TestSuiteCreate, db: AsyncDB, user: WriteUser) -> TestSuiteOut:
     try:
         return service.create_suite(db, project_id, payload, user)
     except KeyError as exc:
@@ -428,9 +475,9 @@ def create_suite(project_id: str, payload: TestSuiteCreate, db: DB, user: WriteU
 
 
 @router.get("/projects/{project_id}/folders", response_model=list[TestFolderOut])
-def list_folders(
+async def list_folders(
     project_id: str,
-    db: DB,
+    db: AsyncDB,
     _user: ReadUser,
     suite_id: Optional[str] = None,
 ) -> list[TestFolderOut]:
@@ -444,12 +491,12 @@ def list_folders(
     if suite_id:
         stmt = stmt.where(TestFolder.suite_id == suite_id)
     stmt = stmt.order_by(TestFolder.order_index, TestFolder.created_at)
-    folders = db.scalars(stmt).all()
+    folders = (await db.scalars(stmt)).all()
     return list(folders)
 
 
 @router.post("/projects/{project_id}/folders", response_model=TestFolderOut, status_code=status.HTTP_201_CREATED)
-def create_folder(project_id: str, payload: TestFolderCreate, db: DB, user: WriteUser) -> TestFolderOut:
+async def create_folder(project_id: str, payload: TestFolderCreate, db: AsyncDB, user: WriteUser) -> TestFolderOut:
     try:
         return service.create_folder(db, project_id, payload, user)
     except ValueError as exc:
@@ -459,7 +506,7 @@ def create_folder(project_id: str, payload: TestFolderCreate, db: DB, user: Writ
 
 
 @router.patch("/projects/{project_id}/suites/{suite_id}", response_model=TestSuiteOut)
-def update_suite(project_id: str, suite_id: str, payload: TestSuiteUpdate, db: DB, user: WriteUser) -> TestSuiteOut:
+async def update_suite(project_id: str, suite_id: str, payload: TestSuiteUpdate, db: AsyncDB, user: WriteUser) -> TestSuiteOut:
     try:
         return service.update_suite(db, project_id, suite_id, payload, user)
     except ValueError as exc:
@@ -469,7 +516,7 @@ def update_suite(project_id: str, suite_id: str, payload: TestSuiteUpdate, db: D
 
 
 @router.delete("/projects/{project_id}/suites/{suite_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_suite(project_id: str, suite_id: str, db: DB, user: WriteUser) -> None:
+async def delete_suite(project_id: str, suite_id: str, db: AsyncDB, user: WriteUser) -> None:
     try:
         service.delete_suite(db, project_id, suite_id, user)
     except KeyError as exc:
@@ -477,7 +524,7 @@ def delete_suite(project_id: str, suite_id: str, db: DB, user: WriteUser) -> Non
 
 
 @router.patch("/projects/{project_id}/folders/{folder_id}", response_model=TestFolderOut)
-def update_folder(project_id: str, folder_id: str, payload: TestFolderUpdate, db: DB, user: WriteUser) -> TestFolderOut:
+async def update_folder(project_id: str, folder_id: str, payload: TestFolderUpdate, db: AsyncDB, user: WriteUser) -> TestFolderOut:
     try:
         return service.update_folder(db, project_id, folder_id, payload, user)
     except ValueError as exc:
@@ -487,7 +534,7 @@ def update_folder(project_id: str, folder_id: str, payload: TestFolderUpdate, db
 
 
 @router.delete("/projects/{project_id}/folders/{folder_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_folder(project_id: str, folder_id: str, db: DB, user: WriteUser) -> None:
+async def delete_folder(project_id: str, folder_id: str, db: AsyncDB, user: WriteUser) -> None:
     try:
         service.delete_folder(db, project_id, folder_id, user)
     except KeyError as exc:
@@ -499,9 +546,9 @@ def delete_folder(project_id: str, folder_id: str, db: DB, user: WriteUser) -> N
     response_model=PagedResponse[TestCaseOut],
     summary="Test case listesi (sayfalı). limit/offset ile sayfalama desteklenir.",
 )
-def list_cases(
+async def list_cases(
     project_id: str,
-    db: DB,
+    db: AsyncDB,
     _user: ReadUser,
     q: str | None = Query(default=None, description="Başlık veya case key'e göre filtre"),
     include_archived: bool = Query(default=False, description="Arşivlenmiş case'leri dahil et"),
@@ -536,7 +583,7 @@ def list_cases(
 
 
 @router.post("/projects/{project_id}/cases", response_model=TestCaseOut, status_code=status.HTTP_201_CREATED)
-def create_case(project_id: str, payload: TestCaseCreate, db: DB, user: WriteUser) -> TestCaseOut:
+async def create_case(project_id: str, payload: TestCaseCreate, db: AsyncDB, user: WriteUser) -> TestCaseOut:
     try:
         return service.create_case(db, project_id, payload, user)
     except ValueError as exc:
@@ -550,9 +597,9 @@ def create_case(project_id: str, payload: TestCaseCreate, db: DB, user: WriteUse
     response_model=QualityScanResponse,
     summary="Test case kalite taraması — kısa başlık, boş adım, vs.",
 )
-def quality_scan(
+async def quality_scan(
     project_id: str,
-    db: DB,
+    db: AsyncDB,
     _user: ReadUser,
     limit: int = Query(default=50, ge=1, le=200),
 ) -> QualityScanResponse:
@@ -608,9 +655,9 @@ def quality_scan(
     response_model=list[TestCaseOut],
     summary="Search test cases by title or case key (frontend search)",
 )
-def search_cases(
+async def search_cases(
     project_id: str,
-    db: DB,
+    db: AsyncDB,
     _user: ReadUser,
     q: str = Query(default="", description="Search query — matches title and case_key"),
 ) -> list[TestCaseOut]:
@@ -618,7 +665,7 @@ def search_cases(
 
 
 @router.get("/projects/{project_id}/cases/{case_id}", response_model=TestCaseOut)
-def get_case(project_id: str, case_id: str, db: DB, _user: ReadUser) -> TestCaseOut:
+async def get_case(project_id: str, case_id: str, db: AsyncDB, _user: ReadUser) -> TestCaseOut:
     import uuid as _uuid
     try:
         _uuid.UUID(case_id)
@@ -628,12 +675,12 @@ def get_case(project_id: str, case_id: str, db: DB, _user: ReadUser) -> TestCase
 
 
 @router.get("/projects/{project_id}/cases/{case_id}/versions", response_model=list[TestCaseVersionOut])
-def list_case_versions(project_id: str, case_id: str, db: DB, _user: ReadUser) -> list[TestCaseVersionOut]:
+async def list_case_versions(project_id: str, case_id: str, db: AsyncDB, _user: ReadUser) -> list[TestCaseVersionOut]:
     return service.list_case_versions(db, project_id, case_id)
 
 
 @router.get("/projects/{project_id}/cases/{case_id}/sub-cases", response_model=list[TestCaseOut])
-def list_sub_cases(project_id: str, case_id: str, db: DB, _user: ReadUser) -> list[TestCaseOut]:
+async def list_sub_cases(project_id: str, case_id: str, db: AsyncDB, _user: ReadUser) -> list[TestCaseOut]:
     """Return all direct sub-cases of the given parent case."""
     try:
         return cast(list[TestCaseOut], service.list_sub_cases(db, project_id, case_id))
@@ -646,11 +693,11 @@ def list_sub_cases(project_id: str, case_id: str, db: DB, _user: ReadUser) -> li
     response_model=TestCaseOut,
     status_code=status.HTTP_201_CREATED,
 )
-def create_sub_case(
+async def create_sub_case(
     project_id: str,
     case_id: str,
     payload: TestCaseCreate,
-    db: DB,
+    db: AsyncDB,
     user: WriteUser,
 ) -> TestCaseOut:
     """Create a sub-case under the given parent case."""
@@ -663,7 +710,7 @@ def create_sub_case(
 
 
 @router.get("/projects/{project_id}/cases/{case_id}/dependencies", response_model=list[CaseDependencyOut])
-def list_case_dependencies(project_id: str, case_id: str, db: DB, _user: ReadUser) -> list[CaseDependencyOut]:
+async def list_case_dependencies(project_id: str, case_id: str, db: AsyncDB, _user: ReadUser) -> list[CaseDependencyOut]:
     try:
         return cast(list[CaseDependencyOut], service.list_case_dependencies(db, project_id, case_id))
     except KeyError as e:
@@ -671,7 +718,7 @@ def list_case_dependencies(project_id: str, case_id: str, db: DB, _user: ReadUse
 
 
 @router.post("/projects/{project_id}/cases/{case_id}/dependencies", response_model=CaseDependencyOut, status_code=201)
-def add_case_dependency(project_id: str, case_id: str, payload: CaseDependencyCreate, db: DB, user: WriteUser) -> CaseDependencyOut:
+async def add_case_dependency(project_id: str, case_id: str, payload: CaseDependencyCreate, db: AsyncDB, user: WriteUser) -> CaseDependencyOut:
     try:
         return cast(CaseDependencyOut, service.add_case_dependency(db, project_id, case_id, payload, user))
     except (KeyError, ValueError) as e:
@@ -679,7 +726,7 @@ def add_case_dependency(project_id: str, case_id: str, payload: CaseDependencyCr
 
 
 @router.delete("/projects/{project_id}/cases/{case_id}/dependencies/{dep_id}", status_code=204)
-def remove_case_dependency(project_id: str, case_id: str, dep_id: str, db: DB, user: WriteUser) -> None:
+async def remove_case_dependency(project_id: str, case_id: str, dep_id: str, db: AsyncDB, user: WriteUser) -> None:
     try:
         service.remove_case_dependency(db, project_id, case_id, dep_id, user)
     except KeyError as e:
@@ -687,12 +734,12 @@ def remove_case_dependency(project_id: str, case_id: str, dep_id: str, db: DB, u
 
 
 @router.patch("/projects/{project_id}/cases/{case_id}", response_model=TestCaseOut)
-def update_case(project_id: str, case_id: str, payload: TestCaseUpdate, db: DB, user: WriteUser) -> TestCaseOut:
+async def update_case(project_id: str, case_id: str, payload: TestCaseUpdate, db: AsyncDB, user: WriteUser) -> TestCaseOut:
     return service.update_case(db, project_id, case_id, payload, user)
 
 
 @router.post("/projects/{project_id}/cases/{case_id}/archive", response_model=TestCaseOut)
-def archive_case(project_id: str, case_id: str, db: DB, user: WriteUser) -> TestCaseOut:
+async def archive_case(project_id: str, case_id: str, db: AsyncDB, user: WriteUser) -> TestCaseOut:
     return service.archive_case(db, project_id, case_id, user)
 
 
@@ -701,11 +748,11 @@ def archive_case(project_id: str, case_id: str, db: DB, user: WriteUser) -> Test
     response_model=TestCaseOut,
     summary="Case'i farklı suite/folder'a taşı",
 )
-def move_case(
+async def move_case(
     project_id: str,
     case_id: str,
     payload: dict,
-    db: DB,
+    db: AsyncDB,
     user: WriteUser,
 ) -> TestCaseOut:
     from app.domains.test_management.schemas import TestCaseUpdate
@@ -725,7 +772,7 @@ def move_case(
     status_code=status.HTTP_204_NO_CONTENT,
     summary="Test case'i kalıcı olarak sil",
 )
-def delete_case(project_id: str, case_id: str, db: DB, user: WriteUser) -> None:
+async def delete_case(project_id: str, case_id: str, db: AsyncDB, user: WriteUser) -> None:
     import uuid as _uuid
     try:
         _uuid.UUID(case_id)
@@ -744,7 +791,7 @@ def delete_case(project_id: str, case_id: str, db: DB, user: WriteUser) -> None:
     status_code=status.HTTP_201_CREATED,
     summary="Mevcut test case'i kopyalar",
 )
-def clone_case(project_id: str, case_id: str, payload: TestCaseCloneRequest, db: DB, user: WriteUser) -> TestCaseOut:
+async def clone_case(project_id: str, case_id: str, payload: TestCaseCloneRequest, db: AsyncDB, user: WriteUser) -> TestCaseOut:
     try:
         return service.clone_case(db, project_id, case_id, payload, user)
     except KeyError as exc:
@@ -756,9 +803,9 @@ def clone_case(project_id: str, case_id: str, payload: TestCaseCloneRequest, db:
     response_model=TestCaseImproveResponse,
     summary="AI ile mevcut test case'i iyileştir",
 )
-def improve_case(project_id: str, case_id: str, payload: TestCaseImproveRequest, db: DB, user: WriteUser) -> TestCaseImproveResponse:
+async def improve_case(project_id: str, case_id: str, payload: TestCaseImproveRequest, db: AsyncDB, user: WriteUser) -> TestCaseImproveResponse:
     try:
-        return service.improve_case(db, project_id, case_id, payload, user)
+        return await service.improve_case_async(db, project_id, case_id, payload, user)
     except KeyError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except Exception as exc:
@@ -770,8 +817,8 @@ def improve_case(project_id: str, case_id: str, payload: TestCaseImproveRequest,
     response_model=CaseReviewOut,
     summary="Test case'i incelemeye gönder (draft → pending)",
 )
-def submit_case_for_review(
-    project_id: str, case_id: str, payload: CaseReviewSubmitRequest, db: DB, user: WriteUser
+async def submit_case_for_review(
+    project_id: str, case_id: str, payload: CaseReviewSubmitRequest, db: AsyncDB, user: WriteUser
 ) -> CaseReviewOut:
     try:
         case = service.submit_case_for_review(db, project_id, case_id, user, payload.comment)
@@ -787,8 +834,8 @@ def submit_case_for_review(
     response_model=CaseReviewOut,
     summary="Test case incelemesini onayla (pending → approved)",
 )
-def approve_case_review(
-    project_id: str, case_id: str, payload: CaseReviewActionRequest, db: DB, user: WriteUser
+async def approve_case_review(
+    project_id: str, case_id: str, payload: CaseReviewActionRequest, db: AsyncDB, user: WriteUser
 ) -> CaseReviewOut:
     try:
         case = service.approve_case_review(db, project_id, case_id, user, payload.comment)
@@ -804,8 +851,8 @@ def approve_case_review(
     response_model=CaseReviewOut,
     summary="Test case incelemesini reddet (pending → rejected)",
 )
-def reject_case_review(
-    project_id: str, case_id: str, payload: CaseReviewActionRequest, db: DB, user: WriteUser
+async def reject_case_review(
+    project_id: str, case_id: str, payload: CaseReviewActionRequest, db: AsyncDB, user: WriteUser
 ) -> CaseReviewOut:
     try:
         case = service.reject_case_review(db, project_id, case_id, user, payload.comment)
@@ -821,11 +868,11 @@ def reject_case_review(
     response_model=list[CaseReviewOut],
     summary="Belirli review durumundaki case'leri listele",
 )
-def list_review_queue(
+async def list_review_queue(
     project_id: str,
     review_status: str = Query(default="pending", description="none|pending|approved|rejected"),
     limit: int = Query(default=50, ge=1, le=200),
-    db: DB = ...,
+    db: AsyncDB = ...,
     _user: ReadUser = ...,
 ) -> list[CaseReviewOut]:
     cases = service.get_review_queue(db, project_id, status=review_status, limit=limit)
@@ -837,13 +884,13 @@ def list_review_queue(
     response_model=FlakyTestsResponse,
     summary="Yüksek flakiness skoruna sahip unstable test case'leri listele",
 )
-def list_flaky_cases(
+async def list_flaky_cases(
     project_id: str,
     threshold: float = Query(default=0.2, ge=0.0, le=1.0, description="Minimum flakiness skoru (0-1)"),
     min_runs: int = Query(default=3, ge=1, description="Minimum koşum sayısı"),
     limit: int = Query(default=50, ge=1, le=200),
     include_manual: bool = Query(default=False, description="Saf manuel case'leri de dahil et (varsayılan: hariç)"),
-    db: DB = ...,
+    db: AsyncDB = ...,
     _user: ReadUser = ...,
 ) -> FlakyTestsResponse:
     result = service.list_flaky_cases(
@@ -861,9 +908,9 @@ def list_flaky_cases(
     response_model=TestCaseGenerateResponse,
     summary="AI ile test case üret (save=true ise DB'ye kaydeder)",
 )
-def generate_cases(project_id: str, payload: TestCaseGenerateRequest, db: DB, user: WriteUser) -> TestCaseGenerateResponse:
+async def generate_cases(project_id: str, payload: TestCaseGenerateRequest, db: AsyncDB, user: WriteUser) -> TestCaseGenerateResponse:
     try:
-        cases = service.generate_test_cases(db, project_id, payload, user)
+        cases = await service.generate_test_cases_async(db, project_id, payload, user)
         return TestCaseGenerateResponse(cases=cases)
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Üretim hatası: {exc}") from exc
@@ -874,7 +921,7 @@ def generate_cases(project_id: str, payload: TestCaseGenerateRequest, db: DB, us
     response_model=BulkUpdateCasesResponse,
     summary="Toplu case güncelleme — priority/type/status/suite/folder/tag",
 )
-def bulk_update_cases(project_id: str, payload: BulkUpdateCasesRequest, db: DB, user: WriteUser) -> BulkUpdateCasesResponse:
+async def bulk_update_cases(project_id: str, payload: BulkUpdateCasesRequest, db: AsyncDB, user: WriteUser) -> BulkUpdateCasesResponse:
     updated = 0
     failed  = 0
     for case_id in payload.case_ids:
@@ -905,7 +952,7 @@ def bulk_update_cases(project_id: str, payload: BulkUpdateCasesRequest, db: DB, 
     "/projects/{project_id}/runs/{run_id}/progress",
     summary="Test koşumunun canlı ilerleme durumunu döner",
 )
-def run_progress(project_id: str, run_id: str, db: DB, _user: ReadUser) -> dict:
+async def run_progress(project_id: str, run_id: str, db: AsyncDB, _user: ReadUser) -> dict:
     _validate_uuid(project_id, "project_id")
     _validate_uuid(run_id, "run_id")
     from sqlalchemy import select as _sel
@@ -913,15 +960,15 @@ def run_progress(project_id: str, run_id: str, db: DB, _user: ReadUser) -> dict:
     from app.domains.test_management.models import TestCycle as _TC, TestRun as _TR, TestRunCase as TRC
     pid = service.resolve_project_id(db, project_id)
     # Run'ın bu projeye ait olduğunu doğrula — IDOR önleme
-    run = db.scalar(_sel(_TR).where(_TR.id == run_id))
+    run = (await db.scalar(_sel(_TR).where(_TR.id == run_id)))
     if not run:
         raise HTTPException(status_code=404, detail="Run bulunamadı")
-    cycle = db.get(_TC, run.cycle_id)
+    cycle = await db.get(_TC, run.cycle_id)
     if not cycle:
         raise HTTPException(status_code=404, detail="Run bulunamadı")
     if cycle.project_id is not None and cycle.project_id != pid:
         raise HTTPException(status_code=404, detail="Run bulunamadı")
-    run_cases = list(db.scalars(_sel(TRC).where(TRC.run_id == run_id)).all())
+    run_cases = list((await db.scalars(_sel(TRC).where(TRC.run_id == run_id))).all())
     total = len(run_cases)
     done_set = {"passed", "failed", "blocked", "skipped"}
     done = len([rc for rc in run_cases if rc.status in done_set])
@@ -949,26 +996,47 @@ def run_progress(project_id: str, run_id: str, db: DB, _user: ReadUser) -> dict:
     response_model=TestRunOut,
     summary="Koşumu manuel olarak tamamlandı olarak işaretle",
 )
-def complete_run(project_id: str, run_id: str, db: DB, user: WriteUser) -> TestRunOut:
+async def complete_run(project_id: str, run_id: str, db: AsyncDB, user: WriteUser, background: BackgroundTasks) -> TestRunOut:
     _validate_uuid(project_id, "project_id")
     _validate_uuid(run_id, "run_id")
     from sqlalchemy import select as _sel
 
     from app.domains.test_management.models import TestRun as TR
     pid = service.resolve_project_id(db, project_id)
-    run = db.scalar(_sel(TR).where(TR.id == run_id))
+    run = (await db.scalar(_sel(TR).where(TR.id == run_id)))
     if not run:
         raise HTTPException(status_code=404, detail="Run bulunamadı")
-    # Sahiplik kontrolü — IDOR önleme
-    from app.domains.test_management.models import TestCycle as _TC2
-    cycle = db.get(_TC2, run.cycle_id)
-    if not cycle or cycle.project_id != pid:
+    # Sahiplik kontrolü — IDOR önleme.
+    # project_id, cycle üzerinde değil plan üzerinde tutulur (cycle.project_id auto-create'de
+    # set edilmiyordu → eski kontrol her zaman 404 veriyordu). get_run ile aynı zinciri kullan.
+    from app.domains.test_management.models import TestCycle as _TC2, TestPlan as _TP2
+    cycle = await db.get(_TC2, run.cycle_id)
+    plan = await db.get(_TP2, cycle.plan_id) if cycle else None
+    if not cycle or not plan or plan.project_id != pid:
         raise HTTPException(status_code=404, detail="Run bulunamadı")
     run.status = "completed"
-    from datetime import datetime as _dt_local
     run.completed_at = run.completed_at or _datetime.now(_UTC)
-    db.commit()
-    db.refresh(run)
+    await db.commit()
+    await db.refresh(run)
+    # Fire outbound webhooks (event-driven, best-effort, after response).
+    subs = _project_webhook_subs(db, pid, "run.completed")
+    if subs:
+        rcs = list(run.run_cases)
+        total = len(rcs)
+        passed = sum(1 for rc in rcs if rc.status == "passed")
+        background.add_task(
+            _dispatch_webhooks, subs, "run.completed",
+            {
+                "project_id": pid,
+                "run_id": run.id,
+                "name": run.name,
+                "status": run.status,
+                "total": total,
+                "passed": passed,
+                "pass_rate": round(passed / total * 100, 1) if total else 0.0,
+                "completed_at": run.completed_at.isoformat() if run.completed_at else None,
+            },
+        )
     return run
 
 
@@ -977,9 +1045,9 @@ def complete_run(project_id: str, run_id: str, db: DB, user: WriteUser) -> TestR
     response_model=StandupOut,
     summary="Aktif run için standup verisini döner",
 )
-def get_standup(
+async def get_standup(
     project_id: str,
-    db: DB,
+    db: AsyncDB,
     _user: ReadUser,
     run_id: str | None = Query(default=None),
 ) -> StandupOut:
@@ -990,7 +1058,7 @@ def get_standup(
 
 
 @router.post("/projects/{project_id}/plans", response_model=TestPlanOut, status_code=status.HTTP_201_CREATED)
-def create_plan(project_id: str, payload: TestPlanCreate, db: DB, user: WriteUser) -> TestPlanOut:
+async def create_plan(project_id: str, payload: TestPlanCreate, db: AsyncDB, user: WriteUser) -> TestPlanOut:
     return service.create_plan(db, project_id, payload, user)
 
 
@@ -999,20 +1067,20 @@ def create_plan(project_id: str, payload: TestPlanCreate, db: DB, user: WriteUse
     response_model=TestPlanAIGenerateResponse,
     summary="AI ile test planı önerileri üret",
 )
-def ai_generate_plan(project_id: str, payload: TestPlanAIGenerateRequest, db: DB, user: WriteUser) -> TestPlanAIGenerateResponse:
+async def ai_generate_plan(project_id: str, payload: TestPlanAIGenerateRequest, db: AsyncDB, user: WriteUser) -> TestPlanAIGenerateResponse:
     try:
-        return service.ai_generate_plan(db, project_id, payload, user)
+        return await service.ai_generate_plan_async(db, project_id, payload, user)
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Plan üretim hatası: {exc}") from exc
 
 
 @router.get("/projects/{project_id}/plans", response_model=list[TestPlanOut])
-def list_plans(project_id: str, db: DB, _user: ReadUser) -> list[TestPlanOut]:
+async def list_plans(project_id: str, db: AsyncDB, _user: ReadUser) -> list[TestPlanOut]:
     return service.list_plans(db, project_id)
 
 
 @router.patch("/projects/{project_id}/plans/{plan_id}", response_model=TestPlanOut)
-def update_plan(project_id: str, plan_id: str, payload: TestPlanUpdate, db: DB, user: WriteUser) -> TestPlanOut:
+async def update_plan(project_id: str, plan_id: str, payload: TestPlanUpdate, db: AsyncDB, user: WriteUser) -> TestPlanOut:
     try:
         return service.update_plan(db, project_id, plan_id, payload, user)
     except KeyError as e:
@@ -1023,10 +1091,10 @@ def update_plan(project_id: str, plan_id: str, payload: TestPlanUpdate, db: DB, 
     "/projects/{project_id}/plans/{plan_id}/impact-summary",
     summary="Plan silinirse etkilenecek kayıt sayıları",
 )
-def plan_impact_summary(
+async def plan_impact_summary(
     project_id: str,
     plan_id: str,
-    db: DB,
+    db: AsyncDB,
     _user: ReadUser,
 ) -> dict:
     """Silme modalı açılmadan önce kullanıcıya etki özeti göster."""
@@ -1037,7 +1105,7 @@ def plan_impact_summary(
 
 
 @router.delete("/projects/{project_id}/plans/{plan_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_plan(project_id: str, plan_id: str, db: DB, user: WriteUser) -> None:
+async def delete_plan(project_id: str, plan_id: str, db: AsyncDB, user: WriteUser) -> None:
     try:
         service.delete_plan(db, project_id, plan_id, user)
     except KeyError as e:
@@ -1049,9 +1117,9 @@ def delete_plan(project_id: str, plan_id: str, db: DB, user: WriteUser) -> None:
     response_model=PagedResponse[TestCycleOut],
     summary="Test döngüsü listesi (sayfalı). limit/offset ile sayfalama desteklenir.",
 )
-def list_cycles(
+async def list_cycles(
     project_id: str,
-    db: DB,
+    db: AsyncDB,
     _user: ReadUser,
     plan_id: str | None = Query(default=None, description="Belirli bir plana ait cycle'ları filtrele"),
     limit: int = Query(default=50, ge=1, le=500, description="Sayfa başına kayıt sayısı"),
@@ -1069,12 +1137,12 @@ def list_cycles(
 
 
 @router.post("/projects/{project_id}/cycles", response_model=TestCycleOut, status_code=status.HTTP_201_CREATED)
-def create_cycle(project_id: str, payload: TestCycleCreate, db: DB, user: WriteUser) -> TestCycleOut:
+async def create_cycle(project_id: str, payload: TestCycleCreate, db: AsyncDB, user: WriteUser) -> TestCycleOut:
     return service.create_cycle(db, project_id, payload, user)
 
 
 @router.patch("/projects/{project_id}/cycles/{cycle_id}", response_model=TestCycleOut)
-def update_cycle(project_id: str, cycle_id: str, payload: TestCycleUpdate, db: DB, user: WriteUser) -> TestCycleOut:
+async def update_cycle(project_id: str, cycle_id: str, payload: TestCycleUpdate, db: AsyncDB, user: WriteUser) -> TestCycleOut:
     try:
         return service.update_cycle(db, project_id, cycle_id, payload, user)
     except KeyError as e:
@@ -1082,7 +1150,7 @@ def update_cycle(project_id: str, cycle_id: str, payload: TestCycleUpdate, db: D
 
 
 @router.delete("/projects/{project_id}/cycles/{cycle_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_cycle(project_id: str, cycle_id: str, db: DB, user: WriteUser) -> None:
+async def delete_cycle(project_id: str, cycle_id: str, db: AsyncDB, user: WriteUser) -> None:
     try:
         service.delete_cycle(db, project_id, cycle_id, user)
     except KeyError as e:
@@ -1090,17 +1158,17 @@ def delete_cycle(project_id: str, cycle_id: str, db: DB, user: WriteUser) -> Non
 
 
 @router.post("/projects/{project_id}/regression/suggest", response_model=list[RegressionCandidateOut])
-def suggest_regression_candidates(
+async def suggest_regression_candidates(
     project_id: str,
     payload: RegressionSelectionFilter,
-    db: DB,
+    db: AsyncDB,
     _user: ReadUser,
 ) -> list[RegressionCandidateOut]:
     return service.suggest_regression_candidates(db, project_id, payload)
 
 
 @router.get("/projects/{project_id}/regression/sets", response_model=list[RegressionSetOut])
-def list_regression_sets(project_id: str, db: DB, _user: ReadUser) -> list[RegressionSetOut]:
+async def list_regression_sets(project_id: str, db: AsyncDB, _user: ReadUser) -> list[RegressionSetOut]:
     return cast(list[RegressionSetOut], service.list_regression_sets(db, project_id))
 
 
@@ -1109,10 +1177,10 @@ def list_regression_sets(project_id: str, db: DB, _user: ReadUser) -> list[Regre
     response_model=RegressionSetOut,
     status_code=status.HTTP_201_CREATED,
 )
-def create_regression_set(
+async def create_regression_set(
     project_id: str,
     payload: RegressionSetCreate,
-    db: DB,
+    db: AsyncDB,
     user: WriteUser,
 ) -> RegressionSetOut:
     return cast(RegressionSetOut, service.create_regression_set(db, project_id, payload, user))
@@ -1122,11 +1190,11 @@ def create_regression_set(
     "/projects/{project_id}/regression/sets/{set_id}",
     response_model=RegressionSetOut,
 )
-def update_regression_set(
+async def update_regression_set(
     project_id: str,
     set_id: str,
     payload: RegressionSetUpdate,
-    db: DB,
+    db: AsyncDB,
     user: WriteUser,
 ) -> RegressionSetOut:
     return cast(RegressionSetOut, service.update_regression_set(db, project_id, set_id, payload, user))
@@ -1136,11 +1204,11 @@ def update_regression_set(
     "/projects/{project_id}/regression/sets/{set_id}/cases",
     response_model=RegressionSetOut,
 )
-def add_cases_to_regression_set(
+async def add_cases_to_regression_set(
     project_id: str,
     set_id: str,
     payload: RegressionSetAddCases,
-    db: DB,
+    db: AsyncDB,
     user: WriteUser,
 ) -> RegressionSetOut:
     return cast(RegressionSetOut, service.add_cases_to_regression_set(db, project_id, set_id, payload.case_ids, user))
@@ -1150,11 +1218,11 @@ def add_cases_to_regression_set(
     "/projects/{project_id}/regression/sets/{set_id}/cases/{case_id}",
     response_model=RegressionSetOut,
 )
-def remove_case_from_regression_set(
+async def remove_case_from_regression_set(
     project_id: str,
     set_id: str,
     case_id: str,
-    db: DB,
+    db: AsyncDB,
     user: WriteUser,
 ) -> RegressionSetOut:
     return cast(RegressionSetOut, service.remove_case_from_regression_set(db, project_id, set_id, case_id, user))
@@ -1164,10 +1232,10 @@ def remove_case_from_regression_set(
     "/projects/{project_id}/regression/sets/{set_id}",
     status_code=204,
 )
-def delete_regression_set(
+async def delete_regression_set(
     project_id: str,
     set_id: str,
-    db: DB,
+    db: AsyncDB,
     user: WriteUser,
 ) -> None:
     service.delete_regression_set(db, project_id, set_id, user)
@@ -1178,9 +1246,9 @@ def delete_regression_set(
     response_model=PagedResponse[TestRunOut],
     summary="Test koşumu listesi (sayfalı). limit/offset ile sayfalama desteklenir.",
 )
-def list_runs(
+async def list_runs(
     project_id: str,
-    db: DB,
+    db: AsyncDB,
     _user: ReadUser,
     status: str | None = Query(default=None, description="Run durumuna göre filtre"),
     cycle_id: str | None = Query(default=None, description="Belirli bir cycle'a ait run'ları filtrele"),
@@ -1199,12 +1267,12 @@ def list_runs(
 
 
 @router.post("/projects/{project_id}/runs", response_model=TestRunOut, status_code=status.HTTP_201_CREATED)
-def create_run(project_id: str, payload: TestRunCreate, db: DB, user: WriteUser) -> TestRunOut:
+async def create_run(project_id: str, payload: TestRunCreate, db: AsyncDB, user: WriteUser) -> TestRunOut:
     return service.create_run(db, project_id, payload, user)
 
 
 @router.patch("/projects/{project_id}/runs/{run_id}", response_model=TestRunOut)
-def update_run(project_id: str, run_id: str, payload: TestRunUpdate, db: DB, user: WriteUser) -> TestRunOut:
+async def update_run(project_id: str, run_id: str, payload: TestRunUpdate, db: AsyncDB, user: WriteUser) -> TestRunOut:
     try:
         return service.update_run(db, project_id, run_id, payload, user)
     except KeyError as e:
@@ -1212,7 +1280,7 @@ def update_run(project_id: str, run_id: str, payload: TestRunUpdate, db: DB, use
 
 
 @router.delete("/projects/{project_id}/runs/{run_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_run(project_id: str, run_id: str, db: DB, user: WriteUser) -> None:
+async def delete_run(project_id: str, run_id: str, db: AsyncDB, user: WriteUser) -> None:
     try:
         service.delete_run(db, project_id, run_id, user)
     except KeyError as e:
@@ -1220,7 +1288,7 @@ def delete_run(project_id: str, run_id: str, db: DB, user: WriteUser) -> None:
 
 
 @router.get("/projects/{project_id}/runs/{run_id}", response_model=RunDetailOut)
-def get_run(project_id: str, run_id: str, db: DB, _user: ReadUser) -> RunDetailOut:
+async def get_run(project_id: str, run_id: str, db: AsyncDB, _user: ReadUser) -> RunDetailOut:
     return service.get_run(db, project_id, run_id)
 
 
@@ -1229,9 +1297,9 @@ def get_run(project_id: str, run_id: str, db: DB, _user: ReadUser) -> RunDetailO
     response_model=RunCompareOut,
     summary="İki test koşusunu karşılaştır (yeni bozulanlar / düzelenler / hâlâ başarısız)",
 )
-def compare_runs(
+async def compare_runs(
     project_id: str,
-    db: DB,
+    db: AsyncDB,
     _user: ReadUser,
     base: str = Query(..., description="Temel (eski) run id"),
     target: str = Query(..., description="Karşılaştırılan (yeni) run id"),
@@ -1243,11 +1311,11 @@ def compare_runs(
 
 
 @router.patch("/projects/{project_id}/run-cases/{run_case_id}", response_model=RunCaseOut)
-def update_run_case(
+async def update_run_case(
     project_id: str,
     run_case_id: str,
     payload: RunCaseUpdate,
-    db: DB,
+    db: AsyncDB,
     user: ExecuteUser,
 ) -> RunCaseOut:
     """Update the overall status of a test case in a run (TestRail-style case-level result)."""
@@ -1262,12 +1330,12 @@ def update_run_case(
 
 
 @router.patch("/projects/{project_id}/run-cases/{run_case_id}/steps/{step_no}", response_model=RunCaseOut)
-def update_step_result(
+async def update_step_result(
     project_id: str,
     run_case_id: str,
     step_no: int,
     payload: StepResultUpdate,
-    db: DB,
+    db: AsyncDB,
     user: ExecuteUser,
 ) -> RunCaseOut:
     return service.update_step_result(db, project_id, run_case_id, step_no, payload, user)
@@ -1278,10 +1346,10 @@ def update_step_result(
     response_model=list[EvidenceOut],
     summary="List evidence files for a run case (without run_id in path)",
 )
-def list_evidence_by_run_case(
+async def list_evidence_by_run_case(
     project_id: str,
     run_case_id: str,
-    db: DB,
+    db: AsyncDB,
     _user: ReadUser,
 ) -> list[EvidenceOut]:
     try:
@@ -1291,7 +1359,7 @@ def list_evidence_by_run_case(
 
 
 @router.get("/projects/{project_id}/reports/dashboard-summary")
-def dashboard_summary(project_id: str, db: DB, _user: ReadUser) -> dict:
+async def dashboard_summary(project_id: str, db: AsyncDB, _user: ReadUser) -> dict:
     return service.dashboard_summary(db, project_id)
 
 
@@ -1299,7 +1367,7 @@ def dashboard_summary(project_id: str, db: DB, _user: ReadUser) -> dict:
     "/projects/{project_id}/stats/dashboard",
     summary="Fast lightweight dashboard stats (summaryFast) — skips heavy pass-rate & coverage queries",
 )
-def stats_dashboard(project_id: str, db: DB, _user: ReadUser) -> dict:
+async def stats_dashboard(project_id: str, db: AsyncDB, _user: ReadUser) -> dict:
     """Lighter alternative to /reports/dashboard-summary.
 
     Returns total_cases, active_runs, failed_cases, critical_defects, suite_count.
@@ -1313,9 +1381,9 @@ def stats_dashboard(project_id: str, db: DB, _user: ReadUser) -> dict:
     response_model=list[MyWorkItemOut],
     summary="Run-case'ler içinde mevcut kullanıcıya atanmış işler (My Work kuyruğu)",
 )
-def my_work(
+async def my_work(
     project_id: str,
-    db: DB,
+    db: AsyncDB,
     user: ReadUser,
     scope: str = Query(default="open", pattern="^(open|all)$"),
 ) -> list[MyWorkItemOut]:
@@ -1331,7 +1399,7 @@ def my_work(
 # ── Exploratory testing sessions ────────────────────────────────────────────────
 
 @router.get("/projects/{project_id}/exploration-sessions", response_model=list[ExplorationSessionOut])
-def list_exploration_sessions(project_id: str, db: DB, _user: ReadUser) -> list[ExplorationSessionOut]:
+async def list_exploration_sessions(project_id: str, db: AsyncDB, _user: ReadUser) -> list[ExplorationSessionOut]:
     return service.list_exploration_sessions(db, project_id)
 
 
@@ -1340,14 +1408,14 @@ def list_exploration_sessions(project_id: str, db: DB, _user: ReadUser) -> list[
     response_model=ExplorationSessionOut,
     status_code=status.HTTP_201_CREATED,
 )
-def create_exploration_session(
-    project_id: str, payload: ExplorationSessionCreate, db: DB, user: WriteUser
+async def create_exploration_session(
+    project_id: str, payload: ExplorationSessionCreate, db: AsyncDB, user: WriteUser
 ) -> ExplorationSessionOut:
     return service.create_exploration_session(db, project_id, payload, user)
 
 
 @router.get("/projects/{project_id}/exploration-sessions/{session_id}", response_model=ExplorationSessionOut)
-def get_exploration_session(project_id: str, session_id: str, db: DB, _user: ReadUser) -> ExplorationSessionOut:
+async def get_exploration_session(project_id: str, session_id: str, db: AsyncDB, _user: ReadUser) -> ExplorationSessionOut:
     try:
         return service.get_exploration_session(db, project_id, session_id)
     except KeyError as e:
@@ -1355,8 +1423,8 @@ def get_exploration_session(project_id: str, session_id: str, db: DB, _user: Rea
 
 
 @router.patch("/projects/{project_id}/exploration-sessions/{session_id}", response_model=ExplorationSessionOut)
-def update_exploration_session(
-    project_id: str, session_id: str, payload: ExplorationSessionUpdate, db: DB, user: WriteUser
+async def update_exploration_session(
+    project_id: str, session_id: str, payload: ExplorationSessionUpdate, db: AsyncDB, user: WriteUser
 ) -> ExplorationSessionOut:
     try:
         return service.update_exploration_session(db, project_id, session_id, payload, user)
@@ -1368,8 +1436,8 @@ def update_exploration_session(
     "/projects/{project_id}/exploration-sessions/{session_id}/notes",
     response_model=ExplorationSessionOut,
 )
-def add_exploration_note(
-    project_id: str, session_id: str, payload: ExplorationNoteIn, db: DB, user: WriteUser
+async def add_exploration_note(
+    project_id: str, session_id: str, payload: ExplorationNoteIn, db: AsyncDB, user: WriteUser
 ) -> ExplorationSessionOut:
     try:
         return service.add_exploration_note(db, project_id, session_id, payload, user)
@@ -1381,8 +1449,8 @@ def add_exploration_note(
     "/projects/{project_id}/exploration-sessions/{session_id}/notes/{note_id}",
     response_model=ExplorationSessionOut,
 )
-def delete_exploration_note(
-    project_id: str, session_id: str, note_id: str, db: DB, user: WriteUser
+async def delete_exploration_note(
+    project_id: str, session_id: str, note_id: str, db: AsyncDB, user: WriteUser
 ) -> ExplorationSessionOut:
     try:
         return service.delete_exploration_note(db, project_id, session_id, note_id, user)
@@ -1394,7 +1462,7 @@ def delete_exploration_note(
     "/projects/{project_id}/exploration-sessions/{session_id}",
     status_code=status.HTTP_204_NO_CONTENT,
 )
-def delete_exploration_session(project_id: str, session_id: str, db: DB, user: WriteUser) -> None:
+async def delete_exploration_session(project_id: str, session_id: str, db: AsyncDB, user: WriteUser) -> None:
     try:
         service.delete_exploration_session(db, project_id, session_id, user)
     except KeyError as e:
@@ -1402,14 +1470,14 @@ def delete_exploration_session(project_id: str, session_id: str, db: DB, user: W
 
 
 @router.get("/projects/{project_id}/reports/execution-summary", response_model=ExecutionSummaryOut)
-def execution_summary(project_id: str, db: DB, _user: ReadUser) -> ExecutionSummaryOut:
+async def execution_summary(project_id: str, db: AsyncDB, _user: ReadUser) -> ExecutionSummaryOut:
     return service.execution_summary(db, project_id)
 
 
 @router.get("/projects/{project_id}/reports/run-trend", response_model=list[dict])
-def run_trend(
+async def run_trend(
     project_id: str,
-    db: DB,
+    db: AsyncDB,
     _user: ReadUser,
     limit: int = Query(default=20, ge=1, le=100),
 ) -> list[dict]:
@@ -1418,12 +1486,12 @@ def run_trend(
 
 
 @router.get("/projects/{project_id}/reports/release", response_model=ReleaseReportOut)
-def release_report(project_id: str, db: DB, _user: ReadUser) -> ReleaseReportOut:
+async def release_report(project_id: str, db: AsyncDB, _user: ReadUser) -> ReleaseReportOut:
     return service.release_report(db, project_id)
 
 
 @router.get("/projects/{project_id}/reports/release/signoffs", response_model=list[ReleaseSignoffOut])
-def list_release_signoffs(project_id: str, db: DB, _user: ReadUser) -> list[ReleaseSignoffOut]:
+async def list_release_signoffs(project_id: str, db: AsyncDB, _user: ReadUser) -> list[ReleaseSignoffOut]:
     return service.list_release_signoffs(db, project_id)
 
 
@@ -1432,23 +1500,23 @@ def list_release_signoffs(project_id: str, db: DB, _user: ReadUser) -> list[Rele
     response_model=ReleaseSignoffOut,
     status_code=status.HTTP_201_CREATED,
 )
-def create_release_signoff(
+async def create_release_signoff(
     project_id: str,
     payload: ReleaseSignoffCreate,
-    db: DB,
+    db: AsyncDB,
     user: WriteUser,
 ) -> ReleaseSignoffOut:
     return service.create_release_signoff(db, project_id, payload, user)
 
 
 @router.get("/projects/{project_id}/requirements/traceability", response_model=list[TraceabilityRow])
-def requirement_traceability(project_id: str, db: DB, _user: ReadUser) -> list[TraceabilityRow]:
+async def requirement_traceability(project_id: str, db: AsyncDB, _user: ReadUser) -> list[TraceabilityRow]:
     """Return the requirements ↔ test-case traceability matrix."""
     return cast(list[TraceabilityRow], service.requirement_traceability(db, project_id))
 
 
 @router.get("/projects/{project_id}/requirements/catalog", response_model=list[RequirementOut])
-def list_requirements(project_id: str, db: DB, _user: ReadUser) -> list[RequirementOut]:
+async def list_requirements(project_id: str, db: AsyncDB, _user: ReadUser) -> list[RequirementOut]:
     return service.list_requirements(db, project_id)
 
 
@@ -1457,10 +1525,10 @@ def list_requirements(project_id: str, db: DB, _user: ReadUser) -> list[Requirem
     response_model=RequirementOut,
     status_code=status.HTTP_201_CREATED,
 )
-def create_requirement(
+async def create_requirement(
     project_id: str,
     payload: RequirementCreate,
-    db: DB,
+    db: AsyncDB,
     user: WriteUser,
 ) -> RequirementOut:
     return service.create_requirement(db, project_id, payload, user)
@@ -1470,10 +1538,10 @@ def create_requirement(
     "/projects/{project_id}/requirements/bulk",
     summary="CSV veya JSON listeden toplu gereksinim oluştur",
 )
-def bulk_create_requirements(
+async def bulk_create_requirements(
     project_id: str,
     payload: list[RequirementCreate],
-    db: DB,
+    db: AsyncDB,
     user: WriteUser,
 ) -> dict:
     created = 0
@@ -1487,9 +1555,9 @@ def bulk_create_requirements(
 
 
 @router.get("/projects/{project_id}/requirements", response_model=list[RequirementLinkOut])
-def list_requirement_links(
+async def list_requirement_links(
     project_id: str,
-    db: DB,
+    db: AsyncDB,
     _user: ReadUser,
     case_id: str | None = Query(default=None),
 ) -> list[RequirementLinkOut]:
@@ -1500,10 +1568,10 @@ def list_requirement_links(
     "/projects/{project_id}/requirements",
     status_code=status.HTTP_201_CREATED,
 )
-def create_requirement_or_link(
+async def create_requirement_or_link(
     project_id: str,
     payload: RequirementLinkCreate,
-    db: DB,
+    db: AsyncDB,
     user: WriteUser,
 ) -> dict:
     """Esnek requirement oluşturma: case_id varsa link, yoksa standalone requirement."""
@@ -1541,11 +1609,11 @@ def create_requirement_or_link(
 
 
 @router.patch("/projects/{project_id}/requirements/{req_id}")
-def update_requirement_or_link(
+async def update_requirement_or_link(
     project_id: str,
     req_id: str,
     payload: RequirementUpdate,
-    db: DB,
+    db: AsyncDB,
     user: WriteUser,
 ) -> dict:
     """Standalone requirement veya link güncelle (ID'ye göre otomatik belirlenir)."""
@@ -1564,7 +1632,7 @@ def update_requirement_or_link(
 
 
 @router.delete("/projects/{project_id}/requirements/{req_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_requirement_or_link(project_id: str, req_id: str, db: DB, user: WriteUser) -> None:
+async def delete_requirement_or_link(project_id: str, req_id: str, db: AsyncDB, user: WriteUser) -> None:
     """Standalone requirement veya link sil (ID'ye göre otomatik belirlenir)."""
     try:
         service.delete_requirement(db, project_id, req_id, user)
@@ -1578,9 +1646,9 @@ def delete_requirement_or_link(project_id: str, req_id: str, db: DB, user: Write
 
 
 @router.get("/projects/{project_id}/defects", response_model=list[DefectLinkOut])
-def list_defect_links(
+async def list_defect_links(
     project_id: str,
-    db: DB,
+    db: AsyncDB,
     _user: ReadUser,
     case_id: Optional[str] = Query(default=None),
 ) -> list[DefectLinkOut]:
@@ -1592,8 +1660,26 @@ def list_defect_links(
     response_model=DefectLinkOut,
     status_code=status.HTTP_201_CREATED,
 )
-def create_defect_link(project_id: str, payload: DefectLinkCreate, db: DB, user: WriteUser) -> DefectLinkOut:
-    return service.create_defect_link(db, project_id, payload, user)
+async def create_defect_link(
+    project_id: str, payload: DefectLinkCreate, db: AsyncDB, user: WriteUser, background: BackgroundTasks
+) -> DefectLinkOut:
+    defect = service.create_defect_link(db, project_id, payload, user)
+    # Fire outbound webhooks (event-driven, best-effort, after response).
+    pid = service.resolve_project_id(db, project_id)
+    subs = _project_webhook_subs(db, pid, "defect.created")
+    if subs:
+        background.add_task(
+            _dispatch_webhooks, subs, "defect.created",
+            {
+                "project_id": pid,
+                "defect_id": defect.id,
+                "external_key": defect.external_key,
+                "title": defect.title,
+                "severity": defect.severity,
+                "status": defect.status,
+            },
+        )
+    return defect
 
 
 @router.get(
@@ -1601,9 +1687,9 @@ def create_defect_link(project_id: str, payload: DefectLinkCreate, db: DB, user:
     response_model=list[DefectSearchResult],
     summary="Mevcut defect'leri ara (external_key bazında tekilleştirilmiş) — 'mevcut defect bağla' için",
 )
-def search_defects(
+async def search_defects(
     project_id: str,
-    db: DB,
+    db: AsyncDB,
     _user: ReadUser,
     q: Optional[str] = Query(default=None, description="Başlık veya defect anahtarı araması"),
     limit: int = Query(default=20, ge=1, le=100),
@@ -1617,7 +1703,7 @@ def search_defects(
     status_code=status.HTTP_201_CREATED,
     summary="Mevcut bir defect'i başarısız bir run-case'e bağla (aynı bug birden çok case'i düşürdüğünde)",
 )
-def link_existing_defect(project_id: str, payload: DefectLinkExistingRequest, db: DB, user: WriteUser) -> DefectLinkOut:
+async def link_existing_defect(project_id: str, payload: DefectLinkExistingRequest, db: AsyncDB, user: WriteUser) -> DefectLinkOut:
     try:
         return service.link_existing_defect(
             db, project_id, payload.run_case_id, payload.defect_id, payload.step_result_id, user
@@ -1627,18 +1713,18 @@ def link_existing_defect(project_id: str, payload: DefectLinkExistingRequest, db
 
 
 @router.patch("/projects/{project_id}/defects/{defect_id}", response_model=DefectLinkOut)
-def update_defect_link(
+async def update_defect_link(
     project_id: str,
     defect_id: str,
     payload: DefectLinkUpdate,
-    db: DB,
+    db: AsyncDB,
     user: WriteUser,
 ) -> DefectLinkOut:
     return service.update_defect_link(db, project_id, defect_id, payload, user)
 
 
 @router.delete("/projects/{project_id}/defects/{defect_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_defect_link(project_id: str, defect_id: str, db: DB, user: WriteUser) -> None:
+async def delete_defect_link(project_id: str, defect_id: str, db: AsyncDB, user: WriteUser) -> None:
     try:
         service.delete_defect_link(db, project_id, defect_id, user)
     except KeyError as e:
@@ -1649,9 +1735,9 @@ def delete_defect_link(project_id: str, defect_id: str, db: DB, user: WriteUser)
     "/projects/{project_id}/defects/export",
     summary="Defect'leri CSV veya JSON olarak dışa aktar",
 )
-def export_defects(
+async def export_defects(
     project_id: str,
-    db: DB,
+    db: AsyncDB,
     _user: ReadUser,
     format: str = Query("csv", pattern="^(csv|json)$"),
 ):
@@ -1706,10 +1792,10 @@ def export_defects(
     response_model=DefectRootCauseResponse,
     summary="AI ile defect root cause analizi yap",
 )
-def analyze_defect_root_cause(
+async def analyze_defect_root_cause(
     project_id: str,
     payload: DefectRootCauseRequest,
-    db: DB,
+    db: AsyncDB,
     user: WriteUser,
 ) -> DefectRootCauseResponse:
     try:
@@ -1740,12 +1826,12 @@ def analyze_defect_root_cause(
 
 
 @router.get("/projects/{project_id}/imports", response_model=list[TestImportJobOut])
-def list_import_jobs(project_id: str, db: DB, _user: ReadUser) -> list[TestImportJobOut]:
+async def list_import_jobs(project_id: str, db: AsyncDB, _user: ReadUser) -> list[TestImportJobOut]:
     return service.list_import_jobs(db, project_id)
 
 
 @router.get("/projects/{project_id}/imports/{job_id}", response_model=ImportJobDetailOut)
-def get_import_job(project_id: str, job_id: str, db: DB, _user: ReadUser) -> ImportJobDetailOut:
+async def get_import_job(project_id: str, job_id: str, db: AsyncDB, _user: ReadUser) -> ImportJobDetailOut:
     return service.get_import_job(db, project_id, job_id)
 
 
@@ -1753,7 +1839,7 @@ def get_import_job(project_id: str, job_id: str, db: DB, _user: ReadUser) -> Imp
     "/projects/{project_id}/imports/{job_id}/commit",
     response_model=TestImportJobOut,
 )
-def commit_import_job(project_id: str, job_id: str, db: DB, user: WriteUser) -> TestImportJobOut:
+async def commit_import_job(project_id: str, job_id: str, db: AsyncDB, user: WriteUser) -> TestImportJobOut:
     return service.commit_import_job(db, project_id, job_id, user)
 
 
@@ -1762,7 +1848,7 @@ def commit_import_job(project_id: str, job_id: str, db: DB, user: WriteUser) -> 
     response_model=TestImportJobOut,
     status_code=status.HTTP_201_CREATED,
 )
-def create_import_job(project_id: str, payload: TestImportJobCreate, db: DB, user: WriteUser) -> TestImportJobOut:
+async def create_import_job(project_id: str, payload: TestImportJobCreate, db: AsyncDB, user: WriteUser) -> TestImportJobOut:
     return service.create_import_job(db, project_id, payload, user)
 
 
@@ -1771,10 +1857,10 @@ def create_import_job(project_id: str, payload: TestImportJobCreate, db: DB, use
     response_model=list[SimilarCaseResult],
     summary="Semantic similarity search across test cases",
 )
-def search_similar_cases(
+async def search_similar_cases(
     project_id: str,
     payload: SimilarCaseQuery,
-    db: DB,
+    db: AsyncDB,
     _user: ReadUser,
 ) -> list[SimilarCaseResult]:
     """Find test cases semantically similar to a natural-language query.
@@ -1839,11 +1925,11 @@ async def upload_evidence(
     response_model=list[EvidenceOut],
     summary="List evidence files for a run case",
 )
-def list_evidence(
+async def list_evidence(
     project_id: str,
     run_id: str,
     run_case_id: str,
-    db: DB,
+    db: AsyncDB,
     _user: ReadUser,
 ) -> list[EvidenceOut]:
     return [EvidenceOut(**item) for item in service.list_evidence(db, project_id, run_id, run_case_id)]
@@ -1878,7 +1964,7 @@ def _is_admin(user: User) -> bool:
     status_code=status.HTTP_201_CREATED,
     summary="Create a threaded comment on a management entity",
 )
-def create_comment(payload: MgmtCommentCreate, db: DB, user: WriteUser) -> MgmtCommentOut:
+async def create_comment(payload: MgmtCommentCreate, db: AsyncDB, user: WriteUser) -> MgmtCommentOut:
     try:
         comment = comments_service.create_comment(db, payload, user)
     except ValueError as exc:
@@ -1893,8 +1979,8 @@ def create_comment(payload: MgmtCommentCreate, db: DB, user: WriteUser) -> MgmtC
     response_model=list[MgmtCommentOut],
     summary="List comments for an entity (chronological, includes deleted-as-tombstone optionally)",
 )
-def list_comments(
-    db: DB,
+async def list_comments(
+    db: AsyncDB,
     user: ReadUser,
     entity_type: str = Query(..., min_length=1),
     entity_id: str = Query(..., min_length=1),
@@ -1918,10 +2004,10 @@ def list_comments(
     response_model=MgmtCommentOut,
     summary="Edit a comment (author only)",
 )
-def patch_comment(
+async def patch_comment(
     comment_id: str,
     payload: MgmtCommentUpdate,
-    db: DB,
+    db: AsyncDB,
     user: WriteUser,
 ) -> MgmtCommentOut:
     try:
@@ -1938,7 +2024,7 @@ def patch_comment(
     response_model=MgmtCommentOut,
     summary="Soft-delete a comment (author or admin)",
 )
-def remove_comment(comment_id: str, db: DB, user: WriteUser) -> MgmtCommentOut:
+async def remove_comment(comment_id: str, db: AsyncDB, user: WriteUser) -> MgmtCommentOut:
     try:
         comment = comments_service.delete_comment(db, comment_id, user, is_admin=_is_admin(user))
     except ValueError as exc:
@@ -1953,10 +2039,10 @@ def remove_comment(comment_id: str, db: DB, user: WriteUser) -> MgmtCommentOut:
     response_model=MgmtCommentOut,
     summary="Add or remove an emoji reaction on a comment",
 )
-def react_comment(
+async def react_comment(
     comment_id: str,
     payload: MgmtCommentReact,
-    db: DB,
+    db: AsyncDB,
     user: WriteUser,
 ) -> MgmtCommentOut:
     try:
@@ -1976,8 +2062,8 @@ def react_comment(
     response_model=list[MgmtNotificationOut],
     summary="List the current user's notifications",
 )
-def list_notifications(
-    db: DB,
+async def list_notifications(
+    db: AsyncDB,
     user: ReadUser,
     unread_only: bool = Query(default=False),
     include_archived: bool = Query(default=False),
@@ -2002,7 +2088,7 @@ def list_notifications(
     response_model=NotificationUnreadCount,
     summary="Lightweight badge count for the bell icon",
 )
-def unread_count(db: DB, user: ReadUser) -> NotificationUnreadCount:
+async def unread_count(db: AsyncDB, user: ReadUser) -> NotificationUnreadCount:
     tenant_id = _require_tenant(user)
     unread, total = comments_service.count_notifications(
         db, user_id=str(user.id), tenant_id=tenant_id
@@ -2016,9 +2102,9 @@ def unread_count(db: DB, user: ReadUser) -> NotificationUnreadCount:
     status_code=status.HTTP_201_CREATED,
     summary="Create a notification for another user (admin)",
 )
-def create_notification(
+async def create_notification(
     payload: MgmtNotificationCreate,
-    db: DB,
+    db: AsyncDB,
     user: AdminUser,
 ) -> MgmtNotificationOut:
     try:
@@ -2033,9 +2119,9 @@ def create_notification(
     response_model=MgmtNotificationOut,
     summary="Mark a notification as read",
 )
-def read_notification(
+async def read_notification(
     notification_id: str,
-    db: DB,
+    db: AsyncDB,
     user: ReadUser,
 ) -> MgmtNotificationOut:
     try:
@@ -2050,9 +2136,9 @@ def read_notification(
     response_model=MgmtNotificationOut,
     summary="Archive a notification",
 )
-def archive_notification(
+async def archive_notification(
     notification_id: str,
-    db: DB,
+    db: AsyncDB,
     user: ReadUser,
 ) -> MgmtNotificationOut:
     try:
@@ -2067,7 +2153,7 @@ def archive_notification(
     response_model=dict,
     summary="Mark every unread notification as read",
 )
-def read_all_notifications(db: DB, user: ReadUser) -> dict[str, int]:
+async def read_all_notifications(db: AsyncDB, user: ReadUser) -> dict[str, int]:
     affected = comments_service.mark_all_read(db, user_id=str(user.id))
     return {"updated": affected}
 
@@ -2076,9 +2162,9 @@ def read_all_notifications(db: DB, user: ReadUser) -> dict[str, int]:
     "/comments/summarize",
     summary="AI-generated TL;DR / decisions / open questions for a comment thread",
 )
-def summarize_comment_thread(
+async def summarize_comment_thread(
     payload: dict,
-    db: DB,
+    db: AsyncDB,
     user: ReadUser,
 ) -> dict:
     entity_type = str(payload.get("entity_type") or "")
@@ -2103,8 +2189,8 @@ def summarize_comment_thread(
     "/notifications/digest",
     summary="AI-grouped digest of recent notifications for the current user",
 )
-def notifications_digest(
-    db: DB,
+async def notifications_digest(
+    db: AsyncDB,
     user: ReadUser,
     window: str = Query(default="24h", description="24h | 7d"),
 ) -> dict:
@@ -2150,7 +2236,7 @@ async def notification_stream(user: ReadUser) -> StreamingResponse:
     status_code=status.HTTP_201_CREATED,
     summary="Generate a Boundary Value Analysis run (LLM with deterministic fallback)",
 )
-def design_create_bva(payload: BvaRunCreate, db: DB, user: WriteUser) -> DesignRunOut:
+async def design_create_bva(payload: BvaRunCreate, db: AsyncDB, user: WriteUser) -> DesignRunOut:
     tenant_id = _require_tenant(user)
     try:
         return design_service.create_bva_run(db, tenant_id, user, payload)
@@ -2164,7 +2250,7 @@ def design_create_bva(payload: BvaRunCreate, db: DB, user: WriteUser) -> DesignR
     status_code=status.HTTP_201_CREATED,
     summary="Generate an Equivalence Partitioning run",
 )
-def design_create_eq(payload: EqRunCreate, db: DB, user: WriteUser) -> DesignRunOut:
+async def design_create_eq(payload: EqRunCreate, db: AsyncDB, user: WriteUser) -> DesignRunOut:
     tenant_id = _require_tenant(user)
     try:
         return design_service.create_eq_run(db, tenant_id, user, payload)
@@ -2178,7 +2264,7 @@ def design_create_eq(payload: EqRunCreate, db: DB, user: WriteUser) -> DesignRun
     status_code=status.HTTP_201_CREATED,
     summary="Generate a Decision Table run",
 )
-def design_create_dt(payload: DtRunCreate, db: DB, user: WriteUser) -> DesignRunOut:
+async def design_create_dt(payload: DtRunCreate, db: AsyncDB, user: WriteUser) -> DesignRunOut:
     tenant_id = _require_tenant(user)
     try:
         return design_service.create_dt_run(db, tenant_id, user, payload)
@@ -2192,7 +2278,7 @@ def design_create_dt(payload: DtRunCreate, db: DB, user: WriteUser) -> DesignRun
     status_code=status.HTTP_201_CREATED,
     summary="Generate a Pairwise (All-Pairs) run",
 )
-def design_create_pairwise(payload: PairwiseRunCreate, db: DB, user: WriteUser) -> DesignRunOut:
+async def design_create_pairwise(payload: PairwiseRunCreate, db: AsyncDB, user: WriteUser) -> DesignRunOut:
     tenant_id = _require_tenant(user)
     try:
         return design_service.create_pairwise_run(db, tenant_id, user, payload)
@@ -2205,8 +2291,8 @@ def design_create_pairwise(payload: PairwiseRunCreate, db: DB, user: WriteUser) 
     response_model=list[DesignRunOut],
     summary="List design technique runs for the current tenant",
 )
-def design_list_runs(
-    db: DB,
+async def design_list_runs(
+    db: AsyncDB,
     user: ReadUser,
     technique: str | None = Query(default=None),
     requirement_id: str | None = Query(default=None),
@@ -2234,7 +2320,7 @@ def design_list_runs(
     response_model=DesignRunOut,
     summary="Get a single design technique run",
 )
-def design_get_run(run_id: str, db: DB, user: ReadUser) -> DesignRunOut:
+async def design_get_run(run_id: str, db: AsyncDB, user: ReadUser) -> DesignRunOut:
     tenant_id = _require_tenant(user)
     try:
         return design_service.get_design_run(db, tenant_id, run_id)
@@ -2247,10 +2333,10 @@ def design_get_run(run_id: str, db: DB, user: ReadUser) -> DesignRunOut:
     response_model=PromoteCasesResponse,
     summary="Promote selected generated drafts to real TestCase rows",
 )
-def design_promote(
+async def design_promote(
     run_id: str,
     payload: PromoteCasesRequest,
-    db: DB,
+    db: AsyncDB,
     user: WriteUser,
 ) -> PromoteCasesResponse:
     tenant_id = _require_tenant(user)
@@ -2269,10 +2355,10 @@ def design_promote(
     status_code=status.HTTP_201_CREATED,
     summary="Attach a parameter schema (M-9) to a TestCase",
 )
-def design_create_param_set(
+async def design_create_param_set(
     case_id: str,
     payload: CaseParamSetCreate,
-    db: DB,
+    db: AsyncDB,
     user: WriteUser,
 ) -> CaseParamSetOut:
     tenant_id = _require_tenant(user)
@@ -2292,7 +2378,7 @@ def design_create_param_set(
     response_model=list[CaseParamSetOut],
     summary="List parameter schemas attached to a TestCase",
 )
-def design_list_param_sets(case_id: str, db: DB, user: ReadUser) -> list[CaseParamSetOut]:
+async def design_list_param_sets(case_id: str, db: AsyncDB, user: ReadUser) -> list[CaseParamSetOut]:
     tenant_id = _require_tenant(user)
     sets = design_service.list_param_sets(db, tenant_id, case_id)
     return [CaseParamSetOut.model_validate(s) for s in sets]
@@ -2304,10 +2390,10 @@ def design_list_param_sets(case_id: str, db: DB, user: ReadUser) -> list[CasePar
     status_code=status.HTTP_201_CREATED,
     summary="Append data rows to a parameter set (manual / csv / llm-generated)",
 )
-def design_add_data_rows(
+async def design_add_data_rows(
     case_id: str,
     payload: CaseDataGenerateRequest,
-    db: DB,
+    db: AsyncDB,
     user: WriteUser,
 ) -> list[CaseDataRowOut]:
     tenant_id = _require_tenant(user)
@@ -2325,10 +2411,10 @@ def design_add_data_rows(
     response_model=list[CaseDataRowOut],
     summary="List data rows for a parameter set",
 )
-def design_list_data_rows(
+async def design_list_data_rows(
     case_id: str,
     param_set_id: str,
-    db: DB,
+    db: AsyncDB,
     user: ReadUser,
 ) -> list[CaseDataRowOut]:
     tenant_id = _require_tenant(user)
@@ -2345,11 +2431,11 @@ def design_list_data_rows(
     status_code=status.HTTP_201_CREATED,
     summary="Append manually-edited data rows to a parameter set",
 )
-def design_add_manual_rows(
+async def design_add_manual_rows(
     case_id: str,
     param_set_id: str,
     rows: list[CaseDataRowIn],
-    db: DB,
+    db: AsyncDB,
     user: WriteUser,
 ) -> list[CaseDataRowOut]:
     tenant_id = _require_tenant(user)
@@ -2365,7 +2451,7 @@ def design_add_manual_rows(
     response_model=ExpandCaseResponse,
     summary="Materialise one execution stub per data row across the case's param sets",
 )
-def design_expand_case(case_id: str, db: DB, user: WriteUser) -> ExpandCaseResponse:
+async def design_expand_case(case_id: str, db: AsyncDB, user: WriteUser) -> ExpandCaseResponse:
     tenant_id = _require_tenant(user)
     try:
         result = design_service.expand_case(db, tenant_id, user, case_id)
@@ -2383,7 +2469,7 @@ def design_expand_case(case_id: str, db: DB, user: WriteUser) -> ExpandCaseRespo
     response_model=RunIntelligenceReportOut,
     summary="Bir koşum için tam zeka raporu: ETA, tester profilleri, anomaliler, risk sıralaması",
 )
-def run_intelligence(project_id: str, run_id: str, db: DB, _user: ReadUser) -> RunIntelligenceReportOut:
+async def run_intelligence(project_id: str, run_id: str, db: AsyncDB, _user: ReadUser) -> RunIntelligenceReportOut:
     try:
         report = intelligence_service.get_run_intelligence(db, project_id, run_id)
     except ValueError as exc:
@@ -2407,18 +2493,18 @@ def run_intelligence(project_id: str, run_id: str, db: DB, _user: ReadUser) -> R
     response_model=ETAPredictionOut,
     summary="Koşum için hız tabanlı ETA tahmini",
 )
-def run_eta(project_id: str, run_id: str, db: DB, _user: ReadUser) -> ETAPredictionOut:
+async def run_eta(project_id: str, run_id: str, db: AsyncDB, _user: ReadUser) -> ETAPredictionOut:
     from sqlalchemy import select as _select
 
     from app.domains.test_management.models import TestRun, TestRunCase
 
-    run = db.execute(_select(TestRun).where(TestRun.id == run_id)).scalar_one_or_none()
+    run = (await db.execute(_select(TestRun).where(TestRun.id == run_id))).scalar_one_or_none()
     if not run:
         raise HTTPException(status_code=404, detail="Run bulunamadı")
 
-    run_cases = db.execute(
+    run_cases = (await db.execute(
         _select(TestRunCase).where(TestRunCase.run_id == run_id)
-    ).scalars().all()
+    )).scalars().all()
 
     eta = intelligence_service._predict_eta(run, run_cases)
     return ETAPredictionOut(**eta.__dict__)
@@ -2429,18 +2515,18 @@ def run_eta(project_id: str, run_id: str, db: DB, _user: ReadUser) -> ETAPredict
     response_model=list[AnomalyOut],
     summary="Koşumdaki anomalileri tespit et: takılı case, inaktif tester, yüksek blocked oranı",
 )
-def run_anomalies(project_id: str, run_id: str, db: DB, _user: ReadUser) -> list[AnomalyOut]:
+async def run_anomalies(project_id: str, run_id: str, db: AsyncDB, _user: ReadUser) -> list[AnomalyOut]:
     from sqlalchemy import select as _select
 
     from app.domains.test_management.models import TestRun, TestRunCase
 
-    run = db.execute(_select(TestRun).where(TestRun.id == run_id)).scalar_one_or_none()
+    run = (await db.execute(_select(TestRun).where(TestRun.id == run_id))).scalar_one_or_none()
     if not run:
         raise HTTPException(status_code=404, detail="Run bulunamadı")
 
-    run_cases = db.execute(
+    run_cases = (await db.execute(
         _select(TestRunCase).where(TestRunCase.run_id == run_id)
-    ).scalars().all()
+    )).scalars().all()
 
     eta = intelligence_service._predict_eta(run, run_cases)
     testers = intelligence_service._build_tester_profiles(run_cases)
@@ -2453,14 +2539,14 @@ def run_anomalies(project_id: str, run_id: str, db: DB, _user: ReadUser) -> list
     response_model=list[CaseRiskScoreOut],
     summary="Kalan case'leri risk skoruna göre sırala — en riskli önce",
 )
-def run_risk_queue(project_id: str, run_id: str, db: DB, _user: ReadUser) -> list[CaseRiskScoreOut]:
+async def run_risk_queue(project_id: str, run_id: str, db: AsyncDB, _user: ReadUser) -> list[CaseRiskScoreOut]:
     from sqlalchemy import select as _select
 
     from app.domains.test_management.models import TestRunCase
 
-    run_cases = db.execute(
+    run_cases = (await db.execute(
         _select(TestRunCase).where(TestRunCase.run_id == run_id)
-    ).scalars().all()
+    )).scalars().all()
 
     scored = intelligence_service._risk_sort_remaining(db, run_cases)
     return [CaseRiskScoreOut(**c.__dict__) for c in scored]
@@ -2471,7 +2557,7 @@ def run_risk_queue(project_id: str, run_id: str, db: DB, _user: ReadUser) -> lis
     response_model=ReleaseReadinessPredictionOut,
     summary="Mevcut ilerlemeye göre release gate'e ulaşılıp ulaşılamayacağını tahmin et",
 )
-def release_prediction(project_id: str, db: DB, _user: ReadUser) -> ReleaseReadinessPredictionOut:
+async def release_prediction(project_id: str, db: AsyncDB, _user: ReadUser) -> ReleaseReadinessPredictionOut:
     result = intelligence_service.predict_release_readiness(db, project_id)
     return ReleaseReadinessPredictionOut(**result.__dict__)
 
@@ -2481,7 +2567,7 @@ def release_prediction(project_id: str, db: DB, _user: ReadUser) -> ReleaseReadi
     response_model=TesterPerformanceOut,
     summary="Bir tester'ın bu proje genelindeki performans profili",
 )
-def tester_performance(project_id: str, user_id: str, db: DB, _user: ReadUser) -> TesterPerformanceOut:
+async def tester_performance(project_id: str, user_id: str, db: AsyncDB, _user: ReadUser) -> TesterPerformanceOut:
     data = intelligence_service.get_tester_performance(db, project_id, user_id)
     return TesterPerformanceOut(**data)
 
@@ -2492,19 +2578,19 @@ def tester_performance(project_id: str, user_id: str, db: DB, _user: ReadUser) -
     "/projects/{project_id}/my-cases",
     summary="Aktif run'larda oturum açmış kullanıcıya atanmış case'leri döner",
 )
-def my_assigned_cases(project_id: str, db: DB, user: ReadUser) -> list[dict]:
+async def my_assigned_cases(project_id: str, db: AsyncDB, user: ReadUser) -> list[dict]:
     from sqlalchemy import select as _sel
 
     from app.domains.test_management.models import TestCycle, TestRun, TestRunCase
 
-    rows = db.execute(
+    rows = (await db.execute(
         _sel(TestRunCase, TestRun)
         .join(TestRun, TestRunCase.run_id == TestRun.id)
         .join(TestCycle, TestRun.cycle_id == TestCycle.id)
         .where(TestRunCase.assigned_to == user.id)
         .where(TestRun.status.in_(["not_started", "in_progress"]))
         .order_by(TestRun.created_at.desc())
-    ).all()
+    )).all()
 
     result = []
     for rc, run in rows:
@@ -2532,7 +2618,7 @@ def my_assigned_cases(project_id: str, db: DB, user: ReadUser) -> list[dict]:
 # ── Shared Steps ──────────────────────────────────────────────────────────────
 
 @router.get("/projects/{project_id}/shared-steps", response_model=list[SharedStepOut])
-def list_shared_steps(project_id: str, db: DB, _user: ReadUser) -> list[SharedStepOut]:
+async def list_shared_steps(project_id: str, db: AsyncDB, _user: ReadUser) -> list[SharedStepOut]:
     return cast(list[SharedStepOut], service.list_shared_steps(db, project_id))
 
 
@@ -2541,12 +2627,12 @@ def list_shared_steps(project_id: str, db: DB, _user: ReadUser) -> list[SharedSt
     response_model=SharedStepOut,
     status_code=status.HTTP_201_CREATED,
 )
-def create_shared_step(project_id: str, payload: SharedStepCreate, db: DB, user: WriteUser) -> SharedStepOut:
+async def create_shared_step(project_id: str, payload: SharedStepCreate, db: AsyncDB, user: WriteUser) -> SharedStepOut:
     return cast(SharedStepOut, service.create_shared_step(db, project_id, payload, user))
 
 
 @router.get("/projects/{project_id}/shared-steps/{step_id}", response_model=SharedStepOut)
-def get_shared_step(project_id: str, step_id: str, db: DB, _user: ReadUser) -> SharedStepOut:
+async def get_shared_step(project_id: str, step_id: str, db: AsyncDB, _user: ReadUser) -> SharedStepOut:
     try:
         return cast(SharedStepOut, service.get_shared_step(db, project_id, step_id))
     except KeyError as e:
@@ -2554,7 +2640,7 @@ def get_shared_step(project_id: str, step_id: str, db: DB, _user: ReadUser) -> S
 
 
 @router.patch("/projects/{project_id}/shared-steps/{step_id}", response_model=SharedStepOut)
-def update_shared_step(project_id: str, step_id: str, payload: SharedStepUpdate, db: DB, user: WriteUser) -> SharedStepOut:
+async def update_shared_step(project_id: str, step_id: str, payload: SharedStepUpdate, db: AsyncDB, user: WriteUser) -> SharedStepOut:
     try:
         return cast(SharedStepOut, service.update_shared_step(db, project_id, step_id, payload, user))
     except KeyError as e:
@@ -2562,7 +2648,7 @@ def update_shared_step(project_id: str, step_id: str, payload: SharedStepUpdate,
 
 
 @router.delete("/projects/{project_id}/shared-steps/{step_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_shared_step(project_id: str, step_id: str, db: DB, user: WriteUser) -> None:
+async def delete_shared_step(project_id: str, step_id: str, db: AsyncDB, user: WriteUser) -> None:
     try:
         service.delete_shared_step(db, project_id, step_id, user)
     except KeyError as e:
@@ -2570,14 +2656,14 @@ def delete_shared_step(project_id: str, step_id: str, db: DB, user: WriteUser) -
 
 
 @router.post("/projects/{project_id}/shared-steps/{step_id}/use", status_code=status.HTTP_204_NO_CONTENT)
-def increment_shared_step_usage(project_id: str, step_id: str, db: DB, _user: ReadUser) -> None:
+async def increment_shared_step_usage(project_id: str, step_id: str, db: AsyncDB, _user: ReadUser) -> None:
     """Increment usage counter when a shared step template is inserted into a case."""
     try:
         service.get_shared_step(db, project_id, step_id)  # verify ownership
     except KeyError as e:
         raise HTTPException(status_code=404, detail=str(e)) from e
     service.increment_shared_step_usage(db, step_id)
-    db.commit()
+    await db.commit()
 
 
 # ── SSO Konfigürasyonu ────────────────────────────────────────────────────────
@@ -2598,29 +2684,29 @@ class SsoConfigOut(BaseModel):
     provider: str = ""
 
 
-def _get_mgmt_project(db: Session, project_id: str):
+async def _get_mgmt_project(db: AsyncSession, project_id: str):
     from app.domains.test_management.models import TestManagementProject as TMP
     pid = service.resolve_project_id(db, project_id)
-    proj = db.scalars(select(TMP).where(TMP.id == pid)).first()
+    proj = (await db.scalars(select(TMP).where(TMP.id == pid))).first()
     if not proj:
         raise HTTPException(status_code=404, detail="Management project not found")
     return proj
 
 
 @router.get("/projects/{project_id}/sso-config", response_model=SsoConfigOut)
-def get_sso_config(project_id: str, db: DB, _user: ReadUser) -> SsoConfigOut:
-    proj = _get_mgmt_project(db, project_id)
+async def get_sso_config(project_id: str, db: AsyncDB, _user: ReadUser) -> SsoConfigOut:
+    proj = await _get_mgmt_project(db, project_id)
     cfg = (proj.settings_data or {}).get("sso_config", {})
     return SsoConfigOut(**cfg) if cfg else SsoConfigOut()
 
 
 @router.put("/projects/{project_id}/sso-config", response_model=SsoConfigOut)
-def save_sso_config(project_id: str, payload: SsoConfigIn, db: DB, user: WriteUser) -> SsoConfigOut:
-    proj = _get_mgmt_project(db, project_id)
+async def save_sso_config(project_id: str, payload: SsoConfigIn, db: AsyncDB, user: WriteUser) -> SsoConfigOut:
+    proj = await _get_mgmt_project(db, project_id)
     settings = dict(proj.settings_data or {})
     settings["sso_config"] = payload.model_dump()
     proj.settings_data = settings
-    db.commit()
+    await db.commit()
     return SsoConfigOut(**{k: v for k, v in payload.model_dump().items() if k != "cert"})
 
 
@@ -2644,33 +2730,33 @@ class WebhookNotifOut(BaseModel):
 
 
 @router.get("/projects/{project_id}/webhook-notifications", response_model=list[WebhookNotifOut])
-def list_webhooks(project_id: str, db: DB, _user: ReadUser) -> list[WebhookNotifOut]:
-    proj = _get_mgmt_project(db, project_id)
+async def list_webhooks(project_id: str, db: AsyncDB, _user: ReadUser) -> list[WebhookNotifOut]:
+    proj = await _get_mgmt_project(db, project_id)
     hooks = (proj.settings_data or {}).get("webhook_notifications", [])
     return [WebhookNotifOut(**h) for h in hooks]
 
 
 @router.post("/projects/{project_id}/webhook-notifications", response_model=WebhookNotifOut, status_code=status.HTTP_201_CREATED)
-def create_webhook(project_id: str, payload: WebhookNotifIn, db: DB, user: WriteUser) -> WebhookNotifOut:
-    proj = _get_mgmt_project(db, project_id)
+async def create_webhook(project_id: str, payload: WebhookNotifIn, db: AsyncDB, user: WriteUser) -> WebhookNotifOut:
+    proj = await _get_mgmt_project(db, project_id)
     settings = dict(proj.settings_data or {})
     hooks: list[dict] = list(settings.get("webhook_notifications", []))
     new_hook = {"id": secrets.token_hex(8), **payload.model_dump()}
     hooks.append(new_hook)
     settings["webhook_notifications"] = hooks
     proj.settings_data = settings
-    db.commit()
+    await db.commit()
     return WebhookNotifOut(**new_hook)
 
 
 @router.delete("/projects/{project_id}/webhook-notifications/{hook_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_webhook(project_id: str, hook_id: str, db: DB, user: WriteUser) -> None:
-    proj = _get_mgmt_project(db, project_id)
+async def delete_webhook(project_id: str, hook_id: str, db: AsyncDB, user: WriteUser) -> None:
+    proj = await _get_mgmt_project(db, project_id)
     settings = dict(proj.settings_data or {})
     hooks = [h for h in settings.get("webhook_notifications", []) if h.get("id") != hook_id]
     settings["webhook_notifications"] = hooks
     proj.settings_data = settings
-    db.commit()
+    await db.commit()
 
 
 # ── Webhook Subscriptions ────────────────────────────────────────────────────
@@ -2679,17 +2765,17 @@ def delete_webhook(project_id: str, hook_id: str, db: DB, user: WriteUser) -> No
 
 
 @router.get("/projects/{project_id}/webhook-subscriptions", response_model=list[WebhookSubscription])
-def list_webhook_subscriptions(project_id: str, db: DB, _user: ReadUser) -> list[WebhookSubscription]:
+async def list_webhook_subscriptions(project_id: str, db: AsyncDB, _user: ReadUser) -> list[WebhookSubscription]:
     settings = service.management_settings(db, project_id).get("user_settings", {})
     records = settings.get("webhook_subscriptions", []) if isinstance(settings, dict) else []
     return [WebhookSubscription(**r) for r in records if isinstance(r, dict)]
 
 
 @router.post("/projects/{project_id}/webhook-subscriptions", response_model=WebhookSubscription, status_code=status.HTTP_201_CREATED)
-def create_webhook_subscription(
+async def create_webhook_subscription(
     project_id: str,
     payload: WebhookSubscriptionCreate,
-    db: DB,
+    db: AsyncDB,
     _user: WriteUser,
 ) -> WebhookSubscription:
     settings = service.management_settings(db, project_id).get("user_settings", {})
@@ -2707,7 +2793,7 @@ def create_webhook_subscription(
 
 
 @router.delete("/projects/{project_id}/webhook-subscriptions/{webhook_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_webhook_subscription(project_id: str, webhook_id: str, db: DB, _user: WriteUser) -> None:
+async def delete_webhook_subscription(project_id: str, webhook_id: str, db: AsyncDB, _user: WriteUser) -> None:
     settings = service.management_settings(db, project_id).get("user_settings", {})
     records = [r for r in settings.get("webhook_subscriptions", []) if isinstance(r, dict) and r.get("id") != webhook_id]
     service.update_management_user_settings(db, project_id, {"webhook_subscriptions": records})
@@ -2722,7 +2808,7 @@ class WebhookProbeRequest(BaseModel):
 
 
 @router.post("/webhook-probe", response_model=dict)
-def webhook_probe(body: WebhookProbeRequest, _user: ReadUser) -> dict:
+async def webhook_probe(body: WebhookProbeRequest, _user: ReadUser) -> dict:
     """Webhook URL'ini backend tarafından test eder (CORS sorununu önler)."""
     if _is_ssrf_blocked(body.url):
         raise HTTPException(status_code=422, detail="Webhook URL'i dahili ağa erişim sağlamaya izin vermiyor")
@@ -2771,15 +2857,15 @@ def _now_iso() -> str:
 
 
 @router.get("/projects/{project_id}/dashboards", response_model=list[DashboardOut])
-def list_dashboards(project_id: str, db: DB, _user: ReadUser) -> list[DashboardOut]:
-    proj = _get_mgmt_project(db, project_id)
+async def list_dashboards(project_id: str, db: AsyncDB, _user: ReadUser) -> list[DashboardOut]:
+    proj = await _get_mgmt_project(db, project_id)
     items = (proj.settings_data or {}).get("custom_dashboards", [])
     return [DashboardOut(**d) for d in items]
 
 
 @router.post("/projects/{project_id}/dashboards", response_model=DashboardOut, status_code=status.HTTP_201_CREATED)
-def create_dashboard(project_id: str, payload: DashboardIn, db: DB, user: WriteUser) -> DashboardOut:
-    proj = _get_mgmt_project(db, project_id)
+async def create_dashboard(project_id: str, payload: DashboardIn, db: AsyncDB, user: WriteUser) -> DashboardOut:
+    proj = await _get_mgmt_project(db, project_id)
     settings = dict(proj.settings_data or {})
     items: list[dict] = list(settings.get("custom_dashboards", []))
     now = _now_iso()
@@ -2793,13 +2879,13 @@ def create_dashboard(project_id: str, payload: DashboardIn, db: DB, user: WriteU
     items.append(new_dash)
     settings["custom_dashboards"] = items
     proj.settings_data = settings
-    db.commit()
+    await db.commit()
     return DashboardOut(**new_dash)
 
 
 @router.put("/projects/{project_id}/dashboards/{dash_id}", response_model=DashboardOut)
-def update_dashboard(project_id: str, dash_id: str, payload: DashboardIn, db: DB, user: WriteUser) -> DashboardOut:
-    proj = _get_mgmt_project(db, project_id)
+async def update_dashboard(project_id: str, dash_id: str, payload: DashboardIn, db: AsyncDB, user: WriteUser) -> DashboardOut:
+    proj = await _get_mgmt_project(db, project_id)
     settings = dict(proj.settings_data or {})
     items: list[dict] = list(settings.get("custom_dashboards", []))
     target = next((d for d in items if d.get("id") == dash_id), None)
@@ -2810,40 +2896,40 @@ def update_dashboard(project_id: str, dash_id: str, payload: DashboardIn, db: DB
     target["updated_at"] = _now_iso()
     settings["custom_dashboards"] = items
     proj.settings_data = settings
-    db.commit()
+    await db.commit()
     return DashboardOut(**target)
 
 
 @router.delete("/projects/{project_id}/dashboards/{dash_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_dashboard(project_id: str, dash_id: str, db: DB, user: WriteUser) -> None:
-    proj = _get_mgmt_project(db, project_id)
+async def delete_dashboard(project_id: str, dash_id: str, db: AsyncDB, user: WriteUser) -> None:
+    proj = await _get_mgmt_project(db, project_id)
     settings = dict(proj.settings_data or {})
     items = [d for d in settings.get("custom_dashboards", []) if d.get("id") != dash_id]
     settings["custom_dashboards"] = items
     proj.settings_data = settings
-    db.commit()
+    await db.commit()
 
 
 # ── Convenience endpoints for frontend ────────────────────────────────────────
 
 @router.get("/projects/{project_id}/tags", response_model=list[str])
-def list_project_tags(project_id: str, db: DB, _user: ReadUser) -> list[str]:
+async def list_project_tags(project_id: str, db: AsyncDB, _user: ReadUser) -> list[str]:
     """Return all unique tags used in the project's test cases."""
     from sqlalchemy import text
     project_id = service.resolve_project_id(db, project_id)
-    rows = db.execute(
+    rows = (await db.execute(
         text(
             "SELECT DISTINCT tag FROM test_management_cases, "
             "jsonb_array_elements_text(tags) AS tag "
             "WHERE project_id = :pid AND NOT archived ORDER BY tag"
         ),
         {"pid": project_id},
-    ).fetchall()
+    )).fetchall()
     return [r[0] for r in rows]
 
 
 @router.get("/projects/{project_id}/modules")
-def list_project_modules(project_id: str, db: DB, _user: ReadUser) -> list[dict]:
+async def list_project_modules(project_id: str, db: AsyncDB, _user: ReadUser) -> list[dict]:
     """Return project modules (test suites) with case counts."""
     from sqlalchemy import func
     from app.domains.test_management.models import TestSuite, TestCase
@@ -2870,7 +2956,7 @@ def list_project_modules(project_id: str, db: DB, _user: ReadUser) -> list[dict]
 
 
 @router.get("/projects/{project_id}/milestones")
-def list_project_milestones(project_id: str, db: DB, _user: ReadUser) -> list[dict]:
+async def list_project_milestones(project_id: str, db: AsyncDB, _user: ReadUser) -> list[dict]:
     """Return project milestones (test plans) with cycle counts."""
     from sqlalchemy import func
     from app.domains.test_management.models import TestPlan, TestCycle
@@ -2913,7 +2999,7 @@ async def upload_case_attachment(
     project_id: str,
     case_id: str,
     file: UploadFile,
-    db: DB,
+    db: AsyncDB,
     user: WriteUser,
 ) -> dict:
     """Test case'e dosya ekler (max 10 MB).
@@ -2945,10 +3031,10 @@ async def upload_case_attachment(
     tags=["test-management"],
     summary="Test case dosyalarını listele",
 )
-def list_case_attachments(
+async def list_case_attachments(
     project_id: str,
     case_id: str,
-    db: DB,
+    db: AsyncDB,
     user: ReadUser,
 ) -> list:
     """Belirtilen test case'e ait dosyaları listeler."""
@@ -2964,11 +3050,11 @@ def list_case_attachments(
     tags=["test-management"],
     summary="Test case dosyasını indir",
 )
-def download_case_attachment(
+async def download_case_attachment(
     project_id: str,
     case_id: str,
     attachment_id: str,
-    db: DB,
+    db: AsyncDB,
     user: ReadUser,
 ) -> StreamingResponse:
     """Belirtilen eki indirir."""
@@ -2991,11 +3077,11 @@ def download_case_attachment(
     tags=["test-management"],
     summary="Test case dosyasını sil",
 )
-def delete_case_attachment(
+async def delete_case_attachment(
     project_id: str,
     case_id: str,
     attachment_id: str,
-    db: DB,
+    db: AsyncDB,
     user: WriteUser,
 ) -> None:
     """Belirtilen eki siler."""

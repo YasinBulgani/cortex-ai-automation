@@ -427,11 +427,30 @@ def _mock_nonadmin_user():
     return u
 
 
+def _make_async_db_mock(mock_db):
+    """Wrap a MagicMock to handle async database calls."""
+    # Get the return values from the sync mock
+    scalars_return = getattr(mock_db.scalars, 'return_value', [])
+    commit_return = getattr(mock_db.commit, 'return_value', None)
+    delete_return = getattr(mock_db.delete, 'return_value', None)
+    get_return = getattr(mock_db.get, 'return_value', None)
+
+    async_mock = MagicMock()
+    async_mock.scalars = AsyncMock(return_value=scalars_return)
+    async_mock.commit = AsyncMock(return_value=commit_return)
+    async_mock.delete = AsyncMock(return_value=delete_return)
+    async_mock.get = AsyncMock(return_value=get_return)
+    return async_mock
+
+
 def _app_nonadmin(mock_db) -> TestClient:
     """App wired to a non-admin user and a mocked DB session via dependency_overrides."""
+    from app.infra.database import get_async_db
+
     app = FastAPI()
     app.dependency_overrides[get_current_user] = _mock_nonadmin_user
     app.dependency_overrides[get_db] = lambda: mock_db
+    app.dependency_overrides[get_async_db] = lambda: _make_async_db_mock(mock_db)
     app.include_router(automation_router, prefix="/api/v1")
     return TestClient(app, raise_server_exceptions=False)
 
@@ -640,10 +659,13 @@ _SCHED_BODY = {
 
 
 def _app_admin_db(mock_db) -> TestClient:
-    """Admin user + mocked DB session via dependency_overrides (get_db Depends)."""
+    """Admin user + mocked DB session via dependency_overrides (get_db and get_async_db Depends)."""
+    from app.infra.database import get_async_db
+
     app = FastAPI()
     app.dependency_overrides[get_current_user] = _mock_user
     app.dependency_overrides[get_db] = lambda: mock_db
+    app.dependency_overrides[get_async_db] = lambda: _make_async_db_mock(mock_db)
     app.include_router(automation_router, prefix="/api/v1")
     return TestClient(app, raise_server_exceptions=False)
 

@@ -60,7 +60,7 @@ export default function DefectForm({ initialTc, initialRun }: { initialTc: strin
         )}
         <div className="mt-4 flex gap-2">
           <a href="/qa" className="rounded bg-blue-600 px-4 py-2 text-sm font-medium text-white">Dashboard</a>
-          <button onClick={() => { setResult(null); setForm({ ...form, title: "", reproduce: "", expected: "", actual: "" }); }} className="rounded border border-gray-200 px-4 py-2 text-sm">
+          <button onClick={() => { setResult(null); setForm({ ...form, title: "", reproduce: "", expected: "", actual: "" }); }} className="rounded border border-border px-4 py-2 text-sm">
             Yeni defect
           </button>
         </div>
@@ -69,52 +69,52 @@ export default function DefectForm({ initialTc, initialRun }: { initialTc: strin
   }
 
   return (
-    <form onSubmit={submit} className="space-y-4 rounded border border-gray-200 bg-white p-5">
+    <form onSubmit={submit} className="space-y-4 rounded border border-border bg-surface-raised p-5">
       <div className="grid grid-cols-2 gap-3">
         <label className="text-sm">
-          <span className="block text-xs uppercase tracking-wider text-gray-500">İlgili TC *</span>
+          <span className="block text-xs uppercase tracking-wider text-fg-subtle">İlgili TC *</span>
           <input
             list="tc-list"
             value={form.tc_id}
             onChange={(e) => setForm({ ...form, tc_id: e.target.value })}
             placeholder="TC-AUTH-001"
             required
-            className="mt-0.5 w-full rounded border border-gray-200 px-2 py-1 font-mono text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
+            className="mt-0.5 w-full rounded border border-border px-2 py-1 font-mono text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
           />
           <datalist id="tc-list">
             {tcOptions.map((id) => <option key={id} value={id} />)}
           </datalist>
         </label>
         <label className="text-sm">
-          <span className="block text-xs uppercase tracking-wider text-gray-500">Bulunduğu Run</span>
+          <span className="block text-xs uppercase tracking-wider text-fg-subtle">Bulunduğu Run</span>
           <input
             type="text"
             value={form.run_id}
             onChange={(e) => setForm({ ...form, run_id: e.target.value })}
             placeholder="TR-2026-..."
-            className="mt-0.5 w-full rounded border border-gray-200 px-2 py-1 font-mono text-sm"
+            className="mt-0.5 w-full rounded border border-border px-2 py-1 font-mono text-sm"
           />
         </label>
       </div>
 
       <label className="block text-sm">
-        <span className="block text-xs uppercase tracking-wider text-gray-500">Başlık *</span>
+        <span className="block text-xs uppercase tracking-wider text-fg-subtle">Başlık *</span>
         <input
           type="text"
           value={form.title}
           onChange={(e) => setForm({ ...form, title: e.target.value })}
           placeholder="Login token user.id boş döner"
           required
-          className="mt-0.5 w-full rounded border border-gray-200 px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
+          className="mt-0.5 w-full rounded border border-border px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
         />
       </label>
 
       <label className="block text-sm">
-        <span className="block text-xs uppercase tracking-wider text-gray-500">Severity *</span>
+        <span className="block text-xs uppercase tracking-wider text-fg-subtle">Severity *</span>
         <select
           value={form.severity}
           onChange={(e) => setForm({ ...form, severity: e.target.value })}
-          className="mt-0.5 w-full rounded border border-gray-200 px-2 py-1 text-sm"
+          className="mt-0.5 w-full rounded border border-border px-2 py-1 text-sm"
         >
           <option value="S1">S1 — Kritik (release stopper)</option>
           <option value="S2">S2 — Büyük (feature broken)</option>
@@ -124,57 +124,57 @@ export default function DefectForm({ initialTc, initialRun }: { initialTc: strin
       </label>
 
       <label className="block text-sm">
-        <span className="block text-xs uppercase tracking-wider text-gray-500">Tekrar üretme adımları *</span>
+        <span className="block text-xs uppercase tracking-wider text-fg-subtle">Tekrar üretme adımları *</span>
         <textarea
           value={form.reproduce}
           onChange={(e) => setForm({ ...form, reproduce: e.target.value })}
           required
           rows={4}
           placeholder="1. Login sayfasına git&#10;2. ...&#10;3. ..."
-          className="mt-0.5 w-full rounded border border-gray-200 px-2 py-1 font-mono text-xs"
+          className="mt-0.5 w-full rounded border border-border px-2 py-1 font-mono text-xs"
         />
       </label>
 
       <div className="grid grid-cols-2 gap-3">
         <label className="text-sm">
-          <span className="block text-xs uppercase tracking-wider text-gray-500">Beklenen *</span>
+          <span className="block text-xs uppercase tracking-wider text-fg-subtle">Beklenen *</span>
           <textarea
             value={form.expected}
             onChange={(e) => setForm({ ...form, expected: e.target.value })}
             required
             rows={3}
             placeholder="HTTP 200, user.id dolu"
-            className="mt-0.5 w-full rounded border border-gray-200 px-2 py-1 font-mono text-xs"
+            className="mt-0.5 w-full rounded border border-border px-2 py-1 font-mono text-xs"
           />
         </label>
         <label className="text-sm">
-          <span className="block text-xs uppercase tracking-wider text-gray-500">Gerçekleşen *</span>
+          <span className="block text-xs uppercase tracking-wider text-fg-subtle">Gerçekleşen *</span>
           <textarea
             value={form.actual}
             onChange={(e) => setForm({ ...form, actual: e.target.value })}
             required
             rows={3}
             placeholder="HTTP 200, ama user.id null döndü"
-            className="mt-0.5 w-full rounded border border-gray-200 px-2 py-1 font-mono text-xs"
+            className="mt-0.5 w-full rounded border border-border px-2 py-1 font-mono text-xs"
           />
         </label>
       </div>
 
       <label className="block text-sm">
-        <span className="block text-xs uppercase tracking-wider text-gray-500">Ortam</span>
+        <span className="block text-xs uppercase tracking-wider text-fg-subtle">Ortam</span>
         <input
           type="text"
           value={form.environment}
           onChange={(e) => setForm({ ...form, environment: e.target.value })}
           placeholder="staging, chromium 120, commit abc1234"
-          className="mt-0.5 w-full rounded border border-gray-200 px-2 py-1 text-sm"
+          className="mt-0.5 w-full rounded border border-border px-2 py-1 text-sm"
         />
       </label>
 
       {error && <div className="rounded border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div>}
 
-      <div className="flex items-center justify-between border-t border-gray-100 pt-4">
-        <a href="/qa" className="text-sm text-gray-500 hover:underline">← İptal</a>
+      <div className="flex items-center justify-between border-t border-border pt-4">
+        <a href="/qa" className="text-sm text-fg-subtle hover:underline">← İptal</a>
         <button
           type="submit"
           disabled={submitting}

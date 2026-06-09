@@ -390,7 +390,7 @@ def _sync_defect_link_status(issue_key: str, new_status: str) -> None:
 
             links = (
                 db.query(DefectLink)
-                .filter(DefectLink.jira_issue_key == issue_key)
+                .filter(DefectLink.external_key == issue_key, DefectLink.external_source == "jira")
                 .all()
             )
             for link in links:
@@ -422,7 +422,7 @@ def _delete_defect_links(issue_key: str) -> None:
 
             deleted = (
                 db.query(DefectLink)
-                .filter(DefectLink.jira_issue_key == issue_key)
+                .filter(DefectLink.external_key == issue_key, DefectLink.external_source == "jira")
                 .delete(synchronize_session=False)
             )
             if deleted:

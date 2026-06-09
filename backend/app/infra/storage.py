@@ -109,6 +109,47 @@ class S3Storage(Storage):
             client_kwargs["aws_secret_access_key"] = secret_key
         self._client = boto3.client("s3", **client_kwargs)
 
+        # Bucket initialization: Faz 3.2 (MinIO sidecar)
+        # MinIO'da bucket otomatik oluşturulur; AWS S3'de var olması gerekir.
+        # Her iki durumda da güvenli bir şekilde kontrol et.
+        self._ensure_bucket_exists()
+
+    def _ensure_bucket_exists(self) -> None:
+        """Create S3 bucket if it doesn't exist (idempotent, MinIO-safe).
+
+        Faz 3.2: MinIO sidecar başlatıldığında bucket'lar otomatik oluşturulur.
+        AWS S3'de bucket'ın önceden mevcut olması gerekir.
+        """
+        from botocore.exceptions import ClientError  # type: ignore
+        try:
+            # Bucket varlığını kontrol et
+            self._client.head_bucket(Bucket=self.bucket)
+            logger.info("S3 bucket mevcut: %s", self.bucket)
+        except ClientError as e:
+            # Bucket yok ise ve endpoint MinIO/custom ise oluştur
+            if e.response["Error"]["Code"] == "404":
+                try:
+                    self._client.create_bucket(Bucket=self.bucket)
+                    logger.info("S3 bucket oluşturuldu: %s", self.bucket)
+                except ClientError as create_err:
+                    # Concurrent create ile race condition handle et
+                    if create_err.response["Error"]["Code"] == "BucketAlreadyExists":
+                        logger.info("S3 bucket zaten mevcut (concurrent create): %s", self.bucket)
+                    elif create_err.response["Error"]["Code"] == "BucketAlreadyOwnedByYou":
+                        logger.info("S3 bucket zaten sahibiniz: %s", self.bucket)
+                    else:
+                        logger.warning(
+                            "S3 bucket oluşturma başarısız: %s (code: %s)",
+                            self.bucket,
+                            create_err.response["Error"]["Code"],
+                        )
+            else:
+                logger.warning(
+                    "S3 bucket kontrolü başarısız: %s (code: %s)",
+                    self.bucket,
+                    e.response["Error"]["Code"],
+                )
+
     def _full_key(self, key: str) -> str:
         return f"{self.prefix}{key.lstrip('/')}"
 

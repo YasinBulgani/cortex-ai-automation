@@ -19,8 +19,15 @@ from typing import Any
 import httpx
 
 from app.config import settings
+from app.infra.resilience import CircuitBreakerOpen, get_breaker
 
 logger = logging.getLogger(__name__)
+
+# AI-gateway downstream'i için paylaşılan circuit breaker. Art arda hata
+# eşiği aşılınca OPEN'a geçer ve istekleri havuzda bekletmeden hızlıca
+# reddeder — yavaş/çökük bir sağlayıcının connection havuzunu tüketip tüm
+# tenant'ları 503'e düşürmesini önler (panel Faz 0, pool-exhaustion riski).
+_AI_BREAKER_NAME = "ai-gateway"
 
 # Not: Env override'ları korunur; yoksa Settings üzerinden okunur.
 # Bu sayede .env ve üretim override'ları tutarlı çalışır.
@@ -293,6 +300,17 @@ def gateway_complete(
 
     _budget_preflight(payload, tenant_id=tenant_id)
 
+    # Circuit breaker fast-fail: downstream art arda çöküyorsa denemeden reddet.
+    breaker = get_breaker(_AI_BREAKER_NAME)
+    try:
+        breaker.before_call()
+    except CircuitBreakerOpen as exc:
+        logger.warning("AI Gateway circuit OPEN — istek hızlıca reddedildi: %s", exc)
+        raise RuntimeError(
+            f"AI Gateway geçici olarak devre dışı (~{exc.retry_after:.0f}s sonra "
+            "tekrar deneyin)."
+        ) from exc
+
     last_exc: Exception | None = None
     for attempt in range(1, _MAX_RETRIES + 1):
         # Deadline check — asildiysa erken fail (Faz 1.D)
@@ -316,6 +334,7 @@ def gateway_complete(
                 timeout=effective_timeout,
             )
             resp.raise_for_status()
+            breaker.record_success()  # downstream sağlıklı yanıt verdi → breaker reset
             data = resp.json()
             provider = data.get("provider_used", "unknown")
             model = data.get("model_used", "unknown")
@@ -418,6 +437,10 @@ def gateway_complete(
 
         except httpx.HTTPStatusError as exc:
             status = exc.response.status_code
+            # 5xx/503 = downstream sağlıksız → breaker'a hata say. 429 (rate-limit)
+            # beklenen backpressure'dır, breaker'ı açmaz (kendi retry'ı var).
+            if status >= 500:
+                breaker.record_failure()
             if status in (429, 503) and attempt < _MAX_RETRIES:
                 wait = _RETRY_BACKOFF * (2 ** (attempt - 1))
                 logger.warning(f"AI Gateway {status}, {wait:.1f}s beklenip tekrar denenecek (deneme {attempt})")
@@ -428,6 +451,7 @@ def gateway_complete(
             raise RuntimeError(f"AI Gateway hatası: {status}") from exc
 
         except httpx.RequestError as exc:
+            breaker.record_failure()  # bağlantı/timeout hatası = downstream sağlıksız
             if attempt < _MAX_RETRIES:
                 wait = _RETRY_BACKOFF * (2 ** (attempt - 1))
                 logger.warning(f"AI Gateway bağlantı hatası, {wait:.1f}s sonra tekrar ({attempt}/{_MAX_RETRIES}): {exc}")

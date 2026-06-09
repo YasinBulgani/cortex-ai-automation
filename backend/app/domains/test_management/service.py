@@ -92,6 +92,7 @@ from app.domains.test_management.schemas import (
     SharedStepUpdate,
 )
 from app.domains.tspm.models import TspmProject
+from app.infra.otel_decorators import otel_span
 
 
 def _actor_id(user: Any | None) -> Optional[str]:
@@ -428,8 +429,21 @@ def delete_folder(db: Session, project_id: str, folder_id: str, user: Any | None
 
 
 def _next_case_key(db: Session, project: TestManagementProject) -> str:
-    count = db.scalar(select(func.count()).select_from(TestCase).where(TestCase.project_id == project.id)) or 0
-    return f"{project.key}-TC-{int(count) + 1001}"
+    # Derive from the highest existing numeric suffix (not the count) so deleting a
+    # case never causes a key collision → unique-constraint 500 on the next create.
+    prefix = f"{project.key}-TC-"
+    keys = db.scalars(
+        select(TestCase.case_key).where(
+            TestCase.project_id == project.id,
+            TestCase.case_key.like(f"{prefix}%"),
+        )
+    ).all()
+    max_n = 1000
+    for k in keys:
+        suffix = (k or "").rsplit("-", 1)[-1]
+        if suffix.isdigit():
+            max_n = max(max_n, int(suffix))
+    return f"{prefix}{max_n + 1}"
 
 
 def _case_snapshot(case: TestCase) -> dict[str, Any]:
@@ -528,6 +542,7 @@ def create_case(db: Session, project_id: str, payload: TestCaseCreate, user: Any
     return get_case(db, project_id, case.id)
 
 
+@otel_span("test_mgmt.get_case", sample=0.2)
 def get_case(db: Session, project_id: str, case_id: str) -> TestCase:
     project_id = resolve_project_id(db, project_id)
     case = db.scalar(
@@ -551,6 +566,7 @@ def list_case_versions(db: Session, project_id: str, case_id: str) -> list[TestC
     )
 
 
+@otel_span("test_mgmt.list_cases", sample=0.1)
 def list_cases(
     db: Session,
     project_id: str,
@@ -592,6 +608,7 @@ def list_cases(
     return list(db.scalars(stmt).all())
 
 
+@otel_span("test_mgmt.count_cases", sample=0.1)
 def count_cases(
     db: Session,
     project_id: str,
@@ -763,6 +780,50 @@ def ai_generate_plan(
     )
 
 
+async def ai_generate_plan_async(
+    db: Session,
+    project_id: str,
+    payload: TestPlanAIGenerateRequest,
+    user: Any | None = None,
+) -> TestPlanAIGenerateResponse:
+    """AI ile test planı adı, özeti ve scope önerileri üretir (async version)."""
+    from app.domains.ai import service as ai_svc
+
+    project_id = resolve_project_id(db, project_id)
+    suites = list(db.scalars(select(TestSuite).where(TestSuite.project_id == project_id)).all())
+    suite_names = ", ".join(s.name for s in suites[:20]) or "Henüz suite yok"
+
+    prompt = (
+        f"Release adı: {payload.release_name}\n"
+        f"Hedef: {payload.goal or 'Belirtilmemiş'}\n"
+        f"Plan türü: {payload.plan_type}\n"
+        f"Mevcut suite'ler: {suite_names}\n\n"
+        "Bu release için test planı oluştur. JSON formatında yanıt ver:\n"
+        '{"name": "plan adı", "scope_summary": "kapsamlı özet", '
+        '"suggested_suite_ids": [], "suggestions": ["öneri1", "öneri2"]}'
+    )
+
+    try:
+        raw = await ai_svc.async_call_llm(
+            "Sen kıdemli bir QA yöneticisisin. Test planları oluştur. JSON döndür.",
+            prompt,
+            json_mode=True,
+            _trace_project_id=project_id,
+            _trace_user_id=_actor_id(user),
+            _trace_task_type="plan_generation",
+        )
+        data = json.loads(raw) if isinstance(raw, str) else raw
+    except Exception:
+        data = {}
+
+    return TestPlanAIGenerateResponse(
+        name=data.get("name") or f"{payload.release_name} Test Planı",
+        scope_summary=data.get("scope_summary") or f"{payload.release_name} için test kapsamı",
+        suggested_suite_ids=data.get("suggested_suite_ids") or [],
+        suggestions=data.get("suggestions") or [],
+    )
+
+
 def improve_case(
     db: Session,
     project_id: str,
@@ -796,6 +857,71 @@ def improve_case(
 
     try:
         raw = ai_svc.call_llm(
+            "Sen kıdemli bir QA mühendisisin. Test case'leri iyileştir. JSON döndür.",
+            prompt,
+            json_mode=True,
+            _trace_project_id=project_id,
+            _trace_user_id=_actor_id(user),
+            _trace_task_type="case_improvement",
+        )
+        data = json.loads(raw) if isinstance(raw, str) else raw
+    except Exception:
+        data = {}
+
+    steps = None
+    if "steps" in data and isinstance(data["steps"], list):
+        steps = [
+            GeneratedStepOut(
+                step_no=s.get("step_no", i + 1),
+                action=s.get("action", ""),
+                expected_result=s.get("expected_result", ""),
+                is_required=s.get("is_required", True),
+            )
+            for i, s in enumerate(data["steps"])
+        ]
+
+    return TestCaseImproveResponse(
+        title=data.get("title"),
+        objective=data.get("objective"),
+        preconditions=data.get("preconditions"),
+        steps=steps,
+        suggestions=data.get("suggestions", []),
+    )
+
+
+async def improve_case_async(
+    db: Session,
+    project_id: str,
+    case_id: str,
+    payload: TestCaseImproveRequest,
+    user: Any | None = None,
+) -> TestCaseImproveResponse:
+    """AI kullanarak mevcut case'i iyileştirir (async version)."""
+    from app.domains.ai import service as ai_svc
+
+    project_id = resolve_project_id(db, project_id)
+    case = get_case(db, project_id, case_id)
+
+    existing_steps = "\n".join(
+        f"{s.step_no}. {s.action} → {s.expected_result}"
+        for s in sorted(case.steps, key=lambda x: x.step_no)
+    ) if case.steps else "Adım yok"
+
+    prompt = (
+        f"Mevcut test case:\n"
+        f"Başlık: {case.title}\n"
+        f"Amaç: {case.objective or '—'}\n"
+        f"Ön Koşullar: {case.preconditions or '—'}\n"
+        f"Adımlar:\n{existing_steps}\n\n"
+        f"Odak: {payload.focus}\n\n"
+        "Bu test case'i iyileştir. JSON formatında yanıt ver:\n"
+        '{"title": "...", "objective": "...", "preconditions": "...", '
+        '"steps": [{"step_no": 1, "action": "...", "expected_result": "...", "is_required": true}], '
+        '"suggestions": ["öneri1", "öneri2"]}'
+    )
+
+    try:
+        raw = await ai_svc.async_call_llm(
             "Sen kıdemli bir QA mühendisisin. Test case'leri iyileştir. JSON döndür.",
             prompt,
             json_mode=True,
@@ -1725,6 +1851,13 @@ def update_run_case(db: Session, project_id: str, run_case_id: str, payload: Any
         run_case.started_at = run_case.started_at or now
     if payload.status in {"passed", "failed", "blocked", "skipped"}:
         run_case.completed_at = now
+        # Persist execution duration: prefer the client-measured value (more accurate —
+        # it tracks active time on the case), otherwise derive it from started_at.
+        client_duration = getattr(payload, "duration_seconds", None)
+        if client_duration is not None:
+            run_case.duration_seconds = client_duration
+        elif run_case.started_at is not None and run_case.duration_seconds is None:
+            run_case.duration_seconds = max(0, int((now - run_case.started_at).total_seconds()))
 
     # Update the case's last-run metadata
     run_case.case.last_run_status = run_case.status
@@ -2136,10 +2269,22 @@ def requirement_traceability(db: Session, project_id: str) -> list[dict[str, Any
     rows = []
     seen_groups: set[str] = set()
 
-    def build_row(req_key: str, title: str, source: str, url: str | None, source_updated_at: datetime | None, req_links: list[RequirementLink]) -> dict[str, Any]:
+    def build_row(
+        requirement_id: str,
+        req_key: str,
+        external_key: str,
+        title: str,
+        source: str,
+        url: str | None,
+        status: str,
+        priority: str,
+        source_updated_at: datetime | None,
+        req_links: list[RequirementLink],
+    ) -> dict[str, Any]:
         cases = []
-        covered = False
         stale = False
+        full = 0       # fully-covered links
+        partial = 0    # partially-covered links
 
         for lnk in req_links:
             case = db.get(TestCase, lnk.case_id)
@@ -2152,8 +2297,10 @@ def requirement_traceability(db: Session, project_id: str) -> list[dict[str, Any
                 "last_run_status": case.last_run_status,
                 "coverage_status": lnk.coverage_status,
             })
-            if lnk.coverage_status in ("covered", "partial"):
-                covered = True
+            if lnk.coverage_status == "covered":
+                full += 1
+            elif lnk.coverage_status == "partial":
+                partial += 1
             # Mark stale if requirement was updated after the case's last run.
             updated_at = lnk.source_updated_at or source_updated_at
             if (
@@ -2163,13 +2310,23 @@ def requirement_traceability(db: Session, project_id: str) -> list[dict[str, Any
             ):
                 stale = True
 
+        total = len(cases)
+        # Partial links count as half coverage. covered=True only when fully covered.
+        coverage_pct = round((full + 0.5 * partial) / total * 100) if total else 0
+        covered = total > 0 and coverage_pct >= 100
+
         return {
+            "requirement_id": requirement_id,
             "requirement_key": req_key,
+            "external_key": external_key,
             "title": title,
+            "status": status,
+            "priority": priority,
             "source": source,
             "url": url,
             "covered": covered,
             "stale": stale,
+            "coverage_pct": coverage_pct,
             "cases": cases,
         }
 
@@ -2177,7 +2334,10 @@ def requirement_traceability(db: Session, project_id: str) -> list[dict[str, Any
     for req in requirements:
         group_key = req.id
         seen_groups.add(group_key)
-        rows.append(build_row(req.external_key, req.title, req.external_source, req.url, req.source_updated_at, grouped.get(group_key, [])))
+        rows.append(build_row(
+            req.id, req.external_key, req.external_key, req.title, req.external_source, req.url,
+            req.status, req.priority, req.source_updated_at, grouped.get(group_key, []),
+        ))
 
     for group_key, req_links in grouped.items():
         if group_key in seen_groups:
@@ -2188,10 +2348,14 @@ def requirement_traceability(db: Session, project_id: str) -> list[dict[str, Any
             continue
         rows.append(
             build_row(
+                first.requirement_id or group_key,
+                first.external_key,
                 first.external_key,
                 first.title_snapshot,
                 first.external_source,
                 first.url,
+                "",
+                "",
                 first.source_updated_at,
                 req_links,
             )
@@ -2788,6 +2952,77 @@ def generate_test_cases(
     return results
 
 
+async def generate_test_cases_async(
+    db: Session,
+    project_id: str,
+    payload: TestCaseGenerateRequest,
+    user: Any | None = None,
+) -> list[GeneratedCaseOut]:
+    """AI kullanarak test case'leri üretir (async version); save=True ise DB'ye kaydeder."""
+    from app.domains.ai import service as ai_service
+
+    project_id = resolve_project_id(db, project_id)
+
+    try:
+        raw_scenarios = await ai_service.async_generate_scenarios(
+            description=payload.prompt,
+            count=payload.count,
+            project_id=project_id,
+            user_id=_actor_id(user),
+        )
+    except Exception:
+        raw_scenarios = []
+
+    results: list[GeneratedCaseOut] = []
+    for sc in raw_scenarios:
+        bdd_steps = sc.get("steps", [])
+        mgmt_steps = _bdd_steps_to_management(bdd_steps)
+        priority_map = {"high": "P0", "medium": "P1", "low": "P2"}
+        priority = priority_map.get(sc.get("priority", "medium"), payload.priority)
+
+        saved_id: str | None = None
+        if payload.save:
+            tc_create = TestCaseCreate(
+                title=sc.get("title", "AI Üretilen Senaryo"),
+                objective=sc.get("description", ""),
+                suite_id=payload.suite_id,
+                folder_id=payload.folder_id,
+                priority=priority,
+                type=payload.type,
+                status="draft",
+                source_type="ai_generated",
+                tags=sc.get("tags", []),
+                steps=[
+                    {"step_no": s["step_no"], "action": s["action"],
+                     "expected_result": s["expected_result"], "is_required": s["is_required"],
+                     "test_data": {}}
+                    for s in mgmt_steps
+                ],
+            )
+            tc = create_case(db, project_id, tc_create, user)
+            saved_id = tc.id
+
+        results.append(GeneratedCaseOut(
+            title=sc.get("title", "AI Üretilen Senaryo"),
+            objective=sc.get("description", ""),
+            preconditions="",
+            priority=priority,
+            tags=sc.get("tags", []),
+            steps=[
+                GeneratedStepOut(
+                    step_no=s["step_no"],
+                    action=s["action"],
+                    expected_result=s["expected_result"],
+                    is_required=s["is_required"],
+                )
+                for s in mgmt_steps
+            ],
+            saved_id=saved_id,
+        ))
+
+    return results
+
+
 # ── Case Clone ────────────────────────────────────────────────────────────────
 
 def clone_case(
@@ -3263,6 +3498,34 @@ def _get_case_or_404(db: Session, project_id: str, case_id: str) -> TestCase:
     return case
 
 
+def _notify_review_outcome(db: Session, case: TestCase, outcome: str, comment: Optional[str]) -> None:
+    """Notify the case author when their case is approved/rejected. Best-effort (non-critical)."""
+    recipient = case.created_by or case.owner_id
+    if not recipient:
+        return
+    try:
+        from app.domains.test_management import comments_service  # noqa: PLC0415
+
+        approved = outcome == "approved"
+        comments_service.emit_notification(
+            db,
+            user_id=recipient,
+            kind="case_review_approved" if approved else "case_review_rejected",
+            title=(
+                f"Test case onaylandı: {case.case_key}"
+                if approved
+                else f"Test case reddedildi: {case.case_key}"
+            ),
+            body=comment or "",
+            link_path=f"/management/cases/{case.id}",
+            severity="info" if approved else "warn",
+            project_id=case.project_id,
+            commit=True,
+        )
+    except Exception:
+        pass  # Notification failure must not break the review action.
+
+
 def submit_case_for_review(
     db: Session, project_id: str, case_id: str, user: Any, comment: Optional[str] = None
 ) -> TestCase:
@@ -3287,6 +3550,10 @@ def approve_case_review(
     case = _get_case_or_404(db, project_id, case_id)
     if case.review_status != "pending":
         raise ValueError(f"Onaylanamaz: mevcut durum '{case.review_status}'")
+    # Four-eyes principle: the author (creator) or owner may not approve their own case.
+    actor = _actor_id(user)
+    if actor and actor in (case.created_by, case.owner_id):
+        raise ValueError("Kendi oluşturduğunuz test case'ini onaylayamazsınız (dört-göz prensibi).")
     case.review_status = "approved"
     case.review_by = _actor_id(user)
     case.review_at = utcnow()
@@ -3296,6 +3563,7 @@ def approve_case_review(
     audit(db, "case.review_approved", "case", case.id, case.project_id, user, {"comment": comment})
     db.commit()
     db.refresh(case)
+    _notify_review_outcome(db, case, "approved", comment)
     return case
 
 
@@ -3306,6 +3574,10 @@ def reject_case_review(
     case = _get_case_or_404(db, project_id, case_id)
     if case.review_status != "pending":
         raise ValueError(f"Reddedilemez: mevcut durum '{case.review_status}'")
+    # Four-eyes principle: the author (creator) or owner may not review their own case.
+    actor = _actor_id(user)
+    if actor and actor in (case.created_by, case.owner_id):
+        raise ValueError("Kendi oluşturduğunuz test case'ini reddedemezsiniz (dört-göz prensibi).")
     case.review_status = "rejected"
     case.review_by = _actor_id(user)
     case.review_at = utcnow()
@@ -3315,6 +3587,7 @@ def reject_case_review(
     audit(db, "case.review_rejected", "case", case.id, case.project_id, user, {"comment": comment})
     db.commit()
     db.refresh(case)
+    _notify_review_outcome(db, case, "rejected", comment)
     return case
 
 

@@ -57,7 +57,7 @@ const PRIO_TONE: Record<string, string> = {
   P0: "bg-red-100 text-red-700",
   P1: "bg-amber-100 text-amber-700",
   P2: "bg-blue-100 text-blue-700",
-  P3: "bg-gray-100 text-gray-600",
+  P3: "bg-surface-overlay text-fg-muted",
 };
 
 const DEFECT_STATUS_TONE: Record<string, string> = {
@@ -232,10 +232,10 @@ export default function DefectsPage() {
 
   return (
     <main className="mx-auto max-w-7xl px-6 py-8 text-sm">
-      <header className="mb-6 flex items-center justify-between border-b border-gray-200 pb-4">
+      <header className="mb-6 flex items-center justify-between border-b border-border pb-4">
         <div>
           <h1 className="text-xl font-semibold">Defects</h1>
-          <p className="mt-1 text-sm text-gray-500">
+          <p className="mt-1 text-sm text-fg-subtle">
             {loading
               ? "Yükleniyor..."
               : `${allDefects.length} defect · ${counts.open} open · ${counts.inProgress} in-progress · ${counts.closed} closed`}
@@ -277,12 +277,12 @@ export default function DefectsPage() {
           value={q}
           onChange={(e) => setQ(e.target.value)}
           placeholder="TC ID, başlık, defect ref ile ara..."
-          className="min-w-[240px] flex-1 rounded border border-gray-200 bg-white px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
+          className="min-w-[240px] flex-1 rounded border border-border bg-surface-raised px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
         />
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
-          className="rounded border border-gray-200 bg-white px-2 py-1.5 text-sm"
+          className="rounded border border-border bg-surface-raised px-2 py-1.5 text-sm"
         >
           <option value="">Tüm status</option>
           <option value="open">Open</option>
@@ -292,7 +292,7 @@ export default function DefectsPage() {
         <select
           value={prioFilter}
           onChange={(e) => setPrioFilter(e.target.value)}
-          className="rounded border border-gray-200 bg-white px-2 py-1.5 text-sm"
+          className="rounded border border-border bg-surface-raised px-2 py-1.5 text-sm"
         >
           <option value="">Tüm öncelik</option>
           {["P0", "P1", "P2", "P3"].map((p) => (
@@ -304,7 +304,7 @@ export default function DefectsPage() {
         <button
           onClick={load}
           disabled={loading}
-          className="rounded bg-gray-100 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-200 disabled:opacity-50"
+          className="rounded bg-surface-overlay px-3 py-1.5 text-sm font-medium text-fg hover:bg-surface-overlay disabled:opacity-50"
         >
           {loading ? "..." : "↻ Refresh"}
         </button>
@@ -322,7 +322,7 @@ export default function DefectsPage() {
           {Array.from({ length: 6 }).map((_, i) => (
             <div
               key={i}
-              className="h-10 animate-pulse rounded border border-gray-100 bg-gray-50"
+              className="h-10 animate-pulse rounded border border-border bg-surface"
             />
           ))}
         </div>
@@ -330,12 +330,12 @@ export default function DefectsPage() {
 
       {/* Empty state */}
       {!loading && allDefects.length === 0 && !error && (
-        <div className="rounded border border-dashed border-gray-200 bg-gray-50 p-12 text-center">
-          <div className="text-3xl text-gray-300">✓</div>
-          <p className="mt-3 text-base font-medium text-gray-600">
+        <div className="rounded border border-dashed border-border bg-surface p-12 text-center">
+          <div className="text-3xl text-fg-disabled">✓</div>
+          <p className="mt-3 text-base font-medium text-fg-muted">
             Açık defect bulunamadı
           </p>
-          <p className="mt-1 text-sm text-gray-400">
+          <p className="mt-1 text-sm text-fg-subtle">
             Hiçbir test case&apos;de açık defect yok ve son koşumlarda fail
             yok.
           </p>
@@ -351,9 +351,9 @@ export default function DefectsPage() {
       {/* Defects table */}
       {!loading && allDefects.length > 0 && (
         <>
-          <div className="overflow-x-auto rounded border border-gray-200 bg-white">
+          <div className="overflow-x-auto rounded border border-border bg-surface-raised">
             <table className="w-full">
-              <thead className="bg-gray-50 text-left text-xs uppercase tracking-wider text-gray-500">
+              <thead className="bg-surface text-left text-xs uppercase tracking-wider text-fg-subtle">
                 <tr>
                   <th className="px-3 py-2">TC</th>
                   <th className="px-3 py-2">Title</th>
@@ -370,7 +370,7 @@ export default function DefectsPage() {
                 {filtered.map((d) => (
                   <tr
                     key={d.key}
-                    className="border-t border-gray-100 hover:bg-gray-50"
+                    className="border-t border-border hover:bg-surface"
                   >
                     <td className="px-3 py-1.5 font-mono text-xs">
                       <Link
@@ -383,17 +383,17 @@ export default function DefectsPage() {
                     <td className="max-w-xs truncate px-3 py-1.5">
                       {d.tc_title}
                     </td>
-                    <td className="px-3 py-1.5 text-gray-500">{d.tc_suite}</td>
+                    <td className="px-3 py-1.5 text-fg-subtle">{d.tc_suite}</td>
                     <td className="px-3 py-1.5">
                       <span
-                        className={`rounded px-1.5 py-0.5 text-xs font-semibold ${PRIO_TONE[d.tc_priority] ?? "bg-gray-100 text-gray-600"}`}
+                        className={`rounded px-1.5 py-0.5 text-xs font-semibold ${PRIO_TONE[d.tc_priority] ?? "bg-surface-overlay text-fg-muted"}`}
                       >
                         {d.tc_priority}
                       </span>
                     </td>
                     <td className="px-3 py-1.5">
                       <span
-                        className={`rounded px-1.5 py-0.5 text-xs font-semibold ${DEFECT_STATUS_TONE[d.status] ?? "bg-gray-100 text-gray-600"}`}
+                        className={`rounded px-1.5 py-0.5 text-xs font-semibold ${DEFECT_STATUS_TONE[d.status] ?? "bg-surface-overlay text-fg-muted"}`}
                       >
                         {d.status}
                       </span>
@@ -403,16 +403,16 @@ export default function DefectsPage() {
                         d.defect_ref.startsWith("GH-") ? (
                           <span className="text-blue-600">{d.defect_ref}</span>
                         ) : (
-                          <span className="text-gray-600">{d.defect_ref}</span>
+                          <span className="text-fg-muted">{d.defect_ref}</span>
                         )
                       ) : (
-                        <span className="text-gray-400">—</span>
+                        <span className="text-fg-subtle">—</span>
                       )}
                     </td>
-                    <td className="px-3 py-1.5 font-mono text-xs text-gray-500">
+                    <td className="px-3 py-1.5 font-mono text-xs text-fg-subtle">
                       {d.run_id ?? "—"}
                     </td>
-                    <td className="max-w-[200px] truncate px-3 py-1.5 text-gray-500">
+                    <td className="max-w-[200px] truncate px-3 py-1.5 text-fg-subtle">
                       {d.note ?? ""}
                     </td>
                     <td className="px-3 py-1.5">
@@ -429,7 +429,7 @@ export default function DefectsPage() {
             </table>
           </div>
 
-          <div className="mt-3 flex items-center justify-between text-xs text-gray-400">
+          <div className="mt-3 flex items-center justify-between text-xs text-fg-subtle">
             <span>
               {filtered.length} / {allDefects.length} defect görüntüleniyor
             </span>

@@ -21,11 +21,12 @@ export function useToast() {
   return useContext(ToastContext);
 }
 
+// Semantic token'lara bağlı — light/dark inversiyonu token katmanında otomatik çözülür.
 const variantStyles: Record<ToastVariant, string> = {
-  success: "border-green-500/30 bg-green-50 text-green-800 dark:bg-green-900/20 dark:text-green-300",
-  error: "border-red-500/30 bg-red-50 text-red-800 dark:bg-red-900/20 dark:text-red-300",
-  warning: "border-amber-500/30 bg-amber-50 text-amber-800 dark:bg-amber-900/20 dark:text-amber-300",
-  info: "border-blue-500/30 bg-blue-50 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300",
+  success: "border-success/30 bg-success-subtle text-success",
+  error: "border-danger/30 bg-danger-subtle text-danger",
+  warning: "border-warning/30 bg-warning-subtle text-warning",
+  info: "border-accent/30 bg-accent-subtle text-accent",
 };
 
 let _id = 0;

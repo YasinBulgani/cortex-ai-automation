@@ -474,6 +474,7 @@ class RunCaseUpdate(BaseModel):
     status: str
     actual_result: Optional[str] = None
     execution_notes: Optional[str] = None
+    duration_seconds: Optional[int] = Field(default=None, ge=0)
 
 
 class RunCaseOut(BaseModel):

@@ -12,7 +12,7 @@
         test-mobile test-load \
         dsl-ai-warm dsl-ai-rebuild dsl-ai-info dsl-editor-config dsl-proposals \
         sec-audit eval tia \
-        test-unit test-integration lint-check type-check
+        test-unit test-integration lint-check lint-imports type-check
 
 SHELL := /bin/bash
 VENV   := .venv
@@ -164,6 +164,65 @@ demo-down:
 	@echo "▶ Demo servisleri kapatılıyor..."
 	@docker compose stop postgres redis backend web engine
 	@echo "✓ Demo kapatıldı (veriler korundu — tekrar 'make demo' ile kaldığın yerden)."
+
+## Demo ortamı + MinIO (Faz 3.2: S3-compatible artifact storage)
+.PHONY: demo-with-minio demo-with-minio-up demo-with-minio-seed demo-with-minio-status demo-with-minio-down
+demo-with-minio: demo-with-minio-up demo-with-minio-seed demo-with-minio-status
+
+demo-with-minio-up:
+	@echo "▶ Demo servisleri + MinIO başlatılıyor (Faz 3.2)..."
+	@MINIO_ROOT_PASSWORD=$${MINIO_ROOT_PASSWORD:-miniosecretkey2024} docker compose -f docker-compose.yml -f docker-compose.demo.yml up -d \
+		postgres redis minio minio-console backend web engine
+	@echo "▶ Backend readiness bekleniyor (max 60s)..."
+	@for i in $$(seq 1 30); do \
+		if curl -s http://localhost:8000/health >/dev/null 2>&1; then \
+			echo "✓ Backend hazır."; break; \
+		fi; \
+		sleep 2; \
+	done
+	@if ! curl -s http://localhost:8000/health >/dev/null 2>&1; then \
+		echo "⚠ Backend 60s'de yanıt vermedi — 'docker compose logs backend' ile kontrol edin."; \
+		exit 1; \
+	fi
+
+demo-with-minio-seed:
+	@echo "▶ Seed + demo verisi yükleniyor..."
+	@docker compose exec -T backend python scripts/seed.py 2>/dev/null || \
+		cd backend && PYTHONPATH=. $(PYTHON) scripts/seed.py
+	@docker compose exec -T backend python scripts/seed_demo.py 2>/dev/null || \
+		cd backend && PYTHONPATH=. $(PYTHON) scripts/seed_demo.py
+	@echo "✓ Seed tamamlandı."
+
+demo-with-minio-status:
+	@echo ""
+	@echo "╔═══════════════════════════════════════════════════════════╗"
+	@echo "║  🎉 Demo + MinIO (Faz 3.2) hazır                           ║"
+	@echo "╠═══════════════════════════════════════════════════════════╣"
+	@echo "║                                                           ║"
+	@echo "║  Web arayüzü:  http://localhost:3000                      ║"
+	@echo "║  Backend API:  http://localhost:8000/docs                 ║"
+	@echo "║  Engine:       http://localhost:5001/health               ║"
+	@echo "║  MinIO:        http://localhost:9001 (admin panel)        ║"
+	@echo "║                                                           ║"
+	@echo "║  Demo giriş:   admin@example.com / admin123               ║"
+	@echo "║  MinIO giriş:  minioadmin / miniosecretkey2024            ║"
+	@echo "║                                                           ║"
+	@echo "║  İlk test üretmek için:                                   ║"
+	@echo "║    → http://localhost:3000/bgtest-wizard                  ║"
+	@echo "║                                                           ║"
+	@echo "║  Artifact bucket: neurex-artifacts (MinIO console'de)     ║"
+	@echo "║                                                           ║"
+	@echo "║  Port durumu:  make ports-check                           ║"
+	@echo "║  Logları gör:  docker compose logs -f backend             ║"
+	@echo "║  Kapatmak:     make demo-with-minio-down                  ║"
+	@echo "║                                                           ║"
+	@echo "║  Kılavuz:      docs/user-guide/01-quickstart.md           ║"
+	@echo "╚═══════════════════════════════════════════════════════════╝"
+
+demo-with-minio-down:
+	@echo "▶ Demo + MinIO servisleri kapatılıyor..."
+	@docker compose stop postgres redis backend web engine minio minio-console
+	@echo "✓ Demo kapatıldı (veriler korundu — tekrar 'make demo-with-minio' ile kaldığın yerden)."
 
 # ─── Smoke: Hızlı geri bildirim (~2dk) ───────────────────────────────────────
 test-smoke: test-backend-smoke test-engine-smoke test-e2e-smoke
@@ -801,6 +860,9 @@ test-engine:  ## Run engine unit tests
 lint-check:  ## Check code style (flake8 + isort)
 	cd backend && python -m flake8 app/ --max-line-length=120 --ignore=E501,W503 || true
 	cd backend && python -m isort app/ --check-only --diff || true
+
+lint-imports:  ## Check domain isolation with import-linter
+	cd backend && ../.venv/bin/python3 -c "from importlinter.cli import lint_imports_command; import sys; sys.exit(lint_imports_command([]))"
 
 type-check:  ## Run mypy type checking
 	cd backend && python -m mypy app/ --ignore-missing-imports --no-error-summary || true

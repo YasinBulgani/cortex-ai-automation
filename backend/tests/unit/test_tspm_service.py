@@ -1,6 +1,6 @@
 """Unit tests for app.domains.tspm.service.
 
-The SQLAlchemy Session is fully mocked — no DB connection required.
+The AsyncSession is fully mocked — no DB connection required.
 All tests are pure-Python / in-process.
 """
 from __future__ import annotations
@@ -20,7 +20,7 @@ except ImportError:
 
 pytestmark = pytest.mark.skipif(not _IMPORT_OK, reason="tspm service import failed")
 
-from unittest.mock import MagicMock, patch, call
+from unittest.mock import AsyncMock, MagicMock, patch, call
 
 
 # ---------------------------------------------------------------------------
@@ -83,9 +83,21 @@ def _make_scenario(
 
 
 def _make_db(rows=None):
-    """Return a MagicMock Session; db.scalars(...).all() returns rows."""
-    db = MagicMock()
-    db.scalars.return_value.all.return_value = rows or []
+    """Return an AsyncMock AsyncSession; db.scalars(...).all() returns rows."""
+    db = AsyncMock()
+    # db.add() is NOT async — it's a synchronous method on AsyncSession
+    db.add = MagicMock()
+    db.flush = MagicMock()
+    # For async db.scalars, return an awaitable that yields a mock with .all()
+    async def async_scalars(query):
+        mock_result = MagicMock()
+        mock_result.all.return_value = rows or []
+        return mock_result
+    db.scalars.side_effect = async_scalars
+    # For async db.get, return an awaitable
+    async def async_get(*args, **kwargs):
+        return None  # Default; override in tests
+    db.get.side_effect = async_get
     return db
 
 
@@ -94,44 +106,50 @@ def _make_db(rows=None):
 # ---------------------------------------------------------------------------
 
 class TestListProjects:
-    def test_empty_db_returns_empty_list(self):
+    @pytest.mark.asyncio
+    async def test_empty_db_returns_empty_list(self):
         db = _make_db([])
-        result = list_projects(db)
+        result = await list_projects(db)
         assert result == []
 
-    def test_single_project_returns_list_of_dicts(self):
+    @pytest.mark.asyncio
+    async def test_single_project_returns_list_of_dicts(self):
         proj = _make_project()
         db = _make_db([proj])
-        result = list_projects(db)
+        result = await list_projects(db)
         assert isinstance(result, list)
         assert len(result) == 1
         assert result[0]["id"] == "proj-1"
         assert result[0]["name"] == "Test Projesi"
 
-    def test_owner_id_filter_applied_to_query(self):
+    @pytest.mark.asyncio
+    async def test_owner_id_filter_applied_to_query(self):
         """owner_id is passed; service should call where() on the query."""
         db = _make_db([])
-        list_projects(db, owner_id="owner-99")
+        await list_projects(db, owner_id="owner-99")
         # The query is built with SQLAlchemy; we just verify db.scalars was called
         db.scalars.assert_called_once()
 
-    def test_limit_capped_at_500(self):
+    @pytest.mark.asyncio
+    async def test_limit_capped_at_500(self):
         """Passing limit=9999 must be silently capped to 500."""
         # We can't easily inspect the final SQL, so verify at least no exception
         db = _make_db([])
-        result = list_projects(db, limit=9999)
+        result = await list_projects(db, limit=9999)
         assert result == []
 
-    def test_multiple_projects_returned(self):
+    @pytest.mark.asyncio
+    async def test_multiple_projects_returned(self):
         projects = [_make_project(id=f"proj-{i}", name=f"P{i}") for i in range(3)]
         db = _make_db(projects)
-        result = list_projects(db)
+        result = await list_projects(db)
         assert len(result) == 3
 
-    def test_no_owner_filter_when_owner_id_is_none(self):
+    @pytest.mark.asyncio
+    async def test_no_owner_filter_when_owner_id_is_none(self):
         """When owner_id is None the query should not contain a where clause for owner."""
         db = _make_db([])
-        list_projects(db, owner_id=None)
+        await list_projects(db, owner_id=None)
         db.scalars.assert_called_once()
 
 
@@ -140,22 +158,25 @@ class TestListProjects:
 # ---------------------------------------------------------------------------
 
 class TestCreateProject:
-    def test_missing_name_raises_value_error(self):
-        db = MagicMock()
+    @pytest.mark.asyncio
+    async def test_missing_name_raises_value_error(self):
+        db = AsyncMock()
         with pytest.raises(ValueError, match="name"):
-            create_project(db, data={})
+            await create_project(db, data={})
 
-    def test_empty_name_raises_value_error(self):
-        db = MagicMock()
+    @pytest.mark.asyncio
+    async def test_empty_name_raises_value_error(self):
+        db = AsyncMock()
         with pytest.raises(ValueError):
-            create_project(db, data={"name": "   "})
+            await create_project(db, data={"name": "   "})
 
-    def test_success_returns_dict_with_id(self):
+    @pytest.mark.asyncio
+    async def test_success_returns_dict_with_id(self):
         proj = _make_project(id="new-proj-id", name="Yeni Proje")
-        db = MagicMock()
+        db = AsyncMock()
 
         # When db.refresh is called, proj already has id set
-        def fake_refresh(obj):
+        async def fake_refresh(obj):
             # copy fields from proj to obj
             obj.__table__ = proj.__table__
             obj.id = proj.id
@@ -170,21 +191,22 @@ class TestCreateProject:
 
         with patch("app.domains.tspm.service.TspmProject", return_value=proj):
             with patch("app.domains.tspm.service.utcnow", return_value=None):
-                result = create_project(db, data={"name": "Yeni Proje"}, owner_id="user-1")
+                result = await create_project(db, data={"name": "Yeni Proje"}, owner_id="user-1")
 
         db.add.assert_called_once()
         db.commit.assert_called_once()
         db.refresh.assert_called_once()
         assert isinstance(result, dict)
 
-    def test_create_calls_db_add_and_commit(self):
+    @pytest.mark.asyncio
+    async def test_create_calls_db_add_and_commit(self):
         proj = _make_project(name="Commit Testi")
-        db = MagicMock()
+        db = AsyncMock()
         db.refresh.side_effect = lambda obj: None
 
         with patch("app.domains.tspm.service.TspmProject", return_value=proj):
             with patch("app.domains.tspm.service.utcnow", return_value=None):
-                create_project(db, data={"name": "Commit Testi"})
+                await create_project(db, data={"name": "Commit Testi"})
 
         db.add.assert_called()
         db.commit.assert_called()
@@ -195,49 +217,67 @@ class TestCreateProject:
 # ---------------------------------------------------------------------------
 
 class TestListScenarios:
-    def test_project_not_found_raises_key_error(self):
-        db = MagicMock()
-        db.get.return_value = None
+    @pytest.mark.asyncio
+    async def test_project_not_found_raises_key_error(self):
+        db = AsyncMock()
+        async def async_get_none(*args, **kwargs):
+            return None
+        db.get.side_effect = async_get_none
         with pytest.raises(KeyError):
-            list_scenarios(db, project_id="nonexistent")
+            await list_scenarios(db, project_id="nonexistent")
 
-    def test_empty_scenarios_returns_empty_list(self):
+    @pytest.mark.asyncio
+    async def test_empty_scenarios_returns_empty_list(self):
         proj = _make_project()
         db = _make_db([])
-        db.get.return_value = proj
-        result = list_scenarios(db, project_id="proj-1")
+        async def async_get_proj(*args, **kwargs):
+            return proj
+        db.get.side_effect = async_get_proj
+        result = await list_scenarios(db, project_id="proj-1")
         assert result == []
 
-    def test_scenarios_returned_as_list_of_dicts(self):
+    @pytest.mark.asyncio
+    async def test_scenarios_returned_as_list_of_dicts(self):
         proj = _make_project()
         scen = _make_scenario()
         db = _make_db([scen])
-        db.get.return_value = proj
-        result = list_scenarios(db, project_id="proj-1")
+        async def async_get_proj(*args, **kwargs):
+            return proj
+        db.get.side_effect = async_get_proj
+        result = await list_scenarios(db, project_id="proj-1")
         assert len(result) == 1
         assert result[0]["id"] == "scen-1"
 
-    def test_limit_capped_at_1000(self):
+    @pytest.mark.asyncio
+    async def test_limit_capped_at_1000(self):
         proj = _make_project()
         db = _make_db([])
-        db.get.return_value = proj
+        async def async_get_proj(*args, **kwargs):
+            return proj
+        db.get.side_effect = async_get_proj
         # Should not raise even with extreme limit
-        result = list_scenarios(db, project_id="proj-1", limit=99999)
+        result = await list_scenarios(db, project_id="proj-1", limit=99999)
         assert result == []
 
-    def test_status_filter_passed_to_query(self):
+    @pytest.mark.asyncio
+    async def test_status_filter_passed_to_query(self):
         proj = _make_project()
         db = _make_db([])
-        db.get.return_value = proj
-        list_scenarios(db, project_id="proj-1", status="active")
+        async def async_get_proj(*args, **kwargs):
+            return proj
+        db.get.side_effect = async_get_proj
+        await list_scenarios(db, project_id="proj-1", status="active")
         db.scalars.assert_called_once()
 
-    def test_multiple_scenarios_returned(self):
+    @pytest.mark.asyncio
+    async def test_multiple_scenarios_returned(self):
         proj = _make_project()
         scenarios = [_make_scenario(id=f"s-{i}") for i in range(5)]
         db = _make_db(scenarios)
-        db.get.return_value = proj
-        result = list_scenarios(db, project_id="proj-1")
+        async def async_get_proj(*args, **kwargs):
+            return proj
+        db.get.side_effect = async_get_proj
+        result = await list_scenarios(db, project_id="proj-1")
         assert len(result) == 5
 
 
@@ -246,37 +286,40 @@ class TestListScenarios:
 # ---------------------------------------------------------------------------
 
 class TestCreateProjectEdgeCases:
-    def test_description_defaults_to_empty_string_when_missing(self):
+    @pytest.mark.asyncio
+    async def test_description_defaults_to_empty_string_when_missing(self):
         """Omitting description should not raise."""
         proj = _make_project(description="")
-        db = MagicMock()
+        db = AsyncMock()
         db.refresh.side_effect = lambda obj: None
 
         with patch("app.domains.tspm.service.TspmProject", return_value=proj):
             with patch("app.domains.tspm.service.utcnow", return_value=None):
                 # Should not raise even without 'description' in data
-                create_project(db, data={"name": "Desc Testi"})
+                await create_project(db, data={"name": "Desc Testi"})
 
-    def test_owner_id_none_is_accepted(self):
+    @pytest.mark.asyncio
+    async def test_owner_id_none_is_accepted(self):
         proj = _make_project(owner_id=None)
-        db = MagicMock()
+        db = AsyncMock()
         db.refresh.side_effect = lambda obj: None
 
         with patch("app.domains.tspm.service.TspmProject", return_value=proj):
             with patch("app.domains.tspm.service.utcnow", return_value=None):
-                create_project(db, data={"name": "No Owner"}, owner_id=None)
+                await create_project(db, data={"name": "No Owner"}, owner_id=None)
 
         db.add.assert_called()
 
 
 class TestListProjectsOwnerFilter:
-    def test_owner_id_filter_excludes_other_owners(self):
+    @pytest.mark.asyncio
+    async def test_owner_id_filter_excludes_other_owners(self):
         """When owner_id is given, only matching rows should appear.
         We verify the service passes the filter to the query (mock confirms call)."""
         proj_own = _make_project(id="p-own", owner_id="alice")
         proj_other = _make_project(id="p-other", owner_id="bob")
         # Simulate DB returning only alice's project when filtered
         db = _make_db([proj_own])
-        result = list_projects(db, owner_id="alice")
+        result = await list_projects(db, owner_id="alice")
         assert len(result) == 1
         assert result[0]["id"] == "p-own"

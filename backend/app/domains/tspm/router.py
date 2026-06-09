@@ -26,6 +26,7 @@ from fastapi import APIRouter, Depends, File, HTTPException, Query, Request, Res
 from fastapi.responses import FileResponse, StreamingResponse
 from pydantic import BaseModel as _PydanticBase
 from sqlalchemy import func, select
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Session
 
 from app.config import settings
@@ -176,17 +177,17 @@ from app.domains.tspm.schemas import (
     TestDataSetUpdate,
     WeeklyTrendPoint,
 )
-from app.infra.database import get_db
+from app.infra.database import get_async_db
 from app.infra.models import AuditEvent, User
 
 router = APIRouter(prefix="/tspm", tags=["tspm"])
 logger = logging.getLogger(__name__)
 
-DB = Annotated[Session, Depends(get_db)]
+AsyncDB = Annotated[AsyncSession, Depends(get_async_db)]
 CurrentUser = Annotated[User, Depends(get_current_user)]
 
 
-def _get_project(db: Session, project_id: str, user: User | None = None) -> TspmProject:
+async def _get_project(db: AsyncDB, project_id: str, user: User | None = None) -> TspmProject:
     # Geçersiz UUID formatinda 500 (DataError) yerine 404 don — bilgi sizintisini onler.
     import uuid as _uuid
     try:
@@ -194,9 +195,9 @@ def _get_project(db: Session, project_id: str, user: User | None = None) -> Tspm
     except (ValueError, AttributeError, TypeError):
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Proje bulunamadı")
     try:
-        p = db.get(TspmProject, project_id)
+        p = await db.get(TspmProject, project_id)
     except Exception:
-        db.rollback()
+        await db.rollback()
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Proje bulunamadı")
     if p is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Proje bulunamadı")
@@ -206,7 +207,7 @@ def _get_project(db: Session, project_id: str, user: User | None = None) -> Tspm
             for rp in role.permissions:
                 user_perms.add(rp.permission)
         if "admin.*" not in user_perms:
-            is_member = db.scalar(
+            is_member = await db.scalar(
                 select(func.count()).where(
                     TspmProjectMember.project_id == project_id,
                     TspmProjectMember.user_id == user.id,
@@ -226,7 +227,7 @@ def _slugify_filename(text: str) -> str:
     return cleaned or "artifact"
 
 
-def _resolve_query_token_user(db: Session, token: Optional[str]) -> Optional[User]:
+async def _resolve_query_token_user(db: AsyncDB, token: Optional[str]) -> Optional[User]:
     if not token:
         return None
     try:
@@ -236,13 +237,13 @@ def _resolve_query_token_user(db: Session, token: Optional[str]) -> Optional[Use
     sub = payload.get("sub")
     if not sub:
         return None
-    user = db.get(User, sub)
+    user = await db.get(User, sub)
     if user is None or not user.is_active:
         return None
     return user
 
 
-def _persist_generated_automation_artifacts(
+async def _persist_generated_automation_artifacts(
     db: Session,
     project_id: str,
     feature_name: str,
@@ -294,8 +295,8 @@ def _persist_generated_automation_artifacts(
             size_bytes=file_path.stat().st_size,
             source_test_case_count=test_case_count,
         )
-        db.add(artifact)
-        db.flush()
+        await db.add(artifact)
+        await db.flush()
         persisted.append(
             AutomationArtifactOut(
                 id=artifact.id,
@@ -311,7 +312,7 @@ def _persist_generated_automation_artifacts(
             )
         )
 
-    db.commit()
+    await db.commit()
     return persisted
 
 
@@ -596,8 +597,8 @@ def _evaluate_api_assertions(assertions: Optional[list[dict[str, Any]]], respons
 # ═══════════════════════════════════════════════════════════════════════
 
 @router.get("/projects", response_model=list[ProjectOut])
-def list_projects(
-    db: DB,
+async def list_projects(
+    db: AsyncDB,
     user: Annotated[User, Depends(get_current_user)],
     include_archived: bool = Query(True, description="Arşivli projeleri de listeye dahil et."),
     sort: str = Query(
@@ -642,7 +643,7 @@ def list_projects(
     else:
         stmt = stmt.order_by(TspmProject.created_at.desc())
 
-    rows = list(db.scalars(stmt))
+    rows = list(await db.scalars(stmt))
 
     # Pydantic nesnelerini dict'e çevirerek cache'e yaz
     try:
@@ -654,16 +655,16 @@ def list_projects(
 
 
 @router.post("/projects/{project_id}/touch", response_model=ProjectOut)
-def touch_project(project_id: str, db: DB, user: Annotated[User, Depends(get_current_user)]):
+async def touch_project(project_id: str, db: AsyncDB, user: Annotated[User, Depends(get_current_user)]):
     """Ana sayfa 'Son Açılan Proje' kartı için: son açılış zamanını işaretler.
 
     Frontend dashboard layout'u URL'den projectId çıktığında idempotent olarak
     bu ucu çağırır. İsteğin kendisi izin gerektirmez — sadece üyelik.
     """
-    project = _get_project(db, project_id, user)
+    project = await _get_project(db, project_id, user)
     project.last_opened_at = datetime.now(_tz.utc)
-    db.commit()
-    db.refresh(project)
+    await db.commit()
+    await db.refresh(project)
     return project
 
 
@@ -672,7 +673,7 @@ def touch_project(project_id: str, db: DB, user: Annotated[User, Depends(get_cur
     response_model=Optional[RecentProjectSummary],
     summary="Ana sayfa 'Son Açılan Proje' kartı için zengin özet",
 )
-def get_recent_project(db: DB, user: Annotated[User, Depends(get_current_user)]):
+async def get_recent_project(db: AsyncDB, user: Annotated[User, Depends(get_current_user)]):
     """En son açılmış projeyi + son koşum özetini tek çağrıda döner.
 
     Sıralama önceliği:
@@ -688,7 +689,7 @@ def get_recent_project(db: DB, user: Annotated[User, Depends(get_current_user)])
             TspmProjectMember, TspmProjectMember.project_id == TspmProject.id
         ).where(TspmProjectMember.user_id == user.id)
 
-    project = db.scalar(
+    project = await db.scalar(
         base.order_by(
             TspmProject.last_opened_at.desc().nullslast(),
             TspmProject.created_at.desc(),
@@ -698,7 +699,7 @@ def get_recent_project(db: DB, user: Annotated[User, Depends(get_current_user)])
         return None
 
     # Son koşum özeti — tek query, minimum alan.
-    last_exec = db.scalar(
+    last_exec = await db.scalar(
         select(TspmExecution)
         .where(TspmExecution.project_id == project.id)
         .order_by(TspmExecution.created_at.desc())
@@ -706,7 +707,7 @@ def get_recent_project(db: DB, user: Annotated[User, Depends(get_current_user)])
     if last_exec is None:
         return RecentProjectSummary(project=project)
 
-    results = list(db.scalars(
+    results = list(await db.scalars(
         select(TspmExecutionResult).where(TspmExecutionResult.execution_id == last_exec.id)
     ))
     passed = sum(1 for r in results if r.status == "passed")
@@ -748,8 +749,8 @@ def get_recent_project(db: DB, user: Annotated[User, Depends(get_current_user)])
         }
     },
 )
-def create_project(
-    body: ProjectCreate, db: DB,
+async def create_project(
+    body: ProjectCreate, db: AsyncDB,
     user: Annotated[User, Depends(require_permission(Permission.PROJECT_CREATE))],
 ):
     """Yeni proje olusturur."""
@@ -764,28 +765,28 @@ def create_project(
 
 
 @router.get("/projects/{project_id}", response_model=ProjectOut)
-def get_project(project_id: str, db: DB, user: Annotated[User, Depends(get_current_user)]):
+async def get_project(project_id: str, db: AsyncDB, user: Annotated[User, Depends(get_current_user)]):
     """Tek proje detayını getirir."""
-    project = _get_project(db, project_id, user)
+    project = await _get_project(db, project_id, user)
     return project
 
 
 @router.put("/projects/{project_id}", response_model=ProjectOut)
-def update_project(
-    project_id: str, body: ProjectUpdate, db: DB,
+async def update_project(
+    project_id: str, body: ProjectUpdate, db: AsyncDB,
     user: Annotated[User, Depends(require_permission(Permission.PROJECT_CREATE))],
 ):
     """Proje adını, açıklamasını ve test URL'ini günceller."""
     from app.infra.cache import cache_delete_pattern, make_key  # geç import
-    project = _get_project(db, project_id, user)
+    project = await _get_project(db, project_id, user)
     project.name = body.name.strip()
     project.description = body.description.strip()
     project.base_url = body.base_url.strip()
     project.primary_product_id = body.primary_product_id
     project.product_tags = body.product_tags
     project.default_entry_key = body.resolved_default_entry_key()
-    db.commit()
-    db.refresh(project)
+    await db.commit()
+    await db.refresh(project)
     # Proje listesi ve dashboard cache'ini invalidate et
     cache_delete_pattern(make_key("projects", "list", str(user.id), "*"))
     cache_delete_pattern(make_key("dashboard", "global", "*"))
@@ -793,15 +794,15 @@ def update_project(
 
 
 @router.delete("/projects/{project_id}", status_code=204)
-def delete_project(
-    project_id: str, db: DB,
+async def delete_project(
+    project_id: str, db: AsyncDB,
     user: Annotated[User, Depends(require_permission(Permission.PROJECT_CREATE))],
 ):
     """Projeyi siler."""
     from app.infra.cache import cache_delete_pattern, make_key  # geç import
-    project = _get_project(db, project_id, user)
-    db.delete(project)
-    db.commit()
+    project = await _get_project(db, project_id, user)
+    await db.delete(project)
+    await db.commit()
     # Silinen proje için tüm ilgili cache'leri temizle
     cache_delete_pattern(make_key("projects", "list", str(user.id), "*"))
     cache_delete_pattern(make_key("dashboard", "global", "*"))
@@ -812,14 +813,14 @@ def delete_project(
 # ═══════════════════════════════════════════════════════════════════════
 
 @router.get("/projects/{project_id}/dashboard", response_model=DashboardStats)
-def project_dashboard(project_id: str, db: DB, user: Annotated[User, Depends(get_current_user)]):
+async def project_dashboard(project_id: str, db: AsyncDB, user: Annotated[User, Depends(get_current_user)]):
     """Proje özet istatistiklerini getirir.
 
     Performans: Sonuçlar proje bazında 30 saniye Redis/in-process cache'e alınır.
     """
     from app.infra.cache import cache_get, cache_set, make_key  # geç import
 
-    _get_project(db, project_id, user)
+    await _get_project(db, project_id, user)
 
     _cache_key = make_key("dashboard", "project", project_id)
     _CACHE_TTL = 30
@@ -834,7 +835,7 @@ def project_dashboard(project_id: str, db: DB, user: Annotated[User, Depends(get
 
 
 @router.get("/dashboard/global", response_model=GlobalDashboardOut)
-def global_dashboard(db: DB, user: Annotated[User, Depends(get_current_user)]):
+async def global_dashboard(db: AsyncDB, user: Annotated[User, Depends(get_current_user)]):
     """Platform genelinde özet istatistikler.
 
     Performans: Sonuçlar kullanıcı bazında 30 saniye Redis/in-process cache'e alınır.
@@ -858,7 +859,7 @@ def global_dashboard(db: DB, user: Annotated[User, Depends(get_current_user)]):
     if is_admin:
         accessible_project_ids = None  # None = tüm projeler
     else:
-        accessible_project_ids = list(db.scalars(
+        accessible_project_ids = list(await db.scalars(
             select(TspmProjectMember.project_id).where(TspmProjectMember.user_id == user.id)
         ))
 
@@ -872,7 +873,7 @@ def global_dashboard(db: DB, user: Annotated[User, Depends(get_current_user)]):
     # Her COUNT ayrı bir CASE ifadesine dönüştürülür; DB tek geçişte hesaplar.
     if accessible_project_ids is None:
         # Admin: filtre yok, doğrudan subquery'ler daha okunabilir
-        count_row = db.execute(
+        count_row = await db.execute(
             select(
                 func.count(TspmProject.id.distinct()).label("projects"),
                 func.count(TspmScenario.id.distinct()).label("scenarios"),
@@ -884,7 +885,7 @@ def global_dashboard(db: DB, user: Annotated[User, Depends(get_current_user)]):
         total_scenarios = count_row.scenarios or 0
     else:
         # Non-admin: tek sorguda iki sayım
-        count_row = db.execute(
+        count_row = await db.execute(
             select(
                 func.count(TspmProject.id.distinct()).label("projects"),
                 func.count(TspmScenario.id.distinct()).label("scenarios"),
@@ -896,13 +897,13 @@ def global_dashboard(db: DB, user: Annotated[User, Depends(get_current_user)]):
         total_projects = count_row.projects or 0
         total_scenarios = count_row.scenarios or 0
 
-    active_execs = db.scalar(
+    active_execs = await db.scalar(
         select(func.count()).where(
             TspmExecution.status == "running",
             *_project_filter(TspmExecution.project_id),
         )
     ) or 0
-    pending_approvals = db.scalar(
+    pending_approvals = await db.scalar(
         select(func.count()).where(
             TspmApproval.status == "pending",
             *_project_filter(TspmApproval.project_id),
@@ -910,7 +911,7 @@ def global_dashboard(db: DB, user: Annotated[User, Depends(get_current_user)]):
     ) or 0
 
     # ── Overall pass rate — tek sorgu ───────────────────────────────────
-    all_metrics = list(db.scalars(
+    all_metrics = list(await db.scalars(
         select(TspmExecutionMetrics)
         .where(*_project_filter(TspmExecutionMetrics.project_id))
         .order_by(TspmExecutionMetrics.executed_at.desc())
@@ -923,7 +924,7 @@ def global_dashboard(db: DB, user: Annotated[User, Depends(get_current_user)]):
 
     # ── Haftalık trend — tek sorgu ───────────────────────────────────────
     week_start = (now - timedelta(days=6)).replace(hour=0, minute=0, second=0, microsecond=0)
-    weekly_metrics = list(db.scalars(
+    weekly_metrics = list(await db.scalars(
         select(TspmExecutionMetrics)
         .where(
             TspmExecutionMetrics.executed_at >= week_start,
@@ -945,7 +946,7 @@ def global_dashboard(db: DB, user: Annotated[User, Depends(get_current_user)]):
         weekly.append(WeeklyTrendPoint(day=day_names[day.weekday()], runs=runs, passed=passed_w))
 
     # ── Top 5 proje — 3 toplu sorgu (N+1'in önüne geç) ──────────────────
-    top_projects = list(db.scalars(
+    top_projects = list(await db.scalars(
         select(TspmProject)
         .where(*_project_filter(TspmProject.id))
         .order_by(TspmProject.created_at.desc())
@@ -958,7 +959,7 @@ def global_dashboard(db: DB, user: Annotated[User, Depends(get_current_user)]):
     result_stats: dict[str, tuple[int, int]] = {}
 
     if top_project_ids:
-        sc_rows = db.execute(
+        sc_rows = await db.execute(
             select(TspmScenario.project_id, func.count().label("cnt"))
             .where(TspmScenario.project_id.in_(top_project_ids))
             .group_by(TspmScenario.project_id)
@@ -974,7 +975,7 @@ def global_dashboard(db: DB, user: Annotated[User, Depends(get_current_user)]):
             .group_by(TspmExecution.project_id)
             .subquery()
         )
-        latest_execs = list(db.scalars(
+        latest_execs = list(await db.scalars(
             select(TspmExecution).join(
                 latest_exec_subq,
                 (TspmExecution.project_id == latest_exec_subq.c.project_id)
@@ -985,7 +986,7 @@ def global_dashboard(db: DB, user: Annotated[User, Depends(get_current_user)]):
 
         exec_ids = [e.id for e in latest_execs]
         if exec_ids:
-            result_stats_rows = db.execute(
+            result_stats_rows = await db.execute(
                 select(
                     TspmExecutionResult.execution_id,
                     func.count().label("total"),
@@ -1025,13 +1026,13 @@ def global_dashboard(db: DB, user: Annotated[User, Depends(get_current_user)]):
         ))
 
     # ── Audit olayları — kullanıcı adlarını tek sorguda yükle ────────────
-    audit_events = list(db.scalars(
+    audit_events = list(await db.scalars(
         select(AuditEvent).order_by(AuditEvent.ts.desc()).limit(10)
     ))
     actor_ids = list({evt.actor_user_id for evt in audit_events if evt.actor_user_id})
     actor_map: dict[str, str] = {}
     if actor_ids:
-        actor_rows = list(db.scalars(select(User).where(User.id.in_(actor_ids))))
+        actor_rows = list(await db.scalars(select(User).where(User.id.in_(actor_ids))))
         actor_map = {u.id: (u.full_name or u.email) for u in actor_rows}
 
     activities: list[GlobalDashboardActivity] = []
@@ -1067,8 +1068,8 @@ def global_dashboard(db: DB, user: Annotated[User, Depends(get_current_user)]):
 # ═══════════════════════════════════════════════════════════════════════
 
 @router.get("/projects/{project_id}/scenarios", response_model=list[ScenarioOut])
-def list_scenarios(
-    project_id: str, db: DB, user: Annotated[User, Depends(get_current_user)],
+async def list_scenarios(
+    project_id: str, db: AsyncDB, user: Annotated[User, Depends(get_current_user)],
     q: Optional[str] = Query(None),
     tag: Optional[str] = Query(None, description="Tek tag ile filtrele"),
     tags: Optional[str] = Query(None, description="Virgülle ayrılmış çoklu tag filtresi"),
@@ -1079,7 +1080,7 @@ def list_scenarios(
     """Projeye ait test senaryolarini listeler. Filtre yoksa 60s cache."""
     from app.infra.cache import cache_get, cache_set, make_key
 
-    _get_project(db, project_id, user)
+    await _get_project(db, project_id, user)
     # Filtre yoksa (en sık kullanım) cache uygula
     no_filter = (q is None and tag is None and tags is None and status_filter is None and skip == 0 and limit == 100)
     if no_filter:
@@ -1096,14 +1097,14 @@ def list_scenarios(
 
 
 @router.post("/projects/{project_id}/scenarios", response_model=ScenarioOut, status_code=201)
-def create_scenario(
-    project_id: str, body: ScenarioCreate, db: DB,
+async def create_scenario(
+    project_id: str, body: ScenarioCreate, db: AsyncDB,
     user: Annotated[User, Depends(require_permission(Permission.SCENARIO_CREATE))],
 ):
     """Yeni test senaryosu olusturur."""
     from app.domains.billing.gating import enforce_capacity
     from app.infra.cache import cache_delete, make_key
-    _get_project(db, project_id, user)
+    await _get_project(db, project_id, user)
     enforce_capacity(db, user.tenant_id, "scenario_count")
     result = scenario_svc.create_scenario_for_project(db, project_id, body, actor_user_id=user.id)
     cache_delete(make_key("scenarios", "list", project_id))
@@ -1112,9 +1113,9 @@ def create_scenario(
 
 
 @router.get("/projects/{project_id}/scenarios/{scenario_id}", response_model=ScenarioOut)
-def get_scenario(project_id: str, scenario_id: str, db: DB, user: Annotated[User, Depends(get_current_user)]):
+async def get_scenario(project_id: str, scenario_id: str, db: AsyncDB, user: Annotated[User, Depends(get_current_user)]):
     """Test senaryosu detayini getirir."""
-    _get_project(db, project_id, user)  # membership guard
+    await _get_project(db, project_id, user)  # membership guard
     return scenario_svc.get_scenario_or_404(db, project_id, scenario_id)
 
 
@@ -1123,7 +1124,7 @@ def get_scenario(project_id: str, scenario_id: str, db: DB, user: Annotated[User
 # ═══════════════════════════════════════════════════════════════════════
 
 
-def _refresh_scenario_quality(db: Session, scenario: TspmScenario) -> dict[str, Any]:
+async def _refresh_scenario_quality(db: AsyncDB, scenario: TspmScenario) -> dict[str, Any]:
     """Senaryo için skor + embedding'i üretir ve kaydeder.
 
     Hata durumlarında senaryoyu hiç yazmadan geri döner; çağrıyı yapanın
@@ -1148,22 +1149,22 @@ def _refresh_scenario_quality(db: Session, scenario: TspmScenario) -> dict[str, 
         emb = None
     if emb:
         scenario.title_embedding = emb
-    db.add(scenario)
+    await db.add(scenario)
     return result
 
 
 @router.post("/projects/{project_id}/scenarios/{scenario_id}/score")
-def score_scenario_endpoint(
-    project_id: str, scenario_id: str, db: DB, user: Annotated[User, Depends(get_current_user)],
+async def score_scenario_endpoint(
+    project_id: str, scenario_id: str, db: AsyncDB, user: Annotated[User, Depends(get_current_user)],
 ):
     """Tek bir senaryoyu LLM-as-Judge ile yeniden skorla ve embedding üret."""
-    _get_project(db, project_id, user)  # membership guard
-    s = db.get(TspmScenario, scenario_id)
+    await _get_project(db, project_id, user)  # membership guard
+    s = await db.get(TspmScenario, scenario_id)
     if s is None or s.project_id != project_id:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Senaryo bulunamadı")
-    result = _refresh_scenario_quality(db, s)
-    db.commit()
-    db.refresh(s)
+    result = await _refresh_scenario_quality(db, s)
+    await db.commit()
+    await db.refresh(s)
     return {
         "scenario_id": s.id,
         "quality_score": s.quality_score,
@@ -1177,18 +1178,18 @@ def score_scenario_endpoint(
 
 
 @router.get("/projects/{project_id}/scenarios/{scenario_id}/similar")
-def find_similar_scenarios_endpoint(
-    project_id: str, scenario_id: str, db: DB, user: Annotated[User, Depends(get_current_user)],
+async def find_similar_scenarios_endpoint(
+    project_id: str, scenario_id: str, db: AsyncDB, user: Annotated[User, Depends(get_current_user)],
     top_k: int = Query(5, ge=1, le=20),
     min_similarity: float = Query(0.75, ge=0.0, le=1.0),
 ):
     """Aynı proje içinde, hedef senaryoya en yakın N senaryoyu döndürür."""
     from app.domains.ai.scenario_quality import embed_scenario, find_similar_scenarios
 
-    target = db.get(TspmScenario, scenario_id)
+    target = await db.get(TspmScenario, scenario_id)
     if target is None or target.project_id != project_id:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Senaryo bulunamadı")
-    _get_project(db, project_id, user)
+    await _get_project(db, project_id, user)
 
     target_emb = target.title_embedding
     if not target_emb:
@@ -1199,8 +1200,8 @@ def find_similar_scenarios_endpoint(
             target_emb = None
         if target_emb:
             target.title_embedding = target_emb
-            db.add(target)
-            db.commit()
+            await db.add(target)
+            await db.commit()
 
     if not target_emb:
         return {"similar": [], "reason": "embedding_unavailable"}
@@ -1214,7 +1215,7 @@ def find_similar_scenarios_endpoint(
     )
     candidates = [
         (s.id, s.title, s.title_embedding)
-        for s in db.scalars(stmt)
+        for s in await db.scalars(stmt)
         if s.title_embedding  # sadece embed edilmişler
     ]
     similar = find_similar_scenarios(
@@ -1224,8 +1225,8 @@ def find_similar_scenarios_endpoint(
 
 
 @router.post("/projects/{project_id}/wizard/score-all")
-def score_all_scenarios(
-    project_id: str, db: DB, user: Annotated[User, Depends(get_current_user)],
+async def score_all_scenarios(
+    project_id: str, db: AsyncDB, user: Annotated[User, Depends(get_current_user)],
     body: dict | None = None,
 ):
     """Projenin tüm (veya body.scenario_ids ile belirtilen) senaryolarını
@@ -1238,7 +1239,7 @@ def score_all_scenarios(
     """
     from app.domains.ai.scenario_quality import find_similar_scenarios
 
-    _get_project(db, project_id, user)
+    await _get_project(db, project_id, user)
     body = body or {}
     ids = body.get("scenario_ids") if isinstance(body, dict) else None
     force = bool((body or {}).get("force", False))
@@ -1247,7 +1248,7 @@ def score_all_scenarios(
     if ids and isinstance(ids, list):
         stmt = stmt.where(TspmScenario.id.in_(ids))
     stmt = stmt.limit(500)
-    scenarios = list(db.scalars(stmt))
+    scenarios = list(await db.scalars(stmt))
 
     scored = 0
     skipped = 0
@@ -1257,12 +1258,12 @@ def score_all_scenarios(
             skipped += 1
             continue
         try:
-            result = _refresh_scenario_quality(db, s)
+            result = await _refresh_scenario_quality(db, s)
             sources[result.get("source", "unknown")] = sources.get(result.get("source", "unknown"), 0) + 1
             scored += 1
         except Exception as exc:  # noqa: BLE001 — tek senaryo hatası batch'i çökertmesin
             logger.warning("Senaryo %s skorlanamadı: %s", s.id, exc)
-    db.commit()
+    await db.commit()
 
     # Her skorlanan senaryo için duplicate hint de hazırla (aynı liste üzerinde)
     duplicates: dict[str, list[dict[str, Any]]] = {}
@@ -1303,12 +1304,12 @@ def score_all_scenarios(
 
 
 @router.put("/projects/{project_id}/scenarios/{scenario_id}", response_model=ScenarioOut)
-def update_scenario(
-    project_id: str, scenario_id: str, body: ScenarioUpdate, db: DB,
+async def update_scenario(
+    project_id: str, scenario_id: str, body: ScenarioUpdate, db: AsyncDB,
     user: Annotated[User, Depends(require_permission(Permission.SCENARIO_UPDATE))],
 ):
     """Test senaryosunu gunceller."""
-    _get_project(db, project_id, user)  # membership guard
+    await _get_project(db, project_id, user)  # membership guard
     from app.infra.cache import cache_delete, make_key
     result = scenario_svc.update_scenario_for_project(db, project_id, scenario_id, body, actor_user_id=user.id)
     cache_delete(make_key("scenarios", "list", project_id))
@@ -1316,25 +1317,25 @@ def update_scenario(
 
 
 @router.delete("/projects/{project_id}/scenarios/{scenario_id}", status_code=204)
-def delete_scenario(
-    project_id: str, scenario_id: str, db: DB,
+async def delete_scenario(
+    project_id: str, scenario_id: str, db: AsyncDB,
     user: Annotated[User, Depends(require_permission(Permission.SCENARIO_UPDATE))],
 ):
     """Test senaryosunu siler."""
     from app.infra.cache import cache_delete, make_key
-    _get_project(db, project_id, user)
+    await _get_project(db, project_id, user)
     scenario_svc.delete_scenario(db, project_id, scenario_id)
     cache_delete(make_key("scenarios", "list", project_id))
     cache_delete(make_key("dashboard", "project", project_id))
 
 
 @router.post("/projects/{project_id}/scenarios/generate-bdd", response_model=BddGenerateResponse)
-def generate_bdd_scenarios(
-    project_id: str, body: BddGenerateRequest, db: DB,
+async def generate_bdd_scenarios(
+    project_id: str, body: BddGenerateRequest, db: AsyncDB,
     user: Annotated[User, Depends(require_permission(Permission.SCENARIO_CREATE))],
 ):
     """Analiz dokümanından BDD senaryoları üret (OpenAI)."""
-    _get_project(db, project_id, user)
+    await _get_project(db, project_id, user)
     from app.domains.tspm.bdd_generator import generate_bdd_scenarios as _generate
     raw_scenarios = _generate(body.analysis_text, body.extra_instructions)
     scenarios = [BddGeneratedScenario(**s) for s in raw_scenarios]
@@ -1346,12 +1347,12 @@ def generate_bdd_scenarios(
     response_model=list[ScenarioOut],
     status_code=201,
 )
-def save_bdd_scenarios(
-    project_id: str, body: BddSaveRequest, db: DB,
+async def save_bdd_scenarios(
+    project_id: str, body: BddSaveRequest, db: AsyncDB,
     user: Annotated[User, Depends(require_permission(Permission.SCENARIO_CREATE))],
 ):
     """Üretilen BDD senaryolarını veritabanına toplu kaydet."""
-    _get_project(db, project_id, user)
+    await _get_project(db, project_id, user)
     created = []
     for sc in body.scenarios:
         steps = [
@@ -1365,11 +1366,11 @@ def save_bdd_scenarios(
             status="draft",
             steps=steps,
         )
-        db.add(s)
+        await db.add(s)
         created.append(s)
-    db.commit()
+    await db.commit()
     for s in created:
-        db.refresh(s)
+        await db.refresh(s)
     from app.infra.cache import cache_delete, make_key
     cache_delete(make_key("scenarios", "list", project_id))
     cache_delete(make_key("dashboard", "project", project_id))
@@ -1385,14 +1386,14 @@ def save_bdd_scenarios(
     response_model=EnhancedBddGenerateResponse,
     summary="Generate enriched BDD scenarios for a requirement",
 )
-def enhanced_bdd_generate(
+async def enhanced_bdd_generate(
     project_id: str,
     body: EnhancedBddGenerateRequest,
-    db: DB,
+    db: AsyncDB,
     user: Annotated[User, Depends(require_permission(Permission.SCENARIO_CREATE))],
 ):
     """Context-enriched BDD generation: step reuse, banking domain, quality scoring."""
-    _get_project(db, project_id, user)
+    await _get_project(db, project_id, user)
     from app.domains.tspm.bdd_generator import BDDGenerator
     gen = BDDGenerator(db, project_id)
     try:
@@ -1413,14 +1414,14 @@ def enhanced_bdd_generate(
     response_model=BulkBddResponse,
     summary="Bulk BDD generation for multiple requirements",
 )
-def enhanced_bdd_bulk_generate(
+async def enhanced_bdd_bulk_generate(
     project_id: str,
     body: BulkBddRequest,
-    db: DB,
+    db: AsyncDB,
     user: Annotated[User, Depends(require_permission(Permission.SCENARIO_CREATE))],
 ):
     """Generate BDD scenarios for a batch of requirements."""
-    _get_project(db, project_id, user)
+    await _get_project(db, project_id, user)
     from app.domains.tspm.bdd_generator import BDDGenerator
     gen = BDDGenerator(db, project_id)
     result = gen.bulk_generate(body.requirement_ids, body.options)
@@ -1432,14 +1433,14 @@ def enhanced_bdd_bulk_generate(
     response_model=EdgeCaseResponse,
     summary="Suggest edge cases for a requirement",
 )
-def bdd_suggest_edge_cases(
+async def bdd_suggest_edge_cases(
     project_id: str,
     body: EdgeCaseRequest,
-    db: DB,
+    db: AsyncDB,
     user: Annotated[User, Depends(require_permission(Permission.SCENARIO_CREATE))],
 ):
     """Analyze existing scenarios and suggest missing edge case / negative / boundary tests."""
-    _get_project(db, project_id, user)
+    await _get_project(db, project_id, user)
     from app.domains.tspm.bdd_generator import BDDGenerator
     gen = BDDGenerator(db, project_id)
     result = gen.suggest_edge_cases(body.requirement_id)
@@ -1451,13 +1452,13 @@ def bdd_suggest_edge_cases(
     response_model=StepLibraryResponse,
     summary="Get the project step library",
 )
-def bdd_step_library(
+async def bdd_step_library(
     project_id: str,
-    db: DB,
+    db: AsyncDB,
     user: Annotated[User, Depends(get_current_user)],
 ):
     """Extract reusable step patterns from all project scenarios."""
-    _get_project(db, project_id, user)
+    await _get_project(db, project_id, user)
     from app.domains.tspm.bdd_generator import BDDGenerator
     gen = BDDGenerator(db, project_id)
     result = gen.get_step_library()
@@ -1469,14 +1470,14 @@ def bdd_step_library(
     response_model=GherkinValidateResponse,
     summary="Validate Gherkin syntax",
 )
-def bdd_validate_gherkin(
+async def bdd_validate_gherkin(
     project_id: str,
     body: GherkinValidateRequest,
-    db: DB,
+    db: AsyncDB,
     user: Annotated[User, Depends(get_current_user)],
 ):
     """Validate Gherkin text for syntax correctness (Turkish + English keywords)."""
-    _get_project(db, project_id, user)
+    await _get_project(db, project_id, user)
     from app.domains.tspm.bdd_generator import BDDGenerator
     gen = BDDGenerator(db, project_id)
     result = gen.validate_gherkin(body.gherkin)
@@ -1488,8 +1489,8 @@ def bdd_validate_gherkin(
     response_model=ScenarioOut,
     status_code=201,
 )
-def clone_scenario(
-    project_id: str, scenario_id: str, db: DB,
+async def clone_scenario(
+    project_id: str, scenario_id: str, db: AsyncDB,
     user: Annotated[User, Depends(require_permission(Permission.SCENARIO_CREATE))],
 ):
     """Mevcut senaryoyu kopyalayarak yeni bir draft senaryo oluşturur."""
@@ -1497,13 +1498,13 @@ def clone_scenario(
 
 
 @router.post("/projects/{project_id}/scenarios/bulk-delete", status_code=204)
-def bulk_delete_scenarios(
-    project_id: str, body: BulkDeleteRequest, db: DB,
+async def bulk_delete_scenarios(
+    project_id: str, body: BulkDeleteRequest, db: AsyncDB,
     user: Annotated[User, Depends(require_permission(Permission.SCENARIO_DELETE))],
 ):
     """Secilen senaryolari toplu olarak siler."""
     from app.infra.cache import cache_delete, make_key
-    _get_project(db, project_id, user)
+    await _get_project(db, project_id, user)
     scenario_svc.bulk_delete_scenarios_for_project(db, project_id, body, actor_user_id=user.id)
     cache_delete(make_key("scenarios", "list", project_id))
     cache_delete(make_key("dashboard", "project", project_id))
@@ -1514,27 +1515,27 @@ def bulk_delete_scenarios(
 # ═══════════════════════════════════════════════════════════════════════
 
 @router.post("/projects/{project_id}/requirements", response_model=RequirementOut, status_code=201)
-def create_requirement(
-    project_id: str, body: RequirementCreate, db: DB,
+async def create_requirement(
+    project_id: str, body: RequirementCreate, db: AsyncDB,
     user: Annotated[User, Depends(require_permission(Permission.REQUIREMENT_MANAGE))],
 ):
     """Yeni gereksinim kaydi olusturur."""
     from app.infra.cache import cache_delete, make_key
-    _get_project(db, project_id, user)
+    await _get_project(db, project_id, user)
     result = scenario_svc.create_requirement_for_project(db, project_id, body)
     cache_delete(make_key("requirements", "list", project_id))
     return result
 
 
 @router.get("/projects/{project_id}/requirements", response_model=list[RequirementOut])
-def list_requirements(
-    project_id: str, db: DB, user: Annotated[User, Depends(get_current_user)],
+async def list_requirements(
+    project_id: str, db: AsyncDB, user: Annotated[User, Depends(get_current_user)],
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=500),
 ):
     """Gereksinimleri listeler. 60s cache (default pagination)."""
     from app.infra.cache import cache_get, cache_set, make_key
-    _get_project(db, project_id, user)
+    await _get_project(db, project_id, user)
     if skip == 0 and limit == 100:
         _cache_key = make_key("requirements", "list", project_id)
         cached = cache_get(_cache_key)
@@ -1550,12 +1551,12 @@ def list_requirements(
 
 
 @router.put("/projects/{project_id}/requirements/{requirement_id}", response_model=RequirementOut)
-def update_requirement(
-    project_id: str, requirement_id: str, body: RequirementUpdate, db: DB,
+async def update_requirement(
+    project_id: str, requirement_id: str, body: RequirementUpdate, db: AsyncDB,
     user: Annotated[User, Depends(require_permission(Permission.REQUIREMENT_MANAGE))],
 ):
     """Gereksinim bilgilerini gunceller."""
-    _get_project(db, project_id, user)  # membership guard
+    await _get_project(db, project_id, user)  # membership guard
     return scenario_svc.update_requirement_for_project(
         db,
         project_id,
@@ -1565,24 +1566,24 @@ def update_requirement(
 
 
 @router.delete("/projects/{project_id}/requirements/{requirement_id}", status_code=204)
-def delete_requirement(
-    project_id: str, requirement_id: str, db: DB,
+async def delete_requirement(
+    project_id: str, requirement_id: str, db: AsyncDB,
     user: Annotated[User, Depends(require_permission(Permission.REQUIREMENT_MANAGE))],
 ):
     """Gereksinim kaydini siler."""
-    _get_project(db, project_id, user)  # membership guard
+    await _get_project(db, project_id, user)  # membership guard
     from app.infra.cache import cache_delete, make_key
     scenario_svc.delete_requirement_for_project(db, project_id, requirement_id)
     cache_delete(make_key("requirements", "list", project_id))
 
 
 @router.post("/projects/{project_id}/scenarios/{scenario_id}/requirements", status_code=201)
-def link_scenario_requirements(
-    project_id: str, scenario_id: str, body: LinkRequirementRequest, db: DB,
+async def link_scenario_requirements(
+    project_id: str, scenario_id: str, body: LinkRequirementRequest, db: AsyncDB,
     user: Annotated[User, Depends(require_permission(Permission.REQUIREMENT_MANAGE))],
 ):
     """Senaryoyu gereksinimlerle eslestirir."""
-    _get_project(db, project_id, user)
+    await _get_project(db, project_id, user)
     return scenario_svc.link_scenario_requirements_for_project(
         db,
         project_id,
@@ -1595,8 +1596,8 @@ def link_scenario_requirements(
     "/projects/{project_id}/scenarios/{scenario_id}/requirements/{requirement_id}",
     status_code=204,
 )
-def unlink_scenario_requirement(
-    project_id: str, scenario_id: str, requirement_id: str, db: DB,
+async def unlink_scenario_requirement(
+    project_id: str, scenario_id: str, requirement_id: str, db: AsyncDB,
     user: Annotated[User, Depends(require_permission(Permission.REQUIREMENT_MANAGE))],
 ):
     """Senaryo ile gereksinim baglantisini kaldirir."""
@@ -1608,16 +1609,16 @@ def unlink_scenario_requirement(
 
 
 @router.get("/projects/{project_id}/coverage-matrix", response_model=CoverageMatrixOut)
-def get_coverage_matrix(project_id: str, db: DB, user: Annotated[User, Depends(get_current_user)]):
+async def get_coverage_matrix(project_id: str, db: AsyncDB, user: Annotated[User, Depends(get_current_user)]):
     """Gereksinim kapsama matrisini getirir."""
-    _get_project(db, project_id, user)
+    await _get_project(db, project_id, user)
     return scenario_svc.build_coverage_matrix_for_project(db, project_id)
 
 
 @router.get("/projects/{project_id}/coverage-gaps", response_model=list[RequirementOut])
-def get_coverage_gaps(project_id: str, db: DB, user: Annotated[User, Depends(get_current_user)]):
+async def get_coverage_gaps(project_id: str, db: AsyncDB, user: Annotated[User, Depends(get_current_user)]):
     """Kapsama bosluklarini listeler."""
-    _get_project(db, project_id, user)
+    await _get_project(db, project_id, user)
     return scenario_svc.get_coverage_gaps_for_project(db, project_id)
 
 
@@ -1629,12 +1630,12 @@ def get_coverage_gaps(project_id: str, db: DB, user: Annotated[User, Depends(get
     "/projects/{project_id}/scenarios/{scenario_id}/versions",
     response_model=list[ScenarioVersionOut],
 )
-def list_scenario_versions(project_id: str, scenario_id: str, db: DB, user: Annotated[User, Depends(get_current_user)]):
+async def list_scenario_versions(project_id: str, scenario_id: str, db: AsyncDB, user: Annotated[User, Depends(get_current_user)]):
     """Senaryo surumlerini listeler."""
-    s = db.get(TspmScenario, scenario_id)
+    s = await db.get(TspmScenario, scenario_id)
     if s is None or s.project_id != project_id:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Senaryo bulunamadı")
-    return list(db.scalars(
+    return list(await db.scalars(
         select(TspmScenarioVersion)
         .where(TspmScenarioVersion.scenario_id == scenario_id)
         .order_by(TspmScenarioVersion.version_number.desc())
@@ -1645,20 +1646,20 @@ def list_scenario_versions(project_id: str, scenario_id: str, db: DB, user: Anno
     "/projects/{project_id}/scenarios/{scenario_id}/versions/{v1}/diff/{v2}",
     response_model=ScenarioVersionDiff,
 )
-def diff_scenario_versions(
-    project_id: str, scenario_id: str, v1: int, v2: int, db: DB, user: Annotated[User, Depends(get_current_user)],
+async def diff_scenario_versions(
+    project_id: str, scenario_id: str, v1: int, v2: int, db: AsyncDB, user: Annotated[User, Depends(get_current_user)],
 ):
     """Iki senaryo surumu arasindaki farklari getirir."""
-    s = db.get(TspmScenario, scenario_id)
+    s = await db.get(TspmScenario, scenario_id)
     if s is None or s.project_id != project_id:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Senaryo bulunamadı")
-    ver1 = db.scalar(
+    ver1 = await db.scalar(
         select(TspmScenarioVersion).where(
             TspmScenarioVersion.scenario_id == scenario_id,
             TspmScenarioVersion.version_number == v1,
         )
     )
-    ver2 = db.scalar(
+    ver2 = await db.scalar(
         select(TspmScenarioVersion).where(
             TspmScenarioVersion.scenario_id == scenario_id,
             TspmScenarioVersion.version_number == v2,
@@ -1683,14 +1684,14 @@ def diff_scenario_versions(
 # ═══════════════════════════════════════════════════════════════════════
 
 @router.get("/projects/{project_id}/executions", response_model=list[ExecutionOut])
-def list_executions(
-    project_id: str, db: DB, user: Annotated[User, Depends(get_current_user)],
+async def list_executions(
+    project_id: str, db: AsyncDB, user: Annotated[User, Depends(get_current_user)],
     skip: int = Query(0, ge=0, description="Kaç kayıt atlanacak"),
     limit: int = Query(50, ge=1, le=200, description="Sayfa başına kayıt (maks 200)"),
     platform: Optional[str] = Query(None, description="Platform filtresi: ios | android | desktop"),
 ):
     """Test kosularini listeler. 20s cache (skip=0, no platform filter)."""
-    _get_project(db, project_id, user)
+    await _get_project(db, project_id, user)
     if skip == 0 and platform is None:
         from app.infra.cache import cache_get, cache_set, make_key
         _cache_key = make_key("executions", "list", project_id, str(limit))
@@ -1710,13 +1711,13 @@ def list_executions(
 
 
 @router.post("/projects/{project_id}/executions", response_model=ExecutionOut, status_code=201)
-def create_execution(
-    project_id: str, body: ExecutionCreate, db: DB,
+async def create_execution(
+    project_id: str, body: ExecutionCreate, db: AsyncDB,
     user: Annotated[User, Depends(require_permission(Permission.EXECUTION_CREATE))],
 ):
     """Yeni test kosusu olusturur."""
     from app.domains.billing.gating import enforce_capacity
-    _get_project(db, project_id, user)
+    await _get_project(db, project_id, user)
     enforce_capacity(db, user.tenant_id, "run_count_month")
     ex = TspmExecution(
         project_id=project_id,
@@ -1726,10 +1727,10 @@ def create_execution(
         device_name=body.device_name,
         app_upload_id=body.app_upload_id,
     )
-    db.add(ex)
-    db.flush()
+    await db.add(ex)
+    await db.flush()
     for sid in body.scenario_ids:
-        db.add(TspmExecutionResult(execution_id=ex.id, scenario_id=sid, status="pending"))
+        await db.add(TspmExecutionResult(execution_id=ex.id, scenario_id=sid, status="pending"))
     metrics = TspmExecutionMetrics(
         project_id=project_id,
         execution_id=ex.id,
@@ -1739,9 +1740,9 @@ def create_execution(
         skipped=0,
         pass_rate=0.0,
     )
-    db.add(metrics)
-    db.commit()
-    db.refresh(ex)
+    await db.add(metrics)
+    await db.commit()
+    await db.refresh(ex)
     log_audit(db, actor_user_id=user.id, action="execution.create",
               resource_type="execution", resource_id=ex.id,
               payload={
@@ -1751,7 +1752,7 @@ def create_execution(
                   "platform": body.platform,
                   "device_name": body.device_name,
               }, ip=None)
-    db.commit()
+    await db.commit()
     # Proje dashboard cache'ini temizle — yeni koşum sayılar değiştirir.
     from app.infra.cache import cache_delete, cache_delete_pattern, make_key
     cache_delete(make_key("dashboard", "project", project_id))
@@ -1771,31 +1772,31 @@ def create_execution(
 
 
 @router.get("/projects/{project_id}/executions/compare")
-def compare_executions(
+async def compare_executions(
     project_id: str,
     user: Annotated[User, Depends(get_current_user)],
     run1: str = Query(...),
     run2: str = Query(...),
-    db: DB = ...,
+    db: AsyncDB = ...,
 ):
     """İki koşuyu karşılaştır."""
-    _get_project(db, project_id, user)
+    await _get_project(db, project_id, user)
     return execution_svc.compare_executions_for_project(db, project_id, run1, run2)
 
 
 @router.get("/projects/{project_id}/executions/{run_id}", response_model=ExecutionDetailOut)
-def get_execution(project_id: str, run_id: str, db: DB, user: Annotated[User, Depends(get_current_user)]):
+async def get_execution(project_id: str, run_id: str, db: AsyncDB, user: Annotated[User, Depends(get_current_user)]):
     # Üyelik doğrulaması: execution bulunmadan önce proje erişimi şart.
-    _get_project(db, project_id, user)
-    ex = db.get(TspmExecution, run_id)
+    await _get_project(db, project_id, user)
+    ex = await db.get(TspmExecution, run_id)
     if ex is None or ex.project_id != project_id:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Koşu bulunamadı")
     results = list(
-        db.scalars(select(TspmExecutionResult).where(TspmExecutionResult.execution_id == run_id))
+        await db.scalars(select(TspmExecutionResult).where(TspmExecutionResult.execution_id == run_id))
     )
     result_out = []
     for r in results:
-        sc = db.get(TspmScenario, r.scenario_id)
+        sc = await db.get(TspmScenario, r.scenario_id)
         result_out.append(ExecutionResultOut(
             id=r.id, scenario_id=r.scenario_id,
             scenario_title=sc.title if sc else "", status=r.status, note=r.note,
@@ -1811,20 +1812,20 @@ def get_execution(project_id: str, run_id: str, db: DB, user: Annotated[User, De
 
 
 @router.patch("/projects/{project_id}/executions/{run_id}/results/{result_id}")
-def update_result_status(
-    project_id: str, run_id: str, result_id: str, body: ResultStatusUpdate, db: DB,
+async def update_result_status(
+    project_id: str, run_id: str, result_id: str, body: ResultStatusUpdate, db: AsyncDB,
     user: Annotated[User, Depends(require_permission(Permission.EXECUTION_UPDATE))],
 ):
     # Üyelik + hedef execution'ın bu projeye ait olduğundan emin ol.
-    _get_project(db, project_id, user)
-    ex = db.get(TspmExecution, run_id)
+    await _get_project(db, project_id, user)
+    ex = await db.get(TspmExecution, run_id)
     if ex is None or ex.project_id != project_id:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Koşu bulunamadı")
-    r = db.get(TspmExecutionResult, result_id)
+    r = await db.get(TspmExecutionResult, result_id)
     if r is None or r.execution_id != run_id:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Sonuç bulunamadı")
     r.status = body.status
-    db.commit()
+    await db.commit()
     return {"ok": True}
 
 
@@ -1833,8 +1834,8 @@ def update_result_status(
     response_model=ExecutionOut,
     summary="Koşum durumunu manuel güncelle (tamamla / iptal et)",
 )
-def update_execution_status(
-    project_id: str, run_id: str, body: ExecutionStatusUpdate, db: DB,
+async def update_execution_status(
+    project_id: str, run_id: str, body: ExecutionStatusUpdate, db: AsyncDB,
     user: Annotated[User, Depends(require_permission(Permission.EXECUTION_UPDATE))],
 ):
     """UI'daki 'Tamamla' / 'İptal' aksiyonu — yalnızca whitelist durum geçişlerini kabul eder.
@@ -1843,14 +1844,14 @@ def update_execution_status(
     durdurmaz. Engine tarafı cancel desteği eklenene kadar runner arka planda
     kendi hayatını yaşamaya devam edebilir.
     """
-    _get_project(db, project_id, user)
-    ex = db.get(TspmExecution, run_id)
+    await _get_project(db, project_id, user)
+    ex = await db.get(TspmExecution, run_id)
     if ex is None or ex.project_id != project_id:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Koşu bulunamadı")
 
     ex.status = body.status
-    db.commit()
-    db.refresh(ex)
+    await db.commit()
+    await db.refresh(ex)
     # Durum değişince dashboard istatistikleri güncellenmeli.
     from app.infra.cache import cache_delete, cache_delete_pattern, make_key
     cache_delete(make_key("dashboard", "project", project_id))
@@ -1862,7 +1863,7 @@ def update_execution_status(
     cache_delete_pattern(make_key("executions", "list", project_id, "*"))
 
     # Aggregate counts (ExecutionOut şeması bunları bekler).
-    results = list(db.scalars(
+    results = list(await db.scalars(
         select(TspmExecutionResult).where(TspmExecutionResult.execution_id == run_id)
     ))
     passed = sum(1 for r in results if r.status == "passed")
@@ -1888,13 +1889,13 @@ def update_execution_status(
     status_code=204,
     summary="Koşumu ve sonuç kayıtlarını sil",
 )
-def delete_execution(
-    project_id: str, run_id: str, db: DB,
+async def delete_execution(
+    project_id: str, run_id: str, db: AsyncDB,
     user: Annotated[User, Depends(require_permission(Permission.EXECUTION_UPDATE))],
 ):
     """Koşumu siler. Ilgili TspmExecutionResult satırları da cascade ile temizlenir."""
-    _get_project(db, project_id, user)
-    ex = db.get(TspmExecution, run_id)
+    await _get_project(db, project_id, user)
+    ex = await db.get(TspmExecution, run_id)
     if ex is None or ex.project_id != project_id:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Koşu bulunamadı")
 
@@ -1902,13 +1903,13 @@ def delete_execution(
         raise HTTPException(409, "Çalışan koşum silinemez; önce tamamlayın veya iptal edin.")
 
     # İlişkili sonuçları temizle (cascade tanımlı değilse manuel).
-    db.execute(
+    await db.execute(
         TspmExecutionResult.__table__.delete().where(
             TspmExecutionResult.execution_id == run_id
         )
     )
-    db.delete(ex)
-    db.commit()
+    await db.delete(ex)
+    await db.commit()
     # Silinen koşum dashboard sayılarını etkiler.
     from app.infra.cache import cache_delete, cache_delete_pattern, make_key
     cache_delete(make_key("dashboard", "project", project_id))
@@ -1921,27 +1922,27 @@ def delete_execution(
 
 
 @router.post("/projects/{project_id}/executions/{run_id}", response_model=ExecutionOut, status_code=201)
-def rerun_execution(
-    project_id: str, run_id: str, db: DB,
+async def rerun_execution(
+    project_id: str, run_id: str, db: AsyncDB,
     user: Annotated[User, Depends(require_permission(Permission.EXECUTION_CREATE))],
 ):
     """Mevcut kosuyu yeniden baslatir."""
-    _get_project(db, project_id, user)  # membership guard
+    await _get_project(db, project_id, user)  # membership guard
     return execution_svc.rerun_execution_for_project(db, project_id, run_id)
 
 
 @router.post("/projects/{project_id}/executions/{run_id}/cancel", status_code=200)
-def cancel_execution(project_id: str, run_id: str, db: DB, user: Annotated[User, Depends(get_current_user)]):
+async def cancel_execution(project_id: str, run_id: str, db: AsyncDB, user: Annotated[User, Depends(get_current_user)]):
     """Devam eden bir koşumu iptal eder; bekleyen sonuçları 'skipped' yapar."""
-    _get_project(db, project_id, user)  # membership guard
-    execution = db.get(TspmExecution, run_id)
+    await _get_project(db, project_id, user)  # membership guard
+    execution = await db.get(TspmExecution, run_id)
     if execution is None or execution.project_id != project_id:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Koşu bulunamadı")
     if execution.status not in ("running", "pending"):
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Bu koşum zaten tamamlanmış veya iptal edilmiş")
     execution.status = "cancelled"
     pending = list(
-        db.scalars(
+        await db.scalars(
             select(TspmExecutionResult).where(
                 TspmExecutionResult.execution_id == run_id,
                 TspmExecutionResult.status == "pending",
@@ -1950,7 +1951,7 @@ def cancel_execution(project_id: str, run_id: str, db: DB, user: Annotated[User,
     )
     for result in pending:
         result.status = "skipped"
-    db.commit()
+    await db.commit()
     return {"ok": True, "execution_id": run_id, "cancelled_results": len(pending)}
 
 
@@ -1959,11 +1960,11 @@ def cancel_execution(project_id: str, run_id: str, db: DB, user: Annotated[User,
 # ═══════════════════════════════════════════════════════════════════════
 
 @router.get("/projects/{project_id}/execution-trends", response_model=ExecutionTrendsOut)
-def get_execution_trends(project_id: str, db: DB, user: Annotated[User, Depends(get_current_user)], days: int = Query(30)):
+async def get_execution_trends(project_id: str, db: AsyncDB, user: Annotated[User, Depends(get_current_user)], days: int = Query(30)):
     """Test kosusu trendlerini getirir. 60s cache — analytics sayfası için."""
     from app.infra.cache import cache_get, cache_set, make_key
 
-    _get_project(db, project_id, user)
+    await _get_project(db, project_id, user)
     _cache_key = make_key("exec-trends", project_id, str(days))
     cached = cache_get(_cache_key)
     if cached is not None:
@@ -1984,18 +1985,18 @@ class _ProjectStats(_PydanticBase):
 
 
 @router.get("/projects/{project_id}/stats", response_model=_ProjectStats)
-def get_project_stats(project_id: str, db: DB, user: Annotated[User, Depends(get_current_user)]):
+async def get_project_stats(project_id: str, db: AsyncDB, user: Annotated[User, Depends(get_current_user)]):
     """Proje özet istatistiklerini getirir."""
-    _get_project(db, project_id, user)
-    total_scenarios = db.scalar(
+    await _get_project(db, project_id, user)
+    total_scenarios = await db.scalar(
         select(func.count()).select_from(TspmScenario)
         .where(TspmScenario.project_id == project_id)
     ) or 0
-    total_test_cases = db.scalar(
+    total_test_cases = await db.scalar(
         select(func.count()).select_from(TspmTestCase)
         .where(TspmTestCase.project_id == project_id)
     ) or 0
-    active = db.scalar(
+    active = await db.scalar(
         select(func.count()).select_from(TspmScenario)
         .where(
             TspmScenario.project_id == project_id,
@@ -2003,7 +2004,7 @@ def get_project_stats(project_id: str, db: DB, user: Annotated[User, Depends(get
         )
     ) or 0
     coverage = round(active / total_scenarios * 100, 1) if total_scenarios else 0.0
-    last_execution_at = db.scalar(
+    last_execution_at = await db.scalar(
         select(func.max(TspmExecution.created_at))
         .where(TspmExecution.project_id == project_id)
     )
@@ -2016,10 +2017,10 @@ def get_project_stats(project_id: str, db: DB, user: Annotated[User, Depends(get
 
 
 @router.get("/projects/{project_id}/execution-stats", response_model=ExecutionStatsOut)
-def get_execution_stats(project_id: str, db: DB, user: Annotated[User, Depends(get_current_user)]):
+async def get_execution_stats(project_id: str, db: AsyncDB, user: Annotated[User, Depends(get_current_user)]):
     """Test kosusu istatistiklerini getirir. 60s cache."""
     from app.infra.cache import cache_get, cache_set, make_key
-    _get_project(db, project_id, user)
+    await _get_project(db, project_id, user)
     _cache_key = make_key("exec-stats", project_id)
     cached = cache_get(_cache_key)
     if cached is not None:
@@ -2033,10 +2034,10 @@ def get_execution_stats(project_id: str, db: DB, user: Annotated[User, Depends(g
 
 
 @router.get("/projects/{project_id}/flaky-tests", response_model=list[FlakyTestOut])
-def get_flaky_tests(project_id: str, db: DB, user: Annotated[User, Depends(get_current_user)]):
+async def get_flaky_tests(project_id: str, db: AsyncDB, user: Annotated[User, Depends(get_current_user)]):
     """Flaky testleri listeler. 120s cache."""
     from app.infra.cache import cache_get, cache_set, make_key
-    _get_project(db, project_id, user)
+    await _get_project(db, project_id, user)
     _cache_key = make_key("flaky-tests", project_id)
     cached = cache_get(_cache_key)
     if cached is not None:
@@ -2069,9 +2070,9 @@ class _AnomalyReport(_PydanticBase):
 
 
 @router.post("/projects/{project_id}/flaky-anomaly", response_model=_AnomalyReport)
-def detect_flaky_anomalies(project_id: str, db: DB, user: Annotated[User, Depends(get_current_user)]):
+async def detect_flaky_anomalies(project_id: str, db: AsyncDB, user: Annotated[User, Depends(get_current_user)]):
     """Flaky testleri anomali türlerine göre sınıflandırır."""
-    _get_project(db, project_id, user)
+    await _get_project(db, project_id, user)
     flaky = execution_svc.get_flaky_tests_for_project(db, project_id)
 
     anomalies: list[_AnomalyEntry] = []
@@ -2111,13 +2112,13 @@ def detect_flaky_anomalies(project_id: str, db: DB, user: Annotated[User, Depend
 # ═══════════════════════════════════════════════════════════════════════
 
 @router.get("/projects/{project_id}/flows", response_model=list[FlowOut])
-def list_flows(
-    project_id: str, db: DB, user: Annotated[User, Depends(get_current_user)],
+async def list_flows(
+    project_id: str, db: AsyncDB, user: Annotated[User, Depends(get_current_user)],
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=500),
 ):
     """Akislari listeler. 60s cache (skip=0)."""
-    _get_project(db, project_id, user)
+    await _get_project(db, project_id, user)
     if skip == 0:
         from app.infra.cache import cache_get, cache_set, make_key
         _cache_key = make_key("flows", "list", project_id)
@@ -2134,12 +2135,12 @@ def list_flows(
 
 
 @router.post("/projects/{project_id}/flows", response_model=FlowOut, status_code=201)
-def create_flow(
-    project_id: str, body: FlowCreate, db: DB,
+async def create_flow(
+    project_id: str, body: FlowCreate, db: AsyncDB,
     user: Annotated[User, Depends(require_permission(Permission.FLOW_MANAGE))],
 ):
     """Yeni akis olusturur."""
-    _get_project(db, project_id, user)
+    await _get_project(db, project_id, user)
     result = flow_regression_svc.create_flow_for_project(db, project_id, body)
     from app.infra.cache import cache_delete, make_key
     try:
@@ -2150,19 +2151,19 @@ def create_flow(
 
 
 @router.get("/projects/{project_id}/flows/{flow_id}", response_model=FlowDetailOut)
-def get_flow(project_id: str, flow_id: str, db: DB, user: Annotated[User, Depends(get_current_user)]):
+async def get_flow(project_id: str, flow_id: str, db: AsyncDB, user: Annotated[User, Depends(get_current_user)]):
     """Akis detayini getirir."""
-    _get_project(db, project_id, user)  # membership guard
+    await _get_project(db, project_id, user)  # membership guard
     return flow_regression_svc.get_flow_or_404(db, project_id, flow_id)
 
 
 @router.put("/projects/{project_id}/flows/{flow_id}/graph", response_model=FlowDetailOut)
-def update_flow_graph(
-    project_id: str, flow_id: str, body: FlowGraphUpdate, db: DB,
+async def update_flow_graph(
+    project_id: str, flow_id: str, body: FlowGraphUpdate, db: AsyncDB,
     user: Annotated[User, Depends(require_permission(Permission.FLOW_MANAGE))],
 ):
     """Akis grafigini gunceller."""
-    _get_project(db, project_id, user)  # membership guard
+    await _get_project(db, project_id, user)  # membership guard
     return flow_regression_svc.update_flow_graph_for_project(
         db,
         project_id,
@@ -2176,13 +2177,13 @@ def update_flow_graph(
 # ═══════════════════════════════════════════════════════════════════════
 
 @router.get("/projects/{project_id}/regression-sets", response_model=list[RegressionSetOut])
-def list_regression_sets(
-    project_id: str, db: DB, user: Annotated[User, Depends(get_current_user)],
+async def list_regression_sets(
+    project_id: str, db: AsyncDB, user: Annotated[User, Depends(get_current_user)],
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=500),
 ):
     """Regresyon setlerini listeler. 60s cache (skip=0)."""
-    _get_project(db, project_id, user)
+    await _get_project(db, project_id, user)
     if skip == 0:
         from app.infra.cache import cache_get, cache_set, make_key
         _cache_key = make_key("regression-sets", "list", project_id)
@@ -2199,12 +2200,12 @@ def list_regression_sets(
 
 
 @router.post("/projects/{project_id}/regression-sets", response_model=RegressionSetOut, status_code=201)
-def create_regression_set(
-    project_id: str, body: RegressionSetCreate, db: DB,
+async def create_regression_set(
+    project_id: str, body: RegressionSetCreate, db: AsyncDB,
     user: Annotated[User, Depends(require_permission(Permission.SCENARIO_CREATE))],
 ):
     """Yeni regresyon seti olusturur."""
-    _get_project(db, project_id, user)
+    await _get_project(db, project_id, user)
     result = flow_regression_svc.create_regression_set_for_project(db, project_id, body)
     from app.infra.cache import cache_delete, make_key
     try:
@@ -2215,9 +2216,9 @@ def create_regression_set(
 
 
 @router.get("/projects/{project_id}/regression-sets/{set_id}", response_model=RegressionSetDetailOut)
-def get_regression_set(project_id: str, set_id: str, db: DB, user: Annotated[User, Depends(get_current_user)]):
+async def get_regression_set(project_id: str, set_id: str, db: AsyncDB, user: Annotated[User, Depends(get_current_user)]):
     """Regresyon seti detayini getirir."""
-    _get_project(db, project_id, user)  # membership guard
+    await _get_project(db, project_id, user)  # membership guard
     return flow_regression_svc.get_regression_set_detail_for_project(
         db,
         project_id,
@@ -2226,12 +2227,12 @@ def get_regression_set(project_id: str, set_id: str, db: DB, user: Annotated[Use
 
 
 @router.post("/projects/{project_id}/regression-sets/{set_id}/add", status_code=200)
-def add_scenarios_to_regression(
-    project_id: str, set_id: str, body: AddScenariosRequest, db: DB,
+async def add_scenarios_to_regression(
+    project_id: str, set_id: str, body: AddScenariosRequest, db: AsyncDB,
     user: Annotated[User, Depends(require_permission(Permission.SCENARIO_UPDATE))],
 ):
     """Senaryolari regresyon setine ekler."""
-    _get_project(db, project_id, user)  # membership guard
+    await _get_project(db, project_id, user)  # membership guard
     return flow_regression_svc.add_scenarios_to_regression_set(
         db,
         project_id,
@@ -2244,9 +2245,9 @@ def add_scenarios_to_regression(
     "/projects/{project_id}/regression-sets/suggest",
     response_model=RegressionSuggestResponse,
 )
-def suggest_regression_sets(project_id: str, body: RegressionSuggestRequest, db: DB, user: Annotated[User, Depends(get_current_user)]):
+async def suggest_regression_sets(project_id: str, body: RegressionSuggestRequest, db: AsyncDB, user: Annotated[User, Depends(get_current_user)]):
     """Projedeki senaryoları AI ile analiz edip regresyon seti önerileri döndürür."""
-    _get_project(db, project_id, user)
+    await _get_project(db, project_id, user)
     return flow_regression_svc.suggest_regression_sets_for_project(db, project_id, body)
 
 
@@ -2255,12 +2256,12 @@ def suggest_regression_sets(project_id: str, body: RegressionSuggestRequest, db:
     response_model=list[RegressionSetOut],
     status_code=201,
 )
-def accept_suggested_sets(
-    project_id: str, body: AcceptSuggestedSetsRequest, db: DB,
+async def accept_suggested_sets(
+    project_id: str, body: AcceptSuggestedSetsRequest, db: AsyncDB,
     user: Annotated[User, Depends(require_permission(Permission.SCENARIO_CREATE))],
 ):
     """AI önerilerinden seçilen setleri toplu oluşturur."""
-    _get_project(db, project_id, user)
+    await _get_project(db, project_id, user)
     return flow_regression_svc.accept_suggested_sets_for_project(
         db,
         project_id,
@@ -2273,15 +2274,15 @@ def accept_suggested_sets(
 # ═══════════════════════════════════════════════════════════════════════
 
 @router.get("/projects/{project_id}/approvals", response_model=list[ApprovalOut])
-def list_approvals(
-    project_id: str, db: DB, user: Annotated[User, Depends(get_current_user)],
+async def list_approvals(
+    project_id: str, db: AsyncDB, user: Annotated[User, Depends(get_current_user)],
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=200),
 ):
     """Onay kayitlarini listeler. skip=0 ise 30s cache uygulanır."""
     from app.infra.cache import cache_get, cache_set, make_key
 
-    _get_project(db, project_id, user)
+    await _get_project(db, project_id, user)
     # Sadece default pagination için cache — custom pagination değilse
     if skip == 0 and limit == 50:
         _cache_key = make_key("approvals", "list", project_id)
@@ -2295,12 +2296,12 @@ def list_approvals(
 
 
 @router.post("/projects/{project_id}/approvals", response_model=ApprovalOut, status_code=201)
-def create_approval(
-    project_id: str, body: ApprovalCreate, db: DB,
+async def create_approval(
+    project_id: str, body: ApprovalCreate, db: AsyncDB,
     user: Annotated[User, Depends(require_permission(Permission.APPROVAL_DECIDE))],
 ):
     """Yeni onay kaydi olusturur."""
-    _get_project(db, project_id, user)
+    await _get_project(db, project_id, user)
     # Resolve title: explicit > draft_payload.title > source_text[:100]
     title = (
         body.title
@@ -2317,19 +2318,19 @@ def create_approval(
         source_batch_id=body.source_batch_id,
         source_test_case_id=body.source_test_case_id,
     )
-    db.add(approval)
-    db.commit()
-    db.refresh(approval)
+    await db.add(approval)
+    await db.commit()
+    await db.refresh(approval)
     return approval
 
 
 @router.post("/projects/{project_id}/approvals/{approval_id}/decide")
-def decide_approval(
-    project_id: str, approval_id: str, body: DecideRequest, db: DB,
+async def decide_approval(
+    project_id: str, approval_id: str, body: DecideRequest, db: AsyncDB,
     user: Annotated[User, Depends(require_permission(Permission.APPROVAL_DECIDE))],
 ):
-    _get_project(db, project_id, user)
-    a = db.get(TspmApproval, approval_id)
+    await _get_project(db, project_id, user)
+    a = await db.get(TspmApproval, approval_id)
     if a is None or a.project_id != project_id:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Onay bulunamadı")
     a.status = body.decision
@@ -2354,8 +2355,8 @@ def decide_approval(
             steps=dp.get("steps", []),
             tags=[],
         )
-        db.add(sc)
-        db.flush()
+        await db.add(sc)
+        await db.flush()
         a.scenario_id = sc.id
         a.decision_trace = {
             **(a.decision_trace or {}),
@@ -2363,7 +2364,7 @@ def decide_approval(
             "scenario_title": sc.title,
         }
 
-    db.commit()
+    await db.commit()
     # Onay listesi ve global dashboard cache'ini temizle
     from app.infra.cache import cache_delete, cache_delete_pattern, make_key
     cache_delete(make_key("approvals", "list", project_id))
@@ -2377,12 +2378,12 @@ def decide_approval(
 # ═══════════════════════════════════════════════════════════════════════
 
 @router.post("/projects/{project_id}/imports", response_model=ImportOut, status_code=201)
-def create_import(
-    project_id: str, body: ImportCreate, db: DB,
+async def create_import(
+    project_id: str, body: ImportCreate, db: AsyncDB,
     user: Annotated[User, Depends(require_permission(Permission.IMPORT_CREATE))],
 ):
     """Icerik aktarim kaydi olusturur."""
-    _get_project(db, project_id, user)
+    await _get_project(db, project_id, user)
     return import_svc.create_import_for_project(db, project_id, body)
 
 
@@ -2391,12 +2392,12 @@ def create_import(
 # ═══════════════════════════════════════════════════════════════════════
 
 @router.post("/projects/{project_id}/schedules", response_model=ScheduleOut, status_code=201)
-def create_schedule(
-    project_id: str, body: ScheduleCreate, db: DB,
+async def create_schedule(
+    project_id: str, body: ScheduleCreate, db: AsyncDB,
     user: Annotated[User, Depends(require_permission(Permission.SCHEDULE_MANAGE))],
 ):
     """Yeni zamanlama kaydi olusturur."""
-    _get_project(db, project_id, user)
+    await _get_project(db, project_id, user)
     result = schedule_svc.create_schedule_for_project(db, project_id, body, actor_user_id=user.id)
     from app.infra.cache import cache_delete, make_key
     cache_delete(make_key("schedules", "list", project_id))
@@ -2404,15 +2405,15 @@ def create_schedule(
 
 
 @router.get("/projects/{project_id}/schedules", response_model=list[ScheduleOut])
-def list_schedules(
-    project_id: str, db: DB, user: Annotated[User, Depends(get_current_user)],
+async def list_schedules(
+    project_id: str, db: AsyncDB, user: Annotated[User, Depends(get_current_user)],
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=200),
 ):
     """Zamanlamalari listeler. Default pagination için 30s cache."""
     from app.infra.cache import cache_get, cache_set, make_key
 
-    _get_project(db, project_id, user)
+    await _get_project(db, project_id, user)
     if skip == 0 and limit == 100:
         _cache_key = make_key("schedules", "list", project_id)
         cached = cache_get(_cache_key)
@@ -2425,12 +2426,12 @@ def list_schedules(
 
 
 @router.put("/projects/{project_id}/schedules/{schedule_id}", response_model=ScheduleOut)
-def update_schedule(
-    project_id: str, schedule_id: str, body: ScheduleUpdate, db: DB,
+async def update_schedule(
+    project_id: str, schedule_id: str, body: ScheduleUpdate, db: AsyncDB,
     user: Annotated[User, Depends(require_permission(Permission.SCHEDULE_MANAGE))],
 ):
     """Zamanlama bilgilerini gunceller."""
-    _get_project(db, project_id, user)
+    await _get_project(db, project_id, user)
     result = schedule_svc.update_schedule_for_project(db, project_id, schedule_id, body)
     from app.infra.cache import cache_delete, make_key
     cache_delete(make_key("schedules", "list", project_id))
@@ -2438,12 +2439,12 @@ def update_schedule(
 
 
 @router.delete("/projects/{project_id}/schedules/{schedule_id}", status_code=204)
-def delete_schedule(
-    project_id: str, schedule_id: str, db: DB,
+async def delete_schedule(
+    project_id: str, schedule_id: str, db: AsyncDB,
     user: Annotated[User, Depends(require_permission(Permission.SCHEDULE_MANAGE))],
 ):
     """Zamanlama kaydini siler."""
-    _get_project(db, project_id, user)
+    await _get_project(db, project_id, user)
     schedule_svc.delete_schedule_for_project(db, project_id, schedule_id)
     from app.infra.cache import cache_delete, make_key
     cache_delete(make_key("schedules", "list", project_id))
@@ -2454,12 +2455,12 @@ def delete_schedule(
     response_model=ExecutionOut,
     status_code=201,
 )
-def trigger_schedule(
-    project_id: str, schedule_id: str, db: DB,
+async def trigger_schedule(
+    project_id: str, schedule_id: str, db: AsyncDB,
     user: Annotated[User, Depends(require_permission(Permission.SCHEDULE_MANAGE))],
 ):
     """Zamanlamayi manuel olarak tetikler."""
-    _get_project(db, project_id, user)
+    await _get_project(db, project_id, user)
     return schedule_svc.trigger_schedule_for_project(db, project_id, schedule_id)
 
 
@@ -2468,27 +2469,27 @@ def trigger_schedule(
 # ═══════════════════════════════════════════════════════════════════════
 
 @router.post("/projects/{project_id}/test-data", response_model=TestDataSetOut, status_code=201)
-def create_test_data(
-    project_id: str, body: TestDataSetCreate, db: DB,
+async def create_test_data(
+    project_id: str, body: TestDataSetCreate, db: AsyncDB,
     user: Annotated[User, Depends(require_permission(Permission.TEST_DATA_MANAGE))],
 ):
     """Yeni test verisi seti olusturur."""
     from app.infra.cache import cache_delete, make_key
-    _get_project(db, project_id, user)
+    await _get_project(db, project_id, user)
     result = test_data_svc.create_test_data_for_project(db, project_id, body)
     cache_delete(make_key("test-data", "list", project_id))
     return result
 
 
 @router.get("/projects/{project_id}/test-data", response_model=list[TestDataSetOut])
-def list_test_data(
-    project_id: str, db: DB, user: Annotated[User, Depends(get_current_user)],
+async def list_test_data(
+    project_id: str, db: AsyncDB, user: Annotated[User, Depends(get_current_user)],
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=500),
 ):
     """Test verisi setlerini listeler. 60s cache (default pagination)."""
     from app.infra.cache import cache_get, cache_set, make_key
-    _get_project(db, project_id, user)
+    await _get_project(db, project_id, user)
     if skip == 0 and limit == 100:
         _cache_key = make_key("test-data", "list", project_id)
         cached = cache_get(_cache_key)
@@ -2504,12 +2505,12 @@ def list_test_data(
 
 
 @router.put("/projects/{project_id}/test-data/{data_id}", response_model=TestDataSetOut)
-def update_test_data(
-    project_id: str, data_id: str, body: TestDataSetUpdate, db: DB,
+async def update_test_data(
+    project_id: str, data_id: str, body: TestDataSetUpdate, db: AsyncDB,
     user: Annotated[User, Depends(require_permission(Permission.TEST_DATA_MANAGE))],
 ):
     """Test verisi setini gunceller."""
-    _get_project(db, project_id, user)
+    await _get_project(db, project_id, user)
     from app.infra.cache import cache_delete, make_key
     result = test_data_svc.update_test_data_for_project(db, project_id, data_id, body)
     cache_delete(make_key("test-data", "list", project_id))
@@ -2517,22 +2518,22 @@ def update_test_data(
 
 
 @router.delete("/projects/{project_id}/test-data/{data_id}", status_code=204)
-def delete_test_data(
-    project_id: str, data_id: str, db: DB,
+async def delete_test_data(
+    project_id: str, data_id: str, db: AsyncDB,
     user: Annotated[User, Depends(require_permission(Permission.TEST_DATA_MANAGE))],
 ):
     """Test verisi setini siler."""
-    _get_project(db, project_id, user)
+    await _get_project(db, project_id, user)
     from app.infra.cache import cache_delete, make_key
     test_data_svc.delete_test_data_for_project(db, project_id, data_id)
     cache_delete(make_key("test-data", "list", project_id))
 
 
 @router.get("/projects/{project_id}/test-data/{data_id}/export")
-def export_test_data(project_id: str, data_id: str, user: Annotated[User, Depends(get_current_user)],
-    format: str = "csv", db: DB = ..., ):
+async def export_test_data(project_id: str, data_id: str, user: Annotated[User, Depends(get_current_user)],
+    format: str = "csv", db: AsyncDB = ..., ):
     """Veri setini CSV veya JSON olarak dışa aktarır."""
-    _get_project(db, project_id, user)
+    await _get_project(db, project_id, user)
     return test_data_svc.export_test_data_for_project(
         db,
         project_id,
@@ -2542,9 +2543,9 @@ def export_test_data(project_id: str, data_id: str, user: Annotated[User, Depend
 
 
 @router.post("/projects/{project_id}/test-data/{data_id}/mask")
-def mask_test_data(project_id: str, data_id: str, body: dict, db: DB, user: Annotated[User, Depends(get_current_user)]):
+async def mask_test_data(project_id: str, data_id: str, body: dict, db: AsyncDB, user: Annotated[User, Depends(get_current_user)]):
     """Belirtilen sütunlardaki PII verilerini maskeler."""
-    _get_project(db, project_id, user)
+    await _get_project(db, project_id, user)
     return test_data_svc.mask_test_data_for_project(
         db,
         project_id,
@@ -2554,14 +2555,14 @@ def mask_test_data(project_id: str, data_id: str, body: dict, db: DB, user: Anno
 
 
 @router.post("/projects/{project_id}/test-data/generate")
-def generate_test_data(project_id: str, body: dict, db: DB, user: Annotated[User, Depends(get_current_user)]):
+async def generate_test_data(project_id: str, body: dict, db: AsyncDB, user: Annotated[User, Depends(get_current_user)]):
     """Faker ile sentetik veri üretir."""
-    _get_project(db, project_id, user)
+    await _get_project(db, project_id, user)
     return test_data_svc.generate_test_data_preview(body)
 
 
 @router.post("/projects/{project_id}/test-data/simulate-schema")
-def simulate_schema(project_id: str, body: dict, db: DB, user: Annotated[User, Depends(get_current_user)]):
+async def simulate_schema(project_id: str, body: dict, db: AsyncDB, user: Annotated[User, Depends(get_current_user)]):
     """
     Çok tablolu, kurallı şema simülasyonu.
 
@@ -2594,32 +2595,32 @@ def simulate_schema(project_id: str, body: dict, db: DB, user: Annotated[User, D
       ]
     }
     """
-    _get_project(db, project_id, user)
+    await _get_project(db, project_id, user)
     return test_data_sim_svc.simulate_schema_for_project(body)
 
 
 # ── DB-Aware Smart Simulation endpoints ──────────────────────────────────────
 
 @router.post("/test-data/parse-schema")
-def parse_schema_from_ddl(body: dict, user: Annotated[User, Depends(get_current_user)]):
+async def parse_schema_from_ddl(body: dict, user: Annotated[User, Depends(get_current_user)]):
     """DDL SQL metnini WizardTable[] şemasına dönüştür (LLM destekli)."""
     return test_data_sim_svc.parse_schema_from_ddl(body)
 
 
 @router.post("/test-data/parse-csv-schema")
-def parse_schema_from_csv(body: dict, user: Annotated[User, Depends(get_current_user)]):
+async def parse_schema_from_csv(body: dict, user: Annotated[User, Depends(get_current_user)]):
     """CSV başlıkları ve örnek satırlardan WizardTable[] şeması çıkar."""
     return test_data_sim_svc.parse_schema_from_csv(body)
 
 
 @router.post("/test-data/parse-natural-language")
-def parse_schema_from_natural_language(body: dict, user: Annotated[User, Depends(get_current_user)]):
+async def parse_schema_from_natural_language(body: dict, user: Annotated[User, Depends(get_current_user)]):
     """Doğal dil açıklamasından WizardTable[] şeması üret (LLM gerekli)."""
     return test_data_sim_svc.parse_schema_from_natural_language(body)
 
 
 @router.post("/test-data/parse-db-connection")
-def parse_schema_from_db(body: dict, user: Annotated[User, Depends(get_current_user)]):
+async def parse_schema_from_db(body: dict, user: Annotated[User, Depends(get_current_user)]):
     """
     Canlı veritabanına bağlan ve şemayı WizardTable[]'a dönüştür.
     Body: { connection_string, schema_name?, exclude_tables? }
@@ -2628,7 +2629,7 @@ def parse_schema_from_db(body: dict, user: Annotated[User, Depends(get_current_u
 
 
 @router.post("/test-data/simulate")
-def standalone_simulate(body: dict, user: Annotated[User, Depends(get_current_user)]):
+async def standalone_simulate(body: dict, user: Annotated[User, Depends(get_current_user)]):
     """
     Proje gerektirmeyen standalone şema simülasyonu.
     Body: { locale?, tables: [...WizardTable], quality_check? }
@@ -2638,7 +2639,7 @@ def standalone_simulate(body: dict, user: Annotated[User, Depends(get_current_us
 
 
 @router.post("/test-data/write-to-db")
-def write_simulated_to_db(body: dict, user: Annotated[User, Depends(get_current_user)]):
+async def write_simulated_to_db(body: dict, user: Annotated[User, Depends(get_current_user)]):
     """
     Simüle edilmiş veriyi hedef veritabanına yazar.
     Body: { connection_string, tables: {tbl: {columns, rows}} }
@@ -2648,15 +2649,15 @@ def write_simulated_to_db(body: dict, user: Annotated[User, Depends(get_current_
 
 
 @router.post("/test-data/ai-enrich-schema")
-def ai_enrich_schema(body: dict, user: Annotated[User, Depends(get_current_user)]):
+async def ai_enrich_schema(body: dict, user: Annotated[User, Depends(get_current_user)]):
     """WizardTable[] şemasını AI ile zenginleştir: iş kuralları, PII tespiti, kalite ipuçları."""
     return test_data_sim_svc.ai_enrich_schema(body)
 
 
 @router.post("/projects/{project_id}/test-data/full-simulate")
-def full_simulate(project_id: str, body: dict, db: DB, user: Annotated[User, Depends(get_current_user)]):
+async def full_simulate(project_id: str, body: dict, db: AsyncDB, user: Annotated[User, Depends(get_current_user)]):
     """Simüle et + FK bütünlüğü doğrula + kalite skoru döndür."""
-    _get_project(db, project_id, user)
+    await _get_project(db, project_id, user)
     return test_data_sim_svc.full_simulate(body)
 
 
@@ -2665,8 +2666,8 @@ def full_simulate(project_id: str, body: dict, db: DB, user: Annotated[User, Dep
     response_model=DataBindingOut,
     status_code=201,
 )
-def bind_data_to_scenario(
-    project_id: str, scenario_id: str, body: DataBindingCreate, db: DB,
+async def bind_data_to_scenario(
+    project_id: str, scenario_id: str, body: DataBindingCreate, db: AsyncDB,
     user: Annotated[User, Depends(require_permission(Permission.TEST_DATA_MANAGE))],
 ):
     """Veri setini senaryoya baglar."""
@@ -2682,7 +2683,7 @@ def bind_data_to_scenario(
     "/projects/{project_id}/scenarios/{scenario_id}/expanded",
     response_model=ExpandedScenarioOut,
 )
-def get_expanded_scenario(project_id: str, scenario_id: str, db: DB, user: Annotated[User, Depends(get_current_user)]):
+async def get_expanded_scenario(project_id: str, scenario_id: str, db: AsyncDB, user: Annotated[User, Depends(get_current_user)]):
     """Veri bagli senaryonun genisletilmis halini getirir."""
     return binding_svc.get_expanded_scenario_for_project(db, project_id, scenario_id)
 
@@ -2692,27 +2693,27 @@ def get_expanded_scenario(project_id: str, scenario_id: str, db: DB, user: Annot
 # ═══════════════════════════════════════════════════════════════════════
 
 @router.post("/projects/{project_id}/integrations", response_model=IntegrationOut, status_code=201)
-def create_integration(
-    project_id: str, body: IntegrationCreate, db: DB,
+async def create_integration(
+    project_id: str, body: IntegrationCreate, db: AsyncDB,
     user: Annotated[User, Depends(require_permission(Permission.INTEGRATION_MANAGE))],
 ):
     """Yeni entegrasyon tanimi olusturur."""
     from app.infra.cache import cache_delete, make_key
-    _get_project(db, project_id, user)
+    await _get_project(db, project_id, user)
     result = integration_svc.create_integration_for_project(db, project_id, body)
     cache_delete(make_key("integrations", "list", project_id))
     return result
 
 
 @router.get("/projects/{project_id}/integrations", response_model=list[IntegrationOut])
-def list_integrations(
-    project_id: str, db: DB, user: Annotated[User, Depends(get_current_user)],
+async def list_integrations(
+    project_id: str, db: AsyncDB, user: Annotated[User, Depends(get_current_user)],
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=200),
 ):
     """Entegrasyonlari listeler. 60s cache (default pagination)."""
     from app.infra.cache import cache_get, cache_set, make_key
-    _get_project(db, project_id, user)
+    await _get_project(db, project_id, user)
     if skip == 0 and limit == 100:
         _cache_key = make_key("integrations", "list", project_id)
         cached = cache_get(_cache_key)
@@ -2728,12 +2729,12 @@ def list_integrations(
 
 
 @router.put("/projects/{project_id}/integrations/{integration_id}", response_model=IntegrationOut)
-def update_integration(
-    project_id: str, integration_id: str, body: IntegrationUpdate, db: DB,
+async def update_integration(
+    project_id: str, integration_id: str, body: IntegrationUpdate, db: AsyncDB,
     user: Annotated[User, Depends(require_permission(Permission.INTEGRATION_MANAGE))],
 ):
     """Entegrasyon bilgilerini gunceller."""
-    _get_project(db, project_id, user)
+    await _get_project(db, project_id, user)
     from app.infra.cache import cache_delete, make_key
     result = integration_svc.update_integration_for_project(db, project_id, integration_id, body)
     cache_delete(make_key("integrations", "list", project_id))
@@ -2741,20 +2742,20 @@ def update_integration(
 
 
 @router.delete("/projects/{project_id}/integrations/{integration_id}", status_code=204)
-def delete_integration(
-    project_id: str, integration_id: str, db: DB,
+async def delete_integration(
+    project_id: str, integration_id: str, db: AsyncDB,
     user: Annotated[User, Depends(require_permission(Permission.INTEGRATION_MANAGE))],
 ):
     """Entegrasyonu siler."""
-    _get_project(db, project_id, user)
+    await _get_project(db, project_id, user)
     from app.infra.cache import cache_delete, make_key
     integration_svc.delete_integration_for_project(db, project_id, integration_id)
     cache_delete(make_key("integrations", "list", project_id))
 
 
 @router.post("/projects/{project_id}/integrations/{integration_id}/sync", response_model=SyncResultOut)
-def sync_integration(
-    project_id: str, integration_id: str, db: DB,
+async def sync_integration(
+    project_id: str, integration_id: str, db: AsyncDB,
     user: Annotated[User, Depends(require_permission(Permission.INTEGRATION_MANAGE))],
 ):
     """Entegrasyon kaynak sistemi ile eşzamanlamayı tetikler.
@@ -2766,8 +2767,8 @@ def sync_integration(
     halde UI "sync başarılı" gösterir ama hiçbir şey eşzamanlanmamıştır
     (sessiz kullanıcı aldatması).
     """
-    _get_project(db, project_id, user)  # membership guard
-    intg = db.get(TspmIntegration, integration_id)
+    await _get_project(db, project_id, user)  # membership guard
+    intg = await db.get(TspmIntegration, integration_id)
     if intg is None or intg.project_id != project_id:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Entegrasyon bulunamadı")
     # NOT: `last_sync_at` gerçek bir eşzamanlama olmadığı için bilerek
@@ -2785,10 +2786,10 @@ def sync_integration(
 
 
 @router.post("/projects/{project_id}/integrations/{integration_id}/test-notification")
-def test_notification(project_id: str, integration_id: str, db: DB, user: Annotated[User, Depends(get_current_user)]):
+async def test_notification(project_id: str, integration_id: str, db: AsyncDB, user: Annotated[User, Depends(get_current_user)]):
     """Slack veya Teams webhook'una test bildirimi gönderir."""
-    _get_project(db, project_id, user)  # membership guard
-    intg = db.get(TspmIntegration, integration_id)
+    await _get_project(db, project_id, user)  # membership guard
+    intg = await db.get(TspmIntegration, integration_id)
     if intg is None or intg.project_id != project_id:
         raise HTTPException(404, "Entegrasyon bulunamadı")
 
@@ -2804,7 +2805,7 @@ def test_notification(project_id: str, integration_id: str, db: DB, user: Annota
     except UnsafeTargetError as exc:
         raise HTTPException(400, f"Guvensiz webhook hedefi: {exc}")
 
-    project = db.get(TspmProject, project_id)
+    project = await db.get(TspmProject, project_id)
     project_name = project.name if project else project_id
 
     if intg.provider == "slack":
@@ -2843,14 +2844,14 @@ def test_notification(project_id: str, integration_id: str, db: DB, user: Annota
     response_model=PostmanImportResponse,
     status_code=201,
 )
-def import_postman_collection(
+async def import_postman_collection(
     project_id: str,
     body: PostmanImportRequest,
-    db: DB,
+    db: AsyncDB,
     user: Annotated[User, Depends(require_permission(Permission.API_TEST_MANAGE))],
 ):
     """Postman koleksiyonunu ice aktarir."""
-    _get_project(db, project_id, user)
+    await _get_project(db, project_id, user)
     collection_doc = body.collection or {}
     info = collection_doc.get("info") or {}
     collection_name = (body.name or info.get("name") or "Imported Postman Collection").strip()
@@ -2873,8 +2874,8 @@ def import_postman_collection(
         base_url=base_url,
         headers=collection_headers,
     )
-    db.add(col)
-    db.flush()
+    await db.add(col)
+    await db.flush()
 
     imported = 0
     skipped = 0
@@ -2899,11 +2900,11 @@ def import_postman_collection(
             assertions=_parse_postman_assertions(item.get("event")),
             order=order,
         )
-        db.add(api_request)
+        await db.add(api_request)
         imported += 1
 
-    db.commit()
-    db.refresh(col)
+    await db.commit()
+    await db.refresh(col)
     return PostmanImportResponse(
         collection=ApiCollectionOut(
             id=col.id,
@@ -2923,13 +2924,13 @@ def import_postman_collection(
     response_model=ApiCollectionOut,
     status_code=201,
 )
-def create_api_collection(
-    project_id: str, body: ApiCollectionCreate, db: DB,
+async def create_api_collection(
+    project_id: str, body: ApiCollectionCreate, db: AsyncDB,
     user: Annotated[User, Depends(require_permission(Permission.API_TEST_MANAGE))],
 ):
     """Yeni API test koleksiyonu olusturur."""
     from app.infra.cache import cache_delete, make_key
-    _get_project(db, project_id, user)
+    await _get_project(db, project_id, user)
     col = TspmApiCollection(
         project_id=project_id,
         name=body.name,
@@ -2937,9 +2938,9 @@ def create_api_collection(
         base_url=body.base_url,
         headers=body.headers,
     )
-    db.add(col)
-    db.commit()
-    db.refresh(col)
+    await db.add(col)
+    await db.commit()
+    await db.refresh(col)
     cache_delete(make_key("api-collections", "list", project_id))
     return ApiCollectionOut(
         id=col.id, name=col.name, description=col.description,
@@ -2948,20 +2949,20 @@ def create_api_collection(
 
 
 @router.get("/projects/{project_id}/api-tests/collections", response_model=list[ApiCollectionOut])
-def list_api_collections(
-    project_id: str, db: DB, user: Annotated[User, Depends(get_current_user)],
+async def list_api_collections(
+    project_id: str, db: AsyncDB, user: Annotated[User, Depends(get_current_user)],
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=500),
 ):
     """API test koleksiyonlarini listeler. 60s cache."""
     from app.infra.cache import cache_get, cache_set, make_key
-    _get_project(db, project_id, user)
+    await _get_project(db, project_id, user)
     if skip == 0 and limit == 100:
         _cache_key = make_key("api-collections", "list", project_id)
         cached = cache_get(_cache_key)
         if cached is not None:
             return [ApiCollectionOut(**item) if isinstance(item, dict) else item for item in cached]
-    cols = list(db.scalars(
+    cols = list(await db.scalars(
         select(TspmApiCollection)
         .where(TspmApiCollection.project_id == project_id)
         .order_by(TspmApiCollection.created_at.desc())
@@ -2971,7 +2972,7 @@ def list_api_collections(
         return []
     # N+1 önleme: tek GROUP BY
     col_ids = [c.id for c in cols]
-    rc_rows = db.execute(
+    rc_rows = await db.execute(
         select(TspmApiRequest.collection_id, func.count().label("cnt"))
         .where(TspmApiRequest.collection_id.in_(col_ids))
         .group_by(TspmApiRequest.collection_id)
@@ -2996,27 +2997,27 @@ def list_api_collections(
     "/projects/{project_id}/api-tests/collections/{collection_id}",
     response_model=ApiCollectionDetailOut,
 )
-def get_api_collection(project_id: str, collection_id: str, db: DB, user: Annotated[User, Depends(get_current_user)]):
+async def get_api_collection(project_id: str, collection_id: str, db: AsyncDB, user: Annotated[User, Depends(get_current_user)]):
     """API test koleksiyonu detayini getirir."""
-    col = db.get(TspmApiCollection, collection_id)
+    col = await db.get(TspmApiCollection, collection_id)
     if col is None or col.project_id != project_id:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Koleksiyon bulunamadı")
     return col
 
 
 @router.delete("/projects/{project_id}/api-tests/collections/{collection_id}", status_code=204)
-def delete_api_collection(
-    project_id: str, collection_id: str, db: DB,
+async def delete_api_collection(
+    project_id: str, collection_id: str, db: AsyncDB,
     user: Annotated[User, Depends(require_permission(Permission.API_TEST_MANAGE))],
 ):
     """API test koleksiyonunu siler."""
-    _get_project(db, project_id, user)  # membership guard
+    await _get_project(db, project_id, user)  # membership guard
     from app.infra.cache import cache_delete, make_key
-    col = db.get(TspmApiCollection, collection_id)
+    col = await db.get(TspmApiCollection, collection_id)
     if col is None or col.project_id != project_id:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Koleksiyon bulunamadı")
-    db.delete(col)
-    db.commit()
+    await db.delete(col)
+    await db.commit()
     cache_delete(make_key("api-collections", "list", project_id))
 
 
@@ -3025,12 +3026,12 @@ def delete_api_collection(
     response_model=ApiRequestOut,
     status_code=201,
 )
-def create_api_request(
-    project_id: str, collection_id: str, body: ApiRequestCreate, db: DB,
+async def create_api_request(
+    project_id: str, collection_id: str, body: ApiRequestCreate, db: AsyncDB,
     user: Annotated[User, Depends(require_permission(Permission.API_TEST_MANAGE))],
 ):
     """Koleksiyona yeni API istegi ekler."""
-    col = db.get(TspmApiCollection, collection_id)
+    col = await db.get(TspmApiCollection, collection_id)
     if col is None or col.project_id != project_id:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Koleksiyon bulunamadı")
     req = TspmApiRequest(
@@ -3043,9 +3044,9 @@ def create_api_request(
         assertions=body.assertions,
         order=body.order,
     )
-    db.add(req)
-    db.commit()
-    db.refresh(req)
+    await db.add(req)
+    await db.commit()
+    await db.refresh(req)
     return req
 
 
@@ -3053,12 +3054,12 @@ def create_api_request(
     "/projects/{project_id}/api-tests/collections/{collection_id}/requests",
     response_model=list[ApiRequestOut],
 )
-def list_api_requests(project_id: str, collection_id: str, db: DB, user: Annotated[User, Depends(get_current_user)]):
+async def list_api_requests(project_id: str, collection_id: str, db: AsyncDB, user: Annotated[User, Depends(get_current_user)]):
     """Koleksiyondaki API isteklerini listeler."""
-    col = db.get(TspmApiCollection, collection_id)
+    col = await db.get(TspmApiCollection, collection_id)
     if col is None or col.project_id != project_id:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Koleksiyon bulunamadı")
-    return list(db.scalars(
+    return list(await db.scalars(
         select(TspmApiRequest)
         .where(TspmApiRequest.collection_id == collection_id)
         .order_by(TspmApiRequest.order)
@@ -3069,16 +3070,16 @@ def list_api_requests(project_id: str, collection_id: str, db: DB, user: Annotat
     "/projects/{project_id}/api-tests/collections/{collection_id}/requests/{request_id}",
     response_model=ApiRequestOut,
 )
-def update_api_request(
+async def update_api_request(
     project_id: str, collection_id: str, request_id: str,
-    body: ApiRequestUpdate, db: DB,
+    body: ApiRequestUpdate, db: AsyncDB,
     user: Annotated[User, Depends(require_permission(Permission.API_TEST_MANAGE))],
 ):
     """API istegi bilgilerini gunceller."""
-    col = db.get(TspmApiCollection, collection_id)
+    col = await db.get(TspmApiCollection, collection_id)
     if col is None or col.project_id != project_id:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Koleksiyon bulunamadı")
-    req = db.get(TspmApiRequest, request_id)
+    req = await db.get(TspmApiRequest, request_id)
     if req is None or req.collection_id != collection_id:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "İstek bulunamadı")
     if body.name is not None:
@@ -3095,8 +3096,8 @@ def update_api_request(
         req.assertions = body.assertions
     if body.order is not None:
         req.order = body.order
-    db.commit()
-    db.refresh(req)
+    await db.commit()
+    await db.refresh(req)
     return req
 
 
@@ -3104,35 +3105,35 @@ def update_api_request(
     "/projects/{project_id}/api-tests/collections/{collection_id}/requests/{request_id}",
     status_code=204,
 )
-def delete_api_request(
-    project_id: str, collection_id: str, request_id: str, db: DB,
+async def delete_api_request(
+    project_id: str, collection_id: str, request_id: str, db: AsyncDB,
     user: Annotated[User, Depends(require_permission(Permission.API_TEST_MANAGE))],
 ):
     """API istegini siler."""
-    col = db.get(TspmApiCollection, collection_id)
+    col = await db.get(TspmApiCollection, collection_id)
     if col is None or col.project_id != project_id:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Koleksiyon bulunamadı")
-    req = db.get(TspmApiRequest, request_id)
+    req = await db.get(TspmApiRequest, request_id)
     if req is None or req.collection_id != collection_id:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "İstek bulunamadı")
-    db.delete(req)
-    db.commit()
+    await db.delete(req)
+    await db.commit()
 
 
 @router.post(
     "/projects/{project_id}/api-tests/collections/{collection_id}/run",
     response_model=ApiTestRunOut,
 )
-def run_api_collection(
-    project_id: str, collection_id: str, db: DB,
+async def run_api_collection(
+    project_id: str, collection_id: str, db: AsyncDB,
     user: Annotated[User, Depends(require_permission(Permission.API_TEST_MANAGE))],
 ):
     """API test koleksiyonunu calistirir."""
-    _get_project(db, project_id, user)
-    col = db.get(TspmApiCollection, collection_id)
+    await _get_project(db, project_id, user)
+    col = await db.get(TspmApiCollection, collection_id)
     if col is None or col.project_id != project_id:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Koleksiyon bulunamadı")
-    requests = list(db.scalars(
+    requests = list(await db.scalars(
         select(TspmApiRequest)
         .where(TspmApiRequest.collection_id == collection_id)
         .order_by(TspmApiRequest.order)
@@ -3151,9 +3152,9 @@ def run_api_collection(
                 "error": f"Disallowed target host: {base_url}",
             })
         run = TspmApiTestRun(collection_id=collection_id, status="completed", results=results)
-        db.add(run)
-        db.commit()
-        db.refresh(run)
+        await db.add(run)
+        await db.commit()
+        await db.refresh(run)
         from app.infra.cache import cache_delete, make_key
         cache_delete(make_key("api-runs", "list", project_id))
         return run
@@ -3184,9 +3185,9 @@ def run_api_collection(
                     "error": str(exc),
                 })
     run = TspmApiTestRun(collection_id=collection_id, status="completed", results=results)
-    db.add(run)
-    db.commit()
-    db.refresh(run)
+    await db.add(run)
+    await db.commit()
+    await db.refresh(run)
     # Runs listesi cache'ini temizle
     from app.infra.cache import cache_delete, make_key
     cache_delete(make_key("api-runs", "list", project_id))
@@ -3194,20 +3195,20 @@ def run_api_collection(
 
 
 @router.get("/projects/{project_id}/api-tests/runs", response_model=list[ApiTestRunOut])
-def list_api_runs(
-    project_id: str, db: DB, user: Annotated[User, Depends(get_current_user)],
+async def list_api_runs(
+    project_id: str, db: AsyncDB, user: Annotated[User, Depends(get_current_user)],
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=200),
 ):
     """API test kosularini listeler. 30s cache (default pagination)."""
     from app.infra.cache import cache_get, cache_set, make_key
-    _get_project(db, project_id, user)
+    await _get_project(db, project_id, user)
     if skip == 0 and limit == 50:
         _cache_key = make_key("api-runs", "list", project_id)
         cached = cache_get(_cache_key)
         if cached is not None:
             return [ApiTestRunOut(**item) if isinstance(item, dict) else item for item in cached]
-        result = list(db.scalars(
+        result = list(await db.scalars(
             select(TspmApiTestRun)
             .join(TspmApiCollection, TspmApiTestRun.collection_id == TspmApiCollection.id)
             .where(TspmApiCollection.project_id == project_id)
@@ -3219,7 +3220,7 @@ def list_api_runs(
         except Exception:
             pass
         return result
-    return list(db.scalars(
+    return list(await db.scalars(
         select(TspmApiTestRun)
         .join(TspmApiCollection, TspmApiTestRun.collection_id == TspmApiCollection.id)
         .where(TspmApiCollection.project_id == project_id)
@@ -3229,13 +3230,13 @@ def list_api_runs(
 
 
 @router.get("/projects/{project_id}/api-tests/runs/{api_run_id}", response_model=ApiTestRunOut)
-def get_api_run(project_id: str, api_run_id: str, db: DB, user: Annotated[User, Depends(get_current_user)]):
+async def get_api_run(project_id: str, api_run_id: str, db: AsyncDB, user: Annotated[User, Depends(get_current_user)]):
     """API test kosusu detayini getirir."""
-    _get_project(db, project_id, user)  # membership guard
-    run = db.get(TspmApiTestRun, api_run_id)
+    await _get_project(db, project_id, user)  # membership guard
+    run = await db.get(TspmApiTestRun, api_run_id)
     if run is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Test koşusu bulunamadı")
-    col = db.get(TspmApiCollection, run.collection_id)
+    col = await db.get(TspmApiCollection, run.collection_id)
     if col is None or col.project_id != project_id:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Test koşusu bulunamadı")
     return run
@@ -3246,15 +3247,15 @@ def get_api_run(project_id: str, api_run_id: str, db: DB, user: Annotated[User, 
 # ═══════════════════════════════════════════════════════════════════════
 
 @router.post("/projects/{project_id}/members", response_model=ProjectMemberOut, status_code=201)
-def add_project_member(
-    project_id: str, body: ProjectMemberCreate, db: DB,
+async def add_project_member(
+    project_id: str, body: ProjectMemberCreate, db: AsyncDB,
     user: Annotated[User, Depends(require_permission(Permission.PROJECT_UPDATE))],
 ):
     """Projeye yeni uye ekler."""
-    _get_project(db, project_id, user)
+    await _get_project(db, project_id, user)
     # user_id'nin gerçekte var olduğunu önceden doğrula — FK ihlalini
     # HTTP 500 yerine 404 olarak raporla.
-    target_user = db.get(User, body.user_id)
+    target_user = await db.get(User, body.user_id)
     if target_user is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Kullanıcı bulunamadı")
     member = TspmProjectMember(
@@ -3262,21 +3263,21 @@ def add_project_member(
         user_id=body.user_id,
         role=body.role,
     )
-    db.add(member)
-    db.commit()
-    db.refresh(member)
+    await db.add(member)
+    await db.commit()
+    await db.refresh(member)
     return member
 
 
 @router.get("/projects/{project_id}/members", response_model=list[ProjectMemberOut])
-def list_project_members(
-    project_id: str, db: DB, user: Annotated[User, Depends(get_current_user)],
+async def list_project_members(
+    project_id: str, db: AsyncDB, user: Annotated[User, Depends(get_current_user)],
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=200),
 ):
     """Proje uyelerini listeler."""
-    _get_project(db, project_id, user)
-    return list(db.scalars(
+    await _get_project(db, project_id, user)
+    return list(await db.scalars(
         select(TspmProjectMember)
         .where(TspmProjectMember.project_id == project_id)
         .order_by(TspmProjectMember.created_at.desc())
@@ -3285,17 +3286,17 @@ def list_project_members(
 
 
 @router.delete("/projects/{project_id}/members/{member_id}", status_code=204)
-def remove_project_member(
-    project_id: str, member_id: str, db: DB,
+async def remove_project_member(
+    project_id: str, member_id: str, db: AsyncDB,
     user: Annotated[User, Depends(require_permission(Permission.PROJECT_UPDATE))],
 ):
     """Projeden uyeyi kaldirir."""
-    _get_project(db, project_id, user)
-    member = db.get(TspmProjectMember, member_id)
+    await _get_project(db, project_id, user)
+    member = await db.get(TspmProjectMember, member_id)
     if member is None or member.project_id != project_id:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Üye bulunamadı")
-    db.delete(member)
-    db.commit()
+    await db.delete(member)
+    await db.commit()
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -3308,7 +3309,7 @@ _IKEY = {"X-Internal-Key": _ENGINE_KEY}
 
 
 @router.post("/projects/{project_id}/wizard/analyze")
-def wizard_analyze(project_id: str, body: dict, db: DB, user: Annotated[User, Depends(get_current_user)]):
+async def wizard_analyze(project_id: str, body: dict, db: AsyncDB, user: Annotated[User, Depends(get_current_user)]):
     """
     Analiz dokümanından AI ile manuel test senaryoları + BDD üretir.
     Nexus QA: Önce AI Gateway (vLLM→Groq→Gemini→Ollama) denenir,
@@ -3317,7 +3318,7 @@ def wizard_analyze(project_id: str, body: dict, db: DB, user: Annotated[User, De
     import json as _json
     from concurrent.futures import ThreadPoolExecutor
 
-    _get_project(db, project_id, user)
+    await _get_project(db, project_id, user)
     text = body.get("text", "")
     extra = body.get("extra_instructions", "")
     if not text.strip():
@@ -3485,7 +3486,7 @@ async def wizard_upload_document(
     project_id: str,
     user: Annotated[User, Depends(get_current_user)],
     file: UploadFile = File(...),
-    db: DB = ...,
+    db: AsyncDB = ...,
 ):
     """
     Nexus QA Faz 2 — Doküman Yükleme + AI Analiz Pipeline
@@ -3505,7 +3506,7 @@ async def wizard_upload_document(
         "preview": "ilk 500 karakter..."
     }
     """
-    _get_project(db, project_id, user)
+    await _get_project(db, project_id, user)
 
     # Dosya boyutu kontrolü (max 20MB)
     MAX_SIZE = 20 * 1024 * 1024
@@ -3563,7 +3564,7 @@ async def wizard_upload_document(
 
 
 @router.post("/projects/{project_id}/wizard/analyze-multimodal")
-def wizard_analyze_multimodal(project_id: str, body: dict, db: DB, user: Annotated[User, Depends(get_current_user)]):
+async def wizard_analyze_multimodal(project_id: str, body: dict, db: AsyncDB, user: Annotated[User, Depends(get_current_user)]):
     """Görsel destekli analiz — text + mockup/screenshot kombine.
 
     Body şeması:
@@ -3579,7 +3580,7 @@ def wizard_analyze_multimodal(project_id: str, body: dict, db: DB, user: Annotat
     Vision-capable model (GPT-4o, Claude 3+, Gemini 1.5+) kullanır.
     Görsel yoksa otomatik olarak metin-only analyze'a düşer.
     """
-    _get_project(db, project_id, user)
+    await _get_project(db, project_id, user)
     text = body.get("text", "")
     extra = body.get("extra_instructions", "")
     images = body.get("images") or []
@@ -3659,7 +3660,7 @@ def wizard_analyze_multimodal(project_id: str, body: dict, db: DB, user: Annotat
 async def wizard_analyze_chunked(
     project_id: str,
     body: dict,
-    db: DB,
+    db: AsyncDB,
     user: Annotated[User, Depends(get_current_user)],
 ):
     """
@@ -3672,7 +3673,7 @@ async def wizard_analyze_chunked(
         "extra_instructions": "opsiyonel"
     }
     """
-    _get_project(db, project_id, user)
+    await _get_project(db, project_id, user)
     chunks: list[str] = body.get("chunks", [])
     filename = body.get("filename", "document")
     extra = body.get("extra_instructions", "")
@@ -3724,9 +3725,9 @@ async def wizard_analyze_chunked(
 
 
 @router.post("/projects/{project_id}/database/test-connection")
-def test_db_connection(project_id: str, body: dict, db: DB, user: Annotated[User, Depends(get_current_user)]):
+async def test_db_connection(project_id: str, body: dict, db: AsyncDB, user: Annotated[User, Depends(get_current_user)]):
     """Verilen DB bağlantı dizesini test eder; başarılı ise şema özetini döner."""
-    _get_project(db, project_id, user)
+    await _get_project(db, project_id, user)
     connection_string: str = body.get("connection_string", "").strip()
     if not connection_string:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "connection_string gereklidir")
@@ -3759,9 +3760,9 @@ def test_db_connection(project_id: str, body: dict, db: DB, user: Annotated[User
 
 
 @router.post("/projects/{project_id}/wizard/crawl")
-def wizard_crawl(project_id: str, body: dict, db: DB, user: Annotated[User, Depends(get_current_user)]):
+async def wizard_crawl(project_id: str, body: dict, db: AsyncDB, user: Annotated[User, Depends(get_current_user)]):
     """Engine crawler ile hedef uygulamayı keşfeder."""
-    _get_project(db, project_id, user)
+    await _get_project(db, project_id, user)
     try:
         resp = httpx.post(
             f"{ENGINE_BASE_URL}/api/wizard/crawl",
@@ -3778,9 +3779,9 @@ def wizard_crawl(project_id: str, body: dict, db: DB, user: Annotated[User, Depe
 
 
 @router.post("/projects/{project_id}/wizard/discover-selectors")
-def wizard_discover(project_id: str, body: dict, db: DB, user: Annotated[User, Depends(get_current_user)]):
+async def wizard_discover(project_id: str, body: dict, db: AsyncDB, user: Annotated[User, Depends(get_current_user)]):
     """Tek sayfadaki tüm elementlerin selector/XPath bilgilerini keşfeder."""
-    _get_project(db, project_id, user)
+    await _get_project(db, project_id, user)
     try:
         resp = httpx.post(
             f"{ENGINE_BASE_URL}/api/wizard/discover-selectors",
@@ -3797,9 +3798,9 @@ def wizard_discover(project_id: str, body: dict, db: DB, user: Annotated[User, D
 
 
 @router.post("/projects/{project_id}/wizard/monkey-test")
-def wizard_monkey_test(project_id: str, body: dict, db: DB, user: Annotated[User, Depends(get_current_user)]):
+async def wizard_monkey_test(project_id: str, body: dict, db: AsyncDB, user: Annotated[User, Depends(get_current_user)]):
     """Monkey testing — rastgele etkileşim ile hata avcılığı."""
-    _get_project(db, project_id, user)
+    await _get_project(db, project_id, user)
     try:
         resp = httpx.post(
             f"{ENGINE_BASE_URL}/api/wizard/monkey-test",
@@ -3816,13 +3817,13 @@ def wizard_monkey_test(project_id: str, body: dict, db: DB, user: Annotated[User
 
 
 @router.post("/projects/{project_id}/wizard/generate-automation")
-def wizard_generate_automation(project_id: str, body: dict, db: DB, user: Annotated[User, Depends(get_current_user)]):
+async def wizard_generate_automation(project_id: str, body: dict, db: AsyncDB, user: Annotated[User, Depends(get_current_user)]):
     """
     Senaryolardan + selectorlardan otomasyon kodu üretir.
     Frontend 'scenario_ids' (UUID list) gönderir; biz DB'den çekip
     engine'in beklediği {title, steps} formatına dönüştürürüz.
     """
-    project = _get_project(db, project_id, user)
+    project = await _get_project(db, project_id, user)
 
     # ── 1. scenario_ids → senaryo objeleri ──────────────────────────────
     scenario_ids: list[str] = body.get("scenario_ids", [])
@@ -3832,7 +3833,7 @@ def wizard_generate_automation(project_id: str, body: dict, db: DB, user: Annota
 
     if scenario_ids and not raw_scenarios:
         from app.domains.tspm.models import TspmScenario
-        rows = db.scalars(
+        rows = await db.scalars(
             select(TspmScenario).where(
                 TspmScenario.id.in_(scenario_ids),
                 TspmScenario.project_id == project_id,
@@ -4501,9 +4502,9 @@ def _extract_value_hint(step_text: str) -> str | None:
 
 
 @router.post("/projects/{project_id}/wizard/generate-maviyaka")
-def wizard_generate_neurex(project_id: str, body: dict, db: DB, user: Annotated[User, Depends(get_current_user)]):
+async def wizard_generate_neurex(project_id: str, body: dict, db: AsyncDB, user: Annotated[User, Depends(get_current_user)]):
     """Neurex formatında Cucumber feature dosyaları üretir."""
-    project = _get_project(db, project_id, user)
+    project = await _get_project(db, project_id, user)
 
     scenario_ids: list[str] = body.get("scenario_ids", [])
     url: str = body.get("url", "")
@@ -4513,7 +4514,7 @@ def wizard_generate_neurex(project_id: str, body: dict, db: DB, user: Annotated[
     # Senaryoları DB'den çek
     scenarios: list[dict] = []
     if scenario_ids:
-        rows = db.scalars(
+        rows = await db.scalars(
             select(TspmScenario).where(
                 TspmScenario.id.in_(scenario_ids),
                 TspmScenario.project_id == project_id,
@@ -4642,7 +4643,7 @@ def _rule_based_feature(title: str, steps: list[dict], url: str, locators: list[
 # ═══════════════════════════════════════════════════════════════════════
 
 @router.post("/projects/{project_id}/wizard/match-manual-scenarios")
-def wizard_match_manual_scenarios(project_id: str, body: dict, db: DB, user: Annotated[User, Depends(get_current_user)]):
+async def wizard_match_manual_scenarios(project_id: str, body: dict, db: AsyncDB, user: Annotated[User, Depends(get_current_user)]):
     """Mevcut manuel senaryoların her adımını, verilen locator kataloğundaki
     en uygun key + XPath ile LLM üzerinden eşler. Sonuç: feature dosyaları +
     ayrıntılı mapping raporu (hangi step hangi locator'a + XPath'e bağlandı).
@@ -4654,7 +4655,7 @@ def wizard_match_manual_scenarios(project_id: str, body: dict, db: DB, user: Ann
         environment: str
         locators: [{key, type, value, alternatives: [{type, value}], tag?, text?}]
     """
-    _get_project(db, project_id, user)
+    await _get_project(db, project_id, user)
 
     scenario_ids: list[str] = body.get("scenario_ids", [])
     url: str = body.get("url", "")
@@ -4667,7 +4668,7 @@ def wizard_match_manual_scenarios(project_id: str, body: dict, db: DB, user: Ann
     if not locators:
         raise HTTPException(400, "locators zorunlu (önce lokator yükle/tara)")
 
-    rows = db.scalars(
+    rows = await db.scalars(
         select(TspmScenario).where(
             TspmScenario.id.in_(scenario_ids),
             TspmScenario.project_id == project_id,
@@ -4966,9 +4967,9 @@ def _json_compact(obj: Any) -> str:
 
 
 @router.post("/projects/{project_id}/wizard/crawl-locators")
-def wizard_crawl_locators(project_id: str, body: dict, db: DB, user: Annotated[User, Depends(get_current_user)]):
+async def wizard_crawl_locators(project_id: str, body: dict, db: AsyncDB, user: Annotated[User, Depends(get_current_user)]):
     """Hedef URL'yi Playwright ile tarar, Neurex lokator JSON üretir."""
-    _get_project(db, project_id, user)
+    await _get_project(db, project_id, user)
     url: str = body.get("url", "")
     if not url:
         raise HTTPException(400, "url zorunlu")
@@ -5216,7 +5217,7 @@ Başka hiçbir şey yazma.""",
 
 
 @router.post("/projects/{project_id}/wizard/match-locators")
-def wizard_match_locators(project_id: str, body: dict, db: DB, user: Annotated[User, Depends(get_current_user)]):
+async def wizard_match_locators(project_id: str, body: dict, db: AsyncDB, user: Annotated[User, Depends(get_current_user)]):
     """Kayıtlı senaryo adımlarını crawl'lı lokator listesiyle eşleştirir.
 
     İstek gövdesi::
@@ -5246,7 +5247,7 @@ def wizard_match_locators(project_id: str, body: dict, db: DB, user: Annotated[U
           "scenario_count": 3
         }
     """
-    _get_project(db, project_id, user)
+    await _get_project(db, project_id, user)
     scenario_ids = body.get("scenario_ids") or None
     locators_raw = body.get("locators") or []
     if not isinstance(locators_raw, list) or not locators_raw:
@@ -5257,7 +5258,7 @@ def wizard_match_locators(project_id: str, body: dict, db: DB, user: Annotated[U
     if scenario_ids and isinstance(scenario_ids, list):
         stmt = stmt.where(TspmScenario.id.in_(scenario_ids))
     stmt = stmt.order_by(TspmScenario.created_at.desc()).limit(50)
-    scenarios = list(db.scalars(stmt))
+    scenarios = list(await db.scalars(stmt))
     if not scenarios:
         return {
             "matches": [],
@@ -5541,9 +5542,9 @@ def wizard_match_locators(project_id: str, body: dict, db: DB, user: Annotated[U
 
 
 @router.post("/projects/{project_id}/wizard/suggest-locator")
-def wizard_suggest_locator(project_id: str, body: dict, db: DB, user: Annotated[User, Depends(get_current_user)]):
+async def wizard_suggest_locator(project_id: str, body: dict, db: AsyncDB, user: Annotated[User, Depends(get_current_user)]):
     """Eksik bir lokator key için AI önerisi üretir."""
-    _get_project(db, project_id, user)
+    await _get_project(db, project_id, user)
     key: str = body.get("key", "")
     url: str = body.get("url", "")
     domain: str = body.get("domain", "")
@@ -5573,9 +5574,9 @@ Başka hiçbir şey yazma.""",
 
 
 @router.post("/projects/{project_id}/locators")
-def save_locator(project_id: str, body: dict, db: DB, user: Annotated[User, Depends(get_current_user)]):
+async def save_locator(project_id: str, body: dict, db: AsyncDB, user: Annotated[User, Depends(get_current_user)]):
     """Lokator object repository'ye kaydeder (engine DB'si)."""
-    _get_project(db, project_id, user)
+    await _get_project(db, project_id, user)
     name = body.get("name", "")
     locator_value = body.get("locator_value", "")
     page_url = body.get("page_url", "")
@@ -5595,9 +5596,9 @@ def save_locator(project_id: str, body: dict, db: DB, user: Annotated[User, Depe
 
 @router.post("/projects/{project_id}/wizard/run-neurex")
 @router.post("/projects/{project_id}/wizard/run-maviyaka")
-def wizard_run_neurex(project_id: str, body: dict, db: DB, user: Annotated[User, Depends(get_current_user)]):
+async def wizard_run_neurex(project_id: str, body: dict, db: AsyncDB, user: Annotated[User, Depends(get_current_user)]):
     """Neurex feature dosyalarını Python Playwright engine ile çalıştırır."""
-    _get_project(db, project_id, user)
+    await _get_project(db, project_id, user)
     try:
         resp = httpx.post(
             f"{ENGINE_BASE_URL}/api/wizard/run-neurex",
@@ -5644,9 +5645,9 @@ def wizard_run_neurex(project_id: str, body: dict, db: DB, user: Annotated[User,
 # ═══════════════════════════════════════════════════════════════════════
 
 @router.post("/projects/{project_id}/monkey-testing/run")
-def monkey_testing_run(project_id: str, body: dict, db: DB, user: Annotated[User, Depends(get_current_user)]):
+async def monkey_testing_run(project_id: str, body: dict, db: AsyncDB, user: Annotated[User, Depends(get_current_user)]):
     """Gelişmiş Monkey Testing — analiz ve senaryo üretimi ile."""
-    _get_project(db, project_id, user)
+    await _get_project(db, project_id, user)
     try:
         resp = httpx.post(
             f"{ENGINE_BASE_URL}/api/monkey-testing/run",
@@ -5662,12 +5663,12 @@ def monkey_testing_run(project_id: str, body: dict, db: DB, user: Annotated[User
 
 
 @router.post("/projects/{project_id}/monkey-testing/probe")
-def monkey_testing_probe(project_id: str, body: dict, db: DB, user: Annotated[User, Depends(get_current_user)]):
+async def monkey_testing_probe(project_id: str, body: dict, db: AsyncDB, user: Annotated[User, Depends(get_current_user)]):
     """Hedef URL'i (ve opsiyonel login URL'ini) hızlıca probe eder.
     Kullanıcı 'Başlat' demeden önce hedefin erişilebilir ve makul olduğunu
     görebilsin diye full Playwright run yerine httpx HEAD/GET kullanır.
     """
-    _get_project(db, project_id, user)
+    await _get_project(db, project_id, user)
 
     def _probe(url: str) -> dict:
         url = (url or "").strip()
@@ -5716,20 +5717,20 @@ def monkey_testing_probe(project_id: str, body: dict, db: DB, user: Annotated[Us
 # ═══════════════════════════════════════════════════════════════════════
 
 @router.post("/projects/{project_id}/automation/run", status_code=200)
-def automation_run(project_id: str, body: dict, db: DB, user: Annotated[User, Depends(get_current_user)]):
+async def automation_run(project_id: str, body: dict, db: AsyncDB, user: Annotated[User, Depends(get_current_user)]):
     """
     Senaryo listesini engine'in /api/nexus/run endpoint'ine gönderir.
     Body: { scenario_ids: [str], browser?: str, base_url?: str }
     Returns: { run_id: str, browser: str }
     """
-    _get_project(db, project_id, user)
+    await _get_project(db, project_id, user)
     scenario_ids: list[str] = body.get("scenario_ids", [])
     browser: str = str(body.get("browser", "chromium")).lower()
     base_url: str = str(body.get("base_url", "") or "")
 
     # DB'den senaryo başlık ve adımlarını çek
     from app.domains.tspm.models import TspmScenario as _TspmScenario
-    rows = db.scalars(
+    rows = await db.scalars(
         select(_TspmScenario).where(
             _TspmScenario.id.in_(scenario_ids),
             _TspmScenario.project_id == project_id,
@@ -5767,9 +5768,9 @@ def automation_run(project_id: str, body: dict, db: DB, user: Annotated[User, De
 
 
 @router.delete("/projects/{project_id}/automation/run/{run_id}", status_code=200)
-def automation_cancel(project_id: str, run_id: str, db: DB, user: Annotated[User, Depends(get_current_user)]):
+async def automation_cancel(project_id: str, run_id: str, db: AsyncDB, user: Annotated[User, Depends(get_current_user)]):
     """Engine'deki çalışan Playwright koşumunu iptal eder."""
-    _get_project(db, project_id, user)
+    await _get_project(db, project_id, user)
     try:
         resp = httpx.delete(
             f"{ENGINE_BASE_URL}/api/run/{run_id}/cancel",
@@ -5790,11 +5791,11 @@ def automation_cancel(project_id: str, run_id: str, db: DB, user: Annotated[User
 
 
 @router.get("/projects/{project_id}/automation/stream/{run_id}")
-async def automation_stream(project_id: str, run_id: str, db: DB, user: Annotated[User, Depends(get_current_user)]):
+async def automation_stream(project_id: str, run_id: str, db: AsyncDB, user: Annotated[User, Depends(get_current_user)]):
     """
     Engine'in SSE stream'ini /api/run/<run_id>/stream den okuyup tarayıcıya aktarır.
     """
-    _get_project(db, project_id, user)
+    await _get_project(db, project_id, user)
     stream_url = f"{ENGINE_BASE_URL}/api/run/{run_id}/stream"
 
     async def event_generator():
@@ -5827,9 +5828,9 @@ async def automation_stream(project_id: str, run_id: str, db: DB, user: Annotate
 # ═══════════════════════════════════════════════════════════════════════
 
 @router.get("/search")
-def global_search(user: Annotated[User, Depends(get_current_user)],
+async def global_search(user: Annotated[User, Depends(get_current_user)],
     q: str = Query("", min_length=1),
-    db: DB = ...,):
+    db: AsyncDB = ...,):
     """Projeler ve senaryolar üzerinde arama."""
     results = []
 
@@ -5838,21 +5839,21 @@ def global_search(user: Annotated[User, Depends(get_current_user)],
     is_admin = Permission.ADMIN_FULL in user_perms
     accessible_project_ids = None
     if not is_admin:
-        accessible_project_ids = list(db.scalars(
+        accessible_project_ids = list(await db.scalars(
             select(TspmProjectMember.project_id).where(TspmProjectMember.user_id == user.id)
         ))
 
     project_stmt = select(TspmProject).where(TspmProject.name.ilike(f"%{q}%"))
     if accessible_project_ids is not None:
         project_stmt = project_stmt.where(TspmProject.id.in_(accessible_project_ids))
-    projects = list(db.scalars(project_stmt.limit(5)))
+    projects = list(await db.scalars(project_stmt.limit(5)))
     for p in projects:
         results.append({"type": "project", "id": p.id, "label": p.name, "href": f"/p/{p.id}"})
 
     scenario_stmt = select(TspmScenario).where(TspmScenario.title.ilike(f"%{q}%"))
     if accessible_project_ids is not None:
         scenario_stmt = scenario_stmt.where(TspmScenario.project_id.in_(accessible_project_ids))
-    scenarios = list(db.scalars(scenario_stmt.limit(10)))
+    scenarios = list(await db.scalars(scenario_stmt.limit(10)))
     for s in scenarios:
         results.append({"type": "scenario", "id": s.id, "label": s.title, "href": f"/p/{s.project_id}/scenarios/{s.id}"})
 
@@ -5864,9 +5865,9 @@ def global_search(user: Annotated[User, Depends(get_current_user)],
 # ═══════════════════════════════════════════════════════════════════════
 
 @router.get("/projects/{project_id}/executions/{run_id}/report")
-def get_execution_report(project_id: str, run_id: str, user: Annotated[User, Depends(get_current_user)],
+async def get_execution_report(project_id: str, run_id: str, user: Annotated[User, Depends(get_current_user)],
     format: str = "html",
-    db: DB = ...,):
+    db: AsyncDB = ...,):
     """Bir test koşusu için HTML veya JSON raporu üretir ve indirilir."""
     import io
     import json as _json
@@ -5875,16 +5876,16 @@ def get_execution_report(project_id: str, run_id: str, user: Annotated[User, Dep
 
     from app.domains.tspm.models import TspmExecution, TspmExecutionResult, TspmScenario
 
-    _get_project(db, project_id, user)  # membership guard
-    ex = db.get(TspmExecution, run_id)
+    await _get_project(db, project_id, user)  # membership guard
+    ex = await db.get(TspmExecution, run_id)
     if ex is None or ex.project_id != project_id:
         raise HTTPException(404, "Koşu bulunamadı")
 
-    project = db.get(TspmProject, project_id)
-    results = list(db.scalars(
+    project = await db.get(TspmProject, project_id)
+    results = list(await db.scalars(
         select(TspmExecutionResult).where(TspmExecutionResult.execution_id == run_id)
     ))
-    scenarios = {s.id: s for s in db.scalars(select(TspmScenario).where(TspmScenario.project_id == project_id))}
+    scenarios = {s.id: s for s in await db.scalars(select(TspmScenario).where(TspmScenario.project_id == project_id))}
 
     passed = sum(1 for r in results if r.status == "passed")
     failed = sum(1 for r in results if r.status == "failed")
@@ -5948,11 +5949,11 @@ th{{background:#f9fafb;font-weight:600}}
 
 
 @router.get("/projects/{project_id}/report/summary")
-def get_project_summary_report(project_id: str,
+async def get_project_summary_report(project_id: str,
     user: Annotated[User, Depends(get_current_user)],
     format: str = "html",
     days: int = 30,
-    db: DB = ...,):
+    db: AsyncDB = ...,):
     """Proje için özet HTML veya JSON raporu üretir (son N gün)."""
     import io
     import json as _json
@@ -5962,14 +5963,14 @@ def get_project_summary_report(project_id: str,
 
     from app.domains.tspm.models import TspmExecution
 
-    _get_project(db, project_id, user)
+    await _get_project(db, project_id, user)
     since = datetime.now(_tz.utc) - timedelta(days=days)
-    execs = list(db.scalars(
+    execs = list(await db.scalars(
         select(TspmExecution)
         .where(TspmExecution.project_id == project_id, TspmExecution.created_at >= since)
         .order_by(TspmExecution.created_at.desc())
     ))
-    project = db.get(TspmProject, project_id)
+    project = await db.get(TspmProject, project_id)
 
     summary = {
         "project": project.name if project else project_id,
@@ -6012,10 +6013,10 @@ th,td{{padding:.5rem .8rem;border:1px solid #e5e7eb;text-align:left}}th{{backgro
 # ═══════════════════════════════════════════════════════════════════════
 
 @router.get("/projects/{project_id}/workflows")
-def list_workflows(project_id: str, db: DB, user: Annotated[User, Depends(get_current_user)]):
+async def list_workflows(project_id: str, db: AsyncDB, user: Annotated[User, Depends(get_current_user)]):
     """Projeye ait workflow kayitlarini listeler."""
-    _get_project(db, project_id, user)
-    rows = list(db.scalars(
+    await _get_project(db, project_id, user)
+    rows = list(await db.scalars(
         select(TspmN8nWorkflow).where(TspmN8nWorkflow.project_id == project_id)
         .order_by(TspmN8nWorkflow.created_at.desc())
     ))
@@ -6032,9 +6033,9 @@ def list_workflows(project_id: str, db: DB, user: Annotated[User, Depends(get_cu
 
 
 @router.post("/projects/{project_id}/workflows", status_code=201)
-def create_workflow(project_id: str, body: dict, db: DB, user: Annotated[User, Depends(get_current_user)]):
+async def create_workflow(project_id: str, body: dict, db: AsyncDB, user: Annotated[User, Depends(get_current_user)]):
     """Yeni workflow baglantisi olusturur."""
-    _get_project(db, project_id, user)
+    await _get_project(db, project_id, user)
     w = TspmN8nWorkflow(
         project_id=project_id,
         n8n_workflow_id=body.get("n8n_workflow_id", ""),
@@ -6044,49 +6045,49 @@ def create_workflow(project_id: str, body: dict, db: DB, user: Annotated[User, D
         webhook_path=body.get("webhook_path"),
         is_active=body.get("is_active", True),
     )
-    db.add(w)
-    db.commit()
-    db.refresh(w)
+    await db.add(w)
+    await db.commit()
+    await db.refresh(w)
     return {"id": w.id, "name": w.name, "is_active": w.is_active, "created_at": w.created_at.isoformat()}
 
 
 @router.put("/projects/{project_id}/workflows/{workflow_id}")
-def update_workflow(project_id: str, workflow_id: str, body: dict, db: DB, user: Annotated[User, Depends(get_current_user)]):
+async def update_workflow(project_id: str, workflow_id: str, body: dict, db: AsyncDB, user: Annotated[User, Depends(get_current_user)]):
     """Workflow bilgilerini gunceller."""
-    _get_project(db, project_id, user)
-    w = db.get(TspmN8nWorkflow, workflow_id)
+    await _get_project(db, project_id, user)
+    w = await db.get(TspmN8nWorkflow, workflow_id)
     if not w or w.project_id != project_id:
         raise HTTPException(404, "Workflow bulunamadı")
     for field in ("name", "description", "trigger_on", "webhook_path", "is_active"):
         if field in body:
             setattr(w, field, body[field])
-    db.commit()
+    await db.commit()
     return {"id": w.id, "name": w.name, "is_active": w.is_active}
 
 
 @router.delete("/projects/{project_id}/workflows/{workflow_id}", status_code=204)
-def delete_workflow(project_id: str, workflow_id: str, db: DB, user: Annotated[User, Depends(get_current_user)]):
+async def delete_workflow(project_id: str, workflow_id: str, db: AsyncDB, user: Annotated[User, Depends(get_current_user)]):
     """Workflow kaydini siler."""
-    _get_project(db, project_id, user)
-    w = db.get(TspmN8nWorkflow, workflow_id)
+    await _get_project(db, project_id, user)
+    w = await db.get(TspmN8nWorkflow, workflow_id)
     if not w or w.project_id != project_id:
         raise HTTPException(404, "Workflow bulunamadı")
-    db.delete(w)
-    db.commit()
+    await db.delete(w)
+    await db.commit()
 
 
 @router.post("/projects/{project_id}/workflows/{workflow_id}/trigger")
-def trigger_workflow(project_id: str, workflow_id: str, body: dict, db: DB, user: Annotated[User, Depends(get_current_user)]):
+async def trigger_workflow(project_id: str, workflow_id: str, body: dict, db: AsyncDB, user: Annotated[User, Depends(get_current_user)]):
     """Workflow calismasini tetikler."""
     from app.config import get_settings
-    _get_project(db, project_id, user)
-    w = db.get(TspmN8nWorkflow, workflow_id)
+    await _get_project(db, project_id, user)
+    w = await db.get(TspmN8nWorkflow, workflow_id)
     if not w or w.project_id != project_id:
         raise HTTPException(404, "Workflow bulunamadı")
 
     settings = get_settings()
     execution = TspmN8nExecution(workflow_link_id=w.id, status="running", input_data=body)
-    db.add(execution)
+    await db.add(execution)
 
     try:
         target_url = w.webhook_path or f"{settings.n8n_base_url}/api/v1/workflows/{w.n8n_workflow_id}/execute"
@@ -6099,7 +6100,7 @@ def trigger_workflow(project_id: str, workflow_id: str, body: dict, db: DB, user
             except UnsafeTargetError as exc:
                 execution.status = "error"
                 execution.error = f"Guvensiz webhook hedefi: {exc}"
-                db.commit()
+                await db.commit()
                 raise HTTPException(400, execution.error)
         resp = httpx.post(target_url, json=body, headers=headers, timeout=30.0)
         n8n_data = resp.json() if resp.status_code < 300 else {}
@@ -6113,15 +6114,15 @@ def trigger_workflow(project_id: str, workflow_id: str, body: dict, db: DB, user
     from datetime import datetime
     execution.finished_at = datetime.now(_tz.utc)
     w.last_triggered_at = execution.finished_at
-    db.commit()
+    await db.commit()
     return {"status": execution.status, "execution_id": execution.id}
 
 
 @router.get("/projects/{project_id}/workflows/{workflow_id}/executions")
-def list_workflow_executions(project_id: str, workflow_id: str, db: DB, user: Annotated[User, Depends(get_current_user)]):
+async def list_workflow_executions(project_id: str, workflow_id: str, db: AsyncDB, user: Annotated[User, Depends(get_current_user)]):
     """Workflow calisma gecmisini listeler."""
-    _get_project(db, project_id, user)
-    rows = list(db.scalars(
+    await _get_project(db, project_id, user)
+    rows = list(await db.scalars(
         select(TspmN8nExecution).where(TspmN8nExecution.workflow_link_id == workflow_id)
         .order_by(TspmN8nExecution.started_at.desc()).limit(50)
     ))
@@ -6140,9 +6141,9 @@ def list_workflow_executions(project_id: str, workflow_id: str, db: DB, user: An
 # ═══════════════════════════════════════════════════════════════════════
 
 @router.get("/projects/{project_id}/locators")
-def list_locators(project_id: str, db: DB, user: Annotated[User, Depends(get_current_user)]):
+async def list_locators(project_id: str, db: AsyncDB, user: Annotated[User, Depends(get_current_user)]):
     """Engine'deki locator'ları listeler ve project_id ile filtreler."""
-    _get_project(db, project_id, user)
+    await _get_project(db, project_id, user)
     try:
         resp = httpx.get(f"{ENGINE_BASE_URL}/api/locators", headers=_IKEY, timeout=10.0)
         data = resp.json() if resp.status_code == 200 else []
@@ -6153,9 +6154,9 @@ def list_locators(project_id: str, db: DB, user: Annotated[User, Depends(get_cur
 
 
 @router.post("/projects/{project_id}/locators", status_code=201)
-def create_locator(project_id: str, body: dict, db: DB, user: Annotated[User, Depends(get_current_user)]):
+async def create_locator(project_id: str, body: dict, db: AsyncDB, user: Annotated[User, Depends(get_current_user)]):
     """Yeni locator ekler."""
-    _get_project(db, project_id, user)
+    await _get_project(db, project_id, user)
     try:
         resp = httpx.post(f"{ENGINE_BASE_URL}/api/locators", json=body, headers=_IKEY, timeout=10.0)
         resp.raise_for_status()
@@ -6165,9 +6166,9 @@ def create_locator(project_id: str, body: dict, db: DB, user: Annotated[User, De
 
 
 @router.delete("/projects/{project_id}/locators/{locator_id}", status_code=204)
-def delete_locator(project_id: str, locator_id: str, db: DB, user: Annotated[User, Depends(get_current_user)]):
+async def delete_locator(project_id: str, locator_id: str, db: AsyncDB, user: Annotated[User, Depends(get_current_user)]):
     """Locator siler."""
-    _get_project(db, project_id, user)
+    await _get_project(db, project_id, user)
     try:
         resp = httpx.delete(f"{ENGINE_BASE_URL}/api/locators/{locator_id}", headers=_IKEY, timeout=10.0)
         if resp.status_code not in (200, 204, 404):
@@ -6177,9 +6178,9 @@ def delete_locator(project_id: str, locator_id: str, db: DB, user: Annotated[Use
 
 
 @router.post("/projects/{project_id}/locators/health-check")
-def locator_health_check(project_id: str, body: dict, db: DB, user: Annotated[User, Depends(get_current_user)]):
+async def locator_health_check(project_id: str, body: dict, db: AsyncDB, user: Annotated[User, Depends(get_current_user)]):
     """Seçili locator'lar için sağlık kontrolü çalıştırır."""
-    _get_project(db, project_id, user)
+    await _get_project(db, project_id, user)
     try:
         resp = httpx.post(f"{ENGINE_BASE_URL}/api/locators/health", json=body, headers=_IKEY, timeout=60.0)
         resp.raise_for_status()
@@ -6189,9 +6190,9 @@ def locator_health_check(project_id: str, body: dict, db: DB, user: Annotated[Us
 
 
 @router.post("/projects/{project_id}/locators/discover")
-def locator_discover(project_id: str, body: dict, db: DB, user: Annotated[User, Depends(get_current_user)]):
+async def locator_discover(project_id: str, body: dict, db: AsyncDB, user: Annotated[User, Depends(get_current_user)]):
     """Verilen URL'den locator'ları otomatik keşfeder."""
-    _get_project(db, project_id, user)
+    await _get_project(db, project_id, user)
     try:
         resp = httpx.post(f"{ENGINE_BASE_URL}/api/discover", json=body, headers=_IKEY, timeout=120.0)
         resp.raise_for_status()
@@ -6205,9 +6206,9 @@ def locator_discover(project_id: str, body: dict, db: DB, user: Annotated[User, 
 # ═══════════════════════════════════════════════════════════════════════
 
 @router.get("/projects/{project_id}/visual/baselines")
-def list_visual_baselines(project_id: str, db: DB, user: Annotated[User, Depends(get_current_user)]):
+async def list_visual_baselines(project_id: str, db: AsyncDB, user: Annotated[User, Depends(get_current_user)]):
     """Projeye ait baseline listesini döndürür."""
-    _get_project(db, project_id, user)
+    await _get_project(db, project_id, user)
     try:
         resp = httpx.get(f"{ENGINE_BASE_URL}/api/visual/baselines", headers=_IKEY, timeout=10.0)
         data = resp.json() if resp.status_code == 200 else []
@@ -6218,9 +6219,9 @@ def list_visual_baselines(project_id: str, db: DB, user: Annotated[User, Depends
 
 
 @router.post("/projects/{project_id}/visual/baselines", status_code=201)
-async def upload_visual_baseline(project_id: str, request: Request, db: DB, user: Annotated[User, Depends(get_current_user)]):
+async def upload_visual_baseline(project_id: str, request: Request, db: AsyncDB, user: Annotated[User, Depends(get_current_user)]):
     """Baseline screenshot yükler (multipart forward)."""
-    _get_project(db, project_id, user)
+    await _get_project(db, project_id, user)
     try:
         body = await request.body()
         headers = {k: v for k, v in request.headers.items() if k.lower() not in ("host", "content-length")}
@@ -6233,9 +6234,9 @@ async def upload_visual_baseline(project_id: str, request: Request, db: DB, user
 
 
 @router.post("/projects/{project_id}/visual/compare")
-def visual_compare(project_id: str, body: dict, db: DB, user: Annotated[User, Depends(get_current_user)]):
+async def visual_compare(project_id: str, body: dict, db: AsyncDB, user: Annotated[User, Depends(get_current_user)]):
     """Mevcut sayfayı baseline ile karşılaştırır."""
-    _get_project(db, project_id, user)
+    await _get_project(db, project_id, user)
     try:
         resp = httpx.post(f"{ENGINE_BASE_URL}/api/visual/compare", json=body, headers=_IKEY, timeout=60.0)
         resp.raise_for_status()
@@ -6245,9 +6246,9 @@ def visual_compare(project_id: str, body: dict, db: DB, user: Annotated[User, De
 
 
 @router.delete("/projects/{project_id}/visual/baselines/{baseline_id}", status_code=204)
-def delete_visual_baseline(project_id: str, baseline_id: str, db: DB, user: Annotated[User, Depends(get_current_user)]):
+async def delete_visual_baseline(project_id: str, baseline_id: str, db: AsyncDB, user: Annotated[User, Depends(get_current_user)]):
     """Baseline siler."""
-    _get_project(db, project_id, user)
+    await _get_project(db, project_id, user)
     try:
         resp = httpx.delete(f"{ENGINE_BASE_URL}/api/visual/baselines/{baseline_id}", headers=_IKEY, timeout=10.0)
         if resp.status_code not in (200, 204, 404):
@@ -6265,14 +6266,14 @@ def delete_visual_baseline(project_id: str, baseline_id: str, db: DB, user: Anno
     response_model=GenerateTestCasesResponse,
     tags=["faz3-test-cases"],
 )
-def generate_test_cases(
+async def generate_test_cases(
     project_id: str,
     body: GenerateTestCasesRequest,
-    db: DB,
+    db: AsyncDB,
     user: Annotated[User, Depends(get_current_user)],
 ):
     """AI Gateway üzerinden toplu test case üretir, DB'ye kaydeder."""
-    _get_project(db, project_id, user)
+    await _get_project(db, project_id, user)
     try:
         result = tc_svc.generate_test_cases_for_project(db, project_id, body)
         from app.infra.cache import cache_delete, make_key
@@ -6292,9 +6293,9 @@ def generate_test_cases(
     response_model=list[AiBatchOut],
     tags=["faz3-test-cases"],
 )
-def list_batches(project_id: str, db: DB, user: Annotated[User, Depends(get_current_user)]):
+async def list_batches(project_id: str, db: AsyncDB, user: Annotated[User, Depends(get_current_user)]):
     """Projeye ait tüm AI üretim batch'lerini listeler."""
-    _get_project(db, project_id, user)
+    await _get_project(db, project_id, user)
     return tc_svc.list_batches(db, project_id)
 
 
@@ -6303,9 +6304,9 @@ def list_batches(project_id: str, db: DB, user: Annotated[User, Depends(get_curr
     response_model=AiBatchDetailOut,
     tags=["faz3-test-cases"],
 )
-def get_batch(project_id: str, batch_id: str, db: DB, user: Annotated[User, Depends(get_current_user)]):
+async def get_batch(project_id: str, batch_id: str, db: AsyncDB, user: Annotated[User, Depends(get_current_user)]):
     """Batch detayı + içerdiği test case'ler."""
-    _get_project(db, project_id, user)
+    await _get_project(db, project_id, user)
     batch = tc_svc.get_batch(db, batch_id, project_id)
     if not batch:
         raise HTTPException(404, "Batch bulunamadı")
@@ -6321,9 +6322,9 @@ def get_batch(project_id: str, batch_id: str, db: DB, user: Annotated[User, Depe
     status_code=204,
     tags=["faz3-test-cases"],
 )
-def delete_batch(project_id: str, batch_id: str, db: DB, user: Annotated[User, Depends(get_current_user)]):
+async def delete_batch(project_id: str, batch_id: str, db: AsyncDB, user: Annotated[User, Depends(get_current_user)]):
     """Batch ve içindeki tüm test case'leri siler."""
-    _get_project(db, project_id, user)
+    await _get_project(db, project_id, user)
     batch = tc_svc.get_batch(db, batch_id, project_id)
     if not batch:
         raise HTTPException(404, "Batch bulunamadı")
@@ -6335,15 +6336,15 @@ def delete_batch(project_id: str, batch_id: str, db: DB, user: Annotated[User, D
     response_model=list[TestCaseOut],
     tags=["faz3-test-cases"],
 )
-def list_test_cases(
+async def list_test_cases(
     project_id: str,
-    db: DB,
+    db: AsyncDB,
     user: Annotated[User, Depends(get_current_user)],
     batch_id: Optional[str] = Query(None),
     review_status: Optional[str] = Query(None),
 ):
     """Test case listesi; batch_id ve/veya review_status ile filtrele. 60s cache (no filters)."""
-    _get_project(db, project_id, user)
+    await _get_project(db, project_id, user)
     if batch_id is None and review_status is None:
         from app.infra.cache import cache_get, cache_set, make_key
         _cache_key = make_key("test-cases", "list", project_id)
@@ -6367,9 +6368,9 @@ def list_test_cases(
     response_model=TestCaseOut,
     tags=["faz3-test-cases"],
 )
-def get_test_case(project_id: str, tc_id: str, db: DB, user: Annotated[User, Depends(get_current_user)]):
+async def get_test_case(project_id: str, tc_id: str, db: AsyncDB, user: Annotated[User, Depends(get_current_user)]):
     """Tek test case detayı."""
-    _get_project(db, project_id, user)
+    await _get_project(db, project_id, user)
     tc = tc_svc.get_test_case(db, tc_id, project_id)
     if not tc:
         raise HTTPException(404, "Test case bulunamadı")
@@ -6381,15 +6382,15 @@ def get_test_case(project_id: str, tc_id: str, db: DB, user: Annotated[User, Dep
     response_model=TestCaseOut,
     tags=["faz3-test-cases"],
 )
-def update_test_case(
+async def update_test_case(
     project_id: str,
     tc_id: str,
     body: TestCaseUpdate,
-    db: DB,
+    db: AsyncDB,
     user: Annotated[User, Depends(get_current_user)],
 ):
     """Test case alanlarını günceller (edit)."""
-    _get_project(db, project_id, user)
+    await _get_project(db, project_id, user)
     tc = tc_svc.get_test_case(db, tc_id, project_id)
     if not tc:
         raise HTTPException(404, "Test case bulunamadı")
@@ -6407,15 +6408,15 @@ def update_test_case(
     response_model=TestCaseOut,
     tags=["faz3-test-cases"],
 )
-def review_test_case(
+async def review_test_case(
     project_id: str,
     tc_id: str,
     body: TestCaseReviewAction,
-    db: DB,
+    db: AsyncDB,
     user: Annotated[User, Depends(get_current_user)],
 ):
     """Tek test case onayla / reddet / düzenle-ve-onayla."""
-    _get_project(db, project_id, user)
+    await _get_project(db, project_id, user)
     tc = tc_svc.get_test_case(db, tc_id, project_id)
     if not tc:
         raise HTTPException(404, "Test case bulunamadı")
@@ -6427,14 +6428,14 @@ def review_test_case(
     "/projects/{project_id}/test-cases/bulk-review",
     tags=["faz3-test-cases"],
 )
-def bulk_review_test_cases(
+async def bulk_review_test_cases(
     project_id: str,
     body: BulkReviewRequest,
-    db: DB,
+    db: AsyncDB,
     user: Annotated[User, Depends(get_current_user)],
 ):
     """Toplu onayla / reddet. Seçilen ID'leri işler, sayıları döner."""
-    _get_project(db, project_id, user)
+    await _get_project(db, project_id, user)
     if body.action not in ("approve", "reject"):
         raise HTTPException(400, "action 'approve' veya 'reject' olmalı")
     return tc_svc.bulk_review(db, project_id, body)
@@ -6445,9 +6446,9 @@ def bulk_review_test_cases(
     status_code=204,
     tags=["faz3-test-cases"],
 )
-def delete_test_case(project_id: str, tc_id: str, db: DB, user: Annotated[User, Depends(get_current_user)]):
+async def delete_test_case(project_id: str, tc_id: str, db: AsyncDB, user: Annotated[User, Depends(get_current_user)]):
     """Test case siler."""
-    _get_project(db, project_id, user)
+    await _get_project(db, project_id, user)
     tc = tc_svc.get_test_case(db, tc_id, project_id)
     if not tc:
         raise HTTPException(404, "Test case bulunamadı")
@@ -6469,10 +6470,10 @@ def delete_test_case(project_id: str, tc_id: str, db: DB, user: Annotated[User, 
     status_code=200,
     tags=["faz5-automation"],
 )
-def generate_automation_code(
+async def generate_automation_code(
     project_id: str,
     body: GenerateAutomationRequest,
-    db: DB,
+    db: AsyncDB,
     user: Annotated[User, Depends(get_current_user)],
 ):
     """
@@ -6483,18 +6484,18 @@ def generate_automation_code(
       2. body.batch_id verilmişse → o batch'in approved test case'lerini kullan
       3. İkisi de yoksa → projenin tüm approved test case'leri
     """
-    _get_project(db, project_id, user)
+    await _get_project(db, project_id, user)
 
     # Resolve which test cases to use
     if body.test_case_ids:
-        raw_cases = db.execute(
+        raw_cases = await db.execute(
             select(TspmTestCase).where(
                 TspmTestCase.project_id == project_id,
                 TspmTestCase.id.in_(body.test_case_ids),
             )
         ).scalars().all()
     elif body.batch_id:
-        raw_cases = db.execute(
+        raw_cases = await db.execute(
             select(TspmTestCase).where(
                 TspmTestCase.project_id == project_id,
                 TspmTestCase.batch_id == body.batch_id,
@@ -6502,7 +6503,7 @@ def generate_automation_code(
             )
         ).scalars().all()
     else:
-        raw_cases = db.execute(
+        raw_cases = await db.execute(
             select(TspmTestCase).where(
                 TspmTestCase.project_id == project_id,
                 TspmTestCase.review_status == "approved",
@@ -6577,7 +6578,7 @@ def generate_automation_code(
     errors = result.get("errors", [])
     artifacts: list[AutomationArtifactOut] = []
     try:
-        artifacts = _persist_generated_automation_artifacts(
+        artifacts = await _persist_generated_automation_artifacts(
             db=db,
             project_id=project_id,
             feature_name=body.feature_name,
@@ -6586,7 +6587,7 @@ def generate_automation_code(
             result=result,
         )
     except Exception as e:
-        db.rollback()
+        await db.rollback()
         errors.append(f"Artifacts: {e}")
 
     msg_parts = [f"{tc_count} test case'den"]
@@ -6616,20 +6617,20 @@ def generate_automation_code(
     "/projects/{project_id}/automation/artifacts/{artifact_id}/download",
     tags=["faz5-automation"],
 )
-def download_automation_artifact(
+async def download_automation_artifact(
     project_id: str,
     artifact_id: str,
-    db: DB,
+    db: AsyncDB,
     user: Annotated[Optional[User], Depends(get_optional_user)] = None,
     token: Optional[str] = Query(None),
 ):
     """Uretilen otomasyon artifact dosyasini indirir."""
-    resolved_user = user or _resolve_query_token_user(db, token)
+    resolved_user = user or await _resolve_query_token_user(db, token)
     if resolved_user is None:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Kimlik doğrulama gerekli")
 
-    _get_project(db, project_id, resolved_user)
-    artifact = db.scalar(
+    await _get_project(db, project_id, resolved_user)
+    artifact = await db.scalar(
         select(TspmAutomationArtifact).where(
             TspmAutomationArtifact.id == artifact_id,
             TspmAutomationArtifact.project_id == project_id,
@@ -6655,11 +6656,11 @@ def download_automation_artifact(
     status_code=200,
     summary="Faz 6: AI Debug Loop — başarısız testleri analiz et + Allure JSON üret",
 )
-def run_ai_debug_loop(
+async def run_ai_debug_loop(
     project_id: str,
     execution_id: str,
     body: RunDebugRequest,
-    db: DB,
+    db: AsyncDB,
     user: Annotated[User, Depends(get_current_user)],
 ):
     """
@@ -6673,7 +6674,7 @@ def run_ai_debug_loop(
         results = body.results
     else:
         # Read from DB
-        exec_obj = db.scalar(
+        exec_obj = await db.scalar(
             select(TspmExecution).where(
                 TspmExecution.id == execution_id,
                 TspmExecution.project_id == project_id,
@@ -6682,13 +6683,13 @@ def run_ai_debug_loop(
         if exec_obj is None:
             raise HTTPException(404, f"Execution {execution_id} bulunamadı")
 
-        db_results = list(db.scalars(
+        db_results = list(await db.scalars(
             select(TspmExecutionResult).where(TspmExecutionResult.execution_id == execution_id)
         ))
 
         results = []
         for er in db_results:
-            sc = db.scalar(select(TspmScenario).where(TspmScenario.id == er.scenario_id))
+            sc = await db.scalar(select(TspmScenario).where(TspmScenario.id == er.scenario_id))
             results.append({
                 "test_id": er.id,
                 "scenario_id": er.scenario_id,
@@ -6738,17 +6739,17 @@ def run_ai_debug_loop(
     response_model=AllureExportResponse,
     summary="Faz 6: Execution için Allure export verisi",
 )
-def export_allure(
+async def export_allure(
     project_id: str,
     execution_id: str,
-    db: DB,
+    db: AsyncDB,
     user: Annotated[User, Depends(get_current_user)],
 ):
     """
     Bir execution'ın Allure-uyumlu JSON export verilerini döndür.
     Frontend bu veriyi .zip olarak indirip allure-results/ klasörüne koyabilir.
     """
-    exec_obj = db.scalar(
+    exec_obj = await db.scalar(
         select(TspmExecution).where(
             TspmExecution.id == execution_id,
             TspmExecution.project_id == project_id,
@@ -6757,16 +6758,16 @@ def export_allure(
     if exec_obj is None:
         raise HTTPException(404, f"Execution {execution_id} bulunamadı")
 
-    project = db.scalar(select(TspmProject).where(TspmProject.id == project_id))
+    project = await db.scalar(select(TspmProject).where(TspmProject.id == project_id))
     project_name = project.name if project else project_id
 
-    db_results = list(db.scalars(
+    db_results = list(await db.scalars(
         select(TspmExecutionResult).where(TspmExecutionResult.execution_id == execution_id)
     ))
 
     results = []
     for er in db_results:
-        sc = db.scalar(select(TspmScenario).where(TspmScenario.id == er.scenario_id))
+        sc = await db.scalar(select(TspmScenario).where(TspmScenario.id == er.scenario_id))
         results.append({
             "test_id": er.id,
             "scenario_id": er.scenario_id,
@@ -6809,10 +6810,10 @@ def export_allure(
     status_code=200,
     summary="Faz 7: Nexus QA AI Chat Asistanı",
 )
-def nexus_chat(
+async def nexus_chat(
     project_id: str,
     body: ChatRequest,
-    db: DB,
+    db: AsyncDB,
     user: Annotated[User, Depends(get_current_user)],
 ):
     """
@@ -6825,16 +6826,16 @@ def nexus_chat(
     # Enrich context from DB if not provided
     project_context = body.project_context or {}
     if not project_context.get("project_name"):
-        project = db.scalar(select(TspmProject).where(TspmProject.id == project_id))
+        project = await db.scalar(select(TspmProject).where(TspmProject.id == project_id))
         if project:
             project_context["project_name"] = project.name
             # Count scenarios
-            sc_count = db.scalar(
+            sc_count = await db.scalar(
                 select(func.count(TspmScenario.id)).where(TspmScenario.project_id == project_id)
             )
             project_context["scenario_count"] = sc_count or 0
             # Latest pass rate
-            latest_metrics = db.scalar(
+            latest_metrics = await db.scalar(
                 select(TspmExecutionMetrics)
                 .where(TspmExecutionMetrics.project_id == project_id)
                 .order_by(TspmExecutionMetrics.executed_at.desc())
@@ -6873,7 +6874,7 @@ def nexus_chat(
     response_model=list[QuickAction],
     summary="Faz 7: Chat hızlı eylem listesi",
 )
-def get_chat_quick_actions(
+async def get_chat_quick_actions(
     project_id: str,
     user: Annotated[User, Depends(get_current_user)],
 ):
@@ -6898,11 +6899,11 @@ from app.domains.tspm.schemas import (
     status_code=202,
     summary="Faz 8: Gerçek test koşumunu başlat (async, SSE stream ile)",
 )
-def start_execution_run(
+async def start_execution_run(
     project_id: str,
     execution_id: str,
     body: RunExecutionRequest,
-    db: DB,
+    db: AsyncDB,
     user: Annotated[User, Depends(require_permission(Permission.EXECUTION_CREATE))],
 ):
     """
@@ -6912,9 +6913,9 @@ def start_execution_run(
     - SSE stream URL döner → frontend canlı olayları dinler
     """
     # Güvenlik kapısı: kullanıcı projeye üye mi? (admin.* ile bypass)
-    _get_project(db, project_id, user)
+    await _get_project(db, project_id, user)
 
-    exec_obj = db.scalar(
+    exec_obj = await db.scalar(
         select(TspmExecution).where(
             TspmExecution.id == execution_id,
             TspmExecution.project_id == project_id,
@@ -6952,11 +6953,11 @@ def start_execution_run(
     summary="Faz 8: SSE canlı test akışı",
     response_class=StreamingResponse,
 )
-def stream_execution(
+async def stream_execution(
     project_id: str,
     execution_id: str,
     run_id: str,
-    db: DB,
+    db: AsyncDB,
     user: Annotated[Optional[User], Depends(get_optional_user)] = None,
     token: Optional[str] = Query(None),
 ):
@@ -6965,11 +6966,11 @@ def stream_execution(
     EventSource ile bağlanın:
       new EventSource('/api/v1/tspm/projects/{pid}/executions/{eid}/stream/{rid}')
     """
-    resolved_user = user or _resolve_query_token_user(db, token)
+    resolved_user = user or await _resolve_query_token_user(db, token)
     if resolved_user is None:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Kimlik doğrulama gerekli")
 
-    _get_project(db, project_id, resolved_user)  # auth guard
+    await _get_project(db, project_id, resolved_user)  # auth guard
 
     return StreamingResponse(
         runner_svc.get_run_stream(run_id),
@@ -6987,15 +6988,15 @@ def stream_execution(
     response_model=ExecutionMetricsOut,
     summary="Faz 8: Execution metriklerini getir",
 )
-def get_execution_metrics(
+async def get_execution_metrics(
     project_id: str,
     execution_id: str,
-    db: DB,
+    db: AsyncDB,
     user: Annotated[User, Depends(get_current_user)],
 ):
     """Tamamlanmış bir execution'ın pass/fail/skip metriklerini döndürür."""
-    _get_project(db, project_id, user)
-    execution = db.scalar(
+    await _get_project(db, project_id, user)
+    execution = await db.scalar(
         select(TspmExecution).where(
             TspmExecution.id == execution_id,
             TspmExecution.project_id == project_id,
@@ -7004,7 +7005,7 @@ def get_execution_metrics(
     if execution is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Koşum bulunamadı")
 
-    metrics = db.scalar(
+    metrics = await db.scalar(
         select(TspmExecutionMetrics).where(
             TspmExecutionMetrics.execution_id == execution_id,
             TspmExecutionMetrics.project_id == project_id,
@@ -7012,7 +7013,7 @@ def get_execution_metrics(
     )
     if metrics is None:
         # Anlık hesapla
-        results = list(db.scalars(
+        results = list(await db.scalars(
             select(TspmExecutionResult).where(
                 TspmExecutionResult.execution_id == execution_id
             )
@@ -7046,16 +7047,16 @@ def get_execution_metrics(
     "/projects/{project_id}/executions/{execution_id}/run-status/{run_id}",
     summary="Faz 8: Aktif run durumu",
 )
-def get_run_status(
+async def get_run_status(
     project_id: str,
     execution_id: str,
     run_id: str,
-    db: DB,
+    db: AsyncDB,
     user: Annotated[User, Depends(get_current_user)],
 ):
     """SSE stream'inin hâlâ aktif olup olmadığını sorgula."""
-    _get_project(db, project_id, user)
-    execution = db.scalar(
+    await _get_project(db, project_id, user)
+    execution = await db.scalar(
         select(TspmExecution).where(
             TspmExecution.id == execution_id,
             TspmExecution.project_id == project_id,
@@ -7076,10 +7077,10 @@ def get_run_status(
     summary="Neurex Farm: Paralel mobil cihaz koşumu başlat",
     status_code=202,
 )
-def start_mobile_run(
+async def start_mobile_run(
     project_id: str,
     body: MobileRunCreate,
-    db: DB,
+    db: AsyncDB,
     user: Annotated[User, Depends(get_current_user)],
 ):
     """
@@ -7087,7 +7088,7 @@ def start_mobile_run(
     Her cihaz için TspmExecution kaydı oluşturulur.
     SSE stream_url'i ile canlı izlenebilir.
     """
-    _get_project(db, project_id, user)
+    await _get_project(db, project_id, user)
 
     result = runner_svc.launch_mobile_run(
         project_id=project_id,
@@ -7107,10 +7108,10 @@ def start_mobile_run(
     summary="Neurex Farm: SSE canlı mobil test akışı",
     response_class=StreamingResponse,
 )
-def stream_mobile_run(
+async def stream_mobile_run(
     project_id: str,
     run_id: str,
-    db: DB,
+    db: AsyncDB,
     user: Annotated[Optional[User], Depends(get_optional_user)] = None,
     token: Optional[str] = Query(None),
 ):
@@ -7119,11 +7120,11 @@ def stream_mobile_run(
     Her olay device_name alanı taşır.
     EventSource ile bağlanın: ...?token=<jwt>
     """
-    resolved_user = user or _resolve_query_token_user(db, token)
+    resolved_user = user or await _resolve_query_token_user(db, token)
     if resolved_user is None:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Kimlik doğrulama gerekli")
 
-    _get_project(db, project_id, resolved_user)
+    await _get_project(db, project_id, resolved_user)
 
     return StreamingResponse(
         runner_svc.get_mobile_run_stream(run_id),
@@ -7147,7 +7148,7 @@ def stream_mobile_run(
 async def monkey_run_stream(
     project_id: str,
     request: Request,
-    db: DB,
+    db: AsyncDB,
     user: Annotated[Optional[User], Depends(get_optional_user)] = None,
     token: Optional[str] = Query(None),
 ):
@@ -7155,11 +7156,11 @@ async def monkey_run_stream(
     Engine'deki /api/monkey-testing/run/stream SSE endpoint'ini proxy'ler.
     Frontend'den POST body olarak { url, max_actions, credentials, config, record_video } alır.
     """
-    resolved_user = user or _resolve_query_token_user(db, token)
+    resolved_user = user or await _resolve_query_token_user(db, token)
     if resolved_user is None:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Kimlik doğrulama gerekli")
 
-    _get_project(db, project_id, resolved_user)
+    await _get_project(db, project_id, resolved_user)
 
     body = await request.json()
 
@@ -7197,10 +7198,10 @@ async def monkey_run_stream(
 async def monkey_run_sync(
     project_id: str,
     request: Request,
-    db: DB,
+    db: AsyncDB,
     user: Annotated[User, Depends(get_current_user)],
 ):
-    _get_project(db, project_id, user)
+    await _get_project(db, project_id, user)
     body = await request.json()
     try:
         async with httpx.AsyncClient(timeout=300) as client:
@@ -7221,10 +7222,10 @@ async def monkey_run_sync(
 async def monkey_video(
     project_id: str,
     run_id: str,
-    db: DB,
+    db: AsyncDB,
     user: Annotated[User, Depends(get_current_user)],
 ):
-    _get_project(db, project_id, user)
+    await _get_project(db, project_id, user)
     try:
         async with httpx.AsyncClient(timeout=30) as client:
             resp = await client.get(
@@ -7247,7 +7248,7 @@ async def monkey_video(
 async def llm_agent_run_stream(
     project_id: str,
     request: Request,
-    db: DB,
+    db: AsyncDB,
     user: Annotated[User, Depends(get_current_user)],
 ):
     """
@@ -7272,7 +7273,7 @@ async def llm_agent_run_stream(
     import json as _json
     import re as _re
 
-    _get_project(db, project_id, user)
+    await _get_project(db, project_id, user)
 
     body = await request.json()
     target_url: str = (body.get("url") or "").strip()

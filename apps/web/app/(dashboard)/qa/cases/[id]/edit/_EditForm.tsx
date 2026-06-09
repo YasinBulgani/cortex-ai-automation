@@ -69,43 +69,43 @@ export default function EditForm({ tcId }: { tcId: string }) {
     }
   }
 
-  if (loading) return <div className="py-12 text-center text-gray-400">Yükleniyor...</div>;
+  if (loading) return <div className="py-12 text-center text-fg-subtle">Yükleniyor...</div>;
   if (error && !tc) return <div className="rounded border border-red-200 bg-red-50 p-4 text-red-700">{error}</div>;
   if (!tc) return null;
 
   return (
     <div className="space-y-6">
-      <section className="rounded border border-gray-200 bg-white p-5">
-        <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Metadata</h2>
+      <section className="rounded border border-border bg-surface-raised p-5">
+        <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-fg-subtle">Metadata</h2>
 
         <div className="grid grid-cols-2 gap-3">
           <label className="col-span-2 text-sm">
-            <span className="block text-xs uppercase tracking-wider text-gray-500">Title</span>
+            <span className="block text-xs uppercase tracking-wider text-fg-subtle">Title</span>
             <input
               type="text"
               value={tc.title}
               onChange={(e) => setTc({ ...tc, title: e.target.value })}
-              className="mt-0.5 w-full rounded border border-gray-200 px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
+              className="mt-0.5 w-full rounded border border-border px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
             />
           </label>
 
           <label className="text-sm">
-            <span className="block text-xs uppercase tracking-wider text-gray-500">Priority</span>
+            <span className="block text-xs uppercase tracking-wider text-fg-subtle">Priority</span>
             <select
               value={tc.priority}
               onChange={(e) => setTc({ ...tc, priority: e.target.value as any })}
-              className="mt-0.5 w-full rounded border border-gray-200 px-2 py-1 text-sm"
+              className="mt-0.5 w-full rounded border border-border px-2 py-1 text-sm"
             >
               {["P0", "P1", "P2", "P3"].map((p) => <option key={p}>{p}</option>)}
             </select>
           </label>
 
           <label className="text-sm">
-            <span className="block text-xs uppercase tracking-wider text-gray-500">Status</span>
+            <span className="block text-xs uppercase tracking-wider text-fg-subtle">Status</span>
             <select
               value={tc.status}
               onChange={(e) => setTc({ ...tc, status: e.target.value as any })}
-              className="mt-0.5 w-full rounded border border-gray-200 px-2 py-1 text-sm"
+              className="mt-0.5 w-full rounded border border-border px-2 py-1 text-sm"
             >
               <option value="draft">draft</option>
               <option value="active">active</option>
@@ -114,28 +114,28 @@ export default function EditForm({ tcId }: { tcId: string }) {
           </label>
 
           <label className="text-sm">
-            <span className="block text-xs uppercase tracking-wider text-gray-500">Owner</span>
+            <span className="block text-xs uppercase tracking-wider text-fg-subtle">Owner</span>
             <input
               type="text"
               value={tc.owner}
               onChange={(e) => setTc({ ...tc, owner: e.target.value })}
               placeholder="@username"
-              className="mt-0.5 w-full rounded border border-gray-200 px-2 py-1 text-sm font-mono"
+              className="mt-0.5 w-full rounded border border-border px-2 py-1 text-sm font-mono"
             />
           </label>
 
           <label className="text-sm">
-            <span className="block text-xs uppercase tracking-wider text-gray-500">Estimated (dk)</span>
+            <span className="block text-xs uppercase tracking-wider text-fg-subtle">Estimated (dk)</span>
             <input
               type="number"
               value={tc.estimated_minutes || ""}
               onChange={(e) => setTc({ ...tc, estimated_minutes: parseInt(e.target.value) || undefined })}
-              className="mt-0.5 w-full rounded border border-gray-200 px-2 py-1 text-sm"
+              className="mt-0.5 w-full rounded border border-border px-2 py-1 text-sm"
             />
           </label>
 
           <div className="col-span-2 text-sm">
-            <span className="mb-1 block text-xs uppercase tracking-wider text-gray-500">Type</span>
+            <span className="mb-1 block text-xs uppercase tracking-wider text-fg-subtle">Type</span>
             <div className="flex flex-wrap gap-1">
               {ALL_TYPES.map((t) => {
                 const checked = (tc.type || []).includes(t);
@@ -152,7 +152,7 @@ export default function EditForm({ tcId }: { tcId: string }) {
                     className={`rounded border px-2 py-0.5 text-xs ${
                       checked
                         ? "border-blue-500 bg-blue-50 text-blue-700"
-                        : "border-gray-200 bg-white text-gray-500 hover:bg-gray-50"
+                        : "border-border bg-surface-raised text-fg-subtle hover:bg-surface"
                     }`}
                   >
                     {t}
@@ -164,15 +164,15 @@ export default function EditForm({ tcId }: { tcId: string }) {
         </div>
       </section>
 
-      <section className="rounded border border-gray-200 bg-white p-5">
-        <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Automation</h2>
+      <section className="rounded border border-border bg-surface-raised p-5">
+        <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-fg-subtle">Automation</h2>
         <div className="space-y-2">
           <label className="text-sm">
-            <span className="block text-xs uppercase tracking-wider text-gray-500">Status</span>
+            <span className="block text-xs uppercase tracking-wider text-fg-subtle">Status</span>
             <select
               value={tc.automation.status}
               onChange={(e) => setTc({ ...tc, automation: { ...tc.automation, status: e.target.value } })}
-              className="mt-0.5 w-full rounded border border-gray-200 px-2 py-1 text-sm"
+              className="mt-0.5 w-full rounded border border-border px-2 py-1 text-sm"
             >
               <option value="not-automated">not-automated</option>
               <option value="in-progress">in-progress</option>
@@ -198,20 +198,20 @@ export default function EditForm({ tcId }: { tcId: string }) {
 
           {tc.automation.status === "out-of-scope" && (
             <label className="text-sm">
-              <span className="block text-xs uppercase tracking-wider text-gray-500">Reason</span>
+              <span className="block text-xs uppercase tracking-wider text-fg-subtle">Reason</span>
               <input
                 type="text"
                 value={tc.automation.reason || ""}
                 onChange={(e) => setTc({ ...tc, automation: { ...tc.automation, reason: e.target.value } })}
-                className="mt-0.5 w-full rounded border border-gray-200 px-2 py-1 text-sm"
+                className="mt-0.5 w-full rounded border border-border px-2 py-1 text-sm"
               />
             </label>
           )}
         </div>
       </section>
 
-      <section className="rounded border border-gray-200 bg-white p-5">
-        <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Links</h2>
+      <section className="rounded border border-border bg-surface-raised p-5">
+        <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-fg-subtle">Links</h2>
         <ListField
           label="Requirements (REQ-*)"
           value={(tc.requirements || []).join(", ")}
@@ -241,24 +241,24 @@ export default function EditForm({ tcId }: { tcId: string }) {
         />
       </section>
 
-      <section className="rounded border border-gray-200 bg-white p-5">
-        <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-500">
+      <section className="rounded border border-border bg-surface-raised p-5">
+        <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-fg-subtle">
           Body (Markdown)
         </h2>
         <textarea
           value={tc.body || ""}
           onChange={(e) => setTc({ ...tc, body: e.target.value })}
           rows={24}
-          className="w-full rounded border border-gray-200 bg-gray-50 p-3 font-mono text-xs focus:outline-none focus:ring-2 focus:ring-blue-200"
+          className="w-full rounded border border-border bg-surface p-3 font-mono text-xs focus:outline-none focus:ring-2 focus:ring-blue-200"
         />
-        <p className="mt-2 text-xs text-gray-500">
+        <p className="mt-2 text-xs text-fg-subtle">
           Adımlar tablosu, önkoşul, notlar — markdown formatında. Live preview yok (henüz).
         </p>
       </section>
 
-      <div className="sticky bottom-0 -mx-6 border-t border-gray-200 bg-white px-6 py-3 shadow">
+      <div className="sticky bottom-0 -mx-6 border-t border-border bg-surface-raised px-6 py-3 shadow">
         <div className="flex items-center justify-between">
-          <a href="/qa" className="text-sm text-gray-500 hover:underline">
+          <a href="/qa" className="text-sm text-fg-subtle hover:underline">
             ← İptal et, dashboard'a dön
           </a>
           <div className="flex items-center gap-3">
@@ -293,14 +293,14 @@ function ListField({
 }) {
   return (
     <label className="mb-2 block text-sm">
-      <span className="block text-xs uppercase tracking-wider text-gray-500">{label}</span>
+      <span className="block text-xs uppercase tracking-wider text-fg-subtle">{label}</span>
       {rows > 1 ? (
         <textarea
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
           rows={rows}
-          className="mt-0.5 w-full rounded border border-gray-200 px-2 py-1 font-mono text-xs"
+          className="mt-0.5 w-full rounded border border-border px-2 py-1 font-mono text-xs"
         />
       ) : (
         <input
@@ -308,7 +308,7 @@ function ListField({
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
-          className="mt-0.5 w-full rounded border border-gray-200 px-2 py-1 font-mono text-sm"
+          className="mt-0.5 w-full rounded border border-border px-2 py-1 font-mono text-sm"
         />
       )}
     </label>

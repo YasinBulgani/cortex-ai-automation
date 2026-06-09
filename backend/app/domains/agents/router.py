@@ -8,10 +8,11 @@ from typing import Annotated, Optional
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
 from pydantic import BaseModel, Field
 from sqlalchemy import func, select
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Session
 
 from app.deps import get_current_user
-from app.infra.database import get_db
+from app.infra.database import get_db, get_async_db
 from app.infra.models import User
 from app.domains.tspm.models import TspmProject, TspmProjectMember
 from app.domains.agents.analytics_service import (
@@ -67,6 +68,7 @@ router = APIRouter(prefix="/agents", tags=["agents"])
 
 CurrentUser = Annotated[User, Depends(get_current_user)]
 DB = Annotated[Session, Depends(get_db)]
+AsyncDB = Annotated[AsyncSession, Depends(get_async_db)]
 
 
 def _is_admin_user(user: User) -> bool:
@@ -77,15 +79,15 @@ def _is_admin_user(user: User) -> bool:
     return False
 
 
-def _require_project_access(db: Session, user: User, project_id: str) -> str:
+async def _require_project_access(db: AsyncSession, user: User, project_id: str) -> str:
     project_id = project_id.strip()
     if not project_id:
         raise HTTPException(400, "project_id gerekli")
-    if db.get(TspmProject, project_id) is None:
+    if await db.get(TspmProject, project_id) is None:
         raise HTTPException(404, "Proje bulunamadi")
     if _is_admin_user(user):
         return project_id
-    is_member = db.scalar(
+    is_member = await db.scalar(
         select(func.count()).where(
             TspmProjectMember.project_id == project_id,
             TspmProjectMember.user_id == user.id,
@@ -96,9 +98,9 @@ def _require_project_access(db: Session, user: User, project_id: str) -> str:
     return project_id
 
 
-def _require_scoped_project_id(db: Session, user: User, project_id: str | None) -> str:
+async def _require_scoped_project_id(db: AsyncSession, user: User, project_id: str | None) -> str:
     if project_id and project_id.strip():
-        return _require_project_access(db, user, project_id)
+        return await _require_project_access(db, user, project_id)
     raise HTTPException(400, "project_id gerekli")
 
 
@@ -115,11 +117,11 @@ class RunAllResponse(BaseModel):
 async def start_all_agents(
     body: RunAllRequest,
     bg: BackgroundTasks,
-    db: DB,
+    db: AsyncDB,
     user: Annotated[User, Depends(get_current_user)],
 ):
     if body.project_id:
-        _require_project_access(db, user, body.project_id)
+        await _require_project_access(db, user, body.project_id)
     elif not _is_admin_user(user):
         raise HTTPException(400, "project_id gerekli")
     return RunAllResponse(**start_all_agents_run(bg, body.project_id))
@@ -275,7 +277,7 @@ class PipelineStartResponse(BaseModel):
 async def start_full_pipeline(
     body: PipelineStartRequest,
     bg: BackgroundTasks,
-    db: DB,
+    db: AsyncDB,
     user: Annotated[User, Depends(get_current_user)],
 ):
     """
@@ -330,7 +332,7 @@ def cancel_full_pipeline(user: Annotated[User, Depends(get_current_user)]):
 @router.post("/pipeline/quick-start")
 async def quick_start_pipeline(
     bg: BackgroundTasks,
-    db: DB,
+    db: AsyncDB,
     user: Annotated[User, Depends(get_current_user)],
     project_name: str = "Otomatik Keşif",
     target_url: Optional[str] = None,
@@ -356,7 +358,7 @@ async def quick_start_pipeline(
 async def run_heal_pipeline(
     body: HealRequest,
     bg: BackgroundTasks,
-    db: DB,
+    db: AsyncDB,
     user: Annotated[User, Depends(get_current_user)],
 ):
     """Kırık testleri otomatik tamir et.
@@ -372,7 +374,7 @@ async def run_heal_pipeline(
 
     # Proje kokunu bul
     project_root = Path(__file__).resolve().parents[4]
-    scoped_project_id = _require_scoped_project_id(db, user, body.project_id)
+    scoped_project_id = await _require_scoped_project_id(db, user, body.project_id)
     pipeline_obj = HealPipeline(project_root, project_id=scoped_project_id)
 
     # Test bilgilerini dict listesine cevir
@@ -417,14 +419,14 @@ async def run_heal_pipeline(
 
 
 @router.get("/heal/history", response_model=HealHistoryResponse)
-def get_heal_history(user: Annotated[User, Depends(get_current_user)], db: DB, limit: int = 20, project_id: str = ""):
+async def get_heal_history(user: Annotated[User, Depends(get_current_user)], db: AsyncDB, limit: int = 20, project_id: str = ""):
     """Son heal islemlerini getir (KnowledgeStore'dan)."""
-    scoped_project_id = _require_scoped_project_id(db, user, project_id)
+    scoped_project_id = await _require_scoped_project_id(db, user, project_id)
     return get_heal_history_data(project_id=scoped_project_id, limit=limit)
 
 
 @router.get("/heal/stats", response_model=HealStatsResponse)
-def get_heal_stats(user: Annotated[User, Depends(get_current_user)], db: DB, project_id: str = ""):
+async def get_heal_stats(user: Annotated[User, Depends(get_current_user)], db: AsyncDB, project_id: str = ""):
     """Healing istatistiklerini getir."""
     stats = HealStatsResponse()
     try:
@@ -494,7 +496,7 @@ def get_heal_stats(user: Annotated[User, Depends(get_current_user)], db: DB, pro
 @router.post("/locator/resolve", response_model=FallbackResolveResponse)
 async def resolve_locator_fallback(
     body: FallbackResolveRequest,
-    db: DB,
+    db: AsyncDB,
     user: Annotated[User, Depends(get_current_user)],
 ):
     """Kirilan selector için fallback zincirini çalıştır.
@@ -507,7 +509,7 @@ async def resolve_locator_fallback(
     try:
         from app.domains.agents.banking_team.locator_fallback_chain import LocatorFallbackChain
 
-        scoped_project_id = _require_scoped_project_id(db, user, body.project_id)
+        scoped_project_id = await _require_scoped_project_id(db, user, body.project_id)
         t0 = _time.time()
         chain = LocatorFallbackChain(project_id=scoped_project_id)
         result = await chain.resolve(
@@ -755,9 +757,9 @@ async def predict_locator_breakage(
 
 
 @router.get("/locator/trends", response_model=TrendAnalysisResponse)
-def get_locator_heal_trends(user: Annotated[User, Depends(get_current_user)], db: DB, project_id: str = ""):
+async def get_locator_heal_trends(user: Annotated[User, Depends(get_current_user)], db: AsyncDB, project_id: str = ""):
     """Heal trend analizi — strateji dagilimi, en cok kirilan selector'lar, sayfa bazli istatistik."""
-    scoped_project_id = _require_scoped_project_id(db, user, project_id)
+    scoped_project_id = await _require_scoped_project_id(db, user, project_id)
     return get_locator_trend_data(project_id=scoped_project_id)
 
 
@@ -766,9 +768,9 @@ def get_locator_heal_trends(user: Annotated[User, Depends(get_current_user)], db
 # ═══════════════════════════════════════════════════════════════════════════════
 
 @router.get("/llm-traces")
-def get_llm_traces(
+async def get_llm_traces(
     user: Annotated[User, Depends(get_current_user)],
-    db: DB,
+    db: AsyncDB,
     run_id: Optional[str] = None,
     agent_name: Optional[str] = None,
     limit: int = 50,

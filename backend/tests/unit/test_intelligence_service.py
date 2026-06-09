@@ -148,7 +148,7 @@ class TestPredictETA:
 
     def test_all_done_returns_zero_remaining(self):
         run = _make_run()
-        cases = [_make_run_case(status="pass", completed_at=_utc(0.5), duration=60) for _ in range(5)]
+        cases = [_make_run_case(status="passed", completed_at=_utc(0.5), duration=60) for _ in range(5)]
         eta = _predict_eta(run, cases)
         assert eta.remaining_cases == 0
         assert eta.on_track is True
@@ -156,7 +156,7 @@ class TestPredictETA:
     def test_velocity_calculated(self):
         run = _make_run(started_hours_ago=1.0)
         done_cases = [
-            _make_run_case(status="pass", completed_at=_utc(0.1), duration=120)
+            _make_run_case(status="passed", completed_at=_utc(0.1), duration=120)
             for _ in range(4)
         ]
         remaining = [_make_run_case(status="not_run") for _ in range(6)]
@@ -173,7 +173,7 @@ class TestPredictETA:
 
     def test_eta_hours_positive_when_remaining(self):
         run = _make_run(started_hours_ago=1.0)
-        done = [_make_run_case(status="pass", completed_at=_utc(0.1), duration=300) for _ in range(10)]
+        done = [_make_run_case(status="passed", completed_at=_utc(0.1), duration=300) for _ in range(10)]
         remaining = [_make_run_case(status="not_run") for _ in range(5)]
         eta = _predict_eta(run, done + remaining)
         assert eta.eta_hours is not None
@@ -181,7 +181,7 @@ class TestPredictETA:
 
     def test_risk_level_low_for_small_eta(self):
         run = _make_run(started_hours_ago=0.5)
-        done = [_make_run_case(status="pass", completed_at=_utc(0.05), duration=60) for _ in range(20)]
+        done = [_make_run_case(status="passed", completed_at=_utc(0.05), duration=60) for _ in range(20)]
         remaining = [_make_run_case(status="not_run") for _ in range(2)]
         eta = _predict_eta(run, done + remaining)
         assert eta.risk_level in ("low", "medium")
@@ -189,7 +189,7 @@ class TestPredictETA:
     def test_confidence_between_zero_and_one(self):
         run = _make_run(started_hours_ago=2.0)
         done = [
-            _make_run_case(status="pass", completed_at=_utc(0.1 * i), duration=120 + i * 10)
+            _make_run_case(status="passed", completed_at=_utc(0.1 * i), duration=120 + i * 10)
             for i in range(5)
         ]
         remaining = [_make_run_case(status="not_run") for _ in range(3)]
@@ -215,7 +215,7 @@ class TestBuildTesterProfiles:
 
     def test_single_tester_profile_built(self):
         done = [
-            _make_run_case(status="pass", assigned_to="user-A", duration=120, completed_at=_utc(0.1))
+            _make_run_case(status="passed", assigned_to="user-A", duration=120, completed_at=_utc(0.1))
             for _ in range(4)
         ]
         remaining = [_make_run_case(status="not_run", assigned_to="user-A")]
@@ -229,7 +229,7 @@ class TestBuildTesterProfiles:
         # fast-user: 10 case tamamladı, hızlı
         fast_done = [
             _make_run_case(
-                status="pass",
+                status="passed",
                 assigned_to="fast-user",
                 duration=60,
                 started_at=_utc(hours_ago=1.0),
@@ -240,7 +240,7 @@ class TestBuildTesterProfiles:
         # slow-user: 1 tamamladı, 9 bekliyor — hızı avg'nin %40 altında
         slow_done = [
             _make_run_case(
-                status="pass",
+                status="passed",
                 assigned_to="slow-user",
                 duration=600,
                 started_at=_utc(hours_ago=1.0),
@@ -255,9 +255,9 @@ class TestBuildTesterProfiles:
 
     def test_pass_rate_calculated(self):
         cases = [
-            _make_run_case(status="pass", assigned_to="u1", completed_at=_utc(0.1)),
-            _make_run_case(status="pass", assigned_to="u1", completed_at=_utc(0.2)),
-            _make_run_case(status="fail", assigned_to="u1", completed_at=_utc(0.3)),
+            _make_run_case(status="passed", assigned_to="u1", completed_at=_utc(0.1)),
+            _make_run_case(status="passed", assigned_to="u1", completed_at=_utc(0.2)),
+            _make_run_case(status="failed", assigned_to="u1", completed_at=_utc(0.3)),
         ]
         profiles = _build_tester_profiles(cases)
         tester = next((p for p in profiles if p.user_id == "u1"), None)
@@ -266,8 +266,8 @@ class TestBuildTesterProfiles:
 
     def test_multiple_testers(self):
         cases = (
-            [_make_run_case(status="pass", assigned_to="u1", completed_at=_utc(0.1))] * 3
-            + [_make_run_case(status="fail", assigned_to="u2", completed_at=_utc(0.2))] * 2
+            [_make_run_case(status="passed", assigned_to="u1", completed_at=_utc(0.1))] * 3
+            + [_make_run_case(status="failed", assigned_to="u2", completed_at=_utc(0.2))] * 2
         )
         profiles = _build_tester_profiles(cases)
         user_ids = {p.user_id for p in profiles}
@@ -298,7 +298,7 @@ class TestDetectAnomalies:
     def test_no_anomalies_clean_run(self):
         run = _make_run()
         cases = [
-            _make_run_case(status="pass", assigned_to="u1", duration=120, completed_at=_utc(0.1))
+            _make_run_case(status="passed", assigned_to="u1", duration=120, completed_at=_utc(0.1))
             for _ in range(5)
         ]
         eta = self._make_eta()
@@ -323,7 +323,7 @@ class TestDetectAnomalies:
     def test_high_blocked_rate_detected(self):
         run = _make_run()
         cases = [_make_run_case(status="blocked", assigned_to="u1", completed_at=_utc(0.1)) for _ in range(8)]
-        cases += [_make_run_case(status="pass", assigned_to="u1", completed_at=_utc(0.2)) for _ in range(2)]
+        cases += [_make_run_case(status="passed", assigned_to="u1", completed_at=_utc(0.2)) for _ in range(2)]
         eta = self._make_eta()
         testers = _build_tester_profiles(cases)
         anomalies = _detect_anomalies(run, cases, testers, eta)
@@ -341,7 +341,7 @@ class TestDetectAnomalies:
 
     def test_velocity_decline_detected(self):
         run = _make_run()
-        cases = [_make_run_case(status="pass", assigned_to="u1", completed_at=_utc(0.1)) for _ in range(5)]
+        cases = [_make_run_case(status="passed", assigned_to="u1", completed_at=_utc(0.1)) for _ in range(5)]
         eta = self._make_eta(remaining=5, velocity=0.5, on_track=False)
         eta.overall_velocity = 5.0  # genel hız 5, anlık 0.5 → %90 düşüş
         testers = _build_tester_profiles(cases)
@@ -388,7 +388,7 @@ class TestDetectAnomalies:
 
 class TestConstants:
     def test_status_done_contains_terminal_states(self):
-        for s in ("pass", "fail", "blocked", "skipped"):
+        for s in ("passed", "failed", "blocked", "skipped"):
             assert s in STATUS_DONE
 
     def test_severity_weights_between_zero_and_one(self):

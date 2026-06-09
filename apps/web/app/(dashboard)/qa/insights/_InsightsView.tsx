@@ -29,7 +29,7 @@ export default function InsightsView() {
       .finally(() => setLoading(false));
   }, []);
 
-  if (loading) return <div className="py-12 text-center text-gray-400">Yükleniyor...</div>;
+  if (loading) return <div className="py-12 text-center text-fg-subtle">Yükleniyor...</div>;
   if (error) return <div className="rounded border border-red-200 bg-red-50 p-4 text-red-700">{error}</div>;
   if (!data) return null;
 
@@ -54,7 +54,7 @@ export default function InsightsView() {
         </Section>
       </div>
 
-      <footer className="border-t border-gray-100 pt-3 text-center text-xs text-gray-400">
+      <footer className="border-t border-border pt-3 text-center text-xs text-fg-subtle">
         Generated: {data.generated_at}
       </footer>
     </div>
@@ -63,10 +63,10 @@ export default function InsightsView() {
 
 function Section({ title, subtitle, children }: { title: string; subtitle?: string; children: React.ReactNode }) {
   return (
-    <section className="rounded border border-gray-200 bg-white p-5">
+    <section className="rounded border border-border bg-surface-raised p-5">
       <header className="mb-3">
-        <h2 className="text-sm font-semibold uppercase tracking-wider text-gray-700">{title}</h2>
-        {subtitle && <p className="text-xs text-gray-500">{subtitle}</p>}
+        <h2 className="text-sm font-semibold uppercase tracking-wider text-fg">{title}</h2>
+        {subtitle && <p className="text-xs text-fg-subtle">{subtitle}</p>}
       </header>
       {children}
     </section>
@@ -81,8 +81,8 @@ function PriorityDonut({ counts }: { counts: Record<string, number> }) {
   const circ = 2 * Math.PI * radius;
 
   return (
-    <section className="rounded border border-gray-200 bg-white p-5">
-      <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-gray-700">Coverage by Priority</h2>
+    <section className="rounded border border-border bg-surface-raised p-5">
+      <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-fg">Coverage by Priority</h2>
       <div className="flex items-center gap-8">
         <svg width="100" height="100" viewBox="0 0 100 100" className="-rotate-90">
           {Object.entries(counts).map(([p, c]) => {
@@ -107,14 +107,14 @@ function PriorityDonut({ counts }: { counts: Record<string, number> }) {
             <div key={p} className="flex items-center gap-2">
               <span className="inline-block h-3 w-3 rounded" style={{ background: palette[p as keyof typeof palette] || "#ccc" }} />
               <span className="font-mono font-semibold">{p}</span>
-              <span className="tabular-nums text-gray-600">{c}</span>
-              <span className="text-xs text-gray-400">({Math.round((c / total) * 100)}%)</span>
+              <span className="tabular-nums text-fg-muted">{c}</span>
+              <span className="text-xs text-fg-subtle">({Math.round((c / total) * 100)}%)</span>
             </div>
           ))}
         </div>
         <div className="ml-auto text-right">
           <div className="text-3xl font-semibold tabular-nums">{total}</div>
-          <div className="text-xs uppercase tracking-wider text-gray-500">Total TC</div>
+          <div className="text-xs uppercase tracking-wider text-fg-subtle">Total TC</div>
         </div>
       </div>
     </section>
@@ -136,7 +136,7 @@ function VelocityChart({ data }: { data: VelocityPoint[] }) {
               <div title={`Updated: ${d.tc_updated}`} className="w-3 rounded-t bg-amber-400" style={{ height: `${(d.tc_updated / max) * h}px` }} />
               <div title={`Runs: ${d.runs_executed}`} className="w-3 rounded-t bg-green-500" style={{ height: `${(d.runs_executed / max) * h}px` }} />
             </div>
-            <div className="mt-1 text-[10px] text-gray-400">
+            <div className="mt-1 text-[10px] text-fg-subtle">
               {d.week_start.slice(5)}
             </div>
           </div>
@@ -152,7 +152,7 @@ function VelocityChart({ data }: { data: VelocityPoint[] }) {
 }
 
 function TrendChart({ data }: { data: TrendPoint[] }) {
-  if (data.length === 0) return <div className="py-8 text-center text-gray-400">Henüz koşum yok</div>;
+  if (data.length === 0) return <div className="py-8 text-center text-fg-subtle">Henüz koşum yok</div>;
   const w = 800;
   const h = 200;
   const padding = 30;
@@ -200,16 +200,16 @@ function Legend({ color, label }: { color: string; label: string }) {
   return (
     <span className="flex items-center gap-1.5">
       <span className={`inline-block h-3 w-3 rounded ${color}`} />
-      <span className="text-gray-600">{label}</span>
+      <span className="text-fg-muted">{label}</span>
     </span>
   );
 }
 
 function TopFailingTable({ data }: { data: TopFailing[] }) {
-  if (data.length === 0) return <div className="py-6 text-center text-sm text-gray-400">✓ Hiç fail yok</div>;
+  if (data.length === 0) return <div className="py-6 text-center text-sm text-fg-subtle">✓ Hiç fail yok</div>;
   return (
     <table className="w-full text-sm">
-      <thead className="text-left text-xs uppercase tracking-wider text-gray-500">
+      <thead className="text-left text-xs uppercase tracking-wider text-fg-subtle">
         <tr>
           <th className="py-2">TC</th>
           <th className="py-2 text-right">Fail</th>
@@ -219,7 +219,7 @@ function TopFailingTable({ data }: { data: TopFailing[] }) {
       </thead>
       <tbody>
         {data.map((d) => (
-          <tr key={d.tc} className="border-t border-gray-100">
+          <tr key={d.tc} className="border-t border-border">
             <td className="py-1.5 font-mono text-xs">{d.tc}</td>
             <td className="py-1.5 text-right tabular-nums">{d.fail_count} / {d.run_count}</td>
             <td className="py-1.5 text-right tabular-nums">
@@ -240,10 +240,10 @@ function TopFailingTable({ data }: { data: TopFailing[] }) {
 }
 
 function OwnerTable({ data }: { data: OwnerStat[] }) {
-  if (data.length === 0) return <div className="py-6 text-center text-sm text-gray-400">Owner kaydı yok</div>;
+  if (data.length === 0) return <div className="py-6 text-center text-sm text-fg-subtle">Owner kaydı yok</div>;
   return (
     <table className="w-full text-sm">
-      <thead className="text-left text-xs uppercase tracking-wider text-gray-500">
+      <thead className="text-left text-xs uppercase tracking-wider text-fg-subtle">
         <tr>
           <th className="py-2">Owner</th>
           <th className="py-2 text-right">TC</th>
@@ -253,18 +253,18 @@ function OwnerTable({ data }: { data: OwnerStat[] }) {
       </thead>
       <tbody>
         {data.map((o) => (
-          <tr key={o.owner} className="border-t border-gray-100">
+          <tr key={o.owner} className="border-t border-border">
             <td className="py-1.5 font-mono text-xs">{o.owner}</td>
             <td className="py-1.5 text-right font-semibold tabular-nums">{o.tc_count}</td>
             <td className="py-1.5">
               <div className="flex items-center gap-2">
-                <div className="h-2 w-16 overflow-hidden rounded bg-gray-100">
+                <div className="h-2 w-16 overflow-hidden rounded bg-surface-overlay">
                   <div className="h-full bg-green-500" style={{ width: `${o.automation_pct}%` }} />
                 </div>
-                <span className="text-xs tabular-nums text-gray-500">{o.automation_pct}%</span>
+                <span className="text-xs tabular-nums text-fg-subtle">{o.automation_pct}%</span>
               </div>
             </td>
-            <td className="py-1.5 text-xs text-gray-500">
+            <td className="py-1.5 text-xs text-fg-subtle">
               {o.suites.slice(0, 3).join(", ")}{o.suites.length > 3 ? ` +${o.suites.length - 3}` : ""}
             </td>
           </tr>

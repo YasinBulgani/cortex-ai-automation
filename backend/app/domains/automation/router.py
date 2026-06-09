@@ -9,10 +9,11 @@ from typing import Annotated, Any
 
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Session
 
 from app.deps import get_current_user
-from app.infra.database import get_db
+from app.infra.database import get_async_db, get_db
 from app.infra.models import User
 
 logger = logging.getLogger(__name__)
@@ -893,6 +894,29 @@ def _schedule_to_out(row) -> AutomationScheduleOut:  # noqa: ANN001
     )
 
 
+async def _user_project_ids_async(db: AsyncSession, user: User) -> list[str]:
+    """Kullanıcının üye olduğu proje id'lerinin listesi (async version)."""
+    from app.domains.tspm.models import TspmProjectMember
+    from sqlalchemy import select as _sa_select
+
+    rows = await db.scalars(
+        _sa_select(TspmProjectMember.project_id).where(
+            TspmProjectMember.user_id == user.id,
+        )
+    )
+    return [pid for pid in rows]
+
+
+async def _require_project_access_async(db: AsyncSession, user: User, project_id: str) -> None:
+    """Proje üyeliği (veya admin '*') yoksa 403 — IDOR koruması (async version)."""
+    from app.deps import _user_permissions
+
+    if "admin.*" in _user_permissions(user):
+        return
+    if project_id not in set(await _user_project_ids_async(db, user)):
+        raise HTTPException(status_code=403, detail="Bu projeye erişim yetkiniz yok")
+
+
 def _require_project_access(db: Session, user: User, project_id: str) -> None:
     """Proje üyeliği (veya admin '*') yoksa 403 — IDOR koruması."""
     from app.deps import _user_permissions
@@ -911,7 +935,7 @@ def _require_project_access(db: Session, user: User, project_id: str) -> None:
 async def list_automation_schedules(
     user: Annotated[User, Depends(get_current_user)],
     project_id: str | None = None,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_async_db),
 ):
     """Kullanıcının erişebildiği projelerdeki automation schedule'larını listele."""
     from app.deps import _user_permissions
@@ -921,11 +945,11 @@ async def list_automation_schedules(
     is_admin = "admin.*" in _user_permissions(user)
     stmt = _sa_select(AutomationSchedule).order_by(AutomationSchedule.created_at.desc())
     if project_id:
-        _require_project_access(db, user, project_id)
+        await _require_project_access_async(db, user, project_id)
         stmt = stmt.where(AutomationSchedule.project_id == project_id)
-    rows = list(db.scalars(stmt))
+    rows = list(await db.scalars(stmt))
     if not project_id and not is_admin:
-        allowed = set(_user_project_ids(db, user))
+        allowed = set(await _user_project_ids_async(db, user))
         rows = [r for r in rows if r.project_id in allowed]
     items = [_schedule_to_out(r) for r in rows]
     return AutomationScheduleList(items=items, total=len(items))
@@ -939,14 +963,14 @@ async def list_automation_schedules(
 async def create_automation_schedule(
     payload: AutomationScheduleCreate,
     user: Annotated[User, Depends(get_current_user)],
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_async_db),
 ):
     """Yeni cron-tabanlı automation schedule oluştur."""
     from app.domains.automation.scheduler import add_schedule_job, compute_next_run, is_valid_cron
     from app.infra.models import AutomationSchedule
     from uuid import uuid4
 
-    _require_project_access(db, user, payload.project_id)
+    await _require_project_access_async(db, user, payload.project_id)
     if not is_valid_cron(payload.cron_expression):
         raise HTTPException(status_code=422, detail="Geçersiz cron ifadesi (5 alan bekleniyor)")
 
@@ -966,7 +990,7 @@ async def create_automation_schedule(
         next_run_at=compute_next_run(payload.cron_expression),
     )
     db.add(row)
-    db.commit()
+    await db.commit()
     if row.is_active:
         add_schedule_job(row.id, row.cron_expression)
     return _schedule_to_out(row)
@@ -981,7 +1005,7 @@ async def update_automation_schedule(
     schedule_id: str,
     payload: AutomationScheduleUpdate,
     user: Annotated[User, Depends(get_current_user)],
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_async_db),
 ):
     """Schedule güncelle (aktif/pasif, cron, hedef vb.)."""
     from app.domains.automation.scheduler import (
@@ -992,10 +1016,10 @@ async def update_automation_schedule(
     )
     from app.infra.models import AutomationSchedule
 
-    row = db.get(AutomationSchedule, schedule_id)
+    row = await db.get(AutomationSchedule, schedule_id)
     if row is None:
         raise HTTPException(status_code=404, detail="Schedule bulunamadı")
-    _require_project_access(db, user, row.project_id)
+    await _require_project_access_async(db, user, row.project_id)
 
     if payload.cron_expression is not None:
         if not is_valid_cron(payload.cron_expression):
@@ -1014,7 +1038,7 @@ async def update_automation_schedule(
         row.run_metadata = payload.metadata
     if payload.is_active is not None:
         row.is_active = payload.is_active
-    db.commit()
+    await db.commit()
 
     remove_schedule_job(row.id)
     if row.is_active:
@@ -1029,19 +1053,19 @@ async def update_automation_schedule(
 async def delete_automation_schedule(
     schedule_id: str,
     user: Annotated[User, Depends(get_current_user)],
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_async_db),
 ):
     """Schedule sil ve APScheduler job'ını kaldır."""
     from app.domains.automation.scheduler import remove_schedule_job
     from app.infra.models import AutomationSchedule
 
-    row = db.get(AutomationSchedule, schedule_id)
+    row = await db.get(AutomationSchedule, schedule_id)
     if row is None:
         raise HTTPException(status_code=404, detail="Schedule bulunamadı")
-    _require_project_access(db, user, row.project_id)
+    await _require_project_access_async(db, user, row.project_id)
     remove_schedule_job(row.id)
-    db.delete(row)
-    db.commit()
+    await db.delete(row)
+    await db.commit()
     return {"deleted": True, "id": schedule_id}
 
 

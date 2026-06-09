@@ -77,3 +77,53 @@ def log_audit(
         ts=utcnow(),
     )
     db.add(ev)
+
+
+async def log_audit_async(
+    db,
+    *,
+    actor_user_id: Optional[str],
+    action: str,
+    resource_type: str,
+    resource_id: Optional[str],
+    payload: Optional[Dict[str, Any]],
+    ip: Optional[str],
+    tenant_id: Optional[str] = None,
+) -> None:
+    """Async version of log_audit — for use in async endpoints.
+
+    Same behavior as log_audit but awaitable.
+    """
+    # Öncelik: hash-chain path (tamper-evident). Başarısız olursa ORM fallback.
+    try:
+        from app.domains.audit.chain import append_event
+
+        append_event(
+            tenant_id=tenant_id,
+            actor_user_id=actor_user_id,
+            action=action,
+            resource_type=resource_type,
+            resource_id=resource_id,
+            payload=payload,
+        )
+        return
+    except Exception as exc:
+        # DB'ye ulaşılamadı, migration henüz yok, veya zinciri kiran bir
+        # corruption → ORM fallback'e düş. Critical: audit kaybolmamalı.
+        logger.warning(
+            "Audit chain append başarısız, ORM fallback: action=%s err=%s",
+            action,
+            exc,
+        )
+
+    ev = AuditEvent(
+        actor_user_id=actor_user_id,
+        action=action,
+        resource_type=resource_type,
+        resource_id=resource_id,
+        payload=payload,
+        ip=ip,
+        tenant_id=tenant_id,
+        ts=utcnow(),
+    )
+    db.add(ev)

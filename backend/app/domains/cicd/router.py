@@ -23,16 +23,20 @@ from datetime import datetime, timezone as _tz
 from typing import Any, Optional
 from urllib.parse import urlparse
 
+import httpx
 from fastapi import APIRouter, BackgroundTasks, Depends, Header, HTTPException, Request
 from pydantic import BaseModel
+
+from app.core.engine_client import engine_request_async
 from sqlalchemy import func, select, text
 from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.deps import get_current_user, get_optional_user
 from app.domains.tspm.models import TspmProject, TspmProjectMember
-from app.infra.database import get_db
+from app.infra.database import get_db, get_async_db, AsyncSession
 from app.infra.models import User
+from typing import Annotated
 
 router = APIRouter(prefix="/cicd", tags=["cicd"])
 logger = logging.getLogger(__name__)
@@ -91,16 +95,16 @@ def _is_admin_user(user: User) -> bool:
     return False
 
 
-def _project_exists(db: Session, project_id: str) -> None:
-    if db.get(TspmProject, project_id) is None:
+async def _project_exists(db: AsyncSession, project_id: str) -> None:
+    if await db.get(TspmProject, project_id) is None:
         raise HTTPException(404, "Proje bulunamadi")
 
 
-def _require_project_access(db: Session, user: User, project_id: str) -> None:
-    _project_exists(db, project_id)
+async def _require_project_access(db: AsyncSession, user: User, project_id: str) -> None:
+    await _project_exists(db, project_id)
     if _is_admin_user(user):
         return
-    is_member = db.scalar(
+    is_member = await db.scalar(
         select(func.count()).where(
             TspmProjectMember.project_id == project_id,
             TspmProjectMember.user_id == user.id,
@@ -158,8 +162,8 @@ def _serialize_json(value: Any) -> str:
     return json.dumps(value, default=str)
 
 
-def _store_event(
-    db: Session,
+async def _store_event(
+    db: AsyncSession,
     source: str,
     event_type: str,
     payload: dict,
@@ -167,14 +171,15 @@ def _store_event(
     tenant_id: str | None = None,
 ) -> dict:
     """Persist webhook event while preserving the public response shape."""
+    received_at_dt = datetime.now(_tz.utc)
     event = {
         "id": hashlib.md5(
-            f"{source}{event_type}{datetime.now(_tz.utc).isoformat()}".encode()
+            f"{source}{event_type}{received_at_dt.isoformat()}".encode()
         ).hexdigest()[:12],
         "source": source,
         "event_type": event_type,
         "project_ref": project_ref,
-        "received_at": datetime.now(_tz.utc).isoformat(),
+        "received_at": received_at_dt.isoformat(),
         "payload_summary": _summarize(payload),
     }
 
@@ -195,12 +200,12 @@ def _store_event(
         "branch": _extract_branch(payload),
         "repo_name": (repo_name or project_ref)[:256],
         "author": _extract_author(payload),
-        "received_at": event["received_at"],
+        "received_at": received_at_dt,
         "tenant_id": tenant_id or _DEFAULT_TENANT,
     }
 
     try:
-        db.execute(
+        await db.execute(
             text(
                 """
                 INSERT INTO cicd_webhook_events (
@@ -217,24 +222,24 @@ def _store_event(
             ),
             params,
         )
-        db.commit()
+        await db.commit()
     except Exception:
-        db.rollback()
+        await db.rollback()
         logger.exception("Failed to persist CI/CD webhook event %s", event["id"])
         raise
 
     return event
 
 
-def _list_events(
-    db: Session,
+async def _list_events(
+    db: AsyncSession,
     source: Optional[str] = None,
     limit: int = 50,
     tenant_id: Optional[str] = None,
 ) -> dict:
     """Fetch recent CI/CD events with the legacy response payload shape."""
     safe_limit = max(1, min(limit, 500))
-    rows = db.execute(
+    rows = (await db.execute(
         text(
             """
             SELECT
@@ -252,9 +257,9 @@ def _list_events(
             """
         ),
         {"source": source, "limit": safe_limit, "tenant_id": tenant_id},
-    ).mappings().all()
+    )).mappings().all()
 
-    total = db.execute(
+    total = (await db.execute(
         text(
             """
             SELECT COUNT(*)
@@ -264,7 +269,7 @@ def _list_events(
             """
         ),
         {"source": source, "tenant_id": tenant_id},
-    ).scalar_one()
+    )).scalar_one()
 
     events = []
     for row in rows:
@@ -308,7 +313,7 @@ def _verify_github_signature(body: bytes, signature: str) -> bool:
 async def github_webhook(
     request: Request,
     background_tasks: BackgroundTasks,
-    db: Session = Depends(get_db),
+    db: Annotated[AsyncSession, Depends(get_async_db)],
     x_github_event: str = Header(default=""),
     x_hub_signature_256: str = Header(default=""),
 ):
@@ -331,7 +336,7 @@ async def github_webhook(
     conclusion = payload.get("workflow_run", {}).get("conclusion", "")
 
     tenant_id = getattr(request.state, "tenant_id", None)
-    ev = _store_event(db, "github", x_github_event, payload, project_ref=repo, tenant_id=tenant_id)
+    ev = await _store_event(db, "github", x_github_event, payload, project_ref=repo, tenant_id=tenant_id)
 
     # Auto-trigger Neurex tests when a workflow run completes successfully
     if x_github_event == "workflow_run" and conclusion == "success":
@@ -346,7 +351,7 @@ async def github_webhook(
 async def gitlab_webhook(
     request: Request,
     background_tasks: BackgroundTasks,
-    db: Session = Depends(get_db),
+    db: Annotated[AsyncSession, Depends(get_async_db)],
     x_gitlab_token: str = Header(default=""),
     x_gitlab_event: str = Header(default=""),
 ):
@@ -367,7 +372,7 @@ async def gitlab_webhook(
     pipeline_status = payload.get("object_attributes", {}).get("status", "")
 
     tenant_id = getattr(request.state, "tenant_id", None)
-    ev = _store_event(db, "gitlab", object_kind, payload, project_ref=project_ref, tenant_id=tenant_id)
+    ev = await _store_event(db, "gitlab", object_kind, payload, project_ref=project_ref, tenant_id=tenant_id)
 
     if object_kind == "pipeline" and pipeline_status == "success":
         ref = payload.get("object_attributes", {}).get("ref", "")
@@ -382,7 +387,7 @@ async def gitlab_webhook(
 async def jenkins_webhook(
     request: Request,
     background_tasks: BackgroundTasks,
-    db: Session = Depends(get_db),
+    db: Annotated[AsyncSession, Depends(get_async_db)],
     x_jenkins_token: str = Header(default=""),
 ):
     _verify_header_token(
@@ -401,7 +406,7 @@ async def jenkins_webhook(
     job_name = payload.get("name", payload.get("build", {}).get("full_url", "unknown"))
     tenant_id = getattr(request.state, "tenant_id", None)
 
-    ev = _store_event(db, "jenkins", "build", payload, project_ref=job_name, tenant_id=tenant_id)
+    ev = await _store_event(db, "jenkins", "build", payload, project_ref=job_name, tenant_id=tenant_id)
 
     if build_status in ("SUCCESS", "success"):
         background_tasks.add_task(_auto_trigger_on_ci_success, "jenkins", job_name, "", payload)
@@ -412,13 +417,13 @@ async def jenkins_webhook(
 # ─── Events log ──────────────────────────────────────────────────────────────
 
 @router.get("/events")
-def list_events(
+async def list_events(
+    db: Annotated[AsyncSession, Depends(get_async_db)],
+    current_user: User = Depends(get_current_user),
     source: Optional[str] = None,
     limit: int = 50,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
 ):
-    return _list_events(db, source=source, limit=limit, tenant_id=str(current_user.tenant_id))
+    return await _list_events(db, source=source, limit=limit, tenant_id=str(current_user.tenant_id))
 
 
 # ─── Manual trigger ──────────────────────────────────────────────────────────
@@ -435,8 +440,8 @@ class TriggerIn(BaseModel):
 async def trigger_tests(
     project_id: str,
     body: TriggerIn,
+    db: Annotated[AsyncSession, Depends(get_async_db)],
     x_ci_token: str = Header(default=""),
-    db: Session = Depends(get_db),
     current_user: User | None = Depends(get_optional_user),
 ):
     """Trigger Neurex test execution from external CI/CD pipeline."""
@@ -450,7 +455,7 @@ async def trigger_tests(
     if not CI_TOKEN:
         if current_user is None:
             raise HTTPException(401, "Kimlik dogrulama gerekli")
-        _require_project_access(db, current_user, project_id)
+        await _require_project_access(db, current_user, project_id)
     import httpx
     payload = {
         "project_id": project_id,
@@ -461,14 +466,9 @@ async def trigger_tests(
         "commit": body.commit,
     }
     try:
-        async with httpx.AsyncClient(timeout=30) as client:
-            resp = await client.post(
-                f"{ENGINE_BASE}/api/run",
-                json=payload,
-                headers={"X-Internal-Key": ENGINE_KEY},
-            )
-            resp.raise_for_status()
-            return {"triggered": True, "engine_response": resp.json()}
+        resp = await engine_request_async("POST", "/api/run", json=payload, timeout=30)
+        resp.raise_for_status()
+        return {"triggered": True, "engine_response": resp.json()}
     except httpx.HTTPError as exc:
         logger.exception("CI trigger failed for project %s", project_id)
         return {"triggered": False, "error": str(exc)}
@@ -549,38 +549,38 @@ class ImpactAnalysisRequest(BaseModel):
 
 @router.post("/impact-analysis/{project_id}")
 async def impact_analysis(project_id: str, body: ImpactAnalysisRequest,
-                           db: Session = Depends(get_db),
+                           db: Annotated[AsyncSession, Depends(get_async_db)],
                            _current_user=Depends(get_current_user)):
     """Git diff'e göre hangi testlerin etkilendiğini hesaplar ve önceliklendirir."""
-    _require_project_access(db, _current_user, project_id)
+    await _require_project_access(db, _current_user, project_id)
     import statistics
 
     from sqlalchemy import select
 
     from app.domains.tspm.models import TspmExecution, TspmExecutionResult, TspmScenario
 
-    scenarios = list(db.execute(
+    scenarios = list((await db.execute(
         select(TspmScenario).where(TspmScenario.project_id == project_id)
-    ).scalars().all())
+    )).scalars().all())
 
     if not scenarios:
         return {"scenarios": [], "total": 0, "changed_files": body.changed_files}
 
     # Son 20 koşudan fail rate hesapla
-    recent_execs = list(db.execute(
+    recent_execs = list((await db.execute(
         select(TspmExecution)
         .where(TspmExecution.project_id == project_id)
         .order_by(TspmExecution.created_at.desc())
         .limit(20)
-    ).scalars().all())
+    )).scalars().all())
 
     fail_rates: dict[str, float] = {}
     durations: dict[str, list[float]] = {}
 
     for ex in recent_execs:
-        results = list(db.execute(
+        results = list((await db.execute(
             select(TspmExecutionResult).where(TspmExecutionResult.execution_id == ex.id)
-        ).scalars().all())
+        )).scalars().all())
         for r in results:
             sid = r.scenario_id
             if sid not in fail_rates:
@@ -662,17 +662,17 @@ async def _auto_trigger_on_ci_success(
     """Auto-trigger smoke tests when CI pipeline succeeds."""
     import httpx
     try:
-        async with httpx.AsyncClient(timeout=30) as client:
-            await client.post(
-                f"{ENGINE_BASE}/api/run",
-                json={
-                    "triggered_by": source,
-                    "project_ref": project_ref,
-                    "ref": ref,
-                    "tag": "smoke",
-                },
-                headers={"X-Internal-Key": ENGINE_KEY},
-            )
+        await engine_request_async(
+            "POST",
+            "/api/run",
+            json={
+                "triggered_by": source,
+                "project_ref": project_ref,
+                "ref": ref,
+                "tag": "smoke",
+            },
+            timeout=30,
+        )
     except httpx.HTTPError:
         logger.exception(
             "Background CI auto-trigger failed for source %s and project %s",
@@ -722,17 +722,17 @@ def _tenant_of(user: _User) -> str:
 
 
 @router.get("/jenkins/connections")
-def jenkins_list_connections(
-    db: Session = Depends(get_db),
+async def jenkins_list_connections(
+    db: Annotated[AsyncSession, Depends(get_async_db)],
     current_user: _User = Depends(get_current_user),
 ):
     return {"connections": _jenkins_svc.list_connections(db, _tenant_of(current_user))}
 
 
 @router.post("/jenkins/connections", status_code=201)
-def jenkins_create_connection(
+async def jenkins_create_connection(
     body: JenkinsConnectionIn,
-    db: Session = Depends(get_db),
+    db: Annotated[AsyncSession, Depends(get_async_db)],
     current_user: _User = Depends(get_current_user),
 ):
     if not body.name.strip():
@@ -761,9 +761,9 @@ def jenkins_create_connection(
 
 
 @router.delete("/jenkins/connections/{conn_id}", status_code=204)
-def jenkins_delete_connection(
+async def jenkins_delete_connection(
     conn_id: str,
-    db: Session = Depends(get_db),
+    db: Annotated[AsyncSession, Depends(get_async_db)],
     current_user: _User = Depends(get_current_user),
 ):
     if not _jenkins_svc.delete_connection(db, conn_id, _tenant_of(current_user)):

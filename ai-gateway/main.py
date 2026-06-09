@@ -69,6 +69,14 @@ async def lifespan(app: FastAPI):
     except Exception:
         pass
 
+    # Fail-fast: hiçbir sağlayıcı etkin değilse runtime'da değil, BAŞLANGIÇTA patla.
+    # Aksi halde ilk AI isteğinde sessizce RuntimeError'a düşer (router.py).
+    if not settings.PROVIDER_ORDER:
+        raise RuntimeError(
+            "AI Gateway başlatılamadı: etkin sağlayıcı yok (PROVIDER_ORDER boş). "
+            "En az bir sağlayıcıyı etkinleştirin (ör. OLLAMA_ENABLED=true)."
+        )
+
     logger.info(f"{settings.APP_NAME} v{settings.APP_VERSION} baslatildi (port {settings.PORT})")
     logger.info(f"   Fallback zinciri: {' -> '.join(settings.PROVIDER_ORDER)}")
     yield
@@ -90,9 +98,15 @@ app = FastAPI(
 )
 
 # ── CORS ────────────────────────────────────────────────────────────────────
+# allow_credentials=True ile allow_origins=["*"] kombinasyonu güvenlik açığıdır
+# (her origin credential'lı istek atabilir). İzinli origin'leri ALLOWED_ORIGINS'ten
+# oku; boşsa güvenli localhost varsayılanına düş.
+_allowed_origins = [o.strip() for o in settings.ALLOWED_ORIGINS.split(",") if o.strip()] or [
+    "http://localhost:3000"
+]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Production'da backend/frontend URL'leriyle sınırla
+    allow_origins=_allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

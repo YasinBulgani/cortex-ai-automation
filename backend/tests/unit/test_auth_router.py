@@ -8,7 +8,7 @@ from __future__ import annotations
 import pytest
 
 try:
-    from unittest.mock import MagicMock, patch
+    from unittest.mock import AsyncMock, MagicMock, patch
 
     from fastapi import FastAPI
     from fastapi.testclient import TestClient
@@ -57,24 +57,30 @@ def _make_fake_user(
 
 @pytest.fixture()
 def client() -> "TestClient":
-    from app.deps import get_current_user, get_db
+    from app.deps import get_current_user
+    from app.infra.database import get_async_db
 
     app = FastAPI()
     app.include_router(router, prefix="/api/v1")
 
     fake_user = _make_fake_user()
-    fake_db = MagicMock()
-    fake_db.scalar.return_value = None
-    fake_db.scalars.return_value = MagicMock(return_value=[])
-    fake_db.commit.return_value = None
-    fake_db.rollback.return_value = None
-    fake_db.refresh.return_value = None
-    fake_db.get.return_value = None
-    fake_db.execute.return_value = None
-    fake_db.flush.return_value = None
+    fake_db = AsyncMock()
+    fake_db.scalar = AsyncMock(return_value=None)
+    fake_scalars_result = MagicMock()
+    fake_scalars_result.all = AsyncMock(return_value=[])
+    fake_db.scalars = AsyncMock(return_value=fake_scalars_result)
+    fake_db.commit = AsyncMock(return_value=None)
+    fake_db.rollback = AsyncMock(return_value=None)
+    fake_db.refresh = AsyncMock(return_value=None)
+    fake_db.get = AsyncMock(return_value=None)
+    fake_db.execute = AsyncMock(return_value=MagicMock())
+    fake_db.flush = AsyncMock(return_value=None)
 
     app.dependency_overrides[get_current_user] = lambda: fake_user
-    app.dependency_overrides[get_db] = lambda: fake_db
+    # get_async_db is async generator; override with simple async callable that returns mock
+    async def fake_get_async_db(_request=None):
+        return fake_db
+    app.dependency_overrides[get_async_db] = fake_get_async_db
 
     return TestClient(app, raise_server_exceptions=False)
 
@@ -82,24 +88,30 @@ def client() -> "TestClient":
 @pytest.fixture()
 def admin_client() -> "TestClient":
     """Client where the injected user has admin.* permission."""
-    from app.deps import get_current_user, get_db, _user_permissions
+    from app.deps import get_current_user, _user_permissions
+    from app.infra.database import get_async_db
 
     app = FastAPI()
     app.include_router(router, prefix="/api/v1")
 
     fake_user = _make_fake_user(roles=["admin"])
-    fake_db = MagicMock()
-    fake_db.scalar.return_value = None
-    fake_db.scalars.return_value = MagicMock(return_value=[])
-    fake_db.commit.return_value = None
-    fake_db.rollback.return_value = None
-    fake_db.refresh.return_value = None
-    fake_db.get.return_value = None
-    fake_db.execute.return_value = None
-    fake_db.flush.return_value = None
+    fake_db = AsyncMock()
+    fake_db.scalar = AsyncMock(return_value=None)
+    fake_scalars_result = MagicMock()
+    fake_scalars_result.all = AsyncMock(return_value=[])
+    fake_db.scalars = AsyncMock(return_value=fake_scalars_result)
+    fake_db.commit = AsyncMock(return_value=None)
+    fake_db.rollback = AsyncMock(return_value=None)
+    fake_db.refresh = AsyncMock(return_value=None)
+    fake_db.get = AsyncMock(return_value=None)
+    fake_db.execute = AsyncMock(return_value=MagicMock())
+    fake_db.flush = AsyncMock(return_value=None)
 
     app.dependency_overrides[get_current_user] = lambda: fake_user
-    app.dependency_overrides[get_db] = lambda: fake_db
+    # get_async_db is async generator; override with simple async callable that returns mock
+    async def fake_get_async_db(_request=None):
+        return fake_db
+    app.dependency_overrides[get_async_db] = fake_get_async_db
     # Patch _user_permissions so it returns admin.* for this user
     with patch("app.deps._user_permissions", return_value={"admin.*"}):
         tc = TestClient(app, raise_server_exceptions=False)
@@ -150,7 +162,7 @@ class TestLogoutEndpoint:
     def test_logout_returns_ok(self, client: "TestClient") -> None:
         with (
             patch("app.domains.auth.router.revoke_token"),
-            patch("app.domains.auth.router.log_audit"),
+            patch("app.domains.auth.router.log_audit_async"),
         ):
             r = client.post("/api/v1/auth/logout")
         assert r.status_code == 200
@@ -225,7 +237,7 @@ class TestForgotPasswordEndpoint:
             patch("app.services.email_service.build_password_reset_email", return_value={}),
             patch("app.services.email_service.send_email", return_value=None),
             patch("app.domains.auth.router.create_password_reset_token", return_value="tok"),
-            patch("app.domains.auth.router.log_audit"),
+            patch("app.domains.auth.router.log_audit_async"),
         ):
             r = client.post(
                 "/api/v1/auth/forgot-password",
@@ -271,7 +283,8 @@ class TestSecurityFixes:
 
     def test_login_rate_limit_exceeded(self) -> None:
         """11th login attempt from the same IP must return 429."""
-        from app.deps import get_current_user, get_db
+        from app.deps import get_current_user
+        from app.infra.database import get_async_db
         import app.domains.auth.router as auth_router
 
         # Reset the in-memory state so this test is isolated
@@ -281,12 +294,15 @@ class TestSecurityFixes:
         app_instance = FastAPI()
         app_instance.include_router(router, prefix="/api/v1")
 
-        fake_db = MagicMock()
-        fake_db.scalar.return_value = None  # user not found each time
-        fake_db.commit.return_value = None
-        fake_db.rollback.return_value = None
+        fake_db = AsyncMock()
+        fake_db.scalar = AsyncMock(return_value=None)  # user not found each time
+        fake_db.commit = AsyncMock(return_value=None)
+        fake_db.rollback = AsyncMock(return_value=None)
 
-        app_instance.dependency_overrides[get_db] = lambda: fake_db
+        # get_async_db is async generator; override with simple async callable that returns mock
+        async def fake_get_async_db(_request=None):
+            return fake_db
+        app_instance.dependency_overrides[get_async_db] = fake_get_async_db
         app_instance.dependency_overrides[get_current_user] = lambda: _make_fake_user()
 
         tc = TestClient(app_instance, raise_server_exceptions=False)
@@ -317,7 +333,8 @@ class TestSecurityFixes:
         """Login with a nonexistent user should not return significantly faster
         than login with an existing user (dummy hash always runs)."""
         import time
-        from app.deps import get_current_user, get_db
+        from app.deps import get_current_user
+        from app.infra.database import get_async_db
         import app.domains.auth.router as auth_router
 
         auth_router._login_attempts.clear()
@@ -328,17 +345,20 @@ class TestSecurityFixes:
         fake_user = _make_fake_user()
         fake_user.password_hash = "$2b$12$" + "a" * 53  # valid bcrypt-shaped hash
 
-        fake_db_missing = MagicMock()
-        fake_db_missing.scalar.return_value = None
-        fake_db_missing.commit.return_value = None
-        fake_db_missing.rollback.return_value = None
+        fake_db_missing = AsyncMock()
+        fake_db_missing.scalar = AsyncMock(return_value=None)
+        fake_db_missing.commit = AsyncMock(return_value=None)
+        fake_db_missing.rollback = AsyncMock(return_value=None)
 
         with (
             patch("app.domains.auth.router._has_limiter", False),
             patch("app.domains.auth.router.limiter", None),
         ):
             # Measure time for nonexistent user — verify_password MUST run
-            app_instance.dependency_overrides[get_db] = lambda: fake_db_missing
+            # get_async_db is async generator; override with simple async callable that returns mock
+            async def fake_get_async_db(_request=None):
+                return fake_db_missing
+            app_instance.dependency_overrides[get_async_db] = fake_get_async_db
             app_instance.dependency_overrides[get_current_user] = lambda: fake_user
             tc_missing = TestClient(app_instance, raise_server_exceptions=False)
 
@@ -352,15 +372,19 @@ class TestSecurityFixes:
 
     def test_refresh_hides_internal_error(self) -> None:
         """Refresh endpoint must return a generic 401 message, not internal error details."""
-        from app.deps import get_current_user, get_db
+        from app.deps import get_current_user
+        from app.infra.database import get_async_db
 
         app_instance = FastAPI()
         app_instance.include_router(router, prefix="/api/v1")
 
-        fake_db = MagicMock()
-        fake_db.commit.return_value = None
+        fake_db = AsyncMock()
+        fake_db.commit = AsyncMock(return_value=None)
 
-        app_instance.dependency_overrides[get_db] = lambda: fake_db
+        # get_async_db is async generator; override with simple async callable that returns mock
+        async def fake_get_async_db(_request=None):
+            return fake_db
+        app_instance.dependency_overrides[get_async_db] = fake_get_async_db
         app_instance.dependency_overrides[get_current_user] = lambda: _make_fake_user()
 
         tc = TestClient(app_instance, raise_server_exceptions=False)

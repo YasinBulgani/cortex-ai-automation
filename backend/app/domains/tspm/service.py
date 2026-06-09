@@ -2,6 +2,7 @@
 
 HTTP-agnostic. Raises ValueError/KeyError instead of HTTPException.
 Wraps SQLAlchemy TspmProject / TspmScenario models.
+Async-first using AsyncSession.
 """
 from __future__ import annotations
 
@@ -9,22 +10,22 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from sqlalchemy import select
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.domains.tspm.models import TspmProject, TspmProjectMember, TspmScenario, utcnow
 
 logger = logging.getLogger(__name__)
 
 
-def list_projects(
-    db: Session,
+async def list_projects(
+    db: AsyncSession,
     limit: int = 50,
     owner_id: Optional[str] = None,
 ) -> List[Dict[str, Any]]:
     """List TSPM projects, newest first.
 
     Args:
-        db: SQLAlchemy session.
+        db: AsyncSession.
         limit: Maximum rows (capped at 500).
         owner_id: Optional filter by owner/creator user ID.
 
@@ -37,19 +38,20 @@ def list_projects(
         q = q.join(TspmProjectMember, TspmProjectMember.project_id == TspmProject.id).where(
             TspmProjectMember.user_id == owner_id
         )
-    projects = list(db.scalars(q).all())
+    result = await db.scalars(q)
+    projects = list(result.all())
     return [{c.key: getattr(p, c.key) for c in p.__table__.columns} for p in projects]
 
 
-def create_project(
-    db: Session,
+async def create_project(
+    db: AsyncSession,
     data: Dict[str, Any],
     owner_id: Optional[str] = None,
 ) -> Dict[str, Any]:
     """Create a new TSPM project.
 
     Args:
-        db: SQLAlchemy session.
+        db: AsyncSession.
         data: Project fields. 'name' is required.
         owner_id: User ID of the creator.
 
@@ -71,14 +73,14 @@ def create_project(
         updated_at=utcnow(),
     )
     db.add(project)
-    db.commit()
-    db.refresh(project)
+    await db.commit()
+    await db.refresh(project)
     logger.info("TspmProject oluşturuldu: %s (owner=%s)", project.id, owner_id)
     return {c.key: getattr(project, c.key) for c in project.__table__.columns}
 
 
-def list_scenarios(
-    db: Session,
+async def list_scenarios(
+    db: AsyncSession,
     project_id: str,
     limit: int = 100,
     status: Optional[str] = None,
@@ -86,7 +88,7 @@ def list_scenarios(
     """List scenarios for a project.
 
     Args:
-        db: SQLAlchemy session.
+        db: AsyncSession.
         project_id: Parent project ID.
         limit: Maximum rows (capped at 1000).
         status: Optional status filter.
@@ -97,7 +99,7 @@ def list_scenarios(
     Raises:
         KeyError: Project not found.
     """
-    project = db.get(TspmProject, project_id)
+    project = await db.get(TspmProject, project_id)
     if project is None:
         raise KeyError(f"TspmProject '{project_id}' bulunamadı.")
 
@@ -111,5 +113,6 @@ def list_scenarios(
     if status:
         q = q.where(TspmScenario.status == status)
 
-    scenarios = list(db.scalars(q).all())
+    result = await db.scalars(q)
+    scenarios = list(result.all())
     return [{c.key: getattr(s, c.key) for c in s.__table__.columns} for s in scenarios]

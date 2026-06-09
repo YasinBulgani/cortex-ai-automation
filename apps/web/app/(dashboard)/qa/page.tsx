@@ -100,18 +100,18 @@ export default async function QaDashboardPage() {
 
   return (
     <main className="mx-auto max-w-7xl px-6 py-8 text-sm">
-      <header className="mb-8 flex items-baseline justify-between border-b border-gray-200 pb-4">
+      <header className="mb-8 flex items-baseline justify-between border-b border-border pb-4">
         <div>
           <h1 className="text-2xl font-semibold">QA Dashboard</h1>
-          <p className="text-gray-500">qa/ klasöründen real-time veri</p>
+          <p className="text-fg-subtle">qa/ klasöründen real-time veri</p>
         </div>
-        <span className="text-xs text-gray-400">
+        <span className="text-xs text-fg-subtle">
           {new Date().toISOString().slice(0, 16).replace("T", " ")}
         </span>
       </header>
 
       <section className="mb-8">
-        <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-500">
+        <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-fg-subtle">
           Key Metrics
         </h2>
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
@@ -132,12 +132,12 @@ export default async function QaDashboardPage() {
       </section>
 
       <section className="mb-8">
-        <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-500">
+        <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-fg-subtle">
           Coverage Matrix
         </h2>
-        <div className="overflow-x-auto rounded border border-gray-200 bg-white">
+        <div className="overflow-x-auto rounded border border-border bg-surface-raised">
           <table className="w-full">
-            <thead className="bg-gray-50 text-left text-xs uppercase tracking-wider text-gray-500">
+            <thead className="bg-surface text-left text-xs uppercase tracking-wider text-fg-subtle">
               <tr>
                 <th className="px-3 py-2">Suite</th>
                 <th className="px-3 py-2 text-right">P0</th>
@@ -156,7 +156,7 @@ export default async function QaDashboardPage() {
                   const m = suites[s];
                   const pct = m.total > 0 ? Math.round((m.automated / m.total) * 100) : 0;
                   return (
-                    <tr key={s} className="border-t border-gray-100">
+                    <tr key={s} className="border-t border-border">
                       <td className="px-3 py-2 font-medium">{s}</td>
                       <td className="px-3 py-2 text-right tabular-nums">{m.P0 || ""}</td>
                       <td className="px-3 py-2 text-right tabular-nums">{m.P1 || ""}</td>
@@ -166,10 +166,10 @@ export default async function QaDashboardPage() {
                       <td className="px-3 py-2 text-right tabular-nums">{m.automated}</td>
                       <td className="px-3 py-2">
                         <div className="flex items-center gap-2">
-                          <div className="h-2 w-24 overflow-hidden rounded bg-gray-100">
+                          <div className="h-2 w-24 overflow-hidden rounded bg-surface-overlay">
                             <div className="h-full bg-green-500" style={{ width: `${pct}%` }} />
                           </div>
-                          <span className="text-xs text-gray-500">{pct}%</span>
+                          <span className="text-xs text-fg-subtle">{pct}%</span>
                         </div>
                       </td>
                     </tr>
@@ -181,16 +181,16 @@ export default async function QaDashboardPage() {
       </section>
 
       <section className="mb-8">
-        <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-500">
+        <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-fg-subtle">
           Recent Runs
         </h2>
         {recentRuns.length === 0 ? (
-          <div className="rounded border border-dashed border-gray-200 bg-gray-50 p-6 text-center text-gray-400">
+          <div className="rounded border border-dashed border-border bg-surface p-6 text-center text-fg-subtle">
             Henüz koşum yok. <code>npm run run-record</code> veya{" "}
             <code>npm run import-results</code> deneyin.
           </div>
         ) : (
-          <ul className="divide-y divide-gray-100 rounded border border-gray-200 bg-white">
+          <ul className="divide-y divide-border rounded border border-border bg-surface-raised">
             {recentRuns.map((r: any) => {
               const s = r.summary || {};
               const total = s.total || 1;
@@ -198,19 +198,19 @@ export default async function QaDashboardPage() {
                 <li key={r.id} className="flex items-center justify-between px-4 py-3">
                   <div>
                     <div className="font-medium">{r.id}</div>
-                    <div className="text-xs text-gray-500">
+                    <div className="text-xs text-fg-subtle">
                       plan: {r.plan} · {r.environment?.branch}@{r.environment?.commit}
                     </div>
                   </div>
                   <div className="flex items-center gap-4">
-                    <span className="text-xs tabular-nums text-gray-500">
+                    <span className="text-xs tabular-nums text-fg-subtle">
                       {s.passed}/{s.total}
                     </span>
-                    <div className="flex h-2 w-32 overflow-hidden rounded bg-gray-100">
-                      <div style={{ width: `${((s.passed || 0) / total) * 100}%`, background: "#22c55e" }} />
-                      <div style={{ width: `${((s.failed || 0) / total) * 100}%`, background: "#ef4444" }} />
-                      <div style={{ width: `${((s.blocked || 0) / total) * 100}%`, background: "#f59e0b" }} />
-                      <div style={{ width: `${((s.skipped || 0) / total) * 100}%`, background: "#9ca3af" }} />
+                    <div className="flex h-2 w-32 overflow-hidden rounded bg-surface-overlay">
+                      <div className="bg-success" style={{ width: `${((s.passed || 0) / total) * 100}%` }} />
+                      <div className="bg-danger" style={{ width: `${((s.failed || 0) / total) * 100}%` }} />
+                      <div className="bg-warning" style={{ width: `${((s.blocked || 0) / total) * 100}%` }} />
+                      <div className="bg-fg-disabled" style={{ width: `${((s.skipped || 0) / total) * 100}%` }} />
                     </div>
                   </div>
                 </li>
@@ -221,12 +221,12 @@ export default async function QaDashboardPage() {
       </section>
 
       <section>
-        <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-500">
+        <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-fg-subtle">
           Test Cases ({totalTcs})
         </h2>
-        <div className="overflow-x-auto rounded border border-gray-200 bg-white">
+        <div className="overflow-x-auto rounded border border-border bg-surface-raised">
           <table className="w-full">
-            <thead className="bg-gray-50 text-left text-xs uppercase tracking-wider text-gray-500">
+            <thead className="bg-surface text-left text-xs uppercase tracking-wider text-fg-subtle">
               <tr>
                 <th className="px-3 py-2">ID</th>
                 <th className="px-3 py-2">Title</th>
@@ -240,10 +240,10 @@ export default async function QaDashboardPage() {
               {tcs.slice(0, 100).map((t: any) => {
                 const last = lastResultByTc.get(t.id);
                 return (
-                  <tr key={t.id} className="border-t border-gray-100">
+                  <tr key={t.id} className="border-t border-border">
                     <td className="px-3 py-1.5 font-mono text-xs">{t.id}</td>
                     <td className="px-3 py-1.5">{t.title}</td>
-                    <td className="px-3 py-1.5 text-gray-500">{t.suite}</td>
+                    <td className="px-3 py-1.5 text-fg-subtle">{t.suite}</td>
                     <td className="px-3 py-1.5">
                       <PriorityBadge p={t.priority} />
                     </td>
@@ -251,7 +251,7 @@ export default async function QaDashboardPage() {
                       <AutoBadge s={t.automation?.status || "unknown"} />
                     </td>
                     <td className="px-3 py-1.5">
-                      {last ? <StatusBadge s={last.status} /> : <span className="text-gray-400">—</span>}
+                      {last ? <StatusBadge s={last.status} /> : <span className="text-fg-subtle">—</span>}
                     </td>
                   </tr>
                 );
@@ -259,14 +259,14 @@ export default async function QaDashboardPage() {
             </tbody>
           </table>
           {tcs.length > 100 ? (
-            <div className="px-3 py-2 text-xs text-gray-400">
+            <div className="px-3 py-2 text-xs text-fg-subtle">
               + {tcs.length - 100} more (filtre eklenecek)
             </div>
           ) : null}
         </div>
       </section>
 
-      <footer className="mt-12 border-t border-gray-100 pt-4 text-center text-xs text-gray-400">
+      <footer className="mt-12 border-t border-border pt-4 text-center text-xs text-fg-subtle">
         qa/ system · {totalTcs} TC · {runs.length} runs · git-native · zero SaaS lock-in
       </footer>
     </main>
@@ -291,48 +291,55 @@ function Kpi({
         ? "text-amber-600"
         : tone === "bad"
           ? "text-red-600"
-          : "text-gray-900";
+          : "text-fg";
   return (
-    <div className="rounded border border-gray-200 bg-white p-4">
-      <div className="text-xs uppercase tracking-wider text-gray-500">{label}</div>
+    <div className="rounded border border-border bg-surface-raised p-4">
+      <div className="text-xs uppercase tracking-wider text-fg-subtle">{label}</div>
       <div className={`mt-1 text-2xl font-semibold tabular-nums ${toneColor}`}>{value}</div>
-      {sub ? <div className="mt-0.5 text-xs text-gray-500">{sub}</div> : null}
+      {sub ? <div className="mt-0.5 text-xs text-fg-subtle">{sub}</div> : null}
     </div>
   );
 }
 
+// Semantic token'lar (light/dark otomatik) + ikon glifi → durum yalnızca renkle değil,
+// şekil/sembolle de iletilir (WCAG 1.4.1 — renk körlüğü desteği).
+const NEUTRAL_TONE = "bg-surface-overlay text-fg-subtle";
+
 function PriorityBadge({ p }: { p: string }) {
   const tone =
     p === "P0"
-      ? "bg-red-100 text-red-700"
+      ? "bg-danger-subtle text-danger"
       : p === "P1"
-        ? "bg-amber-100 text-amber-700"
+        ? "bg-warning-subtle text-warning"
         : p === "P2"
-          ? "bg-blue-100 text-blue-700"
-          : "bg-gray-100 text-gray-600";
+          ? "bg-accent-subtle text-accent"
+          : NEUTRAL_TONE;
   return <span className={`rounded px-1.5 py-0.5 text-xs font-semibold ${tone}`}>{p}</span>;
 }
 
 function AutoBadge({ s }: { s: string }) {
   const tone =
     s === "automated"
-      ? "bg-green-100 text-green-700"
+      ? "bg-success-subtle text-success"
       : s === "in-progress"
-        ? "bg-amber-100 text-amber-700"
-        : s === "out-of-scope"
-          ? "bg-gray-100 text-gray-500"
-          : "bg-gray-100 text-gray-600";
+        ? "bg-warning-subtle text-warning"
+        : NEUTRAL_TONE;
   return <span className={`rounded px-1.5 py-0.5 text-xs ${tone}`}>{s}</span>;
 }
 
 function StatusBadge({ s }: { s: string }) {
-  const tone =
+  const { tone, glyph } =
     s === "pass"
-      ? "bg-green-100 text-green-700"
+      ? { tone: "bg-success-subtle text-success", glyph: "✓" }
       : s === "fail"
-        ? "bg-red-100 text-red-700"
+        ? { tone: "bg-danger-subtle text-danger", glyph: "✗" }
         : s === "blocked"
-          ? "bg-amber-100 text-amber-700"
-          : "bg-gray-100 text-gray-600";
-  return <span className={`rounded px-1.5 py-0.5 text-xs ${tone}`}>{s}</span>;
+          ? { tone: "bg-warning-subtle text-warning", glyph: "⊘" }
+          : { tone: NEUTRAL_TONE, glyph: "•" };
+  return (
+    <span className={`inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-xs ${tone}`}>
+      <span aria-hidden="true">{glyph}</span>
+      {s}
+    </span>
+  );
 }

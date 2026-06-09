@@ -212,15 +212,15 @@ def reset_notifications_manager():
 
 @pytest.fixture(autouse=True)
 def reset_rate_limiter_state():
-    """Reset rate limiter global state between tests."""
+    """Reset slowapi rate limiter state in Redis between tests."""
     try:
-        import app.domains.auth.rate_limiter as rl_module
-        if hasattr(rl_module, '_rate_limit_store'):
-            original = dict(rl_module._rate_limit_store)
-            yield
-            rl_module._rate_limit_store.clear()
-            rl_module._rate_limit_store.update(original)
-        else:
-            yield
+        from app.core.rate_limit import limiter
+        if limiter is not None and hasattr(limiter, 'storage') and hasattr(limiter.storage, 'clear'):
+            # Clear slowapi Redis storage before test
+            limiter.storage.clear()
+        yield
+        # Clear slowapi Redis storage after test
+        if limiter is not None and hasattr(limiter, 'storage') and hasattr(limiter.storage, 'clear'):
+            limiter.storage.clear()
     except Exception:
         yield

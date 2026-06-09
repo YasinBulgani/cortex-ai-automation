@@ -21,6 +21,7 @@ from app.domains.test_management.models import (
     TestCase,
     TestCycle,
     TestManagementProject,
+    TestPlan,
     TestRun,
     TestRunCase,
 )
@@ -33,7 +34,7 @@ def _utcnow() -> datetime:
 
 SEVERITY_WEIGHT = {"critical": 1.0, "major": 0.7, "minor": 0.4, "trivial": 0.1}
 PRIORITY_WEIGHT = {"critical": 1.0, "high": 0.7, "medium": 0.4, "low": 0.1}
-STATUS_DONE = {"pass", "fail", "blocked", "skipped"}
+STATUS_DONE = {"passed", "failed", "blocked", "skipped"}
 
 
 # ── Veri sınıfları ────────────────────────────────────────────────────────────
@@ -331,7 +332,7 @@ def _build_tester_profiles(run_cases: list[TestRunCase]) -> list[TesterProfile]:
 
         all_velocities.append(velocity)
 
-        pass_count = sum(1 for rc in completed if rc.status == "pass")
+        pass_count = sum(1 for rc in completed if rc.status == "passed")
         blocked_count = sum(1 for rc in completed if rc.status == "blocked")
         pass_rate = pass_count / len(completed) if completed else 0.0
         blocked_rate = blocked_count / len(completed) if completed else 0.0
@@ -496,7 +497,7 @@ def _risk_sort_remaining(db: Session, run_cases: list[TestRunCase]) -> list[Case
     for case in cases:
         # Basit history: last_run_status ve last_failed_at'ten hesapla
         total_runs_est = 1 if case.last_run_status else 0
-        fail_count_est = 1 if case.last_run_status in ("fail", "blocked") else 0
+        fail_count_est = 1 if case.last_run_status in ("failed", "blocked") else 0
 
         history = {"total_runs": total_runs_est, "fail_count": fail_count_est}
         scores.append(compute_case_risk_score(case, history))
@@ -530,8 +531,8 @@ def get_tester_performance(db: Session, project_id: str, user_id: str) -> dict[s
         }
 
     total = len(run_cases)
-    passed = sum(1 for rc in run_cases if rc.status == "pass")
-    failed = sum(1 for rc in run_cases if rc.status == "fail")
+    passed = sum(1 for rc in run_cases if rc.status == "passed")
+    failed = sum(1 for rc in run_cases if rc.status == "failed")
     blocked = sum(1 for rc in run_cases if rc.status == "blocked")
 
     durations = [rc.duration_seconds for rc in run_cases if rc.duration_seconds and rc.duration_seconds > 0]
@@ -550,12 +551,17 @@ def get_tester_performance(db: Session, project_id: str, user_id: str) -> dict[s
 
 def predict_release_readiness(db: Session, project_id: str) -> ReleaseReadinessPrediction:
     """Release gate kriterlerine göre teslim edilebilirlik tahmini üretir."""
-    now = _utcnow()
+    from app.domains.test_management.service import resolve_project_id  # noqa: PLC0415
 
-    # En son aktif koşumu bul
+    now = _utcnow()
+    real_pid = resolve_project_id(db, project_id)
+
+    # En son aktif koşumu bul — YALNIZCA bu projeye ait (cross-project sızıntı önleme)
     runs = db.execute(
         select(TestRun)
         .join(TestCycle, TestRun.cycle_id == TestCycle.id)
+        .join(TestPlan, TestCycle.plan_id == TestPlan.id)
+        .where(TestPlan.project_id == real_pid)
         .where(TestRun.status.in_(["in_progress", "not_started"]))
         .order_by(TestRun.created_at.desc())
     ).scalars().all()
@@ -581,7 +587,7 @@ def predict_release_readiness(db: Session, project_id: str) -> ReleaseReadinessP
 
     total = len(run_cases)
     done = [rc for rc in run_cases if rc.status in STATUS_DONE]
-    passed = [rc for rc in done if rc.status == "pass"]
+    passed = [rc for rc in done if rc.status == "passed"]
 
     execution_rate = len(done) / total if total > 0 else 0.0
     pass_rate = len(passed) / len(done) if done else 0.0

@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 
 from app.domains.automation.brain import brain_service
 from app.domains.automation.schemas import AutomationRunCreate
+from app.infra.otel_decorators import otel_span
 
 logger = logging.getLogger(__name__)
 
@@ -39,6 +40,7 @@ def _to_dict(obj: Any) -> Dict[str, Any]:
     return dict(obj)
 
 
+@otel_span("automation.get_brain_summary", sample=0.2)
 def get_brain_summary(db: Session) -> Dict[str, Any]:
     """Return the automation brain's capability + run summary.
 
@@ -49,6 +51,7 @@ def get_brain_summary(db: Session) -> Dict[str, Any]:
     return _to_dict(summary)
 
 
+@otel_span("automation.list_runs", sample=0.1)
 def list_runs(db: Session, limit: int = 50) -> List[Dict[str, Any]]:
     """List recent automation runs, newest first.
 
@@ -66,6 +69,7 @@ def list_runs(db: Session, limit: int = 50) -> List[Dict[str, Any]]:
     return [_to_dict(r) for r in items]
 
 
+@otel_span("automation.create_run", sample=1.0)
 def create_run(db: Session, config: Dict[str, Any]) -> Dict[str, Any]:
     """Create a new automation run record via the brain service.
 
