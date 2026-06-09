@@ -1,0 +1,139 @@
+# Kafka + Zookeeper — Event Streaming Infrastructure (Faz 3.5)
+# Optional: Use instead of Redis Streams for production-grade event streaming.
+#
+# Includes:
+#  - Zookeeper: Cluster coordination, broker discovery
+#  - Kafka broker: 3-node cluster with replication
+#  - Kafka UI: Web UI for topic/offset management
+#
+# Usage:
+#   docker compose -f infra/kafka-docker-compose.yml up -d
+#
+# Topics will be auto-created with 3 partitions, replication_factor=2.
+
+version: '3.8'
+
+services:
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.5.0
+    container_name: neurex_zookeeper
+    restart: unless-stopped
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_SYNC_LIMIT: 5
+      ZOOKEEPER_INIT_LIMIT: 10
+    ports:
+      - "2181:2181"
+    volumes:
+      - zookeeper_data:/var/lib/zookeeper/data
+      - zookeeper_logs:/var/lib/zookeeper/log
+
+  kafka-broker-1:
+    image: confluentinc/cp-kafka:7.5.0
+    container_name: neurex_kafka_1
+    restart: unless-stopped
+    depends_on:
+      - zookeeper
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka-broker-1:9092,PLAINTEXT_HOST://localhost:19092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 2
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_LOG_COMPRESSION_TYPE: snappy
+      KAFKA_LOG_RETENTION_MS: 604800000  # 7 days
+      KAFKA_NUM_PARTITIONS: 3
+      KAFKA_DEFAULT_REPLICATION_FACTOR: 2
+    ports:
+      - "19092:19092"
+    volumes:
+      - kafka_broker_1:/var/lib/kafka/data
+    healthcheck:
+      test: kafka-broker-api-versions --bootstrap-server localhost:9092
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  kafka-broker-2:
+    image: confluentinc/cp-kafka:7.5.0
+    container_name: neurex_kafka_2
+    restart: unless-stopped
+    depends_on:
+      - zookeeper
+    environment:
+      KAFKA_BROKER_ID: 2
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka-broker-2:9092,PLAINTEXT_HOST://localhost:19093
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 2
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_LOG_COMPRESSION_TYPE: snappy
+      KAFKA_LOG_RETENTION_MS: 604800000
+      KAFKA_NUM_PARTITIONS: 3
+      KAFKA_DEFAULT_REPLICATION_FACTOR: 2
+    ports:
+      - "19093:19093"
+    volumes:
+      - kafka_broker_2:/var/lib/kafka/data
+    healthcheck:
+      test: kafka-broker-api-versions --bootstrap-server localhost:9092
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  kafka-broker-3:
+    image: confluentinc/cp-kafka:7.5.0
+    container_name: neurex_kafka_3
+    restart: unless-stopped
+    depends_on:
+      - zookeeper
+    environment:
+      KAFKA_BROKER_ID: 3
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka-broker-3:9092,PLAINTEXT_HOST://localhost:19094
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 2
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_LOG_COMPRESSION_TYPE: snappy
+      KAFKA_LOG_RETENTION_MS: 604800000
+      KAFKA_NUM_PARTITIONS: 3
+      KAFKA_DEFAULT_REPLICATION_FACTOR: 2
+    ports:
+      - "19094:19094"
+    volumes:
+      - kafka_broker_3:/var/lib/kafka/data
+    healthcheck:
+      test: kafka-broker-api-versions --bootstrap-server localhost:9092
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Kafka UI — topic management + offset inspection
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: neurex_kafka_ui
+    restart: unless-stopped
+    depends_on:
+      - zookeeper
+      - kafka-broker-1
+    environment:
+      KAFKA_CLUSTERS_0_NAME: neurex
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka-broker-1:9092,kafka-broker-2:9092,kafka-broker-3:9092
+      KAFKA_CLUSTERS_0_ZOOKEEPER: zookeeper:2181
+    ports:
+      - "8888:8080"
+
+volumes:
+  zookeeper_data:
+  zookeeper_logs:
+  kafka_broker_1:
+  kafka_broker_2:
+  kafka_broker_3:
+
+networks:
+  default:
+    name: neurex_network

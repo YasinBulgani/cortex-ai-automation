@@ -24,6 +24,10 @@ CurrentUser = Annotated[User, Depends(get_current_user)]
 from app.domains.health.schemas import ExtendedHealth
 from app.domains.health.service import get_extended_health
 
+# Faz 3.4: Replica health check imports
+from app.infra.failover_manager import get_failover_manager
+from app.infra.replica_health_check import get_health_checker
+
 router = APIRouter(prefix="/health", tags=["health"])
 
 
@@ -121,3 +125,166 @@ def db_health(user: Annotated[User, Depends(get_current_user)]) -> DbHealthRespo
         )
     except Exception as exc:
         return DbHealthResponse(status=f"down: {str(exc)[:80]}")
+
+
+# ────────────────────────────────────────────────────────────────────────────
+# Faz 3.4: Multi-region read-replica failover health checks
+# ────────────────────────────────────────────────────────────────────────────
+
+from pydantic import BaseModel, Field
+
+
+class ReplicaStatusModel(BaseModel):
+    """Per-replica health status."""
+    name: str
+    state: str  # healthy | degraded | unhealthy | promoted
+    lag_ms: float
+    consecutive_failures: int
+    last_check_time: str | None = None
+
+
+class ReplicaStatusResponse(BaseModel):
+    """Replica health + failover status."""
+    status: str  # ok | degraded | failover_required
+    primary: str | None = None
+    replicas: dict[str, ReplicaStatusModel] = Field(default_factory=dict)
+    failover_in_progress: bool = False
+    last_failover: str | None = None
+
+
+class FailoverEventResponse(BaseModel):
+    """Single failover event record."""
+    timestamp: str
+    old_primary: str
+    new_primary: str
+    reason: str
+    success: bool
+    duration_seconds: float
+
+
+class PromoteReplicaRequest(BaseModel):
+    """Request to promote replica to primary."""
+    replica_name: str = Field(..., description="Replica identifier")
+
+
+class PromoteReplicaResponse(BaseModel):
+    """Promotion result."""
+    success: bool
+    message: str
+    new_primary: str | None = None
+
+
+@router.get(
+    "/replica-status",
+    response_model=ReplicaStatusResponse,
+    summary="Replica sağlık durumu + failover hali (Faz 3.4)",
+)
+def get_replica_status(user: Annotated[User, Depends(get_current_user)]) -> ReplicaStatusResponse:
+    """Get replica health + failover state.
+
+    Queries health checker for:
+    - Current primary + replica states
+    - Replication lag per replica
+    - Failover in-progress flag
+    - Last failover timestamp
+
+    Returns:
+        ReplicaStatusResponse with detailed replica health.
+
+    Faz 3.4: Multi-region failover orchestration
+    """
+    from datetime import datetime
+
+    checker = get_health_checker()
+    manager = get_failover_manager()
+
+    if not checker:
+        return ReplicaStatusResponse(
+            status="error",
+            primary=None,
+            replicas={},
+            failover_in_progress=False,
+            last_failover=None,
+        )
+
+    status_dict = checker.get_replica_status()
+    failover_events = checker.get_failover_events(limit=1)
+
+    replicas = {}
+    overall_status = "ok"
+
+    if "replicas" in status_dict:
+        for name, info in status_dict["replicas"].items():
+            replicas[name] = ReplicaStatusModel(
+                name=name,
+                state=info.get("state", "unknown"),
+                lag_ms=info.get("lag_ms", 0),
+                consecutive_failures=info.get("consecutive_failures", 0),
+                last_check_time=info.get("last_check_time"),
+            )
+
+            # Determine overall status
+            if info.get("state") == "unhealthy":
+                overall_status = "degraded"
+
+    last_failover = None
+    if failover_events:
+        last_failover = failover_events[0].timestamp.isoformat()
+
+    primary_name = None
+    if checker.replicas:
+        # Primary is highest-priority replica
+        sorted_replicas = sorted(checker.replicas.values(), key=lambda r: r.priority)
+        if sorted_replicas:
+            primary_name = sorted_replicas[0].name
+
+    return ReplicaStatusResponse(
+        status=overall_status,
+        primary=primary_name,
+        replicas=replicas,
+        failover_in_progress=(
+            manager.get_status().get("promotion_in_progress", False)
+            if manager
+            else False
+        ),
+        last_failover=last_failover,
+    )
+
+
+@router.get(
+    "/failover-events",
+    response_model=list[FailoverEventResponse],
+    summary="Son failover olayları (Faz 3.4)",
+)
+def get_failover_events(
+    user: Annotated[User, Depends(get_current_user)], limit: int = 10
+) -> list[FailoverEventResponse]:
+    """Get recent failover event history.
+
+    Args:
+        limit: Max number of events to return (default 10, max 100).
+
+    Returns:
+        List of FailoverEventResponse in chronological order.
+
+    Faz 3.4: Failover event audit trail
+    """
+    if limit > 100:
+        limit = 100
+
+    checker = get_health_checker()
+    if not checker:
+        return []
+
+    events = checker.get_failover_events(limit=limit)
+    return [
+        FailoverEventResponse(
+            timestamp=e.timestamp.isoformat(),
+            old_primary=e.old_primary,
+            new_primary=e.new_primary,
+            reason=e.reason,
+            success=e.success,
+            duration_seconds=e.duration_seconds,
+        )
+        for e in events
+    ]
