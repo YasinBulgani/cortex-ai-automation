@@ -13,6 +13,7 @@ from sqlalchemy import text
 
 from app.config import settings
 from app.core.exception_handlers import register_exception_handlers
+from app.core.query_deadline_middleware import QueryDeadlineMiddleware
 from app.core.security_middleware import (
     AuditLogMiddleware,
     RequestSizeLimitMiddleware,
@@ -51,6 +52,7 @@ def configure_middlewares(
     app.add_middleware(RequestSizeLimitMiddleware, max_body_size=10 * 1024 * 1024)
     app.add_middleware(AuditLogMiddleware)
     app.add_middleware(TenantMiddleware)
+    app.add_middleware(QueryDeadlineMiddleware)
 
     # UX-F2-203: Türkçe zengin hata mesajları — HTTPException, RequestValidationError
     # ve yakalanmamış exception'ları ortak şemaya sokar.

@@ -15,6 +15,7 @@ from fastapi import FastAPI
 
 from app.config import settings
 from app.domains.tspm.scheduler import shutdown_scheduler, start_scheduler
+from app.infra.query_deadline import init_query_deadline
 
 logger = logging.getLogger(__name__)
 _SHUTDOWN_TIMEOUT_SEC = 5.0
@@ -369,6 +370,9 @@ async def app_lifespan(_app: FastAPI):
     started_scheduler = False
     started_banking_scheduler = False
     started_file_watcher = False
+
+    # Initialize query deadline tracking
+    init_query_deadline()
 
     from app.infra.telemetry import init_otel
     try:

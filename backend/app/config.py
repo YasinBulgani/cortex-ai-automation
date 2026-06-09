@@ -207,6 +207,11 @@ class Settings(BaseSettings):
     # Varsayılan kapalı — etkinleştirmek için NEXUS_REPO_ENABLED=true
     nexus_repo_enabled: bool = False
 
+    # ── Query Deadline (Pool Exhaustion Prevention) ────────────────────
+    # Maximum query execution time per request (seconds).
+    # Prevents slow queries from blocking connection pool.
+    query_timeout_sec: float = 30.0
+
     # ── Rate Limiting ─────────────────────────────────────────────────
     # Brute force koruması için düşük tutulmuştur
     rate_limit_login: str = "3/minute"
