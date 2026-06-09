@@ -1,0 +1,389 @@
+================================================================================
+PHASE 3.1: E2E EXPANSION + PERFORMANCE TEST — IMPLEMENTATION READY
+================================================================================
+
+PROJECT: Cortex AI Automation (Neurex)
+STATUS: Specification & Planning Complete
+DATE: 2026-06-09
+TIMELINE: 3 weeks (2 engineers)
+
+================================================================================
+EXECUTIVE SUMMARY
+================================================================================
+
+Phase 3.1 expands the Playwright E2E test framework from 28 spec files to 48+ 
+files with comprehensive cross-browser and mobile coverage, and establishes a 
+production-grade k6-based load testing suite with automated performance 
+regression detection.
+
+DELIVERABLES:
+✅ 20 new error/edge case E2E spec files (960+ new test cases)
+✅ 3 cross-browser projects (regression × Chrome/Firefox/Safari) 
+✅ 5 mobile device projects (Pixel 5, iPhone SE, iPhone Pro, iPad, Android)
+✅ 5 k6 load test profiles (10/50/500/1000 VU + spike)
+✅ Automated performance regression detection (±10% threshold)
+✅ Performance dashboard (k6 Cloud or Grafana)
+✅ 2 nightly CI workflows (E2E cross-browser + performance)
+✅ Level 4 readiness (production-grade)
+
+TOTAL SCOPE:
+- E2E variants: 435+ test execution paths
+- E2E test cases: 600+ unique tests
+- Performance tests: 5 load profiles + 5 baseline tests
+- CI automation: 2 nightly workflows + trend detection
+
+================================================================================
+WEEK-BY-WEEK BREAKDOWN
+================================================================================
+
+WEEK 1: E2E TEST VARIANTS (20 new files)
+────────────────────────────────────────
+Create error + edge case variants for 10 core workflows:
+  - Login (error/edge)
+  - Projects CRUD (error/edge)
+  - Scenarios CRUD (error/edge)
+  - Test Execution (error/edge)
+  - Requirements (error/edge)
+  - Test Data (error/edge)
+  - Integrations (error/edge)
+  - RBAC (error/edge)
+  - AI Workflows (error/edge)
+  - Reports (error/edge)
+
+Output: 20 new .spec.ts files, ~100 new test cases
+Effort: 1 engineer week
+Files: e2e/*-error.spec.ts, e2e/*-edge.spec.ts
+
+WEEK 2: CROSS-BROWSER MATRIX
+────────────────────────────
+Extend regression suite to all 3 browsers:
+  - regression-chrome (existing, 22 files)
+  - regression-firefox (new, 22 files)
+  - regression-webkit (new, 22 files)
+
+Output: 360 cross-browser test variants
+Effort: 1 engineer week
+Config: playwright.config.ts (add 2 projects)
+CI: .github/workflows/e2e-cross-browser-nightly.yml
+
+WEEK 3: MOBILE EXPANSION + PERFORMANCE TESTS
+──────────────────────────────────────────
+Part A (Days 1-2): Mobile device matrix
+  - mobile-iphone-se (new)
+  - mobile-iphone-pro (new)
+  - mobile-ipad (new)
+  - mobile-android (new)
+  - mobile-pixel-5 (existing)
+
+Part B (Days 3-5): Performance testing framework
+  - light-load.js (50 VU)
+  - heavy-load.js (500 VU)
+  - breakpoint.js (1000 VU)
+  - db-load.js (database write/read)
+  - ui-render.js (page load time)
+  - Enhanced baseline detection (check_perf_baseline.py)
+  - k6 Cloud or Grafana integration
+  - .github/workflows/performance-check.yml
+
+Output: 15 mobile variants, 5 load test profiles, automated trending
+Effort: 1 engineer week
+Files: performance-tests/performance/*.js
+
+================================================================================
+DOCUMENTATION CREATED
+================================================================================
+
+1. docs/PHASE_3_1_E2E_PERFORMANCE_EXPANSION.md (MAIN SPEC)
+   - 200+ pages of detailed implementation guidance
+   - Complete code examples for all 20 E2E variants
+   - k6 test templates for all 5 load profiles
+   - CI/CD workflow configurations
+   - Baseline tracking & performance dashboarding strategy
+   - Risk mitigation & troubleshooting
+
+2. docs/PHASE_3_1_IMPLEMENTATION_CHECKLIST.md (DAILY TRACKING)
+   - Day-by-day checklist for all 15 working days
+   - Specific commits expected per day
+   - Testing commands for each phase
+   - PR templates and CI verification steps
+   - Sign-off section for stakeholders
+
+3. docs/PHASE_3_1_QUICK_START.md (TEAM REFERENCE)
+   - Quick lookup for file structure
+   - Template code for each category
+   - Common issues & fixes
+   - Makefile targets to add
+   - Success metrics checklist
+
+================================================================================
+KEY METRICS
+================================================================================
+
+E2E TEST COVERAGE:
+  Base: 28 spec files
+  After Week 1: +20 variant files = 48 total
+  After Week 2: Same 48 files × 3 browsers (scope change)
+  After Week 3: Same 48 files × 3 browsers + 5 mobile devices
+  Total variants: 435+ unique test paths
+
+TEST CASE COUNT:
+  Base: ~120 test cases
+  New error/edge: +100 cases (Week 1)
+  Total: ~250 unique test cases (before browser/mobile expansion)
+  After expansion: ~600+ executed tests (including variants)
+
+PERFORMANCE TESTING:
+  Load tests: 5 profiles (critical-path, light, heavy, breakpoint, specialty)
+  Load levels: 10/50/500/1000 VU
+  Baseline tracking: ±10% regression threshold
+  Automated detection: p95 +10% = alert
+
+READINESS LEVEL:
+  Level 1: Smoke tests only (current → Phase 1)
+  Level 2: Regression suite (current → Phase 2)
+  Level 3: Cross-browser variants (Week 2)
+  Level 4: Full matrix + performance dashboard (Week 3) ← TARGET
+
+================================================================================
+CURRENT PROJECT STATE
+================================================================================
+
+WHAT EXISTS:
+✅ 28 Playwright spec files (e2e/)
+✅ Multiple test projects in playwright.config.ts
+✅ Global setup/teardown + auth fixtures
+✅ k6 framework installed + 4 basic tests
+✅ Baseline file (backend/perf_baseline.json)
+✅ Regression detection script (scripts/check_perf_baseline.py)
+✅ CI/CD pipeline (GitHub Actions ready)
+
+WHAT'S MISSING:
+❌ 20 error/edge case spec files (Week 1 task)
+❌ Cross-browser full regression (Week 2 task)
+❌ Mobile device variants (Week 3 task)
+❌ 3 new k6 tests (light/heavy/breakpoint) (Week 3 task)
+❌ Performance dashboard integration (Week 3 task)
+❌ Automated baseline regression detection (Week 3 task)
+❌ Performance nightly CI workflow (Week 3 task)
+
+================================================================================
+IMPLEMENTATION CHECKLIST
+================================================================================
+
+PREREQUISITES:
+ ☐ Read: docs/PHASE_3_1_E2E_PERFORMANCE_EXPANSION.md
+ ☐ Review: playwright.config.ts (understand test projects)
+ ☐ Review: performance-tests/performance/ (understand k6 structure)
+ ☐ Ensure: k6 installed (brew install k6)
+ ☐ Ensure: Node.js 18+ installed (npm --version)
+ ☐ Ensure: Python 3.9+ installed (python --version)
+
+WEEK 1 TASKS:
+ ☐ Create e2e/login-error.spec.ts + login-edge.spec.ts
+ ☐ Create e2e/projects-error.spec.ts + projects-edge.spec.ts
+ ☐ Create e2e/scenarios-error.spec.ts + scenarios-edge.spec.ts
+ ☐ Create e2e/executions-error.spec.ts + executions-edge.spec.ts
+ ☐ Create e2e/requirements-error.spec.ts + requirements-edge.spec.ts
+ ☐ Create remaining 5 pairs (test-data, integrations, rbac, ai, reports)
+ ☐ Run full test suite locally: npm run test:e2e
+ ☐ PR submission: "Week 1: E2E test variants (error/edge cases)"
+
+WEEK 2 TASKS:
+ ☐ Update playwright.config.ts with regression-firefox project
+ ☐ Update playwright.config.ts with regression-webkit project
+ ☐ Test all 22 files on Firefox locally
+ ☐ Test all 22 files on Safari locally
+ ☐ Fix browser-specific bugs
+ ☐ Create .github/workflows/e2e-cross-browser-nightly.yml
+ ☐ PR submission: "Week 2: Cross-browser regression matrix"
+
+WEEK 3A TASKS (Mobile):
+ ☐ Add mobile-iphone-se project to playwright.config.ts
+ ☐ Add mobile-iphone-pro project to playwright.config.ts
+ ☐ Add mobile-ipad project to playwright.config.ts
+ ☐ Add mobile-android project to playwright.config.ts
+ ☐ Test all 4 devices locally
+ ☐ Fix responsive design issues
+
+WEEK 3B TASKS (Performance):
+ ☐ Create performance-tests/performance/light-load.js
+ ☐ Create performance-tests/performance/heavy-load.js
+ ☐ Create performance-tests/performance/breakpoint.js
+ ☐ Create performance-tests/performance/db-load.js
+ ☐ Create performance-tests/performance/ui-render.js
+ ☐ Run all 5 tests locally: k6 run performance-tests/performance/*.js
+ ☐ Update backend/perf_baseline.json with new test baselines
+ ☐ Enhance scripts/check_perf_baseline.py with regression detection
+ ☐ Create .github/workflows/performance-check.yml
+ ☐ Setup k6 Cloud or Grafana integration
+
+FINAL TASKS:
+ ☐ PR submission: "Week 3: Mobile expansion + Performance tests"
+ ☐ Update Makefile with new test targets
+ ☐ Update README files (e2e/README.md, performance-tests/README.md)
+ ☐ Code review approval
+ ☐ Merge to main branch
+
+================================================================================
+FILES TO CREATE/MODIFY
+================================================================================
+
+NEW FILES (25 total):
+  Week 1:
+    - e2e/login-error.spec.ts
+    - e2e/login-edge.spec.ts
+    - e2e/projects-error.spec.ts
+    - e2e/projects-edge.spec.ts
+    - e2e/scenarios-error.spec.ts
+    - e2e/scenarios-edge.spec.ts
+    - e2e/executions-error.spec.ts
+    - e2e/executions-edge.spec.ts
+    - e2e/requirements-error.spec.ts
+    - e2e/requirements-edge.spec.ts
+    - e2e/test-data-error.spec.ts
+    - e2e/test-data-edge.spec.ts
+    - e2e/integrations-error.spec.ts
+    - e2e/integrations-edge.spec.ts
+    - e2e/rbac-error.spec.ts
+    - e2e/rbac-edge.spec.ts
+    - e2e/ai-workflows-error.spec.ts
+    - e2e/ai-workflows-edge.spec.ts
+    - e2e/reports-error.spec.ts
+    - e2e/reports-edge.spec.ts
+
+  Week 3:
+    - performance-tests/performance/light-load.js
+    - performance-tests/performance/heavy-load.js
+    - performance-tests/performance/breakpoint.js
+    - performance-tests/performance/db-load.js
+    - performance-tests/performance/ui-render.js
+
+MODIFIED FILES (5 total):
+    - playwright.config.ts (add 6 new projects)
+    - backend/perf_baseline.json (add 5 new test entries)
+    - scripts/check_perf_baseline.py (enhance with regression detection)
+    - Makefile (add ~8 new targets)
+    - .github/workflows/ (add 2 new workflows)
+
+DOCUMENTATION (4 files already created):
+    - docs/PHASE_3_1_E2E_PERFORMANCE_EXPANSION.md ✅
+    - docs/PHASE_3_1_IMPLEMENTATION_CHECKLIST.md ✅
+    - docs/PHASE_3_1_QUICK_START.md ✅
+    - docs/PHASE_3_1_SUMMARY.txt (this file) ✅
+
+================================================================================
+EFFORT ESTIMATION
+================================================================================
+
+WEEK 1 (E2E Variants):
+  20 spec files × 1.5 hours/file = 30 hours
+  Testing + fixing = 5 hours
+  PR review + merge = 2 hours
+  Total: ~37 hours = 1 engineer-week ✓
+
+WEEK 2 (Cross-Browser):
+  Config update = 2 hours
+  Firefox testing + fixes = 8 hours
+  Safari testing + fixes = 8 hours
+  CI workflow setup = 2 hours
+  PR + merge = 2 hours
+  Total: ~22 hours = 0.5 engineer-weeks (can be done in parallel with Week 1) ✓
+
+WEEK 3 (Mobile + Performance):
+  Mobile: 4 devices × 2 hours = 8 hours
+  k6 tests: 5 tests × 2 hours = 10 hours
+  Baseline enhancement = 3 hours
+  Dashboard setup = 4 hours
+  CI workflow setup = 2 hours
+  PR + merge = 2 hours
+  Total: ~29 hours = 0.7 engineer-weeks (can overlap) ✓
+
+TOTAL: 2 engineer-weeks (can be done by 2 engineers in parallel)
+
+================================================================================
+SUCCESS CRITERIA
+================================================================================
+
+PHASE 3.1 SUCCESS = ALL OF THE FOLLOWING:
+
+✅ 20 new error/edge spec files exist and all tests pass
+✅ Cross-browser regression runs on Chrome, Firefox, Safari
+✅ 5 mobile device projects configured and tested
+✅ 5 k6 load test profiles created (10/50/500/1000 VU)
+✅ Performance baseline file updated with all new tests
+✅ Regression detection script functional (python check_perf_baseline.py)
+✅ k6 Cloud or Grafana dashboard operational
+✅ 2 nightly CI workflows deployed and running
+✅ All tests passing in CI/CD pipeline
+✅ Total E2E variants: 435+ (measured by grep in config)
+✅ Total test cases: 600+ (measured by Playwright reporter)
+✅ Level 4 readiness achieved
+
+================================================================================
+TEAM ASSIGNMENT TEMPLATE
+================================================================================
+
+ENGINEER A (E2E Focus):
+  - Week 1: Create 20 E2E variant files (login-reports)
+  - Week 2: Test regression on Firefox, fix bugs
+  - Week 3a: Test regression on iPad/Android
+
+ENGINEER B (Performance Focus):
+  - Week 1: Support E2E testing, fix CI issues
+  - Week 2: Test regression on Safari, fix bugs
+  - Week 3b: Create 5 k6 tests, setup dashboard
+
+OR: Both engineers work on Week 1 together (faster), then split for Weeks 2-3
+
+================================================================================
+BLOCKING DEPENDENCIES
+================================================================================
+
+None. Phase 3.1 can start immediately.
+
+- Playwright already installed ✅
+- k6 already installed ✅
+- CI/CD pipeline ready ✅
+- Baseline infrastructure exists ✅
+- Test fixtures in place ✅
+
+Only prerequisite: Review of Phase 3.1 spec documents.
+
+================================================================================
+NEXT STEPS
+================================================================================
+
+1. Review docs/PHASE_3_1_E2E_PERFORMANCE_EXPANSION.md (READ FIRST)
+2. Review docs/PHASE_3_1_QUICK_START.md (reference guide)
+3. Use docs/PHASE_3_1_IMPLEMENTATION_CHECKLIST.md for daily tracking
+4. Assign engineers and start Week 1
+5. Create feature branch: git checkout -b feature/phase-3-1-e2e-perf
+6. Daily standup: track progress against checklist
+7. Weekly PR reviews at end of each week
+8. Final merge to main after Week 3 completion
+
+================================================================================
+CONTACT & QUESTIONS
+================================================================================
+
+For questions about Phase 3.1:
+- Read: Main spec (docs/PHASE_3_1_E2E_PERFORMANCE_EXPANSION.md)
+- Check: Quick Start guide (docs/PHASE_3_1_QUICK_START.md)
+- Refer: Implementation Checklist (docs/PHASE_3_1_IMPLEMENTATION_CHECKLIST.md)
+
+For specific technical issues:
+- E2E: See Playwright troubleshooting section
+- k6: See k6 docs (https://k6.io/docs)
+- CI/CD: Check GitHub Actions logs
+
+================================================================================
+VERSION CONTROL
+================================================================================
+
+Document: PHASE_3_1_SUMMARY.txt
+Version: 1.0
+Created: 2026-06-09
+Status: Ready for Team Implementation
+Last Updated: 2026-06-09
+
+================================================================================

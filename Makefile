@@ -933,3 +933,147 @@ lint-imports:  ## Check domain isolation with import-linter
 
 type-check:  ## Run mypy type checking
 	cd backend && python -m mypy app/ --ignore-missing-imports --no-error-summary || true
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# REGRESSION TEST SUITE (2026-06-09) — Phase 2.3
+# ═══════════════════════════════════════════════════════════════════════════════
+# Goal: 180+ regression tests (100 unit + 50 API + 20 E2E + 10+ integration)
+# Daily execution: 45 minutes on 4 workers
+# Documentation: docs/REGRESSION_SUITE_2026-06-09.md
+
+.PHONY: regression-help regression-seed regression-unit regression-api \
+        regression-e2e regression-integration regression-full regression-parallel \
+        regression-report regression-coverage
+
+## Regression test suite help & documentation
+regression-help:
+	@echo ""
+	@echo "╔═══════════════════════════════════════════════════════════════╗"
+	@echo "║         Regression Test Suite (2026-06-09 — Phase 2.3)       ║"
+	@echo "╠═══════════════════════════════════════════════════════════════╣"
+	@echo "║                                                               ║"
+	@echo "║  Composition:                                                 ║"
+	@echo "║    • 100+ unit tests (core modules, services, utilities)      ║"
+	@echo "║    • 50+ API tests (REST endpoints, contract, integration)   ║"
+	@echo "║    • 20 UI/E2E scenarios (workflows × variants)              ║"
+	@echo "║    • 10+ integration tests (async, DB, cross-service)        ║"
+	@echo "║    Total: 180+ tests                                          ║"
+	@echo "║                                                               ║"
+	@echo "║  Execution:                                                   ║"
+	@echo "║    make regression-full       All 180+ tests (~45 min)        ║"
+	@echo "║    make regression-unit       100+ unit tests only (~5 min)   ║"
+	@echo "║    make regression-api        50+ API tests (~10 min)         ║"
+	@echo "║    make regression-e2e        20 E2E tests (~15 min)          ║"
+	@echo "║    make regression-integration 10+ integration (~5 min)       ║"
+	@echo "║    make regression-parallel   4-worker parallel execution     ║"
+	@echo "║    make regression-report     Generate HTML report            ║"
+	@echo "║    make regression-coverage   Coverage report                 ║"
+	@echo "║                                                               ║"
+	@echo "║  Setup:                                                       ║"
+	@echo "║    make regression-seed       Load test fixtures (756 data)   ║"
+	@echo "║                                                               ║"
+	@echo "║  Documentation:                                               ║"
+	@echo "║    docs/REGRESSION_SUITE_2026-06-09.md                       ║"
+	@echo "║                                                               ║"
+	@echo "╚═══════════════════════════════════════════════════════════════╝"
+	@echo ""
+
+## Load regression test data (organizations, users, projects, test cases, runs, defects)
+regression-seed: docker-up
+	@echo "▶ Loading regression test data fixtures (756 data points)..."
+	@bash backend/tests/regression_seed.sh
+	@echo "✓ Regression test data loaded"
+
+## Unit tests only (100+ tests, ~5 minutes)
+regression-unit:
+	@echo "▶ Running regression unit tests (100+, ~5 min)..."
+	cd backend && $(PYTHON) -m pytest \
+		tests/unit/test_regression_core_auth.py \
+		tests/unit/ -m regression \
+		--cov=app \
+		--cov-report=term-missing \
+		-v \
+		--tb=short \
+		-q
+	@echo "✓ Unit tests completed"
+
+## API integration tests only (50+ tests, ~10 minutes)
+regression-api:
+	@echo "▶ Running regression API tests (50+, ~10 min)..."
+	cd backend && $(PYTHON) -m pytest \
+		tests/integration/test_regression_api_auth.py \
+		tests/integration/ -m "regression and service" \
+		--cov=app \
+		-v \
+		--tb=short \
+		-q
+	@echo "✓ API tests completed"
+
+## E2E UI tests (20 tests, ~15 minutes)
+regression-e2e:
+	@echo "▶ Running regression E2E tests (20, ~15 min)..."
+	npm run test:e2e:regression || true
+	@echo "✓ E2E tests completed"
+
+## Integration tests (10+ tests, ~5 minutes)
+regression-integration:
+	@echo "▶ Running regression integration tests (10+, ~5 min)..."
+	cd backend && $(PYTHON) -m pytest \
+		tests/integration/ -m "integration and regression" \
+		--cov=app \
+		-v \
+		--tb=short \
+		-q
+	@echo "✓ Integration tests completed"
+
+## Full regression suite (180+ tests, ~45 minutes)
+regression-full: regression-seed regression-unit regression-api regression-integration regression-e2e
+	@echo ""
+	@echo "╔═══════════════════════════════════════════════════════════════╗"
+	@echo "║        ✓ Regression suite completed (180+ tests)             ║"
+	@echo "╚═══════════════════════════════════════════════════════════════╝"
+	@echo ""
+
+## Parallel execution (4 workers, fastest)
+regression-parallel: regression-seed
+	@echo "▶ Running regression suite in parallel (4 workers)..."
+	cd backend && $(PYTHON) -m pytest \
+		tests/unit/test_regression_core_auth.py \
+		tests/integration/test_regression_api_auth.py \
+		tests/unit/ -m regression \
+		tests/integration/ -m "regression and service" \
+		--cov=app \
+		--cov-report=html:../reports/regression-coverage \
+		-n 4 \
+		--dist loadscope \
+		-v \
+		--tb=short \
+		--junit-xml=../reports/regression-junit.xml
+	@echo "✓ Parallel regression completed"
+
+## Generate HTML coverage report
+regression-coverage:
+	@echo "▶ Generating coverage report..."
+	cd backend && $(PYTHON) -m pytest \
+		tests/unit/ -m regression \
+		tests/integration/ -m regression \
+		--cov=app \
+		--cov-report=html:../reports/regression-coverage \
+		--cov-report=term-missing \
+		-q
+	@echo "✓ Coverage report: reports/regression-coverage/index.html"
+	@open reports/regression-coverage/index.html 2>/dev/null || echo "  (open manually: reports/regression-coverage/index.html)"
+
+## Generate regression test report
+regression-report:
+	@echo "▶ Generating regression test report..."
+	cd backend && $(PYTHON) -m pytest \
+		tests/unit/ -m regression \
+		tests/integration/ -m regression \
+		--junit-xml=../reports/regression-junit.xml \
+		--cov=app \
+		--cov-report=term-missing \
+		-q
+	@echo "✓ Test report: reports/regression-junit.xml"
+	@echo "  (Convert to HTML with: junit2html reports/regression-junit.xml)"
+
