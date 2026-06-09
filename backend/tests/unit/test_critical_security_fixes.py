@@ -92,25 +92,29 @@ class TestCircuitBreakerFix:
         """Single failure in HALF_OPEN state should transition to OPEN."""
         from app.infra.resilience import CircuitBreaker, CircuitState
 
-        clock_time = 0.0
-        def mock_clock():
-            return clock_time
+        class Clock:
+            def __init__(self):
+                self.time = 0.0
+
+            def __call__(self):
+                return self.time
+
+        clock = Clock()
 
         breaker = CircuitBreaker(
             name="test",
             failure_threshold=2,
             reset_timeout=10.0,
-            clock=mock_clock
+            clock=clock
         )
 
         # Drive to OPEN
-        nonlocal clock_time
         for _ in range(2):
             breaker.record_failure()
         assert breaker.state == CircuitState.OPEN
 
         # Wait for reset timeout
-        clock_time = 11.0
+        clock.time = 11.0
         assert breaker.state == CircuitState.HALF_OPEN
 
         # Single failure in HALF_OPEN → OPEN
@@ -121,25 +125,29 @@ class TestCircuitBreakerFix:
         """Success in HALF_OPEN state should reset to CLOSED."""
         from app.infra.resilience import CircuitBreaker, CircuitState
 
-        clock_time = 0.0
-        def mock_clock():
-            return clock_time
+        class Clock:
+            def __init__(self):
+                self.time = 0.0
+
+            def __call__(self):
+                return self.time
+
+        clock = Clock()
 
         breaker = CircuitBreaker(
             name="test",
             failure_threshold=2,
             reset_timeout=10.0,
-            clock=mock_clock
+            clock=clock
         )
 
         # Drive to OPEN
-        nonlocal clock_time
         for _ in range(2):
             breaker.record_failure()
         assert breaker.state == CircuitState.OPEN
 
         # Wait for reset timeout
-        clock_time = 11.0
+        clock.time = 11.0
         assert breaker.state == CircuitState.HALF_OPEN
 
         # Success in HALF_OPEN → CLOSED
