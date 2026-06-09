@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Karate Dependencies & Configuration for Backend pom.xml
+
+  Add these dependencies to <dependencies> section and plugin to <build><plugins> section
+  in backend/pom.xml
+-->
+
+<!-- ============================================================================ -->
+<!-- ADD TO <dependencies> SECTION -->
+<!-- ============================================================================ -->
+
+<!-- Karate Framework -->
+<dependency>
+  <groupId>com.intuit.karate</groupId>
+  <artifactId>karate-junit5</artifactId>
+  <version>1.4.1</version>
+  <scope>test</scope>
+</dependency>
+
+<!-- JUnit 5 Platform (required by Karate) -->
+<dependency>
+  <groupId>org.junit.platform</groupId>
+  <artifactId>junit-platform-engine</artifactId>
+  <version>1.9.3</version>
+  <scope>test</scope>
+</dependency>
+
+<!-- JUnit 5 Jupiter API & Engine -->
+<dependency>
+  <groupId>org.junit.jupiter</groupId>
+  <artifactId>junit-jupiter-api</artifactId>
+  <version>5.9.3</version>
+  <scope>test</scope>
+</dependency>
+
+<dependency>
+  <groupId>org.junit.jupiter</groupId>
+  <artifactId>junit-jupiter-engine</artifactId>
+  <version>5.9.3</version>
+  <scope>test</scope>
+</dependency>
+
+<!-- Apache HttpClient (for Karate HTTP layer) -->
+<dependency>
+  <groupId>org.apache.httpcomponents.client5</groupId>
+  <artifactId>httpclient5</artifactId>
+  <version>5.2.1</version>
+  <scope>test</scope>
+</dependency>
+
+<!-- SLF4J + Logback for test logging -->
+<dependency>
+  <groupId>org.slf4j</groupId>
+  <artifactId>slf4j-api</artifactId>
+  <version>2.0.7</version>
+</dependency>
+
+<dependency>
+  <groupId>ch.qos.logback</groupId>
+  <artifactId>logback-classic</artifactId>
+  <version>1.4.8</version>
+  <scope>test</scope>
+</dependency>
+
+<!-- JSON Processing (for Karate assertions) -->
+<dependency>
+  <groupId>com.jayway.jsonpath</groupId>
+  <artifactId>json-path</artifactId>
+  <version>2.8.0</version>
+  <scope>test</scope>
+</dependency>
+
+<!-- ============================================================================ -->
+<!-- ADD TO <build><plugins> SECTION -->
+<!-- ============================================================================ -->
+
+<!-- Maven Surefire Plugin (to run JUnit 5 tests) -->
+<plugin>
+  <groupId>org.apache.maven.plugins</groupId>
+  <artifactId>maven-surefire-plugin</artifactId>
+  <version>3.0.0</version>
+  <configuration>
+    <!-- Enable parallel execution for Karate tests -->
+    <parallel>methods</parallel>
+    <threadCount>${karate.threads}</threadCount>
+    <threadCountSuites>${karate.threads}</threadCountSuites>
+    <reuseForks>true</reuseForks>
+    <argLine>-Dfile.encoding=UTF-8</argLine>
+  </configuration>
+</plugin>
+
+<!-- Maven Failsafe Plugin (for integration tests if needed) -->
+<plugin>
+  <groupId>org.apache.maven.plugins</groupId>
+  <artifactId>maven-failsafe-plugin</artifactId>
+  <version>3.0.0</version>
+  <configuration>
+    <parallel>methods</parallel>
+    <threadCount>${karate.threads}</threadCount>
+    <includes>
+      <include>**/*IT.java</include>
+    </includes>
+  </configuration>
+</plugin>
+
+<!-- ============================================================================ -->
+<!-- ADD PROPERTIES TO <properties> SECTION -->
+<!-- ============================================================================ -->
+
+<!-- Karate Configuration Properties -->
+<property>
+  <name>karate.threads</name>
+  <value>5</value> <!-- Number of parallel threads for test execution -->
+</property>
+
+<property>
+  <name>base.url</name>
+  <value>http://localhost:8000</value> <!-- Default API base URL -->
+</property>
+
+<property>
+  <name>karate.env</name>
+  <value>dev</value> <!-- Environment: dev, stage, prod -->
+</property>
+
+<!-- ============================================================================ -->
+<!-- MAVEN COMMAND EXAMPLES -->
+<!-- ============================================================================ -->
+<!--
+Run all Karate tests with 5 parallel threads:
+  mvn test -Dtest=TestRunner -Dkarate.threads=5
+
+Run only @smoke tests:
+  mvn test -Dtest=TestRunner -Dkarate.options="--tags @smoke"
+
+Run only @critical tests:
+  mvn test -Dtest=TestRunner -Dkarate.options="--tags @critical"
+
+Run with custom base URL:
+  mvn test -Dtest=TestRunner -Dbase.url=https://api-stage.example.com
+
+Run with debug logging:
+  mvn test -Dtest=TestRunner -X
+
+Run with HTML report generation:
+  mvn test -Dtest=TestRunner -Dkarate.options="--format html"
+
+Skip test execution:
+  mvn clean -DskipTests
+
+Run against staging environment:
+  mvn test -Dtest=TestRunner -Dkarate.env=stage -Dbase.url=https://api-stage.example.com
+-->

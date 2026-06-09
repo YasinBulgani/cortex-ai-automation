@@ -21,6 +21,7 @@ from app.domains.agents.router import router as agents_router
 from app.domains.agents.v2.router import router as agents_v2_router
 from app.domains.ai.router import router as ai_router
 from app.domains.ai.workflows_router import router as ai_workflows_router
+from app.domains.ai_service.router import router as ai_service_router
 from app.domains.ai_synthetic_data.platform_router import router as synthetic_platform_router
 from app.domains.ai_synthetic_data.router import router as synthetic_router
 from app.domains.api_testing.router import router as api_testing_router
@@ -158,6 +159,7 @@ _PREFIXED_ROUTERS = [
     billing_router,
     ai_router,
     ai_workflows_router,
+    ai_service_router,
     agents_router,
     agents_v2_router,
     synthetic_router,

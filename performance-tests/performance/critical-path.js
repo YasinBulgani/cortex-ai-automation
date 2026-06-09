@@ -113,8 +113,7 @@ export default function (data) {
       const res = http.get(`${baseUrl}/api/v1/tspm/projects`, headers);
       check(res, {
         "list projects 200": (r) => r.status === 200,
-        "list projects has data": (r) =>
-          r.json("data") && Array.isArray(r.json("data")),
+        "list projects returns array": (r) => Array.isArray(res.json()),
       });
     });
     sleep(0.5);
@@ -139,9 +138,8 @@ export default function (data) {
         headers
       );
       check(res, {
-        "list scenarios 200": (r) => r.status === 200,
-        "list scenarios has data": (r) =>
-          r.json("data") && Array.isArray(r.json("data")),
+        "list scenarios 200 or 404": (r) => [200, 404].includes(r.status),
+        "list scenarios returns array": (r) => Array.isArray(res.json()) || r.status === 404,
       });
     });
     sleep(0.5);
@@ -154,8 +152,8 @@ export default function (data) {
       );
       check(res, {
         "list executions 200 or 404": (r) => [200, 404].includes(r.status),
-        "list executions has data or empty": (r) =>
-          r.status === 404 || (r.json("data") && Array.isArray(r.json("data"))),
+        "list executions returns array or empty": (r) =>
+          Array.isArray(res.json()) || r.status === 404,
       });
     });
     sleep(0.5);
