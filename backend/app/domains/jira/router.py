@@ -15,6 +15,7 @@ Endpoints:
 
 from __future__ import annotations
 
+import hashlib
 import hmac
 import ipaddress
 import logging
@@ -445,11 +446,32 @@ def _webhook_secret_required() -> bool:
     return forced or settings.is_production_like
 
 
+def _verify_jira_webhook_signature(body: bytes, signature: str) -> bool:
+    """Jira webhook HMAC-SHA256 signature verification.
+
+    Jira sends webhook requests with X-Atlassian-Webhook-Signature header containing
+    a SHA256 HMAC of the request body signed with the webhook secret.
+
+    Args:
+        body: Raw request body bytes
+        signature: X-Atlassian-Webhook-Signature header value (sha256=<hex>)
+
+    Returns:
+        True if signature is valid or secret not configured; False otherwise
+    """
+    if not signature:
+        return False
+    if not JIRA_WEBHOOK_SECRET:
+        return True
+    expected = "sha256=" + hmac.new(JIRA_WEBHOOK_SECRET.encode(), body, hashlib.sha256).hexdigest()
+    return hmac.compare_digest(expected, signature)
+
+
 @router.post("/webhook/jira-incoming", include_in_schema=True)
 async def jira_incoming_webhook(
     request: Request,
     background_tasks: BackgroundTasks,
-    x_atlassian_token: Optional[str] = Header(None, alias="x-atlassian-token"),
+    x_atlassian_webhook_signature: Optional[str] = Header(None, alias="x-atlassian-webhook-signature"),
 ) -> dict:
     """Jira'dan gelen webhook event'lerini işle.
 
@@ -457,16 +479,20 @@ async def jira_incoming_webhook(
     - jira:issue_updated  → DefectLink.status güncelleme (background task)
     - jira:issue_deleted  → DefectLink kaydının silinmesi (background task)
 
+    Authentication: HMAC-SHA256 signature verification via X-Atlassian-Webhook-Signature header.
+    The signature is computed as sha256=<hex> where <hex> is the HMAC-SHA256 of the request body
+    signed with JIRA_WEBHOOK_SECRET.
+
     Atlassian, webhook isteğinin ürettiği herhangi bir HTTP 200 yanıtını başarı
     sayar; bu nedenle her zaman ``{"received": True}`` döner ve ağır işler
     background task'a devredilir.
     """
     if _webhook_secret_required() and not JIRA_WEBHOOK_SECRET:
         raise HTTPException(503, "JIRA_WEBHOOK_SECRET ayarı zorunlu ama yapılandırılmamış")
-    if JIRA_WEBHOOK_SECRET:
-        provided = x_atlassian_token or ""
-        if not hmac.compare_digest(provided, JIRA_WEBHOOK_SECRET):
-            raise HTTPException(401, "Geçersiz Jira webhook token")
+    body = await request.body()
+    if JIRA_WEBHOOK_SECRET and not _verify_jira_webhook_signature(body, x_atlassian_webhook_signature or ""):
+        logger.warning("Jira webhook signature verification failed")
+        raise HTTPException(401, "Geçersiz Jira webhook imzası")
 
     try:
         payload = await request.json()

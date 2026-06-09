@@ -208,7 +208,7 @@ def security_analyze(body: SecurityAnalyzeRequest):
             return report.to_dict()
 
         import requests as req_lib  # type: ignore[import]
-        resp = req_lib.get(body.url, timeout=10, verify=False)
+        resp = req_lib.get(body.url, timeout=10, verify=True)
         report = analyzer.analyze_headers(dict(resp.headers), body.url)
         return report.to_dict()
     except ImportError as exc:
