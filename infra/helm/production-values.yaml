@@ -1,0 +1,374 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# Helm Values for Production Deployment
+# Supports: Multi-region, auto-scaling, canary, monitoring
+# ═══════════════════════════════════════════════════════════════════════════════
+
+global:
+  environment: production
+  domain: app.neurex.ai
+  imageRegistry: ghcr.io
+  imagePullSecrets:
+    - name: ghcr-secret
+
+# ── Backend (FastAPI + Workers) ──────────────────────────────────────────────
+backend:
+  enabled: true
+  replicaCount: 3
+
+  image:
+    repository: neurex-ai/neurex-backend
+    tag: latest  # Set via CI/CD
+    pullPolicy: IfNotPresent
+
+  resources:
+    limits:
+      cpu: "2"
+      memory: 1Gi
+    requests:
+      cpu: "500m"
+      memory: 256Mi
+
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 75
+    targetMemoryUtilizationPercentage: 80
+
+  # Rolling update strategy (avoid downtime)
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+
+  # Probes for reliability
+  livenessProbe:
+    httpGet:
+      path: /health
+      port: 8000
+    initialDelaySeconds: 40
+    periodSeconds: 30
+    timeoutSeconds: 10
+    failureThreshold: 3
+
+  readinessProbe:
+    httpGet:
+      path: /health/ready
+      port: 8000
+    initialDelaySeconds: 20
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 2
+
+  # Database
+  database:
+    enabled: true
+    replicaEnabled: true
+    replicaStickyDuration: 5
+
+  # Cache (Redis)
+  cache:
+    enabled: true
+    url: redis://redis-cluster:6379
+
+  # Artifact storage (MinIO/S3)
+  artifacts:
+    backend: s3
+    s3:
+      endpoint: minio:9000
+      bucket: neurex-artifacts
+      region: us-east-1
+
+  # Horizontal Pod Autoscaler
+  podDisruptionBudget:
+    enabled: true
+    minAvailable: 2
+
+# ── Frontend (Next.js) ────────────────────────────────────────────────────────
+frontend:
+  enabled: true
+  replicaCount: 3
+
+  image:
+    repository: neurex-ai/neurex-frontend
+    tag: latest
+
+  resources:
+    limits:
+      cpu: "1"
+      memory: 512Mi
+    requests:
+      cpu: "250m"
+      memory: 128Mi
+
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 8
+    targetCPUUtilizationPercentage: 70
+
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+
+  livenessProbe:
+    httpGet:
+      path: /
+      port: 3000
+    initialDelaySeconds: 30
+    periodSeconds: 30
+
+  readinessProbe:
+    httpGet:
+      path: /
+      port: 3000
+    initialDelaySeconds: 15
+    periodSeconds: 10
+
+  caching:
+    enabled: true
+    ttl: 3600
+
+# ── Engine (Flask) ────────────────────────────────────────────────────────────
+engine:
+  enabled: true
+  replicaCount: 2
+
+  image:
+    repository: neurex-ai/neurex-engine
+    tag: latest
+
+  resources:
+    limits:
+      cpu: "2"
+      memory: 2Gi
+    requests:
+      cpu: "500m"
+      memory: 512Mi
+
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 6
+    targetCPUUtilizationPercentage: 80
+
+  livenessProbe:
+    httpGet:
+      path: /health
+      port: 5001
+    initialDelaySeconds: 30
+    periodSeconds: 30
+
+# ── AI Gateway (FastAPI) ──────────────────────────────────────────────────────
+aiGateway:
+  enabled: true
+  replicaCount: 2
+
+  image:
+    repository: neurex-ai/neurex-ai-gateway
+    tag: latest
+
+  resources:
+    limits:
+      cpu: "1"
+      memory: 512Mi
+    requests:
+      cpu: "250m"
+      memory: 128Mi
+
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 5
+    targetCPUUtilizationPercentage: 75
+
+  providers:
+    primary: ollama
+    fallback:
+      - groq
+      - gemini
+    timeout: 30s
+
+# ── Infrastructure ───────────────────────────────────────────────────────────
+infrastructure:
+  # PostgreSQL (replicated)
+  postgres:
+    enabled: true
+    replicaEnabled: true
+    storage: 50Gi
+    storageClass: fast-ssd
+    backupEnabled: true
+    backupSchedule: "0 2 * * *"
+    retentionDays: 30
+
+  # Redis Cluster
+  redis:
+    enabled: true
+    mode: cluster
+    nodeCount: 6
+    storage: 20Gi
+    persistence: true
+
+  # MinIO (S3-compatible)
+  minio:
+    enabled: true
+    replicas: 4
+    storage: 100Gi
+    storageClass: fast-ssd
+
+# ── Networking ────────────────────────────────────────────────────────────
+networking:
+  # Ingress
+  ingress:
+    enabled: true
+    class: nginx
+    tls:
+      enabled: true
+      issuer: letsencrypt-prod
+    hosts:
+      - host: app.neurex.ai
+        paths:
+          - path: /
+            pathType: Prefix
+            service: frontend
+          - path: /api/v1
+            pathType: Prefix
+            service: backend
+          - path: /api/engine
+            pathType: Prefix
+            service: engine
+          - path: /api/ai
+            pathType: Prefix
+            service: ai-gateway
+
+  # Network Policies
+  networkPolicy:
+    enabled: true
+    ingress:
+      - from:
+          - namespaceSelector:
+              matchLabels:
+                name: neurex-production
+    egress:
+      - to:
+          - namespaceSelector: {}
+
+  # Service Mesh (Istio)
+  istio:
+    enabled: false  # Enable for advanced traffic management
+    virtualServiceEnabled: false
+    destinationRuleEnabled: false
+
+# ── Monitoring & Observability ─────────────────────────────────────────────
+monitoring:
+  # Prometheus
+  prometheus:
+    enabled: true
+    retention: 15d
+    storage: 20Gi
+
+  # Grafana
+  grafana:
+    enabled: true
+    adminPassword: "" # Set via secrets
+    dashboards:
+      - kubernetes
+      - application
+      - database
+
+  # Alert Manager
+  alertManager:
+    enabled: true
+    webhook: "" # Set via secrets
+
+  # OpenTelemetry
+  otel:
+    enabled: true
+    exporter: otlp
+    endpoint: otel-collector:4317
+
+  # Logging
+  logging:
+    enabled: true
+    driver: json-file
+    retention: 30d
+
+# ── Canary Deployment ──────────────────────────────────────────────────────
+canary:
+  enabled: true
+  weight: 0  # Start with 0% traffic to new version
+  rampUpSchedule:
+    - weight: 10
+      duration: 5m
+    - weight: 25
+      duration: 5m
+    - weight: 50
+      duration: 5m
+    - weight: 75
+      duration: 5m
+    - weight: 100
+      duration: 0  # Keep canary stable if no issues
+
+# ── Backup & Disaster Recovery ───────────────────────────────────────────
+backup:
+  enabled: true
+  schedule: "0 1 * * *"  # Daily at 1 AM UTC
+  retention: 30  # days
+  destinations:
+    - type: s3
+      bucket: neurex-backups-prod
+      region: us-east-1
+  verification:
+    enabled: true
+    schedule: "0 3 * * 0"  # Weekly on Sunday
+
+# ── Security ────────────────────────────────────────────────────────────────
+security:
+  # Pod Security Standards
+  podSecurityStandards: restricted
+
+  # Network Policies
+  networkPolicies: true
+
+  # Secret Management
+  secretManager:
+    enabled: true
+    backend: vault  # or aws-secrets-manager
+
+  # RBAC
+  rbac:
+    enabled: true
+    roles:
+      - name: app-reader
+        verbs: ["get", "list", "watch"]
+      - name: app-admin
+        verbs: ["get", "list", "watch", "create", "update", "patch"]
+
+# ── Cost Optimization ──────────────────────────────────────────────────────
+costOptimization:
+  # Pod Disruption Budgets
+  podDisruptionBudgetsEnabled: true
+
+  # Spot Instances (if supported by cluster)
+  spotInstances: false
+
+  # Resource Limits
+  enforcedLimits: true
+
+  # Vertical Pod Autoscaler
+  vpaEnabled: true
+
+# ── Deployment Validation ──────────────────────────────────────────────────
+validation:
+  smokeTests:
+    enabled: true
+    healthCheck: /api/v1/health
+    timeout: 300s
+
+  rollback:
+    enabled: true
+    onFailure: true
+    previousRevisions: 3

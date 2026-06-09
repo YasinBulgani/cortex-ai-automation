@@ -1,0 +1,240 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# Prometheus Alert Rules - Production
+# ═══════════════════════════════════════════════════════════════════════════════
+
+groups:
+  # ── Infrastructure Alerts ────────────────────────────────────────────────
+  - name: infrastructure_alerts
+    interval: 15s
+    rules:
+      # High CPU usage
+      - alert: HighCPUUsage
+        expr: node_cpu_seconds_total{mode="user"} > 0.8
+        for: 5m
+        annotations:
+          summary: "High CPU usage detected on {{ $labels.instance }}"
+          severity: warning
+
+      # High memory usage
+      - alert: HighMemoryUsage
+        expr: (node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) / node_memory_MemTotal_bytes > 0.85
+        for: 5m
+        annotations:
+          summary: "High memory usage on {{ $labels.instance }}"
+          severity: warning
+
+      # Disk space warning
+      - alert: DiskSpaceLow
+        expr: node_filesystem_avail_bytes{fstype!="tmpfs"} / node_filesystem_size_bytes < 0.1
+        for: 10m
+        annotations:
+          summary: "Low disk space on {{ $labels.device }}"
+          severity: critical
+
+      # Disk space critical
+      - alert: DiskSpaceCritical
+        expr: node_filesystem_avail_bytes{fstype!="tmpfs"} / node_filesystem_size_bytes < 0.05
+        for: 5m
+        annotations:
+          summary: "Critical disk space on {{ $labels.device }}"
+          severity: critical
+
+  # ── Database Alerts ─────────────────────────────────────────────────────
+  - name: database_alerts
+    interval: 15s
+    rules:
+      # PostgreSQL down
+      - alert: PostgreSQLDown
+        expr: pg_up{job="postgresql"} == 0
+        for: 1m
+        annotations:
+          summary: "PostgreSQL is down"
+          severity: critical
+
+      # PostgreSQL replica lag
+      - alert: PostgreSQLReplicaLag
+        expr: pg_replication_slot_lag_bytes > 104857600  # 100MB
+        for: 5m
+        annotations:
+          summary: "PostgreSQL replica lag exceeds 100MB"
+          severity: warning
+
+      # PostgreSQL connections high
+      - alert: PostgreSQLConnectionsHigh
+        expr: pg_stat_activity_count > 150
+        for: 5m
+        annotations:
+          summary: "PostgreSQL connection count high ({{ $value }})"
+          severity: warning
+
+      # PostgreSQL cache hit ratio low
+      - alert: PostgreSQLCacheHitRatioLow
+        expr: pg_stat_database_heap_blks_hit / (pg_stat_database_heap_blks_hit + pg_stat_database_heap_blks_read) < 0.95
+        for: 10m
+        annotations:
+          summary: "PostgreSQL cache hit ratio is low"
+          severity: warning
+
+  # ── Redis Alerts ────────────────────────────────────────────────────────
+  - name: redis_alerts
+    interval: 15s
+    rules:
+      # Redis down
+      - alert: RedisDown
+        expr: redis_up == 0
+        for: 1m
+        annotations:
+          summary: "Redis is down"
+          severity: critical
+
+      # Redis memory usage high
+      - alert: RedisMemoryUsageHigh
+        expr: redis_memory_used_bytes / redis_memory_max_bytes > 0.9
+        for: 5m
+        annotations:
+          summary: "Redis memory usage is high ({{ $value | humanizePercentage }})"
+          severity: warning
+
+      # Redis evicted keys
+      - alert: RedisEvictedKeys
+        expr: increase(redis_evicted_keys_total[5m]) > 100
+        for: 5m
+        annotations:
+          summary: "Redis evicting keys ({{ $value }} keys evicted in 5m)"
+          severity: warning
+
+  # ── Application Alerts ──────────────────────────────────────────────────
+  - name: application_alerts
+    interval: 15s
+    rules:
+      # Backend down
+      - alert: BackendDown
+        expr: up{job="neurex-backend"} == 0
+        for: 1m
+        annotations:
+          summary: "Backend service is down"
+          severity: critical
+
+      # Backend error rate high
+      - alert: BackendErrorRateHigh
+        expr: rate(http_requests_total{job="neurex-backend", status=~"5.."}[5m]) > 0.05
+        for: 5m
+        annotations:
+          summary: "Backend error rate is high ({{ $value | humanizePercentage }})"
+          severity: critical
+
+      # Backend request latency high
+      - alert: BackendLatencyHigh
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{job="neurex-backend"}[5m])) > 1
+        for: 5m
+        annotations:
+          summary: "Backend p95 latency is {{ $value }}s"
+          severity: warning
+
+      # Frontend down
+      - alert: FrontendDown
+        expr: up{job="neurex-frontend"} == 0
+        for: 1m
+        annotations:
+          summary: "Frontend service is down"
+          severity: critical
+
+      # Engine down
+      - alert: EngineDown
+        expr: up{job="neurex-engine"} == 0
+        for: 1m
+        annotations:
+          summary: "Engine service is down"
+          severity: critical
+
+      # Engine task queue backlog
+      - alert: EngineTaskQueueBacklog
+        expr: rq_job_count{status="queued"} > 100
+        for: 5m
+        annotations:
+          summary: "Engine task queue has {{ $value }} pending tasks"
+          severity: warning
+
+      # AI Gateway down
+      - alert: AIGatewayDown
+        expr: up{job="neurex-ai-gateway"} == 0
+        for: 1m
+        annotations:
+          summary: "AI Gateway service is down"
+          severity: critical
+
+      # AI Gateway provider all down
+      - alert: AIGatewayAllProvidersDown
+        expr: ai_gateway_provider_up == 0
+        for: 1m
+        annotations:
+          summary: "All AI Gateway providers are unavailable"
+          severity: critical
+
+  # ── Network & Connectivity ──────────────────────────────────────────────
+  - name: network_alerts
+    interval: 15s
+    rules:
+      # High network errors
+      - alert: HighNetworkErrors
+        expr: increase(node_network_transmit_errs_total[5m]) > 100
+        for: 5m
+        annotations:
+          summary: "High network errors on {{ $labels.device }}"
+          severity: warning
+
+      # High network drops
+      - alert: HighNetworkDrops
+        expr: increase(node_network_transmit_drop_total[5m]) > 100
+        for: 5m
+        annotations:
+          summary: "High network drops on {{ $labels.device }}"
+          severity: warning
+
+  # ── Kubernetes Alerts ────────────────────────────────────────────────────
+  - name: kubernetes_alerts
+    interval: 15s
+    rules:
+      # Pod restart loop
+      - alert: PodRestartingLoop
+        expr: increase(kube_pod_container_status_restarts_total[15m]) > 5
+        for: 5m
+        annotations:
+          summary: "Pod {{ $labels.pod }} in namespace {{ $labels.namespace }} is restarting frequently"
+          severity: warning
+
+      # Node not ready
+      - alert: NodeNotReady
+        expr: kube_node_status_condition{condition="Ready", status="true"} == 0
+        for: 5m
+        annotations:
+          summary: "Node {{ $labels.node }} is not ready"
+          severity: critical
+
+      # PVC almost full
+      - alert: PVCAlmostFull
+        expr: (kubelet_volume_stats_available_bytes / kubelet_volume_stats_capacity_bytes) < 0.1
+        for: 10m
+        annotations:
+          summary: "PVC {{ $labels.persistentvolumeclaim }} in namespace {{ $labels.namespace }} is almost full"
+          severity: warning
+
+  # ── SLA & Performance Alerts ────────────────────────────────────────────
+  - name: sla_alerts
+    interval: 15s
+    rules:
+      # Uptime SLA violation (99.9%)
+      - alert: UptimeSLAViolation
+        expr: (1 - (increase(up{job=~"neurex-.*"}[5m]) - bool (up{job=~"neurex-.*"} == 1)) / (increase(up{job=~"neurex-.*"}[5m]))) < 0.999
+        for: 5m
+        annotations:
+          summary: "Service {{ $labels.job }} violates 99.9% uptime SLA"
+          severity: critical
+
+      # Response time SLA violation (100ms p99)
+      - alert: ResponseTimeSLAViolation
+        expr: histogram_quantile(0.99, rate(http_request_duration_seconds_bucket{job="neurex-backend"}[5m])) > 0.1
+        for: 5m
+        annotations:
+          summary: "Backend p99 response time ({{ $value }}s) violates SLA"
+          severity: warning

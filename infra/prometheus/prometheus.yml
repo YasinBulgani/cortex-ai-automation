@@ -1,0 +1,106 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# Prometheus Configuration - Production Monitoring
+# ═══════════════════════════════════════════════════════════════════════════════
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    environment: 'production'
+    cluster: 'neurex-prod'
+
+# ── Alert Manager Integration ──────────────────────────────────────────────
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: ['localhost:9093']
+
+# ── Rule Files ───────────────────────────────────────────────────────────────
+rule_files:
+  - '/etc/prometheus/rules/alerts.yml'
+  - '/etc/prometheus/rules/recording-rules.yml'
+
+# ── Scrape Configurations ──────────────────────────────────────────────────
+scrape_configs:
+  # ── Prometheus Self ────────────────────────────────────────────────────
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # ── Backend Service (FastAPI) ─────────────────────────────────────────
+  - job_name: 'neurex-backend'
+    static_configs:
+      - targets: ['backend:8000']
+    metrics_path: '/metrics'
+    scrape_interval: 15s
+    metrics_relabel_configs:
+      - source_labels: [__name__]
+        regex: 'fastapi_.*|starlette_.*|http_requests_.*'
+        action: keep
+
+  # ── Frontend Service (Next.js) ────────────────────────────────────────
+  - job_name: 'neurex-frontend'
+    static_configs:
+      - targets: ['web:3000']
+    metrics_path: '/metrics'
+
+  # ── Engine Service (Flask) ────────────────────────────────────────────
+  - job_name: 'neurex-engine'
+    static_configs:
+      - targets: ['engine:5001']
+    metrics_path: '/metrics'
+    metrics_relabel_configs:
+      - source_labels: [__name__]
+        regex: 'flask_.*|werkzeug_.*'
+        action: keep
+
+  # ── AI Gateway ────────────────────────────────────────────────────────
+  - job_name: 'neurex-ai-gateway'
+    static_configs:
+      - targets: ['ai-gateway:8080']
+    metrics_path: '/metrics'
+
+  # ── PostgreSQL Exporter ───────────────────────────────────────────────
+  - job_name: 'postgresql'
+    static_configs:
+      - targets: ['postgres-exporter:9187']
+    metrics_relabel_configs:
+      - source_labels: [__name__]
+        regex: 'pg_.*|postgresql_.*'
+        action: keep
+
+  # ── PostgreSQL Replica Exporter ───────────────────────────────────────
+  - job_name: 'postgresql-replica'
+    static_configs:
+      - targets: ['postgres-replica-exporter:9188']
+    metrics_relabel_configs:
+      - source_labels: [__name__]
+        regex: 'pg_.*|postgresql_.*'
+        action: keep
+
+  # ── Redis Exporter ────────────────────────────────────────────────────
+  - job_name: 'redis'
+    static_configs:
+      - targets: ['redis-exporter:9121']
+    metrics_relabel_configs:
+      - source_labels: [__name__]
+        regex: 'redis_.*'
+        action: keep
+
+  # ── Nginx Exporter ────────────────────────────────────────────────────
+  - job_name: 'nginx'
+    static_configs:
+      - targets: ['nginx-exporter:9113']
+    metrics_relabel_configs:
+      - source_labels: [__name__]
+        regex: 'nginx_.*'
+        action: keep
+
+  # ── Docker Container Metrics ──────────────────────────────────────────
+  - job_name: 'docker'
+    static_configs:
+      - targets: ['localhost:9323']
+    metrics_relabel_configs:
+      - source_labels: [__name__]
+        regex: 'container_.*|engine_.*'
+        action: keep
