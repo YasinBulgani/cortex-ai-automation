@@ -1,7 +1,7 @@
 """Create api_keys table for API key management and rotation.
 
-Revision ID: 20260609_0004
-Revises: 20260609_0003
+Revision ID: 20260609_0004_5
+Revises: 20260609_0004
 Create Date: 2026-06-09 12:00:00.000000
 """
 from typing import Sequence, Union
@@ -11,8 +11,8 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 
-revision: str = '20260609_0004'
-down_revision: Union[str, None] = '20260609_0003'
+revision: str = '20260609_0004_5'
+down_revision: Union[str, None] = '20260609_0004'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

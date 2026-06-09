@@ -1,0 +1,127 @@
+name: AI Service Tests
+
+on:
+  push:
+    branches: [main, develop, feature/**]
+    paths:
+      - 'backend/app/domains/ai_service/**'
+      - 'backend/tests/unit/test_ai_service.py'
+      - 'backend/tests/integration/test_ai_service_endpoints.py'
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  test-ai-service:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: neurex_test
+          POSTGRES_PASSWORD: test_password
+          POSTGRES_DB: test_db
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          cd backend
+          pip install -r requirements.txt
+          pip install pytest pytest-asyncio pytest-cov
+
+      - name: Run migrations
+        run: |
+          cd backend
+          alembic upgrade head
+        env:
+          DATABASE_URL: postgresql://neurex_test:test_password@localhost/test_db
+
+      - name: Run unit tests
+        run: |
+          cd backend
+          pytest tests/unit/test_ai_service.py -v --cov=app/domains/ai_service --cov-report=xml
+        env:
+          DATABASE_URL: postgresql://neurex_test:test_password@localhost/test_db
+          REDIS_URL: redis://localhost:6379
+
+      - name: Run integration tests
+        run: |
+          cd backend
+          pytest tests/integration/test_ai_service_endpoints.py -v --cov=app/domains/ai_service --cov-report=xml
+        env:
+          DATABASE_URL: postgresql://neurex_test:test_password@localhost/test_db
+          REDIS_URL: redis://localhost:6379
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          files: ./backend/coverage.xml
+          flags: ai-service
+          fail_ci_if_error: false
+
+  type-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: 'apps/web/package-lock.json'
+
+      - name: Install frontend dependencies
+        run: |
+          cd apps/web
+          npm ci
+
+      - name: Type check AI components
+        run: |
+          cd apps/web
+          npx tsc --noEmit components/ai/
+
+  security-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Security scan (bandit)
+        run: |
+          pip install bandit
+          bandit -r backend/app/domains/ai_service/ -f json -o bandit-report.json || true
+
+      - name: Upload security report
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: bandit-report
+          path: bandit-report.json

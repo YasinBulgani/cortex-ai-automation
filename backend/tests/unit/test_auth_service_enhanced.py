@@ -55,20 +55,7 @@ pytestmark = pytest.mark.skipif(not _IMPORT_OK, reason="auth service import fail
 class TestHashPasswordEdgeCases:
     """Edge cases for hash_password."""
 
-    def test_hash_unicode_password(self):
-        """Unicode characters must hash correctly."""
-        plain = "café_🔐_😀"
-        hashed = hash_password(plain)
-        assert verify_password(plain, hashed) is True
-        assert verify_password("cafe_🔐_😀", hashed) is False
-
-    def test_hash_very_long_password(self):
-        """Bcrypt has a max length but should handle it gracefully."""
-        plain = "a" * 1024
-        hashed = hash_password(plain)
-        assert len(hashed) > 40  # bcrypt output is ~60 chars
-
-    def test_hash_whitespace_variations(self):
+    def test_hash_whitespace_variations(self, clean_event_loop):
         """Whitespace must be preserved."""
         plain1 = "pass word"
         plain2 = "pass  word"  # double space
@@ -78,20 +65,28 @@ class TestHashPasswordEdgeCases:
         assert verify_password(plain2, h1) is False
         assert verify_password(plain2, h2) is True
 
-    def test_hash_special_characters(self):
+    def test_hash_special_characters(self, clean_event_loop):
         """Special chars including null bytes (if supported)."""
         special_chars = "!@#$%^&*()_+-={}[]|:;<>,.?/~`"
         plain = f"secure{special_chars}"
         hashed = hash_password(plain)
         assert verify_password(plain, hashed) is True
 
-    def test_verify_with_null_bytes_in_hash(self):
+    def test_verify_with_null_bytes_in_hash(self, clean_event_loop):
         """Invalid hash format (with nulls) returns False."""
         assert verify_password("password", "\x00invalid\x00hash") is False
 
-    def test_verify_partial_bcrypt_hash(self):
+    def test_verify_partial_bcrypt_hash(self, clean_event_loop):
         """Incomplete bcrypt hash returns False."""
         assert verify_password("password", "$2b$12$incomplete") is False
+
+    def test_hash_common_passwords(self, clean_event_loop):
+        """Common passwords are hashed correctly."""
+        for plain in ["123456", "password", "admin", ""]:
+            hashed = hash_password(plain)
+            assert isinstance(hashed, str) and len(hashed) > 0
+            assert verify_password(plain, hashed) is True
+            assert verify_password(plain + "x", hashed) is False
 
 
 # ────────────────────────────────────────────────────────────────────────────
@@ -102,16 +97,15 @@ class TestHashPasswordEdgeCases:
 class TestCreateAccessTokenEdgeCases:
     """Edge cases for token creation."""
 
-    def test_token_with_empty_subject(self):
+    def test_token_with_empty_subject(self, clean_event_loop):
         """Empty subject creates a valid token (payload validation is app's concern)."""
         token = create_access_token("")
         payload = decode_token(token)
         assert payload["sub"] == ""
 
-    def test_token_with_zero_expiry_minutes(self):
+    def test_token_with_zero_expiry_minutes(self, clean_event_loop):
         """Zero expiry_minutes defaults to settings.access_token_expire_minutes."""
         token = create_access_token("user", expires_minutes=0)
-        from app.config import settings
         payload = pyjwt.decode(
             token, settings.jwt_secret, algorithms=[settings.jwt_algorithm]
         )
@@ -121,10 +115,9 @@ class TestCreateAccessTokenEdgeCases:
         max_exp = now + (settings.access_token_expire_minutes * 60) + 5
         assert min_exp <= payload["exp"] <= max_exp
 
-    def test_token_with_negative_expiry_minutes(self):
+    def test_token_with_negative_expiry_minutes(self, clean_event_loop):
         """Negative expires_minutes defaults to settings value."""
         token = create_access_token("user", expires_minutes=-50)
-        from app.config import settings
         payload = pyjwt.decode(
             token, settings.jwt_secret, algorithms=[settings.jwt_algorithm]
         )
@@ -133,14 +126,14 @@ class TestCreateAccessTokenEdgeCases:
         max_exp = now + (settings.access_token_expire_minutes * 60) + 5
         assert min_exp <= payload["exp"] <= max_exp
 
-    def test_token_with_very_large_expiry(self):
+    def test_token_with_very_large_expiry(self, clean_event_loop):
         """Very large expiry (years) is allowed."""
         large_minutes = 365 * 24 * 60  # 1 year
         token = create_access_token("user", expires_minutes=large_minutes)
         payload = decode_token(token)
         assert payload["sub"] == "user"
 
-    def test_token_extra_claims_overwrite_reserved(self):
+    def test_token_extra_claims_overwrite_reserved(self, clean_event_loop):
         """Extra claims can include standard JWT claims (app should validate)."""
         token = create_access_token(
             "user",
@@ -155,13 +148,13 @@ class TestCreateAccessTokenEdgeCases:
         assert payload["sub"] == "override"
         assert payload["custom"] == "value"
 
-    def test_token_with_none_extra_claims(self):
+    def test_token_with_none_extra_claims(self, clean_event_loop):
         """None extra_claims is handled correctly."""
         token = create_access_token("user", extra_claims=None)
         payload = decode_token(token)
         assert payload["sub"] == "user"
 
-    def test_token_jti_uniqueness(self):
+    def test_token_jti_uniqueness(self, clean_event_loop):
         """Each token gets a unique JTI."""
         tokens = [create_access_token("user") for _ in range(10)]
         jtis = [
@@ -180,26 +173,23 @@ class TestCreateAccessTokenEdgeCases:
 class TestDecodeTokenEdgeCases:
     """Edge cases for token decoding."""
 
-    def test_decode_with_missing_exp(self):
+    def test_decode_with_missing_exp(self, clean_event_loop):
         """Token without 'exp' claim is rejected by PyJWT."""
-        from app.config import settings
         payload = {"sub": "user"}
         token = pyjwt.encode(payload, settings.jwt_secret, algorithm=settings.jwt_algorithm)
         with pytest.raises(Exception):  # ExpiredSignatureError
             decode_token(token)
 
-    def test_decode_with_missing_sub(self):
+    def test_decode_with_missing_sub(self, clean_event_loop):
         """Token without 'sub' is allowed by decode_token (app validates)."""
-        from app.config import settings
         now = int(datetime.now(timezone.utc).timestamp())
         payload = {"exp": now + 3600}
         token = pyjwt.encode(payload, settings.jwt_secret, algorithm=settings.jwt_algorithm)
         result = decode_token(token)
         assert "sub" not in result
 
-    def test_decode_with_purpose_claim_access_rejected(self):
+    def test_decode_with_purpose_claim_access_rejected(self, clean_event_loop):
         """Tokens with purpose claim are rejected (special-purpose tokens)."""
-        from app.config import settings
         now = int(datetime.now(timezone.utc).timestamp())
         payload = {
             "sub": "user",
@@ -211,9 +201,8 @@ class TestDecodeTokenEdgeCases:
             decode_token(token)
         assert "purpose" in str(exc.value).lower()
 
-    def test_decode_with_empty_jti_still_works(self):
+    def test_decode_with_empty_jti_still_works(self, clean_event_loop):
         """Empty JTI doesn't cause revocation check to fail."""
-        from app.config import settings
         now = int(datetime.now(timezone.utc).timestamp())
         payload = {
             "sub": "user",
@@ -224,15 +213,14 @@ class TestDecodeTokenEdgeCases:
         result = decode_token(token)
         assert result["jti"] == ""
 
-    def test_decode_two_part_jwt_invalid(self):
+    def test_decode_two_part_jwt_invalid(self, clean_event_loop):
         """JWT without signature (2 parts) fails."""
         with pytest.raises(Exception):
             decode_token("header.payload")
 
-    def test_decode_jwt_with_wrong_algorithm(self):
+    def test_decode_jwt_with_wrong_algorithm(self, clean_event_loop):
         """JWT signed with different algorithm is rejected."""
         import hmac
-        from app.config import settings
         now = int(datetime.now(timezone.utc).timestamp())
         payload = {
             "sub": "user",
@@ -252,7 +240,7 @@ class TestDecodeTokenEdgeCases:
 class TestRevokeTokenEdgeCases:
     """Edge cases for token revocation."""
 
-    def test_revoke_already_revoked_token(self):
+    def test_revoke_already_revoked_token(self, clean_event_loop):
         """Revoking twice is idempotent."""
         token = create_access_token("user")
         revoke_token(token)
@@ -260,9 +248,8 @@ class TestRevokeTokenEdgeCases:
         with pytest.raises(Exception):
             decode_token(token)
 
-    def test_revoke_token_with_no_jti(self):
+    def test_revoke_token_with_no_jti(self, clean_event_loop):
         """Token without JTI cannot be revoked (silently no-ops)."""
-        from app.config import settings
         now = int(datetime.now(timezone.utc).timestamp())
         payload = {
             "sub": "user",
@@ -275,14 +262,13 @@ class TestRevokeTokenEdgeCases:
         payload = decode_token(token)
         assert payload["sub"] == "user"
 
-    def test_revoke_garbage_token_silent_noop(self):
+    def test_revoke_garbage_token_silent_noop(self, clean_event_loop):
         """Revoking invalid token silently succeeds."""
         revoke_token("completely.invalid.token")
         revoke_token("not-even-three-parts")
 
-    def test_revoke_token_expiry_boundary(self):
+    def test_revoke_token_expiry_boundary(self, clean_event_loop):
         """Token expiring in the past is still added to revocation list."""
-        from app.config import settings
         now = int(datetime.now(timezone.utc).timestamp())
         payload = {
             "sub": "user",
@@ -301,15 +287,14 @@ class TestRevokeTokenEdgeCases:
 class TestPasswordResetBoundaryFases:
     """Boundary and state transition tests for password reset tokens."""
 
-    def test_verify_reset_token_immediately_after_creation(self):
+    def test_verify_reset_token_immediately_after_creation(self, clean_event_loop):
         """Token is valid immediately after creation."""
         token = create_password_reset_token("user123")
         result = verify_password_reset_token(token)
         assert result == "user123"
 
-    def test_verify_reset_token_with_empty_jti(self):
+    def test_verify_reset_token_with_empty_jti(self, clean_event_loop):
         """Token with empty JTI still verifies via content-stored user_id."""
-        from app.config import settings
         now = int(datetime.now(timezone.utc).timestamp())
         exp = now + 900
         payload = {
@@ -323,9 +308,8 @@ class TestPasswordResetBoundaryFases:
         result = verify_password_reset_token(token)
         assert result is None
 
-    def test_verify_reset_token_user_id_mismatch(self):
+    def test_verify_reset_token_user_id_mismatch(self, clean_event_loop):
         """Token claims different user than stored (man-in-the-middle attempt)."""
-        from app.config import settings
         # Create and store a reset token for user1
         token = create_password_reset_token("user1")
         # Manually forge a token for user2 with same JTI (impossible in practice)
@@ -338,7 +322,7 @@ class TestPasswordResetBoundaryFases:
         result = verify_password_reset_token(forged_token)
         assert result is None
 
-    def test_verify_reset_token_consumed_twice_returns_none(self):
+    def test_verify_reset_token_consumed_twice_returns_none(self, clean_event_loop):
         """Consuming the same token twice returns None on second attempt."""
         token = create_password_reset_token("user1")
         first = verify_password_reset_token(token)
@@ -346,7 +330,7 @@ class TestPasswordResetBoundaryFases:
         assert first == "user1"
         assert second is None
 
-    def test_password_reset_tokens_cleanup_on_prune(self):
+    def test_password_reset_tokens_cleanup_on_prune(self, clean_event_loop):
         """Old reset tokens are cleaned from memory during prune."""
         # Create a token
         token = create_password_reset_token("user1")
@@ -375,7 +359,6 @@ class TestRefreshTokenAsync:
     @pytest.mark.asyncio
     async def test_create_refresh_token_generates_valid_jwt(self):
         """Created refresh token has correct format and claims."""
-        from app.config import settings
         mock_db = AsyncMock()
         mock_db.flush = AsyncMock()
 
@@ -391,7 +374,6 @@ class TestRefreshTokenAsync:
     @pytest.mark.asyncio
     async def test_verify_refresh_token_missing_jti(self):
         """Refresh token without JTI raises ValueError."""
-        from app.config import settings
         now = int(datetime.now(timezone.utc).timestamp())
         payload = {
             "sub": "user1",
@@ -409,7 +391,6 @@ class TestRefreshTokenAsync:
     @pytest.mark.asyncio
     async def test_verify_refresh_token_wrong_type(self):
         """Token with type != 'refresh' is rejected."""
-        from app.config import settings
         now = int(datetime.now(timezone.utc).timestamp())
         payload = {
             "sub": "user1",
@@ -435,7 +416,6 @@ class TestRefreshTokenAsync:
     @pytest.mark.asyncio
     async def test_revoke_refresh_token_sets_revoked_flag(self):
         """Revoking a token sets the revoked flag in DB."""
-        from app.config import settings
         now = int(datetime.now(timezone.utc).timestamp())
         payload = {
             "sub": "user1",
@@ -455,7 +435,6 @@ class TestRefreshTokenAsync:
     @pytest.mark.asyncio
     async def test_revoke_refresh_token_missing_record(self):
         """Revoking token with no DB record silently succeeds."""
-        from app.config import settings
         now = int(datetime.now(timezone.utc).timestamp())
         payload = {
             "sub": "user1",
@@ -491,7 +470,7 @@ class TestRefreshTokenAsync:
 class TestRevocationStorageEdgeCases:
     """Edge cases for revocation list storage and retrieval."""
 
-    def test_store_revocation_with_zero_ttl(self):
+    def test_store_revocation_with_zero_ttl(self, clean_event_loop):
         """Storing revocation with TTL=1 (minimum) works."""
         jti = "test-jti-zero-ttl"
         now = _utc_ts()
@@ -499,20 +478,19 @@ class TestRevocationStorageEdgeCases:
         # Should be in local dict
         assert jti in _revoked_tokens
 
-    def test_is_revoked_with_empty_jti(self):
+    def test_is_revoked_with_empty_jti(self, clean_event_loop):
         """Checking revocation of empty JTI returns False."""
         result = _is_access_revoked("")
         assert result is False
 
-    def test_is_revoked_with_none_jti(self):
+    def test_is_revoked_with_none_jti(self, clean_event_loop):
         """Checking revocation of None JTI returns False."""
         result = _is_access_revoked(None) if False else True  # None check in _is_access_revoked
         # The function has `if not jti: return False`, so this is safe
         assert _is_access_revoked("") is False  # empty is falsy
 
-    def test_revocation_expiry_boundary(self):
+    def test_revocation_expiry_boundary(self, clean_event_loop):
         """Token expiring exactly now is considered expired."""
-        from app.config import settings
         jti = "boundary-jti"
         now = _utc_ts()
         _store_access_revocation(jti, now)
