@@ -128,12 +128,16 @@ def upgrade() -> None:
 
     # Log verification completion
     op.execute("""
-        RAISE NOTICE 'Database constraint verification complete: 7 constraints checked';
+        DO $$ BEGIN
+            RAISE NOTICE 'Database constraint verification complete: 7 constraints checked';
+        END $$;
     """)
 
 
 def downgrade() -> None:
     # Downgrade removes constraint verification (constraints remain for safety)
     op.execute("""
-        RAISE NOTICE 'Constraint downgrades skipped for data safety';
+        DO $$ BEGIN
+            RAISE NOTICE 'Constraint downgrades skipped for data safety';
+        END $$;
     """)

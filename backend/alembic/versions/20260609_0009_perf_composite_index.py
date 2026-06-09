@@ -28,7 +28,6 @@ def upgrade() -> None:
         'ix_tm_cases_project_status_archived',
         'test_management_cases',
         ['project_id', 'status', 'archived'],
-        postgresql_concurrently=True,
     )
 
 
@@ -37,5 +36,4 @@ def downgrade() -> None:
     op.drop_index(
         'ix_tm_cases_project_status_archived',
         table_name='test_management_cases',
-        postgresql_concurrently=True,
     )
