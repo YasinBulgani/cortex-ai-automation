@@ -376,7 +376,17 @@ async def app_lifespan(_app: FastAPI):
         configure_logging(service="neurex-backend")
     except ImportError:
         pass
-    init_otel(service_name="neurex-backend")
+
+    # OTel initialization (fail-closed in production)
+    try:
+        init_otel(
+            service_name="neurex-backend",
+            fail_closed=settings.is_production_like
+        )
+    except RuntimeError as exc:
+        if settings.is_production_like:
+            raise
+        logger.warning("otel init başarısız (dev ortamında yok sayıldı): %s", exc)
 
     Path(settings.artifacts_dir).mkdir(parents=True, exist_ok=True)
     start_scheduler()
@@ -392,6 +402,7 @@ async def app_lifespan(_app: FastAPI):
     threading.Thread(target=_warmup_engine_pool, daemon=True, name="engine-pool-warmup").start()
 
     # Outbox relay — guaranteed event delivery (Redis Streams broker)
+    # Production ortamında outbox relay zorunlu (settings'te kontrol edilir)
     _outbox_task = None
     try:
         import asyncio
@@ -400,8 +411,15 @@ async def app_lifespan(_app: FastAPI):
         if _relay is not None:
             _outbox_task = asyncio.create_task(_relay.run_forever(poll_interval=2.0))
             logger.info("outbox relay başlatıldı")
+        elif settings.is_production_like:
+            raise RuntimeError(
+                "Production ortamında outbox relay başlatılamadı. "
+                "Redis bağlantısı ve OUTBOX_RELAY_ENABLED=true gerekli."
+            )
     except Exception as exc:
-        logger.warning("outbox relay başlatılamadı (opsiyonel): %s", exc)
+        if settings.is_production_like:
+            raise
+        logger.warning("outbox relay başlatılamadı (dev ortamında opsiyonel): %s", exc)
 
     yield
 

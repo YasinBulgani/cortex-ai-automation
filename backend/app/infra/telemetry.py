@@ -159,10 +159,19 @@ def init_otel(
     *,
     service_name: str = "testwright-backend",
     endpoint: Optional[str] = None,
+    fail_closed: bool = False,
 ) -> bool:
-    """OTel SDK kurulumunu yap. SDK yoksa False."""
+    """OTel SDK kurulumunu yap. SDK yoksa False.
+
+    Args:
+        fail_closed: True ise (prod modunda), init hatası → RuntimeError raise et.
+                     False (dev) ise, init hatası → log warn, silent pass.
+    """
     if not _is_available():
-        logger.info("otel: api paketi yok, init atlandı")
+        msg = "otel: api paketi yok, init atlandı"
+        if fail_closed:
+            raise RuntimeError(msg)
+        logger.info(msg)
         return False
     try:
         from opentelemetry import trace  # type: ignore
@@ -202,5 +211,8 @@ def init_otel(
         )
         return True
     except Exception as exc:  # pragma: no cover
-        logger.warning("otel init başarısız: %s", exc)
+        msg = "otel init başarısız: %s" % exc
+        if fail_closed:
+            raise RuntimeError(msg) from exc
+        logger.warning(msg)
         return False

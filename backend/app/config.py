@@ -261,6 +261,17 @@ class Settings(BaseSettings):
     nexus_autopilot_apply_safe_actions: bool = True
     nexus_autopilot_max_projects_per_tick: int = 20
 
+    # ── Observability: OpenTelemetry ───────────────────────────────────
+    # Production ortamında OpenTelemetry SDK initialization zorunlu.
+    # Distributed tracing for observability & debugging.
+    otel_enabled: bool = False  # Prod ortamında true zorunlu
+    otel_exporter_otlp_endpoint: str = ""  # e.g., http://otel-collector:4317
+
+    # ── Event Reliability: Outbox Relay ────────────────────────────────
+    # Guaranteed event delivery via Redis Streams broker + SQL Outbox pattern.
+    # Production ortamında outbox relay servisi zorunlu.
+    outbox_relay_enabled: bool = False  # Prod ortamında true zorunlu
+
     # ── Field-level validators ─────────────────────────────────────────
 
     @field_validator("secrets_encryption_keys")
@@ -432,6 +443,58 @@ class Settings(BaseSettings):
             _logger.warning(
                 "GUVENLIK UYARISI: ENGINE_INTERNAL_KEY development fallback olarak zayif "
                 "veya varsayilan degerde. Production ortaminda guclu bir anahtar kullanin."
+            )
+        return self
+
+    @model_validator(mode="after")
+    def _validate_trusted_proxy_ips(self) -> "Settings":
+        """SEC: TRUSTED_PROXY_IPS=* prod'da X-Forwarded-For spoofing'e (IP tabanli
+        rate-limit / abuse-detection bypass) acik birakir. Internal-only load
+        balancer arkasinda bile somut proxy IP'leri tanimlanmalidir.
+
+        Mevcut artifact-backend konvansiyonuyla tutarli sekilde, calisan
+        deployment'lari kirmamak icin hard-fail degil WARN uygulanir.
+        """
+        if self.is_production_like and self.trusted_proxy_ips.strip() == "*":
+            _logger.warning(
+                "GUVENLIK UYARISI: TRUSTED_PROXY_IPS=* production ortaminda "
+                "X-Forwarded-For spoofing'e ve IP tabanli rate-limit bypass'ina "
+                "yol acabilir. Load balancer'in somut IP'lerini tanimlayin "
+                "(or. TRUSTED_PROXY_IPS=10.0.0.1,10.0.0.2)."
+            )
+        return self
+
+    @model_validator(mode="after")
+    def _validate_observability_prod(self) -> "Settings":
+        """OBS-001: Production ortamında OpenTelemetry zorunludur (distributed tracing)."""
+        # Skip in test/CI mode — pytest ortamında gerekli değil
+        if self.testing or self.ci:
+            return self
+        # Also skip if TESTING env var is set (pytest reload scenario)
+        if os.environ.get("TESTING", "").lower() in ("1", "true", "yes"):
+            return self
+        if self.is_production_like and not self.otel_enabled:
+            raise ValueError(
+                "KRITIK: APP_ENV=%s icin OTEL_ENABLED=true zorunludur. "
+                "Prod ortamında observable deployment yapılamaz (OTel trace/span export gerekli)."
+                % self.app_env
+            )
+        return self
+
+    @model_validator(mode="after")
+    def _validate_event_reliability_prod(self) -> "Settings":
+        """EVT-001: Production ortamında Outbox Relay zorunludur (guaranteed delivery)."""
+        # Skip in test/CI mode — pytest ortamında gerekli değil
+        if self.testing or self.ci:
+            return self
+        # Also skip if TESTING env var is set (pytest reload scenario)
+        if os.environ.get("TESTING", "").lower() in ("1", "true", "yes"):
+            return self
+        if self.is_production_like and not self.outbox_relay_enabled:
+            raise ValueError(
+                "KRITIK: APP_ENV=%s icin OUTBOX_RELAY_ENABLED=true zorunludur. "
+                "Prod ortamında event reliability sağlanamaz (Outbox + Redis Streams gerekli)."
+                % self.app_env
             )
         return self
 

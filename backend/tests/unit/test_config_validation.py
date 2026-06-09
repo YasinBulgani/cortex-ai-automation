@@ -29,6 +29,8 @@ def _clean_env(monkeypatch: pytest.MonkeyPatch) -> None:
         "JWT_SECRET",
         "ENGINE_INTERNAL_KEY",
         "GATEWAY_INTERNAL_KEY",
+        "OTEL_ENABLED",
+        "OUTBOX_RELAY_ENABLED",
     ):
         monkeypatch.delenv(var, raising=False)
 
@@ -49,6 +51,8 @@ def test_default_secrets_raise_in_production(monkeypatch: pytest.MonkeyPatch) ->
     monkeypatch.setenv("ENV", "production")
     monkeypatch.setenv("DEBUG", "false")
     monkeypatch.setenv("DATABASE_URL", _PROD_DATABASE_URL)
+    monkeypatch.setenv("OTEL_ENABLED", "true")
+    monkeypatch.setenv("OUTBOX_RELAY_ENABLED", "true")
 
     with pytest.raises(ValueError) as exc_info:
         _load_settings()
@@ -63,6 +67,8 @@ def test_custom_jwt_but_default_engine_key_fails_in_production(
     monkeypatch.setenv("DEBUG", "false")
     monkeypatch.setenv("DATABASE_URL", _PROD_DATABASE_URL)
     monkeypatch.setenv("JWT_SECRET", "x" * 64)
+    monkeypatch.setenv("OTEL_ENABLED", "true")
+    monkeypatch.setenv("OUTBOX_RELAY_ENABLED", "true")
 
     with pytest.raises(ValueError) as exc_info:
         _load_settings()
@@ -78,6 +84,8 @@ def test_all_custom_secrets_pass_in_production(monkeypatch: pytest.MonkeyPatch) 
     monkeypatch.setenv("ENGINE_INTERNAL_KEY", "engine-key-" + "y" * 30)
     monkeypatch.setenv("GATEWAY_INTERNAL_KEY", "gateway-key-" + "z" * 30)
     monkeypatch.setenv("DATABASE_URL", "postgresql://prod_user:securepwd@db:5432/neurex_db")
+    monkeypatch.setenv("OTEL_ENABLED", "true")
+    monkeypatch.setenv("OUTBOX_RELAY_ENABLED", "true")
 
     settings = _load_settings()
     assert settings.jwt_secret == "x" * 64

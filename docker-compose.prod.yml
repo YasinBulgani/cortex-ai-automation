@@ -105,6 +105,9 @@ services:
       SENTRY_DSN: ${SENTRY_DSN:-}
       SENTRY_ENVIRONMENT: ${SENTRY_ENVIRONMENT:-production}
       PROMETHEUS_ENABLED: ${PROMETHEUS_ENABLED:-true}
+      OTEL_ENABLED: "true"
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
+      OUTBOX_RELAY_ENABLED: "true"
       DEBUG: "false"
       RUNNING_IN_DOCKER: "1"
       RATE_LIMIT_REQUIRED: "true"
@@ -155,6 +158,8 @@ services:
       RQ_QUEUE_NAME: syndata_jobs
       ENGINE_BASE_URL: http://engine:5001
       ENGINE_INTERNAL_KEY: ${ENGINE_INTERNAL_KEY}
+      OTEL_ENABLED: "true"
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
       SENTRY_DSN: ${SENTRY_DSN:-}
     depends_on:
       postgres:
@@ -204,6 +209,8 @@ services:
       OLLAMA_MODEL_ANALYST: ${OLLAMA_MODEL_ANALYST:-qwen2.5:14b}
       OLLAMA_MODEL_FAST: ${OLLAMA_MODEL_FAST:-llama3.1:8b}
       OLLAMA_MODEL_CODER: ${OLLAMA_MODEL_CODER:-qwen2.5-coder:7b}
+      OTEL_ENABLED: "true"
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
       SENTRY_DSN: ${SENTRY_DSN:-}
       SKIP_APP_BOOTSTRAP: "1"
     depends_on:
@@ -341,6 +348,37 @@ services:
         limits:
           cpus: "1"
           memory: 512M
+
+  # ─── Outbox Relay (Event Reliability) ──────────────────────────────────────
+  # Standalone service that polls the outbox table and publishes events to Redis Streams.
+  # Guarantees at-least-once delivery for domain events.
+  outbox-relay:
+    image: ghcr.io/${GITHUB_REPOSITORY:?GITHUB_REPOSITORY env var gerekli}-backend:${IMAGE_TAG:?IMAGE_TAG env var gerekli — latest kullanma, immutable tag gir}
+    container_name: bgts_outbox_relay_prod
+    restart: always
+    command: ["sh", "-c", "python -m app.infra.outbox_cli"]
+    environment:
+      APP_ENV: ${APP_ENV:-production}
+      DATABASE_URL: ${DATABASE_URL}
+      REDIS_URL: ${REDIS_URL}
+      ARTIFACTS_DIR: /app/data/artifacts
+      OUTBOX_RELAY_ENABLED: "true"
+      SKIP_APP_BOOTSTRAP: "1"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - bgts_internal
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+        reservations:
+          cpus: "0.25"
+          memory: 128M
 
   # ─── Nginx (SSL Termination + Reverse Proxy) ───────────────────────────────
   nginx:
