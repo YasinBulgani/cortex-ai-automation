@@ -8,7 +8,8 @@ DB-MED-3: Self-ref FK constraints
 import pytest
 from unittest.mock import patch, MagicMock
 
-from app.infra.models import RefreshToken, Organization, TestCase
+from app.infra.models import RefreshToken, Organization
+from app.domains.test_management.models import TestCase
 
 
 def test_refresh_token_id_generation():

@@ -1,0 +1,127 @@
+# Global Configuration
+global:
+  domain: bgtest.dev
+  environment: production
+  imageRegistry: ghcr.io
+  imagePullPolicy: Always
+  projectName: neurex-ai
+
+# Backend (FastAPI)
+backend:
+  enabled: true
+  name: neurex-backend
+  replicaCount: 2
+  image:
+    repository: ghcr.io/neurex-ai/neurex-backend
+    tag: latest
+  port: 8000
+  resources:
+    requests:
+      cpu: 250m
+      memory: 256Mi
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 6
+    targetCPUUtilizationPercentage: 70
+
+# Frontend (Next.js)
+frontend:
+  enabled: true
+  name: neurex-frontend
+  replicaCount: 2
+  image:
+    repository: ghcr.io/neurex-ai/neurex-frontend
+    tag: latest
+  port: 3000
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+# Engine (Flask)
+engine:
+  enabled: true
+  name: neurex-engine
+  replicaCount: 1
+  image:
+    repository: ghcr.io/neurex-ai/neurex-engine
+    tag: latest
+  port: 5001
+  persistence:
+    enabled: true
+    storageClass: standard
+    size:
+      data: 10Gi
+      screenshots: 5Gi
+
+# AI Gateway
+aiGateway:
+  enabled: true
+  name: neurex-ai-gateway
+  replicaCount: 2
+  image:
+    repository: ghcr.io/neurex-ai/neurex-ai-gateway
+    tag: latest
+  port: 8080
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 8
+
+# PostgreSQL
+postgres:
+  enabled: true
+  auth:
+    username: neurex
+    password: changeme
+    database: neurex_prod
+  primary:
+    persistence:
+      size: 50Gi
+
+# Redis
+redis:
+  enabled: true
+  architecture: standalone
+  auth:
+    enabled: true
+    password: changeme
+
+# Ingress
+ingress:
+  enabled: true
+  className: nginx
+  host: bgtest.dev
+  tls:
+    enabled: true
+    issuer: letsencrypt-prod
+
+# Monitoring
+prometheus:
+  enabled: true
+  retention: 15d
+  storage:
+    size: 50Gi
+
+grafana:
+  enabled: true
+  adminPassword: changeme
+  persistence:
+    size: 10Gi
+
+# RBAC & Security
+rbac:
+  create: true
+  serviceAccount:
+    create: true
+    name: neurex-sa
+
+networkPolicy:
+  enabled: true

@@ -1,0 +1,16 @@
+apiVersion: v2
+name: neurex-platform
+description: Neurex AI Automation Platform — Production Helm Chart
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+keywords:
+  - neurex
+  - qa-automation
+  - ai-testing
+home: https://neurex.dev
+sources:
+  - https://github.com/neurex-ai/neurex-platform
+maintainers:
+  - name: Neurex DevOps
+    email: devops@neurex.dev

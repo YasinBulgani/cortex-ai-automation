@@ -1,0 +1,172 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# ArgoCD Application — Neurex Platform GitOps
+# ═══════════════════════════════════════════════════════════════════════════════
+#
+# This manifest defines the Neurex application for ArgoCD deployment.
+# It enables automated deployment from the Git repository.
+#
+
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: neurex-platform
+  namespace: argocd
+  labels:
+    app: neurex-platform
+spec:
+  project: default
+
+  source:
+    repoURL: https://github.com/neurex-ai/neurex-platform
+    targetRevision: main
+    path: infra/helm/neurex-platform
+    helm:
+      releaseName: neurex
+      values: |
+        global:
+          domain: bgtest.dev
+          environment: production
+        backend:
+          replicaCount: 2
+          image:
+            tag: latest
+        frontend:
+          replicaCount: 2
+        aiGateway:
+          replicaCount: 2
+        prometheus:
+          enabled: true
+          retention: 15d
+        grafana:
+          enabled: true
+        loki:
+          enabled: true
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: neurex
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - PrunePropagationPolicy=foreground
+      - RespectIgnoreDifferences=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+
+  revisionHistoryLimit: 10
+
+  ignoreDifferences:
+    - group: apps
+      kind: Deployment
+      jsonPointers:
+        - /spec/replicas
+    - group: ""
+      kind: ConfigMap
+      name: neurex-config
+      namespace: neurex
+      jsonPointers:
+        - /data/log_level
+
+---
+# ArgoCD AppProject
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: neurex-projects
+  namespace: argocd
+spec:
+  description: Neurex Platform Projects
+  sourceRepos:
+    - 'https://github.com/neurex-ai/*'
+    - 'https://charts.bitnami.com/bitnami'
+    - 'https://prometheus-community.github.io/helm-charts'
+    - 'https://grafana.github.io/helm-charts'
+  destinations:
+    - namespace: 'neurex'
+      server: https://kubernetes.default.svc
+    - namespace: 'neurex-*'
+      server: https://kubernetes.default.svc
+  clusterResourceWhitelist:
+    - group: '*'
+      kind: '*'
+  namespaceResourceBlacklist:
+    - group: ''
+      kind: ResourceQuota
+    - group: ''
+      kind: NetworkPolicy
+  orphanedResources:
+    warn: false
+
+---
+# Notification ConfigMap for Slack/Email
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: argocd-notifications-cm
+  namespace: argocd
+data:
+  service.slack: |
+    token: $slack-token
+  service.github: |
+    appID: $github-app-id
+    clientID: $github-client-id
+    clientSecret: $github-client-secret
+    enterpriseBaseURL: https://github.example.com
+
+  template.app-health-degraded: |
+    message: |
+      Application {{.app.metadata.name}} health is degraded.
+    slack:
+      attachments: |
+        [{
+          "color": "warning",
+          "fields": [
+            {"title": "Sync Status", "value": "{{.app.status.operationState.phase}}", "short": true},
+            {"title": "Repository", "value": "{{.app.source.repoURL}}", "short": true}
+          ]
+        }]
+
+  template.app-sync-failed: |
+    message: |
+      Application {{.app.metadata.name}} sync is failed.
+    slack:
+      attachments: |
+        [{
+          "color": "danger",
+          "fields": [
+            {"title": "Sync Status", "value": "{{.app.status.operationState.phase}}", "short": true},
+            {"title": "Repository", "value": "{{.app.source.repoURL}}", "short": true}
+          ]
+        }]
+
+  trigger.on-health-degraded: |
+    - when: app.status.health.status == 'Degraded'
+      oncePer: 10m
+      send: [app-health-degraded]
+
+  trigger.on-sync-failed: |
+    - when: app.status.operationState.phase in ['Error', 'Failed']
+      oncePer: 5m
+      send: [app-sync-failed]
+
+---
+# ArgoCD Notifications Secret
+apiVersion: v1
+kind: Secret
+metadata:
+  name: argocd-notifications-secret
+  namespace: argocd
+type: Opaque
+stringData:
+  slack-token: xoxb-your-slack-token-here
+  github-app-id: "12345"
+  github-client-id: your-client-id
+  github-client-secret: your-client-secret

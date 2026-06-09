@@ -1,0 +1,312 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# Datadog Agent Setup — Kubernetes Integration
+# ═══════════════════════════════════════════════════════════════════════════════
+#
+# Prerequisites:
+#   helm repo add datadog https://helm.datadoghq.com
+#   helm repo update
+#   kubectl create namespace datadog
+#
+# Installation:
+#   helm install datadog datadog/datadog \
+#     --namespace datadog \
+#     -f datadog-values.yaml
+#
+
+apiVersion: v1
+kind: Secret
+metadata:
+  name: datadog-secrets
+  namespace: datadog
+type: Opaque
+stringData:
+  api-key: YOUR_DATADOG_API_KEY
+  app-key: YOUR_DATADOG_APP_KEY
+
+---
+# Datadog Agent ConfigMap
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: datadog-agent-config
+  namespace: datadog
+data:
+  datadog.yaml: |
+    apm_config:
+      enabled: true
+      apm_non_local_traffic: true
+    logs_enabled: true
+    process_enabled: true
+    system_probe_config:
+      enabled: true
+
+    # Custom metrics
+    custom_metrics:
+      - neurex_engine_queue_depth
+      - neurex_engine_execution_duration_seconds
+      - neurex_test_pass_rate
+
+    # Tag configuration
+    tags:
+      - env:production
+      - service:neurex
+      - team:devops
+
+---
+# Datadog ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: datadog-agent
+rules:
+  - apiGroups: [""]
+    resources:
+      - nodes
+      - nodes/proxy
+      - nodes/metrics
+      - services
+      - endpoints
+      - pods
+      - events
+      - componentstatuses
+    verbs: ["get", "list", "watch"]
+  - apiGroups:
+      - apps
+    resources:
+      - statefulsets
+      - daemonsets
+      - deployments
+      - replicasets
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["batch"]
+    resources:
+      - jobs
+      - cronjobs
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["autoscaling"]
+    resources:
+      - horizontalpodautoscalers
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["policy"]
+    resources:
+      - poddisruptionbudgets
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["storage.k8s.io"]
+    resources:
+      - storageclasses
+      - volumeattachments
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources:
+      - persistentvolumes
+      - persistentvolumeclaims
+    verbs: ["get", "list", "watch"]
+
+---
+# Datadog ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: datadog-agent
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: datadog-agent
+subjects:
+  - kind: ServiceAccount
+    name: datadog-agent
+    namespace: datadog
+
+---
+# Datadog ServiceAccount
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: datadog-agent
+  namespace: datadog
+
+---
+# Datadog DaemonSet
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: datadog-agent
+  namespace: datadog
+spec:
+  selector:
+    matchLabels:
+      app: datadog-agent
+  template:
+    metadata:
+      labels:
+        app: datadog-agent
+      annotations:
+        ad.datadoghq.com/datadog-agent.check_names: '["prometheus"]'
+        ad.datadoghq.com/datadog-agent.init_configs: '[{}]'
+    spec:
+      serviceAccountName: datadog-agent
+      hostNetwork: true
+      dnsPolicy: ClusterFirst
+      containers:
+        - name: agent
+          image: gcr.io/datadoghq/agent:latest
+          imagePullPolicy: Always
+          env:
+            - name: DD_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: datadog-secrets
+                  key: api-key
+            - name: DD_APP_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: datadog-secrets
+                  key: app-key
+            - name: DD_SITE
+              value: datadoghq.com
+            - name: DD_APM_ENABLED
+              value: "true"
+            - name: DD_LOGS_ENABLED
+              value: "true"
+            - name: DD_PROCESS_AGENT_ENABLED
+              value: "true"
+            - name: DD_SYSTEM_PROBE_ENABLED
+              value: "true"
+            - name: DD_ENV
+              value: production
+            - name: DD_SERVICE
+              value: neurex
+            - name: DD_VERSION
+              value: "1.0.0"
+            - name: DD_CONTAINER_EXCLUDE_LOGS
+              value: "image:datadog/agent"
+          ports:
+            - containerPort: 8125
+              hostPort: 8125
+              protocol: UDP
+              name: statsd
+            - containerPort: 8126
+              hostPort: 8126
+              protocol: TCP
+              name: apm
+          volumeMounts:
+            - name: config
+              mountPath: /etc/datadog-agent
+            - name: procdir
+              mountPath: /host/proc
+              readOnly: true
+            - name: sysfs
+              mountPath: /host/sys
+              readOnly: true
+            - name: cgroups
+              mountPath: /host/sys/fs/cgroup
+              readOnly: true
+            - name: debugfs
+              mountPath: /sys/kernel/debug
+          resources:
+            requests:
+              cpu: 200m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          securityContext:
+            privileged: true
+      volumes:
+        - name: config
+          configMap:
+            name: datadog-agent-config
+        - name: procdir
+          hostPath:
+            path: /proc
+        - name: sysfs
+          hostPath:
+            path: /sys
+        - name: cgroups
+          hostPath:
+            path: /sys/fs/cgroup
+        - name: debugfs
+          hostPath:
+            path: /sys/kernel/debug
+
+---
+# Datadog Deployment for Cluster Agent
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: datadog-cluster-agent
+  namespace: datadog
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: datadog-cluster-agent
+  template:
+    metadata:
+      labels:
+        app: datadog-cluster-agent
+    spec:
+      serviceAccountName: datadog-agent
+      containers:
+        - name: cluster-agent
+          image: gcr.io/datadoghq/cluster-agent:latest
+          env:
+            - name: DD_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: datadog-secrets
+                  key: api-key
+            - name: DD_CLUSTER_AGENT_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: datadog-cluster-agent-token
+                  key: token
+            - name: DD_CLUSTER_AGENT_AUTH_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: datadog-cluster-agent-token
+                  key: token
+            - name: DD_ENV
+              value: production
+          ports:
+            - containerPort: 5005
+              name: agentport
+            - containerPort: 5000
+              name: api
+          livenessProbe:
+            httpGet:
+              path: /live
+              port: 5000
+            initialDelaySeconds: 15
+            periodSeconds: 15
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 5000
+            initialDelaySeconds: 15
+            periodSeconds: 15
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+
+---
+# Datadog Cluster Agent Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: datadog-cluster-agent
+  namespace: datadog
+spec:
+  selector:
+    app: datadog-cluster-agent
+  ports:
+    - port: 5005
+      targetPort: 5005
+      name: agentport
+    - port: 5000
+      targetPort: 5000
+      name: api
