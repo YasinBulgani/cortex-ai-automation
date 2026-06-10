@@ -4,6 +4,10 @@ import { Page, expect } from "@playwright/test";
  * Common test utilities and helpers
  */
 
+type MockUrlPattern =
+  | { kind: "string"; value: string }
+  | { kind: "regex"; value: string; flags: string };
+
 /**
  * Wait for API request matching pattern
  */
@@ -13,7 +17,7 @@ export async function waitForApiCall(page: Page, pattern: string | RegExp, timeo
       return response.url().includes(pattern);
     }
     return pattern.test(response.url());
-  });
+  }, { timeout });
 }
 
 /**
@@ -35,7 +39,9 @@ export async function hasSessionCookie(page: Page): Promise<boolean> {
  * Check if token exists in localStorage
  */
 export async function hasTokenInStorage(page: Page): Promise<boolean> {
-  const token = await page.evaluate(() => localStorage.getItem("access_token"));
+  const token = await page.evaluate(
+    () => localStorage.getItem("tspm_access_token") ?? localStorage.getItem("access_token")
+  );
   return !!token;
 }
 
@@ -180,16 +186,42 @@ export async function mockApiResponse(
   responseData: any,
   statusCode = 200
 ) {
+  const pattern: MockUrlPattern = typeof urlPattern === "string"
+    ? { kind: "string", value: urlPattern }
+    : { kind: "regex", value: urlPattern.source, flags: urlPattern.flags };
+
   await page.route(urlPattern, (route) => {
     route.abort("blockedbyclient");
   });
 
   await page.addInitScript(
-    (pattern: string, data: any, code: number) => {
+    ({
+      pattern: matcher,
+      data,
+      code,
+    }: {
+      pattern: MockUrlPattern;
+      data: any;
+      code: number;
+    }) => {
       const originalFetch = window.fetch;
       (window as any).fetch = function (...args: any[]) {
-        const url = args[0];
-        if (typeof url === "string" && url.includes(pattern)) {
+        const request = args[0];
+        const url =
+          typeof request === "string"
+            ? request
+            : request instanceof URL
+              ? request.toString()
+              : request instanceof Request
+                ? request.url
+                : null;
+        const matches = typeof url === "string" && (
+          matcher.kind === "string"
+            ? url.includes(matcher.value)
+            : new RegExp(matcher.value, matcher.flags).test(url)
+        );
+
+        if (matches) {
           return Promise.resolve(
             new Response(JSON.stringify(data), {
               status: code,
@@ -197,12 +229,17 @@ export async function mockApiResponse(
             })
           );
         }
-        return originalFetch.apply(this, args);
+        return originalFetch(
+          args[0] as RequestInfo | URL,
+          args[1] as RequestInit | undefined,
+        );
       };
     },
-    typeof urlPattern === "string" ? urlPattern : urlPattern.source,
-    responseData,
-    statusCode
+    {
+      pattern,
+      data: responseData,
+      code: statusCode,
+    }
   );
 }
 

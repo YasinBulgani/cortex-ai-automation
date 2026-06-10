@@ -74,7 +74,7 @@ export function LiveRunsPanel() {
   const stopRun = (id: string) => {
     const r = running.find((x) => x.id === id);
     setRunning((rs) => rs.filter((x) => x.id !== id));
-    toast(`Koşu durduruldu: ${r?.scenario ?? id}`, "warning");
+    toast(`Demo koşu listeden kaldırıldı: ${r?.scenario ?? id}`, "warning");
   };
 
   const reproduce = () => {
@@ -103,11 +103,14 @@ export function LiveRunsPanel() {
         <div className="flex items-center gap-2">
           <p className="text-xs font-semibold text-rose-400 uppercase tracking-widest">⚡ Şu An Koşuyor &amp; Son Fail</p>
           <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/25">
-            Demo
+            Demo simülasyon
           </span>
         </div>
-        <span className="text-[11px] text-slate-500">Canlı · {tick}. tik</span>
+        <span className="text-[11px] text-slate-500">Yerel simülasyon · {tick}. tik</span>
       </div>
+      <p className="mb-3 text-[11px] text-slate-500">
+        Bu panel henüz run queue'ya bağlı değil. Sayaçlar, ilerleme çubukları ve "Şu an koşuyor" listesi demoyu temsil eder; yalnızca reproduce komutu gerçekten panoya kopyalanır.
+      </p>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Now Running */}
@@ -149,7 +152,7 @@ export function LiveRunsPanel() {
                       onClick={() => stopRun(r.id)}
                       className="text-[10px] text-rose-400 hover:underline mt-1"
                     >
-                      Durdur
+                      Listeden kaldır
                     </button>
                   </div>
                 </li>
@@ -192,19 +195,23 @@ export function LiveRunsPanel() {
                 onClick={reproduce}
                 className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-emerald-500 text-white text-xs font-semibold hover:bg-emerald-400 shadow-lg shadow-emerald-500/20"
               >
-                ▶ Lokalde Reproduce
+                ▶ Reproduce komutunu kopyala
               </button>
               <button
-                onClick={() => toast("Trace görüntüleyici açılıyor…", "info")}
-                className="px-3 py-2 rounded-lg bg-slate-800 text-slate-200 text-xs font-medium border border-slate-700 hover:bg-slate-700"
+                type="button"
+                disabled
+                title="Gerçek trace viewer bağlantısı henüz eklenmedi"
+                className="px-3 py-2 rounded-lg bg-slate-800 text-slate-500 text-xs font-medium border border-slate-700 cursor-not-allowed"
               >
-                Trace
+                Trace yakında
               </button>
               <button
-                onClick={() => toast("Bug tracker'da yeni issue açıldı", "success")}
-                className="px-3 py-2 rounded-lg bg-slate-800 text-slate-200 text-xs font-medium border border-slate-700 hover:bg-slate-700"
+                type="button"
+                disabled
+                title="Issue tracker entegrasyonu henüz bağlı değil"
+                className="px-3 py-2 rounded-lg bg-slate-800 text-slate-500 text-xs font-medium border border-slate-700 cursor-not-allowed"
               >
-                Bug aç
+                Issue akışı yakında
               </button>
             </div>
           </div>

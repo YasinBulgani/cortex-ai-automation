@@ -110,6 +110,25 @@ export const CHECKLIST: ChecklistItem[] = [
 const STORAGE_KEY = "neurex_learning_checklist_v1";
 const CHECKLIST_API_BASE = "/api/v1/checklist";
 
+export function resolveChecklistHref(href: string, projectId: string | null): string {
+  if (!projectId) {
+    return href;
+  }
+
+  const projectScopedRoutes: Record<string, string> = {
+    "/scenarios/new": `/p/${projectId}/scenarios/new`,
+    "/executions/new": `/p/${projectId}/executions/new`,
+    "/executions": `/p/${projectId}/executions`,
+    "/ai-chat": `/p/${projectId}/ai-chat`,
+    "/api-tests": `/p/${projectId}/api-testing`,
+    "/schedules": `/p/${projectId}/schedules`,
+    "/flaky": `/p/${projectId}/flaky`,
+    "/reports": `/p/${projectId}/reports`,
+  };
+
+  return projectScopedRoutes[href] ?? href;
+}
+
 function readCompleted(): Set<ChecklistItemId> {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);

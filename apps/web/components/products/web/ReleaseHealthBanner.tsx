@@ -89,6 +89,27 @@ export function ReleaseHealthBanner() {
   const verdict: ReleaseVerdict = data?.verdict ?? verdictFromChecks(checks);
   const isDemo = !data;
   const v = VERDICT_STYLE[verdict];
+  const firstActionableCheck =
+    checks.find((item) => item.status === "fail" && item.href)
+    ?? checks.find((item) => item.status === "warn" && item.href)
+    ?? checks.find((item) => item.href);
+  const primaryLabel = isDemo
+    ? "Kontrol kapsamını incele"
+    : verdict === "block"
+      ? "Blocker'ları aç"
+      : verdict === "caution"
+        ? "Riskleri gözden geçir"
+        : "Kontrol özetini aç";
+  const sourceLabel = isDemo
+    ? isError && error instanceof Error
+      ? `Fallback veri · release-health API yanıt vermedi (${error.message})`
+      : "Demo veri · release-health endpoint'i henüz canlı sonuç döndürmedi"
+    : `Canlı release health · ${new Date(data.updatedAt).toLocaleString("tr-TR", {
+        day: "2-digit",
+        month: "short",
+        hour: "2-digit",
+        minute: "2-digit",
+      })}`;
 
   return (
     <section className={`relative rounded-2xl border bg-gradient-to-r ${v.bg} p-5 lg:p-6`}>
@@ -115,6 +136,7 @@ export function ReleaseHealthBanner() {
             <p className="text-xs text-slate-400">
               {isError && error instanceof Error ? `Canlı release verisi alınamadı: ${error.message}` : v.sub}
             </p>
+            <p className="mt-2 text-[11px] text-slate-500">{sourceLabel}</p>
           </div>
         </div>
 
@@ -139,28 +161,39 @@ export function ReleaseHealthBanner() {
         </div>
 
         {/* CTA */}
-        <div className="lg:min-w-[140px] flex lg:flex-col lg:items-stretch items-center gap-2">
-          <button
-            type="button"
-            title={isDemo ? "Canlı release verisi olmadan ship aksiyonu devre dışı" : undefined}
-            disabled={verdict === "block" || isDemo}
-            className={`flex-1 lg:flex-initial px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
-              verdict === "block" || isDemo
-                ? "bg-rose-500/15 text-rose-300 border border-rose-500/30 cursor-not-allowed"
-                : verdict === "caution"
-                  ? "bg-amber-500/15 text-amber-200 border border-amber-500/30 hover:bg-amber-500/25"
-                  : "bg-emerald-500 text-white hover:bg-emerald-400 shadow-lg shadow-emerald-500/20"
-            }`}
-          >
-            {verdict === "block" || isDemo ? "Ship'lenemez" : verdict === "caution" ? "Yine de ship et" : "Ship'e başla →"}
-          </button>
+        <div className="lg:min-w-[160px] flex lg:flex-col lg:items-stretch items-center gap-2">
+          {firstActionableCheck?.href ? (
+            <Link
+              href={firstActionableCheck.href}
+              className={`flex-1 lg:flex-initial px-4 py-2 rounded-lg text-center text-sm font-semibold transition-colors ${
+                verdict === "block"
+                  ? "bg-rose-500/15 text-rose-200 border border-rose-500/30 hover:bg-rose-500/25"
+                  : verdict === "caution"
+                    ? "bg-amber-500/15 text-amber-200 border border-amber-500/30 hover:bg-amber-500/25"
+                    : isDemo
+                      ? "bg-slate-800 text-slate-100 border border-slate-700 hover:bg-slate-700"
+                      : "bg-emerald-500 text-white hover:bg-emerald-400 shadow-lg shadow-emerald-500/20"
+              }`}
+            >
+              {primaryLabel}
+            </Link>
+          ) : (
+            <button
+              type="button"
+              disabled
+              title="Bu banner'daki kontroller için hedef anchor tanımlı değil"
+              className="flex-1 lg:flex-initial px-4 py-2 rounded-lg text-sm font-semibold bg-slate-800 text-slate-400 border border-slate-700 cursor-not-allowed"
+            >
+              Kontrol hedefi bekleniyor
+            </button>
+          )}
           <button
             type="button"
             title="Detay raporu ekranı henüz bağlanmadı"
             disabled
             className="px-3 py-2 rounded-lg text-xs text-slate-500 cursor-not-allowed"
           >
-            Detay raporu
+            Detay raporu yakında
           </button>
         </div>
       </div>

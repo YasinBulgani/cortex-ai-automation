@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useProjects } from "@/lib/hooks/use-projects";
 import { useProductTelemetry } from "@/lib/products/useProductTelemetry";
-import type { BrowserStat } from "@/lib/products/telemetry-types";
+import type { BrowserStat, ProductLiveStat, ProductTelemetry } from "@/lib/products/telemetry-types";
 import { DEMO_TELEMETRY } from "@/lib/products/demo-data";
 import { PRODUCT_BRAND } from "@/lib/products/brand";
 import { useProject } from "@/lib/useProject";
@@ -26,6 +26,103 @@ import { PerfPanel } from "./web/PerfPanel";
 
 const brand = PRODUCT_BRAND.web;
 const ZERO_STATE_TELEMETRY = DEMO_TELEMETRY.web;
+const WORKBENCH_MODES = [
+  {
+    id: "plan",
+    label: "Plan",
+    summary: "Requirement, release note ve URL'den test stratejisi cikar.",
+  },
+  {
+    id: "generate",
+    label: "Generate",
+    summary: "Senaryo, edge-case ve regression adaylari uret.",
+  },
+  {
+    id: "automate",
+    label: "Automate",
+    summary: "Playwright taslagi, locator ve assertion paketini hazirla.",
+  },
+  {
+    id: "validate",
+    label: "Validate",
+    summary: "Judge, confidence ve approval queue ile kaliteyi netlestir.",
+  },
+  {
+    id: "improve",
+    label: "Run & Improve",
+    summary: "Fail sonrasinda kok neden ve healing loop'u baslat.",
+  },
+] as const;
+
+const PIPELINE_STEPS = [
+  { id: "goal", label: "Goal intake", detail: "URL + release note + risk hedefi", status: "done" },
+  { id: "plan", label: "Coverage plan", detail: "happy path + edge case + browser matrix", status: "active" },
+  { id: "cases", label: "Scenario set", detail: "11 yeni case, 3 flaky refresh", status: "pending" },
+  { id: "code", label: "Automation draft", detail: "Playwright + locator paketi", status: "pending" },
+  { id: "run", label: "Execution & heal", detail: "run queue + remediation loop", status: "pending" },
+] as const;
+
+const AGENT_ROLES = [
+  { name: "Planner", output: "Checkout release icin kritik akislari siraladi", confidence: 94, status: "running" },
+  { name: "Scenario Designer", output: "Negative + boundary caseleri draft etti", confidence: 89, status: "ready" },
+  { name: "Automation Writer", output: "7 locator'i data-testid tabanli onerdi", confidence: 86, status: "ready" },
+  { name: "Reviewer", output: "2 hallucination riski, 1 eksik assertion", confidence: 91, status: "review" },
+];
+
+const APPROVAL_QUEUE = [
+  {
+    title: "Checkout smoke suite refresh",
+    summary: "4 yeni assertion, 2 locator degisikligi, 1 Safari kosulu",
+    source: "Automation Writer",
+    risk: "Medium",
+  },
+  {
+    title: "Login regression prune",
+    summary: "duplicate 3 case merge + 1 flaky senaryo disable onerisi",
+    source: "Reviewer",
+    risk: "Low",
+  },
+];
+
+const REMEDIATION_ITEMS = [
+  {
+    issue: "Safari checkout fail",
+    diagnosis: "submit button timing + stale locator kombinasyonu",
+    fix: "data-testid locator'a gec ve submit oncesi visible guard ekle",
+  },
+  {
+    issue: "A11y blocker on shipping step",
+    diagnosis: "form label ve contrast birlikte kiriliyor",
+    fix: "WCAG patch draft + regression assertion uret",
+  },
+];
+
+const MODE_TONE = {
+  plan: "border-emerald-500/25 bg-emerald-500/10 text-emerald-200",
+  generate: "border-sky-500/25 bg-sky-500/10 text-sky-200",
+  automate: "border-violet-500/25 bg-violet-500/10 text-violet-200",
+  validate: "border-amber-500/25 bg-amber-500/10 text-amber-200",
+  improve: "border-rose-500/25 bg-rose-500/10 text-rose-200",
+} as const;
+
+function toneClass(tone: string) {
+  if (tone === "emerald") return "border-emerald-500/20 bg-emerald-500/10 text-emerald-200";
+  if (tone === "sky") return "border-sky-500/20 bg-sky-500/10 text-sky-200";
+  if (tone === "violet") return "border-violet-500/20 bg-violet-500/10 text-violet-200";
+  return "border-amber-500/20 bg-amber-500/10 text-amber-200";
+}
+
+function getTelemetryStat(
+  stats: ProductTelemetry["stats"] | undefined,
+  key: string,
+) {
+  return stats?.find((item: ProductLiveStat) => item.key === key) ?? null;
+}
+
+function formatStatBadge(value: string | number | undefined, unit?: string) {
+  if (value === undefined || value === null) return "-";
+  return `${value}${unit ?? ""}`;
+}
 
 function DataModeNotice({ error, isDemo, partialDemo }: { error?: Error | null; isDemo?: boolean; partialDemo?: boolean }) {
   if (!isDemo && !partialDemo && !error) return null;
@@ -118,38 +215,44 @@ const SEV = {
   none:     "border-emerald-500/25 bg-emerald-500/6",
 };
 
-function VisualRegressionWall() {
+function VisualRegressionWall({ actionHref }: { actionHref?: string }) {
   const [approved, setApproved] = useState<Set<string>>(new Set());
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-      {VISUAL_DIFFS.map((item) => {
-        const isApproved = approved.has(item.page);
-        return (
-          <div key={item.page} className={`rounded-xl border p-3 ${SEV[isApproved ? "none" : item.severity as keyof typeof SEV]}`}>
-            {/* Fake screenshot placeholder */}
-            <div className={`w-full aspect-video rounded-lg mb-2 flex items-center justify-center text-xs font-mono text-slate-400 ${item.status === "passed" || isApproved ? "bg-emerald-500/10" : "bg-slate-800/60"}`}>
-              {item.status === "changed" && !isApproved ? (
-                <span className="text-amber-400">Δ {item.diff}%</span>
-              ) : (
-                <span className="text-emerald-400">✓ Pass</span>
-              )}
+    <div className="space-y-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+        {VISUAL_DIFFS.map((item) => {
+          const isApproved = approved.has(item.page);
+          return (
+            <div key={item.page} className={`rounded-xl border p-3 ${SEV[isApproved ? "none" : item.severity as keyof typeof SEV]}`}>
+              <div className={`w-full aspect-video rounded-lg mb-2 flex items-center justify-center text-xs font-mono text-slate-400 ${item.status === "passed" || isApproved ? "bg-emerald-500/10" : "bg-slate-800/60"}`}>
+                {item.status === "changed" && !isApproved ? (
+                  <span className="text-amber-400">Δ {item.diff}%</span>
+                ) : (
+                  <span className="text-emerald-400">✓ Pass</span>
+                )}
+              </div>
+              <p className="text-xs font-medium text-white truncate">{item.page}</p>
+              <div className="flex items-center justify-between mt-1">
+                <span className="text-xs text-slate-400">{item.baseline} → {item.current}</span>
+                {item.status === "changed" && !isApproved && (
+                  <button
+                    className="text-xs text-emerald-400 hover:underline"
+                    onClick={() => setApproved((prev) => new Set(prev).add(item.page))}
+                  >
+                    Onayla
+                  </button>
+                )}
+              </div>
             </div>
-            <p className="text-xs font-medium text-white truncate">{item.page}</p>
-            <div className="flex items-center justify-between mt-1">
-              <span className="text-xs text-slate-400">{item.baseline} → {item.current}</span>
-              {item.status === "changed" && !isApproved && (
-                <button
-                  className="text-xs text-emerald-400 hover:underline"
-                  onClick={() => setApproved((prev) => new Set(prev).add(item.page))}
-                >
-                  Onayla
-                </button>
-              )}
-            </div>
-          </div>
-        );
-      })}
+          );
+        })}
+      </div>
+      {actionHref ? (
+        <Link href={actionHref} className="inline-flex text-xs font-medium text-emerald-400 hover:underline">
+          Tum gorsel diff'leri ac
+        </Link>
+      ) : null}
     </div>
   );
 }
@@ -164,7 +267,7 @@ const LOCATOR_CATEGORIES = [
   { name: "text()",       count: 101,  pct: 5,  color: "#ef4444", health: "critical" },
 ];
 
-function LocatorHealth() {
+function LocatorHealth({ actionHref }: { actionHref?: string }) {
   return (
     <div className="space-y-3">
       <div className="flex h-3 rounded-full overflow-hidden gap-px">
@@ -188,9 +291,15 @@ function LocatorHealth() {
           </div>
         ))}
       </div>
-      <button className="w-full text-center text-xs text-emerald-400 hover:underline mt-1">
-        124 XPath locator'ı otomatik dönüştür →
-      </button>
+      {actionHref ? (
+        <Link href={actionHref} className="inline-flex w-full justify-center text-xs text-emerald-400 hover:underline mt-1">
+          XPath locator iyilestirmelerini ac
+        </Link>
+      ) : (
+        <button className="w-full text-center text-xs text-emerald-400 hover:underline mt-1">
+          124 XPath locator'ı otomatik dönüştür →
+        </button>
+      )}
     </div>
   );
 }
@@ -204,7 +313,7 @@ const A11Y_ISSUES = [
   { rule: "img-alt",             level: "A",  count: 2, severity: "warning" },
 ];
 
-function A11ySummary() {
+function A11ySummary({ actionHref }: { actionHref?: string }) {
   return (
     <div className="space-y-2.5">
       <div className="flex items-center gap-3 mb-3">
@@ -227,9 +336,15 @@ function A11ySummary() {
           <span className={`text-xs font-bold ${issue.severity === "critical" ? "text-rose-400" : "text-amber-400"}`}>{issue.count}</span>
         </div>
       ))}
-      <button className="w-full text-center text-xs text-emerald-400 hover:underline mt-1">
-        Tam erişilebilirlik raporu →
-      </button>
+      {actionHref ? (
+        <Link href={actionHref} className="inline-flex w-full justify-center text-xs text-emerald-400 hover:underline mt-1">
+          Tam erisilebilirlik raporunu ac
+        </Link>
+      ) : (
+        <button className="w-full text-center text-xs text-emerald-400 hover:underline mt-1">
+          Tam erişilebilirlik raporu →
+        </button>
+      )}
     </div>
   );
 }
@@ -514,7 +629,7 @@ function WebProjectZeroState() {
                   Kritik diff'leri onay kuyruğunda topla
                 </h2>
               </div>
-              <VisualRegressionWall />
+              <VisualRegressionWall actionHref="/portfolio" />
             </div>
 
             <div className="space-y-6">
@@ -527,7 +642,7 @@ function WebProjectZeroState() {
                     Kirilgan secicileri toplu olarak gor
                   </h2>
                 </div>
-                <LocatorHealth />
+                <LocatorHealth actionHref="/portfolio" />
               </div>
 
               <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-5">
@@ -539,7 +654,7 @@ function WebProjectZeroState() {
                     Yayin oncesi a11y blocker'lari erken yakala
                   </h2>
                 </div>
-                <A11ySummary />
+                <A11ySummary actionHref="/portfolio" />
               </div>
             </div>
           </div>
@@ -596,8 +711,62 @@ function WebProjectZeroState() {
 export function WebProductPage() {
   const { telemetry, loading, isDemo, error, partialDemo } = useProductTelemetry("web");
   const { project, projectId } = useProject();
+  const [activeMode, setActiveMode] = useState<(typeof WORKBENCH_MODES)[number]["id"]>("plan");
+  const [workbenchPrompt, setWorkbenchPrompt] = useState(
+    "Checkout release'i icin smoke, negative ve Safari odakli regression paketi planla; eksik coverage alanlarini da belirt."
+  );
 
   if (!projectId) return <WebProjectZeroState />;
+
+  const activeModeMeta = WORKBENCH_MODES.find((mode) => mode.id === activeMode) ?? WORKBENCH_MODES[0];
+  const stats = telemetry?.stats ?? [];
+  const locatorStat = getTelemetryStat(stats, "locators");
+  const visualDiffStat = getTelemetryStat(stats, "visual_diffs");
+  const a11yStat = getTelemetryStat(stats, "a11y_issues");
+  const flakyStat = getTelemetryStat(stats, "flaky");
+  const passRateStat = getTelemetryStat(stats, "pass_rate");
+  const healRateStat = getTelemetryStat(stats, "heal_rate");
+  const totalBrowserRuns = (telemetry?.browsers ?? []).reduce((sum, browser) => sum + browser.runs, 0);
+  const aiInsightCount = telemetry?.aiInsights?.length ?? 0;
+  const pendingOnboardingCount = telemetry?.onboarding?.filter((step) => !step.done).length ?? 0;
+  const latestInsight = telemetry?.aiInsights?.[0];
+  const lastUpdatedLabel = telemetry?.lastUpdated
+    ? formatProjectRecency(telemetry.lastUpdated, Date.now()).replace("guncellendi", "telemetry guncellendi")
+    : "Telemetri zamani yok";
+
+  const modePrompts: Record<(typeof WORKBENCH_MODES)[number]["id"], string> = {
+    plan: "Checkout release'i icin smoke, negative ve Safari odakli regression paketi planla; eksik coverage alanlarini da belirt.",
+    generate: "Sepet ve odeme akisi icin edge-case, negative ve accessibility odakli yeni test senaryolari uret.",
+    automate: "Checkout akisini Playwright adimlari, stabil locator ve assertion paketi ile otomasyona cevir.",
+    validate: "Uretilen suite'i review et; hallucination, eksik assertion ve coverage bosluklarini isaretle.",
+    improve: "Son fail run'lari incele; flaky mi product bug mi ayir ve healing onerileri cikar.",
+  };
+
+  const workbenchSources = [
+    { key: "project", label: "Aktif proje", value: project?.name ?? "Secili proje", tone: "emerald" },
+    {
+      key: "quality",
+      label: "Release health",
+      value: passRateStat ? `${formatStatBadge(passRateStat.value, passRateStat.unit)} pass rate` : "Pass rate bekleniyor",
+      tone: "sky",
+    },
+    {
+      key: "healing",
+      label: "Healing / flaky",
+      value: healRateStat && flakyStat
+        ? `${formatStatBadge(healRateStat.value, healRateStat.unit)} heal · ${formatStatBadge(flakyStat.value, flakyStat.unit)} flaky`
+        : "Healing sinyali hazirlaniyor",
+      tone: "violet",
+    },
+    {
+      key: "intel",
+      label: "AI / onboarding",
+      value: latestInsight
+        ? `${aiInsightCount} insight · ${pendingOnboardingCount} bekleyen adim`
+        : "AI insight bekleniyor",
+      tone: "amber",
+    },
+  ];
 
   return (
     <div className="flex flex-col gap-6 p-6 pb-12" data-product-page="web">
@@ -643,6 +812,276 @@ export function WebProductPage() {
         </div>
       </section>
 
+      <section className="rounded-[26px] border border-fuchsia-500/15 bg-[radial-gradient(circle_at_top_right,rgba(168,85,247,0.16),transparent_34%),linear-gradient(180deg,rgba(15,23,42,0.98),rgba(2,6,23,0.98))] p-5 shadow-[0_26px_80px_rgba(124,58,237,0.12)] lg:p-6">
+        <div className="flex flex-col gap-6">
+          <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+            <div className="space-y-3">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="rounded-full border border-fuchsia-500/25 bg-fuchsia-500/10 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-fuchsia-200">
+                  LLM mission control
+                </span>
+                <span className="rounded-full border border-slate-700 bg-slate-950/70 px-2.5 py-1 text-[11px] text-slate-300">
+                  {project?.name ?? "Aktif proje"} icin aktif
+                </span>
+              </div>
+              <div>
+                <h2 className="text-2xl font-semibold text-white">
+                  Test plani, otomasyon taslagi ve healing loop ayni workbench'te.
+                </h2>
+                <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-300">
+                  Bu alan web urununun LLM-first komuta merkezi olarak calisir:
+                  hedefi yazarsin, agent zinciri coverage plani cikarir, otomasyon draft'i
+                  hazirlar, sonra review ve remediation akisini tek panelde toplar.
+                </p>
+                <p className="mt-2 text-xs text-slate-500">{lastUpdatedLabel}</p>
+              </div>
+            </div>
+            <div className="grid min-w-[260px] gap-3 sm:grid-cols-2 xl:w-[360px] xl:grid-cols-1">
+              <div className="rounded-2xl border border-slate-800 bg-slate-950/70 p-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Draft to run</p>
+                <p className="mt-2 text-2xl font-semibold text-white">
+                  {visualDiffStat && a11yStat ? `${formatStatBadge(visualDiffStat.value)} diff / ${formatStatBadge(a11yStat.value)} a11y` : "11 dk"}
+                </p>
+                <p className="mt-1 text-sm text-slate-400">
+                  {visualDiffStat && a11yStat
+                    ? "Yayin oncesi kapanmasi gereken ana risk sayaci"
+                    : "Son 5 AI destekli web paketi ortalamasi"}
+                </p>
+              </div>
+              <div className="rounded-2xl border border-slate-800 bg-slate-950/70 p-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">AI approval rate</p>
+                <p className="mt-2 text-2xl font-semibold text-white">
+                  {healRateStat ? formatStatBadge(healRateStat.value, healRateStat.unit) : "%78"}
+                </p>
+                <p className="mt-1 text-sm text-slate-400">
+                  {healRateStat
+                    ? "Self-heal basarisi ve insan review hizina referans metrik"
+                    : "Insan review sonrasi direkt kabul edilen draft'lar"}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            {WORKBENCH_MODES.map((mode) => {
+              const active = mode.id === activeMode;
+              return (
+                <button
+                  key={mode.id}
+                  type="button"
+                  onClick={() => setActiveMode(mode.id)}
+                  className={`rounded-full border px-3 py-2 text-sm font-medium transition-colors ${
+                    active
+                      ? MODE_TONE[mode.id]
+                      : "border-slate-700 bg-slate-950/60 text-slate-300 hover:bg-slate-900"
+                  }`}
+                >
+                  {mode.label}
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="grid gap-6 xl:grid-cols-[1.35fr_0.95fr]">
+            <div className="space-y-4 rounded-3xl border border-slate-800 bg-slate-950/65 p-5">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+                    Active mode
+                  </p>
+                  <h3 className="mt-1 text-lg font-semibold text-white">{activeModeMeta.label}</h3>
+                  <p className="mt-1 text-sm text-slate-400">{activeModeMeta.summary}</p>
+                </div>
+                <span className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold ${MODE_TONE[activeModeMeta.id]}`}>
+                  {activeModeMeta.label}
+                </span>
+              </div>
+
+              <div className="rounded-2xl border border-slate-800 bg-slate-900/55 p-4">
+                <div className="mb-3 flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Goal input</p>
+                    <p className="mt-1 text-sm text-slate-400">
+                      LLM'e ne yaptirmak istedigini acik yaz; planner bunu pipeline'a cevirecek.
+                    </p>
+                  </div>
+                  <span className="rounded-full border border-fuchsia-500/20 bg-fuchsia-500/10 px-2 py-1 text-[11px] text-fuchsia-200">
+                    Prompt to run
+                  </span>
+                </div>
+                <textarea
+                  value={workbenchPrompt}
+                  onChange={(e) => setWorkbenchPrompt(e.target.value)}
+                  rows={5}
+                  className="w-full resize-none rounded-2xl border border-slate-700 bg-slate-950 px-4 py-3 text-sm text-white outline-none transition-colors focus:border-fuchsia-500/40"
+                />
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <Link
+                    href={`/p/${projectId}/automation`}
+                    className="rounded-xl bg-gradient-to-r from-fuchsia-500 to-violet-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-fuchsia-500/15 hover:opacity-90"
+                  >
+                    Agent zincirini baslat
+                  </Link>
+                  <Link
+                    href={`/p/${projectId}/scenarios`}
+                    className="rounded-xl border border-slate-700 bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
+                  >
+                    Draft pipeline gor
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={() => setWorkbenchPrompt(modePrompts[activeMode])}
+                    className="rounded-xl border border-slate-700 bg-slate-900 px-4 py-2 text-sm font-medium text-slate-300 hover:bg-slate-800"
+                  >
+                    Moda gore prompt doldur
+                  </button>
+                </div>
+              </div>
+
+              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                {workbenchSources.map((source) => (
+                  <div key={source.key} className="rounded-2xl border border-slate-800 bg-slate-900/55 p-4">
+                    <span className={`inline-flex rounded-full border px-2 py-0.5 text-[11px] font-semibold ${toneClass(source.tone)}`}>
+                      {source.label}
+                    </span>
+                    <p className="mt-3 text-sm font-medium text-white">{source.value}</p>
+                  </div>
+                ))}
+              </div>
+
+              <div className="rounded-2xl border border-slate-800 bg-slate-900/55 p-4">
+                <div className="mb-4 flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Pipeline</p>
+                    <h3 className="mt-1 text-base font-semibold text-white">Plan to Scenario to Automation to Run</h3>
+                  </div>
+                  <span className="text-xs text-slate-400">Planner adiminda aktif</span>
+                </div>
+                <div className="grid gap-3 md:grid-cols-5">
+                  {PIPELINE_STEPS.map((step, index) => (
+                    <div
+                      key={step.id}
+                      className={`rounded-2xl border p-3 ${
+                        step.status === "done"
+                          ? "border-emerald-500/25 bg-emerald-500/10"
+                          : step.status === "active"
+                            ? "border-fuchsia-500/25 bg-fuchsia-500/10"
+                            : "border-slate-800 bg-slate-950/70"
+                      }`}
+                    >
+                      <div className="mb-2 flex items-center justify-between">
+                        <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
+                          0{index + 1}
+                        </span>
+                        <span className="text-[11px] text-slate-300">
+                          {step.status === "done" ? "Done" : step.status === "active" ? "Active" : "Queued"}
+                        </span>
+                      </div>
+                      <p className="text-sm font-semibold text-white">{step.label}</p>
+                      <p className="mt-1 text-xs leading-5 text-slate-400">{step.detail}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div className="rounded-3xl border border-slate-800 bg-slate-950/65 p-5">
+                <div className="mb-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Agent rail</p>
+                  <h3 className="mt-1 text-lg font-semibold text-white">Kim ne uretti?</h3>
+                </div>
+                <div className="space-y-3">
+                  {AGENT_ROLES.map((agent) => (
+                    <div key={agent.name} className="rounded-2xl border border-slate-800 bg-slate-900/55 p-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="text-sm font-semibold text-white">{agent.name}</p>
+                          <p className="mt-1 text-sm leading-6 text-slate-400">{agent.output}</p>
+                        </div>
+                        <span
+                          className={`rounded-full border px-2 py-0.5 text-[11px] font-semibold ${
+                            agent.status === "running"
+                              ? "border-fuchsia-500/25 bg-fuchsia-500/10 text-fuchsia-200"
+                              : agent.status === "review"
+                                ? "border-amber-500/25 bg-amber-500/10 text-amber-200"
+                                : "border-emerald-500/25 bg-emerald-500/10 text-emerald-200"
+                          }`}
+                        >
+                          {agent.status === "running" ? "Running" : agent.status === "review" ? "Review" : "Ready"}
+                        </span>
+                      </div>
+                      <div className="mt-3 flex items-center justify-between text-xs text-slate-400">
+                        <span>Confidence</span>
+                        <span className="font-semibold text-white">%{agent.confidence}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="rounded-3xl border border-slate-800 bg-slate-950/65 p-5">
+                <div className="mb-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Approval queue</p>
+                  <h3 className="mt-1 text-lg font-semibold text-white">Insan review bekleyen ciktilar</h3>
+                  <p className="mt-1 text-sm text-slate-400">
+                    {latestInsight?.title ?? "Son AI insight ve review ihtiyaci burada ozetlenir."}
+                  </p>
+                </div>
+                <div className="space-y-3">
+                  {APPROVAL_QUEUE.map((item) => (
+                    <div key={item.title} className="rounded-2xl border border-slate-800 bg-slate-900/55 p-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="text-sm font-semibold text-white">{item.title}</p>
+                          <p className="mt-1 text-sm leading-6 text-slate-400">{item.summary}</p>
+                        </div>
+                        <span className={`rounded-full border px-2 py-0.5 text-[11px] ${
+                          item.risk === "Low"
+                            ? "border-emerald-500/25 bg-emerald-500/10 text-emerald-200"
+                            : "border-amber-500/25 bg-amber-500/10 text-amber-200"
+                        }`}>
+                          {item.risk}
+                        </span>
+                      </div>
+                      <div className="mt-3 flex items-center justify-between">
+                        <span className="text-xs text-slate-500">{item.source}</span>
+                        <div className="flex gap-2">
+                          <button type="button" className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-1.5 text-xs font-medium text-white hover:bg-slate-900">
+                            Diff gor
+                          </button>
+                          <button type="button" className="rounded-lg border border-emerald-500/25 bg-emerald-500/10 px-3 py-1.5 text-xs font-medium text-emerald-200 hover:bg-emerald-500/15">
+                            Kabul et
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="rounded-3xl border border-slate-800 bg-slate-950/65 p-5">
+                <div className="mb-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Remediation loop</p>
+                  <h3 className="mt-1 text-lg font-semibold text-white">Fail sonrasi AI yardimi</h3>
+                </div>
+                <div className="space-y-3">
+                  {REMEDIATION_ITEMS.map((item) => (
+                    <div key={item.issue} className="rounded-2xl border border-slate-800 bg-slate-900/55 p-4">
+                      <p className="text-sm font-semibold text-white">{item.issue}</p>
+                      <p className="mt-2 text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Diagnosis</p>
+                      <p className="mt-1 text-sm text-slate-400">{item.diagnosis}</p>
+                      <p className="mt-3 text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Suggested fix</p>
+                      <p className="mt-1 text-sm text-slate-300">{item.fix}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* ── Bugün vs Dün delta şeridi ───────────────── */}
       <TodayVsYesterdayStrip />
 
@@ -664,7 +1103,10 @@ export function WebProductPage() {
         <div className="flex items-center justify-between mb-3">
           <div>
             <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest">🌐 Browser Matrisi</p>
-            <p className="text-xs text-slate-500 mt-0.5">Tarayıcı bazında pass rate ve koşu hacmi</p>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Tarayici bazinda pass rate ve kosu hacmi
+              {totalBrowserRuns > 0 ? ` · ${totalBrowserRuns} toplam kosu` : ""}
+            </p>
           </div>
           {isDemo && (
             <span className="text-[11px] px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/25">
@@ -734,9 +1176,11 @@ export function WebProductPage() {
       <section id="visual" className="rounded-2xl bg-slate-900 border border-slate-800 p-6">
         <div className="flex items-center justify-between mb-5">
           <h2 className="text-sm font-semibold text-white">Görsel Regresyon Duvarı</h2>
-          <span className="text-xs text-slate-400">4 değişiklik · 2 onaylandı bekleniyor</span>
+          <span className="text-xs text-slate-400">
+            {visualDiffStat ? `${formatStatBadge(visualDiffStat.value)} degisiklik acik` : "Degisiklik sayisi hazirlaniyor"}
+          </span>
         </div>
-        <VisualRegressionWall />
+        <VisualRegressionWall actionHref={`/p/${projectId}/visual`} />
       </section>
 
       {/* ── Locator + A11y + Insights ─────────────── */}
@@ -744,17 +1188,21 @@ export function WebProductPage() {
         <div className="rounded-2xl bg-slate-900 border border-slate-800 p-6" id="a11y">
           <div className="flex items-center justify-between mb-5">
             <h2 className="text-sm font-semibold text-white">Locator Sağlığı</h2>
-            <span className="text-xs text-slate-400">1847 toplam</span>
+            <span className="text-xs text-slate-400">
+              {locatorStat ? `${formatStatBadge(locatorStat.value, locatorStat.unit)} toplam` : "Toplam bekleniyor"}
+            </span>
           </div>
-          <LocatorHealth />
+          <LocatorHealth actionHref={`/p/${projectId}/locators`} />
         </div>
 
         <div className="rounded-2xl bg-slate-900 border border-slate-800 p-6">
           <div className="flex items-center justify-between mb-5">
             <h2 className="text-sm font-semibold text-white">Erişilebilirlik</h2>
-            <span className="text-xs text-slate-400">14 ihlal</span>
+            <span className="text-xs text-slate-400">
+              {a11yStat ? `${formatStatBadge(a11yStat.value, a11yStat.unit)} ihlal` : "Ihlal sayisi bekleniyor"}
+            </span>
           </div>
-          <A11ySummary />
+          <A11ySummary actionHref={`/p/${projectId}/accessibility`} />
         </div>
 
         <div className="rounded-2xl bg-slate-900 border border-slate-800 p-6">

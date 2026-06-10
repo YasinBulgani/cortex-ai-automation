@@ -11,13 +11,11 @@ import { useCallback, useEffect, useState } from "react";
 import {
   isOnline,
   onOnline,
-  onOffline,
   queueOfflineMutation,
   getQueuedMutations,
   removeQueuedMutation,
   requestBackgroundSync,
 } from "@/lib/pwa";
-import { apiClient } from "@/lib/api-client";
 
 export interface UseOfflineMutationOptions<TData = unknown> {
   mutationFn: (data: TData) => Promise<unknown>;

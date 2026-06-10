@@ -2,6 +2,8 @@
  * Testing Utilities — PWA, Accessibility, Performance
  */
 
+let originalWindowFetch: typeof fetch | null = null;
+
 // ────────────────────────────────────────────────────────────
 // Mock Service Worker Setup (for testing SW)
 // ────────────────────────────────────────────────────────────
@@ -363,12 +365,15 @@ export function waitForText(
  * Simulate slow network
  */
 export function simulateSlowNetwork(delay: number = 2000): void {
-  const originalFetch = window.fetch;
+  originalWindowFetch ??= window.fetch;
 
   Object.defineProperty(window, "fetch", {
     value: async (...args: any[]) => {
       await new Promise((resolve) => setTimeout(resolve, delay));
-      return originalFetch(...args);
+      return originalWindowFetch!(
+        args[0] as RequestInfo | URL,
+        args[1] as RequestInit | undefined,
+      );
     },
     writable: true,
   });
@@ -379,7 +384,14 @@ export function simulateSlowNetwork(delay: number = 2000): void {
  */
 export function cleanupTestUtils(): void {
   // Restore original fetch
-  delete (window as any).fetch;
+  if (originalWindowFetch) {
+    Object.defineProperty(window, "fetch", {
+      value: originalWindowFetch,
+      writable: true,
+      configurable: true,
+    });
+    originalWindowFetch = null;
+  }
 
   // Clear mocks
   jest.clearAllMocks();

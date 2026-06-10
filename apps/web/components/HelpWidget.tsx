@@ -182,7 +182,7 @@ export function HelpWidget() {
                     </li>
                     <li>
                       <a
-                        href="https://github.com/YasinBulgani/BGTS-Test-Donusum/issues/new"
+                        href="https://github.com/YasinBulgani/cortex-ai-automation/issues/new"
                         target="_blank"
                         rel="noreferrer"
                         className="block rounded px-3 py-2 text-xs text-slate-300 hover:bg-slate-800"

@@ -3,18 +3,24 @@
  * Configure LLM provider, token limits, routing preferences
  */
 
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react'
 import { Settings, Save } from 'lucide-react'
-import { Button } from '@/components/ui/Button'
+import { Button } from '@/components/ui/button'
+
+type AIProvider = 'ollama' | 'groq' | 'openai' | 'anthropic' | 'gemini'
+type RoutingMode = 'cost_optimized' | 'balanced' | 'quality_first'
+type ApprovalAction = 'code_generation' | 'defect_creation' | 'sql_generation'
 
 interface AISettings {
-  provider: 'ollama' | 'groq' | 'openai' | 'anthropic' | 'gemini'
-  routing_mode: 'cost_optimized' | 'balanced' | 'quality_first'
+  provider: AIProvider
+  routing_mode: RoutingMode
   token_budget_per_request: number
   daily_budget_usd: number
   hallucination_confidence_threshold: number
-  approval_required_for: string[]
+  approval_required_for: ApprovalAction[]
 }
+
+const APPROVAL_ACTIONS: ApprovalAction[] = ['code_generation', 'defect_creation', 'sql_generation']
 
 export default function AISettingsPanel() {
   const [settings, setSettings] = useState<AISettings>({
@@ -27,6 +33,22 @@ export default function AISettingsPanel() {
   })
 
   const [saved, setSaved] = useState(false)
+
+  const updateSettings = <K extends keyof AISettings>(key: K, value: AISettings[K]) => {
+    setSettings((currentSettings) => ({
+      ...currentSettings,
+      [key]: value,
+    }))
+  }
+
+  const toggleApprovalAction = (action: ApprovalAction, isEnabled: boolean) => {
+    setSettings((currentSettings) => ({
+      ...currentSettings,
+      approval_required_for: isEnabled
+        ? [...currentSettings.approval_required_for, action]
+        : currentSettings.approval_required_for.filter((currentAction) => currentAction !== action),
+    }))
+  }
 
   const handleSave = async () => {
     try {
@@ -55,7 +77,7 @@ export default function AISettingsPanel() {
           <label className="block text-sm font-medium mb-2">LLM Provider</label>
           <select
             value={settings.provider}
-            onChange={(e) => setSettings({ ...settings, provider: e.target.value as any })}
+            onChange={(event) => updateSettings('provider', event.target.value as AIProvider)}
             className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800"
           >
             <option value="ollama">Ollama (Free, Local)</option>
@@ -72,7 +94,7 @@ export default function AISettingsPanel() {
           <label className="block text-sm font-medium mb-2">Routing Mode</label>
           <select
             value={settings.routing_mode}
-            onChange={(e) => setSettings({ ...settings, routing_mode: e.target.value as any })}
+            onChange={(event) => updateSettings('routing_mode', event.target.value as RoutingMode)}
             className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800"
           >
             <option value="cost_optimized">Cost Optimized (fastest, cheapest)</option>
@@ -92,7 +114,7 @@ export default function AISettingsPanel() {
             max="10000"
             step="500"
             value={settings.token_budget_per_request}
-            onChange={(e) => setSettings({ ...settings, token_budget_per_request: parseInt(e.target.value) })}
+            onChange={(event) => updateSettings('token_budget_per_request', parseInt(event.target.value, 10))}
             className="w-full"
           />
           <p className="text-xs text-gray-500 mt-1">Higher = more context, slower + costlier</p>
@@ -107,7 +129,7 @@ export default function AISettingsPanel() {
             max="500"
             step="10"
             value={settings.daily_budget_usd}
-            onChange={(e) => setSettings({ ...settings, daily_budget_usd: parseInt(e.target.value) })}
+            onChange={(event) => updateSettings('daily_budget_usd', parseInt(event.target.value, 10))}
             className="w-full"
           />
           <p className="text-xs text-gray-500 mt-1">Alerts when approaching limit</p>
@@ -124,7 +146,7 @@ export default function AISettingsPanel() {
             max="0.95"
             step="0.05"
             value={settings.hallucination_confidence_threshold}
-            onChange={(e) => setSettings({ ...settings, hallucination_confidence_threshold: parseFloat(e.target.value) })}
+            onChange={(event) => updateSettings('hallucination_confidence_threshold', parseFloat(event.target.value))}
             className="w-full"
           />
           <p className="text-xs text-gray-500 mt-1">Lower = stricter validation, more rejections</p>
@@ -134,24 +156,12 @@ export default function AISettingsPanel() {
         <div>
           <label className="block text-sm font-medium mb-2">Require Approval For:</label>
           <div className="space-y-2">
-            {['code_generation', 'defect_creation', 'sql_generation'].map((action) => (
+            {APPROVAL_ACTIONS.map((action) => (
               <label key={action} className="flex items-center gap-2">
                 <input
                   type="checkbox"
                   checked={settings.approval_required_for.includes(action)}
-                  onChange={(e) => {
-                    if (e.target.checked) {
-                      setSettings({
-                        ...settings,
-                        approval_required_for: [...settings.approval_required_for, action],
-                      })
-                    } else {
-                      setSettings({
-                        ...settings,
-                        approval_required_for: settings.approval_required_for.filter((a) => a !== action),
-                      })
-                    }
-                  }}
+                  onChange={(event) => toggleApprovalAction(action, event.target.checked)}
                   className="rounded"
                 />
                 <span className="text-sm capitalize">{action.replace('_', ' ')}</span>

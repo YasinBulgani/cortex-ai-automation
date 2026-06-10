@@ -160,7 +160,7 @@ export function RecorderStudio() {
             onClick={() => setStartOpen(true)}
             className="text-[11px] bg-emerald-500 text-white font-semibold hover:bg-emerald-400"
           >
-            + Yeni Kayıt
+            + Recorder oturumu başlat
           </Button>
           <button
             onClick={() => void fetchSessions()}
@@ -177,6 +177,10 @@ export function RecorderStudio() {
         onStarted={() => { setStartOpen(false); void fetchSessions(); }}
       />}
 
+      <div className="px-5 py-2.5 border-b border-slate-800 text-[11px] text-slate-500">
+        Recorder paneli gerçek engine proxy'sini kullanır. Session listesi, oturum başlatma ve kod üretme akışı ancak `api/engine` erişilebildiğinde çalışır.
+      </div>
+
       {/* Two-pane layout */}
       <div className="grid grid-cols-1 lg:grid-cols-5 min-h-[420px]">
         {/* Sessions list */}
@@ -186,13 +190,16 @@ export function RecorderStudio() {
           ) : error ? (
             <div className="p-6 text-center">
               <div className="text-rose-400 text-xs mb-2">⚠ {error}</div>
+              <p className="mb-3 text-[11px] text-slate-500">
+                Session listesi alınamadı. Engine ayağa kalktığında aynı panel gerçek kayıtları gösterecek.
+              </p>
               <button onClick={() => void fetchSessions()} className="text-[11px] text-emerald-400 hover:underline">
                 Yeniden dene
               </button>
             </div>
           ) : sessions.length === 0 ? (
             <div className="p-8 text-center text-slate-500 text-xs">
-              Kayıt yok. "Yeni Kayıt" ile başlat.
+              Kayıt yok. Recorder oturumu başlatıp ilk aksiyonları topladığında burada görünecek.
             </div>
           ) : (
             <div className="divide-y divide-slate-800">
@@ -257,7 +264,7 @@ export function RecorderStudio() {
                   disabled={generating}
                   className="ml-auto text-[11px] bg-gradient-to-r from-rose-500 to-pink-600 text-white font-semibold hover:opacity-90"
                 >
-                  {generating ? "Üretiliyor…" : "Kod Üret"}
+                  {generating ? "Üretiliyor…" : "Seçili oturumdan kod üret"}
                 </Button>
               </div>
 
@@ -265,7 +272,7 @@ export function RecorderStudio() {
               <div className="flex-1 overflow-hidden flex flex-col">
                 {!generated ? (
                   <div className="flex-1 flex items-center justify-center text-slate-500 text-xs">
-                    Format seç → "Kod Üret" tıkla
+                    Format seç, sonra seçili oturumun çıktısını üret.
                   </div>
                 ) : (
                   <>

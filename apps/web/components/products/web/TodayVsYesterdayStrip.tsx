@@ -47,6 +47,16 @@ export function TodayVsYesterdayStrip() {
   const windowHours = data?.windowHours ?? 24;
   const isDemo = !data && !isLoading;
   const hasData = metrics.length > 0;
+  const sourceLabel = data?.updatedAt
+    ? `Canlı delta akışı · ${new Date(data.updatedAt).toLocaleString("tr-TR", {
+        day: "2-digit",
+        month: "short",
+        hour: "2-digit",
+        minute: "2-digit",
+      })}`
+    : isError
+      ? "Fallback veri · day-over-day endpoint'i ulaşılamadı"
+      : "Demo veri · iki pencereyi kıyaslayan gerçek veri henüz yok";
 
   if (isLoading) {
     return (
@@ -84,10 +94,11 @@ export function TodayVsYesterdayStrip() {
               {isError ? "Fallback" : "Demo"}
             </span>
           )}
-          <p className="text-xs text-slate-500">· Son {windowHours} saat — önceki {windowHours} saate göre delta</p>
+          <p className="text-xs text-slate-500">· Son {windowHours} saat, önceki {windowHours} saate göre delta</p>
         </div>
-        <span className="text-[11px] text-slate-500">Karşılaştırma penceresi: {windowHours}s</span>
+        <span className="text-[11px] text-slate-500">Karşılaştırma penceresi: {windowHours} sa</span>
       </div>
+      <p className="mb-3 text-[11px] text-slate-500">{sourceLabel}</p>
 
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
         {metrics.map((m) => {

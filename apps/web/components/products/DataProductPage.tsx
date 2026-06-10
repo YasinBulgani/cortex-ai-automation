@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useProductTelemetry } from "@/lib/products/useProductTelemetry";
 import { PRODUCT_BRAND } from "@/lib/products/brand";
+import { useProject } from "@/lib/useProject";
 import { LiveStatsBar } from "./_shared/LiveStatsBar";
 import { AiInsightFeed } from "./_shared/AiInsightFeed";
 import { RecentActivity } from "./_shared/RecentActivity";
@@ -251,6 +252,9 @@ function GenerationRecipes() {
 
 export function DataProductPage() {
   const { telemetry, loading, isDemo } = useProductTelemetry("data");
+  const { projectId } = useProject();
+  const syntheticHref = projectId ? `/p/${projectId}/synthetic` : "/portfolio";
+  const privacyHref = projectId ? `/p/${projectId}/privacy` : "/portfolio";
 
   return (
     <div className="flex flex-col gap-6 p-6 pb-12">
@@ -280,10 +284,10 @@ export function DataProductPage() {
               veri kalitesi görünürlüğü tek panelde.
             </p>
             <div className="flex flex-wrap gap-3 mb-8">
-              <Link href="/portfolio" className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-white font-semibold text-sm hover:opacity-90 transition-opacity shadow-lg shadow-amber-500/25">
+              <Link href={syntheticHref} className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-white font-semibold text-sm hover:opacity-90 transition-opacity shadow-lg shadow-amber-500/25">
                 Veri Üret →
               </Link>
-              <Link href="/portfolio" className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white/8 text-white border border-white/10 font-medium text-sm hover:bg-white/12 transition-colors">
+              <Link href={privacyHref} className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white/8 text-white border border-white/10 font-medium text-sm hover:bg-white/12 transition-colors">
                 Gizlilik Taraması
               </Link>
             </div>

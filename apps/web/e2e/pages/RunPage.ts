@@ -83,8 +83,19 @@ export class RunPage extends BasePage {
   /**
    * Navigate to run page (usually auto-navigated after clicking Run)
    */
-  async goto(projectId: string, testCaseId: string, runId: string) {
-    await super.goto(`/projects/${projectId}/test-cases/${testCaseId}/runs/${runId}`);
+  async goto(path: string): Promise<void>;
+  async goto(projectId: string, testCaseId: string, runId: string): Promise<void>;
+  async goto(pathOrProjectId: string, testCaseId?: string, runId?: string) {
+    const path = testCaseId && runId
+      ? `/projects/${pathOrProjectId}/test-cases/${testCaseId}/runs/${runId}`
+      : pathOrProjectId;
+
+    await super.goto(path);
+    await this.waitForPageReady();
+  }
+
+  async gotoProject(projectId: string) {
+    await super.goto(`/projects/${projectId}/runs`);
     await this.waitForPageReady();
   }
 

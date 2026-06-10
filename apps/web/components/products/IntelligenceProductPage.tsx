@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useProductTelemetry } from "@/lib/products/useProductTelemetry";
 import { PRODUCT_BRAND } from "@/lib/products/brand";
+import { useProject } from "@/lib/useProject";
 import { LiveStatsBar } from "./_shared/LiveStatsBar";
 import { AiInsightFeed } from "./_shared/AiInsightFeed";
 import { RecentActivity } from "./_shared/RecentActivity";
@@ -268,6 +269,9 @@ function PromptLab() {
 
 export function IntelligenceProductPage() {
   const { telemetry, loading, isDemo } = useProductTelemetry("intelligence");
+  const { projectId } = useProject();
+  const generateHref = projectId ? `/p/${projectId}/scenarios/new` : "/task-drafts";
+  const agentsHref = projectId ? `/p/${projectId}/llm-agent` : "/ai-agents";
 
   return (
     <div className="flex flex-col gap-6 p-6 pb-12">
@@ -297,10 +301,10 @@ export function IntelligenceProductPage() {
               otomatik kalite denetimi. AI'ı test sürecinin merkezine al.
             </p>
             <div className="flex flex-wrap gap-3">
-              <Link href="/task-drafts" className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-fuchsia-500 to-purple-600 text-white font-semibold text-sm hover:opacity-90 transition-opacity shadow-lg shadow-fuchsia-500/25">
+              <Link href={generateHref} className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-fuchsia-500 to-purple-600 text-white font-semibold text-sm hover:opacity-90 transition-opacity shadow-lg shadow-fuchsia-500/25">
                 AI ile Senaryo Üret →
               </Link>
-              <Link href="/ai-agents" className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-slate-800 text-white border border-slate-800 font-medium text-sm hover:bg-slate-700 transition-colors">
+              <Link href={agentsHref} className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-slate-800 text-white border border-slate-800 font-medium text-sm hover:bg-slate-700 transition-colors">
                 AI Agents
               </Link>
             </div>

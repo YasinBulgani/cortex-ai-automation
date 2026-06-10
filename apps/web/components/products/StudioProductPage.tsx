@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useProductTelemetry } from "@/lib/products/useProductTelemetry";
 import { PRODUCT_BRAND } from "@/lib/products/brand";
+import { useProject } from "@/lib/useProject";
 import { LiveStatsBar } from "./_shared/LiveStatsBar";
 import { AiInsightFeed } from "./_shared/AiInsightFeed";
 import { RecentActivity } from "./_shared/RecentActivity";
@@ -243,6 +244,9 @@ function AiScenarioPanel() {
 
 export function StudioProductPage() {
   const { telemetry, loading, isDemo } = useProductTelemetry("studio");
+  const { projectId } = useProject();
+  const createScenarioHref = projectId ? `/p/${projectId}/scenarios/new` : "/task-drafts";
+  const scenariosHref = projectId ? `/p/${projectId}/scenarios` : "/portfolio";
 
   return (
     <div className="flex flex-col gap-6 p-6 pb-12">
@@ -276,10 +280,10 @@ export function StudioProductPage() {
               AI destekli senaryo üretimi ve kapsam analizi tek çalışma alanında.
             </p>
             <div className="flex flex-wrap gap-3">
-              <Link href="/task-drafts" className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-violet-500 to-purple-600 text-white font-semibold text-sm hover:opacity-90 transition-opacity shadow-lg shadow-violet-500/25">
+              <Link href={createScenarioHref} className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-violet-500 to-purple-600 text-white font-semibold text-sm hover:opacity-90 transition-opacity shadow-lg shadow-violet-500/25">
                 Senaryo Oluştur →
               </Link>
-              <Link href="/portfolio" className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-slate-800 text-white border border-slate-800 font-medium text-sm hover:bg-slate-700 transition-colors">
+              <Link href={scenariosHref} className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-slate-800 text-white border border-slate-800 font-medium text-sm hover:bg-slate-700 transition-colors">
                 Tüm Senaryolar
               </Link>
             </div>
@@ -304,7 +308,7 @@ export function StudioProductPage() {
         <div className="lg:col-span-3 rounded-2xl bg-slate-900 border border-slate-800 p-6">
           <div className="flex items-center justify-between mb-5">
             <h2 className="text-sm font-semibold text-white">Senaryo Pipeline</h2>
-            <Link href="/portfolio" className={`text-xs ${brand.text} hover:underline`}>Tam görünüm →</Link>
+            <Link href={scenariosHref} className={`text-xs ${brand.text} hover:underline`}>Tam görünüm →</Link>
           </div>
           <KanbanBoard />
         </div>

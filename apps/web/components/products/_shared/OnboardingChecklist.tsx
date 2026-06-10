@@ -55,7 +55,9 @@ export function OnboardingChecklist({ steps, brandGradient, brandText, loading }
               </Link>
             )}
             {!step.done && !step.href && (
-              <span className={`flex-shrink-0 text-xs font-medium ${brandText}`}>{step.ctaLabel}</span>
+              <span className="flex-shrink-0 rounded-full border border-slate-700 bg-slate-900/70 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+                Yakında
+              </span>
             )}
           </div>
         ))}

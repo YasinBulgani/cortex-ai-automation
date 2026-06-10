@@ -1,0 +1,142 @@
+name: Mobile CI/CD
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - 'apps/mobile/**'
+      - '.github/workflows/mobile-ci.yml'
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'apps/mobile/**'
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+      - name: Install dependencies
+        run: |
+          cd apps/mobile
+          npm ci
+      - name: Run ESLint
+        run: |
+          cd apps/mobile
+          npm run lint
+      - name: Type check
+        run: |
+          cd apps/mobile
+          npm run type-check
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+      - name: Install dependencies
+        run: |
+          cd apps/mobile
+          npm ci
+      - name: Run tests
+        run: |
+          cd apps/mobile
+          npm test -- --coverage
+      - name: Upload coverage
+        uses: codecov/codecov-action@v3
+        with:
+          files: ./apps/mobile/coverage/coverage-final.json
+
+  build-android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+      - uses: actions/setup-java@v3
+        with:
+          java-version: '11'
+      - name: Install dependencies
+        run: |
+          cd apps/mobile
+          npm ci
+      - name: Build Android APK
+        run: |
+          cd apps/mobile
+          npm run build:android
+      - name: Upload Android APK
+        uses: actions/upload-artifact@v3
+        with:
+          name: android-apk
+          path: apps/mobile/android/app/build/outputs/apk/release/app-release.apk
+
+  build-ios:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+      - name: Install dependencies
+        run: |
+          cd apps/mobile
+          npm ci
+      - name: Install pods
+        run: |
+          cd apps/mobile/ios
+          pod install
+      - name: Build iOS IPA
+        run: |
+          cd apps/mobile
+          npm run build:ios
+      - name: Upload iOS build
+        uses: actions/upload-artifact@v3
+        with:
+          name: ios-build
+          path: apps/mobile/ios/build
+
+  e2e-test:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+      - name: Install dependencies
+        run: |
+          cd apps/mobile
+          npm ci
+      - name: Build Detox framework cache
+        run: |
+          cd apps/mobile
+          npm run test:e2e:build
+      - name: Run E2E tests
+        run: |
+          cd apps/mobile
+          npm run test:e2e
+      - name: Upload test reports
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: e2e-reports
+          path: apps/mobile/artifacts/
+
+  security-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Run npm audit
+        run: |
+          cd apps/mobile
+          npm audit --audit-level=moderate
+      - name: Run OWASP dependency-check
+        uses: dependency-check/Dependency-Check_Action@main
+        with:
+          path: 'apps/mobile'
+          format: 'JSON'

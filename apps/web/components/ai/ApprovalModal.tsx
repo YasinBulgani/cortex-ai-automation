@@ -5,7 +5,7 @@
 
 import React, { useState } from 'react'
 import { AlertTriangle, CheckCircle, XCircle, Copy } from 'lucide-react'
-import { Button } from '@/components/ui/Button'
+import { Button } from '@/components/ui/button'
 
 interface ApprovalModalProps {
   isOpen: boolean
@@ -17,6 +17,18 @@ interface ApprovalModalProps {
   risks: string[]
   onApprove: () => void
   onReject: () => void
+}
+
+const RISK_STYLES = {
+  high: { iconClassName: 'text-red-500', label: 'High Risk' },
+  medium: { iconClassName: 'text-yellow-500', label: 'Medium Risk' },
+  low: { iconClassName: 'text-green-500', label: 'Low Risk' },
+} as const
+
+const FEATURE_LABELS: Record<ApprovalModalProps['feature'], string> = {
+  code_gen: 'Code Gen',
+  defect_creation: 'Defect Creation',
+  sql_gen: 'SQL Gen',
 }
 
 export default function ApprovalModal({
@@ -40,8 +52,8 @@ export default function ApprovalModal({
     setTimeout(() => setCopied(false), 2000)
   }
 
-  const riskColor = confidence > 0.85 ? 'green' : confidence > 0.7 ? 'yellow' : 'red'
-  const riskLevel = confidence > 0.85 ? 'Low Risk' : confidence > 0.7 ? 'Medium Risk' : 'High Risk'
+  const riskStyle = confidence > 0.85 ? RISK_STYLES.low : confidence > 0.7 ? RISK_STYLES.medium : RISK_STYLES.high
+  const featureLabel = FEATURE_LABELS[feature]
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
@@ -49,10 +61,11 @@ export default function ApprovalModal({
         {/* Header */}
         <div className="border-b border-gray-200 dark:border-gray-700 p-6">
           <div className="flex items-center gap-3">
-            <AlertTriangle className={`text-${riskColor}-500`} size={24} />
+            <AlertTriangle className={riskStyle.iconClassName} size={24} />
             <div>
               <h2 className="text-xl font-bold text-gray-900 dark:text-white">{title}</h2>
               <p className="text-sm text-gray-600 dark:text-gray-400">{description}</p>
+              <p className="mt-1 text-xs uppercase tracking-wide text-gray-500 dark:text-gray-500">{featureLabel}</p>
             </div>
           </div>
         </div>
@@ -63,7 +76,7 @@ export default function ApprovalModal({
             <div>
               <p className="font-medium text-orange-900 dark:text-orange-100">Risk Assessment</p>
               <p className="text-sm text-orange-700 dark:text-orange-300">
-                Confidence: {(confidence * 100).toFixed(0)}% — {riskLevel}
+                Confidence: {(confidence * 100).toFixed(0)}% — {riskStyle.label}
               </p>
             </div>
             <div className="flex gap-2">
@@ -72,8 +85,8 @@ export default function ApprovalModal({
               ) : (
                 <div className="text-right">
                   <p className="text-sm font-medium text-orange-900">⚠️ {risks.length} risk(s)</p>
-                  {risks.map((risk, i) => (
-                    <p key={i} className="text-xs text-orange-700">
+                  {risks.map((risk, index) => (
+                    <p key={`${risk}-${index}`} className="text-xs text-orange-700">
                       • {risk}
                     </p>
                   ))}

@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useProductTelemetry } from "@/lib/products/useProductTelemetry";
 import { PRODUCT_BRAND } from "@/lib/products/brand";
+import { useProject } from "@/lib/useProject";
 import { LiveStatsBar } from "./_shared/LiveStatsBar";
 import { AiInsightFeed } from "./_shared/AiInsightFeed";
 import { RecentActivity } from "./_shared/RecentActivity";
@@ -206,6 +207,9 @@ function SecurityRadar() {
 
 export function ServiceProductPage() {
   const { telemetry, loading, isDemo } = useProductTelemetry("service");
+  const { projectId } = useProject();
+  const apiTestingHref = projectId ? `/p/${projectId}/api-testing` : "/portfolio";
+  const chainBuilderHref = projectId ? `/p/${projectId}/chain-builder` : "/portfolio";
 
   return (
     <div className="flex flex-col gap-6 p-6 pb-12">
@@ -235,10 +239,10 @@ export function ServiceProductPage() {
               tek yüzeyde yönet.
             </p>
             <div className="flex flex-wrap gap-3">
-              <Link href="/portfolio" className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-sky-500 to-cyan-600 text-white font-semibold text-sm hover:opacity-90 transition-opacity shadow-lg shadow-sky-500/25">
+              <Link href={apiTestingHref} className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-sky-500 to-cyan-600 text-white font-semibold text-sm hover:opacity-90 transition-opacity shadow-lg shadow-sky-500/25">
                 API Test Başlat →
               </Link>
-              <Link href="/portfolio" className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-slate-800 text-white border border-slate-800 font-medium text-sm hover:bg-slate-700 transition-colors">
+              <Link href={chainBuilderHref} className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-slate-800 text-white border border-slate-800 font-medium text-sm hover:bg-slate-700 transition-colors">
                 Chain Builder
               </Link>
             </div>

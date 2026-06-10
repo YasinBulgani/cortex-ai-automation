@@ -23,19 +23,6 @@ export function getSafeNextPath(candidate: string | null): string {
   return trimmed;
 }
 
-function getLoginRedirectUrl() {
-  if (typeof window === "undefined") return "/login";
-
-  const currentPath = `${window.location.pathname}${window.location.search}${window.location.hash}`;
-  const safePath = getSafeNextPath(currentPath);
-  const loginUrl = new URL("/login", window.location.origin);
-  if (safePath && safePath !== "/login") {
-    loginUrl.searchParams.set("next", safePath);
-  }
-
-  return loginUrl.toString();
-}
-
 // Frontend defaults to the authenticated backend proxy so browsers do not need
 // direct access to the Flask engine host. NEXT_PUBLIC_ENGINE_URL is kept only
 // as a backwards-compatible alias while configs migrate to *_BASE.
@@ -172,9 +159,11 @@ export function migrateToCookieAuth() {
 }
 
 export function clearTokens() {
-  localStorage.removeItem(TOKEN_KEY);
-  localStorage.removeItem(REFRESH_TOKEN_KEY);
-  localStorage.removeItem(TOKEN_EXPIRES_AT_KEY);
+  if (typeof window !== "undefined") {
+    localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(REFRESH_TOKEN_KEY);
+    localStorage.removeItem(TOKEN_EXPIRES_AT_KEY);
+  }
   clearSessionCookie();
 }
 
@@ -240,23 +229,6 @@ export class ApiError extends Error {
   }
 }
 
-function extractApiErrorMessage(body: unknown, fallback: string): string {
-  if (typeof body === "string" && body) return body;
-  if (!body || typeof body !== "object") return fallback;
-
-  const detail = "detail" in body ? (body as { detail?: unknown }).detail : body;
-  if (typeof detail === "string" && detail) return detail;
-  if (!detail || typeof detail !== "object") return fallback;
-
-  const message = (detail as { message?: unknown }).message;
-  if (typeof message === "string" && message) {
-    const details = (detail as { details?: unknown }).details;
-    return typeof details === "string" && details ? `${message}: ${details}` : message;
-  }
-
-  return fallback;
-}
-
 // ── Core Fetch ───────────────────────────────────────────────────────
 export type ApiFetchOptions = RequestInit & {
   json?: unknown;
@@ -285,7 +257,6 @@ export async function apiFetch<T>(
     retryOnUnauthorized = !skipAuthRedirect && !noAuth,
     ...rest
   } = init;
-  const token = getToken();
   const h = new Headers(headers);
 
   if (json !== undefined) {
@@ -394,6 +365,45 @@ export async function engineFetch<T>(
   if (res.status === 204) return undefined as T;
   return res.json() as Promise<T>;
 }
+
+type ApiClientRequestOptions = Omit<ApiFetchOptions, "body">;
+
+type ApiClientResponse<T> = {
+  data: T;
+};
+
+async function requestWithBody<T>(
+  method: "POST" | "PUT" | "PATCH" | "DELETE",
+  path: string,
+  body?: unknown,
+  options: ApiClientRequestOptions = {},
+): Promise<ApiClientResponse<T>> {
+  const data = await apiFetch<T>(path, {
+    ...options,
+    method,
+    json: body,
+  });
+  return { data };
+}
+
+export const apiClient = {
+  async get<T>(path: string, options: ApiClientRequestOptions = {}): Promise<ApiClientResponse<T>> {
+    const data = await apiFetch<T>(path, { ...options, method: "GET" });
+    return { data };
+  },
+  post<T>(path: string, body?: unknown, options: ApiClientRequestOptions = {}) {
+    return requestWithBody<T>("POST", path, body, options);
+  },
+  put<T>(path: string, body?: unknown, options: ApiClientRequestOptions = {}) {
+    return requestWithBody<T>("PUT", path, body, options);
+  },
+  patch<T>(path: string, body?: unknown, options: ApiClientRequestOptions = {}) {
+    return requestWithBody<T>("PATCH", path, body, options);
+  },
+  delete<T>(path: string, body?: unknown, options: ApiClientRequestOptions = {}) {
+    return requestWithBody<T>("DELETE", path, body, options);
+  },
+};
 
 /**
  * Returns true if a session presence cookie exists.

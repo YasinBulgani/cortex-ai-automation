@@ -101,6 +101,24 @@ export function AiAssistantPanel() {
     return () => window.removeEventListener("keydown", handleKey);
   }, [open]);
 
+  useEffect(() => {
+    function handleOpenEvent() {
+      setOpen(true);
+    }
+
+    function handleToggleEvent() {
+      setOpen((prev) => !prev);
+    }
+
+    window.addEventListener("neurex:open-ai-panel", handleOpenEvent as EventListener);
+    window.addEventListener("neurex:toggle-ai-panel", handleToggleEvent as EventListener);
+
+    return () => {
+      window.removeEventListener("neurex:open-ai-panel", handleOpenEvent as EventListener);
+      window.removeEventListener("neurex:toggle-ai-panel", handleToggleEvent as EventListener);
+    };
+  }, []);
+
   // ── Açıldığında input focus + scroll bottom ──────────────────────────
   useEffect(() => {
     if (open) {

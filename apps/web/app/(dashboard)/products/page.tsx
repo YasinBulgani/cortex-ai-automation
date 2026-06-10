@@ -1,184 +1,201 @@
+"use client";
+
 import Link from "next/link";
+import { PRODUCT_AVAILABILITY_META, PRODUCT_FAMILY, getProductEntryHref, getProductLandingHref, type ProductFamilyId } from "@/lib/product";
+import { PRODUCT_BRAND } from "@/lib/products/brand";
+import { useProject } from "@/lib/useProject";
 
-// ── Chart skeleton blocks ───────────────────────────────────────────────────
-
-function ChartSkeleton({ label, height = "h-32" }: { label: string; height?: string }) {
-  return (
-    <div className="rounded-2xl border border-slate-800 bg-slate-900 p-5 flex flex-col gap-3">
-      <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">{label}</p>
-      <div className={`${height} w-full rounded-xl bg-slate-800/60 flex items-end gap-1.5 px-3 pb-3`}>
-        {[55, 72, 60, 85, 68, 91, 78, 83, 65, 88, 74, 95].map((h, i) => (
-          <div
-            key={i}
-            className="flex-1 rounded-sm bg-indigo-500/25"
-            style={{ height: `${h}%` }}
-          />
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function SparklineSkeleton({ label }: { label: string }) {
-  return (
-    <div className="rounded-xl border border-slate-800 bg-slate-900 p-4 flex items-center gap-4">
-      <div className="flex-1">
-        <p className="text-xs text-slate-500 mb-1">{label}</p>
-        <div className="h-2 w-20 rounded-full bg-slate-700" />
-      </div>
-      <div className="w-20 h-8 flex items-end gap-0.5">
-        {[4, 6, 5, 8, 6, 9, 7, 10].map((h, i) => (
-          <div
-            key={i}
-            className="flex-1 rounded-sm bg-indigo-500/30"
-            style={{ height: `${h * 10}%` }}
-          />
-        ))}
-      </div>
-    </div>
-  );
-}
-
-// ── Pipeline status badges ──────────────────────────────────────────────────
-
-const PIPELINE_ITEMS = [
-  { name: "Veri toplama", status: "pending" },
-  { name: "Aggregation katmanı", status: "pending" },
-  { name: "Gerçek zamanlı stream", status: "pending" },
-  { name: "Dashboard göstergeler", status: "ready" },
+const WORKSTREAMS = [
+  {
+    title: "Tasarla",
+    description: "Gereksinim, coverage ve AI destekli test tasarımı için Studio ve Intelligence yüzeylerine gir.",
+    href: "/products/studio",
+  },
+  {
+    title: "Otomasyona Dönüştür",
+    description: "Web, Mobile ve Service ürünleriyle senaryoları çalışan akışlara taşı.",
+    href: "/products/web",
+  },
+  {
+    title: "Çalıştır",
+    description: "Projeye göre senaryo, run, cihaz ve servis akışlarını tek omurgada başlat.",
+    href: "/portfolio",
+  },
+  {
+    title: "İyileştir",
+    description: "Flaky, görsel fark, erişilebilirlik ve AI öngörülerini ürün bazlı incele.",
+    href: "/products/one",
+  },
 ];
 
-function PipelineStatus() {
+function ProductCard({ productId, name, shortName, tagline, availability }: {
+  productId: ProductFamilyId;
+  name: string;
+  shortName: string;
+  tagline: string;
+  availability: keyof typeof PRODUCT_AVAILABILITY_META;
+}) {
+  const brand = PRODUCT_BRAND[productId];
+  const meta = PRODUCT_AVAILABILITY_META[availability];
+  const { projectId } = useProject();
+  const primaryHref = getProductEntryHref(projectId, productId);
+  const landingHref = getProductLandingHref(productId);
+
   return (
-    <ul className="space-y-2">
-      {PIPELINE_ITEMS.map((item) => (
-        <li key={item.name} className="flex items-center gap-3 text-sm">
-          <span
-            className={`w-2 h-2 rounded-full flex-shrink-0 ${
-              item.status === "ready" ? "bg-emerald-400" : "bg-slate-600"
-            }`}
-          />
-          <span className={item.status === "ready" ? "text-slate-300" : "text-slate-500"}>
-            {item.name}
-          </span>
-          <span className="ml-auto text-xs uppercase tracking-wide font-medium">
-            {item.status === "ready" ? (
-              <span className="text-emerald-400">Hazır</span>
-            ) : (
-              <span className="text-slate-600">Bekliyor</span>
-            )}
-          </span>
-        </li>
-      ))}
-    </ul>
+    <article className={`rounded-2xl border ${brand.border} bg-slate-900/70 p-5 transition-colors hover:bg-slate-900`}>
+      <div className="mb-4 flex items-start justify-between gap-3">
+        <div className={`flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br ${brand.gradient} text-sm font-bold text-white shadow-lg ${brand.glow}`}>
+          {shortName.slice(0, 2).toUpperCase()}
+        </div>
+        <span className={`rounded-full px-2 py-1 text-[10px] font-semibold uppercase tracking-wide ${meta.className}`}>
+          {meta.label}
+        </span>
+      </div>
+
+      <div className="space-y-2">
+        <h2 className="text-lg font-semibold text-white">{name}</h2>
+        <p className="text-sm leading-relaxed text-slate-400">{tagline}</p>
+      </div>
+
+      <div className="mt-5 flex flex-wrap gap-2">
+        <Link
+          href={primaryHref}
+          className={`inline-flex items-center gap-2 rounded-xl bg-gradient-to-r ${brand.gradient} px-4 py-2 text-sm font-semibold text-white shadow-lg ${brand.glow} hover:opacity-90`}
+        >
+          {projectId ? "Projede Aç" : "Projeyle Aç"}
+        </Link>
+        <Link
+          href={landingHref}
+          className="inline-flex items-center gap-2 rounded-xl border border-slate-700 bg-slate-800 px-4 py-2 text-sm font-medium text-slate-200 hover:bg-slate-700"
+        >
+          Ürün yüzeyi
+        </Link>
+      </div>
+
+      <div className="mt-4 rounded-xl border border-slate-800 bg-slate-950/60 px-3 py-2 text-xs text-slate-500">
+        {projectId
+          ? "Aktif proje seçili. İlk düğme doğrudan proje içindeki ana modülü açar."
+          : "Aktif proje yok. İlk düğme sizi proje seçimine götürür, ardından bu ürünün doğru modülü açılır."}
+      </div>
+    </article>
   );
 }
 
-// ── Page ───────────────────────────────────────────────────────────────────
+export default function ProductsIndexPage() {
+  const { project, projectId } = useProject();
 
-export default function ProductAnalyticsIndexPage() {
   return (
     <div className="flex flex-col gap-8 p-6 pb-16">
-
-      {/* Hero */}
-      <section className="relative overflow-hidden rounded-3xl border border-indigo-500/20 bg-gradient-to-br from-slate-900 via-slate-900 to-indigo-950/30 p-8 lg:p-12">
-        <div className="absolute inset-0 pointer-events-none overflow-hidden">
-          <div className="absolute -top-24 -right-24 h-80 w-80 rounded-full bg-indigo-500/10 blur-3xl" />
-          <div className="absolute -bottom-16 -left-16 h-56 w-56 rounded-full bg-blue-500/8 blur-2xl" />
+      <section className="relative overflow-hidden rounded-3xl border border-indigo-500/20 bg-gradient-to-br from-slate-900 via-slate-900 to-indigo-950/30 p-8 lg:p-10">
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute -top-20 -right-20 h-72 w-72 rounded-full bg-indigo-500/10 blur-3xl" />
+          <div className="absolute -bottom-20 -left-10 h-56 w-56 rounded-full bg-cyan-500/10 blur-3xl" />
         </div>
 
-        <div className="relative max-w-2xl">
-          <span className="inline-block mb-4 text-xs font-bold uppercase tracking-widest px-3 py-1 rounded-full bg-indigo-500/15 text-indigo-300 border border-indigo-500/25">
-            Analytics Dashboard
-          </span>
-          <h1 className="text-4xl lg:text-5xl font-extrabold text-white mb-4 leading-tight">
-            Product{" "}
-            <span className="bg-gradient-to-r from-indigo-400 to-blue-400 bg-clip-text text-transparent">
-              Analytics
-            </span>
-          </h1>
-          <p className="text-base text-slate-400 leading-relaxed mb-6">
-            Analytics dashboard will be available once the data pipeline is fully
-            configured. Select a specific product below to view its current telemetry,
-            or wait for the pipeline to complete to see aggregated cross-product metrics
-            here.
-          </p>
-          <div className="flex flex-wrap gap-3">
-            <Link
-              href="/products/one"
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-indigo-500 to-blue-600 text-white font-semibold text-sm hover:opacity-90 transition-opacity shadow-lg shadow-indigo-500/25"
-            >
-              One — Platform Overview
-            </Link>
-            <Link
-              href="/products/web"
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white/8 text-white border border-white/10 font-medium text-sm hover:bg-white/12 transition-colors"
-            >
-              Web Analytics
-            </Link>
+        <div className="relative grid gap-8 lg:grid-cols-[1.6fr_1fr]">
+          <div>
+            <div className="mb-4 flex flex-wrap items-center gap-2">
+              <span className="rounded-full border border-indigo-500/25 bg-indigo-500/15 px-3 py-1 text-xs font-bold uppercase tracking-widest text-indigo-300">
+                Ürün Suite Girişi
+              </span>
+              {project ? (
+                <span className="rounded-full border border-emerald-500/25 bg-emerald-500/10 px-3 py-1 text-xs text-emerald-200">
+                  Aktif proje: <span className="font-semibold text-white">{project.name}</span>
+                </span>
+              ) : (
+                <span className="rounded-full border border-slate-700 bg-slate-800/80 px-3 py-1 text-xs text-slate-300">
+                  Henüz aktif proje seçilmedi
+                </span>
+              )}
+            </div>
+
+            <h1 className="max-w-3xl text-4xl font-extrabold leading-tight text-white lg:text-5xl">
+              Tüm ürün ailesi için
+              <span className="bg-gradient-to-r from-indigo-400 to-cyan-400 bg-clip-text text-transparent"> tek giriş yüzeyi</span>
+            </h1>
+            <p className="mt-4 max-w-2xl text-base leading-relaxed text-slate-400">
+              Bu sayfa artık “yakında” vitrini değil. Hangi ürüne gireceğini seç, aktif proje varsa doğru modüle düş, yoksa proje seçip aynı niyetle devam et.
+            </p>
+
+            <div className="mt-6 flex flex-wrap gap-3">
+              <Link
+                href={projectId ? "/products/web" : "/portfolio"}
+                className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-indigo-500 to-blue-600 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-indigo-500/25 hover:opacity-90"
+              >
+                {projectId ? "LLM-first Web workbench'e git" : "Önce proje seç"}
+              </Link>
+              <Link
+                href="/portfolio"
+                className="inline-flex items-center gap-2 rounded-xl border border-slate-700 bg-slate-800 px-5 py-3 text-sm font-medium text-slate-200 hover:bg-slate-700"
+              >
+                Portföyü aç
+              </Link>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3 rounded-2xl border border-slate-800 bg-slate-950/60 p-5">
+            <div className="rounded-xl border border-slate-800 bg-slate-900/70 p-4">
+              <p className="text-xs uppercase tracking-wide text-slate-500">Ürün</p>
+              <p className="mt-2 text-2xl font-bold text-white">{PRODUCT_FAMILY.length}</p>
+              <p className="mt-1 text-xs text-slate-500">tek shell altında</p>
+            </div>
+            <div className="rounded-xl border border-slate-800 bg-slate-900/70 p-4">
+              <p className="text-xs uppercase tracking-wide text-slate-500">Çalışma modu</p>
+              <p className="mt-2 text-2xl font-bold text-white">{projectId ? "Bağlı" : "Hazır"}</p>
+              <p className="mt-1 text-xs text-slate-500">{projectId ? "proje context'i bulundu" : "proje seçimi bekleniyor"}</p>
+            </div>
+            <div className="rounded-xl border border-slate-800 bg-slate-900/70 p-4">
+              <p className="text-xs uppercase tracking-wide text-slate-500">İlk hedef</p>
+              <p className="mt-2 text-sm font-semibold text-white">{projectId ? "doğru modüle git" : "niyetini koruyarak proje seç"}</p>
+            </div>
+            <div className="rounded-xl border border-slate-800 bg-slate-900/70 p-4">
+              <p className="text-xs uppercase tracking-wide text-slate-500">Odak</p>
+              <p className="mt-2 text-sm font-semibold text-white">tasarım, otomasyon, çalıştırma, kalite</p>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* Pipeline status */}
-      <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-1 rounded-2xl border border-slate-800 bg-slate-900 p-6">
-          <h2 className="text-sm font-semibold text-white mb-4">Pipeline Durumu</h2>
-          <p className="text-xs text-slate-500 mb-4">
-            Gerçek veriler aşağıdaki pipeline adımları tamamlandığında otomatik olarak
-            görünür hale gelecektir.
-          </p>
-          <PipelineStatus />
-        </div>
-
-        <div className="lg:col-span-2 flex flex-col gap-4">
-          <ChartSkeleton label="Cross-product pass rate trend (son 30 gün)" height="h-40" />
-          <div className="grid grid-cols-2 gap-4">
-            <SparklineSkeleton label="Toplam test koşusu" />
-            <SparklineSkeleton label="Ortalama pass rate" />
-            <SparklineSkeleton label="Açık defect sayısı" />
-            <SparklineSkeleton label="AI senaryo üretimi" />
+      <section>
+        <div className="mb-4 flex items-center justify-between">
+          <div>
+            <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-500">Çalışma akışı</h2>
+            <p className="mt-1 text-sm text-slate-400">Ürünleri iş adımına göre düşünmek için hızlı harita.</p>
           </div>
         </div>
-      </section>
-
-      {/* Placeholder charts row */}
-      <section>
-        <p className="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-4">
-          Gelecekte burada görünecek grafikler
-        </p>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          <ChartSkeleton label="Ürün bazlı başarı oranı" height="h-28" />
-          <ChartSkeleton label="Günlük test hacmi" height="h-28" />
-          <ChartSkeleton label="Defect yoğunluk haritası" height="h-28" />
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+          {WORKSTREAMS.map((item) => (
+            <Link
+              key={item.title}
+              href={item.href}
+              className="rounded-2xl border border-slate-800 bg-slate-900/70 p-5 transition-colors hover:border-slate-700 hover:bg-slate-900"
+            >
+              <p className="text-sm font-semibold text-white">{item.title}</p>
+              <p className="mt-2 text-sm leading-relaxed text-slate-400">{item.description}</p>
+              <p className="mt-4 text-xs font-medium text-indigo-300">Aç →</p>
+            </Link>
+          ))}
         </div>
       </section>
 
-      {/* Product quick links */}
       <section>
-        <p className="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-4">
-          Ürün sayfalarına hızlı erişim
-        </p>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
-          {[
-            { id: "one",          label: "One",          color: "text-indigo-400" },
-            { id: "studio",       label: "Studio",       color: "text-purple-400" },
-            { id: "service",      label: "Service",      color: "text-sky-400" },
-            { id: "web",          label: "Web",          color: "text-emerald-400" },
-            { id: "mobile",       label: "Mobile",       color: "text-rose-400" },
-            { id: "data",         label: "Data",         color: "text-amber-400" },
-            { id: "management",   label: "Management",   color: "text-teal-400" },
-            { id: "intelligence", label: "Intelligence", color: "text-fuchsia-400" },
-            { id: "nexus-code",   label: "Nexus Code",   color: "text-cyan-400" },
-          ].map((p) => (
-            <Link
-              key={p.id}
-              href={`/products/${p.id}`}
-              className="rounded-xl border border-slate-800 bg-slate-900 p-4 text-center hover:border-slate-700 hover:bg-slate-800 transition-colors"
-            >
-              <p className={`text-sm font-semibold ${p.color}`}>{p.label}</p>
-              <p className="text-xs text-slate-500 mt-0.5">Analytics</p>
-            </Link>
+        <div className="mb-4 flex items-center justify-between">
+          <div>
+            <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-500">Ürünler</h2>
+            <p className="mt-1 text-sm text-slate-400">Her ürün kartı landing yüzeyini ve proje içi ana girişini birlikte sunar.</p>
+          </div>
+        </div>
+
+        <div className="grid gap-4 xl:grid-cols-2">
+          {PRODUCT_FAMILY.map((product) => (
+            <ProductCard
+              key={product.id}
+              productId={product.id as ProductFamilyId}
+              name={product.name}
+              shortName={product.shortName}
+              tagline={product.tagline}
+              availability={product.availability}
+            />
           ))}
         </div>
       </section>

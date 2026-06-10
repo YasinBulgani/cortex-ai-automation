@@ -3,6 +3,7 @@
 import { useState, useCallback, useMemo, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { apiFetch } from "@/lib/api";
 import { PRODUCT_FAMILY } from "@/lib/product";
 import { VirtualList } from "@/components/ui/virtual-list";
@@ -37,9 +38,22 @@ function avatarColor(id: string): string {
   return AVATAR_GRADIENTS[hash % AVATAR_GRADIENTS.length];
 }
 
+function sanitizeProjectNext(rawNext: string | null): string | null {
+  if (!rawNext) return null;
+  const next = rawNext.trim().replace(/^\/+/, "");
+  if (!next || next.includes("..") || next.startsWith("http")) {
+    return null;
+  }
+  return next;
+}
+
+function buildProjectHref(projectId: string, nextPath: string | null): string {
+  return nextPath ? `/p/${projectId}/${nextPath}` : `/p/${projectId}/scenarios`;
+}
+
 function ProjectCard({
-  project, selected, onToggle,
-}: { project: Project; selected: boolean; onToggle: (id: string) => void }) {
+  project, selected, onToggle, href,
+}: { project: Project; selected: boolean; onToggle: (id: string) => void; href: string }) {
   const initials = project.name.split(/\s+/).map(w => w[0]).join("").slice(0, 2).toUpperCase();
   const grad = avatarColor(project.id);
   const passRate = project.pass_rate;
@@ -61,7 +75,7 @@ function ProjectCard({
       </button>
 
       <Link
-        href={`/p/${project.id}/scenarios`}
+        href={href}
         className="flex flex-col gap-2"
         data-testid={`project-card-${project.id}`}
       >
@@ -104,13 +118,13 @@ function ProjectCard({
   );
 }
 
-function ProjectRow({ project }: { project: Project }) {
+function ProjectRow({ project, href }: { project: Project; href: string }) {
   const initials = project.name.split(/\s+/).map(w => w[0]).join("").slice(0, 2).toUpperCase();
   const grad = avatarColor(project.id);
 
   return (
     <Link
-      href={`/p/${project.id}/scenarios`}
+      href={href}
       className="group flex items-center gap-3 px-4 py-2.5 hover:bg-slate-800/60 transition-colors border-b border-slate-800 last:border-b-0"
     >
       <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-gradient-to-br ${grad} text-[10px] font-bold text-white`}>
@@ -225,7 +239,9 @@ const PAGE_SIZE = 60;
 
 export default function PortfolioPage() {
   const queryClient = useQueryClient();
+  const searchParams = useSearchParams();
   const projectsQK = ["projects", "list"] as const;
+  const nextPath = sanitizeProjectNext(searchParams.get("next"));
 
   const [search, setSearch]         = useState("");
   const [showArchived, setShowArchived] = useState(false);
@@ -317,6 +333,11 @@ export default function PortfolioPage() {
           <p className="mt-0.5 text-sm text-slate-500">
             {loading ? "Yükleniyor..." : `${filtered.length} proje${search ? ` (${projects.length} toplam)` : ""}`}
           </p>
+          {nextPath && (
+            <p className="mt-2 inline-flex items-center gap-2 rounded-full border border-blue-500/20 bg-blue-500/10 px-3 py-1 text-xs text-blue-200">
+              Bir proje seçin, ardından <span className="font-semibold text-white">/{nextPath}</span> modülü açılacak.
+            </p>
+          )}
         </div>
         <div className="flex items-center gap-2">
           <Link
@@ -461,7 +482,15 @@ export default function PortfolioPage() {
         </div>
       ) : view === "grid" ? (
         <div data-testid="project-list" className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {paged.map(p => <ProjectCard key={p.id} project={p} selected={selectedIds.has(p.id)} onToggle={toggleSelect} />)}
+          {paged.map(p => (
+            <ProjectCard
+              key={p.id}
+              project={p}
+              selected={selectedIds.has(p.id)}
+              onToggle={toggleSelect}
+              href={buildProjectHref(p.id, nextPath)}
+            />
+          ))}
         </div>
       ) : (
         // Liste görünümü — virtualized, tüm projeleri tek scroll'da gösterir
@@ -471,7 +500,7 @@ export default function PortfolioPage() {
             estimateSize={49}
             className="max-h-[70vh]"
             itemKey={p => p.id}
-            renderItem={(p) => <ProjectRow project={p} />}
+            renderItem={(p) => <ProjectRow project={p} href={buildProjectHref(p.id, nextPath)} />}
           />
         </div>
       )}

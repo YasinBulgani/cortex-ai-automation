@@ -24,6 +24,11 @@ export interface PushNotificationPayload {
   data?: Record<string, unknown>;
 }
 
+type SyncManagerLike = {
+  register: (tag: string) => Promise<void>;
+  getTags: () => Promise<string[]>;
+};
+
 // ────────────────────────────────────────────────────────────
 // Service Worker Management
 // ────────────────────────────────────────────────────────────
@@ -152,7 +157,7 @@ export async function unsubscribeFromPush(): Promise<boolean> {
 /**
  * Convert VAPID public key to Uint8Array
  */
-function urlBase64ToUint8Array(base64String: string): Uint8Array {
+function urlBase64ToUint8Array(base64String: string): Uint8Array<ArrayBuffer> {
   const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
   const base64 = (base64String + padding)
     .replace(/\-/g, "+")
@@ -165,7 +170,7 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
     outputArray[i] = rawData.charCodeAt(i);
   }
 
-  return outputArray;
+  return outputArray as Uint8Array<ArrayBuffer>;
 }
 
 // ────────────────────────────────────────────────────────────
@@ -177,11 +182,12 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
  */
 export async function requestBackgroundSync(tag: string = "sync-mutations"): Promise<void> {
   const registration = await getServiceWorkerRegistration();
-  if (!registration || !("sync" in registration)) {
+  const syncManager = (registration as ServiceWorkerRegistration & { sync?: SyncManagerLike } | null)?.sync;
+  if (!registration || !syncManager) {
     throw new Error("Background Sync API not supported");
   }
 
-  await registration.sync.register(tag);
+  await syncManager.register(tag);
 }
 
 /**
@@ -189,11 +195,12 @@ export async function requestBackgroundSync(tag: string = "sync-mutations"): Pro
  */
 export async function getPendingSyncTags(): Promise<string[]> {
   const registration = await getServiceWorkerRegistration();
-  if (!registration || !("sync" in registration)) {
+  const syncManager = (registration as ServiceWorkerRegistration & { sync?: SyncManagerLike } | null)?.sync;
+  if (!registration || !syncManager) {
     return [];
   }
 
-  return registration.sync.getTags();
+  return syncManager.getTags();
 }
 
 // ────────────────────────────────────────────────────────────
@@ -207,6 +214,9 @@ let idbInstance: IDBDatabase | null = null;
  */
 export async function openOfflineDB(): Promise<IDBDatabase> {
   if (idbInstance) return idbInstance;
+  if (typeof indexedDB === "undefined") {
+    throw new Error("IndexedDB not supported");
+  }
 
   return new Promise((resolve, reject) => {
     const req = indexedDB.open("neurex_offline", 1);
@@ -314,11 +324,17 @@ export function isOnline(): boolean {
 }
 
 export function onOnline(callback: () => void): () => void {
+  if (typeof window === "undefined") {
+    return () => {};
+  }
   window.addEventListener("online", callback);
   return () => window.removeEventListener("online", callback);
 }
 
 export function onOffline(callback: () => void): () => void {
+  if (typeof window === "undefined") {
+    return () => {};
+  }
   window.addEventListener("offline", callback);
   return () => window.removeEventListener("offline", callback);
 }

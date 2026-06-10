@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useProductTelemetry } from "@/lib/products/useProductTelemetry";
 import { PRODUCT_BRAND } from "@/lib/products/brand";
+import { useProject } from "@/lib/useProject";
 import { LiveStatsBar } from "./_shared/LiveStatsBar";
 import { AiInsightFeed } from "./_shared/AiInsightFeed";
 import { RecentActivity } from "./_shared/RecentActivity";
@@ -69,6 +70,9 @@ function RunBoard() {
 
 export function ManagementProductPage() {
   const { telemetry, loading, isDemo } = useProductTelemetry("management");
+  const { projectId } = useProject();
+  const managementHref = projectId ? `/p/${projectId}/management` : "/management";
+  const repositoryHref = projectId ? `/p/${projectId}/management/repository` : "/management";
 
   return (
     <div className="flex flex-col gap-6 p-6 pb-12">
@@ -94,10 +98,10 @@ export function ManagementProductPage() {
               Test case repository, test plan, cycle, run, tester atama, evidence, defect ve coverage görünürlüğünü tek yönetim yüzeyinde topla.
             </p>
             <div className="flex flex-wrap gap-3">
-              <Link href="/management" className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-teal-500 to-emerald-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-teal-500/20 transition-opacity hover:opacity-90">
+              <Link href={managementHref} className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-teal-500 to-emerald-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-teal-500/20 transition-opacity hover:opacity-90">
                 Management Alanını Aç
               </Link>
-              <Link href="/management" className="inline-flex items-center gap-2 rounded-xl border border-slate-800 bg-slate-800 px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-slate-700">
+              <Link href={repositoryHref} className="inline-flex items-center gap-2 rounded-xl border border-slate-800 bg-slate-800 px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-slate-700">
                 Repository İncele
               </Link>
             </div>

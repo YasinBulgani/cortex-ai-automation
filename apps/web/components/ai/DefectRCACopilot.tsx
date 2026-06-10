@@ -5,15 +5,26 @@
 
 import React, { useState } from 'react'
 import { Lightbulb, ChevronDown } from 'lucide-react'
-import { Button } from '@/components/ui/Button'
+import { Button } from '@/components/ui/button'
 
 interface DefectRCACopilotProps {
   defectId: string
   errorLog?: string
 }
 
+interface RootCauseSuggestion {
+  description: string
+  likelihood: number
+  affected_components?: string[]
+  suggested_fix?: string
+}
+
+interface DefectAnalysisResponse {
+  root_causes?: RootCauseSuggestion[]
+}
+
 export default function DefectRCACopilot({ defectId, errorLog }: DefectRCACopilotProps) {
-  const [suggestions, setSuggestions] = useState<any[]>([])
+  const [suggestions, setSuggestions] = useState<RootCauseSuggestion[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [isExpanded, setIsExpanded] = useState(false)
 
@@ -29,8 +40,8 @@ export default function DefectRCACopilot({ defectId, errorLog }: DefectRCACopilo
         }),
       })
 
-      const data = await response.json()
-      setSuggestions(data.root_causes || [])
+      const data = (await response.json()) as DefectAnalysisResponse
+      setSuggestions(Array.isArray(data.root_causes) ? data.root_causes : [])
       setIsExpanded(true)
     } catch (error) {
       console.error('RCA analysis failed:', error)
@@ -65,8 +76,8 @@ export default function DefectRCACopilot({ defectId, errorLog }: DefectRCACopilo
 
       {isExpanded && (
         <div className="mt-3 space-y-2">
-          {suggestions.map((cause, i) => (
-            <div key={i} className="rounded bg-white dark:bg-gray-800 p-3 text-sm">
+          {suggestions.map((cause, index) => (
+            <div key={`${cause.description}-${index}`} className="rounded bg-white dark:bg-gray-800 p-3 text-sm">
               <div className="font-medium text-gray-900 dark:text-white">
                 {cause.description}
               </div>

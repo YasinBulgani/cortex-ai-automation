@@ -68,13 +68,21 @@ export function NetworkConsoleInspector() {
             📡
           </div>
           <div className="min-w-0">
-            <h2 className="text-sm font-semibold text-white truncate">Run Inspector</h2>
+            <div className="flex items-center gap-2">
+              <h2 className="text-sm font-semibold text-white truncate">Run Inspector</h2>
+              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/25">
+                Demo
+              </span>
+            </div>
             <p className="text-[11px] text-slate-400 truncate">Son koşunun network + console akışı</p>
           </div>
         </div>
         <span className="text-[10px] px-2 py-0.5 rounded-full bg-rose-500/15 text-rose-300 border border-rose-500/25">
           {failed} fail · {errors} err
         </span>
+      </div>
+      <div className="px-5 py-2.5 border-b border-slate-800 text-[11px] text-slate-500">
+        Bu panel henüz gerçek HAR ya da console stream okumuyor. Aşağıdaki satırlar örnek kırılma akışını ve beklenen inceleme yüzeyini gösterir.
       </div>
 
       {/* Tabs */}
@@ -154,7 +162,9 @@ export function NetworkConsoleInspector() {
       {/* Footer */}
       <div className="px-4 py-2.5 border-t border-slate-800 flex items-center justify-between text-[11px] text-slate-500">
         <span>Run #1284 · 3.682s'de kırıldı</span>
-        <button className="text-sky-400 hover:underline">HAR indir →</button>
+        <button className="text-slate-500 cursor-not-allowed" type="button" disabled title="HAR export entegrasyonu henüz bağlı değil">
+          HAR dışa aktarımı yakında
+        </button>
       </div>
     </div>
   );

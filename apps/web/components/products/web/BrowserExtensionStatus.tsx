@@ -49,13 +49,20 @@ export function BrowserExtensionStatus() {
           </div>
         </div>
         <button
-          className="text-[11px] text-slate-500 cursor-not-allowed"
+          className={`rounded-lg border px-2.5 py-1.5 text-[11px] transition-colors ${
+            connected
+              ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-200"
+              : "border-slate-700 bg-slate-900 text-slate-300 hover:bg-slate-800"
+          }`}
           type="button"
-          disabled
-          title="Gerçek eklenti handshake'i henüz bağlı değil; bu kontrol sadece UI durumunu gösterir."
+          onClick={() => setConnected((value) => !value)}
+          title="Gerçek eklenti handshake'i henüz bağlı değil; bu kontrol demo bağlantı durumunu gösterir."
         >
-          Handshake bekliyor
+          {connected ? "Demo bağlantıyı kapat" : "Demo bağlantıyı aç"}
         </button>
+      </div>
+      <div className="rounded-lg border border-amber-500/20 bg-amber-500/10 px-3 py-2.5 mb-4 text-[11px] text-amber-100/90">
+        Eklenti durumu bu ekranda canlı okunmuyor. Aşağıdaki aksiyonlar ve tarayıcı sürümleri ürün kurgusunu gösterir; gerçek kurulum ve indirme akışı henüz bağlı değil.
       </div>
 
       {/* Live activity */}
@@ -116,15 +123,15 @@ export function BrowserExtensionStatus() {
       {/* Footer CTA */}
       <div className="mt-4 pt-3 border-t border-slate-800 flex items-center justify-between">
         <span className="text-[11px] text-slate-500">
-          Demo sprint: <span className="text-emerald-300 font-semibold">38 test</span> tarayıcıdan üretildi
+          Demo sprint örneği: <span className="text-emerald-300 font-semibold">38 test</span> tarayıcıdan üretildi
         </span>
         <button
-          className="text-[11px] text-slate-500 font-semibold"
+          className="text-[11px] text-slate-300 font-semibold hover:text-white transition-colors"
           type="button"
-          disabled
-          title="Eklenti paketleme/indirme akışı henüz bağlanmadı"
+          onClick={() => setConnected(true)}
+          title="Gerçek indirme akışı henüz bağlı değil; demo bağlantı durumunu canlandırır."
         >
-          Eklentiyi İndir →
+          Demo akışı canlandır
         </button>
       </div>
     </div>

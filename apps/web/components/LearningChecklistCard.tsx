@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { useState } from "react";
 
-import { useLearningChecklist } from "@/lib/useLearningChecklist";
+import { resolveChecklistHref, useLearningChecklist } from "@/lib/useLearningChecklist";
+import { useProject } from "@/lib/useProject";
 
 /**
  * Welcome dashboard'a yerleştirilecek learning checklist kartı.
@@ -27,6 +28,7 @@ export function LearningChecklistCard() {
     progressPct,
     requiredCompletedAll,
   } = useLearningChecklist();
+  const { projectId } = useProject();
 
   const [showAll, setShowAll] = useState(false);
 
@@ -82,6 +84,7 @@ export function LearningChecklistCard() {
       <ul className="mt-4 space-y-2" data-testid="learning-checklist-items">
         {visible.map((item) => {
           const done = completed.has(item.id);
+          const resolvedHref = resolveChecklistHref(item.href, projectId);
           return (
             <li
               key={item.id}
@@ -107,7 +110,7 @@ export function LearningChecklistCard() {
               </button>
               <div className="min-w-0 flex-1">
                 <Link
-                  href={item.href}
+                  href={resolvedHref}
                   className="block"
                   onClick={() => {
                     if (!done) {

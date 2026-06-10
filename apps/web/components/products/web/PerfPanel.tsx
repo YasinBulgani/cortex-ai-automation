@@ -116,6 +116,16 @@ export function PerfPanel() {
   const metrics = data ?? DEMO;
   const isDemo = !data && !isLoading;
   const [selectedMetric, setSelectedMetric] = useState<MetricKey>("lcp");
+  const sourceLabel = data?.updatedAt
+    ? `Canlı performans örnekleri · ${new Date(data.updatedAt).toLocaleString("tr-TR", {
+        day: "2-digit",
+        month: "short",
+        hour: "2-digit",
+        minute: "2-digit",
+      })}`
+    : isError
+      ? "Fallback veri · perf-metrics endpoint'i ulaşılamadı"
+      : "Demo veri · gerçek RUM/trace örnekleri henüz bu karta bağlanmadı";
 
   // Aggregate verdict — herhangi bir page'de poor varsa kötü
   const verdict = metrics.pages.reduce<"good" | "ni" | "poor">((acc, p) => {
@@ -138,6 +148,7 @@ export function PerfPanel() {
   }
 
   const t = THRESHOLDS[selectedMetric];
+  const totalSamples = metrics.pages.reduce((sum, page) => sum + page.sampleCount, 0);
 
   return (
     <section>
@@ -151,8 +162,9 @@ export function PerfPanel() {
           )}
           <p className="text-xs text-slate-500">· Son 7 gün</p>
         </div>
-        <span className="text-[11px] text-slate-500">{metrics.pages.length} sayfa izleniyor</span>
+        <span className="text-[11px] text-slate-500">{metrics.pages.length} sayfa · {totalSamples.toLocaleString("tr-TR")} örnek</span>
       </div>
+      <p className="mb-3 text-[11px] text-slate-500">{sourceLabel}</p>
 
       <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-4">
         {/* Sol: Metrik seçici + trend */}

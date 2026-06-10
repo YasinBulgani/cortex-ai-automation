@@ -84,6 +84,16 @@ export function MyInbox() {
     fix:         items.filter((i) => i.kind === "fix").length,
     investigate: items.filter((i) => i.kind === "investigate").length,
   };
+  const sourceLabel = data?.updatedAt
+    ? `Canlı inbox · ${new Date(data.updatedAt).toLocaleString("tr-TR", {
+        day: "2-digit",
+        month: "short",
+        hour: "2-digit",
+        minute: "2-digit",
+      })}`
+    : isError
+      ? "Fallback veri · my-inbox endpoint'i ulaşılamadı"
+      : "Demo triage kuyruğu · gerçek atamalar henüz gelmedi";
 
   return (
     <section className="rounded-2xl border border-slate-800 bg-slate-900/60">
@@ -137,11 +147,16 @@ export function MyInbox() {
           })}
         </div>
       </div>
+      <div className="px-5 py-2.5 border-b border-slate-800/60 text-[11px] text-slate-500">
+        {sourceLabel}
+      </div>
 
       {/* Items */}
       <ul className="divide-y divide-slate-800/60">
         {filtered.length === 0 ? (
-          <li className="px-5 py-8 text-center text-sm text-slate-500">Bu filtrede iş yok 🎉</li>
+          <li className="px-5 py-8 text-center text-sm text-slate-500">
+            Bu filtrede açık iş yok.
+          </li>
         ) : (
           filtered.map((item) => {
             const k = KIND_META[item.kind];
@@ -169,8 +184,8 @@ export function MyInbox() {
 
       <div className="px-5 py-2 border-t border-slate-800/60 flex items-center justify-between text-[11px] text-slate-500">
         <span>Son güncelleme: {data?.updatedAt ? new Date(data.updatedAt).toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" }) : "fallback veri"}</span>
-        <button className="text-rose-300 hover:underline" type="button" title="Bu aksiyon henüz kurallar ekranına bağlı değil">
-          Inbox kurallarını düzenle
+        <button className="text-slate-500 cursor-not-allowed" type="button" disabled title="Kural düzenleyici henüz ayrı ekrana bağlı değil">
+          Kural düzenleyici yakında
         </button>
       </div>
 

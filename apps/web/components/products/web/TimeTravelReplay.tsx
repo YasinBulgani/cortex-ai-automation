@@ -108,13 +108,21 @@ export function TimeTravelReplay() {
             🎬
           </div>
           <div>
-            <h2 className="text-sm font-semibold text-white">Time-Travel Replay</h2>
+            <div className="flex items-center gap-2">
+              <h2 className="text-sm font-semibold text-white">Time-Travel Replay</h2>
+              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/25">
+                Demo
+              </span>
+            </div>
             <p className="text-[11px] text-slate-400">Kırılma anına git, DOM + network + console durumunu gör</p>
           </div>
         </div>
         <span className="text-[11px] px-2 py-0.5 rounded-full bg-rose-500/10 text-rose-300 border border-rose-500/25">
           3 başarısız
         </span>
+      </div>
+      <div className="px-5 py-2.5 border-b border-slate-800 text-[11px] text-slate-500">
+        Bu replay canlı trace dosyasından okunmuyor. Kareler, console mesajları ve scrubber örnek kırılma akışını temsil eder.
       </div>
 
       {/* Failed test selector */}
@@ -185,6 +193,10 @@ export function TimeTravelReplay() {
                                           "text-slate-300"
             }`}>{frame.console}</div>
           </div>
+        </div>
+
+        <div className="rounded-lg border border-slate-800 bg-slate-950/60 px-3 py-2 text-[11px] text-slate-400">
+          <span className="text-slate-500">Özet:</span> {active.reason}
         </div>
 
         {/* Scrubber */}

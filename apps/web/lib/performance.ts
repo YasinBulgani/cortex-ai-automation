@@ -22,6 +22,17 @@ export interface MetricsCallback {
   (metric: WebVitalsMetrics): void;
 }
 
+type LargestContentfulPaintEntry = PerformanceEntry & {
+  renderTime?: number;
+  loadTime?: number;
+};
+
+declare global {
+  interface Window {
+    gtag?: (command: string, eventName: string, params?: Record<string, unknown>) => void;
+  }
+}
+
 // Thresholds for rating (milliseconds)
 const THRESHOLDS = {
   LCP: { good: 2500, poor: 4000 },
@@ -54,15 +65,16 @@ export function onLCP(callback: MetricsCallback): void {
   try {
     const observer = new PerformanceObserver((list) => {
       const entries = list.getEntries();
-      const lastEntry = entries[entries.length - 1];
+      const lastEntry = entries[entries.length - 1] as LargestContentfulPaintEntry | undefined;
+      const value = lastEntry?.renderTime ?? lastEntry?.loadTime ?? 0;
 
       const metric: WebVitalsMetrics = {
         name: "LCP",
-        value: lastEntry.renderTime || lastEntry.loadTime,
+        value,
         id: `lcp-${Date.now()}`,
         entries,
         navigationType: (performance as any).navigation?.type || "navigate",
-        rating: getRating("LCP", lastEntry.renderTime || lastEntry.loadTime),
+        rating: getRating("LCP", value),
       };
 
       callback(metric);
@@ -102,7 +114,7 @@ export function onINP(callback: MetricsCallback): void {
       }
     });
 
-    observer.observe({ type: "event", buffered: true, durationThreshold: 40 });
+    observer.observe({ type: "event", buffered: true } as PerformanceObserverInit);
   } catch (err) {
     console.error("INP observation failed:", err);
   }
@@ -154,6 +166,9 @@ export function onFCP(callback: MetricsCallback): void {
     const observer = new PerformanceObserver((list) => {
       const entries = list.getEntries();
       const lastEntry = entries[entries.length - 1];
+      if (!lastEntry) {
+        return;
+      }
 
       const metric: WebVitalsMetrics = {
         name: "FCP",
@@ -343,7 +358,7 @@ export function measure(name: string, startMark: string, endMark: string): numbe
 export function reportMetric(name: string, value: number, labels?: Record<string, string>): void {
   // Could be extended to send metrics to analytics service
   if (window.gtag) {
-    (window as any).gtag?.event("page_view", {
+    window.gtag("event", "page_view", {
       metric_name: name,
       metric_value: value,
       ...labels,

@@ -63,6 +63,9 @@ export function AuthStateManager() {
           {reuseBoost}% reuse
         </span>
       </div>
+      <div className="px-4 py-2.5 border-b border-slate-800 text-[11px] text-slate-500">
+        Auth durumları şu an demo storageState örnekleridir. Yenile aksiyonu yalnızca karttaki simülasyonu tazeler; gerçek oturum deposuna yazmaz.
+      </div>
 
       {/* Rol listesi */}
       <div className="p-3 space-y-2">
@@ -103,7 +106,9 @@ export function AuthStateManager() {
       {/* Footer */}
       <div className="px-4 py-2.5 border-t border-slate-800 flex items-center justify-between text-[11px] text-slate-500">
         <span>Tahmini tasarruf: <span className="text-emerald-300 font-semibold">~6sn/test</span></span>
-        <button className="text-emerald-400 hover:underline">storageState ekle →</button>
+        <button className="text-slate-500 cursor-not-allowed" type="button" disabled title="storageState oluşturma akışı henüz bağlanmadı">
+          storageState akışı yakında
+        </button>
       </div>
     </div>
   );
