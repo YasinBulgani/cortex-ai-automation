@@ -321,7 +321,7 @@ Authorization: Bearer <token>
   "channel_id": "C123456",
   "channel_name": "test-alerts",
   "event_types": ["test_run", "defect", "coverage"],
-  "webhook_url": "https://hooks.slack.com/services/T00000000/B00000000/XXXXXXXXXXXXXXXXXXXXXXXX"
+  "webhook_url": "https://hooks.slack.com/services/YOUR_TEAM_ID/YOUR_BOT_ID/YOUR_WEBHOOK_TOKEN"
 }
 ```
 
