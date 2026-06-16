@@ -22,7 +22,7 @@ jobs:
     name: Build macOS DMG
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
 
       - name: Resolve version
         id: ver
@@ -51,7 +51,7 @@ jobs:
     name: Build Windows EXE
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
 
       - name: Resolve version
         id: ver
