@@ -41,7 +41,7 @@ jobs:
           bash installer/mac/build-dmg.sh "${{ steps.ver.outputs.version }}"
 
       - name: Upload DMG artifact
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7
         with:
           name: cortex-mac-dmg
           path: installer/out/*.dmg
@@ -73,7 +73,7 @@ jobs:
         run: installer\windows\build.bat ${{ steps.ver.outputs.version }}
 
       - name: Upload EXE artifact
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7
         with:
           name: cortex-windows-exe
           path: installer/out/*.exe
